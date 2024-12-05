@@ -1,0 +1,3 @@
+tools:
+  open_browser:
+    import_path: "webbrowser.open"
