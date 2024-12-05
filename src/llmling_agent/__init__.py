@@ -1,7 +1,6 @@
 """Agent configuration and creation."""
 
 from llmling_agent.factory import create_agents_from_config
-from llmling_agent.loader import load_agent_config_file
 from llmling_agent.models import AgentDefinition, SystemPrompt
 from llmling_agent.agent import LLMlingAgent
 
@@ -13,5 +12,4 @@ __all__ = [
     "LLMlingAgent",
     "SystemPrompt",
     "create_agents_from_config",
-    "load_agent_config_file",
 ]

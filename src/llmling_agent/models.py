@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai import models  # noqa: TC002
+import yamling
+
+
+if TYPE_CHECKING:
+    import os
 
 
 class ResponseField(BaseModel):
@@ -52,5 +57,12 @@ class AgentDefinition(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-
-# AgentDefinition.model_rebuild()
+    @classmethod
+    def from_file(cls, path: str | os.PathLike[str]) -> Self:
+        """Load agent configuration from YAML file."""
+        try:
+            data = yamling.load_yaml_file(path)
+            return cls.model_validate(data)
+        except Exception as exc:
+            msg = f"Failed to load agent config from {path}"
+            raise ValueError(msg) from exc

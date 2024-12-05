@@ -9,9 +9,9 @@ def get_logger(name: str) -> logging.Logger:
     """Get a logger for the given name.
 
     Args:
-        name: The name of the logger, will be prefixed with 'llmling.'
+        name: The name of the logger, will be prefixed with 'llmling_agent.'
 
     Returns:
         A logger instance
     """
-    return logging.getLogger(f"llmling.{name}")
+    return logging.getLogger(f"llmling_agent.{name}")
