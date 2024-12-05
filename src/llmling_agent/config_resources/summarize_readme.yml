@@ -1,0 +1,5 @@
+resources:
+  llmling_agent_manual:
+    type: path
+    path: "https://raw.githubusercontent.com/phil65/llmling_agent/refs/heads/main/README.md"
+    description: "LLMling Agent Manual"
