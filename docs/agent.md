@@ -167,7 +167,7 @@ def plain_tool(text: str) -> str:
 @agent.system_prompt
 async def get_prompt(ctx: RunContext[RuntimeConfig]) -> str:
     """Dynamic system prompt."""
-    resources = await ctx.deps.list_resources()
+    resources = await ctx.deps.list_resource_names()
     return f"Available resources: {', '.join(resources)}"
 
 # Register result validator
