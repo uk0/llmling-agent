@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence  # noqa: TC003
+from collections.abc import (
+    Sequence,  # noqa: TC003
+)
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
 import inspect
 from inspect import Parameter, Signature
 from typing import TYPE_CHECKING, Any, cast
@@ -18,7 +22,12 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import (
+        AsyncIterator,
+        Awaitable,
+        Callable,
+    )
+    import os
 
     from llmling.core.events import Event
     from py2openai import OpenAIFunctionTool
@@ -34,6 +43,24 @@ T = TypeVar("T")  # For the return type
 POS_OR_KEY = Parameter.POSITIONAL_OR_KEYWORD
 
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
+
+
+@dataclass
+class ResourceInfo:
+    """Information about an available resource.
+
+    This class provides essential information about a resource that can be loaded.
+    Use the resource name with load_resource() to access the actual content.
+    """
+
+    name: str
+    """Name of the resource, use this with load_resource()"""
+
+    uri: str
+    """URI identifying the resource location"""
+
+    description: str | None = None
+    """Optional description of the resource's content or purpose"""
 
 
 def _create_tool_wrapper(
@@ -180,6 +207,73 @@ class LLMlingAgent[TResult]:
         self._name = name
         msg = "Initialized %s (model=%s, result_type=%s)"
         logger.debug(msg, self._name, model, result_type or "str")
+
+    @classmethod
+    @asynccontextmanager
+    async def open(
+        cls,
+        config_path: str | os.PathLike[str],
+        result_type: type[TResult] | None = None,
+        *,
+        model: models.Model | models.KnownModelName | None = None,
+        system_prompt: str | Sequence[str] = (),
+        name: str = "llmling-agent",
+        retries: int = 1,
+        result_tool_name: str = "final_result",
+        result_tool_description: str | None = None,
+        result_retries: int | None = None,
+        defer_model_check: bool = False,
+        **kwargs: Any,
+    ) -> AsyncIterator[LLMlingAgent[TResult]]:
+        """Create an agent with an auto-managed runtime configuration.
+
+        This is a convenience method that combines RuntimeConfig.open with agent creation.
+
+        Args:
+            config_path: Path to the runtime configuration file
+            result_type: Optional type for structured responses
+            model: The default model to use (defaults to GPT-4)
+            system_prompt: Static system prompts to use for this agent
+            name: Name of the agent for logging
+            retries: Default number of retries for failed operations
+            result_tool_name: Name of the tool used for final result
+            result_tool_description: Description of the final result tool
+            result_retries: Max retries for result validation (defaults to retries)
+            defer_model_check: Whether to defer model evaluation until first run
+            **kwargs: Additional arguments for PydanticAI agent
+
+        Yields:
+            Configured LLMlingAgent instance
+
+        Example:
+            ```python
+            async with LLMlingAgent.open(
+                "config.yml",
+                model="openai:gpt-3.5-turbo"
+            ) as agent:
+                result = await agent.run("Hello!")
+                print(result.data)
+            ```
+        """
+        async with RuntimeConfig.open(config_path) as runtime:
+            agent = cls(
+                runtime=runtime,
+                result_type=result_type,
+                model=model,
+                system_prompt=system_prompt,
+                name=name,
+                retries=retries,
+                result_tool_name=result_tool_name,
+                result_tool_description=result_tool_description,
+                result_retries=result_retries,
+                defer_model_check=defer_model_check,
+                **kwargs,
+            )
+            try:
+                yield agent
+            finally:
+                # Any cleanup if needed
+                pass
 
     def _setup_runtime_tools(self) -> None:
         """Register all tools from runtime configuration."""
