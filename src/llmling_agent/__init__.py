@@ -5,7 +5,7 @@ from llmling_agent.models import AgentDefinition, SystemPrompt
 from llmling_agent.agent import LLMlingAgent
 
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 
 __all__ = [
     "AgentDefinition",
