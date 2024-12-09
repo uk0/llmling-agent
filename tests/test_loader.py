@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import pytest
@@ -21,14 +22,16 @@ def test_load_valid_config(valid_config: str):
     assert "SupportResult" in config.responses
 
 
-def test_load_invalid_file():
+def test_load_invalid_file(caplog):
     """Test loading non-existent file."""
+    caplog.set_level(logging.CRITICAL)
     with pytest.raises(ValueError):  # noqa: PT011
         AgentDefinition.from_file("nonexistent.yml")
 
 
-def test_load_invalid_yaml(tmp_path: Path):
+def test_load_invalid_yaml(tmp_path: Path, caplog):
     """Test loading invalid YAML content."""
+    caplog.set_level(logging.CRITICAL)
     invalid_file = tmp_path / "invalid.yml"
     invalid_file.write_text("invalid: yaml: content:")
 

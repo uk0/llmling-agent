@@ -12,7 +12,6 @@ from inspect import Parameter, Signature
 from typing import TYPE_CHECKING, Any, cast
 
 from llmling.config.runtime import RuntimeConfig
-from llmling.resources.models import LoadedResource  # noqa: TC002
 import logfire
 from pydantic_ai import Agent as PydanticAgent, RunContext, messages
 from pydantic_ai.result import RunResult, StreamedRunResult
@@ -201,8 +200,6 @@ class LLMlingAgent[TResult]:
 
         # Set up event handling
         self._runtime.add_event_handler(self)
-
-        self._setup_default_tools()
         self._setup_runtime_tools()
         self._name = name
         msg = "Initialized %s (model=%s, result_type=%s)"
@@ -283,78 +280,6 @@ class LLMlingAgent[TResult]:
             self.tool(wrapper)
             msg = "Registered runtime tool: %s (signature: %s)"
             logger.debug(msg, name, wrapper.__signature__)  # type: ignore
-
-    def _setup_default_tools(self) -> None:
-        """Register default tools for resource operations."""
-
-        @self.tool
-        async def load_resource(
-            ctx: RunContext[RuntimeConfig],
-            uri: str,
-        ) -> LoadedResource:
-            """Load a resource by URI or name.
-
-            This tool can be used to load resources based on a path.
-            Available resources can be looked up using list_resources tool.
-
-
-            Examples:
-                - Load by filename / path: "test.txt"
-                - Full URI: "file:///test.txt" (triple slashes are required)
-                - Local path: "/path/to/file.txt"
-
-            Args:
-                ctx: Context
-                uri: Resource URI to load. Can be:
-
-            """
-            return await ctx.deps.load_resource_by_uri(uri)
-
-        @self.tool
-        async def list_resources(ctx: RunContext[RuntimeConfig]) -> Sequence[str]:
-            """List available resources."""
-            return ctx.deps.list_resource_names()
-
-        @self.tool
-        async def process_content(
-            ctx: RunContext[RuntimeConfig],
-            content: str,
-            processor_name: str,
-            **kwargs: Any,
-        ) -> str:
-            """Process content with a named processor.
-
-            Args:
-                ctx: Context
-                content: Content to process
-                processor_name: Name of processor to use
-                **kwargs: Additional processor arguments
-            """
-            result = await ctx.deps.process_content(content, processor_name, **kwargs)
-            return result.content
-
-        @self.tool
-        async def render_template(
-            ctx: RunContext[RuntimeConfig],
-            template: str,
-            **variables: Any,
-        ) -> str:
-            """Render a template string using Jinja2.
-
-            Args:
-                ctx: Runtime context
-                template: Template string to render
-                **variables: Variables to use in template
-
-            Returns:
-                Rendered template string
-
-            Example:
-                "Hello {{ name }}!" with variables {"name": "World"}
-                will return "Hello World!"
-            """
-            result = await ctx.deps.process_content(template, JINJA_PROC, **variables)
-            return result.content
 
     async def handle_event(self, event: Event) -> None:
         """Handle runtime events.
