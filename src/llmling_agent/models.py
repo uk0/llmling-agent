@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from llmling.config.store import ConfigStore
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 from pydantic_ai import models  # noqa: TC002
 import yamling
 
@@ -90,6 +91,17 @@ class AgentConfig(BaseModel):
         extra="forbid",
         use_attribute_docstrings=True,
     )
+
+    @field_validator("environment")
+    @classmethod
+    def resolve_environment(cls, env: str, info: ValidationInfo) -> str:
+        """Try to resolve environment as name first, then as path."""
+        try:
+            config_store = ConfigStore()
+            return config_store.get_config(env)
+        except KeyError:
+            # If not found, treat as direct path
+            return env
 
 
 class AgentDefinition(BaseModel):

@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import asyncio
 
-from llmling import Config
+from llmling import Config, RuntimeConfig
 from llmling.cli.constants import verbose_opt
 from llmling.cli.utils import format_output
-from llmling.config.runtime import RuntimeConfig
 from llmling.core import exceptions
 from pydantic import ValidationError
 import typer as t
 
-from llmling_agent.cli import agent_store, config_store
+from llmling_agent.cli import agent_store
 from llmling_agent.factory import create_agents_from_config
 from llmling_agent.models import AgentDefinition
 
@@ -110,22 +109,24 @@ def run_agent(
         if model:
             agent_config.model = model
 
-        try:
-            # Get environment configuration
-            env_path = environment or config_store.get_config(agent_config.environment)
-        except KeyError as e:
-            msg = f"Environment '{agent_config.environment}' not found"
-            t.echo(msg, err=True)
-            raise t.Exit(1) from e
-
         async def _run() -> None:
             try:
+                # Use CLI override or resolved path from config
+                env_path = environment or agent_config.environment
                 async with RuntimeConfig.open(env_path or Config()) as runtime:
                     agents = create_agents_from_config(agent_def, runtime)
-                    # Execute each prompt in sequence
-                    for prompt in final_prompts:
-                        result = await agents[agent_name].run(prompt)
+                    agent = agents[agent_name]
+
+                    # Execute prompts as conversation
+                    result = await agent.run(final_prompts[0])
+                    format_output(result.data)
+
+                    for prompt in final_prompts[1:]:
+                        result = await agent.run(
+                            prompt, message_history=result.new_messages()
+                        )
                         format_output(result.data)
+
             except ValidationError as e:
                 t.echo("Environment configuration validation failed:", err=True)
                 for error in e.errors():
