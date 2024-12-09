@@ -166,7 +166,7 @@ def test_create_agents_missing_response(runtime: RuntimeConfig):
             "test": {
                 "name": "Test Agent",
                 "model": "openai:gpt-4",
-                "result_model": "NonExistentResponse",
+                "result_type": "NonExistentResponse",
                 "system_prompts": [],
             },
         },

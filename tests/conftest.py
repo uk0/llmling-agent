@@ -68,19 +68,17 @@ def valid_config() -> dict[str, Any]:
                     "retries": 3,
                     "result_retries": 2,
                 },
-                "result_model": "SupportResult",
+                "result_type": "SupportResult",
                 "system_prompts": [
-                    {"type": "text", "value": "You are a support agent"},
-                    {"type": "template", "value": "Context: {data}"},
+                    "You are a support agent",
+                    "Context: {data}",
                 ],
             },
             "researcher": {
                 "name": "Research Agent",
                 "model": "openai:gpt-4",
-                "result_model": "ResearchResult",
-                "system_prompts": [
-                    {"type": "text", "value": "You are a researcher"},
-                ],
+                "result_type": "ResearchResult",
+                "system_prompts": ["You are a researcher"],
             },
         },
     }

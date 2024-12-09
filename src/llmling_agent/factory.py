@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from llmling.core import exceptions
-from llmling.utils import importing
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from llmling_agent.agent import LLMlingAgent
@@ -13,7 +12,6 @@ from llmling_agent.log import get_logger
 from llmling_agent.models import (
     AgentDefinition,
     ResponseDefinition,
-    SystemPrompt,
 )
 
 
@@ -26,7 +24,6 @@ if TYPE_CHECKING:
         AgentConfig,
         AgentDefinition,
         ResponseDefinition,
-        SystemPrompt,
     )
 
 
@@ -70,18 +67,18 @@ def _create_single_agent(
     runtime: RuntimeConfig,
 ) -> LLMlingAgent[Any]:
     """Internal helper to create a single agent."""
-    result_def = responses[agent_config.result_model]
-    result_model = _create_response_model(
-        agent_config.result_model,
+    result_def = responses[agent_config.result_type]
+    result_type = _create_response_model(
+        agent_config.result_type,
         result_def,
     )
 
     return LLMlingAgent(
         runtime=runtime,
-        result_type=result_model,
+        result_type=result_type,
         model=agent_config.model,
         system_prompt=_create_system_prompts(agent_config.system_prompts),
-        name=agent_config.name,
+        name=agent_config.name or "LLMling Agent",
         **agent_config.model_settings,
     )
 
@@ -109,22 +106,22 @@ def _create_response_model(name: str, definition: ResponseDefinition) -> type[Ba
     )
 
 
-def _create_system_prompts(prompts: list[SystemPrompt]) -> Sequence[str]:
+def _create_system_prompts(prompts: list[str]) -> Sequence[str]:
     """Convert system prompt configs to actual prompts."""
-    result: list[str] = []
+    return prompts
+    # result: list[str] = []
+    # for prompt in prompts:
+    #     match prompt.type:
+    #         case "text":
+    #             result.append(prompt.value)
+    #         case "function":
+    #             func = importing.import_callable(prompt.value)
+    #             # Need to ensure function returns str
+    #             result.append(str(func()))
+    #         case "template":
+    #             result.append(prompt.value)
 
-    for prompt in prompts:
-        match prompt.type:
-            case "text":
-                result.append(prompt.value)
-            case "function":
-                func = importing.import_callable(prompt.value)
-                # Need to ensure function returns str
-                result.append(str(func()))
-            case "template":
-                result.append(prompt.value)
-
-    return result
+    # return result
 
 
 def _parse_type_annotation(type_str: str) -> Any:

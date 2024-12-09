@@ -1,0 +1,19 @@
+tools:
+  list_dir:
+    import_path: "os.listdir"
+    description: "List directory contents"
+  file_info:
+    import_path: "os.stat"
+    description: "Get file information"
+  current_dir:
+    import_path: "os.getcwd"
+    description: "Get current working directory"
+
+resources:
+  help_text:
+    type: text
+    content: |
+      Common file operations:
+      - List files in directory
+      - Get file size and modification time
+      - Show current working directory

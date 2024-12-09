@@ -60,25 +60,35 @@ class SystemPrompt(BaseModel):
 class AgentConfig(BaseModel):
     """Configuration for a single agent."""
 
-    name: str
+    name: str | None = None
     """Name of the agent"""
+
     description: str | None = None
     """Optional description of the agent's purpose"""
+
     model: models.Model | models.KnownModelName | None = None
     """The LLM model to use"""
+
+    environment: str | None = None
+    """Path or name of the environment configuration to use"""
+
+    result_type: str
+    """Name of the response definition to use"""
+
+    system_prompts: list[str] = Field(default_factory=list)
+    """System prompts for the agent"""
+
+    user_prompts: list[str] = Field(default_factory=list)
+    """Default user prompts for the agent"""
+
     model_settings: dict[str, Any] = Field(default_factory=dict)
     """Additional settings to pass to the model"""
-    result_model: str
-    """Name of the response definition to use"""
-    deps_type: str | None = None
-    """Optional dependency injection type"""
-    system_prompts: list[SystemPrompt]
-    """List of system prompts to use"""
 
     model_config = ConfigDict(
-        use_attribute_docstrings=True,
-        extra="forbid",
+        frozen=True,
         arbitrary_types_allowed=True,
+        extra="forbid",
+        use_attribute_docstrings=True,
     )
 
 

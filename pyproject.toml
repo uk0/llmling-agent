@@ -38,7 +38,11 @@ dependencies = [
     "pydantic",
     # Only add below (Copier)
     "pydantic-ai>=0.0.9",
+    "typer>=0.15.1",
 ]
+
+[project.scripts]
+llmling-agent = "llmling_agent.__main__:cli"
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]

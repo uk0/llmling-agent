@@ -54,9 +54,9 @@ def test_valid_agent_definition():
                 "description": "A test agent",
                 "model": "openai:gpt-4",
                 "model_settings": {},
-                "result_model": "TestResponse",
+                "result_type": "TestResponse",
                 "system_prompts": [
-                    {"type": "text", "value": "You are a test agent"},
+                    "You are a test agent",
                 ],
             },
         },
@@ -75,7 +75,7 @@ def test_missing_referenced_response():
         "agent": {
             "name": "Test Agent",
             "model": "openai:gpt-4",
-            "result_model": "NonExistentResponse",
+            "result_type": "NonExistentResponse",
             "system_prompts": [],
         },
     }

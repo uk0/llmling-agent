@@ -1,0 +1,15 @@
+tools:
+  open_url:
+    import_path: "webbrowser.open"
+    description: "Open URL in default browser"
+  get_user:
+    import_path: "getpass.getuser"
+    description: "Get current system username"
+
+resources:
+  bookmarks:
+    type: text
+    content: |
+      Python Website: https://python.org
+      Documentation: https://docs.python.org
+    description: "Common Python URLs"

@@ -1,0 +1,19 @@
+tools:
+  platform_info:
+    import_path: "platform.platform"
+    description: "Get platform information"
+  cpu_count:
+    import_path: "os.cpu_count"
+    description: "Get number of CPUs"
+  memory_info:
+    import_path: "psutil.virtual_memory" # Common enough to be familiar
+    description: "Get memory information"
+
+resources:
+  system_template:
+    type: text
+    content: |
+      System Summary:
+      Platform: {platform}
+      CPUs: {cpu_count}
+      Memory: {memory_info}

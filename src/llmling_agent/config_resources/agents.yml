@@ -1,38 +1,85 @@
 responses:
-  SupportResult:
-    description: "Support agent response"
+  BasicResult:
+    description: "Simple operation result"
     fields:
-      support_advice:
+      success:
+        type: bool
+        description: "Whether operation succeeded"
+      message:
         type: str
-        description: "Advice returned to customer"
-      risk:
-        type: int
-        description: "Risk level"
-        constraints:
-          ge: 0
-          le: 10
+        description: "Operation result message"
 
-  ResearchResult:
-    description: "Research agent response"
+  SystemInfoResult:
+    description: "System information result"
     fields:
-      findings:
+      platform:
         type: str
-        description: "Research findings"
+        description: "Platform information"
+      cpu_count:
+        type: int
+        description: "Number of CPUs"
+      memory_used:
+        type: float
+        description: "Memory usage in GB"
+      summary:
+        type: str
+        description: "Formatted system summary"
+
+  FileInfoResult:
+    description: "File system information result"
+    fields:
+      current_dir:
+        type: str
+        description: "Current working directory"
+      files:
+        type: list[str]
+        description: "List of files found"
+      details:
+        type: str
+        description: "Formatted file information"
 
 agents:
-  support: # Agent identifier
-    name: "Support Agent"
-    description: "Handles customer support inquiries"
-    model: "openai:gpt-3.5-turbo"
-    result_model: "SupportResult"
+  url_opener:
+    environment: env_website.yml
+    model: openai:gpt-3.5-turbo
+    result_type: BasicResult
     system_prompts:
-      - type: "text"
-        value: "You are a helpful support agent."
+      - |
+        You help users open websites. Use the open_url tool to open URLs.
+        When given a website name, find its URL in the bookmarks resource.
+        Always confirm what you're about to open.
+    user_prompts:
+      - "Open the Python website for me"
+      - "Open my favorite coding sites"
 
-  researcher: # Another agent
-    name: "Research Agent"
-    model: "openai:gpt-4"
-    result_model: "ResearchResult"
+  system_inspector:
+    environment: env_system.yml
+    model: openai:gpt-3.5-turbo
+    result_type: SystemInfoResult
     system_prompts:
-      - type: "text"
-        value: "You are a thorough researcher."
+      - |
+        You provide system information in a clear, formatted way.
+        Use the platform_info, cpu_count, and memory_info tools
+        to gather system information.
+      - |
+        Format it using the template from the system_template resource.
+    user_prompts:
+      - "Show me system information"
+      - "How much memory is being used?"
+      - "Give me a full system report"
+
+  file_explorer:
+    environment: env_files.yml
+    model: openai:gpt-3.5-turbo
+    result_type: FileInfoResult
+    system_prompts:
+      - |
+        You help users explore their file system.
+        Use list_dir to show files, file_info for details,
+        and current_dir to show location.
+      - |
+        Reference help_text resource for common operations.
+    user_prompts:
+      - "Show me what files are in the current directory"
+      - "List all Python files"
+      - "Show details of the current directory"
