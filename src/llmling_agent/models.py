@@ -153,7 +153,17 @@ class AgentDefinition(BaseModel):
 
     @classmethod
     def from_file(cls, path: str | os.PathLike[str]) -> Self:
-        """Load agent configuration from YAML file."""
+        """Load agent configuration from YAML file.
+
+        Args:
+            path: Path to the configuration file
+
+        Returns:
+            Loaded agent definition
+
+        Raises:
+            ValueError: If loading fails
+        """
         try:
             data = yamling.load_yaml_file(path)
             return cls.model_validate(data)
