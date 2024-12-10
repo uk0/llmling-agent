@@ -5,7 +5,6 @@ from __future__ import annotations
 from contextlib import AbstractAsyncContextManager
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from llmling import Config
 from llmling.config.runtime import RuntimeConfig
 
 from llmling_agent.agent import LLMlingAgent
@@ -96,11 +95,7 @@ class SingleAgentRunner[T](AbstractAsyncContextManager):
     async def __aenter__(self) -> SingleAgentRunner[T]:
         """Set up runtime and agent."""
         # Create runtime with agent's environment
-        config = (
-            Config.from_file(self.agent_config.environment)
-            if self.agent_config.environment
-            else Config()
-        )
+        config = self.agent_config.get_config()
         runtime_cm = RuntimeConfig.open(config)
         self._runtime = await runtime_cm.__aenter__()
 

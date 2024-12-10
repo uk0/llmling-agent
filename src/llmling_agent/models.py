@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal, Self
 
+from llmling import Config
+from llmling.config.models import GlobalSettings, LLMCapabilitiesConfig
 from llmling.config.store import ConfigStore
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 from pydantic_ai import models  # noqa: TC002
@@ -91,6 +93,20 @@ class AgentConfig(BaseModel):
         extra="forbid",
         use_attribute_docstrings=True,
     )
+
+    def get_config(self) -> Config:
+        """Get configuration for this agent.
+
+        Returns:
+            Config: If environment is set, loaded from that file.
+                   Otherwise, returns minimal config with resource tools disabled.
+        """
+        if self.environment:
+            return Config.from_file(self.environment)
+
+        caps = LLMCapabilitiesConfig(load_resource=False, get_resources=False)
+        global_settings = GlobalSettings(llm_capabilities=caps)
+        return Config(global_settings=global_settings)
 
     @field_validator("environment")
     @classmethod
