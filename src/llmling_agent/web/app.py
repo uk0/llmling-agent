@@ -102,39 +102,20 @@ class AgentUI:
             history: list[dict[str, str]],
         ) -> tuple[str, list[dict[str, str]]]:
             """Handle agent selection."""
-            logger.info(
-                "Agent selection event: agent=%s, model=%s, history=%s",
-                agent_name,
-                model,
-                history,
-            )
             if not agent_name:
                 return "No agent selected", history
 
             try:
-                status_msg, list_history = await self.handler.select_agent(
-                    file_path=self.handler._file_path,
-                    agent_name=agent_name,
-                    model=model,
-                )
-                logger.info(
-                    "Agent selection result: status=%s, history=%s",
-                    status_msg,
-                    list_history,
-                )
-                msg = "Agent selection result: status=%s, history=%s"
-                logger.debug(msg, status_msg, list_history)
-
+                await self.handler.select_agent(agent_name, model)
+                # Get history for this agent if any
+                agent_history = self.handler.state.history.get(agent_name, [])
                 # Convert list[list[str]] to list[dict[str, str]]
-                dict_history = (
-                    [
-                        {"role": "user" if i % 2 == 0 else "assistant", "content": msg}
-                        for sublist in list_history
-                        for i, msg in enumerate(sublist)
-                    ]
-                    if list_history
-                    else []
-                )
+                dict_history = [
+                    {"role": "user", "content": user_msg} for user_msg, _ in agent_history
+                ] + [
+                    {"role": "assistant", "content": bot_msg}
+                    for _, bot_msg in agent_history
+                ]
             except ValueError as e:
                 logger.exception("Value error in agent selection")
                 return str(e), history
@@ -142,7 +123,7 @@ class AgentUI:
                 logger.exception("Failed to initialize agent")
                 return f"Error initializing agent: {e}", history
             else:
-                return status_msg, dict_history
+                return f"Agent {agent_name} ready", dict_history
 
         async def send_message(
             message: str,
@@ -157,26 +138,11 @@ class AgentUI:
             if not agent_name:
                 return message, history, "Please select an agent first"
 
-            if not message.strip():
-                return message, history, "Message is empty"
-
             try:
-                assert self.handler.state.current_agent
-                result = await self.handler.state.current_agent.run(message)
-                response = result.data
-
-                new_history = list(history)
-                new_history.extend([
-                    {"role": "user", "content": message},
-                    {"role": "assistant", "content": response},
-                ])
-            except ValueError as e:
-                return message, history, str(e)
+                return await self.handler.send_message(message, history)
             except Exception as e:
                 logger.exception("Failed to process message")
                 return message, history, f"Error: {e}"
-            else:
-                return "", new_history, "Message sent"
 
         def handle_upload(upload: gr.FileData) -> tuple[list[str], list[str], str]:
             """Handle config file upload."""

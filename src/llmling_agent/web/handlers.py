@@ -97,40 +97,17 @@ class AgentHandler:
 
     async def select_agent(
         self,
-        file_path: str | None,
         agent_name: str | None,
         model: str | None,
     ) -> tuple[str, list[list[str]]]:
-        """Handle agent selection.
-
-        Args:
-            file_path: Current configuration file
-            agent_name: Name of agent to select
-            model: Optional model override
-
-        Returns:
-            Tuple of (status message, chat history)
-
-        Raises:
-            ValueError: If parameters are invalid
-        """
-        if not file_path:
-            msg = "No file path provided"
-            raise ValueError(msg)
-
+        """Handle agent selection."""
         if not agent_name:
             msg = "No agent name provided"
             raise ValueError(msg)
 
         try:
-            # Initialize state if not already done
-            if not self._state:
-                self._state = await AgentState.create(file_path)
-
-            # Initialize the agent
             await self.state.select_agent(agent_name, model)
             return f"Agent {agent_name} ready", []  # noqa: TRY300
-
         except Exception:
             if self._state:
                 await self._state.cleanup()
@@ -140,17 +117,9 @@ class AgentHandler:
     async def send_message(
         self,
         message: str,
-        chat_history: list[list[str]],
-    ) -> tuple[str, list[list[str]], str]:
-        """Handle sending a chat message.
-
-        Args:
-            message: User message
-            chat_history: Current chat history
-
-        Returns:
-            Tuple of (cleared message, updated history, status)
-        """
+        chat_history: list[dict[str, str]],  # Note: Using dict format consistently
+    ) -> tuple[str, list[dict[str, str]], str]:
+        """Handle sending a chat message."""
         if not message.strip():
             return "", chat_history, "Message is empty"
 
@@ -158,28 +127,30 @@ class AgentHandler:
             return message, chat_history, "No agent selected"
 
         try:
-            # Add user message to history
-            new_history = list(chat_history)
-            new_history.append([message, ""])
-
             # Get agent response using the runner
             result = await self.state.current_runner.run(message)
             response = str(result.data)
 
-            # Update history with response
-            new_history[-1][1] = response
+            # Update history with new messages
+            new_history = list(chat_history)
+            new_history.extend([
+                {"role": "user", "content": message},
+                {"role": "assistant", "content": response},
+            ])
 
             # Store updated history
             agent_name = self.state.current_runner.agent_config.name or "default"
-            self.state.history[agent_name] = new_history
-
+            # Convert to list[list[str]] for storage
+            self.state.history[agent_name] = [
+                [msg["content"] for msg in pair]
+                for pair in zip(new_history[::2], new_history[1::2])
+            ]
         except NotInitializedError as e:
             logger.exception("Agent not properly initialized")
             return message, chat_history, str(e)
         except Exception as e:
             error = f"Error getting response: {e}"
             logger.exception(error)
-            new_history.pop()  # Remove failed message
-            return message, new_history, error
-
-        return "", new_history, "Message sent"
+            return message, chat_history, error
+        else:
+            return "", new_history, "Message sent"
