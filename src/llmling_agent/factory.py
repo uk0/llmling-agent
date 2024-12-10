@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from llmling.core import exceptions
-from pydantic import BaseModel, ConfigDict, Field, create_model
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, create_model
 
 from llmling_agent.agent import LLMlingAgent
 from llmling_agent.log import get_logger
@@ -29,6 +29,9 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 T = TypeVar("T", bound=BaseModel)
+
+# Cache for created models to avoid recreation
+_model_cache: dict[str, type[BaseModel]] = {}
 
 
 def create_agents_from_config(
@@ -67,11 +70,14 @@ def _create_single_agent(
     runtime: RuntimeConfig,
 ) -> LLMlingAgent[Any]:
     """Internal helper to create a single agent."""
-    result_def = responses[agent_config.result_type]
-    result_type = _create_response_model(
+    # Get or create the result model
+    result_type = _get_or_create_response_model(
         agent_config.result_type,
-        result_def,
+        responses[agent_config.result_type],
     )
+
+    # Initialize type adapter to ensure model is built
+    TypeAdapter(result_type).json_schema()
 
     return LLMlingAgent(
         runtime=runtime,
@@ -83,9 +89,18 @@ def _create_single_agent(
     )
 
 
+def _get_or_create_response_model(
+    name: str, definition: ResponseDefinition
+) -> type[BaseModel]:
+    """Get cached model or create new one."""
+    if name not in _model_cache:
+        _model_cache[name] = _create_response_model(name, definition)
+    return _model_cache[name]
+
+
 def _create_response_model(name: str, definition: ResponseDefinition) -> type[BaseModel]:
     """Create a Pydantic model from response definition."""
-    fields: dict[str, Any] = {}  # Change type hint
+    fields: dict[str, Any] = {}
 
     for field_name, field_def in definition.fields.items():
         # Convert string type to actual type
@@ -98,30 +113,22 @@ def _create_response_model(name: str, definition: ResponseDefinition) -> type[Ba
         )
         fields[field_name] = (type_hint, field)
 
-    return create_model(
+    model = create_model(
         name,
         __config__=ConfigDict(frozen=True),
         __doc__=definition.description,
         **fields,
     )
 
+    # Ensure model is fully built
+    TypeAdapter(model).json_schema()
+
+    return model
+
 
 def _create_system_prompts(prompts: list[str]) -> Sequence[str]:
     """Convert system prompt configs to actual prompts."""
     return prompts
-    # result: list[str] = []
-    # for prompt in prompts:
-    #     match prompt.type:
-    #         case "text":
-    #             result.append(prompt.value)
-    #         case "function":
-    #             func = importing.import_callable(prompt.value)
-    #             # Need to ensure function returns str
-    #             result.append(str(func()))
-    #         case "template":
-    #             result.append(prompt.value)
-
-    # return result
 
 
 def _parse_type_annotation(type_str: str) -> Any:

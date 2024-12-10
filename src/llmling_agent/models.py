@@ -113,7 +113,7 @@ class AgentConfig(BaseModel):
         dct = {
             "name": self.name,
             "model": self.model,
-            "result_type": self.result_type,
+            # "result_type": self.result_type,
             "system_prompt": self.system_prompts,
             **self.model_settings,
         }

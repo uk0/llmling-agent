@@ -123,7 +123,18 @@ class AgentHandler:
             agent_config = agent_def.agents[agent_name]
             if model:
                 agent_config.model = model
-            kwargs = agent_config.get_agent_kwargs(name=agent_name)
+
+            # Get result type from responses
+            result_type_name = agent_config.result_type
+            if result_type_name not in agent_def.responses:
+                msg = f"Response type '{result_type_name}' not found in configuration"
+                raise ValueError(msg)  # noqa: TRY301
+
+            # Create kwargs with proper result type handling
+            kwargs = agent_config.get_agent_kwargs(
+                name=agent_name,
+                result_type=result_type_name,  # Just pass name, factory will handle it
+            )
             self._state.current_agent = LLMlingAgent(runtime=runtime, **kwargs)
         except Exception:
             if self._state and self._state.runtime:

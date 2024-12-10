@@ -155,7 +155,7 @@ class LLMlingAgent[TResult]:
     def __init__(
         self,
         runtime: RuntimeConfig,
-        result_type: type[TResult] | None = None,
+        result_type: type[TResult] | str | None = None,
         *,
         model: models.Model | models.KnownModelName | None = None,
         system_prompt: str | Sequence[str] = (),
@@ -183,11 +183,15 @@ class LLMlingAgent[TResult]:
             kwargs: Additional arguments for PydanticAI agent
         """
         self._runtime = runtime
+        if isinstance(result_type, str):
+            actual_result_type: type[TResult] = str  # type: ignore
+        else:
+            actual_result_type = result_type or str  # type: ignore
 
         # Initialize base PydanticAI agent
         self.pydantic_agent = PydanticAgent(
             model=model,
-            result_type=result_type or str,  # Default to string responses
+            result_type=actual_result_type,  # Default to string responses
             system_prompt=system_prompt,
             deps_type=RuntimeConfig,  # Always use RuntimeConfig as deps
             retries=retries,
