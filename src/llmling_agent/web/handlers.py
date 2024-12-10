@@ -2,13 +2,8 @@
 
 from __future__ import annotations
 
-from llmling import Config
-from llmling.config.runtime import RuntimeConfig
-from upath import UPath
-
-from llmling_agent.factory import _create_single_agent
 from llmling_agent.log import get_logger
-from llmling_agent.models import AgentDefinition
+from llmling_agent.runners.single import NotInitializedError
 from llmling_agent.web.state import AgentState
 
 
@@ -24,12 +19,35 @@ class AgentHandler:
         Args:
             file_path: Initial configuration file path
         """
+        self._file_path = file_path
         self._state: AgentState | None = None
-        self._file_path = str(UPath(file_path))
+
+    @classmethod
+    async def create(cls, file_path: str) -> AgentHandler:
+        """Create and initialize a new handler.
+
+        Args:
+            file_path: Path to configuration file
+
+        Returns:
+            Initialized handler
+
+        Raises:
+            ValueError: If initialization fails
+        """
+        handler = cls(file_path)
+        await handler.initialize()
+        return handler
 
     async def initialize(self) -> None:
-        """Initialize the handler state."""
+        """Initialize the handler state.
+
+        Raises:
+            ValueError: If initialization fails
+        """
+        logger.debug("Initializing handler with file: %s", self._file_path)
         self._state = await AgentState.create(self._file_path)
+        logger.debug("Handler initialized with state: %s", self._state)
 
     @property
     def state(self) -> AgentState:
@@ -59,20 +77,16 @@ class AgentHandler:
             Tuple of (agent choices, status message)
         """
         try:
-            # Clean up old state if it exists
-            path = str(UPath(file_path))
-            logger.debug("Loading file from path: %s", path)
+            logger.debug("Loading file from path: %s", file_path)
 
+            # Clean up old state if it exists
             if self._state:
                 await self._state.cleanup()
 
             # Create new state
-            logger.debug("Creating new state")
-            self._state = await AgentState.create(path)
-            logger.debug("Agent definition: %s", self._state.agent_def)
+            self._state = await AgentState.create(file_path)
             agents = list(self._state.agent_def.agents)
-            logger.debug("Found agents: %s", agents)
-            msg = f"Loaded {len(agents)} agents from {path}"
+            msg = f"Loaded {len(agents)} agents from {file_path}"
             logger.info(msg)
         except Exception as e:
             error = f"Error loading file: {e}"
@@ -96,6 +110,9 @@ class AgentHandler:
 
         Returns:
             Tuple of (status message, chat history)
+
+        Raises:
+            ValueError: If parameters are invalid
         """
         if not file_path:
             msg = "No file path provided"
@@ -107,31 +124,18 @@ class AgentHandler:
 
         try:
             # Initialize state if not already done
-            agent_def = AgentDefinition.from_file(str(file_path))
+            if not self._state:
+                self._state = await AgentState.create(file_path)
 
-            # Create empty config for now
-            config = Config()
-            runtime = RuntimeConfig.from_config(config)
-            await runtime.__aenter__()
-            self._state = AgentState(agent_def=agent_def, runtime=runtime)
-
-            # Let factory handle model creation and agent initialization
-            self._state.current_agent = _create_single_agent(
-                agent_def.agents[agent_name], agent_def.responses, runtime
-            )
-
-            if model:
-                # Apply model override if specified
-                assert self._state.current_agent
-                self._state.current_agent.pydantic_agent.model = model
+            # Initialize the agent
+            await self.state.select_agent(agent_name, model)
+            return f"Agent {agent_name} ready", []  # noqa: TRY300
 
         except Exception:
-            if self._state and self._state.runtime:
-                await self._state.runtime.__aexit__(None, None, None)
+            if self._state:
+                await self._state.cleanup()
             self._state = None
             raise
-        else:
-            return f"Agent {agent_name} ready", []
 
     async def send_message(
         self,
@@ -150,28 +154,32 @@ class AgentHandler:
         if not message.strip():
             return "", chat_history, "Message is empty"
 
-        if not self.state.current_agent:
+        if not self.state.current_runner:
             return message, chat_history, "No agent selected"
 
         try:
             # Add user message to history
             new_history = list(chat_history)
-            new_history.append([message, ""])  # Use list, not tuple
+            new_history.append([message, ""])
 
-            # Get agent response
-            result = await self.state.current_agent.run(message)
-            response = result.data
+            # Get agent response using the runner
+            result = await self.state.current_runner.run(message)
+            response = str(result.data)
 
-            # Update history
-            new_history[-1][1] = response  # Update the second element
+            # Update history with response
+            new_history[-1][1] = response
 
-            # Update stored history
-            if self.state.current_agent and self.state.current_agent._name:
-                self.state.history[self.state.current_agent._name] = new_history
+            # Store updated history
+            agent_name = self.state.current_runner.agent_config.name or "default"
+            self.state.history[agent_name] = new_history
+
+        except NotInitializedError as e:
+            logger.exception("Agent not properly initialized")
+            return message, chat_history, str(e)
         except Exception as e:
             error = f"Error getting response: {e}"
             logger.exception(error)
             new_history.pop()  # Remove failed message
             return message, new_history, error
-        else:
-            return "", new_history, "Message sent"
+
+        return "", new_history, "Message sent"

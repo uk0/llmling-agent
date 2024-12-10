@@ -80,16 +80,14 @@ class AgentUI:
     def create_ui(self) -> gr.Blocks:
         """Create the Gradio interface."""
 
-        def handle_file_selection(evt: gr.SelectData) -> tuple[dict[str, Any], str]:
+        async def handle_file_selection(evt: gr.SelectData) -> tuple[dict[str, Any], str]:
             """Handle file selection event."""
             file_path = evt.value
             logger.info("File selection event: %s", file_path)
             try:
                 # Create new handler with selected file
-                self._handler = AgentHandler(file_path)
-
-                data = load_yaml(file_path)
-                agents = list(data.get("agents", {}).keys())
+                self._handler = await AgentHandler.create(file_path)
+                agents = list(self._handler.state.agent_def.agents)
                 msg = f"Loaded {len(agents)} agents: {', '.join(agents)}"
                 logger.info(msg)
                 return gr.update(choices=agents, value=None), msg
@@ -99,19 +97,30 @@ class AgentUI:
                 return gr.update(choices=[], value=None), f"Error: {e}"
 
         async def handle_agent_selection(
-            agent_name: str | None, model: str | None, history: list[dict[str, str]]
+            agent_name: str | None,
+            model: str | None,
+            history: list[dict[str, str]],
         ) -> tuple[str, list[dict[str, str]]]:
             """Handle agent selection."""
-            logger.info("Agent selection event: %s (model: %s)", agent_name, model)
+            logger.info(
+                "Agent selection event: agent=%s, model=%s, history=%s",
+                agent_name,
+                model,
+                history,
+            )
             if not agent_name:
                 return "No agent selected", history
 
             try:
-                # We already have the file path in the handler
                 status_msg, list_history = await self.handler.select_agent(
-                    file_path=self.handler._file_path,  # This might be the issue
+                    file_path=self.handler._file_path,
                     agent_name=agent_name,
                     model=model,
+                )
+                logger.info(
+                    "Agent selection result: status=%s, history=%s",
+                    status_msg,
+                    list_history,
                 )
                 msg = "Agent selection result: status=%s, history=%s"
                 logger.debug(msg, status_msg, list_history)

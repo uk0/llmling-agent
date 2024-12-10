@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 from llmling.cli.constants import output_format_opt, verbose_opt
 from llmling.cli.utils import format_output
@@ -10,8 +11,8 @@ from pydantic import ValidationError
 import typer as t
 
 from llmling_agent.cli import agent_store
-from llmling_agent.cli.runner import AgentRunConfig, AgentRunner
 from llmling_agent.models import AgentDefinition
+from llmling_agent.runners import AgentOrchestrator, AgentRunConfig
 
 
 agent_cli = t.Typer(help="Agent management commands", no_args_is_help=True)
@@ -155,10 +156,28 @@ def run_agent(
             output_format=output_format,
         )
 
-        # Create and run agent runner
-        runner = AgentRunner(agent_def, run_config)
-        runner.validate()
-        asyncio.run(runner.run())
+        # Create and run orchestrator
+        orchestrator = AgentOrchestrator[Any](agent_def, run_config)
+
+        async def run() -> None:
+            try:
+                results = await orchestrator.run()
+                # Format results based on whether we ran single or multiple agents
+                if len(agent_names) == 1:
+                    # Single agent results is a list of RunResults
+                    for result in results:  # type: ignore
+                        format_output(result.data, output_format)
+                else:
+                    # Multiple agent results is a dict of agent -> list[RunResult]
+                    formatted: dict[str, list[Any]] = {
+                        name: [r.data for r in agent_results]
+                        for name, agent_results in results.items()  # type: ignore
+                    }
+                    format_output(formatted, output_format)
+            finally:
+                await orchestrator.cleanup()
+
+        asyncio.run(run())
 
     except t.Exit:
         raise
@@ -190,22 +209,14 @@ def list_agents(
             msg = str(e)
             raise t.BadParameter(msg) from e
 
-        try:
-            # Load and validate agent definition
-            agent_def = AgentDefinition.from_file(config_path)
-            # Set the name field from the dict key for each agent
-            agents = [
-                agent.model_copy(update={"name": name})
-                for name, agent in agent_def.agents.items()
-            ]
-            format_output(agents, output_format)
-
-        except ValidationError as e:
-            t.echo("Configuration validation failed:", err=True)
-            for error in e.errors():
-                location = " -> ".join(str(loc) for loc in error["loc"])
-                t.echo(f"  {location}: {error['msg']}", err=True)
-            raise t.Exit(1) from e
+        # Load and validate agent definition
+        agent_def = AgentDefinition.from_file(config_path)
+        # Set the name field from the dict key for each agent
+        agents = [
+            agent.model_copy(update={"name": name})
+            for name, agent in agent_def.agents.items()
+        ]
+        format_output(agents, output_format)
 
     except t.Exit:
         raise
