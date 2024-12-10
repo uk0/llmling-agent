@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-TResult = TypeVar("TResult", default=str)  # Type of results (str or Pydantic model)
+TResult = TypeVar("TResult", default=str)
 T = TypeVar("T")  # For the return type
 
 POS_OR_KEY = Parameter.POSITIONAL_OR_KEYWORD
@@ -155,7 +155,7 @@ class LLMlingAgent[TResult]:
     def __init__(
         self,
         runtime: RuntimeConfig,
-        result_type: type[TResult] | str | None = None,
+        result_type: type[TResult] | None = None,
         *,
         model: models.Model | models.KnownModelName | None = None,
         system_prompt: str | Sequence[str] = (),
@@ -183,17 +183,16 @@ class LLMlingAgent[TResult]:
             kwargs: Additional arguments for PydanticAI agent
         """
         self._runtime = runtime
-        if isinstance(result_type, str):
-            actual_result_type: type[TResult] = str  # type: ignore
-        else:
-            actual_result_type = result_type or str  # type: ignore
+
+        # Use provided type or default to str
+        actual_result_type = result_type or str
 
         # Initialize base PydanticAI agent
         self.pydantic_agent = PydanticAgent(
             model=model,
-            result_type=actual_result_type,  # Default to string responses
+            result_type=actual_result_type,
             system_prompt=system_prompt,
-            deps_type=RuntimeConfig,  # Always use RuntimeConfig as deps
+            deps_type=RuntimeConfig,
             retries=retries,
             result_tool_name=result_tool_name,
             result_tool_description=result_tool_description,
@@ -201,7 +200,6 @@ class LLMlingAgent[TResult]:
             defer_model_check=defer_model_check,
             **kwargs,
         )
-
         # Set up event handling
         self._runtime.add_event_handler(self)
         self._setup_runtime_tools()

@@ -7,7 +7,6 @@ from typing import Any
 
 from llmling import config_resources
 from llmling.config.runtime import RuntimeConfig
-from llmling.core import exceptions
 from pydantic import BaseModel
 from pydantic_ai import models
 import pytest
@@ -158,19 +157,19 @@ def test_create_agents(valid_config: dict[str, Any], runtime: RuntimeConfig):
     assert pydantic_agent._max_result_retries == 1  # Default value
 
 
-def test_create_agents_missing_response(runtime: RuntimeConfig):
-    """Test agent creation with missing response definition."""
-    config = {
-        "responses": {},
-        "agents": {
-            "test": {
-                "name": "Test Agent",
-                "model": "openai:gpt-4",
-                "result_type": "NonExistentResponse",
-                "system_prompts": [],
-            },
-        },
-    }
-    with pytest.raises(exceptions.ConfigError) as exc_info:
-        create_agents_from_config(AgentDefinition.model_validate(config), runtime)
-    assert "NonExistentResponse" in str(exc_info.value)
+# def test_create_agents_missing_response(runtime: RuntimeConfig):
+#     """Test agent creation with missing response definition."""
+#     config = {
+#         "responses": {},
+#         "agents": {
+#             "test": {
+#                 "name": "Test Agent",
+#                 "model": "openai:gpt-4",
+#                 "result_type": "NonExistentResponse",
+#                 "system_prompts": [],
+#             },
+#         },
+#     }
+#     with pytest.raises(exceptions.ConfigError) as exc_info:
+#         create_agents_from_config(AgentDefinition.model_validate(config), runtime)
+#     assert "NonExistentResponse" in str(exc_info.value)

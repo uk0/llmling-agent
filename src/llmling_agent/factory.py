@@ -70,14 +70,13 @@ def _create_single_agent(
     runtime: RuntimeConfig,
 ) -> LLMlingAgent[Any]:
     """Internal helper to create a single agent."""
-    # Get or create the result model
-    result_type = _get_or_create_response_model(
-        agent_config.result_type,
-        responses[agent_config.result_type],
-    )
-
-    # Initialize type adapter to ensure model is built
-    TypeAdapter(result_type).json_schema()
+    # Create the result model if needed
+    if agent_config.result_type in responses:
+        result_type = _get_or_create_response_model(
+            agent_config.result_type, responses[agent_config.result_type]
+        )
+    else:
+        result_type = None  # Will default to str
 
     return LLMlingAgent(
         runtime=runtime,

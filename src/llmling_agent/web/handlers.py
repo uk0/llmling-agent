@@ -6,7 +6,7 @@ from llmling import Config
 from llmling.config.runtime import RuntimeConfig
 from upath import UPath
 
-from llmling_agent.agent import LLMlingAgent
+from llmling_agent.factory import _create_single_agent
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentDefinition
 from llmling_agent.web.state import AgentState
@@ -115,27 +115,16 @@ class AgentHandler:
             await runtime.__aenter__()
             self._state = AgentState(agent_def=agent_def, runtime=runtime)
 
-            # Initialize agent with validation
-            if agent_name not in agent_def.agents:
-                msg = f"Agent '{agent_name}' not found in configuration"
-                raise ValueError(msg)  # noqa: TRY301
-
-            agent_config = agent_def.agents[agent_name]
-            if model:
-                agent_config.model = model
-
-            # Get result type from responses
-            result_type_name = agent_config.result_type
-            if result_type_name not in agent_def.responses:
-                msg = f"Response type '{result_type_name}' not found in configuration"
-                raise ValueError(msg)  # noqa: TRY301
-
-            # Create kwargs with proper result type handling
-            kwargs = agent_config.get_agent_kwargs(
-                name=agent_name,
-                result_type=result_type_name,  # Just pass name, factory will handle it
+            # Let factory handle model creation and agent initialization
+            self._state.current_agent = _create_single_agent(
+                agent_def.agents[agent_name], agent_def.responses, runtime
             )
-            self._state.current_agent = LLMlingAgent(runtime=runtime, **kwargs)
+
+            if model:
+                # Apply model override if specified
+                assert self._state.current_agent
+                self._state.current_agent.pydantic_agent.model = model
+
         except Exception:
             if self._state and self._state.runtime:
                 await self._state.runtime.__aexit__(None, None, None)
