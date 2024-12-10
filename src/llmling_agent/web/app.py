@@ -142,12 +142,8 @@ class AgentUI:
             model: str | None,
         ) -> tuple[str, list[dict[str, str]], str]:
             """Handle message sending."""
-            logger.info(
-                "Message send event: %s (agent: %s, model: %s)",
-                message,
-                agent_name,
-                model,
-            )
+            msg = "Message send event: %s (agent: %s, model: %s)"
+            logger.info(msg, message, agent_name, model)
 
             if not agent_name:
                 return message, history, "Please select an agent first"
@@ -294,7 +290,8 @@ def setup_logging() -> None:
     fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=logging.INFO, force=True, format=fmt)
     logging.getLogger("gradio").setLevel(logging.INFO)
-    logging.getLogger("llmling_agent").setLevel(logging.INFO)
+    logging.getLogger("llmling_agent").setLevel(logging.DEBUG)
+    logging.getLogger("llmling").setLevel(logging.DEBUG)
 
 
 def create_app() -> gr.Blocks:
