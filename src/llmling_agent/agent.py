@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from llmling.core.events import Event
     from py2openai import OpenAIFunctionTool
     from pydantic_ai.agent import models
-    from pydantic_ai.dependencies import ToolParams, ToolPlainFunc
+    from pydantic_ai.tools import ToolFuncPlain, ToolParams
 
 
 logger = get_logger(__name__)
@@ -398,7 +398,7 @@ class LLMlingAgent[TResult]:
         """
         return self.pydantic_agent.tool(*args, **kwargs)
 
-    def tool_plain(self, func: ToolPlainFunc[ToolParams]) -> Any:
+    def tool_plain(self, func: ToolFuncPlain[ToolParams]) -> Any:
         """Register a plain tool with the agent.
 
         Plain tools don't receive runtime context.

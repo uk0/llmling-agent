@@ -103,6 +103,23 @@ class AgentConfig(BaseModel):
             # If not found, treat as direct path
             return env
 
+    def get_agent_kwargs(self, **overrides) -> dict[str, Any]:
+        """Get kwargs for LLMlingAgent constructor.
+
+        Returns:
+            dict[str, Any]: Kwargs to pass to LLMlingAgent
+        """
+        # Include only the fields that LLMlingAgent expects
+        dct = {
+            "name": self.name,
+            "model": self.model,
+            "result_type": self.result_type,
+            "system_prompt": self.system_prompts,
+            **self.model_settings,
+        }
+        dct.update(overrides)
+        return dct
+
 
 class AgentDefinition(BaseModel):
     """Complete agent definition including responses."""
