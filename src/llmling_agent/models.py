@@ -34,10 +34,7 @@ class ResponseField(BaseModel):
     constraints: dict[str, Any] | None = None
     """Optional validation constraints for the field"""
 
-    model_config = ConfigDict(
-        use_attribute_docstrings=True,
-        extra="forbid",
-    )
+    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
 
 class ResponseDefinition(BaseModel):
@@ -48,10 +45,7 @@ class ResponseDefinition(BaseModel):
     fields: dict[str, ResponseField]
     """Mapping of field names to their definitions"""
 
-    model_config = ConfigDict(
-        use_attribute_docstrings=True,
-        extra="forbid",
-    )
+    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
 
 class SystemPrompt(BaseModel):
@@ -62,10 +56,7 @@ class SystemPrompt(BaseModel):
     value: str
     """The prompt text, function path, or template string"""
 
-    model_config = ConfigDict(
-        use_attribute_docstrings=True,
-        extra="forbid",
-    )
+    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
 
 class AgentConfig(BaseModel):
@@ -193,10 +184,8 @@ class AgentDefinition(BaseModel):
         """
         try:
             data = yamling.load_yaml_file(path)
-            return cls.model_validate(
-                data,
-                context={"config_file_path": str(path)},
-            )
+            ctx = {"config_file_path": str(path)}
+            return cls.model_validate(data, context=ctx)
         except Exception as exc:
             msg = f"Failed to load agent config from {path}"
             raise ValueError(msg) from exc
