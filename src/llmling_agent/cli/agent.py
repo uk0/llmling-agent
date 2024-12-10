@@ -10,8 +10,8 @@ from pydantic import ValidationError
 import typer as t
 
 from llmling_agent.cli import agent_store
+from llmling_agent.cli.runner import AgentRunConfig, AgentRunner
 from llmling_agent.models import AgentDefinition
-from llmling_agent.runner import AgentRunConfig, AgentRunner
 
 
 agent_cli = t.Typer(help="Agent management commands", no_args_is_help=True)
