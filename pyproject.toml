@@ -44,6 +44,9 @@ dependencies = [
 [project.scripts]
 llmling-agent = "llmling_agent.__main__:cli"
 
+[project.optional-dependencies]
+ui = ["gradio>=5.8.0"]
+
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
 
