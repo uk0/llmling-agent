@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from llmling import Config
+from llmling.config.runtime import RuntimeConfig
 from upath import UPath
 
+from llmling_agent.agent import LLMlingAgent
 from llmling_agent.log import get_logger
+from llmling_agent.models import AgentDefinition
 from llmling_agent.web.state import AgentState
 
 
@@ -93,20 +97,41 @@ class AgentHandler:
         Returns:
             Tuple of (status message, chat history)
         """
-        if not file_path or not agent_name:
-            return "No agent selected", []
+        if not file_path:
+            msg = "No file path provided"
+            raise ValueError(msg)
+
+        if not agent_name:
+            msg = "No agent name provided"
+            raise ValueError(msg)
 
         try:
-            await self.state.select_agent(agent_name, model)
-            history = self.state.history[agent_name]
-            msg = f"Agent {agent_name} ready"
-            logger.info(msg)
+            # Initialize state if not already done
+            agent_def = AgentDefinition.from_file(str(file_path))
+
+            # Create empty config for now
+            config = Config()
+            runtime = RuntimeConfig.from_config(config)
+            await runtime.__aenter__()
+            self._state = AgentState(agent_def=agent_def, runtime=runtime)
+
+            # Initialize agent with validation
+            if agent_name not in agent_def.agents:
+                msg = f"Agent '{agent_name}' not found in configuration"
+                raise ValueError(msg)  # noqa: TRY301
+
+            agent_config = agent_def.agents[agent_name]
+            if model:
+                agent_config.model = model
+            kwargs = agent_config.get_agent_kwargs(name=agent_name)
+            self._state.current_agent = LLMlingAgent(runtime=runtime, **kwargs)
         except Exception:
-            error = "Error initializing agent"
-            logger.exception(error)
-            return error, []
+            if self._state and self._state.runtime:
+                await self._state.runtime.__aexit__(None, None, None)
+            self._state = None
+            raise
         else:
-            return msg, history
+            return f"Agent {agent_name} ready", []
 
     async def send_message(
         self,

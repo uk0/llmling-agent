@@ -107,17 +107,27 @@ class AgentUI:
                 return "No agent selected", history
 
             try:
+                # We already have the file path in the handler
                 status_msg, list_history = await self.handler.select_agent(
-                    file_path=self.handler._file_path, agent_name=agent_name, model=model
+                    file_path=self.handler._file_path,  # This might be the issue
+                    agent_name=agent_name,
+                    model=model,
                 )
+                msg = "Agent selection result: status=%s, history=%s"
+                logger.debug(msg, status_msg, list_history)
 
                 # Convert list[list[str]] to list[dict[str, str]]
-                dict_history = [
-                    {"role": "user" if i % 2 == 0 else "assistant", "content": msg}
-                    for sublist in list_history
-                    for i, msg in enumerate(sublist)
-                ]
+                dict_history = (
+                    [
+                        {"role": "user" if i % 2 == 0 else "assistant", "content": msg}
+                        for sublist in list_history
+                        for i, msg in enumerate(sublist)
+                    ]
+                    if list_history
+                    else []
+                )
             except ValueError as e:
+                logger.exception("Value error in agent selection")
                 return str(e), history
             except Exception as e:
                 logger.exception("Failed to initialize agent")
@@ -183,15 +193,12 @@ class AgentUI:
                 new_files = [str(UPath(p)) for _, p in store.list_configs()]
                 data = load_yaml(str(file_path))
                 agents = list(data.get("agents", {}).keys())
-
-                return (
-                    new_files,
-                    agents,
-                    f"Loaded {len(agents)} agents from {file_path.name}",
-                )
+                msg = f"Loaded {len(agents)} agents from {file_path.name}"
             except Exception as e:
                 logger.exception("Failed to upload file")
                 return self.available_files, [], f"Error uploading file: {e}"
+            else:
+                return (new_files, agents, msg)
 
         with gr.Blocks(css=CUSTOM_CSS) as app:
             gr.Markdown("# 🤖 LLMling Agent Chat")
@@ -262,46 +269,30 @@ class AgentUI:
                         )
 
             # Event handlers
-            upload_button.upload(
-                fn=handle_upload,
-                inputs=upload_button,
-                outputs=[file_input, agent_input, status],
-            )
+            outputs = [file_input, agent_input, status]
+            upload_button.upload(fn=handle_upload, inputs=upload_button, outputs=outputs)
+            outputs = [agent_input, status]
+            file_input.select(fn=handle_file_selection, inputs=None, outputs=outputs)
 
-            file_input.select(
-                fn=handle_file_selection,
-                inputs=None,
-                outputs=[agent_input, status],
-            )
+            inputs = [agent_input, model_input, chatbot]
+            outputs = [status, chatbot]
+            agent_input.select(fn=handle_agent_selection, inputs=inputs, outputs=outputs)
 
-            agent_input.select(
-                fn=handle_agent_selection,
-                inputs=[agent_input, model_input, chatbot],
-                outputs=[status, chatbot],
-            )
+            inputs = [msg_box, chatbot, agent_input, model_input]
+            outputs = [msg_box, chatbot, status]
+            msg_box.submit(fn=send_message, inputs=inputs, outputs=outputs)
 
-            msg_box.submit(
-                fn=send_message,
-                inputs=[msg_box, chatbot, agent_input, model_input],
-                outputs=[msg_box, chatbot, status],
-            )
-
-            submit_btn.click(
-                fn=send_message,
-                inputs=[msg_box, chatbot, agent_input, model_input],
-                outputs=[msg_box, chatbot, status],
-            )
+            inputs = [msg_box, chatbot, agent_input, model_input]
+            outputs = [msg_box, chatbot, status]
+            submit_btn.click(fn=send_message, inputs=inputs, outputs=outputs)
 
         return app
 
 
 def setup_logging() -> None:
     """Set up logging configuration."""
-    logging.basicConfig(
-        level=logging.INFO,
-        force=True,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+    fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    logging.basicConfig(level=logging.INFO, force=True, format=fmt)
     logging.getLogger("gradio").setLevel(logging.INFO)
     logging.getLogger("llmling_agent").setLevel(logging.INFO)
 
