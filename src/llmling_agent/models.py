@@ -11,14 +11,16 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    ValidationInfo,
-    field_validator,
     model_validator,
 )
 from pydantic_ai import models  # noqa: TC002
-from upath import UPath
+from upath.core import UPath
 import yamling
 
+from llmling_agent.log import get_logger
+
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     import os
@@ -86,6 +88,9 @@ class AgentConfig(BaseModel):
     model_settings: dict[str, Any] = Field(default_factory=dict)
     """Additional settings to pass to the model"""
 
+    config_file_path: str | None = None
+    """Config file path for resolving environment."""
+
     model_config = ConfigDict(
         frozen=True,
         arbitrary_types_allowed=True,
@@ -93,37 +98,46 @@ class AgentConfig(BaseModel):
         use_attribute_docstrings=True,
     )
 
-    def get_config(self) -> Config:
-        """Get configuration for this agent.
+    @staticmethod
+    def _resolve_environment_path(env: str, config_file_path: str | None = None) -> str:
+        """Resolve environment path from config store or relative path."""
+        logger.debug(
+            "Resolving environment path: env=%s, config_file_path=%s, cwd=%s",
+            env,
+            config_file_path,
+            UPath.cwd(),
+        )
+        try:
+            config_store = ConfigStore()
+            return config_store.get_config(env)
+        except KeyError:
+            if config_file_path:
+                base_dir = UPath(config_file_path).parent
+                return str(base_dir / env)
+            return env
 
-        Returns:
-            Config: If environment is set, loaded from that file.
-                   Otherwise, returns minimal config with resource tools disabled.
-        """
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_paths(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Resolve environment path before model creation."""
+        if env := data.get("environment"):
+            config_path = data.get("config_file_path")
+            data["environment"] = cls._resolve_environment_path(env, config_path)
+            # Store the config path for later use in get_config
+            data["config_file_path"] = config_path
+        return data
+
+    def get_config(self) -> Config:
+        """Get configuration for this agent."""
         if self.environment:
-            return Config.from_file(self.environment)
+            path = self._resolve_environment_path(
+                self.environment, getattr(self, "config_file_path", None)
+            )
+            return Config.from_file(path)
 
         caps = LLMCapabilitiesConfig(load_resource=False, get_resources=False)
         global_settings = GlobalSettings(llm_capabilities=caps)
         return Config(global_settings=global_settings)
-
-    @field_validator("environment")
-    @classmethod
-    def resolve_environment(cls, env: str, info: ValidationInfo) -> str | None:
-        """Try to resolve environment as name first, then as path."""
-        if not env:
-            return None
-
-        try:
-            # First try as stored config name
-            config_store = ConfigStore()
-            return config_store.get_config(env)
-        except KeyError:
-            # If not found, treat as relative path to agent config
-            if "config_file_path" in info.data:
-                base_dir = UPath(info.data["config_file_path"]).parent
-                return str(base_dir / env)
-            return env
 
     def get_agent_kwargs(self, **overrides) -> dict[str, Any]:
         """Get kwargs for LLMlingAgent constructor.
@@ -184,8 +198,13 @@ class AgentDefinition(BaseModel):
         """
         try:
             data = yamling.load_yaml_file(path)
-            ctx = {"config_file_path": str(path)}
-            return cls.model_validate(data, context=ctx)
+            agent_def = cls.model_validate(data)
+            # Update all agents with the config file path
+            agents = {
+                name: config.model_copy(update={"config_file_path": str(path)})
+                for name, config in agent_def.agents.items()
+            }
+            return agent_def.model_copy(update={"agents": agents})
         except Exception as exc:
             msg = f"Failed to load agent config from {path}"
             raise ValueError(msg) from exc

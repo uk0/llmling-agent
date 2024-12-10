@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pydantic import ValidationError
 import pytest
+import yamling
 
 from llmling_agent.models import AgentDefinition, SystemPrompt
+
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_valid_system_prompt():
@@ -81,3 +88,47 @@ def test_missing_referenced_response():
     }
     with pytest.raises(ValidationError):
         AgentDefinition.model_validate(config)
+
+
+def test_environment_path_resolution(tmp_path: Path) -> None:
+    """Test that environment paths are resolved relative to config file."""
+    # Create a mock environment config with valid structure
+    env_config = {
+        "global_settings": {
+            "llm_capabilities": {
+                "load_resource": False,
+                "get_resources": False,
+            }
+        }
+    }
+    env_file = tmp_path / "env.yml"
+    env_file.write_text(yamling.dump_yaml(env_config))
+
+    # Create agent config referencing the environment
+    agent_config = {
+        "responses": {
+            "BasicResult": {
+                "description": "Test result",
+                "fields": {"message": {"type": "str", "description": "Test message"}},
+            }
+        },
+        "agents": {
+            "test_agent": {
+                "name": "test",
+                "model": "test",
+                "result_type": "BasicResult",
+                "environment": "env.yml",  # Relative path
+            }
+        },
+    }
+
+    config_file = tmp_path / "agents.yml"
+    config_file.write_text(yamling.dump_yaml(agent_config))
+
+    # Load the config and verify path resolution
+    agent_def = AgentDefinition.from_file(config_file)
+    test_agent = agent_def.agents["test_agent"]
+
+    # The environment path should now be resolved
+    config = test_agent.get_config()
+    assert config.global_settings.llm_capabilities.load_resource is False
