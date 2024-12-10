@@ -10,8 +10,8 @@ from pydantic import ValidationError
 import typer as t
 
 from llmling_agent.cli import agent_store
-from llmling_agent.factory import create_agents_from_config
 from llmling_agent.models import AgentDefinition
+from llmling_agent.runner import AgentRunConfig, AgentRunner
 
 
 agent_cli = t.Typer(help="Agent management commands", no_args_is_help=True)
@@ -74,10 +74,10 @@ def set_active_file(
 
 @agent_cli.command("run")
 def run_agent(
-    agent_name: str = t.Argument(help="Name of the agent to run"),
+    agent_name: str = t.Argument(help="Agent name(s) to run (can be comma-separated)"),
     prompts: list[str] = t.Argument(  # noqa: B008
         None,
-        help="Prompts to send to the agent",
+        help="Prompts to send to the agent(s)",
     ),
     config_path: str = t.Option(
         None,
@@ -103,9 +103,10 @@ def run_agent(
         "-m",
         help="Override agent's model",
     ),
+    output_format: str = output_format_opt,
     verbose: bool = verbose_opt,
 ) -> None:
-    """Run an agent with the given prompts."""
+    """Run one or more agents with the given prompts."""
     try:
         # Resolve configuration path
         try:
@@ -114,8 +115,8 @@ def run_agent(
             msg = str(e)
             raise t.BadParameter(msg) from e
 
+        # Load agent definition
         try:
-            # Load agent definition
             agent_def = AgentDefinition.from_file(config_path)
         except ValidationError as e:
             t.echo("Agent configuration validation failed:", err=True)
@@ -124,59 +125,40 @@ def run_agent(
                 t.echo(f"  {location}: {error['msg']}", err=True)
             raise t.Exit(1) from e
 
-        # Check if agent exists
-        if agent_name not in agent_def.agents:
-            msg = f"Agent '{agent_name}' not found in configuration"
-            raise t.BadParameter(msg)  # noqa: TRY301
-
-        agent_config = agent_def.agents[agent_name]
+        # Parse agent names
+        agent_names = [name.strip() for name in agent_name.split(",")]
 
         # Build final prompt list
-        final_prompts = []
+        final_prompts: list[str] = []
 
-        # Start with predefined prompt if index given and prompts exist
-        if agent_config.user_prompts:
-            try:
-                final_prompts.append(agent_config.user_prompts[prompt_index])
-            except IndexError:
-                num_prompts = len(agent_config.user_prompts) - 1
-                msg = f"Prompt index {prompt_index} out of range (0-{num_prompts})"
-                raise t.BadParameter(msg)  # noqa: B904
+        # Add predefined prompt if available
+        if prompt_index is not None:
+            for name in agent_names:
+                config = agent_def.agents[name]
+                if config.user_prompts:
+                    try:
+                        final_prompts.append(config.user_prompts[prompt_index])
+                        break
+                    except IndexError:
+                        continue
 
-        # Append additional prompts
+        # Add provided prompts
         if prompts:
             final_prompts.extend(prompts)
 
-        if not final_prompts:
-            msg = "No prompts provided and no default prompts in configuration"
-            raise t.BadParameter(msg)  # noqa: TRY301
+        # Create run configuration
+        run_config = AgentRunConfig(
+            agent_names=agent_names,
+            prompts=final_prompts,
+            environment=environment,
+            model=model,
+            output_format=output_format,
+        )
 
-        # Apply overrides
-        if model:
-            agent_config.model = model
-
-        async def _run() -> None:
-            # Use CLI override or resolved path from config
-            env_path = environment or agent_config.environment
-            from llmling import Config
-            from llmling.config.runtime import RuntimeConfig
-
-            async with RuntimeConfig.open(env_path or Config()) as runtime:
-                agents = create_agents_from_config(agent_def, runtime)
-                agent = agents[agent_name]
-
-                # Execute prompts as conversation
-                result = await agent.run(final_prompts[0])
-                format_output(result.data)
-
-                for prompt in final_prompts[1:]:
-                    result = await agent.run(
-                        prompt,
-                        message_history=result.new_messages(),
-                    )
-                    format_output(result.data)
-
-        asyncio.run(_run())
+        # Create and run agent runner
+        runner = AgentRunner(agent_def, run_config)
+        runner.validate()
+        asyncio.run(runner.run())
 
     except t.Exit:
         raise
