@@ -101,8 +101,8 @@ class SingleAgentRunner[T](AbstractAsyncContextManager):
             if self.agent_config.environment
             else Config()
         )
-        self._runtime = RuntimeConfig.from_config(config)
-        await self._runtime.__aenter__()
+        runtime_cm = RuntimeConfig.open(config)
+        self._runtime = await runtime_cm.__aenter__()
 
         # Create agent with potential model override
         if self.model_override:
