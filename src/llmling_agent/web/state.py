@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentDefinition
 from llmling_agent.runners import SingleAgentRunner
+
+
+if TYPE_CHECKING:
+    from llmling_agent.web.app import ChatHistory
 
 
 logger = get_logger(__name__)
@@ -22,7 +27,7 @@ class AgentState:
     current_runner: SingleAgentRunner[str] | None = None
     """Currently active agent runner"""
 
-    history: dict[str, list[list[str]]] = field(default_factory=dict)
+    history: dict[str, ChatHistory] = field(default_factory=dict)
     """Chat history for each agent"""
 
     @classmethod

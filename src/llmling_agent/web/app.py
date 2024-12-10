@@ -2,18 +2,48 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 import logging
-from typing import Any
+from typing import Any, Literal, NotRequired, TypedDict
 
 import gradio as gr
 from llmling.config.store import ConfigStore
+from pydantic import BaseModel
+from pydantic_ai import messages
 from upath import UPath
 import yaml
 
+from llmling_agent.log import LogCapturer
 from llmling_agent.web.handlers import AgentHandler
 
 
 logger = logging.getLogger(__name__)
+
+
+def convert_chat_history_to_messages(
+    history: ChatHistory,
+) -> list[messages.Message]:
+    """Convert Gradio chat history to pydantic-ai messages."""
+    result: list[messages.Message] = []
+    for msg in history:
+        if msg["role"] == "user":
+            result.append(messages.UserPrompt(content=msg["content"]))
+        elif msg["role"] == "assistant":
+            result.append(messages.ModelTextResponse(content=msg["content"]))
+    return result
+
+
+class ChatMessage(TypedDict):
+    """Single chat message format for Gradio chatbot."""
+
+    content: str
+    role: Literal["user", "assistant"]
+    name: NotRequired[str]
+    avatar: NotRequired[str]
+
+
+type ChatHistory = list[ChatMessage]
+
 
 CUSTOM_CSS = """
 .agent-chat {
@@ -42,13 +72,241 @@ CUSTOM_CSS = """
     background: #f8f9fa;
     margin: 8px 0;
 }
+
+.debug-logs {
+    font-family: monospace;
+    white-space: pre-wrap;
+    background: #f8f9fa;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+    margin-top: 8px;
+    font-size: 0.9em;
+    max-height: 200px;
+    overflow-y: auto;
+}
 """
 
 
-def load_yaml(path: str) -> dict:
+def load_yaml(path: str) -> dict[str, Any]:
     """Load and parse YAML file."""
     with UPath(path).open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+class UIUpdate(BaseModel):
+    """State updates for the UI components."""
+
+    message_box: str | None = None
+    chat_history: ChatHistory | None = None
+    status: str | None = None
+    debug_logs: str | None = None
+    agent_choices: list[str] | None = None
+    file_choices: list[str] | None = None
+    selected_agent: str | None = None
+
+    def to_updates(self, outputs: list[gr.components.Component]) -> list[Any]:
+        """Convert to list of gradio updates matching output components."""
+        updates = []
+        for output in outputs:
+            match output:
+                case gr.Dropdown():
+                    if self.agent_choices is not None:
+                        updates.append(gr.update(choices=self.agent_choices))
+                    elif self.file_choices is not None:
+                        updates.append(gr.update(choices=self.file_choices))
+                    else:
+                        updates.append(gr.update())
+                case gr.Markdown():
+                    if output.elem_classes and "debug-logs" in output.elem_classes:
+                        updates.append(gr.update(value=self.debug_logs))
+                    else:
+                        updates.append(gr.update(value=self.status))
+                case gr.Chatbot():
+                    updates.append(gr.update(value=self.chat_history))
+                case gr.Textbox():
+                    updates.append(gr.update(value=self.message_box))
+                case _:
+                    updates.append(gr.update())
+        return updates
+
+
+@dataclass
+class UIState:
+    """Maintains UI state and handles updates."""
+
+    log_capturer: LogCapturer = field(default_factory=LogCapturer)
+    debug_mode: bool = False
+    handler: AgentHandler | None = None
+
+    def toggle_debug(self, enabled: bool) -> UIUpdate:
+        """Toggle debug mode."""
+        self.debug_mode = enabled
+        if enabled:
+            self.log_capturer.start()
+            return UIUpdate(
+                debug_logs="Debug mode enabled. Logs will appear here.",
+                status="Debug mode enabled",
+            )
+        self.log_capturer.stop()
+        return UIUpdate(debug_logs=None, status="Debug mode disabled")
+
+    def get_debug_logs(self) -> str | None:
+        """Get current debug logs if debug mode is enabled."""
+        return self.log_capturer.get_logs() if self.debug_mode else None
+
+    async def handle_file_selection(self, file_path: str) -> UIUpdate:
+        """Handle file selection event."""
+        logger.info("File selection event: %s", file_path)
+        try:
+            self.handler = await AgentHandler.create(file_path)
+            agents = list(self.handler.state.agent_def.agents)
+            msg = f"Loaded {len(agents)} agents: {', '.join(agents)}"
+            logger.info(msg)
+            return UIUpdate(
+                agent_choices=agents,
+                selected_agent=None,
+                status=msg,
+                debug_logs=self.get_debug_logs(),
+            )
+        except Exception as e:
+            logger.exception("Failed to load file")
+            self.handler = None
+            return UIUpdate(
+                agent_choices=[],
+                selected_agent=None,
+                status=f"Error: {e}",
+                debug_logs=self.get_debug_logs(),
+            )
+
+    async def handle_upload(
+        self,
+        upload: gr.FileData,
+    ) -> UIUpdate:
+        """Handle config file upload."""
+        try:
+            # Save file to configs directory
+            config_dir = UPath("configs")
+            config_dir.mkdir(exist_ok=True)
+            assert upload.orig_name
+            file_path = config_dir / upload.orig_name
+            UPath(upload.path).rename(file_path)
+            logger.info("Saved config to: %s", file_path)
+
+            # Add to store
+            name = file_path.stem
+            store = ConfigStore("agents.json")
+            store.add_config(name, str(file_path))
+
+            # Update available files and load agents
+            new_files = [str(UPath(p)) for _, p in store.list_configs()]
+            data = load_yaml(str(file_path))
+            agents = list(data.get("agents", {}).keys())
+            msg = f"Loaded {len(agents)} agents from {file_path.name}"
+
+            return UIUpdate(
+                file_choices=new_files,
+                agent_choices=agents,
+                status=msg,
+                debug_logs=self.get_debug_logs(),
+            )
+        except Exception as e:
+            logger.exception("Failed to upload file")
+            return UIUpdate(
+                status=f"Error uploading file: {e}",
+                debug_logs=self.get_debug_logs(),
+            )
+
+    async def handle_agent_selection(
+        self,
+        agent_name: str | None,
+        model: str | None,
+        history: ChatHistory,
+    ) -> UIUpdate:
+        """Handle agent selection."""
+        if not agent_name:
+            return UIUpdate(status="No agent selected", chat_history=history)
+
+        try:
+            if not self.handler:
+                msg = "No configuration loaded"
+                raise ValueError(msg)  # noqa: TRY301
+
+            await self.handler.select_agent(agent_name, model)
+            # Get history for this agent if any
+            agent_history = self.handler.state.history.get(agent_name, [])
+            return UIUpdate(
+                status=f"Agent {agent_name} ready",
+                chat_history=agent_history,
+                debug_logs=self.get_debug_logs(),
+            )
+        except Exception as e:
+            logger.exception("Failed to initialize agent")
+            return UIUpdate(
+                status=f"Error: {e}",
+                debug_logs=self.get_debug_logs(),
+            )
+
+    async def send_message(
+        self,
+        message: str,
+        history: ChatHistory,
+        agent_name: str | None,
+        model: str | None,
+    ) -> UIUpdate:
+        """Handle message sending."""
+        if not message.strip():
+            return UIUpdate(
+                message_box="",
+                status="Message is empty",
+                debug_logs=self.get_debug_logs(),
+            )
+
+        if not self.handler or not agent_name:
+            return UIUpdate(
+                message_box=message,
+                chat_history=history,
+                status="No agent selected",
+                debug_logs=self.get_debug_logs(),
+            )
+
+        try:
+            runner = self.handler.state.current_runner
+            if not runner:
+                msg = "Agent not initialized"
+                raise ValueError(msg)  # noqa: TRY301
+
+            # Convert to pydantic-ai messages
+            msg_history = convert_chat_history_to_messages(history)
+
+            # Get response from agent
+            result = await runner.agent.run(message, message_history=msg_history)
+            response = str(result.data)
+
+            # Update chat history with new Gradio messages
+            new_history = list(history)
+            new_history.extend([
+                {"role": "user", "content": message},
+                {"role": "assistant", "content": response},
+            ])
+
+            # Store history
+            self.handler.state.history[agent_name] = new_history
+
+            return UIUpdate(
+                message_box="",
+                chat_history=new_history,
+                status="Message sent",
+                debug_logs=self.get_debug_logs(),
+            )
+        except Exception as e:
+            logger.exception("Failed to process message")
+            return UIUpdate(
+                message_box=message,
+                chat_history=history,
+                status=f"Error: {e}",
+                debug_logs=self.get_debug_logs(),
+            )
 
 
 class AgentUI:
@@ -58,119 +316,11 @@ class AgentUI:
         """Initialize interface."""
         store = ConfigStore("agents.json")
         self.available_files = [str(UPath(path)) for _, path in store.list_configs()]
-        logger.debug("Available files: %s", self.available_files)
-        self._handler: AgentHandler | None = None
+        self.state = UIState()
         self.initial_status = "Please select a configuration file"
-
-    @property
-    def handler(self) -> AgentHandler:
-        """Get the current agent handler.
-
-        Returns:
-            AgentHandler: The current handler
-
-        Raises:
-            ValueError: If no handler is initialized
-        """
-        if self._handler is None:
-            msg = "No configuration file selected"
-            raise ValueError(msg)
-        return self._handler
 
     def create_ui(self) -> gr.Blocks:
         """Create the Gradio interface."""
-
-        async def handle_file_selection(evt: gr.SelectData) -> tuple[dict[str, Any], str]:
-            """Handle file selection event."""
-            file_path = evt.value
-            logger.info("File selection event: %s", file_path)
-            try:
-                # Create new handler with selected file
-                self._handler = await AgentHandler.create(file_path)
-                agents = list(self._handler.state.agent_def.agents)
-                msg = f"Loaded {len(agents)} agents: {', '.join(agents)}"
-                logger.info(msg)
-                return gr.update(choices=agents, value=None), msg
-            except Exception as e:
-                logger.exception("Failed to load file")
-                self._handler = None
-                return gr.update(choices=[], value=None), f"Error: {e}"
-
-        async def handle_agent_selection(
-            agent_name: str | None,
-            model: str | None,
-            history: list[dict[str, str]],
-        ) -> tuple[str, list[dict[str, str]]]:
-            """Handle agent selection."""
-            if not agent_name:
-                return "No agent selected", history
-
-            try:
-                await self.handler.select_agent(agent_name, model)
-                # Get history for this agent if any
-                agent_history = self.handler.state.history.get(agent_name, [])
-                # Convert list[list[str]] to list[dict[str, str]]
-                dict_history = [
-                    {"role": "user", "content": user_msg} for user_msg, _ in agent_history
-                ] + [
-                    {"role": "assistant", "content": bot_msg}
-                    for _, bot_msg in agent_history
-                ]
-            except ValueError as e:
-                logger.exception("Value error in agent selection")
-                return str(e), history
-            except Exception as e:
-                logger.exception("Failed to initialize agent")
-                return f"Error initializing agent: {e}", history
-            else:
-                return f"Agent {agent_name} ready", dict_history
-
-        async def send_message(
-            message: str,
-            history: list[dict[str, str]],
-            agent_name: str | None,
-            model: str | None,
-        ) -> tuple[str, list[dict[str, str]], str]:
-            """Handle message sending."""
-            msg = "Message send event: %s (agent: %s, model: %s)"
-            logger.info(msg, message, agent_name, model)
-
-            if not agent_name:
-                return message, history, "Please select an agent first"
-
-            try:
-                return await self.handler.send_message(message, history)
-            except Exception as e:
-                logger.exception("Failed to process message")
-                return message, history, f"Error: {e}"
-
-        def handle_upload(upload: gr.FileData) -> tuple[list[str], list[str], str]:
-            """Handle config file upload."""
-            try:
-                # Save file to configs directory
-                config_dir = UPath("configs")
-                config_dir.mkdir(exist_ok=True)
-                assert upload.orig_name
-                file_path = config_dir / upload.orig_name
-                UPath(upload.path).rename(file_path)
-                logger.info("Saved config to: %s", file_path)
-
-                # Add to store
-                name = file_path.stem
-                store = ConfigStore("agents.json")
-                store.add_config(name, str(file_path))
-
-                # Update available files and load agents
-                new_files = [str(UPath(p)) for _, p in store.list_configs()]
-                data = load_yaml(str(file_path))
-                agents = list(data.get("agents", {}).keys())
-                msg = f"Loaded {len(agents)} agents from {file_path.name}"
-            except Exception as e:
-                logger.exception("Failed to upload file")
-                return self.available_files, [], f"Error uploading file: {e}"
-            else:
-                return (new_files, agents, msg)
-
         with gr.Blocks(css=CUSTOM_CSS) as app:
             gr.Markdown("# 🤖 LLMling Agent Chat")
 
@@ -202,6 +352,7 @@ class AgentUI:
 
                     status = gr.Markdown(
                         value=self.initial_status,
+                        elem_classes=["status-msg"],
                     )
 
                     # Model override
@@ -219,9 +370,9 @@ class AgentUI:
                         height=600,
                         show_copy_button=True,
                         show_copy_all_button=True,
+                        type="messages",  # Important: specify messages type
                         avatar_images=("👤", "🤖"),
                         bubble_full_width=False,
-                        type="messages",
                     )
 
                     with gr.Row():
@@ -239,23 +390,68 @@ class AgentUI:
                             interactive=True,
                         )
 
-            # Event handlers
-            outputs = [file_input, agent_input, status]
-            upload_button.upload(fn=handle_upload, inputs=upload_button, outputs=outputs)
-            outputs = [agent_input, status]
-            file_input.select(fn=handle_file_selection, inputs=None, outputs=outputs)
+            with gr.Row():
+                debug_toggle = gr.Checkbox(
+                    label="Debug Mode",
+                    value=False,
+                    interactive=True,
+                )
+                debug_logs = gr.Markdown(
+                    value=None,
+                    visible=True,
+                    elem_classes=["debug-logs"],
+                )
 
-            inputs = [agent_input, model_input, chatbot]
-            outputs = [status, chatbot]
-            agent_input.select(fn=handle_agent_selection, inputs=inputs, outputs=outputs)
+            # Event handlers with proper async handling
+            async def handle_upload(x: Any) -> list[Any]:
+                result = await self.state.handle_upload(x)
+                return result.to_updates([file_input, agent_input, status, debug_logs])
+
+            async def handle_file_selection(file_path: str) -> list[Any]:
+                result = await self.state.handle_file_selection(file_path)
+                return result.to_updates([agent_input, status, debug_logs])
+
+            async def handle_agent_selection(*args: Any) -> list[Any]:
+                result = await self.state.handle_agent_selection(*args)
+                return result.to_updates([status, chatbot, debug_logs])
+
+            def handle_debug(x: bool) -> list[Any]:
+                result = self.state.toggle_debug(x)
+                return result.to_updates([debug_logs, status])
+
+            async def handle_message(*args: Any) -> list[Any]:
+                result = await self.state.send_message(*args)
+                return result.to_updates([msg_box, chatbot, status, debug_logs])
+
+            # Connect handlers to UI events
+            upload_button.upload(
+                fn=handle_upload,
+                inputs=[upload_button],
+                outputs=[file_input, agent_input, status, debug_logs],
+            )
+
+            file_input.select(
+                fn=handle_file_selection,
+                inputs=[file_input],
+                outputs=[agent_input, status, debug_logs],
+            )
+
+            agent_input.select(
+                fn=handle_agent_selection,
+                inputs=[agent_input, model_input, chatbot],
+                outputs=[status, chatbot, debug_logs],
+            )
+
+            debug_toggle.change(
+                fn=handle_debug,
+                inputs=[debug_toggle],
+                outputs=[debug_logs, status],
+            )
 
             inputs = [msg_box, chatbot, agent_input, model_input]
-            outputs = [msg_box, chatbot, status]
-            msg_box.submit(fn=send_message, inputs=inputs, outputs=outputs)
-
-            inputs = [msg_box, chatbot, agent_input, model_input]
-            outputs = [msg_box, chatbot, status]
-            submit_btn.click(fn=send_message, inputs=inputs, outputs=outputs)
+            outputs = [msg_box, chatbot, status, debug_logs]
+            msg_box.submit(fn=handle_message, inputs=inputs, outputs=outputs)
+            submit_btn.click(fn=handle_message, inputs=inputs, outputs=outputs)
 
         return app
 
@@ -288,7 +484,7 @@ def launch_app(
     - Load agent configuration files
     - Select and configure agents
     - Chat with agents
-    - View chat history
+    - View chat history and debug logs
 
     Args:
         share: Whether to create a public URL
