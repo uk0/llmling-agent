@@ -8,6 +8,7 @@ from llmling.config.runtime import RuntimeConfig
 import pytest
 
 from llmling_agent import config_resources
+from llmling_agent.models import AgentConfig
 
 
 if TYPE_CHECKING:
@@ -82,3 +83,14 @@ def valid_config() -> dict[str, Any]:
             },
         },
     }
+
+
+@pytest.fixture
+def basic_agent_config() -> AgentConfig:
+    """Create a basic agent configuration for testing."""
+    return AgentConfig(
+        name="test_agent",
+        model="test",
+        result_type="BasicResult",
+        system_prompts=["You are a helpful test agent."],
+    )

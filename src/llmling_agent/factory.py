@@ -4,13 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from llmling.core import exceptions
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, create_model
 
-from llmling_agent.agent import LLMlingAgent
 from llmling_agent.log import get_logger
 from llmling_agent.models import (
-    AgentDefinition,
     ResponseDefinition,
 )
 
@@ -18,11 +15,7 @@ from llmling_agent.models import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from llmling.config.runtime import RuntimeConfig
-
     from llmling_agent.models import (
-        AgentConfig,
-        AgentDefinition,
         ResponseDefinition,
     )
 
@@ -32,69 +25,6 @@ T = TypeVar("T", bound=BaseModel)
 
 # Cache for created models to avoid recreation
 _model_cache: dict[str, type[BaseModel]] = {}
-
-
-def create_agents_from_config(
-    config: AgentDefinition,
-    runtime: RuntimeConfig,
-) -> dict[str, LLMlingAgent[Any]]:
-    """Create all agents from configuration.
-
-    Args:
-        config: Complete agent configuration
-        runtime: Runtime configuration
-
-    Returns:
-        Dictionary mapping agent IDs to LLMling agents
-
-    Raises:
-        ConfigError: If configuration is invalid
-    """
-    agents = {}
-    for agent_id, agent_config in config.agents.items():
-        try:
-            agents[agent_id] = _create_single_agent(
-                agent_config,
-                config.responses,
-                runtime,
-            )
-        except Exception as exc:
-            msg = f"Failed to create agent {agent_id}: {exc}"
-            raise exceptions.ConfigError(msg) from exc
-    return agents
-
-
-def _create_single_agent(
-    agent_config: AgentConfig,
-    responses: dict[str, ResponseDefinition],
-    runtime: RuntimeConfig,
-) -> LLMlingAgent[Any]:
-    """Internal helper to create a single agent."""
-    # Create the result model if needed
-    if agent_config.result_type in responses:
-        result_type = _get_or_create_response_model(
-            agent_config.result_type, responses[agent_config.result_type]
-        )
-    else:
-        result_type = None  # Will default to str
-
-    return LLMlingAgent(
-        runtime=runtime,
-        result_type=result_type,
-        model=agent_config.model,
-        system_prompt=_create_system_prompts(agent_config.system_prompts),
-        name=agent_config.name or "LLMling Agent",
-        **agent_config.model_settings,
-    )
-
-
-def _get_or_create_response_model(
-    name: str, definition: ResponseDefinition
-) -> type[BaseModel]:
-    """Get cached model or create new one."""
-    if name not in _model_cache:
-        _model_cache[name] = _create_response_model(name, definition)
-    return _model_cache[name]
 
 
 def _create_response_model(name: str, definition: ResponseDefinition) -> type[BaseModel]:

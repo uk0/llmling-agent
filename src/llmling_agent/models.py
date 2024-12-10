@@ -7,8 +7,16 @@ from typing import TYPE_CHECKING, Any, Literal, Self
 from llmling import Config
 from llmling.config.models import GlobalSettings, LLMCapabilitiesConfig
 from llmling.config.store import ConfigStore
-from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from pydantic_ai import models  # noqa: TC002
+from upath import UPath
 import yamling
 
 
@@ -110,13 +118,20 @@ class AgentConfig(BaseModel):
 
     @field_validator("environment")
     @classmethod
-    def resolve_environment(cls, env: str, info: ValidationInfo) -> str:
+    def resolve_environment(cls, env: str, info: ValidationInfo) -> str | None:
         """Try to resolve environment as name first, then as path."""
+        if not env:
+            return None
+
         try:
+            # First try as stored config name
             config_store = ConfigStore()
             return config_store.get_config(env)
         except KeyError:
-            # If not found, treat as direct path
+            # If not found, treat as relative path to agent config
+            if "config_file_path" in info.data:
+                base_dir = UPath(info.data["config_file_path"]).parent
+                return str(base_dir / env)
             return env
 
     def get_agent_kwargs(self, **overrides) -> dict[str, Any]:
@@ -151,6 +166,18 @@ class AgentDefinition(BaseModel):
         arbitrary_types_allowed=True,
     )
 
+    @model_validator(mode="after")
+    def validate_response_types(self) -> AgentDefinition:
+        """Ensure all agent result_types exist in responses."""
+        for agent_id, agent in self.agents.items():
+            if agent.result_type not in self.responses:
+                msg = (
+                    f"Response type '{agent.result_type}' for agent '{agent_id}' "
+                    "not found in responses"
+                )
+                raise ValueError(msg)
+        return self
+
     @classmethod
     def from_file(cls, path: str | os.PathLike[str]) -> Self:
         """Load agent configuration from YAML file.
@@ -166,7 +193,10 @@ class AgentDefinition(BaseModel):
         """
         try:
             data = yamling.load_yaml_file(path)
-            return cls.model_validate(data)
+            return cls.model_validate(
+                data,
+                context={"config_file_path": str(path)},
+            )
         except Exception as exc:
             msg = f"Failed to load agent config from {path}"
             raise ValueError(msg) from exc

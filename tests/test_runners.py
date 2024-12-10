@@ -29,17 +29,6 @@ def test_model() -> TestModel:
 
 
 @pytest.fixture
-def basic_agent_config() -> AgentConfig:
-    """Create a basic agent configuration for testing."""
-    return AgentConfig(
-        name="test_agent",
-        model="test",
-        result_type="BasicResult",
-        system_prompts=["You are a helpful test agent."],
-    )
-
-
-@pytest.fixture
 def basic_response_def() -> dict[str, ResponseDefinition]:
     """Create basic response definitions for testing."""
     response = ResponseField(type="str", description="Test message")
@@ -142,10 +131,13 @@ async def test_orchestrator_multiple_agents(
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_validation(basic_agent_config: AgentConfig) -> None:
+async def test_orchestrator_validation(
+    basic_agent_config: AgentConfig,
+    basic_response_def: dict[str, ResponseDefinition],
+) -> None:
     """Test orchestrator validation."""
     agents = {"test_agent": basic_agent_config}
-    agent_def = AgentDefinition(responses={}, agents=agents)
+    agent_def = AgentDefinition(responses=basic_response_def, agents=agents)
 
     # Test no prompts first
     config = AgentRunConfig(agent_names=["test_agent"], prompts=[])
