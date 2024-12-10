@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from threading import Timer
 import webbrowser
 
 import typer as t
 
-from llmling_agent.web import launch_web_ui
+from llmling_agent.web import launch_app
 
 
 web_cli = t.Typer(help="Web interface commands", no_args_is_help=True)
@@ -22,12 +23,5 @@ def launch_gui(
     """Launch the web interface."""
     if browser:
         url = f"http://{host}:{port or 7860}"
-        from threading import Timer
-
         Timer(1.5, webbrowser.open, args=[url]).start()
-
-    launch_web_ui(
-        server_name=host,
-        server_port=port,
-        share=share,
-    )
+    launch_app(server_name=host, server_port=port, share=share, block=True)

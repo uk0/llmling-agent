@@ -280,8 +280,40 @@ def launch_app(
     share: bool = False,
     server_name: str = "127.0.0.1",
     server_port: int | None = None,
+    block: bool = True,
 ) -> None:
-    """Launch the web interface."""
+    """Launch the LLMling web interface.
+
+    This provides a user-friendly interface to:
+    - Load agent configuration files
+    - Select and configure agents
+    - Chat with agents
+    - View chat history
+
+    Args:
+        share: Whether to create a public URL
+        server_name: Server hostname (default: "127.0.0.1")
+        server_port: Optional server port number
+        block: Whether to block the thread. Set to False when using programmatically.
+
+    Example:
+        ```python
+        from llmling_agent.web import launch_app
+
+        # Basic local launch
+        launch_app()
+
+        # Launch public instance
+        launch_app(share=True)
+
+        # Custom server configuration
+        launch_app(server_name="0.0.0.0", server_port=8080)
+
+        # Non-blocking for programmatic use
+        launch_app(block=False)
+        # ... do other things while server runs
+        ```
+    """
     setup_logging()
     logger.info("Starting web interface")
     app = create_app()
@@ -290,7 +322,7 @@ def launch_app(
         share=share,
         server_name=server_name,
         server_port=server_port,
-        prevent_thread_lock=__name__ != "__main__",
+        prevent_thread_lock=not block,
     )
 
 
