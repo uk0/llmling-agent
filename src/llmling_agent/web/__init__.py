@@ -38,9 +38,4 @@ def launch_web_ui(
         launch_web_ui(share=True)
         ```
     """
-    launch_app(
-        share=share,
-        server_name=server_name,
-        server_port=server_port,
-        auth=auth,
-    )
+    launch_app(share=share, server_name=server_name, server_port=server_port)
