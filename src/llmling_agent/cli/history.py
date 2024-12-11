@@ -207,15 +207,12 @@ def show_history(
 
                 for msg in conv["messages"]:
                     role_color = "green" if msg["role"] == "assistant" else "yellow"
-                    console.print(
-                        f"[{role_color}]{msg['role'].title()}:[/] ({msg['timestamp']})"
-                    )
+                    text = f"[{role_color}]{msg['role'].title()}:[/] ({msg['timestamp']})"
+                    console.print(text)
                     console.print(Markdown(msg["content"]))
                     if msg.get("model"):
-                        console.print(
-                            f"[dim]Model: {msg['model']}[/]",
-                            highlight=False,
-                        )
+                        text = f"[dim]Model: {msg['model']}[/]"
+                        console.print(text, highlight=False)
                     console.print()
         else:
             format_output(results, output_format)
