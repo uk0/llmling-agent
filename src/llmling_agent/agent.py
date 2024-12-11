@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import (
     Sequence,  # noqa: TC003
 )
@@ -538,7 +539,6 @@ class LLMlingAgent[TResult]:
 
 
 if __name__ == "__main__":
-    import asyncio
     import logging
 
     from llmling_agent import config_resources
