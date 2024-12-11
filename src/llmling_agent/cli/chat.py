@@ -5,7 +5,9 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
+from llmling.core.log import get_logger
 from rich.console import Console
+from rich.live import Live
 from rich.markdown import Markdown
 import typer as t
 
@@ -18,18 +20,19 @@ if TYPE_CHECKING:
     from pydantic_ai import messages
 
 console = Console()
+logger = get_logger(__name__)
 
 
 async def chat_session(
     runner: SingleAgentRunner[str],
     history: list[messages.Message] | None = None,
+    stream: bool = False,
 ) -> None:
     """Run interactive chat session with agent."""
     print(f"\nStarted chat with {runner.agent_config.name or 'agent'}")
     print("Type 'exit' or press Ctrl+C to end the conversation\n")
 
     while True:
-        # Get user input
         try:
             user_input = input("You: ").strip()
         except (KeyboardInterrupt, EOFError):
@@ -38,22 +41,29 @@ async def chat_session(
         if not user_input or user_input.lower() == "exit":
             break
 
-        # Get agent response
         try:
-            result = await runner.agent.run(user_input, message_history=history)
-            response = str(result.data)
-            # Update history for next iteration
-            history = result.new_messages()
-            # Print response using Rich for markdown formatting
             console.print("\nAgent:", style="bold blue")
-            console.print(Markdown(response))
+            if stream:
+                stream_ctx = runner.agent.run_stream(user_input, message_history=history)
+                with Live("", console=console, vertical_overflow="visible") as live:
+                    async with await stream_ctx as result:
+                        async for message in result.stream():
+                            live.update(Markdown(str(message)))
+                    history = result.new_messages()
+            else:
+                result = await runner.agent.run(user_input, message_history=history)
+                console.print(Markdown(str(result.data)))
+                history = result.new_messages()
             print()  # Empty line for readability
+
         except Exception as e:  # noqa: BLE001
             console.print(f"\nError: {e}", style="bold red")
+            import traceback
+
+            traceback.print_exc()
             continue
 
 
-# @t.command("chat")
 def chat_command(
     agent_name: str = t.Argument(help="Name of agent to chat with"),
     config: str | None = t.Option(
@@ -67,6 +77,12 @@ def chat_command(
         "--model",
         "-m",
         help="Override agent's model",
+    ),
+    stream: bool = t.Option(
+        False,
+        "--stream",
+        "-s",
+        help="Stream the response token by token",
     ),
 ) -> None:
     """Start interactive chat session with an agent.
@@ -99,10 +115,9 @@ def chat_command(
                 agent_config=agent_config,
                 response_defs=agent_def.responses,
             )
-            async with runner:  # Initialize the runner properly
-                await chat_session(runner)
+            async with runner:
+                await chat_session(runner, stream=stream)
 
-        # Start chat session
         asyncio.run(run_chat())
 
     except t.Exit:

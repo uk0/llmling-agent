@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import (
     Sequence,  # noqa: TC003
 )
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 import inspect
@@ -390,8 +390,8 @@ class LLMlingAgent[TResult]:
         *,
         message_history: list[messages.Message] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-    ) -> StreamedRunResult[TResult, messages.Message]:
-        """Run agent with prompt and stream response.
+    ) -> AbstractAsyncContextManager[StreamedRunResult[TResult, messages.Message]]:
+        """Run agent with prompt and get streaming response.
 
         Args:
             prompt: User query or instruction
@@ -399,16 +399,19 @@ class LLMlingAgent[TResult]:
             model: Optional model override
 
         Returns:
-            Streamed result
+            Async context manager for streaming the response
 
-        Raises:
-            UnexpectedModelBehavior: If the model fails or behaves unexpectedly
+        Example:
+            ```python
+            stream_ctx = agent.run_stream("Hello!")
+            async with await stream_ctx as result:
+                async for message in result.stream():
+                    print(message)
+            ```
         """
         try:
-            now = datetime.now()
-
             if self._enable_logging:
-                # Log user message before starting stream
+                now = datetime.now()
                 with Session(engine) as session:
                     session.add(
                         Message(
@@ -420,41 +423,16 @@ class LLMlingAgent[TResult]:
                     )
                     session.commit()
 
-            async with self._pydantic_agent.run_stream(
+            result = self._pydantic_agent.run_stream(
                 prompt,
                 deps=self._runtime,
                 message_history=message_history,
                 model=model,
-            ) as result:
-                if self._enable_logging:
-                    cost = result.cost()
-                    token_usage: dict[str, int] | None = None
-                    if (
-                        cost
-                        and cost.total_tokens is not None
-                        and cost.request_tokens is not None
-                        and cost.response_tokens is not None
-                    ):
-                        token_usage = {
-                            "total": cost.total_tokens,
-                            "prompt": cost.request_tokens,
-                            "completion": cost.response_tokens,
-                        }
-
-                    with Session(engine) as session:
-                        session.add(
-                            Message(
-                                conversation_id=self._conversation_id,
-                                timestamp=now,
-                                role="assistant",
-                                content=str(result.get()),
-                                token_usage=token_usage,
-                                model=str(model or self._pydantic_agent.model),
-                            )
-                        )
-                        session.commit()
-
-                return cast(StreamedRunResult[TResult, messages.Message], result)
+            )
+            return cast(
+                AbstractAsyncContextManager[StreamedRunResult[TResult, messages.Message]],
+                result,
+            )
         except Exception:
             logger.exception("Agent stream failed")
             raise
