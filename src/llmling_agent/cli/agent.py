@@ -10,38 +10,12 @@ from llmling.cli.utils import format_output
 from pydantic import ValidationError
 import typer as t
 
-from llmling_agent.cli import agent_store
+from llmling_agent.cli import agent_store, resolve_agent_config
 from llmling_agent.models import AgentDefinition
 from llmling_agent.runners import AgentOrchestrator, AgentRunConfig
 
 
 agent_cli = t.Typer(help="Agent management commands", no_args_is_help=True)
-
-
-def resolve_agent_config(config: str | None) -> str:
-    """Resolve agent configuration path from name or direct path.
-
-    Args:
-        config: Configuration name or path
-
-    Returns:
-        Resolved configuration path
-
-    Raises:
-        ValueError: If no configuration is found
-    """
-    if not config:
-        if active := agent_store.get_active():
-            return active.path
-        msg = "No active agent configuration set. Use 'agent set' to set one."
-        raise ValueError(msg)
-
-    try:
-        # First try as stored config name
-        return agent_store.get_config(config)
-    except KeyError:
-        # If not found, treat as direct path
-        return config
 
 
 @agent_cli.command("add")
