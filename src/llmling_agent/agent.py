@@ -21,6 +21,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.storage import Conversation, engine
+from llmling_agent.storage.models import Message
 
 
 if TYPE_CHECKING:
@@ -337,6 +338,47 @@ class LLMlingAgent[TResult]:
                 message_history=message_history,
                 model=model,
             )
+
+            if self._enable_logging:
+                now = datetime.now()
+                cost = result.cost()
+
+                token_usage: dict[str, int] | None = None
+                if (
+                    cost
+                    and cost.total_tokens is not None
+                    and cost.request_tokens is not None
+                    and cost.response_tokens is not None
+                ):
+                    token_usage = {
+                        "total": cost.total_tokens,
+                        "prompt": cost.request_tokens,
+                        "completion": cost.response_tokens,
+                    }
+
+                with Session(engine) as session:
+                    # Log user message
+                    session.add(
+                        Message(
+                            conversation_id=self._conversation_id,
+                            timestamp=now,
+                            role="user",
+                            content=prompt,
+                        )
+                    )
+                    # Log assistant response
+                    session.add(
+                        Message(
+                            conversation_id=self._conversation_id,
+                            timestamp=now,
+                            role="assistant",
+                            content=str(result.data),
+                            token_usage=token_usage,
+                            model=str(model or self._pydantic_agent.model),
+                        )
+                    )
+                    session.commit()
+
             return cast(RunResult[TResult], result)
         except Exception:
             logger.exception("Agent run failed")
@@ -363,12 +405,55 @@ class LLMlingAgent[TResult]:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         try:
+            now = datetime.now()
+
+            if self._enable_logging:
+                # Log user message before starting stream
+                with Session(engine) as session:
+                    session.add(
+                        Message(
+                            conversation_id=self._conversation_id,
+                            timestamp=now,
+                            role="user",
+                            content=prompt,
+                        )
+                    )
+                    session.commit()
+
             async with self._pydantic_agent.run_stream(
                 prompt,
                 deps=self._runtime,
                 message_history=message_history,
                 model=model,
             ) as result:
+                if self._enable_logging:
+                    cost = result.cost()
+                    token_usage: dict[str, int] | None = None
+                    if (
+                        cost
+                        and cost.total_tokens is not None
+                        and cost.request_tokens is not None
+                        and cost.response_tokens is not None
+                    ):
+                        token_usage = {
+                            "total": cost.total_tokens,
+                            "prompt": cost.request_tokens,
+                            "completion": cost.response_tokens,
+                        }
+
+                    with Session(engine) as session:
+                        session.add(
+                            Message(
+                                conversation_id=self._conversation_id,
+                                timestamp=now,
+                                role="assistant",
+                                content=str(result.get()),
+                                token_usage=token_usage,
+                                model=str(model or self._pydantic_agent.model),
+                            )
+                        )
+                        session.commit()
+
                 return cast(StreamedRunResult[TResult, messages.Message], result)
         except Exception:
             logger.exception("Agent stream failed")
@@ -394,13 +479,14 @@ class LLMlingAgent[TResult]:
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        result = self._pydantic_agent.run_sync(
-            prompt,
-            deps=self._runtime,
-            message_history=message_history,
-            model=model,
-        )
-        return cast(RunResult[TResult], result)
+        try:
+            main = self.run(prompt, message_history=message_history, model=model)
+            return asyncio.run(main)
+        except KeyboardInterrupt:
+            raise
+        except Exception:
+            logger.exception("Sync agent run failed")
+            raise
 
     def tool(self, *args: Any, **kwargs: Any) -> Any:
         """Register a tool with the agent.
@@ -494,8 +580,6 @@ if __name__ == "__main__":
     async def main() -> None:
         async with RuntimeConfig.open(config_resources.SUMMARIZE_README) as r:
             agent: LLMlingAgent[str] = LLMlingAgent(r, model="openai:gpt-3.5-turbo")
-            resources = r.list_resource_names()
-            print(resources)
             result = await agent.run(sys_prompt)
             print(result.data)
 
