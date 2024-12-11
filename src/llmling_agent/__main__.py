@@ -12,6 +12,7 @@ from llmling_agent.cli.agent import (
     set_active_file,
 )
 from llmling_agent.cli.chat import chat_command
+from llmling_agent.cli.history import history_cli
 
 
 MAIN_HELP = "🤖 LLMling Agent CLI - Run and manage LLM agents"
@@ -31,6 +32,7 @@ cli.command(name="run")(run_agent)
 cli.command(name="list")(list_agents)
 cli.command(name="set")(set_active_file)
 cli.command(name="chat")(chat_command)
+cli.add_typer(history_cli, name="history")
 
 try:
     from llmling_agent.cli import web
