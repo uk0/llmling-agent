@@ -7,13 +7,9 @@ import webbrowser
 
 import typer as t
 
-from llmling_agent.web import launch_app
+from llmling_agent.web.app import launch_app
 
 
-web_cli = t.Typer(help="Web interface commands", no_args_is_help=True)
-
-
-@web_cli.command("launch")
 def launch_gui(
     host: str = t.Option("127.0.0.1", "--host", "-h", help="Host to bind to"),
     port: int = t.Option(None, "--port", "-p", help="Port to bind to"),

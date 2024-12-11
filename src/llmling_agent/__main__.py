@@ -31,9 +31,10 @@ cli.command(name="list")(list_agents)
 cli.command(name="set")(set_active_file)
 
 try:
-    from llmling_agent.cli.web import web_cli
+    from llmling_agent.cli import web
 
-    cli.add_typer(web_cli, name="web", help="Web interface commands")
+    cli.command(name="launch")(web.launch_gui)
+
 except ImportError:
     web_cli = t.Typer(help="Web interface commands (not installed)")
 
