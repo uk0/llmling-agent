@@ -11,13 +11,15 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import config_resources
+from llmling_agent.agent import LLMlingAgent
 from llmling_agent.models import AgentConfig, ResponseDefinition, ResponseField
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
-    from llmling_agent.agent import LLMlingAgent
+
+TEST_RESPONSE = "I am a test response"
 
 
 @pytest.fixture
@@ -126,3 +128,13 @@ async def no_tool_runtime() -> AsyncGenerator[RuntimeConfig, None]:
     await runtime.__aenter__()
     yield runtime
     await runtime.__aexit__(None, None, None)
+
+
+@pytest.fixture
+def test_agent(no_tool_runtime: RuntimeConfig) -> LLMlingAgent[str]:
+    """Create an agent with TestModel for testing."""
+    return LLMlingAgent(
+        runtime=no_tool_runtime,
+        name="test-agent",
+        model=TestModel(custom_result_text=TEST_RESPONSE),
+    )
