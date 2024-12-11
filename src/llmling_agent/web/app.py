@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
 import gradio as gr
 from llmling.config.store import ConfigStore
 from upath import UPath
 
 from llmling_agent.web.ui_state import UIState
+
+
+if TYPE_CHECKING:
+    from gradio.routes import App
 
 
 type ChatHistory = list[ChatMessage]
@@ -237,7 +241,7 @@ def launch_app(
     server_name: str = "127.0.0.1",
     server_port: int | None = None,
     block: bool = True,
-) -> None:
+) -> tuple[App, str, str]:
     """Launch the LLMling web interface.
 
     This provides a user-friendly interface to:
@@ -274,7 +278,7 @@ def launch_app(
     logger.info("Starting web interface")
     app = create_app()
     app.queue()
-    app.launch(
+    return app.launch(
         share=share,
         server_name=server_name,
         server_port=server_port,
