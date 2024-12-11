@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from llmling import Config
-from llmling.config.models import GlobalSettings, LLMCapabilitiesConfig
-from llmling.config.runtime import RuntimeConfig
 from pydantic_ai.models.test import TestModel
 import pytest
 
@@ -12,48 +9,20 @@ from llmling_agent.models import (
     AgentConfig,
     AgentDefinition,
     ResponseDefinition,
-    ResponseField,
 )
 from llmling_agent.runners import AgentOrchestrator, AgentRunConfig, SingleAgentRunner
 from llmling_agent.runners.orchestrator import AgentNotFoundError, NoPromptsError
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
-
-
-@pytest.fixture
-def test_model() -> TestModel:
-    """Create a TestModel that returns simple text responses."""
-    return TestModel(custom_result_text="Test response", call_tools=[])
-
-
-@pytest.fixture
-def basic_response_def() -> dict[str, ResponseDefinition]:
-    """Create basic response definitions for testing."""
-    response = ResponseField(type="str", description="Test message")
-    desc = "Basic test result"
-    definition = ResponseDefinition(description=desc, fields={"message": response})
-    return {"BasicResult": definition}
-
-
-@pytest.fixture
-async def runtime() -> AsyncGenerator[RuntimeConfig, None]:
-    """Create a runtime configuration for testing."""
-    caps = LLMCapabilitiesConfig(load_resource=False, get_resources=False)
-    global_settings = GlobalSettings(llm_capabilities=caps)
-    config = Config(global_settings=global_settings)
-    runtime = RuntimeConfig.from_config(config)
-    await runtime.__aenter__()
-    yield runtime
-    await runtime.__aexit__(None, None, None)
+    from llmling.config.runtime import RuntimeConfig
 
 
 @pytest.mark.asyncio
 async def test_single_agent_runner_basic(
     basic_agent_config: AgentConfig,
     basic_response_def: dict[str, ResponseDefinition],
-    runtime: RuntimeConfig,
+    no_tool_runtime: RuntimeConfig,
 ) -> None:
     """Test basic SingleAgentRunner functionality."""
     async with SingleAgentRunner[str](
