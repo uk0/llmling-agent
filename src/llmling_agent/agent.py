@@ -12,7 +12,6 @@ from inspect import Parameter, Signature
 from typing import TYPE_CHECKING, Any, cast
 
 from llmling.config.runtime import RuntimeConfig
-import logfire
 from pydantic_ai import Agent as PydanticAgent, RunContext, messages
 from pydantic_ai.result import RunResult, StreamedRunResult
 from typing_extensions import TypeVar
@@ -291,7 +290,6 @@ class LLMlingAgent[TResult]:
         # Default implementation just logs
         logger.debug("Received event: %s", event)
 
-    @logfire.instrument("Running agent")
     async def run(
         self,
         prompt: str,
@@ -324,7 +322,6 @@ class LLMlingAgent[TResult]:
             logger.exception("Agent run failed")
             raise
 
-    @logfire.instrument("Streaming agent response")
     async def run_stream(
         self,
         prompt: str,
