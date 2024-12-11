@@ -7,16 +7,20 @@ from collections.abc import (
 )
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import datetime
 import inspect
 from inspect import Parameter, Signature
 from typing import TYPE_CHECKING, Any, cast
+from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
 from pydantic_ai import Agent as PydanticAgent, RunContext, messages
 from pydantic_ai.result import RunResult, StreamedRunResult
+from sqlmodel import Session
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
+from llmling_agent.storage import Conversation, engine
 
 
 if TYPE_CHECKING:
@@ -164,6 +168,7 @@ class LLMlingAgent[TResult]:
         result_tool_description: str | None = None,
         result_retries: int | None = None,
         defer_model_check: bool = False,
+        enable_logging: bool = True,
         **kwargs,
     ) -> None:
         """Initialize agent with runtime configuration.
@@ -180,6 +185,7 @@ class LLMlingAgent[TResult]:
             result_retries: Max retries for result validation (defaults to retries)
             defer_model_check: Whether to defer model evaluation until first run
             kwargs: Additional arguments for PydanticAI agent
+            enable_logging: Whether to enable logging for the agent
         """
         self._runtime = runtime
 
@@ -205,6 +211,20 @@ class LLMlingAgent[TResult]:
         self._name = name
         msg = "Initialized %s (model=%s, result_type=%s)"
         logger.debug(msg, self._name, model, result_type or "str")
+        self._enable_logging = enable_logging
+        self._conversation_id = str(uuid4())
+
+        if enable_logging:
+            # Log conversation start
+            with Session(engine) as session:
+                session.add(
+                    Conversation(
+                        id=self._conversation_id,
+                        agent_name=name,
+                        start_time=datetime.now(),
+                    )
+                )
+                session.commit()
 
     @classmethod
     @asynccontextmanager
