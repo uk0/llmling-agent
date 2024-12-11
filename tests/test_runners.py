@@ -61,7 +61,7 @@ async def test_single_agent_runner_basic(
         response_defs=basic_response_def,
     ) as runner:
         # Override the model with TestModel
-        runner.agent.pydantic_agent.model = TestModel()
+        runner.agent._pydantic_agent.model = TestModel()
 
         result = await runner.run("Hello!")
         assert isinstance(result.data, str)
@@ -79,7 +79,7 @@ async def test_single_agent_runner_conversation(
         response_defs=basic_response_def,
     ) as runner:
         # Override with TestModel that returns specific responses
-        runner.agent.pydantic_agent.model = TestModel(custom_result_text="Test response")
+        runner.agent._pydantic_agent.model = TestModel(custom_result_text="Test response")
 
         results = await runner.run_conversation(["Hello!", "How are you?"])
         assert len(results) == 2  # noqa: PLR2004

@@ -193,7 +193,7 @@ class LLMlingAgent[TResult]:
         actual_result_type = result_type or str
 
         # Initialize base PydanticAI agent
-        self.pydantic_agent = PydanticAgent(
+        self._pydantic_agent = PydanticAgent(
             model=model,
             result_type=actual_result_type,
             system_prompt=system_prompt,
@@ -331,7 +331,7 @@ class LLMlingAgent[TResult]:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         try:
-            result = await self.pydantic_agent.run(
+            result = await self._pydantic_agent.run(
                 prompt,
                 deps=self._runtime,
                 message_history=message_history,
@@ -363,7 +363,7 @@ class LLMlingAgent[TResult]:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         try:
-            async with self.pydantic_agent.run_stream(
+            async with self._pydantic_agent.run_stream(
                 prompt,
                 deps=self._runtime,
                 message_history=message_history,
@@ -394,7 +394,7 @@ class LLMlingAgent[TResult]:
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        result = self.pydantic_agent.run_sync(
+        result = self._pydantic_agent.run_sync(
             prompt,
             deps=self._runtime,
             message_history=message_history,
@@ -415,7 +415,7 @@ class LLMlingAgent[TResult]:
                 return resource.content
             ```
         """
-        return self.pydantic_agent.tool(*args, **kwargs)
+        return self._pydantic_agent.tool(*args, **kwargs)
 
     def tool_plain(self, func: ToolFuncPlain[ToolParams]) -> Any:
         """Register a plain tool with the agent.
@@ -429,7 +429,7 @@ class LLMlingAgent[TResult]:
                 return arg.upper()
             ```
         """
-        return self.pydantic_agent.tool_plain(func)
+        return self._pydantic_agent.tool_plain(func)
 
     def system_prompt(self, *args: Any, **kwargs: Any) -> Any:
         """Register a dynamic system prompt.
@@ -444,7 +444,7 @@ class LLMlingAgent[TResult]:
                 return f"Available resources: {', '.join(resources)}"
             ```
         """
-        return self.pydantic_agent.system_prompt(*args, **kwargs)
+        return self._pydantic_agent.system_prompt(*args, **kwargs)
 
     def result_validator(self, *args: Any, **kwargs: Any) -> Any:
         """Register a result validator.
@@ -460,12 +460,12 @@ class LLMlingAgent[TResult]:
                 return result
             ```
         """
-        return self.pydantic_agent.result_validator(*args, **kwargs)
+        return self._pydantic_agent.result_validator(*args, **kwargs)
 
     @property
     def last_run_messages(self) -> list[messages.Message] | None:
         """Get messages from the last run."""
-        return self.pydantic_agent.last_run_messages
+        return self._pydantic_agent.last_run_messages
 
     @property
     def runtime(self) -> RuntimeConfig:
