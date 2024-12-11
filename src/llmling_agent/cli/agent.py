@@ -11,8 +11,6 @@ from pydantic import ValidationError
 import typer as t
 
 from llmling_agent.cli import agent_store, resolve_agent_config
-from llmling_agent.models import AgentDefinition
-from llmling_agent.runners import AgentOrchestrator, AgentRunConfig
 
 
 agent_cli = t.Typer(help="Agent management commands", no_args_is_help=True)
@@ -82,6 +80,9 @@ def run_agent(
     verbose: bool = verbose_opt,
 ) -> None:
     """Run one or more agents with the given prompts."""
+    from llmling_agent.models import AgentDefinition
+    from llmling_agent.runners import AgentOrchestrator, AgentRunConfig
+
     try:
         # Resolve configuration path
         try:
@@ -176,6 +177,8 @@ def list_agents(
     verbose: bool = verbose_opt,
 ) -> None:
     """List agents from the active (or specified) configuration."""
+    from llmling_agent.models import AgentDefinition
+
     try:
         try:
             config_path = resolve_agent_config(config_name)

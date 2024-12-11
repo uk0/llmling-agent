@@ -7,8 +7,6 @@ import webbrowser
 
 import typer as t
 
-from llmling_agent.web.app import launch_app
-
 
 def launch_gui(
     host: str = t.Option("127.0.0.1", "--host", "-h", help="Host to bind to"),
@@ -17,6 +15,8 @@ def launch_gui(
     browser: bool = t.Option(True, "--browser/--no-browser", help="Open in browser"),
 ) -> None:
     """Launch the web interface."""
+    from llmling_agent.web.app import launch_app
+
     if browser:
         url = f"http://{host}:{port or 7860}"
         Timer(1.5, webbrowser.open, args=[url]).start()

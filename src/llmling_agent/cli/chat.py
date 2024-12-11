@@ -12,12 +12,12 @@ from rich.markdown import Markdown
 import typer as t
 
 from llmling_agent.cli import resolve_agent_config
-from llmling_agent.models import AgentDefinition
-from llmling_agent.runners import SingleAgentRunner
 
 
 if TYPE_CHECKING:
     from pydantic_ai import messages
+
+    from llmling_agent.runners import SingleAgentRunner
 
 console = Console()
 logger = get_logger(__name__)
@@ -91,6 +91,9 @@ def chat_command(
         llmling-agent chat myagent
         llmling-agent chat myagent --model gpt-4
     """
+    from llmling_agent.models import AgentDefinition
+    from llmling_agent.runners import SingleAgentRunner
+
     try:
         # Resolve configuration
         try:

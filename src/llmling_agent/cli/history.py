@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from llmling.cli.constants import output_format_opt
 from llmling.cli.utils import format_output
@@ -13,7 +13,9 @@ from rich.markdown import Markdown
 from sqlmodel import Session, select
 import typer as t
 
-from llmling_agent.storage import Conversation, Message, engine
+
+if TYPE_CHECKING:
+    from llmling_agent.storage import Conversation, Message
 
 
 console = Console()
@@ -114,6 +116,8 @@ def show_history(
         # Compact view of recent conversations
         llmling-agent history show --period 1d --compact
     """
+    from llmling_agent.storage import Conversation, Message, engine
+
     with Session(engine) as session:
         # Build base query for conversations
         stmt = select(Conversation).order_by(Conversation.start_time.desc())  # type: ignore
@@ -272,6 +276,8 @@ def show_stats(
         # Show model usage for last week
         llmling-agent history stats --period 1w --group-by model
     """
+    from llmling_agent.storage import Conversation, Message, engine
+
     try:
         cutoff = datetime.now() - parse_time_period(period)
     except ValueError as e:
