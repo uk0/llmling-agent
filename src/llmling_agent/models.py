@@ -198,8 +198,12 @@ class AgentDefinition(BaseModel):
         """
         try:
             data = yamling.load_yaml_file(path)
+            # Set identifier as name if not set
+            for identifier, config in data["agents"].items():
+                if not config.get("name"):
+                    config["name"] = identifier
             agent_def = cls.model_validate(data)
-            # Update all agents with the config file path
+            # Update all agents with the config file path and ensure names
             agents = {
                 name: config.model_copy(update={"config_file_path": str(path)})
                 for name, config in agent_def.agents.items()
