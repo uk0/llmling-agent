@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling import Config
@@ -237,3 +238,21 @@ class AgentDefinition(BaseModel):
             return BUILTIN_ROLES[role_name]  # type: ignore[index]
         msg = f"Unknown role: {role_name}"
         raise ValueError(msg)
+
+
+@dataclass
+class ResourceInfo:
+    """Information about an available resource.
+
+    This class provides essential information about a resource that can be loaded.
+    Use the resource name with load_resource() to access the actual content.
+    """
+
+    name: str
+    """Name of the resource, use this with load_resource()"""
+
+    uri: str
+    """URI identifying the resource location"""
+
+    description: str | None = None
+    """Optional description of the resource's content or purpose"""

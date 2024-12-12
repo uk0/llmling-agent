@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
-from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
@@ -46,24 +45,6 @@ T = TypeVar("T")  # For the return type
 
 
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
-
-
-@dataclass
-class ResourceInfo:
-    """Information about an available resource.
-
-    This class provides essential information about a resource that can be loaded.
-    Use the resource name with load_resource() to access the actual content.
-    """
-
-    name: str
-    """Name of the resource, use this with load_resource()"""
-
-    uri: str
-    """URI identifying the resource location"""
-
-    description: str | None = None
-    """Optional description of the resource's content or purpose"""
 
 
 class LLMlingAgent[TResult]:
