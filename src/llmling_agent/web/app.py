@@ -9,6 +9,7 @@ import gradio as gr
 from llmling.config.store import ConfigStore
 from upath import UPath
 
+from llmling_agent.chat_session import ChatSessionManager
 from llmling_agent.web.ui_state import UIState
 
 
@@ -59,18 +60,25 @@ CUSTOM_CSS = """
     max-height: 200px;
     overflow-y: auto;
 }
+
+.tool-table {
+    margin-top: 16px;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+}
 """
 
 
 class AgentUI:
     """Main agent web interface."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Initialize interface."""
         store = ConfigStore("agents.json")
         self.available_files = [str(UPath(path)) for _, path in store.list_configs()]
         self.state = UIState()
         self.initial_status = "Please select a configuration file"
+        self._session_manager = ChatSessionManager()
 
     def create_ui(self) -> gr.Blocks:
         """Create the Gradio interface."""
@@ -116,6 +124,15 @@ class AgentUI:
                         show_label=True,
                     )
 
+                    # Tool management
+                    tool_states = gr.Dataframe(
+                        headers=["Tool", "Enabled"],
+                        label="Available Tools",
+                        interactive=True,
+                        elem_classes=["tool-table"],
+                        visible=True,
+                    )
+
                 with gr.Column(scale=2):
                     chatbot = gr.Chatbot(
                         value=[],
@@ -123,7 +140,7 @@ class AgentUI:
                         height=600,
                         show_copy_button=True,
                         show_copy_all_button=True,
-                        type="messages",  # Important: specify messages type
+                        type="messages",
                         avatar_images=("👤", "🤖"),
                         bubble_full_width=False,
                     )
@@ -158,15 +175,21 @@ class AgentUI:
             # Event handlers with proper async handling
             async def handle_upload(x: Any) -> list[Any]:
                 result = await self.state.handle_upload(x)
-                return result.to_updates([file_input, agent_input, status, debug_logs])
+                return result.to_updates([
+                    file_input,
+                    agent_input,
+                    status,
+                    debug_logs,
+                    tool_states,
+                ])
 
             async def handle_file_selection(file_path: str) -> list[Any]:
                 result = await self.state.handle_file_selection(file_path)
-                return result.to_updates([agent_input, status, debug_logs])
+                return result.to_updates([agent_input, status, debug_logs, tool_states])
 
             async def handle_agent_selection(*args: Any) -> list[Any]:
                 result = await self.state.handle_agent_selection(*args)
-                return result.to_updates([status, chatbot, debug_logs])
+                return result.to_updates([status, chatbot, debug_logs, tool_states])
 
             def handle_debug(x: bool) -> list[Any]:
                 result = self.state.toggle_debug(x)
@@ -176,23 +199,32 @@ class AgentUI:
                 result = await self.state.send_message(*args)
                 return result.to_updates([msg_box, chatbot, status, debug_logs])
 
+            async def handle_tool_toggle(evt: gr.SelectData) -> list[Any]:
+                if evt.index[1] == 1:  # Second column (Enabled)
+                    tool_name = evt.row_value[0]  # First column contains tool name
+                    new_state = not evt.value  # Toggle current state
+
+                    result = await self.state.update_tool_states({tool_name: new_state})
+                    return result.to_updates([status, tool_states, debug_logs])
+                return [gr.update(), gr.update(), None]
+
             # Connect handlers to UI events
             upload_button.upload(
                 fn=handle_upload,
                 inputs=[upload_button],
-                outputs=[file_input, agent_input, status, debug_logs],
+                outputs=[file_input, agent_input, status, debug_logs, tool_states],
             )
 
             file_input.select(
                 fn=handle_file_selection,
                 inputs=[file_input],
-                outputs=[agent_input, status, debug_logs],
+                outputs=[agent_input, status, debug_logs, tool_states],
             )
 
             agent_input.select(
                 fn=handle_agent_selection,
                 inputs=[agent_input, model_input, chatbot],
-                outputs=[status, chatbot, debug_logs],
+                outputs=[status, chatbot, debug_logs, tool_states],
             )
 
             debug_toggle.change(
@@ -205,6 +237,11 @@ class AgentUI:
             outputs = [msg_box, chatbot, status, debug_logs]
             msg_box.submit(fn=handle_message, inputs=inputs, outputs=outputs)
             submit_btn.click(fn=handle_message, inputs=inputs, outputs=outputs)
+
+            tool_states.select(
+                fn=handle_tool_toggle,
+                outputs=[status, tool_states, debug_logs],
+            )
 
         return app
 

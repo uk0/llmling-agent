@@ -3,15 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentDefinition
 from llmling_agent.runners import SingleAgentRunner
-
-
-if TYPE_CHECKING:
-    from llmling_agent.web.type_utils import ChatHistory
+from llmling_agent.web.type_utils import ChatHistory  # noqa: TC001
 
 
 logger = get_logger(__name__)

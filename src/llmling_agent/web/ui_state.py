@@ -1,38 +1,24 @@
+"""UI state management for web interface."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from collections.abc import AsyncIterator
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import gradio as gr
 from llmling.config.store import ConfigStore
 from pydantic import BaseModel
-from pydantic_ai import messages
 from upath import UPath
 import yamling
 
+from llmling_agent.chat_session import AgentChatSession, ChatSessionManager
 from llmling_agent.log import LogCapturer
 from llmling_agent.web.handlers import AgentHandler
-
-
-if TYPE_CHECKING:
-    from llmling_agent.web.type_utils import ChatHistory
+from llmling_agent.web.type_utils import ChatHistory  # noqa: TC001
 
 
 logger = logging.getLogger(__name__)
-
-
-def convert_chat_history_to_messages(
-    history: ChatHistory,
-) -> list[messages.Message]:
-    """Convert Gradio chat history to pydantic-ai messages."""
-    result: list[messages.Message] = []
-    for msg in history:
-        if msg["role"] == "user":
-            result.append(messages.UserPrompt(content=msg["content"]))
-        elif msg["role"] == "assistant":
-            result.append(messages.ModelTextResponse(content=msg["content"]))
-    return result
 
 
 class UIUpdate(BaseModel):
@@ -44,7 +30,7 @@ class UIUpdate(BaseModel):
     debug_logs: str | None = None
     agent_choices: list[str] | None = None
     file_choices: list[str] | None = None
-    selected_agent: str | None = None
+    tool_states: list[list[Any]] | None = None
 
     def to_updates(self, outputs: list[gr.components.Component]) -> list[Any]:
         """Convert to list of gradio updates matching output components."""
@@ -67,18 +53,23 @@ class UIUpdate(BaseModel):
                     updates.append(gr.update(value=self.chat_history))
                 case gr.Textbox():
                     updates.append(gr.update(value=self.message_box))
+                case gr.Dataframe():
+                    updates.append(gr.update(value=self.tool_states))
                 case _:
                     updates.append(gr.update())
         return updates
 
 
-@dataclass
 class UIState:
     """Maintains UI state and handles updates."""
 
-    log_capturer: LogCapturer = field(default_factory=LogCapturer)
-    debug_mode: bool = False
-    handler: AgentHandler | None = None
+    def __init__(self) -> None:
+        """Initialize UI state."""
+        self.log_capturer = LogCapturer()
+        self.debug_mode = False
+        self.handler: AgentHandler | None = None
+        self._session_manager = ChatSessionManager()
+        self._current_session: AgentChatSession | None = None
 
     def toggle_debug(self, enabled: bool) -> UIUpdate:
         """Toggle debug mode."""
@@ -104,7 +95,6 @@ class UIState:
             logger.info(msg)
             return UIUpdate(
                 agent_choices=agents,
-                selected_agent=None,
                 status=msg,
                 debug_logs=self.get_debug_logs(),
             )
@@ -113,7 +103,6 @@ class UIState:
             self.handler = None
             return UIUpdate(
                 agent_choices=[],
-                selected_agent=None,
                 status=f"Error: {e}",
                 debug_logs=self.get_debug_logs(),
             )
@@ -166,16 +155,41 @@ class UIState:
                 msg = "No configuration loaded"
                 raise ValueError(msg)  # noqa: TRY301
 
+            # Initialize the runner
             await self.handler.select_agent(agent_name, model)
-            # Get history for this agent if any
-            agent_history = self.handler.state.history.get(agent_name, [])
-            logs = self.get_debug_logs()
-            status = f"Agent {agent_name} ready"
-            return UIUpdate(status=status, chat_history=agent_history, debug_logs=logs)
+
+            # Get the agent from the runner
+            if not self.handler.state.current_runner:
+                msg = f"Failed to initialize runner for {agent_name}"
+                raise ValueError(msg)  # noqa: TRY301
+
+            agent = self.handler.state.current_runner.agent
+
+            # Create chat session with the agent
+            self._current_session = await self._session_manager.create_session(
+                agent=agent,
+                model=model,
+            )
+
+            # Get tool states for UI
+            tool_states = [
+                [name, enabled]
+                for name, enabled in self._current_session.get_tool_states().items()
+            ]
+
+            return UIUpdate(
+                status=f"Agent {agent_name} ready",
+                chat_history=[],
+                tool_states=tool_states,
+                debug_logs=self.get_debug_logs(),
+            )
+
         except Exception as e:
             logger.exception("Failed to initialize agent")
-            logs = self.get_debug_logs()
-            return UIUpdate(status=f"Error: {e}", debug_logs=logs)
+            return UIUpdate(
+                status=f"Error: {e}",
+                debug_logs=self.get_debug_logs(),
+            )
 
     async def send_message(
         self,
@@ -192,48 +206,125 @@ class UIState:
                 debug_logs=self.get_debug_logs(),
             )
 
-        if not self.handler or not agent_name:
+        if not self._current_session:
             return UIUpdate(
                 message_box=message,
                 chat_history=history,
-                status="No agent selected",
+                status="No active session",
                 debug_logs=self.get_debug_logs(),
             )
 
         try:
-            runner = self.handler.state.current_runner
-            if not runner:
-                msg = "Agent not initialized"
-                raise ValueError(msg)  # noqa: TRY301
+            # Get complete response
+            response = await self._current_session.send_message(message, stream=False)
+            if isinstance(response, AsyncIterator):
+                msg = "Unexpected streaming response"
+                raise TypeError(msg)  # noqa: TRY301
 
-            # Convert to pydantic-ai messages
-            msg_history = convert_chat_history_to_messages(history)
-
-            # Get response from agent
-            result = await runner.agent.run(message, message_history=msg_history)
-            response = str(result.data)
-
-            # Update chat history with new Gradio messages
-            new_history = list(history)
-            new_history.extend([
-                {"role": "user", "content": message},
-                {"role": "assistant", "content": response},
-            ])
-
-            # Store history
-            self.handler.state.history[agent_name] = new_history
+            # Update chat history
+            messages = list(history)
+            messages.append({
+                "content": message,
+                "role": "user",
+            })
+            messages.append({
+                "content": response.content,
+                "role": "assistant",
+            })
 
             return UIUpdate(
                 message_box="",
-                chat_history=new_history,
+                chat_history=messages,
                 status="Message sent",
                 debug_logs=self.get_debug_logs(),
             )
+
         except Exception as e:
             logger.exception("Failed to process message")
             return UIUpdate(
                 message_box=message,
                 chat_history=history,
                 status=f"Error: {e}",
+                debug_logs=self.get_debug_logs(),
+            )
+
+    async def stream_message(
+        self,
+        message: str,
+        history: ChatHistory,
+    ) -> AsyncIterator[UIUpdate]:
+        """Stream message responses."""
+        if not self._current_session:
+            yield UIUpdate(status="No active session")
+            return
+
+        try:
+            messages = list(history)
+            response_parts = []
+
+            # Add user message
+            messages.append({
+                "content": message,
+                "role": "user",
+            })
+
+            response = await self._current_session.send_message(message, stream=True)
+            if not isinstance(response, AsyncIterator):
+                msg = "Expected streaming response"
+                raise TypeError(msg)  # noqa: TRY301
+
+            async for chunk in response:
+                response_parts.append(chunk.content)
+                # Update UI with current state
+                current_messages = list(messages)
+                current_messages.append({
+                    "content": "".join(response_parts),
+                    "role": "assistant",
+                })
+                yield UIUpdate(
+                    chat_history=current_messages,
+                    status="Receiving response...",
+                )
+
+            # Final update
+            yield UIUpdate(
+                message_box="",
+                chat_history=current_messages,
+                status="Message sent",
+                debug_logs=self.get_debug_logs(),
+            )
+
+        except Exception as e:
+            logger.exception("Failed to stream message")
+            yield UIUpdate(
+                status=f"Error: {e}",
+                debug_logs=self.get_debug_logs(),
+            )
+
+    async def update_tool_states(self, updates: dict[str, bool]) -> UIUpdate:
+        """Update tool states in current session."""
+        if not self._current_session:
+            return UIUpdate(status="No active session")
+
+        try:
+            results = self._current_session.configure_tools(updates)
+            status = "; ".join(f"{k}: {v}" for k, v in results.items())
+
+            # Get updated tool states
+            tool_states = [
+                [name, enabled]
+                for name, enabled in self._current_session.get_tool_states().items()
+            ]
+
+            return UIUpdate(
+                status=f"Updated tools: {status}",
+                tool_states=tool_states,
+                debug_logs=self.get_debug_logs(),
+            )
+
+        except Exception as e:
+            logger.exception("Failed to update tools")
+            return UIUpdate(
+                status=f"Error updating tools: {e}",
                 debug_logs=self.get_debug_logs(),
             )
