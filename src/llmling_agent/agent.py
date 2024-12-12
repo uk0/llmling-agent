@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import (
-    Sequence,  # noqa: TC003
-)
+from collections.abc import Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
@@ -13,7 +11,7 @@ from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
-from pydantic_ai import Agent as PydanticAgent, messages
+from pydantic_ai import Agent as PydanticAgent, RunContext, messages
 from pydantic_ai.result import RunResult, StreamedRunResult
 from sqlmodel import Session
 from typing_extensions import TypeVar
@@ -21,7 +19,11 @@ from typing_extensions import TypeVar
 from llmling_agent.log import get_logger
 from llmling_agent.storage import Conversation, engine
 from llmling_agent.storage.models import Message
-from llmling_agent.tools import create_tool_wrapper
+from llmling_agent.tools import (
+    ToolConfirmation,
+    ToolContext,
+    create_confirmed_tool_wrapper,
+)
 
 
 if TYPE_CHECKING:
@@ -32,6 +34,7 @@ if TYPE_CHECKING:
     import os
 
     from llmling.core.events import Event
+    from py2openai import OpenAIFunctionTool
     from pydantic_ai.agent import models
     from pydantic_ai.tools import ToolFuncPlain, ToolParams
 
@@ -103,6 +106,8 @@ class LLMlingAgent[TResult]:
         model: models.Model | models.KnownModelName | None = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
+        tool_confirmation: ToolConfirmation | None = None,
+        confirm_tools: set[str] | bool = True,
         retries: int = 1,
         result_tool_name: str = "final_result",
         result_tool_description: str | None = None,
@@ -119,6 +124,8 @@ class LLMlingAgent[TResult]:
             model: The default model to use (defaults to GPT-4)
             system_prompt: Static system prompts to use for this agent
             name: Name of the agent for logging
+            tool_confirmation: Callback class for tool confirmation
+            confirm_tools: List of tools requiring confirmation or global on / off
             retries: Default number of retries for failed operations
             result_tool_name: Name of the tool used for final result
             result_tool_description: Description of the final result tool
@@ -131,6 +138,20 @@ class LLMlingAgent[TResult]:
 
         # Use provided type or default to str
         actual_result_type = result_type or str
+
+        self._tool_confirmation = tool_confirmation
+        # Convert confirm_tools to a set of tool names (or None if False)
+        self._confirm_tools: set[str] | None = None
+        match confirm_tools:
+            case True:
+                # Confirm all tools
+                self._confirm_tools = set(self.runtime.tools)
+            case list():
+                # Confirm specific tools
+                self._confirm_tools = set(confirm_tools)
+            case False:
+                # No confirmation
+                self._confirm_tools = None
 
         # Initialize base PydanticAI agent
         self._pydantic_agent = PydanticAgent(
@@ -165,6 +186,39 @@ class LLMlingAgent[TResult]:
                     )
                 )
                 session.commit()
+
+    async def _confirm_tool(
+        self,
+        tool_name: str,
+        args: dict[str, Any],
+        schema: OpenAIFunctionTool,
+        runtime_ctx: RunContext[RuntimeConfig],
+    ) -> bool:
+        """Request confirmation for tool execution.
+
+        Args:
+            tool_name: Name of the tool to execute
+            args: Tool arguments
+            schema: Tool's OpenAI function schema
+            runtime_ctx: Current runtime context
+
+        Returns:
+            Whether execution was confirmed
+        """
+        if (
+            not self._tool_confirmation
+            or self._confirm_tools is None
+            or tool_name not in self._confirm_tools
+        ):
+            return True
+
+        tool_ctx = ToolContext(
+            name=tool_name,
+            args=args,
+            schema=schema,
+            runtime_ctx=runtime_ctx,
+        )
+        return await self._tool_confirmation.confirm_tool(tool_ctx)
 
     @classmethod
     @asynccontextmanager
@@ -237,7 +291,21 @@ class LLMlingAgent[TResult]:
         """Register all tools from runtime configuration."""
         for name, llm_tool in self.runtime.tools.items():
             schema = llm_tool.get_schema()
-            wrapper: Callable[..., Any] = create_tool_wrapper(name, schema)
+
+            # Only pass confirmation callback if needed for this tool
+            confirm_cb = None
+            if (
+                self._tool_confirmation
+                and self._confirm_tools
+                and name in self._confirm_tools
+            ):
+                confirm_cb = self._tool_confirmation.confirm_tool
+
+            wrapper: Callable[..., Any] = create_confirmed_tool_wrapper(
+                name=name,
+                schema=schema,
+                confirm_callback=confirm_cb,
+            )
             self.tool(wrapper)
             msg = "Registered runtime tool: %s (signature: %s)"
             logger.debug(msg, name, wrapper.__signature__)  # type: ignore
