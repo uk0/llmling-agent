@@ -28,11 +28,7 @@ from llmling_agent.tools import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        AsyncIterator,
-        Awaitable,
-        Callable,
-    )
+    from collections.abc import AsyncIterator, Awaitable, Callable
     import os
 
     from llmling.core.events import Event
@@ -163,13 +159,9 @@ class LLMlingAgent[TResult]:
         if enable_logging:
             # Log conversation start
             with Session(engine) as session:
-                session.add(
-                    Conversation(
-                        id=self._conversation_id,
-                        agent_name=name,
-                        start_time=datetime.now(),
-                    )
-                )
+                id_ = self._conversation_id
+                convo = Conversation(id=id_, agent_name=name, start_time=datetime.now())
+                session.add(convo)
                 session.commit()
 
     def _setup_history_tools(self, tools: list[Tool[AgentContext]]) -> None:
