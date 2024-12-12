@@ -78,7 +78,7 @@ class AgentConfig(BaseModel):
     environment: str | None = None
     """Path or name of the environment configuration to use"""
 
-    result_type: str
+    result_type: str | None = None  # References a response name or None for plain string
     """Name of the response definition to use"""
 
     system_prompts: list[str] = Field(default_factory=list)

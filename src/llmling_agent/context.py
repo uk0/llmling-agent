@@ -4,8 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from llmling_agent.config.capabilities import Capabilities  # noqa: TC001
-from llmling_agent.models import AgentConfig, AgentDefinition  # noqa: TC001
+from llmling_agent.config.capabilities import Capabilities
+from llmling_agent.models import AgentConfig, AgentDefinition
 
 
 class AgentContext(BaseModel):
@@ -29,3 +29,14 @@ class AgentContext(BaseModel):
     def get_capabilities(self) -> Capabilities:
         """Get the current agent's capabilities."""
         return self.capabilities
+
+    @classmethod
+    def create_default(cls, agent_name: str) -> AgentContext:
+        """Create a default context with minimal capabilities."""
+        return cls(
+            agent_name=agent_name,
+            capabilities=Capabilities(),  # Default capabilities (all False)
+            definition=AgentDefinition(responses={}, agents={}, roles={}),
+            config=AgentConfig(name=agent_name, role="assistant"),
+            model_settings={},
+        )
