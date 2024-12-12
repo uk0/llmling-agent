@@ -138,14 +138,7 @@ def show_stats(
         llmling-agent history stats --period 1w --group-by model
     """
     cutoff = datetime.now() - parse_time_period(period)
-
-    stats = get_conversation_stats(
-        StatsFilters(
-            cutoff=cutoff,
-            group_by=group_by,  # type: ignore
-            agent_name=agent_name,
-        )
-    )
-
+    filters = StatsFilters(cutoff=cutoff, group_by=group_by, agent_name=agent_name)  # type: ignore
+    stats = get_conversation_stats(filters)
     formatted = format_stats(stats, period, group_by)
     print(format_output(formatted, output_format))
