@@ -97,7 +97,7 @@ def get_filtered_conversations(
         query: Search in message content
         model: Filter by model used
         limit: Maximum number of conversations
-        compact: Only include first/last message
+        compact: Only show first/last message of each conversation
         include_tokens: Include token usage statistics
     """
     if period:
