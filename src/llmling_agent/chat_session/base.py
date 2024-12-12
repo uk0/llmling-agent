@@ -137,7 +137,7 @@ class AgentChatSession:
         self._history = result.new_messages()
 
         return ChatMessage(
-            content=str(result.data),
+            content=self._format_response(result.data),
             role="assistant",
             metadata={
                 "tokens": result.cost().total_tokens,
