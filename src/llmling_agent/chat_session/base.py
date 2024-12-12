@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, overload
 from uuid import UUID, uuid4
 
 from pydantic_ai import messages
@@ -65,6 +65,22 @@ class AgentChatSession:
             model=self._model,
             tool_states=self._tool_states,
         )
+
+    @overload
+    async def send_message(
+        self,
+        content: str,
+        *,
+        stream: Literal[False] = False,
+    ) -> ChatMessage: ...
+
+    @overload
+    async def send_message(
+        self,
+        content: str,
+        *,
+        stream: Literal[True],
+    ) -> AsyncIterator[ChatMessage]: ...
 
     async def send_message(
         self,
