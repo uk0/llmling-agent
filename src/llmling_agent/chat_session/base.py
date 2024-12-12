@@ -97,10 +97,12 @@ class AgentChatSession:
 
     async def _send_normal(self, content: str) -> ChatMessage:
         """Send message and get single response."""
+        model_override = self._model if self._model and self._model.strip() else None
+
         result = await self._agent.run(
             content,
             message_history=self._history,
-            model=self._model,
+            model=model_override,
         )
 
         # Update history with new messages
@@ -117,10 +119,12 @@ class AgentChatSession:
 
     async def _send_streaming(self, content: str) -> AsyncIterator[ChatMessage]:
         """Send message and stream responses."""
+        model_override = self._model if self._model and self._model.strip() else None
+
         async with await self._agent.run_stream(
             content,
             message_history=self._history,
-            model=self._model,
+            model=model_override,
         ) as result:
             async for chunk in result.stream():
                 yield ChatMessage(

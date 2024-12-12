@@ -27,7 +27,9 @@ class ChatSessionManager:
         model: str | None = None,
     ) -> AgentChatSession:
         """Create and register a new session."""
-        session = AgentChatSession(agent, model_override=model)
+        model_override = model if model and model.strip() else None
+
+        session = AgentChatSession(agent, model_override=model_override)
         self._sessions[session.id] = session
         return session
 
