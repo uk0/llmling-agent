@@ -14,6 +14,7 @@ from llmling_agent.chat_session import (
     AgentChatSession,
     ChatMessage,
     ChatSessionError,
+    ChatSessionManager,
 )
 
 
@@ -352,3 +353,30 @@ async def test_message_after_tool_update(chat_session: AgentChatSession) -> None
 
     # Verify tool state persisted
     assert not chat_session.get_tool_states()["tool1"]
+
+
+@pytest.mark.asyncio
+async def test_chat_session_with_tools(mock_agent):
+    """Test chat session managing tool states and history."""
+    # Use the mock_agent fixture which already has tools set up
+    manager = ChatSessionManager()
+    session = await manager.create_session(mock_agent)
+
+    # Test initial tool states
+    tool_states = session.get_tool_states()
+    assert "tool1" in tool_states
+    assert "tool2" in tool_states
+    assert tool_states["tool1"] is True
+    assert tool_states["tool2"] is False
+
+    # Disable a tool and verify
+    session.configure_tools({"tool1": False})
+    assert not session.get_tool_states()["tool1"]
+
+    # Re-enable and verify
+    session.configure_tools({"tool1": True})
+    assert session.get_tool_states()["tool1"]
+
+    # Verify that mock_agent's enable/disable methods were called
+    mock_agent.enable_tool.assert_called_with("tool1")
+    mock_agent.disable_tool.assert_called_with("tool1")
