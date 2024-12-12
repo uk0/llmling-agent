@@ -125,27 +125,15 @@ class LLMlingAgent[TResult]:
         self._runtime = runtime
         self._context = context or AgentContext.create_default(name)
         self._tools = list(tools)
+        self._disabled_tools: set[str] = set()
+        self._original_tools = list(tools)  # Store original tools for reference
         # Tool confirmation setup
         self._tool_confirmation = tool_confirmation
         self._confirm_tools = self._setup_tool_confirmation(confirm_tools)
 
         # Prepare all tools including runtime tools
         tools = list(self._tools)  # Start with registered tools
-        for tool_name, llm_tool in self.runtime.tools.items():
-            schema = llm_tool.get_schema()
-            confirm_cb = (
-                self._tool_confirmation.confirm_tool
-                if self._tool_confirmation
-                and self._confirm_tools
-                and tool_name in self._confirm_tools
-                else None
-            )
-            wrapper: Callable[..., Awaitable[Any]] = create_confirmed_tool_wrapper(
-                name=tool_name,
-                schema=schema,
-                confirm_callback=confirm_cb,
-            )
-            tools.append(Tool(wrapper, takes_ctx=True))
+        tools = self._prepare_tools()
         self._setup_history_tools(tools)
 
         # Initialize agent with all tools
@@ -643,6 +631,86 @@ class LLMlingAgent[TResult]:
     def runtime(self) -> RuntimeConfig:
         """Get the runtime configuration."""
         return self._runtime
+
+    @property
+    def name(self) -> str:
+        """Get agent name."""
+        return self._name
+
+    def enable_tool(self, tool_name: str) -> None:
+        """Enable a previously disabled tool.
+
+        Args:
+            tool_name: Name of the tool to enable
+
+        Raises:
+            ValueError: If tool doesn't exist
+        """
+        if tool_name not in self.runtime.tools and not any(
+            t.name == tool_name for t in self._original_tools
+        ):
+            msg = f"Tool '{tool_name}' not found"
+            raise ValueError(msg)
+        self._disabled_tools.discard(tool_name)
+        logger.debug("Enabled tool: %s", tool_name)
+
+    def disable_tool(self, tool_name: str) -> None:
+        """Disable a tool."""
+        if tool_name not in self.runtime.tools and not any(
+            t.name == tool_name for t in self._original_tools
+        ):
+            msg = f"Tool '{tool_name}' not found"
+            raise ValueError(msg)
+        self._disabled_tools.add(tool_name)
+        logger.debug("Disabled tool: %s", tool_name)
+
+    def is_tool_enabled(self, tool_name: str) -> bool:
+        """Check if a tool is currently enabled.
+
+        Args:
+            tool_name: Name of the tool to check
+
+        Returns:
+            Whether the tool is enabled
+        """
+        return tool_name not in self._disabled_tools
+
+    def list_tools(self) -> dict[str, bool]:
+        """Get a mapping of all tools and their enabled status.
+
+        Returns:
+            Dict mapping tool names to their enabled status
+        """
+        tools = {name: name not in self._disabled_tools for name in self.runtime.tools}
+        # Add custom tools
+        tools.update({
+            t.name: t.name not in self._disabled_tools for t in self._original_tools
+        })
+        return tools
+
+    def _prepare_tools(self) -> list[Tool[AgentContext]]:
+        """Prepare all tools respecting enabled/disabled state."""
+        tools = list(self._tools)  # Start with registered tools
+
+        # Add runtime tools if not disabled
+        for tool_name, llm_tool in self.runtime.tools.items():
+            if tool_name not in self._disabled_tools:
+                schema = llm_tool.get_schema()
+                confirm_cb = (
+                    self._tool_confirmation.confirm_tool
+                    if self._tool_confirmation
+                    and self._confirm_tools
+                    and tool_name in self._confirm_tools
+                    else None
+                )
+                wrapper: Callable[..., Awaitable[Any]] = create_confirmed_tool_wrapper(
+                    name=tool_name,
+                    schema=schema,
+                    confirm_callback=confirm_cb,
+                )
+                tools.append(Tool(wrapper, takes_ctx=True))
+
+        return tools
 
 
 if __name__ == "__main__":
