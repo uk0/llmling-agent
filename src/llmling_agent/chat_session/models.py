@@ -13,7 +13,7 @@ class ChatMessage(BaseModel):
     """A message in the conversation."""
 
     content: str
-    role: Literal["user", "assistant"]
+    role: Literal["user", "assistant", "system"]
     metadata: dict[str, Any] | None = None
     timestamp: datetime = Field(default_factory=datetime.now)
 
