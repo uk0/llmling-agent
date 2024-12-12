@@ -17,6 +17,7 @@ from pydantic_ai import models  # noqa: TC002
 from upath.core import UPath
 import yamling
 
+from llmling_agent.config.capabilities import BUILTIN_ROLES, Capabilities, RoleName
 from llmling_agent.log import get_logger
 
 
@@ -91,6 +92,9 @@ class AgentConfig(BaseModel):
     config_file_path: str | None = None
     """Config file path for resolving environment."""
 
+    role: RoleName = "assistant"
+    """Role name (built-in or custom) determining agent's capabilities."""
+
     model_config = ConfigDict(
         frozen=True,
         arbitrary_types_allowed=True,
@@ -164,6 +168,8 @@ class AgentDefinition(BaseModel):
     """Mapping of response names to their definitions"""
     agents: dict[str, AgentConfig]
     """Mapping of agent IDs to their configurations"""
+    roles: dict[str, Capabilities] = Field(default_factory=dict)
+    """Custom role definitions"""
 
     model_config = ConfigDict(
         use_attribute_docstrings=True,
@@ -212,3 +218,22 @@ class AgentDefinition(BaseModel):
         except Exception as exc:
             msg = f"Failed to load agent config from {path}"
             raise ValueError(msg) from exc
+
+    def get_capabilities(self, role_name: RoleName) -> Capabilities:
+        """Get capabilities for a role name.
+
+        Args:
+            role_name: Either a built-in role or custom role name
+
+        Returns:
+            Capability configuration for the role
+
+        Raises:
+            ValueError: If role doesn't exist
+        """
+        if role_name in self.roles:
+            return self.roles[role_name]
+        if isinstance(role_name, str) and role_name in BUILTIN_ROLES:
+            return BUILTIN_ROLES[role_name]  # type: ignore[index]
+        msg = f"Unknown role: {role_name}"
+        raise ValueError(msg)
