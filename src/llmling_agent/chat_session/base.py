@@ -100,6 +100,10 @@ class AgentChatSession:
         Raises:
             ChatSessionConfigError: If message processing fails
         """
+        if not content.strip():
+            msg = "Message cannot be empty"
+            raise ValueError(msg)
+
         self._history.append(messages.UserPrompt(content=content))
 
         try:
