@@ -10,12 +10,14 @@ from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
-from pydantic_ai import Agent as PydanticAgent, RunContext, messages
+from pydantic_ai import Agent as PydanticAgent, RunContext, Tool, messages
 from pydantic_ai.result import RunResult, StreamedRunResult
 from sqlmodel import Session
 from typing_extensions import TypeVar
 
+from llmling_agent.context import AgentContext
 from llmling_agent.log import get_logger
+from llmling_agent.models import AgentDefinition
 from llmling_agent.storage import Conversation, engine
 from llmling_agent.storage.models import Message
 from llmling_agent.tools import (
@@ -28,6 +30,7 @@ from llmling_agent.tools import (
 if TYPE_CHECKING:
     from collections.abc import (
         AsyncIterator,
+        Awaitable,
         Callable,
     )
     import os
@@ -35,7 +38,7 @@ if TYPE_CHECKING:
     from llmling.core.events import Event
     from py2openai import OpenAIFunctionTool
     from pydantic_ai.agent import models
-    from pydantic_ai.tools import ToolFuncPlain, ToolParams
+    from pydantic_ai.tools import ToolFuncEither, ToolFuncPlain, ToolParams
 
 
 logger = get_logger(__name__)
@@ -82,6 +85,7 @@ class LLMlingAgent[TResult]:
     def __init__(
         self,
         runtime: RuntimeConfig,
+        context: AgentContext | None = None,
         result_type: type[TResult] | None = None,
         *,
         model: models.Model | models.KnownModelName | None = None,
@@ -89,6 +93,7 @@ class LLMlingAgent[TResult]:
         name: str = "llmling-agent",
         tool_confirmation: ToolConfirmation | None = None,
         confirm_tools: set[str] | bool = True,
+        tools: Sequence[Tool[AgentContext]] = (),
         retries: int = 1,
         result_tool_name: str = "final_result",
         result_tool_description: str | None = None,
@@ -101,12 +106,14 @@ class LLMlingAgent[TResult]:
 
         Args:
             runtime: Runtime configuration providing access to resources/tools
+            context: Agent context with capabilities and configuration
             result_type: Optional type for structured responses
             model: The default model to use (defaults to GPT-4)
             system_prompt: Static system prompts to use for this agent
             name: Name of the agent for logging
             tool_confirmation: Callback class for tool confirmation
             confirm_tools: List of tools requiring confirmation or global on / off
+            tools: List of tools to register with the agent
             retries: Default number of retries for failed operations
             result_tool_name: Name of the tool used for final result
             result_tool_description: Description of the final result tool
@@ -116,30 +123,38 @@ class LLMlingAgent[TResult]:
             enable_logging: Whether to enable logging for the agent
         """
         self._runtime = runtime
-
-        # Use provided type or default to str
-        actual_result_type = result_type or str
-
+        self._context = context or AgentContext.create_default(name)
+        self._tools = list(tools)
+        # Tool confirmation setup
         self._tool_confirmation = tool_confirmation
-        # Convert confirm_tools to a set of tool names (or None if False)
-        self._confirm_tools: set[str] | None = None
-        match confirm_tools:
-            case True:
-                # Confirm all tools
-                self._confirm_tools = set(self.runtime.tools)
-            case list():
-                # Confirm specific tools
-                self._confirm_tools = set(confirm_tools)
-            case False:
-                # No confirmation
-                self._confirm_tools = None
+        self._confirm_tools = self._setup_tool_confirmation(confirm_tools)
 
-        # Initialize base PydanticAI agent
+        # Prepare all tools including runtime tools
+        tools = list(self._tools)  # Start with registered tools
+        for tool_name, llm_tool in self.runtime.tools.items():
+            schema = llm_tool.get_schema()
+            confirm_cb = (
+                self._tool_confirmation.confirm_tool
+                if self._tool_confirmation
+                and self._confirm_tools
+                and tool_name in self._confirm_tools
+                else None
+            )
+            wrapper: Callable[..., Awaitable[Any]] = create_confirmed_tool_wrapper(
+                name=tool_name,
+                schema=schema,
+                confirm_callback=confirm_cb,
+            )
+            tools.append(Tool(wrapper, takes_ctx=True))
+        self._setup_history_tools(tools)
+
+        # Initialize agent with all tools
         self._pydantic_agent = PydanticAgent(
             model=model,
-            result_type=actual_result_type,
+            result_type=result_type or str,
             system_prompt=system_prompt,
-            deps_type=RuntimeConfig,
+            deps_type=AgentContext,
+            tools=tools,  # Pass complete tool list
             retries=retries,
             result_tool_name=result_tool_name,
             result_tool_description=result_tool_description,
@@ -149,10 +164,11 @@ class LLMlingAgent[TResult]:
         )
         # Set up event handling
         self._runtime.add_event_handler(self)
-        self._setup_runtime_tools()
+
         self._name = name
         msg = "Initialized %s (model=%s, result_type=%s)"
         logger.debug(msg, self._name, model, result_type or "str")
+
         self._enable_logging = enable_logging
         self._conversation_id = str(uuid4())
 
@@ -168,12 +184,25 @@ class LLMlingAgent[TResult]:
                 )
                 session.commit()
 
+    def _setup_history_tools(self, tools: list[Tool[AgentContext]]) -> None:
+        """Set up history-related tools based on capabilities."""
+        if not self._context:
+            return
+
+        if self._context.capabilities.history_access != "none":
+            from llmling_agent.tools.history import HistoryTools
+
+            history_tools = HistoryTools(self._context)
+            tools.append(Tool(history_tools.search_history, takes_ctx=True))
+            if self._context.capabilities.stats_access != "none":
+                tools.append(Tool(history_tools.show_statistics, takes_ctx=True))
+
     async def _confirm_tool(
         self,
         tool_name: str,
         args: dict[str, Any],
         schema: OpenAIFunctionTool,
-        runtime_ctx: RunContext[RuntimeConfig],
+        runtime_ctx: RunContext[AgentContext],
     ) -> bool:
         """Request confirmation for tool execution.
 
@@ -268,28 +297,83 @@ class LLMlingAgent[TResult]:
                 # Any cleanup if needed
                 pass
 
-    def _setup_runtime_tools(self) -> None:
-        """Register all tools from runtime configuration."""
-        for name, llm_tool in self.runtime.tools.items():
-            schema = llm_tool.get_schema()
+    @classmethod
+    @asynccontextmanager
+    async def open_agent(
+        cls,
+        config_path: str | os.PathLike[str],
+        agent_name: str,
+        *,
+        model: models.Model | models.KnownModelName | None = None,
+        result_type: type[TResult] | None = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[LLMlingAgent[TResult]]:
+        """Open a specific agent from agent configuration.
 
-            # Only pass confirmation callback if needed for this tool
-            confirm_cb = None
-            if (
-                self._tool_confirmation
-                and self._confirm_tools
-                and name in self._confirm_tools
-            ):
-                confirm_cb = self._tool_confirmation.confirm_tool
+        Args:
+            config_path: Path to agent configuration file
+            agent_name: Name of the agent to load
+            model: Optional model override
+            result_type: Optional type for structured responses
+            **kwargs: Additional arguments for agent configuration
 
-            wrapper: Callable[..., Any] = create_confirmed_tool_wrapper(
-                name=name,
-                schema=schema,
-                confirm_callback=confirm_cb,
+        Yields:
+            Configured LLMlingAgent instance
+
+        Raises:
+            ValueError: If agent not found in configuration
+        """
+        # Load agent definition
+        agent_def = AgentDefinition.from_file(config_path)
+        if agent_name not in agent_def.agents:
+            msg = f"Agent '{agent_name}' not found in {config_path}"
+            raise ValueError(msg)
+
+        agent_config = agent_def.agents[agent_name]
+
+        # Create context
+        capabilities = agent_def.get_capabilities(agent_config.role)
+        context = AgentContext(
+            agent_name=agent_name,
+            capabilities=capabilities,
+            definition=agent_def,
+            config=agent_config,
+            model_settings=kwargs.get("model_settings", {}),
+        )
+
+        # Set up runtime
+        config = agent_config.get_config()
+        async with RuntimeConfig.open(config) as runtime:
+            agent = cls(
+                runtime=runtime,
+                context=context,
+                result_type=result_type,
+                model=model or agent_config.model,
+                **kwargs,
             )
-            self.tool(wrapper)
-            msg = "Registered runtime tool: %s (signature: %s)"
-            logger.debug(msg, name, wrapper.__signature__)  # type: ignore
+            try:
+                yield agent
+            finally:
+                # Any cleanup if needed
+                pass
+
+    def _setup_tool_confirmation(self, confirm_tools: set[str] | bool) -> set[str] | None:
+        """Set up tool confirmation configuration.
+
+        Args:
+            confirm_tools: What tools need confirmation
+                           (True=all, set=specific tools, False=none)
+
+        Returns:
+            Set of tool names requiring confirmation, or None if disabled
+        """
+        match confirm_tools:
+            case True:
+                return set(self.runtime.tools)
+            case set() | list():
+                return set(confirm_tools)
+            case False:
+                return None
 
     async def handle_event(self, event: Event) -> None:
         """Handle runtime events.
@@ -322,7 +406,7 @@ class LLMlingAgent[TResult]:
         try:
             result = await self._pydantic_agent.run(
                 prompt,
-                deps=self._runtime,
+                deps=self._context,
                 message_history=message_history,
                 model=model,
             )
@@ -413,7 +497,7 @@ class LLMlingAgent[TResult]:
 
             result = self._pydantic_agent.run_stream(
                 prompt,
-                deps=self._runtime,
+                deps=self._context,
                 message_history=message_history,
                 model=model,
             )
@@ -454,44 +538,80 @@ class LLMlingAgent[TResult]:
             logger.exception("Sync agent run failed")
             raise
 
-    def tool(self, *args: Any, **kwargs: Any) -> Any:
+    def tool(
+        self,
+        func: ToolFuncEither[AgentContext, ...] | None = None,
+        *,
+        max_retries: int | None = None,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> Any:
         """Register a tool with the agent.
 
-        Tools can access runtime through RunContext[RuntimeConfig].
+        Can be used as a decorator or called directly.
 
         Example:
             ```python
             @agent.tool
-            async def my_tool(ctx: RunContext[RuntimeConfig], arg: str) -> str:
-                resource = await ctx.deps.load_resource(arg)
-                return resource.content
+            async def my_tool(ctx: RunContext[AgentContext], arg: str) -> str:
+                caps = ctx.deps.capabilities
+                if not caps.some_permission:
+                    raise PermissionError("Permission denied")
+                return f"Processed {arg}"
             ```
         """
-        return self._pydantic_agent.tool(*args, **kwargs)
+        if func is None:
+            return lambda f: self.tool(
+                f, max_retries=max_retries, name=name, description=description
+            )
 
-    def tool_plain(self, func: ToolFuncPlain[ToolParams]) -> Any:
-        """Register a plain tool with the agent.
+        # Create Tool instance and append to tools list
+        tool_instance = Tool(
+            func,
+            takes_ctx=True,
+            max_retries=max_retries,
+            name=name,
+            description=description,
+        )
+        self._tools.append(tool_instance)  # Collect tools for initialization
+        return func
 
-        Plain tools don't receive runtime context.
+    def tool_plain(
+        self,
+        func: ToolFuncPlain[ToolParams] | None = None,
+        *,
+        max_retries: int | None = None,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> Any:
+        """Register a plain tool (without context) with the agent."""
+        if func is None:
+            return lambda f: self.tool_plain(
+                f,
+                max_retries=max_retries,
+                name=name,
+                description=description,
+            )
 
-        Example:
-            ```python
-            @agent.tool_plain
-            def my_tool(arg: str) -> str:
-                return arg.upper()
-            ```
-        """
-        return self._pydantic_agent.tool_plain(func)
+        tool_instance = Tool(
+            func,
+            takes_ctx=False,
+            max_retries=max_retries,
+            name=name,
+            description=description,
+        )
+        self._tools.append(tool_instance)
+        return func
 
     def system_prompt(self, *args: Any, **kwargs: Any) -> Any:
         """Register a dynamic system prompt.
 
-        System prompts can access runtime through RunContext[RuntimeConfig].
+        System prompts can access runtime through RunContext[AgentContext].
 
         Example:
             ```python
             @agent.system_prompt
-            async def get_prompt(ctx: RunContext[RuntimeConfig]) -> str:
+            async def get_prompt(ctx: RunContext[AgentContext]) -> str:
                 resources = await ctx.deps.list_resource_names()
                 return f"Available resources: {', '.join(resources)}"
             ```
@@ -501,12 +621,12 @@ class LLMlingAgent[TResult]:
     def result_validator(self, *args: Any, **kwargs: Any) -> Any:
         """Register a result validator.
 
-        Validators can access runtime through RunContext[RuntimeConfig].
+        Validators can access runtime through RunContext[AgentContext].
 
         Example:
             ```python
             @agent.result_validator
-            async def validate(ctx: RunContext[RuntimeConfig], result: str) -> str:
+            async def validate(ctx: RunContext[AgentContext], result: str) -> str:
                 if len(result) < 10:
                     raise ModelRetry("Response too short")
                 return result

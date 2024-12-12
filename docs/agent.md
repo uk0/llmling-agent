@@ -128,7 +128,7 @@ class CodeAgent(LLMlingAgent[Analysis]):
     def _setup_tools(self) -> None:
         @self.tool
         async def analyze_code(
-            ctx: RunContext[RuntimeConfig],
+            ctx: RunContext[AgentContext],
             code: str
         ) -> dict[str, Any]:
             """Analyze Python code."""
@@ -136,7 +136,7 @@ class CodeAgent(LLMlingAgent[Analysis]):
 
         @self.system_prompt
         async def get_language_prompt(
-            ctx: RunContext[RuntimeConfig]
+            ctx: RunContext[AgentContext]
         ) -> str:
             """Dynamic system prompt."""
             langs = await ctx.deps.execute_tool("list_languages")
@@ -151,7 +151,7 @@ Register tools and prompts with decorators:
 # Register a tool
 @agent.tool
 async def my_tool(
-    ctx: RunContext[RuntimeConfig],
+    ctx: RunContext[AgentContext],
     arg: str
 ) -> str:
     """Tool description."""
@@ -165,7 +165,7 @@ def plain_tool(text: str) -> str:
 
 # Register dynamic system prompt
 @agent.system_prompt
-async def get_prompt(ctx: RunContext[RuntimeConfig]) -> str:
+async def get_prompt(ctx: RunContext[AgentContext]) -> str:
     """Dynamic system prompt."""
     resources = await ctx.deps.list_resource_names()
     return f"Available resources: {', '.join(resources)}"
@@ -173,7 +173,7 @@ async def get_prompt(ctx: RunContext[RuntimeConfig]) -> str:
 # Register result validator
 @agent.result_validator
 async def validate(
-    ctx: RunContext[RuntimeConfig],
+    ctx: RunContext[AgentContext],
     result: str
 ) -> str:
     """Validate result before returning."""

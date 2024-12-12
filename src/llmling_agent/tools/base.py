@@ -5,9 +5,10 @@ import inspect
 from inspect import Parameter, Signature
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
-from llmling.config.runtime import RuntimeConfig
 from py2openai import OpenAIFunctionTool  # noqa: TC002
 from pydantic_ai import RunContext
+
+from llmling_agent.context import AgentContext
 
 
 if TYPE_CHECKING:
@@ -31,7 +32,7 @@ class ToolContext:
     schema: OpenAIFunctionTool
     """Complete OpenAI function schema"""
 
-    runtime_ctx: RunContext[RuntimeConfig]
+    runtime_ctx: RunContext[AgentContext]
     """Runtime context from agent"""
 
     @property
@@ -87,7 +88,7 @@ def create_confirmed_tool_wrapper(
             Parameter(
                 "ctx",
                 Parameter.POSITIONAL_OR_KEYWORD,
-                annotation=RunContext[RuntimeConfig],
+                annotation=RunContext[AgentContext],
             ),
             *[
                 Parameter(name, p.kind, annotation=p.annotation, default=p.default)
@@ -100,7 +101,7 @@ def create_confirmed_tool_wrapper(
             Parameter(
                 "ctx",
                 Parameter.POSITIONAL_OR_KEYWORD,
-                annotation=RunContext[RuntimeConfig],
+                annotation=RunContext[AgentContext],
             )
         ]
         properties = schema["function"].get("parameters", {}).get("properties", {})

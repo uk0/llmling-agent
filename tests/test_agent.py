@@ -11,6 +11,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent.agent import LLMlingAgent
+from llmling_agent.context import AgentContext  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -105,7 +106,7 @@ async def test_agent_model_override(no_tool_runtime: RuntimeConfig) -> None:
     default_response = "default response"
     override_response = "override response"
 
-    agent = LLMlingAgent(
+    agent: LLMlingAgent[str] = LLMlingAgent(
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=default_response),
@@ -126,6 +127,7 @@ async def test_agent_model_override(no_tool_runtime: RuntimeConfig) -> None:
 @pytest.mark.asyncio
 async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig) -> None:
     """Test agent using tools."""
+    from pydantic_ai import Tool
     from pydantic_ai.messages import (
         ModelStructuredResponse,
         ModelTextResponse,
@@ -133,20 +135,29 @@ async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig) -> None:
         UserPrompt,
     )
 
-    agent = LLMlingAgent(
+    # Create tool before agent initialization
+    async def test_tool(ctx: RunContext[AgentContext], message: str = "test") -> str:
+        """A test tool."""
+        return f"Tool response: {message}"
+
+    tools = [
+        Tool(
+            test_tool,
+            takes_ctx=True,
+            name="test_tool",
+            description="A test tool.",
+        )
+    ]
+
+    agent: LLMlingAgent[str] = LLMlingAgent(
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(
             custom_result_text=TEST_RESPONSE,
             call_tools=["test_tool"],
         ),
+        tools=tools,  # Pass tools during initialization
     )
-
-    # Register a test tool
-    @agent.tool
-    async def test_tool(ctx: RunContext[RuntimeConfig], message: str = "test") -> str:
-        """A test tool."""
-        return f"Tool response: {message}"
 
     result = await agent.run("Use the test tool")
     assert result.data == TEST_RESPONSE
@@ -202,7 +213,6 @@ async def test_agent_context_manager(tmp_path: Path) -> None:
     # Write config to temporary file
     config_path = tmp_path / "test_config.yml"
     config_path.write_text(yaml.dump(config))
-
     async with LLMlingAgent.open(
         config_path,
         name="test-agent",
@@ -223,7 +233,7 @@ async def test_agent_context_manager(tmp_path: Path) -> None:
 async def test_agent_logging(no_tool_runtime: RuntimeConfig) -> None:
     """Test agent logging functionality."""
     # Test with logging enabled
-    agent1 = LLMlingAgent(
+    agent1: LLMlingAgent[str] = LLMlingAgent(
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE),
@@ -233,7 +243,7 @@ async def test_agent_logging(no_tool_runtime: RuntimeConfig) -> None:
     assert result1.data == TEST_RESPONSE
 
     # Test with logging disabled
-    agent2 = LLMlingAgent(
+    agent2: LLMlingAgent[str] = LLMlingAgent(
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE),
