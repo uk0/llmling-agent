@@ -2,10 +2,18 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Literal, overload
 from uuid import UUID, uuid4
 
 from pydantic_ai import messages
+from pydantic_ai.messages import (
+    Message,
+    ModelStructuredResponse,
+    ModelTextResponse,
+    RetryPrompt,
+    ToolReturn,
+)
 
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatMessage, ChatSessionMetadata
@@ -136,6 +144,54 @@ class AgentChatSession:
                 "model": self._model or str(self._agent._pydantic_agent.model),
             },
         )
+
+    def _format_response(self, response: (str | Message)) -> str:  # noqa: PLR0911
+        """Format any kind of response in a readable way.
+
+        Args:
+            response: Response to format. Can be:
+                - str: Direct string response from result.data
+                - SystemPrompt: System message
+                - UserPrompt: User input
+                - ToolReturn: Result from tool execution
+                - RetryPrompt: Request to retry with error details
+                - ModelTextResponse: Text response from model
+                - ModelStructuredResponse: Structured response with tool calls
+
+            # TODO: Investigate if we should use result.new_messages() instead of
+            # result.data for consistency with the streaming interface.
+
+        Returns:
+            A human-readable string representation
+        """
+        if isinstance(response, str):
+            return response
+
+        if isinstance(response, ModelTextResponse):
+            return response.content
+
+        if isinstance(response, ModelStructuredResponse):
+            try:
+                calls = [
+                    f"Tool: {call.tool_name}\nArgs: {call.args}"
+                    for call in response.calls
+                ]
+                return "Tool Calls:\n" + "\n\n".join(calls)
+            except Exception as e:  # noqa: BLE001
+                msg = f"Could not format structured response: {e}"
+                logger.warning(msg)
+                return str(response)
+
+        if isinstance(response, ToolReturn):
+            return f"Tool {response.tool_name} returned: {response.content}"
+
+        if isinstance(response, RetryPrompt):
+            if isinstance(response.content, str):
+                return f"Retry needed: {response.content}"
+            return f"Validation errors:\n{json.dumps(response.content, indent=2)}"
+
+        # SystemPrompt and UserPrompt just have content
+        return response.content
 
     async def _send_streaming(self, content: str) -> AsyncIterator[ChatMessage]:
         """Send message and stream responses."""
