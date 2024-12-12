@@ -31,12 +31,28 @@ class AgentContext(BaseModel):
         return self.capabilities
 
     @classmethod
-    def create_default(cls, agent_name: str) -> AgentContext:
-        """Create a default context with minimal capabilities."""
+    def create_default(
+        cls,
+        name: str,
+        capabilities: Capabilities | None = None,
+    ) -> AgentContext:
+        """Create a default agent context with minimal privileges.
+
+        Args:
+            name: Name of the agent
+            capabilities: Optional custom capabilities (defaults to minimal access)
+        """
+        caps = capabilities or Capabilities(
+            history_access="none",
+            stats_access="none",
+            can_list_agents=False,
+            can_delegate_tasks=False,
+            can_observe_agents=False,
+        )
         return cls(
-            agent_name=agent_name,
-            capabilities=Capabilities(),  # Default capabilities (all False)
+            agent_name=name,
+            capabilities=caps,
             definition=AgentDefinition(responses={}, agents={}, roles={}),
-            config=AgentConfig(name=agent_name, role="assistant"),
+            config=AgentConfig(name=name, role="assistant"),
             model_settings={},
         )
