@@ -96,13 +96,16 @@ async def test_send_message_normal(chat_session: AgentChatSession) -> None:
     assert response.metadata
     assert response.metadata["tokens"] == 10  # noqa: PLR2004
 
-    # Note: message_history will include the user prompt
-    expected_history = [messages.UserPrompt(content=TEST_MESSAGE)]
-    chat_session._agent.run.assert_awaited_once_with(
-        TEST_MESSAGE,
-        message_history=expected_history,
-        model=DEFAULT_MODEL,
-    )
+    # Check call arguments but ignore timestamp
+    call_args = chat_session._agent.run.await_args
+    assert call_args is not None
+    args, kwargs = call_args
+
+    assert args == (TEST_MESSAGE,)
+    assert kwargs["model"] == DEFAULT_MODEL
+    assert len(kwargs["message_history"]) == 1
+    assert kwargs["message_history"][0].content == TEST_MESSAGE
+    assert kwargs["message_history"][0].role == "user"
 
 
 @pytest.mark.asyncio
