@@ -11,6 +11,10 @@ from llmling_agent.history.queries import get_conversations, get_stats_data
 from llmling_agent.storage import Conversation, Message, engine
 
 
+# Reference time for all tests
+BASE_TIME = datetime(2024, 1, 1, 12, 0)  # noon on Jan 1, 2024
+
+
 @pytest.fixture(autouse=True)
 def cleanup_database() -> None:
     """Clean up the database before each test."""
@@ -37,12 +41,12 @@ def sample_data(cleanup_database: None) -> None:
         conv1 = Conversation(
             id="conv1",
             agent_name="test_agent",
-            start_time=datetime.now() - timedelta(hours=1),
+            start_time=BASE_TIME - timedelta(hours=1),  # 11:00
         )
         conv2 = Conversation(
             id="conv2",
             agent_name="other_agent",
-            start_time=datetime.now() - timedelta(hours=2),
+            start_time=BASE_TIME - timedelta(hours=2),  # 10:00
         )
         session.add(conv1)
         session.add(conv2)
@@ -53,7 +57,7 @@ def sample_data(cleanup_database: None) -> None:
             Message(
                 id="msg1",
                 conversation_id="conv1",
-                timestamp=datetime.now() - timedelta(hours=1),
+                timestamp=BASE_TIME - timedelta(hours=1),  # 11:00
                 role="user",
                 content="Hello",
                 model="gpt-4",
@@ -62,7 +66,7 @@ def sample_data(cleanup_database: None) -> None:
             Message(
                 id="msg2",
                 conversation_id="conv1",
-                timestamp=datetime.now() - timedelta(minutes=55),
+                timestamp=BASE_TIME - timedelta(hours=1),  # 11:00
                 role="assistant",
                 content="Hi there!",
                 model="gpt-4",
@@ -71,7 +75,7 @@ def sample_data(cleanup_database: None) -> None:
             Message(
                 id="msg3",
                 conversation_id="conv2",
-                timestamp=datetime.now() - timedelta(hours=2),
+                timestamp=BASE_TIME - timedelta(hours=2),  # 10:00
                 role="user",
                 content="Testing",
                 model="gpt-3.5-turbo",
@@ -106,7 +110,7 @@ def test_get_conversations(sample_data: None) -> None:
     assert len(msgs) == 2  # noqa: PLR2004
 
     # Filter by time
-    filters = QueryFilters(since=datetime.now() - timedelta(hours=1.5))
+    filters = QueryFilters(since=BASE_TIME - timedelta(hours=1.5))
     results = get_conversations(filters)
     assert len(results) == 1
 
@@ -114,7 +118,7 @@ def test_get_conversations(sample_data: None) -> None:
 def test_get_stats_data(sample_data: None) -> None:
     """Test statistics data retrieval."""
     filters = StatsFilters(
-        cutoff=datetime.now() - timedelta(hours=3),
+        cutoff=BASE_TIME - timedelta(hours=3),
         group_by="model",
     )
     rows = get_stats_data(filters)
@@ -136,7 +140,7 @@ def test_complex_filtering(sample_data: None) -> None:
     filters = QueryFilters(
         agent_name="test_agent",
         model="gpt-4",
-        since=datetime.now() - timedelta(hours=1.5),
+        since=BASE_TIME - timedelta(hours=1.5),
         query="Hello",  # Content search
     )
     results = get_conversations(filters)
@@ -153,7 +157,7 @@ def test_stats_aggregation(sample_data: None) -> None:
 
     # Get raw data
     filters = StatsFilters(
-        cutoff=datetime.now() - timedelta(hours=3),
+        cutoff=BASE_TIME - timedelta(hours=3),
         group_by="model",
     )
     rows = get_stats_data(filters)
