@@ -16,7 +16,7 @@ from llmling_agent.web.handlers import AgentHandler
 
 
 if TYPE_CHECKING:
-    from llmling_agent.web.app import ChatHistory
+    from llmling_agent.web.type_utils import ChatHistory
 
 
 logger = logging.getLogger(__name__)
@@ -118,10 +118,7 @@ class UIState:
                 debug_logs=self.get_debug_logs(),
             )
 
-    async def handle_upload(
-        self,
-        upload: gr.FileData,
-    ) -> UIUpdate:
+    async def handle_upload(self, upload: gr.FileData) -> UIUpdate:
         """Handle config file upload."""
         try:
             # Save file to configs directory

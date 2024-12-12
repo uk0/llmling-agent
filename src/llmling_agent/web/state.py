@@ -11,7 +11,7 @@ from llmling_agent.runners import SingleAgentRunner
 
 
 if TYPE_CHECKING:
-    from llmling_agent.web.app import ChatHistory
+    from llmling_agent.web.type_utils import ChatHistory
 
 
 logger = get_logger(__name__)

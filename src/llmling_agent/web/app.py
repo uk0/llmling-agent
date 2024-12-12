@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any
 
 import gradio as gr
 from llmling.config.store import ConfigStore
@@ -16,18 +16,7 @@ if TYPE_CHECKING:
     from gradio.routes import App
 
 
-type ChatHistory = list[ChatMessage]
-
 logger = logging.getLogger(__name__)
-
-
-class ChatMessage(TypedDict):
-    """Single chat message format for Gradio chatbot."""
-
-    content: str
-    role: Literal["user", "assistant"]
-    name: NotRequired[str]
-    avatar: NotRequired[str]
 
 
 CUSTOM_CSS = """
