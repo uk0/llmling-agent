@@ -1,0 +1,329 @@
+{
+  "$defs": {
+    "AgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for a single agent.",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the agent",
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional description of the agent's purpose",
+          "title": "Description"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "enum": [
+                "openai:gpt-4o",
+                "openai:gpt-4o-mini",
+                "openai:gpt-4-turbo",
+                "openai:gpt-4",
+                "openai:o1-preview",
+                "openai:o1-mini",
+                "openai:gpt-3.5-turbo",
+                "groq:llama-3.1-70b-versatile",
+                "groq:llama3-groq-70b-8192-tool-use-preview",
+                "groq:llama3-groq-8b-8192-tool-use-preview",
+                "groq:llama-3.1-70b-specdec",
+                "groq:llama-3.1-8b-instant",
+                "groq:llama-3.2-1b-preview",
+                "groq:llama-3.2-3b-preview",
+                "groq:llama-3.2-11b-vision-preview",
+                "groq:llama-3.2-90b-vision-preview",
+                "groq:llama3-70b-8192",
+                "groq:llama3-8b-8192",
+                "groq:mixtral-8x7b-32768",
+                "groq:gemma2-9b-it",
+                "groq:gemma-7b-it",
+                "gemini-1.5-flash",
+                "gemini-1.5-pro",
+                "vertexai:gemini-1.5-flash",
+                "vertexai:gemini-1.5-pro",
+                "ollama:codellama",
+                "ollama:gemma",
+                "ollama:gemma2",
+                "ollama:llama3",
+                "ollama:llama3.1",
+                "ollama:llama3.2",
+                "ollama:llama3.2-vision",
+                "ollama:llama3.3",
+                "ollama:mistral",
+                "ollama:mistral-nemo",
+                "ollama:mixtral",
+                "ollama:phi3",
+                "ollama:qwq",
+                "ollama:qwen",
+                "ollama:qwen2",
+                "ollama:qwen2.5",
+                "ollama:starcoder2",
+                "test"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The LLM model to use",
+          "title": "Model"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Path or name of the environment configuration to use",
+          "title": "Environment"
+        },
+        "result_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the response definition to use",
+          "title": "Result Type"
+        },
+        "system_prompts": {
+          "description": "System prompts for the agent",
+          "items": {
+            "type": "string"
+          },
+          "title": "System Prompts",
+          "type": "array"
+        },
+        "user_prompts": {
+          "description": "Default user prompts for the agent",
+          "items": {
+            "type": "string"
+          },
+          "title": "User Prompts",
+          "type": "array"
+        },
+        "model_settings": {
+          "description": "Additional settings to pass to the model",
+          "title": "Model Settings",
+          "type": "object"
+        },
+        "config_file_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Config file path for resolving environment.",
+          "title": "Config File Path"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "enum": [
+                "overseer",
+                "specialist",
+                "assistant"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "assistant",
+          "description": "Role name (built-in or custom) determining agent's capabilities.",
+          "title": "Role"
+        }
+      },
+      "title": "AgentConfig",
+      "type": "object"
+    },
+    "Capabilities": {
+      "description": "Base capabilities configuration.",
+      "properties": {
+        "can_list_agents": {
+          "default": false,
+          "description": "Whether the agent can discover other available agents.",
+          "title": "Can List Agents",
+          "type": "boolean"
+        },
+        "can_delegate_tasks": {
+          "default": false,
+          "description": "Whether the agent can delegate tasks to other agents.",
+          "title": "Can Delegate Tasks",
+          "type": "boolean"
+        },
+        "can_observe_agents": {
+          "default": false,
+          "description": "Whether the agent can monitor other agents' activities.",
+          "title": "Can Observe Agents",
+          "type": "boolean"
+        },
+        "history_access": {
+          "default": "own",
+          "description": "Level of access to conversation history.\n\nLevels:\n- none: No access to history\n- own: Can only access own conversations\n- all: Can access all agents' conversations",
+          "enum": [
+            "none",
+            "own",
+            "all"
+          ],
+          "title": "History Access",
+          "type": "string"
+        },
+        "stats_access": {
+          "default": "own",
+          "description": "Level of access to usage statistics.\n\nLevels:\n- none: No access to statistics\n- own: Can only view own statistics\n- all: Can view all agents' statistics",
+          "enum": [
+            "none",
+            "own",
+            "all"
+          ],
+          "title": "Stats Access",
+          "type": "string"
+        }
+      },
+      "title": "Capabilities",
+      "type": "object"
+    },
+    "ResponseDefinition": {
+      "additionalProperties": false,
+      "description": "Definition of an agent response type.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional description of the response type",
+          "title": "Description"
+        },
+        "fields": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ResponseField"
+          },
+          "description": "Mapping of field names to their definitions",
+          "title": "Fields",
+          "type": "object"
+        }
+      },
+      "required": [
+        "fields"
+      ],
+      "title": "ResponseDefinition",
+      "type": "object"
+    },
+    "ResponseField": {
+      "additionalProperties": false,
+      "description": "Field definition for agent responses.",
+      "properties": {
+        "type": {
+          "description": "Data type of the response field",
+          "title": "Type",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional description of what this field represents",
+          "title": "Description"
+        },
+        "constraints": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional validation constraints for the field",
+          "title": "Constraints"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "ResponseField",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Complete agent definition including responses.",
+  "properties": {
+    "responses": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ResponseDefinition"
+      },
+      "description": "Mapping of response names to their definitions",
+      "title": "Responses",
+      "type": "object"
+    },
+    "agents": {
+      "additionalProperties": {
+        "$ref": "#/$defs/AgentConfig"
+      },
+      "description": "Mapping of agent IDs to their configurations",
+      "title": "Agents",
+      "type": "object"
+    },
+    "roles": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Capabilities"
+      },
+      "description": "Custom role definitions",
+      "title": "Roles",
+      "type": "object"
+    }
+  },
+  "required": [
+    "responses",
+    "agents"
+  ],
+  "title": "AgentDefinition",
+  "type": "object"
+}
