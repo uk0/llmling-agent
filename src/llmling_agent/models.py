@@ -156,10 +156,12 @@ class AgentConfig(BaseModel):
 class AgentsManifest(BaseModel):
     """Complete agent definition including responses."""
 
-    responses: dict[str, ResponseDefinition]
+    responses: dict[str, ResponseDefinition] = Field(default_factory=dict)
     """Mapping of response names to their definitions"""
+
     agents: dict[str, AgentConfig]
     """Mapping of agent IDs to their configurations"""
+
     roles: dict[str, Capabilities] = Field(default_factory=dict)
     """Custom role definitions"""
 

@@ -114,6 +114,19 @@
           "description": "Name of the response definition to use",
           "title": "Result Type"
         },
+        "avatar": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "URL or path to agent's avatar image",
+          "title": "Avatar"
+        },
         "system_prompts": {
           "description": "System prompts for the agent",
           "items": {
@@ -321,7 +334,6 @@
     }
   },
   "required": [
-    "responses",
     "agents"
   ],
   "title": "AgentsManifest",
