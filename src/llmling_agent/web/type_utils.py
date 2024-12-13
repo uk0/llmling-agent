@@ -12,6 +12,7 @@ class ChatMessage(TypedDict):
     role: Literal["user", "assistant", "system"]
     name: NotRequired[str]
     avatar: NotRequired[str]
+    metadata: NotRequired[dict[str, Any]]
 
 
 type ChatHistory = list[ChatMessage]

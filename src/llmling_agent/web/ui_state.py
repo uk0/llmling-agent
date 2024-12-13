@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Awaitable, Callable
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import gradio as gr
 from llmling.config.store import ConfigStore
 from pydantic import BaseModel, model_validator
+from pydantic_ai.messages import (
+    ModelStructuredResponse,
+    ModelTextResponse,
+    RetryPrompt,
+    SystemPrompt,
+    ToolReturn,
+)
 from upath import UPath
 import yamling
 
@@ -23,6 +29,11 @@ from llmling_agent.commands.base import OutputWriter
 from llmling_agent.log import LogCapturer
 from llmling_agent.web.handlers import AgentHandler
 from llmling_agent.web.type_utils import ChatHistory, validate_chat_message
+from llmling_agent.web.utils import format_message_with_metadata
+
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Awaitable, Callable
 
 
 logger = logging.getLogger(__name__)
@@ -334,36 +345,44 @@ class UIState:
 
         try:
             messages = list(history)
-            response_parts = []
+            messages.append({
+                "content": message,
+                "role": "user",
+            })
 
-            # Add user message
-            messages.append({"content": message, "role": "user"})
-
-            response = await self._current_session.send_message(message, stream=True)
-            if not isinstance(response, AsyncIterator):
-                msg = "Expected streaming response"
-                raise TypeError(msg)  # noqa: TRY301
-
-            async for chunk in response:
-                response_parts.append(chunk.content)
-                # Update UI with current state
-                current_messages = list(messages)
-                content = "".join(response_parts)
-                current_messages.append({"content": content, "role": "assistant"})
-                msg = "Receiving response..."
-                yield UIUpdate(chat_history=current_messages, status=msg)
+            async for chunk in await self._current_session.send_message(
+                message, stream=True
+            ):
+                match chunk:
+                    case (
+                        ModelStructuredResponse()
+                        | ToolReturn()
+                        | ModelTextResponse()
+                        | RetryPrompt()
+                    ):
+                        messages.append(await format_message_with_metadata(chunk))
+                    case SystemPrompt():
+                        # Might want to show system messages differently or not at all
+                        pass
+                yield UIUpdate(
+                    chat_history=messages,
+                    status="Receiving response...",
+                )
 
             # Final update
             yield UIUpdate(
                 message_box="",
-                chat_history=current_messages,
+                chat_history=messages,  # Note: changed from current_messages
                 status="Message sent",
                 debug_logs=self.get_debug_logs(),
             )
 
         except Exception as e:
             logger.exception("Failed to stream message")
-            yield UIUpdate(status=f"Error: {e}", debug_logs=self.get_debug_logs())
+            yield UIUpdate(
+                status=f"Error: {e}",
+                debug_logs=self.get_debug_logs(),
+            )
 
     async def update_tool_states(self, updates: dict[str, bool]) -> UIUpdate:
         """Update tool states in current session."""
