@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
 
 from pydantic_ai import messages
@@ -142,63 +142,47 @@ class AgentChatSession:
 
         # Update history with new messages
         self._history = result.new_messages()
-
-        return ChatMessage(
-            content=self._format_response(result.data),
-            role="assistant",
-            metadata={
-                "tokens": result.cost().total_tokens,
-                "model": self._model or str(self._agent._pydantic_agent.model),
-            },
-        )
+        formatted = self._format_response(result.data)
+        model = self._model or str(self._agent._pydantic_agent.model)
+        meta = {"tokens": result.cost().total_tokens, "model": model}
+        return ChatMessage(content=formatted, role="assistant", metadata=meta)
 
     def _format_response(self, response: (str | Message)) -> str:  # noqa: PLR0911
         """Format any kind of response in a readable way.
 
         Args:
-            response: Response to format. Can be:
-                - str: Direct string response from result.data
-                - SystemPrompt: System message
-                - UserPrompt: User input
-                - ToolReturn: Result from tool execution
-                - RetryPrompt: Request to retry with error details
-                - ModelTextResponse: Text response from model
-                - ModelStructuredResponse: Structured response with tool calls
+            response: Response to format.
 
-            # TODO: Investigate if we should use result.new_messages() instead of
-            # result.data for consistency with the streaming interface.
+        # TODO: Investigate if we should use result.new_messages() instead of
+        # result.data for consistency with the streaming interface.
 
         Returns:
             A human-readable string representation
         """
-        if isinstance(response, str):
-            return response
-
-        if isinstance(response, ModelTextResponse):
-            return response.content
-
-        if isinstance(response, ModelStructuredResponse):
-            try:
-                calls = [
-                    f"Tool: {call.tool_name}\nArgs: {call.args}"
-                    for call in response.calls
-                ]
-                return "Tool Calls:\n" + "\n\n".join(calls)
-            except Exception as e:  # noqa: BLE001
-                msg = f"Could not format structured response: {e}"
-                logger.warning(msg)
-                return str(response)
-
-        if isinstance(response, ToolReturn):
-            return f"Tool {response.tool_name} returned: {response.content}"
-
-        if isinstance(response, RetryPrompt):
-            if isinstance(response.content, str):
-                return f"Retry needed: {response.content}"
-            return f"Validation errors:\n{json.dumps(response.content, indent=2)}"
-
-        # SystemPrompt and UserPrompt just have content
-        return response.content
+        match response:
+            case str():
+                return response
+            case ModelTextResponse():
+                return response.content
+            case ModelStructuredResponse():
+                try:
+                    calls = [
+                        f"Tool: {call.tool_name}\nArgs: {call.args}"
+                        for call in response.calls
+                    ]
+                    return "Tool Calls:\n" + "\n\n".join(calls)
+                except Exception as e:  # noqa: BLE001
+                    msg = f"Could not format structured response: {e}"
+                    logger.warning(msg)
+                    return str(response)
+            case ToolReturn():
+                return f"Tool {response.tool_name} returned: {response.content}"
+            case RetryPrompt():
+                if isinstance(response.content, str):
+                    return f"Retry needed: {response.content}"
+                return f"Validation errors:\n{json.dumps(response.content, indent=2)}"
+            case _:
+                return response.content
 
     async def _send_streaming(self, content: str) -> AsyncIterator[ChatMessage]:
         """Send message and stream responses."""
@@ -221,14 +205,8 @@ class AgentChatSession:
                         content = chunk.model_response()
                     case _:
                         content = str(chunk)
-
-                yield ChatMessage(
-                    content=content,
-                    role="assistant",
-                    metadata={
-                        "model": self._model or str(self._agent._pydantic_agent.model)
-                    },
-                )
+                meta = {"model": self._model or str(self._agent._pydantic_agent.model)}
+                yield ChatMessage(content=content, role="assistant", metadata=meta)
 
             # Get cost information, handling both regular and async cases
             cost_result = result.cost()
@@ -238,18 +216,14 @@ class AgentChatSession:
                 hasattr(cost, attr)
                 for attr in ("total_tokens", "request_tokens", "response_tokens")
             ):
-                yield ChatMessage(
-                    content="",
-                    role="assistant",
-                    metadata={
-                        "token_usage": {
-                            "total": cost.total_tokens,
-                            "prompt": cost.request_tokens,
-                            "completion": cost.response_tokens,
-                        },
-                        "model": self._model or str(self._agent._pydantic_agent.model),
-                    },
-                )
+                usage = {
+                    "total": cost.total_tokens,
+                    "prompt": cost.request_tokens,
+                    "completion": cost.response_tokens,
+                }
+                model_name = self._model or str(self._agent._pydantic_agent.model)
+                metadata: dict[str, Any] = {"token_usage": usage, "model": model_name}
+                yield ChatMessage(content="", role="assistant", metadata=metadata)
 
             self._history = result.new_messages()
 
@@ -278,11 +252,7 @@ class AgentChatSession:
             except ValueError as e:
                 results[tool] = f"error: {e}"
 
-        logger.debug(
-            "Updated tool states for session %s: %s",
-            self.id,
-            results,
-        )
+        logger.debug("Updated tool states for session %s: %s", self.id, results)
         return results
 
     def get_tool_states(self) -> dict[str, bool]:
