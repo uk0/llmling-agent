@@ -7,11 +7,8 @@ class HelpCommand(BaseCommand):
     """Show help for available commands."""
 
     def __init__(self) -> None:
-        super().__init__(
-            name="help",
-            description="Show available commands",
-            usage="[command]",
-        )
+        msg = "Show available commands"
+        super().__init__(name="help", description=msg, usage="[command]")
 
     async def execute(self, ctx: CommandContext) -> None:
         """Show help for all commands or specific command."""
@@ -44,10 +41,7 @@ class ExitCommand(BaseCommand):
     """Exit the chat session."""
 
     def __init__(self) -> None:
-        super().__init__(
-            name="exit",
-            description="Exit chat session",
-        )
+        super().__init__(name="exit", description="Exit chat session")
 
     async def execute(self, ctx: CommandContext) -> None:
         """Exit the session."""

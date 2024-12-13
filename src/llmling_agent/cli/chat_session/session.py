@@ -126,10 +126,8 @@ class InteractiveSession:
             error_msg = self._format_error(e)
             self.console.print(f"\n[red bold]Error:[/] {error_msg}")
             if self.debug:
-                self.console.print(
-                    "\n[dim]Debug traceback:[/]",
-                    Markdown(f"```python\n{traceback.format_exc()}\n```"),
-                )
+                md = Markdown(f"```python\n{traceback.format_exc()}\n```")
+                self.console.print("\n[dim]Debug traceback:[/]", md)
             # Ensure status bar is still shown even after error
             self.status_bar.render(self._state)
 
@@ -160,19 +158,15 @@ class InteractiveSession:
                     error_msg = self._format_error(e)
                     self.console.print(f"\n[red bold]Error:[/] {error_msg}")
                     if self.debug:
-                        self.console.print(
-                            "\n[dim]Debug traceback:[/]",
-                            Markdown(f"```python\n{traceback.format_exc()}\n```"),
-                        )
+                        md = Markdown(f"```python\n{traceback.format_exc()}\n```")
+                        self.console.print("\n[dim]Debug traceback:[/]", md)
                     continue
 
         except Exception as e:  # noqa: BLE001
             self.console.print(f"\n[red bold]Fatal Error:[/] {self._format_error(e)}")
             if self.debug:
-                self.console.print(
-                    "\n[dim]Debug traceback:[/]",
-                    Markdown(f"```python\n{traceback.format_exc()}\n```"),
-                )
+                md = Markdown(f"```python\n{traceback.format_exc()}\n```")
+                self.console.print("\n[dim]Debug traceback:[/]", md)
         finally:
             await self._cleanup()
             await self._show_summary()
