@@ -130,13 +130,6 @@ async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession
     cost_mock.request_tokens = 5
     cost_mock.response_tokens = 5
     stream_result.cost = AsyncMock(return_value=cost_mock)
-
-    print("\nTest setup:")
-    print(f"Cost mock attributes: {dir(cost_mock)}")
-    print(
-        f"Cost mock values: total={cost_mock.total_tokens}, prompt={cost_mock.request_tokens}, completion={cost_mock.response_tokens}"
-    )
-
     context_mock = AsyncMock()
     context_mock.__aenter__.return_value = stream_result
     chat_session._agent.run_stream = AsyncMock(return_value=context_mock)
@@ -145,16 +138,13 @@ async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession
 
     messages = []
     async for msg in response_stream:
-        print(f"Received message: content='{msg.content}', metadata={msg.metadata}")
         messages.append(msg)
 
-    print(f"Total messages received: {len(messages)}")
     final_msg = messages[-1]
-    print(f"Final message metadata: {final_msg.metadata}")
     assert final_msg.metadata
-    assert final_msg.metadata["token_usage"]["total"] == 10
-    assert final_msg.metadata["token_usage"]["prompt"] == 5
-    assert final_msg.metadata["token_usage"]["completion"] == 5
+    assert final_msg.metadata["token_usage"]["total"] == 10  # noqa: PLR2004
+    assert final_msg.metadata["token_usage"]["prompt"] == 5  # noqa: PLR2004
+    assert final_msg.metadata["token_usage"]["completion"] == 5  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
