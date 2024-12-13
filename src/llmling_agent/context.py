@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from llmling import RuntimeConfig  # noqa: TC002
+from pydantic import BaseModel, ConfigDict
 
 from llmling_agent.config.capabilities import Capabilities
 from llmling_agent.models import AgentConfig, AgentsManifest
@@ -25,6 +26,14 @@ class AgentContext(BaseModel):
 
     model_settings: dict[str, Any]
     """Model-specific settings."""
+
+    runtime: RuntimeConfig | None = None
+    """Reference to the runtime configuration."""
+
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        use_attribute_docstrings=True,
+    )
 
     def get_capabilities(self) -> Capabilities:
         """Get the current agent's capabilities."""
