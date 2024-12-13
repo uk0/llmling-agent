@@ -13,6 +13,11 @@ from upath import UPath
 import yamling
 
 from llmling_agent.chat_session import AgentChatSession, ChatSessionManager
+from llmling_agent.chat_session.events import (
+    SessionEvent,
+    SessionEventHandler,
+    SessionEventType,
+)
 from llmling_agent.chat_session.models import ChatMessage
 from llmling_agent.commands.base import OutputWriter
 from llmling_agent.log import LogCapturer
@@ -21,6 +26,33 @@ from llmling_agent.web.type_utils import ChatHistory, validate_chat_message
 
 
 logger = logging.getLogger(__name__)
+
+
+class WebEventHandler(SessionEventHandler):
+    """Handles session events for web interface."""
+
+    def __init__(self, ui_state: UIState) -> None:
+        self.ui_state = ui_state
+
+    async def handle_session_event(self, event: SessionEvent) -> None:
+        match event.type:
+            case SessionEventType.HISTORY_CLEARED:
+                # Use empty history with existing UI update mechanism
+                await self.ui_state.send_message(
+                    message="",
+                    history=[],
+                    agent_name=None,
+                    model=None,
+                )
+            case SessionEventType.SESSION_RESET:
+                # Clear chat and update tool states
+                _update = await self.ui_state.send_message(
+                    message="",
+                    history=[],
+                    agent_name=None,
+                    model=None,
+                )
+                await self.ui_state.update_tool_states(event.data["new_tools"])
 
 
 class WebOutputWriter(OutputWriter):

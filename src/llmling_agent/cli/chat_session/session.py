@@ -14,6 +14,11 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from llmling_agent.chat_session import ChatSessionManager
+from llmling_agent.chat_session.events import (
+    SessionEvent,
+    SessionEventHandler,
+    SessionEventType,
+)
 from llmling_agent.cli.chat_session import utils
 from llmling_agent.cli.chat_session.config import HISTORY_DIR, SessionState
 from llmling_agent.cli.chat_session.status import StatusBar
@@ -27,6 +32,17 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class CLIEventHandler(SessionEventHandler):
+    """Handles session events for CLI interface."""
+
+    async def handle_session_event(self, event: SessionEvent) -> None:
+        match event.type:
+            case SessionEventType.HISTORY_CLEARED:
+                print("\nChat history cleared")
+            case SessionEventType.SESSION_RESET:
+                print("\nSession reset. Tools restored to default state.")
 
 
 class InteractiveSession:
