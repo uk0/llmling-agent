@@ -39,8 +39,6 @@ agents:
     environment: env_system.yml  # Reference to environment file
     system_prompts:
       - "You help users check their system status."
-    user_prompts:
-      - "What is the current system status?"
 ```
 
 ```yaml
@@ -52,14 +50,6 @@ tools:
   get_memory:
     import_path: psutil.virtual_memory
     description: "Get memory usage information"
-
-resources:
-  system_template:
-    type: text
-    content: |
-      System Status Report:
-      Platform: {platform}
-      Memory: {memory}
 ```
 
 ### Running Your First Agent
