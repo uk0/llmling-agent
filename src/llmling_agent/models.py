@@ -162,7 +162,7 @@ class AgentConfig(BaseModel):
         return dct
 
 
-class AgentDefinition(BaseModel):
+class AgentsManifest(BaseModel):
     """Complete agent definition including responses."""
 
     responses: dict[str, ResponseDefinition]
@@ -179,7 +179,7 @@ class AgentDefinition(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_response_types(self) -> AgentDefinition:
+    def validate_response_types(self) -> AgentsManifest:
         """Ensure all agent result_types exist in responses."""
         for agent_id, agent in self.agents.items():
             if agent.result_type not in self.responses:

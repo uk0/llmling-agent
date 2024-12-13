@@ -17,7 +17,7 @@ from typing import Any
 
 from llmling.core.log import get_logger
 
-from llmling_agent.models import AgentDefinition
+from llmling_agent.models import AgentsManifest
 
 
 logger = get_logger(__name__)
@@ -47,7 +47,7 @@ def generate_schema(
     logger.info("Generating schema to: %s", output_path)
 
     # Generate new schema
-    schema = AgentDefinition.model_json_schema()
+    schema = AgentsManifest.model_json_schema()
     logger.info("Generated schema with %d keys", len(schema))
 
     # Check if different from existing

@@ -85,7 +85,7 @@ def chat_command(
         llmling-agent chat myagent
         llmling-agent chat myagent --model gpt-4
     """
-    from llmling_agent.models import AgentDefinition
+    from llmling_agent.models import AgentsManifest
     from llmling_agent.runners import SingleAgentRunner
 
     try:
@@ -97,7 +97,7 @@ def chat_command(
             raise t.BadParameter(msg) from e
 
         # Load agent definition
-        agent_def = AgentDefinition.from_file(config_path)
+        agent_def = AgentsManifest.from_file(config_path)
         if agent_name not in agent_def.agents:
             msg = f"Agent '{agent_name}' not found in configuration"
             raise t.BadParameter(msg)  # noqa: TRY301

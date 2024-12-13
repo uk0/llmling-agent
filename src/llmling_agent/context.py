@@ -5,7 +5,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from llmling_agent.config.capabilities import Capabilities
-from llmling_agent.models import AgentConfig, AgentDefinition
+from llmling_agent.models import AgentConfig, AgentsManifest
 
 
 class AgentContext(BaseModel):
@@ -17,7 +17,7 @@ class AgentContext(BaseModel):
     capabilities: Capabilities
     """Current agent's capabilities."""
 
-    definition: AgentDefinition
+    definition: AgentsManifest
     """Complete agent definition with all configurations."""
 
     config: AgentConfig
@@ -52,7 +52,7 @@ class AgentContext(BaseModel):
         return cls(
             agent_name=name,
             capabilities=caps,
-            definition=AgentDefinition(responses={}, agents={}, roles={}),
+            definition=AgentsManifest(responses={}, agents={}, roles={}),
             config=AgentConfig(name=name, role="assistant"),
             model_settings={},
         )

@@ -7,7 +7,7 @@ import pytest
 
 from llmling_agent.models import (
     AgentConfig,
-    AgentDefinition,
+    AgentsManifest,
     ResponseDefinition,
 )
 from llmling_agent.runners import AgentOrchestrator, AgentRunConfig, SingleAgentRunner
@@ -62,7 +62,7 @@ async def test_orchestrator_single_agent(
 ) -> None:
     """Test orchestrator with single agent."""
     agents = {"test_agent": basic_agent_config}
-    agent_def = AgentDefinition(responses=basic_response_def, agents=agents)
+    agent_def = AgentsManifest(responses=basic_response_def, agents=agents)
 
     config = AgentRunConfig(agent_names=["test_agent"], prompts=["Hello!"])
 
@@ -84,7 +84,7 @@ async def test_orchestrator_multiple_agents(
     """Test orchestrator with multiple agents."""
     test_config = basic_agent_config.model_copy(update={"model": test_model})
     agents = {"agent1": test_config, "agent2": test_config}
-    agent_def = AgentDefinition(responses=basic_response_def, agents=agents)
+    agent_def = AgentsManifest(responses=basic_response_def, agents=agents)
 
     config = AgentRunConfig(agent_names=["agent1", "agent2"], prompts=["Hello!"])
 
@@ -106,7 +106,7 @@ async def test_orchestrator_validation(
 ) -> None:
     """Test orchestrator validation."""
     agents = {"test_agent": basic_agent_config}
-    agent_def = AgentDefinition(responses=basic_response_def, agents=agents)
+    agent_def = AgentsManifest(responses=basic_response_def, agents=agents)
 
     # Test no prompts first
     config = AgentRunConfig(agent_names=["test_agent"], prompts=[])

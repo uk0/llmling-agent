@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from llmling_agent.log import get_logger
-from llmling_agent.models import AgentDefinition
+from llmling_agent.models import AgentsManifest
 from llmling_agent.runners import SingleAgentRunner
 from llmling_agent.web.type_utils import ChatHistory  # noqa: TC001
 
@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 class AgentState:
     """Manages state for the web interface."""
 
-    agent_def: AgentDefinition
+    agent_def: AgentsManifest
     """Loaded agent definition"""
 
     current_runner: SingleAgentRunner[str] | None = None
@@ -41,7 +41,7 @@ class AgentState:
         """
         try:
             logger.debug("Loading agent definition from: %s", file_path)
-            agent_def = AgentDefinition.from_file(file_path)
+            agent_def = AgentsManifest.from_file(file_path)
             logger.debug("Loaded agent definition: %s", agent_def)
             return cls(agent_def=agent_def)
         except Exception as e:

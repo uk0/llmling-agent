@@ -71,7 +71,7 @@ def run_command(
     from llmling.config.runtime import RuntimeConfig
 
     from llmling_agent.cli import resolve_agent_config
-    from llmling_agent.models import AgentDefinition
+    from llmling_agent.models import AgentsManifest
     from llmling_agent.runners.models import AgentRunConfig
     from llmling_agent.runners.orchestrator import AgentOrchestrator
 
@@ -85,7 +85,7 @@ def run_command(
 
         # Load agent definition
         try:
-            agent_def = AgentDefinition.from_file(config_path)
+            agent_def = AgentsManifest.from_file(config_path)
         except ValidationError as e:
             t.echo("Agent configuration validation failed:", err=True)
             for error in e.errors():

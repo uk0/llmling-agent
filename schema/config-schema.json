@@ -324,6 +324,6 @@
     "responses",
     "agents"
   ],
-  "title": "AgentDefinition",
+  "title": "AgentsManifest",
   "type": "object"
 }

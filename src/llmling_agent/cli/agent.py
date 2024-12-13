@@ -80,7 +80,7 @@ def run_agent(
     verbose: bool = verbose_opt,
 ) -> None:
     """Run one or more agents with the given prompts."""
-    from llmling_agent.models import AgentDefinition
+    from llmling_agent.models import AgentsManifest
     from llmling_agent.runners import AgentOrchestrator, AgentRunConfig
 
     try:
@@ -93,7 +93,7 @@ def run_agent(
 
         # Load agent definition
         try:
-            agent_def = AgentDefinition.from_file(config_path)
+            agent_def = AgentsManifest.from_file(config_path)
         except ValidationError as e:
             t.echo("Agent configuration validation failed:", err=True)
             for error in e.errors():
@@ -177,7 +177,7 @@ def list_agents(
     verbose: bool = verbose_opt,
 ) -> None:
     """List agents from the active (or specified) configuration."""
-    from llmling_agent.models import AgentDefinition
+    from llmling_agent.models import AgentsManifest
 
     try:
         try:
@@ -187,7 +187,7 @@ def list_agents(
             raise t.BadParameter(msg) from e
 
         # Load and validate agent definition
-        agent_def = AgentDefinition.from_file(config_path)
+        agent_def = AgentsManifest.from_file(config_path)
         # Set the name field from the dict key for each agent
         agents = [
             agent.model_copy(update={"name": name})

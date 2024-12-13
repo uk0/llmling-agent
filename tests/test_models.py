@@ -8,7 +8,7 @@ from pydantic import ValidationError
 import pytest
 import yamling
 
-from llmling_agent.models import AgentDefinition, SystemPrompt
+from llmling_agent.models import AgentsManifest, SystemPrompt
 
 
 if TYPE_CHECKING:
@@ -68,7 +68,7 @@ def test_valid_agent_definition():
             },
         },
     }
-    agent_def = AgentDefinition.model_validate(config)
+    agent_def = AgentsManifest.model_validate(config)
     assert agent_def.responses["TestResponse"].fields["score"].constraints == {
         "ge": 0,
         "le": 100,
@@ -87,7 +87,7 @@ def test_missing_referenced_response():
         },
     }
     with pytest.raises(ValidationError):
-        AgentDefinition.model_validate(config)
+        AgentsManifest.model_validate(config)
 
 
 def test_environment_path_resolution(tmp_path: Path) -> None:
@@ -126,7 +126,7 @@ def test_environment_path_resolution(tmp_path: Path) -> None:
     config_file.write_text(yamling.dump_yaml(agent_config))
 
     # Load the config and verify path resolution
-    agent_def = AgentDefinition.from_file(config_file)
+    agent_def = AgentsManifest.from_file(config_file)
     test_agent = agent_def.agents["test_agent"]
 
     # The environment path should now be resolved

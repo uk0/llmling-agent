@@ -17,7 +17,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.context import AgentContext
 from llmling_agent.log import get_logger
-from llmling_agent.models import AgentDefinition
+from llmling_agent.models import AgentsManifest
 from llmling_agent.storage import Conversation, engine
 from llmling_agent.storage.models import Message
 from llmling_agent.tools import ToolConfirmation, ToolContext
@@ -300,7 +300,7 @@ class LLMlingAgent[TResult]:
             ValueError: If agent not found in configuration
         """
         # Load agent definition
-        agent_def = AgentDefinition.from_file(config_path)
+        agent_def = AgentsManifest.from_file(config_path)
         if agent_name not in agent_def.agents:
             msg = f"Agent '{agent_name}' not found in {config_path}"
             raise ValueError(msg)

@@ -12,7 +12,7 @@ from llmling_agent.runners.single import SingleAgentRunner
 if TYPE_CHECKING:
     from pydantic_ai.result import RunResult
 
-    from llmling_agent.models import AgentDefinition
+    from llmling_agent.models import AgentsManifest
     from llmling_agent.runners.models import AgentRunConfig
 
 
@@ -37,7 +37,7 @@ class AgentOrchestrator:
 
     def __init__(
         self,
-        agent_def: AgentDefinition,
+        agent_def: AgentsManifest,
         run_config: AgentRunConfig,
     ) -> None:
         """Initialize orchestrator.

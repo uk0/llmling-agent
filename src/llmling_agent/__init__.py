@@ -1,6 +1,6 @@
 """Agent configuration and creation."""
 
-from llmling_agent.models import AgentDefinition, SystemPrompt
+from llmling_agent.models import AgentsManifest, SystemPrompt
 from llmling_agent.agent import LLMlingAgent
 from llmling_agent.runners import AgentOrchestrator, AgentRunConfig, SingleAgentRunner
 
@@ -8,9 +8,9 @@ from llmling_agent.runners import AgentOrchestrator, AgentRunConfig, SingleAgent
 __version__ = "0.3.2"
 
 __all__ = [
-    "AgentDefinition",
     "AgentOrchestrator",
     "AgentRunConfig",
+    "AgentsManifest",
     "LLMlingAgent",
     "SingleAgentRunner",
     "SystemPrompt",

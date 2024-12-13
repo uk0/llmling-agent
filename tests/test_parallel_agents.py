@@ -6,7 +6,7 @@ import pytest
 
 from llmling_agent.models import (
     AgentConfig,
-    AgentDefinition,
+    AgentsManifest,
     ResponseDefinition,
     ResponseField,
 )
@@ -20,7 +20,7 @@ async def test_parallel_agent_execution(test_model):
     The orchestrator runs each prompt through all agents, allowing comparison
     of how different agents handle the same input.
     """
-    agent_def = AgentDefinition(
+    agent_def = AgentsManifest(
         responses={
             "BasicResult": ResponseDefinition(
                 description="Basic test result",
