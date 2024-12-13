@@ -23,12 +23,11 @@ from llmling_agent.storage.models import Message
 from llmling_agent.tools import (
     ToolConfirmation,
     ToolContext,
-    create_confirmed_tool_wrapper,
 )
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Awaitable, Callable
+    from collections.abc import AsyncIterator
     import os
 
     from llmling.core.events import Event
@@ -687,29 +686,57 @@ class LLMlingAgent[TResult]:
         })
         return tools
 
+    # def _prepare_tools(self) -> list[Tool[AgentContext]]:
+    #     """Prepare all tools respecting enabled/disabled state."""
+    #     tools = list(self._tools)  # Start with registered tools
+
+    #     # Add runtime tools if not disabled
+    #     for tool_name, llm_tool in self.runtime.tools.items():
+    #         if tool_name not in self._disabled_tools:
+    #             schema = llm_tool.get_schema()
+    #             confirm_cb = (
+    #                 self._tool_confirmation.confirm_tool
+    #                 if self._tool_confirmation
+    #                 and self._confirm_tools
+    #                 and tool_name in self._confirm_tools
+    #                 else None
+    #             )
+    #             wrapper: Callable[..., Awaitable[Any]] = create_confirmed_tool_wrapper(
+    #                 name=tool_name,
+    #                 schema=schema,
+    #                 confirm_callback=confirm_cb,
+    #             )
+    #             tools.append(Tool(wrapper, takes_ctx=True))
+
+    #     return tools
+
     def _prepare_tools(self) -> list[Tool[AgentContext]]:
         """Prepare all tools respecting enabled/disabled state."""
         tools = list(self._tools)  # Start with registered tools
         logger.debug("Initial tools: %s", [t.name for t in tools])
 
         # Add runtime tools if not disabled
-        for tool_name, llm_tool in self.runtime.tools.items():
-            if tool_name not in self._disabled_tools:
-                schema = llm_tool.get_schema()
-                confirm_cb = (
-                    self._tool_confirmation.confirm_tool
-                    if self._tool_confirmation
-                    and self._confirm_tools
-                    and tool_name in self._confirm_tools
-                    else None
-                )
-                wrapper: Callable[..., Awaitable[Any]] = create_confirmed_tool_wrapper(
-                    name=tool_name,
-                    schema=schema,
-                    confirm_callback=confirm_cb,
-                )
-                tools.append(Tool(wrapper, takes_ctx=True))
+        available_tools = self.runtime.tools
+        logger.debug("Available runtime tools: %s", list(available_tools))
+        logger.debug("Disabled tools: %s", self._disabled_tools)
 
+        for tool_name in self.runtime.tools:
+            if tool_name not in self._disabled_tools:
+                logger.debug("Adding tool wrapper for: %s", tool_name)
+
+                # Create a simple wrapper that calls the tool through runtime
+                async def tool_wrapper(
+                    ctx: RunContext[AgentContext], _tool_name=tool_name, **kwargs: Any
+                ) -> Any:
+                    logger.debug("Executing tool %s with args: %s", _tool_name, kwargs)
+                    return await self.runtime.execute_tool(_tool_name, **kwargs)
+
+                tool_wrapper.__name__ = f"wrapped_{tool_name}"
+                tools.append(Tool(tool_wrapper, takes_ctx=True))
+        logger.debug(
+            "Final tool list: %s",
+            [getattr(t.function, "__name__", str(t.function)) for t in tools],
+        )
         return tools
 
 
