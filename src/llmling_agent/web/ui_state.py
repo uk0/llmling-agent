@@ -134,6 +134,7 @@ class UIState:
         self.log_capturer = LogCapturer()
         self.debug_mode = False
         self.handler: AgentHandler | None = None
+        self._event_handler: WebEventHandler | None = None
         self._session_manager = ChatSessionManager()
         self._current_session: AgentChatSession | None = None
 
@@ -223,16 +224,21 @@ class UIState:
             agent = self.handler.state.current_runner.agent
 
             # Create chat session with the agent
+            if self._current_session and self._event_handler:
+                self._current_session.remove_event_handler(self._event_handler)
+
+            # Create new session
             self._current_session = await self._session_manager.create_session(
                 agent=agent,
                 model=model,
             )
 
+            # Register new event handler
+            self._event_handler = WebEventHandler(self)
+            self._current_session.add_event_handler(self._event_handler)
             # Get tool states for UI
-            tool_states = [
-                [name, enabled]
-                for name, enabled in self._current_session.get_tool_states().items()
-            ]
+            states = self._current_session.get_tool_states()
+            tool_states = [[name, enabled] for name, enabled in states.items()]
 
             return UIUpdate(
                 status=f"Agent {agent_name} ready",
