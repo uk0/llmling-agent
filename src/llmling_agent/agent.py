@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from datetime import datetime
+from inspect import Parameter, Signature
 from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
@@ -116,6 +117,7 @@ class LLMlingAgent[TResult]:
         """
         self._runtime = runtime
         self._context = context or AgentContext.create_default(name)
+        self._context.runtime = runtime
         self._tools = list(tools)
         self._disabled_tools: set[str] = set()
         self._original_tools = list(tools)  # Store original tools for reference
@@ -320,8 +322,8 @@ class LLMlingAgent[TResult]:
         )
 
         # Set up runtime
-        config = agent_config.get_config()
-        async with RuntimeConfig.open(config) as runtime:
+        cfg = agent_config.get_config()
+        async with RuntimeConfig.open(cfg) as runtime:
             agent = cls(
                 runtime=runtime,
                 context=context,
@@ -714,23 +716,63 @@ class LLMlingAgent[TResult]:
         logger.debug("Available runtime tools: %s", list(available_tools))
         logger.debug("Disabled tools: %s", self._disabled_tools)
 
+        def create_tool_wrapper(name: str, tool_def: Any) -> Tool[AgentContext]:
+            """Create wrapper for a specific tool."""
+            schema = tool_def.get_schema()
+
+            # Create function signature based on schema
+            params = [
+                Parameter(
+                    "ctx",
+                    Parameter.POSITIONAL_OR_KEYWORD,
+                    annotation=RunContext[AgentContext],
+                )
+            ]
+
+            # Add parameters from schema
+            properties = schema["function"].get("parameters", {}).get("properties", {})
+            for prop_name, info in properties.items():
+                default = Parameter.empty if info.get("required") else None
+                param = Parameter(
+                    prop_name,
+                    Parameter.POSITIONAL_OR_KEYWORD,
+                    annotation=Any,
+                    default=default,
+                )
+                params.append(param)
+
+            # Create signature
+            sig = Signature(params, return_annotation=Any)
+
+            async def tool_wrapper(*args: Any, **kwargs: Any) -> Any:
+                ctx = args[0]  # First arg is always context
+                if not ctx.deps.runtime:
+                    msg = f"No runtime available for tool {name}"
+                    raise RuntimeError(msg)
+                logger.debug("Executing tool %s with args: %s", name, kwargs)
+                return await ctx.deps.runtime.execute_tool(name, **kwargs)
+
+            # Apply signature and metadata
+            tool_wrapper.__signature__ = sig  # type: ignore
+            tool_wrapper.__name__ = name
+            tool_wrapper.__doc__ = schema["function"]["description"]
+            tool_wrapper.__annotations__ = {p.name: p.annotation for p in params}
+
+            return Tool(
+                tool_wrapper,
+                takes_ctx=True,
+                name=name,
+                description=tool_def.description,
+            )
+
+        # Create and add tool wrappers
         for tool_name in self.runtime.tools:
             if tool_name not in self._disabled_tools:
                 logger.debug("Adding tool wrapper for: %s", tool_name)
+                tool_def = self.runtime.tools[tool_name]
+                tools.append(create_tool_wrapper(tool_name, tool_def))
 
-                # Create a simple wrapper that calls the tool through runtime
-                async def tool_wrapper(
-                    ctx: RunContext[AgentContext], _tool_name=tool_name, **kwargs: Any
-                ) -> Any:
-                    logger.debug("Executing tool %s with args: %s", _tool_name, kwargs)
-                    return await self.runtime.execute_tool(_tool_name, **kwargs)
-
-                tool_wrapper.__name__ = f"wrapped_{tool_name}"
-                tools.append(Tool(tool_wrapper, takes_ctx=True))
-        logger.debug(
-            "Final tool list: %s",
-            [getattr(t.function, "__name__", str(t.function)) for t in tools],
-        )
+        logger.debug("Final tool list: %s", [t.name for t in tools])
         return tools
 
 
@@ -743,18 +785,18 @@ if __name__ == "__main__":
 
     sys_prompt = "Open browser with google, please"
 
-    # async def main() -> None:
-    #     async with RuntimeConfig.open(config_resources.OPEN_BROWSER) as r:
-    #         agent: LLMlingAgent[str] = LLMlingAgent(r, model="openai:gpt-3.5-turbo")
-    #         result = await agent.run(sys_prompt)
-    #         print(result.data)
-
-    sys_prompt = "Check your resources and summarize the readme"
-
     async def main() -> None:
-        async with RuntimeConfig.open(config_resources.SUMMARIZE_README) as r:
+        async with RuntimeConfig.open(config_resources.OPEN_BROWSER) as r:
             agent: LLMlingAgent[str] = LLMlingAgent(r, model="openai:gpt-3.5-turbo")
             result = await agent.run(sys_prompt)
             print(result.data)
+
+    # sys_prompt = "Check your resources and summarize the readme"
+
+    # async def main() -> None:
+    #     async with RuntimeConfig.open(config_resources.SUMMARIZE_README) as r:
+    #         agent: LLMlingAgent[str] = LLMlingAgent(r, model="openai:gpt-3.5-turbo")
+    #         result = await agent.run(sys_prompt)
+    #         print(result.data)
 
     asyncio.run(main())
