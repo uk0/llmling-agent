@@ -110,6 +110,54 @@ async def test_send_message_normal(chat_session: AgentChatSession) -> None:
 
 
 @pytest.mark.asyncio
+async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession) -> None:
+    """Test streaming message responses with token information."""
+    from pydantic_ai import messages
+
+    chunks = ["Hel", "lo, ", "human!"]
+    stream_result = AsyncMock(spec=StreamedRunResult)
+    model_responses = [messages.ModelTextResponse(content=chunk) for chunk in chunks]
+
+    async def mock_stream() -> AsyncIterator[messages.ModelTextResponse]:
+        for response in model_responses:
+            yield response
+
+    stream_result.stream = mock_stream
+
+    # Mock cost information
+    cost_mock = AsyncMock()
+    cost_mock.total_tokens = 10
+    cost_mock.request_tokens = 5
+    cost_mock.response_tokens = 5
+    stream_result.cost = AsyncMock(return_value=cost_mock)
+
+    print("\nTest setup:")
+    print(f"Cost mock attributes: {dir(cost_mock)}")
+    print(
+        f"Cost mock values: total={cost_mock.total_tokens}, prompt={cost_mock.request_tokens}, completion={cost_mock.response_tokens}"
+    )
+
+    context_mock = AsyncMock()
+    context_mock.__aenter__.return_value = stream_result
+    chat_session._agent.run_stream = AsyncMock(return_value=context_mock)
+
+    response_stream = await chat_session.send_message(TEST_MESSAGE, stream=True)
+
+    messages = []
+    async for msg in response_stream:
+        print(f"Received message: content='{msg.content}', metadata={msg.metadata}")
+        messages.append(msg)
+
+    print(f"Total messages received: {len(messages)}")
+    final_msg = messages[-1]
+    print(f"Final message metadata: {final_msg.metadata}")
+    assert final_msg.metadata
+    assert final_msg.metadata["token_usage"]["total"] == 10
+    assert final_msg.metadata["token_usage"]["prompt"] == 5
+    assert final_msg.metadata["token_usage"]["completion"] == 5
+
+
+@pytest.mark.asyncio
 async def test_send_message_with_history(chat_session: AgentChatSession) -> None:
     """Test sending a message with existing conversation history."""
     # First message

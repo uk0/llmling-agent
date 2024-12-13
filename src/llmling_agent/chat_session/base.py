@@ -209,6 +209,7 @@ class AgentChatSession:
             message_history=self._history,
             model=model_override,  # type: ignore[arg-type]
         ) as result:
+            # First yield all content chunks
             async for chunk in result.stream():
                 content = ""
                 match chunk:
@@ -229,9 +230,12 @@ class AgentChatSession:
                     },
                 )
 
-            # Only send token info if available
-            if (cost := result.cost()) and any(
-                getattr(cost, attr, None) is not None
+            # Get cost information, handling both regular and async cases
+            cost_result = result.cost()
+            cost = await cost_result if hasattr(cost_result, "__await__") else cost_result  # pyright: ignore
+
+            if cost and all(
+                hasattr(cost, attr)
                 for attr in ("total_tokens", "request_tokens", "response_tokens")
             ):
                 yield ChatMessage(
