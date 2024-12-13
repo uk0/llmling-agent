@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import json
 from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
@@ -16,6 +17,11 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models import KnownModelName, Model
 
+from llmling_agent.chat_session.events import (
+    SessionEvent,
+    SessionEventHandler,
+    SessionEventType,
+)
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatMessage, ChatSessionMetadata
 from llmling_agent.commands import CommandStore
@@ -81,6 +87,7 @@ class AgentChatSession:
         # Initialize command system
         self._command_store = CommandStore()
         self._command_store.register_builtin_commands()
+        self._event_handlers: list[SessionEventHandler] = []
 
     @property
     def metadata(self) -> ChatSessionMetadata:
@@ -90,6 +97,48 @@ class AgentChatSession:
             agent_name=self._agent.name,
             model=self._model,
             tool_states=self._tool_states,
+        )
+
+    def add_event_handler(self, handler: SessionEventHandler) -> None:
+        """Register an event handler."""
+        self._event_handlers.append(handler)
+
+    def remove_event_handler(self, handler: SessionEventHandler) -> None:
+        """Remove an event handler."""
+        if handler in self._event_handlers:
+            self._event_handlers.remove(handler)
+
+    async def _notify_handlers(self, event: SessionEvent) -> None:
+        """Notify all handlers of an event."""
+        for handler in self._event_handlers:
+            await handler.handle_session_event(event)
+
+    async def clear(self) -> None:
+        """Clear chat history."""
+        self._history = []
+        await self._notify_handlers(
+            SessionEvent(
+                type=SessionEventType.HISTORY_CLEARED,
+                timestamp=datetime.now(),
+                data={"session_id": str(self.id)},
+            )
+        )
+
+    async def reset(self) -> None:
+        """Reset session state."""
+        old_tools = self._tool_states.copy()
+        self._history = []
+        self._tool_states = self._agent.list_tools()
+        await self._notify_handlers(
+            SessionEvent(
+                type=SessionEventType.SESSION_RESET,
+                timestamp=datetime.now(),
+                data={
+                    "session_id": str(self.id),
+                    "previous_tools": old_tools,
+                    "new_tools": self._tool_states,
+                },
+            )
         )
 
     def register_command(self, command: BaseCommand) -> None:
