@@ -20,10 +20,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.models import AgentDefinition
 from llmling_agent.storage import Conversation, engine
 from llmling_agent.storage.models import Message
-from llmling_agent.tools import (
-    ToolConfirmation,
-    ToolContext,
-)
+from llmling_agent.tools import ToolConfirmation, ToolContext
 
 
 if TYPE_CHECKING:
