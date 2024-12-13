@@ -6,6 +6,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from llmling_agent.log import get_logger
+from llmling_agent.runners.exceptions import AgentNotFoundError, NoPromptsError
 from llmling_agent.runners.single import SingleAgentRunner
 
 
@@ -14,18 +15,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.models import AgentsManifest
     from llmling_agent.runners.models import AgentRunConfig
-
-
-class AgentOrchestratorError(Exception):
-    """Base exception for orchestrator errors."""
-
-
-class AgentNotFoundError(AgentOrchestratorError):
-    """Raised when requested agent is not found."""
-
-
-class NoPromptsError(AgentOrchestratorError):
-    """Raised when no prompts are provided."""
 
 
 logger = get_logger(__name__)

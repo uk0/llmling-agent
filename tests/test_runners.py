@@ -11,7 +11,7 @@ from llmling_agent.models import (
     ResponseDefinition,
 )
 from llmling_agent.runners import AgentOrchestrator, AgentRunConfig, SingleAgentRunner
-from llmling_agent.runners.orchestrator import AgentNotFoundError, NoPromptsError
+from llmling_agent.runners.exceptions import AgentNotFoundError, NoPromptsError
 
 
 if TYPE_CHECKING:
