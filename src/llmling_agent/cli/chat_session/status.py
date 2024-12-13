@@ -22,6 +22,7 @@ class StatusInfo:
     total_tokens: int
     prompt_tokens: int
     completion_tokens: int
+    total_cost: float
     messages: int
     duration: str
     context_size: int | None = None
@@ -45,6 +46,7 @@ class StatusBar:
             total_tokens=state.total_tokens,
             prompt_tokens=state.prompt_tokens,
             completion_tokens=state.completion_tokens,
+            total_cost=state.total_cost,
             messages=state.message_count,
             duration=f"{hours:02d}:{minutes:02d}:{seconds:02d}",
         )
@@ -54,24 +56,21 @@ class StatusBar:
         status.add_column(style="green", justify="right")
         status.add_column(style="yellow", justify="right")
         status.add_column(style="blue", justify="right")
+        status.add_column(style="magenta", justify="right")
 
         token_info = (
             f"Tokens: {info.total_tokens:,} "
-            f"(P: {info.prompt_tokens:,} "
-            f"C: {info.completion_tokens:,})"
+            f"(Prompt: {info.prompt_tokens:,} "
+            f"Completion: {info.completion_tokens:,})"
         )
+        cost_info = f"Cost: ${info.total_cost:.3f}"
 
         status.add_row(
             f"Model: {info.model}",
             token_info,
+            cost_info,
             f"Messages: {info.messages}",
             f"Time: {info.duration}",
         )
-
-        self.console.print(
-            Panel(
-                status,
-                style="bold",
-                padding=(0, 1),
-            )
-        )
+        panel = Panel(status, style="bold", padding=(0, 1))
+        self.console.print(panel)

@@ -23,6 +23,7 @@ class SessionState:
     total_tokens: int = 0
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    total_cost: float = 0.0
     start_time: datetime = field(default_factory=datetime.now)
     last_command: str | None = None
 
@@ -32,3 +33,6 @@ class SessionState:
             self.total_tokens += token_usage.get("total", 0)
             self.prompt_tokens += token_usage.get("prompt", 0)
             self.completion_tokens += token_usage.get("completion", 0)
+
+        if message.metadata and (cost := message.metadata.get("cost")):
+            self.total_cost += cost
