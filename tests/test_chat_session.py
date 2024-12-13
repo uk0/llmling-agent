@@ -172,6 +172,10 @@ async def test_send_message_streaming(chat_session: AgentChatSession) -> None:
             yield response
 
     stream_result.stream = mock_stream
+
+    # Explicitly set cost to None to ensure no token message
+    stream_result.cost = AsyncMock(return_value=None)
+
     context_mock = AsyncMock()
     context_mock.__aenter__.return_value = stream_result
     chat_session._agent.run_stream = AsyncMock(return_value=context_mock)  # type: ignore
@@ -180,12 +184,9 @@ async def test_send_message_streaming(chat_session: AgentChatSession) -> None:
     response_stream = await chat_session.send_message(TEST_MESSAGE, stream=True)
 
     # Collect responses from the stream
-    actual_chunks = [r.content async for r in response_stream]
+    actual_chunks = [chunk.content async for chunk in response_stream if chunk.content]
 
-    expected_chunks = [str(response) for response in model_responses]
-
-    assert len(actual_chunks) == len(chunks)
-    assert actual_chunks == expected_chunks
+    assert actual_chunks == chunks
 
 
 @pytest.mark.asyncio
@@ -203,6 +204,7 @@ async def test_agent_error_handling(chat_session: AgentChatSession) -> None:
     """Test handling of agent errors."""
     error_msg = "Model error"
     chat_session._agent.run.side_effect = Exception(error_msg)
+    chat_session._agent.run = AsyncMock(side_effect=Exception(error_msg))
 
     with pytest.raises(ChatSessionError, match=f"Error processing message: {error_msg}"):
         await chat_session.send_message(TEST_MESSAGE)

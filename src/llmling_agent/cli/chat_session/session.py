@@ -4,6 +4,7 @@ import logging
 import traceback
 from typing import TYPE_CHECKING
 
+import httpx
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.history import FileHistory
@@ -12,6 +13,7 @@ from rich.live import Live
 from rich.markdown import Markdown
 
 from llmling_agent.chat_session import ChatSessionManager
+from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatMessage
 from llmling_agent.cli.chat_session.base import CommandContext
 from llmling_agent.cli.chat_session.config import HISTORY_DIR, SessionState
@@ -72,17 +74,66 @@ class InteractiveSession:
         auto = AutoSuggestFromHistory()
         self._prompt = PromptSession("You: ", history=self._history, auto_suggest=auto)
 
-    def _register_commands(self) -> None:
-        """Register available commands."""
-        from .commands.builtin import get_builtin_commands
+    def _format_error(self, error: Exception) -> str:
+        """Format error message for display."""
+        # Known error types we want to handle specially
+        match error:
+            case ChatSessionConfigError():
+                return f"Chat session error: {error}"
+            case ValueError() if "token" in str(error):
+                return "Connection interrupted"
+            case httpx.ReadError():
+                return "Connection lost. Please try again."
+            case GeneratorExit():
+                return "Response stream interrupted"
+            case _:
+                return f"Error: {error}"
 
-        for command in get_builtin_commands():
-            self._commands[command.name] = command
+    async def _handle_message(self, message: str) -> None:
+        """Handle chat message."""
+        try:
+            # Create user message
+            user_message = ChatMessage(content=message, role="user")
+            self._state.update_tokens(user_message)
+            self.console.print("\nAssistant:", style="bold blue")
+
+            with Live("", console=self.console) as live:
+                response_parts = []
+                try:
+                    response = await self.chat_session.send_message(message, stream=True)
+                    async for chunk in response:
+                        response_parts.append(chunk.content)
+                        md = Markdown("".join(response_parts))
+                        live.update(md)
+                        # Update tokens for assistant message
+                        self._state.update_tokens(chunk)
+                except (httpx.ReadError, GeneratorExit):
+                    # Handle streaming interruptions gracefully
+                    if response_parts:
+                        # If we got partial response, show it
+                        self.console.print("\nConnection interrupted. Partial response:")
+                        self.console.print(Markdown("".join(response_parts)))
+                    else:
+                        raise  # Re-raise if we got nothing
+
+            # Update message count after complete response
+            self._state.message_count += 2
+            self.status_bar.render(self._state)
+
+        except Exception as e:  # noqa: BLE001
+            error_msg = self._format_error(e)
+            self.console.print(f"\n[red bold]Error:[/] {error_msg}")
+            if self.debug:
+                self.console.print(
+                    "\n[dim]Debug traceback:[/]",
+                    Markdown(f"```python\n{traceback.format_exc()}\n```"),
+                )
+            # Ensure status bar is still shown even after error
+            self.status_bar.render(self._state)
 
     async def start(self) -> None:
         """Start interactive session."""
         try:
-            # Initialize chat session
             self._chat_session = await self._session_manager.create_session(self.agent)
             self._state.current_model = self._chat_session._model
             await self._show_welcome()
@@ -99,17 +150,37 @@ class InteractiveSession:
                         await self._handle_message(user_input)
 
                 except KeyboardInterrupt:
+                    self.console.print("\nUse /exit to quit")
                     continue
                 except EOFError:
                     break
+                except Exception as e:  # noqa: BLE001
+                    error_msg = self._format_error(e)
+                    self.console.print(f"\n[red bold]Error:[/] {error_msg}")
+                    if self.debug:
+                        self.console.print(
+                            "\n[dim]Debug traceback:[/]",
+                            Markdown(f"```python\n{traceback.format_exc()}\n```"),
+                        )
+                    continue
 
         except Exception as e:  # noqa: BLE001
-            self.console.print(f"\nError: {e}", style="red")
+            self.console.print(f"\n[red bold]Fatal Error:[/] {self._format_error(e)}")
             if self.debug:
-                self.console.print(traceback.format_exc())
+                self.console.print(
+                    "\n[dim]Debug traceback:[/]",
+                    Markdown(f"```python\n{traceback.format_exc()}\n```"),
+                )
         finally:
             await self._cleanup()
             await self._show_summary()
+
+    def _register_commands(self) -> None:
+        """Register available commands."""
+        from .commands.builtin import get_builtin_commands
+
+        for command in get_builtin_commands():
+            self._commands[command.name] = command
 
     async def _handle_command(self, input_: str) -> None:
         """Handle command input."""
@@ -133,31 +204,6 @@ class InteractiveSession:
             raise  # Re-raise EOFError to be caught by main loop
         except Exception as e:  # noqa: BLE001
             self.console.print(f"Error executing command: {e}", style="red")
-            if self.debug:
-                self.console.print(traceback.format_exc())
-
-    async def _handle_message(self, message: str) -> None:
-        """Handle chat message."""
-        try:
-            # Create user message
-            user_message = ChatMessage(content=message, role="user")
-            self._state.update_tokens(user_message)
-            self.console.print("\nAssistant:", style="bold blue")
-            with Live("", console=self.console) as live:
-                response_parts = []
-                response = await self.chat_session.send_message(message, stream=True)
-                async for chunk in response:
-                    response_parts.append(chunk.content)
-                    md = Markdown("".join(response_parts))
-                    live.update(md)
-                    # Update tokens for assistant message
-                    self._state.update_tokens(chunk)
-
-            # Update message count after complete response
-            self._state.message_count += 2
-            self.status_bar.render(self._state)
-        except Exception as e:  # noqa: BLE001
-            self.console.print(f"\nError: {e}", style="red")
             if self.debug:
                 self.console.print(traceback.format_exc())
 

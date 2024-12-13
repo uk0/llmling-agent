@@ -137,7 +137,7 @@ class AgentChatSession:
         result = await self._agent.run(
             content,
             message_history=self._history,
-            model=model_override,
+            model=model_override,  # type: ignore[arg-type]
         )
 
         # Update history with new messages
@@ -207,27 +207,46 @@ class AgentChatSession:
         async with await self._agent.run_stream(
             content,
             message_history=self._history,
-            model=model_override,
+            model=model_override,  # type: ignore[arg-type]
         ) as result:
             async for chunk in result.stream():
-                # Get token info from the result if available
-                token_usage = None
-                if cost := result.cost():
-                    token_usage = {
-                        "total": cost.total_tokens,
-                        "prompt": cost.request_tokens,
-                        "completion": cost.response_tokens,
-                    }
+                content = ""
+                match chunk:
+                    case messages.ModelTextResponse():
+                        content = chunk.content
+                    case messages.ToolReturn():
+                        content = chunk.model_response_str()
+                    case messages.RetryPrompt():
+                        content = chunk.model_response()
+                    case _:
+                        content = str(chunk)
 
                 yield ChatMessage(
-                    content=str(chunk),
+                    content=content,
                     role="assistant",
                     metadata={
-                        "token_usage": token_usage,
+                        "model": self._model or str(self._agent._pydantic_agent.model)
+                    },
+                )
+
+            # Only send token info if available
+            if (cost := result.cost()) and any(
+                getattr(cost, attr, None) is not None
+                for attr in ("total_tokens", "request_tokens", "response_tokens")
+            ):
+                yield ChatMessage(
+                    content="",
+                    role="assistant",
+                    metadata={
+                        "token_usage": {
+                            "total": cost.total_tokens,
+                            "prompt": cost.request_tokens,
+                            "completion": cost.response_tokens,
+                        },
                         "model": self._model or str(self._agent._pydantic_agent.model),
                     },
                 )
-            # Update history after stream completes
+
             self._history = result.new_messages()
 
     def configure_tools(

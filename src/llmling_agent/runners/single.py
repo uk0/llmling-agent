@@ -101,7 +101,7 @@ class SingleAgentRunner[T](AbstractAsyncContextManager):
 
         # Create agent with potential model override
         if self.model_override:
-            self.agent_config.model = self.model_override
+            self.agent_config.model = self.model_override  # type: ignore[attr-defined]
 
         # Initialize agent
         self._agent = LLMlingAgent(
