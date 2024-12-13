@@ -14,6 +14,7 @@ from pydantic_ai.messages import (
     RetryPrompt,
     ToolReturn,
 )
+from pydantic_ai.models import KnownModelName, Model
 
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatMessage, ChatSessionMetadata
@@ -27,6 +28,16 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+def get_model_name(model: KnownModelName | Model | None) -> str | None:
+    match model:
+        case str() | None:
+            return model
+        case Model():
+            return model.name()
+        case _:
+            return None
 
 
 class AgentChatSession:
@@ -56,13 +67,9 @@ class AgentChatSession:
         self._agent = agent
         self._history: list[messages.Message] = []
         self._tool_states = agent.list_tools()
-        self._model = model_override
-
-        logger.debug(
-            "Created chat session %s for agent %s",
-            self.id,
-            agent.name,
-        )
+        self._model = model_override or get_model_name(agent._pydantic_agent.model)
+        msg = "Created chat session %s for agent %s"
+        logger.debug(msg, self.id, agent.name)
 
     @property
     def metadata(self) -> ChatSessionMetadata:

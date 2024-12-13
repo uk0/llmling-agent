@@ -84,6 +84,7 @@ class InteractiveSession:
         try:
             # Initialize chat session
             self._chat_session = await self._session_manager.create_session(self.agent)
+            self._state.current_model = self._chat_session._model
             await self._show_welcome()
 
             while True:
@@ -114,7 +115,6 @@ class InteractiveSession:
         """Handle command input."""
         cmd, *args = input_.split(maxsplit=1)
         arg = args[0] if args else ""
-
         command = self._commands.get(cmd)
         if not command:
             self.console.print(f"Unknown command: {cmd}", style="red")
