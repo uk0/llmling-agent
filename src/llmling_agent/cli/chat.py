@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
 
 from llmling.core.log import get_logger
 from rich.console import Console
@@ -11,12 +10,10 @@ from rich.live import Live
 from rich.markdown import Markdown
 import typer as t
 
+from llmling_agent import LLMlingAgent
 from llmling_agent.chat_session import ChatSessionManager
 from llmling_agent.cli import resolve_agent_config
 
-
-if TYPE_CHECKING:
-    from llmling_agent import LLMlingAgent
 
 console = Console()
 logger = get_logger(__name__)
@@ -72,21 +69,15 @@ def chat_command(
         "-m",
         help="Override agent's model",
     ),
-    stream: bool = t.Option(
+    debug: bool = t.Option(
         False,
-        "--stream",
-        "-s",
-        help="Stream the response token by token",
+        "--debug",
+        "-d",
+        help="Enable debug output",
     ),
 ) -> None:
-    """Start interactive chat session with an agent.
-
-    Example:
-        llmling-agent chat myagent
-        llmling-agent chat myagent --model gpt-4
-    """
-    from llmling_agent.models import AgentsManifest
-    from llmling_agent.runners import SingleAgentRunner
+    """Start interactive chat session with an agent."""
+    from llmling_agent.cli.chat_session.session import start_interactive_session
 
     try:
         # Resolve configuration
@@ -96,24 +87,13 @@ def chat_command(
             msg = str(e)
             raise t.BadParameter(msg) from e
 
-        # Load agent definition
-        agent_def = AgentsManifest.from_file(config_path)
-        if agent_name not in agent_def.agents:
-            msg = f"Agent '{agent_name}' not found in configuration"
-            raise t.BadParameter(msg)  # noqa: TRY301
-
-        # Initialize runner
-        agent_config = agent_def.agents[agent_name]
-        if model:
-            agent_config.model = model  # type: ignore
-
         async def run_chat() -> None:
-            runner = SingleAgentRunner[str](
-                agent_config=agent_config,
-                response_defs=agent_def.responses,
-            )
-            async with runner:
-                await chat_session(runner.agent)
+            async with LLMlingAgent[str].open_agent(
+                config_path,
+                agent_name,
+                model=model,
+            ) as agent:
+                await start_interactive_session(agent, debug=debug)
 
         asyncio.run(run_chat())
 
@@ -121,9 +101,9 @@ def chat_command(
         raise
     except KeyboardInterrupt:
         print("\nChat session ended.")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"Error: {e}")
-        raise t.Exit(1) from e
+        raise t.Exit(1)  # noqa: B904
 
 
 if __name__ == "__main__":
