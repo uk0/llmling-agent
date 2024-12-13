@@ -243,10 +243,8 @@ class UIState:
 
         except Exception as e:
             logger.exception("Failed to initialize agent")
-            return UIUpdate(
-                status=f"Error: {e}",
-                debug_logs=self.get_debug_logs(),
-            )
+            logs = self.get_debug_logs()
+            return UIUpdate(status=f"Error: {e}", debug_logs=logs)
 
     async def send_message(
         self,
@@ -333,10 +331,7 @@ class UIState:
             response_parts = []
 
             # Add user message
-            messages.append({
-                "content": message,
-                "role": "user",
-            })
+            messages.append({"content": message, "role": "user"})
 
             response = await self._current_session.send_message(message, stream=True)
             if not isinstance(response, AsyncIterator):
@@ -347,14 +342,10 @@ class UIState:
                 response_parts.append(chunk.content)
                 # Update UI with current state
                 current_messages = list(messages)
-                current_messages.append({
-                    "content": "".join(response_parts),
-                    "role": "assistant",
-                })
-                yield UIUpdate(
-                    chat_history=current_messages,
-                    status="Receiving response...",
-                )
+                content = "".join(response_parts)
+                current_messages.append({"content": content, "role": "assistant"})
+                msg = "Receiving response..."
+                yield UIUpdate(chat_history=current_messages, status=msg)
 
             # Final update
             yield UIUpdate(
@@ -366,10 +357,7 @@ class UIState:
 
         except Exception as e:
             logger.exception("Failed to stream message")
-            yield UIUpdate(
-                status=f"Error: {e}",
-                debug_logs=self.get_debug_logs(),
-            )
+            yield UIUpdate(status=f"Error: {e}", debug_logs=self.get_debug_logs())
 
     async def update_tool_states(self, updates: dict[str, bool]) -> UIUpdate:
         """Update tool states in current session."""
@@ -385,16 +373,11 @@ class UIState:
                 [name, enabled]
                 for name, enabled in self._current_session.get_tool_states().items()
             ]
-
-            return UIUpdate(
-                status=f"Updated tools: {status}",
-                tool_states=tool_states,
-                debug_logs=self.get_debug_logs(),
-            )
+            logs = self.get_debug_logs()
+            msg = f"Updated tools: {status}"
+            return UIUpdate(status=msg, tool_states=tool_states, debug_logs=logs)
 
         except Exception as e:
             logger.exception("Failed to update tools")
-            return UIUpdate(
-                status=f"Error updating tools: {e}",
-                debug_logs=self.get_debug_logs(),
-            )
+            logs = self.get_debug_logs()
+            return UIUpdate(status=f"Error updating tools: {e}", debug_logs=logs)
