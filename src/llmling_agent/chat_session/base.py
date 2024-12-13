@@ -203,9 +203,22 @@ class AgentChatSession:
             model=model_override,
         ) as result:
             async for chunk in result.stream():
+                # Get token info from the result if available
+                token_usage = None
+                if cost := result.cost():
+                    token_usage = {
+                        "total": cost.total_tokens,
+                        "prompt": cost.request_tokens,
+                        "completion": cost.response_tokens,
+                    }
+
                 yield ChatMessage(
                     content=str(chunk),
                     role="assistant",
+                    metadata={
+                        "token_usage": token_usage,
+                        "model": self._model or str(self._agent._pydantic_agent.model),
+                    },
                 )
             # Update history after stream completes
             self._history = result.new_messages()
