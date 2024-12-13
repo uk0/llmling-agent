@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
+
+from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.runners.exceptions import AgentNotFoundError, NoPromptsError
@@ -18,10 +20,10 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-T = TypeVar("T")
+T = TypeVar("T", default=str)
 
 
-class AgentOrchestrator:
+class AgentOrchestrator[T]:
     """Orchestrates multiple agent runners."""
 
     def __init__(
