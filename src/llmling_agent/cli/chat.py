@@ -11,25 +11,23 @@ from rich.live import Live
 from rich.markdown import Markdown
 import typer as t
 
+from llmling_agent.chat_session import ChatSessionManager
 from llmling_agent.cli import resolve_agent_config
 
 
 if TYPE_CHECKING:
-    from pydantic_ai import messages
-
-    from llmling_agent.runners import SingleAgentRunner
+    from llmling_agent import LLMlingAgent
 
 console = Console()
 logger = get_logger(__name__)
 
 
-async def chat_session(
-    runner: SingleAgentRunner[str],
-    history: list[messages.Message] | None = None,
-    stream: bool = False,
-) -> None:
+async def chat_session(agent: LLMlingAgent[str]) -> None:
     """Run interactive chat session with agent."""
-    print(f"\nStarted chat with {runner.agent_config.name or 'agent'}")
+    session_manager = ChatSessionManager()
+    chat_session = await session_manager.create_session(agent)
+
+    print(f"\nStarted chat with {agent.name}")
     print("Type 'exit' or press Ctrl+C to end the conversation\n")
 
     while True:
@@ -43,18 +41,14 @@ async def chat_session(
 
         try:
             console.print("\nAgent:", style="bold blue")
-            if stream:
-                stream_ctx = runner.agent.run_stream(user_input, message_history=history)
-                with Live("", console=console, vertical_overflow="visible") as live:
-                    async with await stream_ctx as result:
-                        async for message in result.stream():
-                            live.update(Markdown(str(message)))
-                    history = result.new_messages()
-            else:
-                result = await runner.agent.run(user_input, message_history=history)
-                console.print(Markdown(str(result.data)))
-                history = result.new_messages()
-            print()  # Empty line for readability
+            # Use stream=True for live updates
+            with Live("", console=console, vertical_overflow="visible") as live:
+                response_parts = []
+                response_stream = await chat_session.send_message(user_input, stream=True)
+                async for chunk in response_stream:
+                    response_parts.append(chunk.content)
+                    live.update(Markdown("".join(response_parts)))
+                print()  # Empty line for readability
 
         except Exception as e:  # noqa: BLE001
             console.print(f"\nError: {e}", style="bold red")
@@ -119,7 +113,7 @@ def chat_command(
                 response_defs=agent_def.responses,
             )
             async with runner:
-                await chat_session(runner, stream=stream)
+                await chat_session(runner.agent)
 
         asyncio.run(run_chat())
 
