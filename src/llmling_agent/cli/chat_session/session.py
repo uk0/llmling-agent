@@ -102,8 +102,13 @@ class InteractiveSession:
                 except EOFError:
                     break
 
+        except Exception as e:  # noqa: BLE001
+            self.console.print(f"\nError: {e}", style="red")
+            if self.debug:
+                self.console.print(traceback.format_exc())
         finally:
             await self._cleanup()
+            await self._show_summary()
 
     async def _handle_command(self, input_: str) -> None:
         """Handle command input."""
@@ -143,7 +148,8 @@ class InteractiveSession:
                 response = await self.chat_session.send_message(message, stream=True)
                 async for chunk in response:
                     response_parts.append(chunk.content)
-                    live.update(Markdown("".join(response_parts)))
+                    md = Markdown("".join(response_parts))
+                    live.update(md)
                     # Update tokens for assistant message
                     self._state.update_tokens(chunk)
 
@@ -175,11 +181,17 @@ class InteractiveSession:
             # Any cleanup needed for chat session
             pass
 
-        # Show session summary
+    async def _show_summary(self) -> None:
+        """Show session summary."""
         if self._state.message_count > 0:
             self.console.print("\nSession Summary:")
             self.console.print(f"Messages: {self._state.message_count}")
-            self.console.print(f"Total tokens: {self._state.total_tokens:,}")
+            token_info = (
+                f"Total tokens: {self._state.total_tokens:,} "
+                f"(Prompt: {self._state.prompt_tokens:,}, "
+                f"Completion: {self._state.completion_tokens:,})"
+            )
+            self.console.print(token_info)
 
 
 # Helper function for CLI
