@@ -2,23 +2,49 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 import logging
 from typing import Any
 
 import gradio as gr
 from llmling.config.store import ConfigStore
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from upath import UPath
 import yamling
 
 from llmling_agent.chat_session import AgentChatSession, ChatSessionManager
+from llmling_agent.chat_session.models import ChatMessage
+from llmling_agent.commands.base import OutputWriter
 from llmling_agent.log import LogCapturer
 from llmling_agent.web.handlers import AgentHandler
-from llmling_agent.web.type_utils import ChatHistory  # noqa: TC001
+from llmling_agent.web.type_utils import ChatHistory, validate_chat_message
 
 
 logger = logging.getLogger(__name__)
+
+
+class WebOutputWriter(OutputWriter):
+    """Output writer that sends messages to web UI."""
+
+    def __init__(
+        self,
+        message_callback: Callable[[ChatMessage], Awaitable[None]],
+    ) -> None:
+        """Initialize web output writer.
+
+        Args:
+            message_callback: Async function to call with new messages
+        """
+        self._callback = message_callback
+
+    async def print(self, message: str) -> None:
+        """Send message to web UI."""
+        logger.debug("WebOutputWriter printing: %s", message)
+        chat_message = ChatMessage(
+            content=message,
+            role="system",
+        )
+        await self._callback(chat_message)
 
 
 class UIUpdate(BaseModel):
@@ -31,6 +57,14 @@ class UIUpdate(BaseModel):
     agent_choices: list[str] | None = None
     file_choices: list[str] | None = None
     tool_states: list[list[Any]] | None = None
+
+    @model_validator(mode="after")
+    def validate_chat_history(self) -> UIUpdate:
+        """Validate chat history format."""
+        if self.chat_history is not None:
+            for msg in self.chat_history:
+                validate_chat_message(msg)
+        return self
 
     def to_updates(self, outputs: list[gr.components.Component]) -> list[Any]:
         """Convert to list of gradio updates matching output components."""
@@ -93,19 +127,13 @@ class UIState:
             agents = list(self.handler.state.agent_def.agents)
             msg = f"Loaded {len(agents)} agents: {', '.join(agents)}"
             logger.info(msg)
-            return UIUpdate(
-                agent_choices=agents,
-                status=msg,
-                debug_logs=self.get_debug_logs(),
-            )
+            logs = self.get_debug_logs()
+            return UIUpdate(agent_choices=agents, status=msg, debug_logs=logs)
         except Exception as e:
             logger.exception("Failed to load file")
             self.handler = None
-            return UIUpdate(
-                agent_choices=[],
-                status=f"Error: {e}",
-                debug_logs=self.get_debug_logs(),
-            )
+            logs = self.get_debug_logs()
+            return UIUpdate(agent_choices=[], status=f"Error: {e}", debug_logs=logs)
 
     async def handle_upload(self, upload: gr.FileData) -> UIUpdate:
         """Handle config file upload."""
@@ -124,16 +152,13 @@ class UIState:
             store.add_config(name, str(file_path))
 
             # Update available files and load agents
-            new_files = [str(UPath(p)) for _, p in store.list_configs()]
+            files = [str(UPath(p)) for _, p in store.list_configs()]
             data = yamling.load_yaml_file(str(file_path))
             agents = list(data.get("agents", {}).keys())
             msg = f"Loaded {len(agents)} agents from {file_path.name}"
-
+            logs = self.get_debug_logs()
             return UIUpdate(
-                file_choices=new_files,
-                agent_choices=agents,
-                status=msg,
-                debug_logs=self.get_debug_logs(),
+                file_choices=files, agent_choices=agents, status=msg, debug_logs=logs
             )
         except Exception as e:
             logger.exception("Failed to upload file")
@@ -179,7 +204,7 @@ class UIState:
 
             return UIUpdate(
                 status=f"Agent {agent_name} ready",
-                chat_history=[],
+                chat_history=[],  # type: ignore
                 tool_states=tool_states,
                 debug_logs=self.get_debug_logs(),
             )
@@ -215,23 +240,36 @@ class UIState:
             )
 
         try:
-            # Get complete response
-            response = await self._current_session.send_message(message, stream=False)
-            if isinstance(response, AsyncIterator):
-                msg = "Unexpected streaming response"
-                raise TypeError(msg)  # noqa: TRY301
-
-            # Update chat history
             messages = list(history)
-            messages.append({
-                "content": message,
-                "role": "user",
-            })
-            messages.append({
-                "content": response.content,
-                "role": "assistant",
-            })
 
+            # For commands, add the command as user message
+            if message.startswith("/"):
+                messages.append({"content": message, "role": "user"})
+
+            # Collect command outputs
+            command_outputs: list[str] = []
+
+            async def add_message(msg: ChatMessage) -> None:
+                if message.startswith("/"):
+                    command_outputs.append(msg.content)
+                else:
+                    messages.append({"content": msg.content, "role": msg.role})
+
+            # Send message through chat session
+            writer = WebOutputWriter(add_message)
+            result = await self._current_session.send_message(message, output=writer)
+
+            # For non-command messages, add the regular response
+            if not message.startswith("/"):
+                messages.append({"content": message, "role": "user"})
+                if result.content:
+                    messages.append({"content": result.content, "role": "assistant"})
+            # For commands, add the collected output as a response
+            elif command_outputs:
+                content = "\n".join(command_outputs)
+                messages.append({"content": content, "role": "assistant"})
+
+            logger.debug("Final messages: %s", messages)
             return UIUpdate(
                 message_box="",
                 chat_history=messages,

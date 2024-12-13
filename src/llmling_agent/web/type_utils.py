@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 
 class ChatMessage(TypedDict):
@@ -15,3 +15,30 @@ class ChatMessage(TypedDict):
 
 
 type ChatHistory = list[ChatMessage]
+
+
+def validate_chat_message(msg: Any) -> ChatMessage:
+    """Validate chat message format.
+
+    Args:
+        msg: Message to validate
+
+    Returns:
+        Validated ChatMessage
+
+    Raises:
+        ValueError: If message format is invalid
+    """
+    if not isinstance(msg, dict):
+        msg = f"Chat message must be a dictionary, got {type(msg)}"
+        raise ValueError(msg)  # noqa: TRY004
+
+    if "content" not in msg or "role" not in msg:
+        error = "Chat message must have 'content' and 'role' fields"
+        raise ValueError(error)
+
+    if msg["role"] not in ("user", "assistant", "system"):
+        error = f"Invalid role: {msg['role']}"
+        raise ValueError(error)
+
+    return msg  # type: ignore
