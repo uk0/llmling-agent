@@ -118,12 +118,3 @@ async with LLMlingAgent.open_agent("agents.yml", "system_checker") as agent:
     result = await agent.run("How much memory is available?")
     print(result.data)
 ```
-
-Key features shown here:
-- Easy configuration through YAML files
-- Separation of agent logic and environment setup
-- Integration with LLMling's resource system
-- Command-line interface for quick interactions
-- Programmatic API for integration
-- Built-in tool system for system interactions
-- Support for both chat and single-query modes
