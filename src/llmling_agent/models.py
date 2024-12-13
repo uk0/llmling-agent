@@ -76,6 +76,9 @@ class AgentConfig(BaseModel):
     result_type: str | None = None  # References a response name or None for plain string
     """Name of the response definition to use"""
 
+    avatar: str | None = None
+    """URL or path to agent's avatar image"""
+
     system_prompts: list[str] = Field(default_factory=list)
     """System prompts for the agent"""
 

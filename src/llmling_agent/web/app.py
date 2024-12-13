@@ -141,7 +141,7 @@ class AgentUI:
                         show_copy_button=True,
                         show_copy_all_button=True,
                         type="messages",
-                        avatar_images=("👤", "🤖"),
+                        avatar_images=(None, None),
                         bubble_full_width=False,
                     )
 
