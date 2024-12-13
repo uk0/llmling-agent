@@ -6,11 +6,28 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import gradio as gr
+from gradio.themes import Base, Default, Glass, Monochrome, Soft
 from llmling.config.store import ConfigStore
 from upath import UPath
 
 from llmling_agent.chat_session import ChatSessionManager
 from llmling_agent.web.ui_state import UIState
+
+
+THEMES = {
+    "base": Base(),
+    "soft": Soft(),
+    "monochrome": Monochrome(),
+    "glass": Glass(),
+    "default": Default(),
+}
+
+CSS = """
+.monospace {
+    font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono",
+                "Liberation Mono", Menlo, Monaco, Consolas, monospace;
+}
+"""
 
 
 if TYPE_CHECKING:
@@ -20,69 +37,21 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-CUSTOM_CSS = """
-.agent-chat {
-    height: 600px;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
-    background: #ffffff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.agent-chat .message.user {
-    background: #f0f7ff;
-    border: 1px solid #e1effe;
-}
-
-.agent-chat .message.bot {
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
-}
-
-.status-msg {
-    text-align: center;
-    color: #666;
-    padding: 8px;
-    border-radius: 4px;
-    background: #f8f9fa;
-    margin: 8px 0;
-}
-
-.debug-logs {
-    font-family: monospace;
-    white-space: pre-wrap;
-    background: #f8f9fa;
-    padding: 8px;
-    border-radius: 4px;
-    border: 1px solid #e9ecef;
-    margin-top: 8px;
-    font-size: 0.9em;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.tool-table {
-    margin-top: 16px;
-    border-radius: 4px;
-    border: 1px solid #e0e0e0;
-}
-"""
-
-
 class AgentUI:
     """Main agent web interface."""
 
-    def __init__(self):
+    def __init__(self, theme: str = "soft"):
         """Initialize interface."""
         store = ConfigStore("agents.json")
         self.available_files = [str(UPath(path)) for _, path in store.list_configs()]
         self.state = UIState()
         self.initial_status = "Please select a configuration file"
         self._session_manager = ChatSessionManager()
+        self.theme = THEMES.get(theme.lower(), Soft())
 
     def create_ui(self) -> gr.Blocks:
         """Create the Gradio interface."""
-        with gr.Blocks(css=CUSTOM_CSS) as app:
+        with gr.Blocks(theme=self.theme, css=CSS) as app:
             gr.Markdown("# 🤖 LLMling Agent Chat")
 
             with gr.Row():
@@ -129,7 +98,7 @@ class AgentUI:
                         headers=["Tool", "Enabled"],
                         label="Available Tools",
                         interactive=True,
-                        elem_classes=["tool-table"],
+                        elem_classes=["monospace"],
                         visible=True,
                     )
 
@@ -169,7 +138,7 @@ class AgentUI:
                 debug_logs = gr.Markdown(
                     value=None,
                     visible=True,
-                    elem_classes=["debug-logs"],
+                    elem_classes=["monospace"],
                 )
 
             # Event handlers with proper async handling
@@ -255,14 +224,15 @@ def setup_logging() -> None:
     logging.getLogger("llmling").setLevel(logging.DEBUG)
 
 
-def create_app() -> gr.Blocks:
+def create_app(theme: str = "soft") -> gr.Blocks:
     """Create the Gradio interface."""
-    ui = AgentUI()
+    ui = AgentUI(theme=theme)
     return ui.create_ui()
 
 
 def launch_app(
     *,
+    theme: str = "soft",
     share: bool = False,
     server_name: str = "127.0.0.1",
     server_port: int | None = None,
@@ -277,6 +247,7 @@ def launch_app(
     - View chat history and debug logs
 
     Args:
+        theme: Interface theme (default: "soft")
         share: Whether to create a public URL
         server_name: Server hostname (default: "127.0.0.1")
         server_port: Optional server port number
@@ -302,7 +273,7 @@ def launch_app(
     """
     setup_logging()
     logger.info("Starting web interface")
-    app = create_app()
+    app = create_app(theme=theme)
     app.queue()
     return app.launch(
         share=share,
