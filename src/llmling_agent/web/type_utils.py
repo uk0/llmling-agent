@@ -9,7 +9,7 @@ class ChatMessage(TypedDict):
     """Single chat message format for Gradio chatbot."""
 
     content: str
-    role: Literal["user", "assistant"]
+    role: Literal["user", "assistant", "system"]
     name: NotRequired[str]
     avatar: NotRequired[str]
 
