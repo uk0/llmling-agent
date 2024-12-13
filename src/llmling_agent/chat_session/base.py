@@ -18,6 +18,14 @@ from pydantic_ai.models import KnownModelName, Model
 
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatMessage, ChatSessionMetadata
+from llmling_agent.commands import CommandStore
+from llmling_agent.commands.base import (
+    BaseCommand,
+    CommandContext,
+    CommandError,
+    OutputWriter,
+)
+from llmling_agent.commands.output import DefaultOutputWriter
 from llmling_agent.log import get_logger
 
 
@@ -70,6 +78,9 @@ class AgentChatSession:
         self._model = model_override or get_model_name(agent._pydantic_agent.model)
         msg = "Created chat session %s for agent %s"
         logger.debug(msg, self.id, agent.name)
+        # Initialize command system
+        self._command_store = CommandStore()
+        self._command_store.register_builtin_commands()
 
     @property
     def metadata(self) -> ChatSessionMetadata:
@@ -81,12 +92,38 @@ class AgentChatSession:
             tool_states=self._tool_states,
         )
 
+    def register_command(self, command: BaseCommand) -> None:
+        """Register additional command."""
+        self._command_store.register_command(command)
+
+    async def handle_command(
+        self,
+        command_str: str,
+        output: OutputWriter,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        """Handle a slash command.
+
+        Args:
+            command_str: Command string without leading slash
+            output: Output writer implementation
+            metadata: Optional interface-specific metadata
+        """
+        ctx = CommandContext(
+            output=output,
+            session=self,
+            metadata=metadata or {},
+        )
+        await self._command_store.execute_command(command_str, ctx)
+
     @overload
     async def send_message(
         self,
         content: str,
         *,
         stream: Literal[False] = False,
+        output: OutputWriter | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> ChatMessage: ...
 
     @overload
@@ -95,6 +132,8 @@ class AgentChatSession:
         content: str,
         *,
         stream: Literal[True],
+        output: OutputWriter | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> AsyncIterator[ChatMessage]: ...
 
     async def send_message(
@@ -102,23 +141,28 @@ class AgentChatSession:
         content: str,
         *,
         stream: bool = False,
+        output: OutputWriter | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> ChatMessage | AsyncIterator[ChatMessage]:
         """Send a message and get response(s).
 
         Args:
             content: Message content to send
             stream: Whether to stream the response
-
-        Returns:
-            Either a single message or an async iterator of message chunks
-
-        Raises:
-            ChatSessionConfigError: If message processing fails
+            output: Optional output writer for command responses
+            metadata: Optional interface-specific metadata
         """
         if not content.strip():
             msg = "Message cannot be empty"
             raise ValueError(msg)
-
+        if content.startswith("/"):
+            # Use provided output or fall back to default
+            writer = output or DefaultOutputWriter()
+            try:
+                await self.handle_command(content[1:], output=writer, metadata=metadata)
+                return ChatMessage(content="", role="system")
+            except CommandError as e:
+                return ChatMessage(content=f"Command error: {e}", role="system")
         self._history.append(messages.UserPrompt(content=content))
 
         try:
