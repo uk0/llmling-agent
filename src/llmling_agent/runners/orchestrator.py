@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
+from pydantic_ai.messages import UserPrompt
+from pydantic_ai.result import Cost, RunResult
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
@@ -13,8 +15,6 @@ from llmling_agent.runners.single import SingleAgentRunner
 
 
 if TYPE_CHECKING:
-    from pydantic_ai.result import RunResult
-
     from llmling_agent.models import AgentsManifest
     from llmling_agent.runners.models import AgentRunConfig
 
@@ -123,9 +123,20 @@ class AgentOrchestrator[T]:
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Map results to agent names
+        # Map results to agent names, converting exceptions to error results
         return {
-            name: result if not isinstance(result, Exception) else [result]
+            name: (
+                result
+                if not isinstance(result, Exception)
+                else [
+                    RunResult(
+                        _all_messages=[UserPrompt(content=f"Error occurred: {result}")],
+                        _new_message_index=0,
+                        data=f"Error: {result}",  # type: ignore[arg-type]
+                        _cost=Cost(),
+                    )
+                ]
+            )
             for name, result in zip(self.run_config.agent_names, results)
         }
 

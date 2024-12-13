@@ -140,7 +140,7 @@ def run_command(
         )
 
         # Create and run orchestrator
-        orchestrator = AgentOrchestrator(agent_def, run_config)
+        orchestrator = AgentOrchestrator[Any](agent_def, run_config)
 
         async def run() -> None:
             try:
