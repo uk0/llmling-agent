@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import traceback
 from typing import TYPE_CHECKING
 
 from prompt_toolkit import PromptSession
@@ -11,8 +12,10 @@ from rich.live import Live
 from rich.markdown import Markdown
 
 from llmling_agent.chat_session import ChatSessionManager
+from llmling_agent.chat_session.models import ChatMessage
 from llmling_agent.cli.chat_session.base import CommandContext
 from llmling_agent.cli.chat_session.config import SessionState, get_history_file
+from llmling_agent.cli.chat_session.status import StatusBar
 
 
 if TYPE_CHECKING:
@@ -43,6 +46,7 @@ class InteractiveSession:
         self._chat_session: AgentChatSession | None = None
         self._state = SessionState()
         self._commands: dict[str, Command] = {}
+        self.status_bar = StatusBar(self.console)
 
         # Setup components
         self._setup_history()
@@ -127,27 +131,30 @@ class InteractiveSession:
         except Exception as e:  # noqa: BLE001
             self.console.print(f"Error executing command: {e}", style="red")
             if self.debug:
-                import traceback
-
                 self.console.print(traceback.format_exc())
 
     async def _handle_message(self, message: str) -> None:
         """Handle chat message."""
         try:
+            # Create user message
+            user_message = ChatMessage(content=message, role="user")
+            self._state.update_tokens(user_message)
             self.console.print("\nAssistant:", style="bold blue")
             with Live("", console=self.console) as live:
                 response_parts = []
-                async for chunk in await self.chat_session.send_message(  # Using property
+                response = await self.chat_session.send_message(
                     message,
                     stream=True,
-                ):
+                )
+                async for chunk in response:
                     response_parts.append(chunk.content)
                     live.update(Markdown("".join(response_parts)))
+                    # Update tokens for assistant message
+                    self._state.update_tokens(chunk)
 
-            # Update session state
+            # Update message count after complete response
             self._state.message_count += 2
-            # TODO: Update token count when available
-
+            self.status_bar.render(self._state)
         except Exception as e:  # noqa: BLE001
             self.console.print(f"\nError: {e}", style="red")
             if self.debug:
@@ -167,6 +174,9 @@ class InteractiveSession:
             f"Available tools: {len(tools)} ({enabled} enabled)",
             style="dim",
         )
+
+        # Show initial status
+        self.status_bar.render(self._state)
 
     async def _cleanup(self) -> None:
         """Cleanup resources."""
