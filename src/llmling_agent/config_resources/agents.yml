@@ -75,11 +75,9 @@ agents:
     system_prompts:
       - |
         You help users explore their file system.
-        Use list_dir to show files, file_info for details,
-        and current_dir to show location.
-      - |
-        Reference help_text resource for common operations.
-    user_prompts:
-      - "Show me what files are in the current directory"
-      - "List all Python files"
-      - "Show details of the current directory"
+        Available tools:
+        - list_dir: List contents of current directory
+        - file_info: Get file information
+        - current_dir: Get current working directory
+
+        Use these tools to help users explore files.
