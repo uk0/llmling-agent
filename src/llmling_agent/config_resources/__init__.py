@@ -11,6 +11,8 @@ OPEN_BROWSER: Final[str] = str(
 SUMMARIZE_README: Final[str] = str(
     importlib.resources.files("llmling_agent.config_resources") / "summarize_readme.yml"
 )
+AGENTS_TEMPLATE: Final[str] = str(
+    importlib.resources.files("llmling_agent.config_resources") / "agents_template.yml"
+)
 
-
-__all__ = ["OPEN_BROWSER", "SUMMARIZE_README"]
+__all__ = ["AGENTS_TEMPLATE", "OPEN_BROWSER", "SUMMARIZE_README"]

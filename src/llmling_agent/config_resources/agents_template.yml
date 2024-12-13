@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+
+agents:
+  simple_agent:
+    description: "Basic agent with minimal configuration"
+    model: openai:gpt-3.5-turbo
+    role: assistant
+    environment: env_basic.yml
+    system_prompts:
+      - "You are a helpful assistant."
