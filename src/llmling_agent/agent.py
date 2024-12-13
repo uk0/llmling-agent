@@ -88,7 +88,7 @@ class LLMlingAgent[TResult]:
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
         tool_confirmation: ToolConfirmation | None = None,
-        confirm_tools: set[str] | bool = True,
+        confirm_tools: set[str] | bool = False,
         tools: Sequence[Tool[AgentContext]] = (),
         retries: int = 1,
         result_tool_name: str = "final_result",
