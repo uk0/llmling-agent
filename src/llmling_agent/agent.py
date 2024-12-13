@@ -277,7 +277,7 @@ class LLMlingAgent[TResult]:
     @asynccontextmanager
     async def open_agent(
         cls,
-        config_path: str | os.PathLike[str],
+        config: str | os.PathLike[str] | AgentsManifest,
         agent_name: str,
         *,
         model: models.Model | models.KnownModelName | None = None,
@@ -287,7 +287,7 @@ class LLMlingAgent[TResult]:
         """Open a specific agent from agent configuration.
 
         Args:
-            config_path: Path to agent configuration file
+            config: Path to agent configuration file or an AgentsManifest instance
             agent_name: Name of the agent to load
             model: Optional model override
             result_type: Optional type for structured responses
@@ -299,10 +299,12 @@ class LLMlingAgent[TResult]:
         Raises:
             ValueError: If agent not found in configuration
         """
-        # Load agent definition
-        agent_def = AgentsManifest.from_file(config_path)
+        if isinstance(config, AgentsManifest):
+            agent_def = config
+        else:
+            agent_def = AgentsManifest.from_file(config)
         if agent_name not in agent_def.agents:
-            msg = f"Agent '{agent_name}' not found in {config_path}"
+            msg = f"Agent '{agent_name}' not found in {config}"
             raise ValueError(msg)
 
         agent_config = agent_def.agents[agent_name]
