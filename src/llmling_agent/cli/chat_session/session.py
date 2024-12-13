@@ -81,6 +81,14 @@ class InteractiveSession:
         self._prompt = PromptSession[str](
             "You: ", history=self._history, auto_suggest=auto
         )
+        # auto = AutoSuggestFromHistory()
+        # completer = CommandCompleter(self._chat_session)
+        # self._prompt = PromptSession[str](
+        #     "You: ",
+        #     history=self._history,
+        #     auto_suggest=auto,
+        #     completer=completer,
+        # )
 
     def _register_cli_commands(self) -> None:
         """Register CLI-specific commands."""
@@ -227,4 +235,7 @@ async def start_interactive_session(
 ) -> None:
     """Start an interactive chat session."""
     session = InteractiveSession(agent, debug=debug)
+    # Register CLI event handler
+    # cli_handler = CLIEventHandler()
+    # session._chat_session.add_event_handler(cli_handler)  # type: ignore
     await session.start()
