@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling import Config
-from llmling.config.models import GlobalSettings, LLMCapabilitiesConfig
+from llmling.config.models import ConfigModel, GlobalSettings, LLMCapabilitiesConfig
 from llmling.config.store import ConfigStore
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_ai import models  # noqa: TC002
@@ -153,7 +153,7 @@ class AgentConfig(BaseModel):
         return dct
 
 
-class AgentsManifest(BaseModel):
+class AgentsManifest(ConfigModel):
     """Complete agent definition including responses."""
 
     responses: dict[str, ResponseDefinition] = Field(default_factory=dict)
