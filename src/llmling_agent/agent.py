@@ -384,12 +384,19 @@ class LLMlingAgent[TResult]:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         try:
+            logger.debug("agent run prompt=%s", prompt)
+            logger.debug("  preparing model and tools run_step=%d", 1)
+
+            # Log what the model sees
+            logger.debug("Funtion tools: %s", self._pydantic_agent._function_tools)
+            logger.debug("System prompts: %s", self._pydantic_agent._system_prompts)
             result = await self._pydantic_agent.run(
                 prompt,
                 deps=self._context,
                 message_history=message_history,
                 model=model,
             )
+            logger.debug("Agent response: %s", result.data)
 
             if self._enable_logging:
                 now = datetime.now()
@@ -683,6 +690,7 @@ class LLMlingAgent[TResult]:
     def _prepare_tools(self) -> list[Tool[AgentContext]]:
         """Prepare all tools respecting enabled/disabled state."""
         tools = list(self._tools)  # Start with registered tools
+        logger.debug("Initial tools: %s", [t.name for t in tools])
 
         # Add runtime tools if not disabled
         for tool_name, llm_tool in self.runtime.tools.items():
