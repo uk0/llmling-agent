@@ -14,7 +14,7 @@ from rich.markdown import Markdown
 from llmling_agent.chat_session import ChatSessionManager
 from llmling_agent.chat_session.models import ChatMessage
 from llmling_agent.cli.chat_session.base import CommandContext
-from llmling_agent.cli.chat_session.config import SessionState, get_history_file
+from llmling_agent.cli.chat_session.config import HISTORY_DIR, SessionState
 from llmling_agent.cli.chat_session.status import StatusBar
 
 
@@ -63,16 +63,14 @@ class InteractiveSession:
 
     def _setup_history(self) -> None:
         """Setup command history."""
-        history_file = get_history_file(self.agent.name)
+        HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+        history_file = HISTORY_DIR / f"{self.agent.name}.history"
         self._history = FileHistory(str(history_file))
 
     def _setup_prompt(self) -> None:
         """Setup prompt toolkit session."""
-        self._prompt = PromptSession(
-            history=self._history,
-            auto_suggest=AutoSuggestFromHistory(),
-            message="You: ",
-        )
+        auto = AutoSuggestFromHistory()
+        self._prompt = PromptSession("You: ", history=self._history, auto_suggest=auto)
 
     def _register_commands(self) -> None:
         """Register available commands."""
@@ -142,10 +140,7 @@ class InteractiveSession:
             self.console.print("\nAssistant:", style="bold blue")
             with Live("", console=self.console) as live:
                 response_parts = []
-                response = await self.chat_session.send_message(
-                    message,
-                    stream=True,
-                )
+                response = await self.chat_session.send_message(message, stream=True)
                 async for chunk in response:
                     response_parts.append(chunk.content)
                     live.update(Markdown("".join(response_parts)))
@@ -158,8 +153,6 @@ class InteractiveSession:
         except Exception as e:  # noqa: BLE001
             self.console.print(f"\nError: {e}", style="red")
             if self.debug:
-                import traceback
-
                 self.console.print(traceback.format_exc())
 
     async def _show_welcome(self) -> None:
@@ -170,10 +163,8 @@ class InteractiveSession:
         # Show initial state
         tools = self.chat_session.get_tool_states()
         enabled = sum(1 for enabled in tools.values() if enabled)
-        self.console.print(
-            f"Available tools: {len(tools)} ({enabled} enabled)",
-            style="dim",
-        )
+        text = f"Available tools: {len(tools)} ({enabled} enabled)"
+        self.console.print(text, style="dim")
 
         # Show initial status
         self.status_bar.render(self._state)
