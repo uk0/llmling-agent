@@ -20,12 +20,7 @@ if TYPE_CHECKING:
 
 def build_conversation_query(filters: QueryFilters) -> SelectOfScalar[Conversation]:
     """Build base conversation query with filters."""
-    stmt = (
-        select(Conversation).order_by(
-            desc(Conversation.start_time)
-        )  # Use sqlalchemy's desc()
-    )
-
+    stmt = select(Conversation).order_by(desc(Conversation.start_time))
     if filters.agent_name:
         stmt = stmt.where(Conversation.agent_name == filters.agent_name)
     if filters.since:

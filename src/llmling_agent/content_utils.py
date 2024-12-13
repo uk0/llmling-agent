@@ -45,15 +45,11 @@ class MessageBuilder:
                 case "text":
                     content_list.append({"type": "text", "text": str(content)})
                 case "image":
-                    content_list.append({
-                        "type": "image",
-                        "url": MessageBuilder._prepare_image_url(content),
-                    })
+                    url = MessageBuilder._prepare_image_url(content)
+                    content_list.append({"type": "image", "url": url})
                 case "audio":
-                    content_list.append({
-                        "type": "audio",
-                        "url": MessageBuilder._prepare_audio_url(content),
-                    })
+                    url = MessageBuilder._prepare_audio_url(content)
+                    content_list.append({"type": "audio", "url": url})
                 case _:
                     msg = f"Unsupported content type: {type_}"
                     raise ValueError(msg)
