@@ -544,7 +544,7 @@ class LLMlingAgent[TResult]:
             )
 
         # Create Tool instance and append to tools list
-        tool_instance = Tool(
+        tool_instance: Tool[AgentContext] = Tool(
             func,
             takes_ctx=True,
             max_retries=max_retries,
@@ -571,7 +571,7 @@ class LLMlingAgent[TResult]:
                 description=description,
             )
 
-        tool_instance = Tool(
+        tool_instance: Tool[AgentContext] = Tool(
             func,
             takes_ctx=False,
             max_retries=max_retries,

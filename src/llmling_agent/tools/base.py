@@ -43,7 +43,7 @@ class ToolContext:
     @property
     def parameters(self) -> ToolParameters:
         """Get parameter definitions from schema."""
-        return self.schema["function"].get("parameters", {})
+        return self.schema["function"].get("parameters", {})  # type: ignore
 
     def __str__(self) -> str:
         """Format tool context for logging/display."""
