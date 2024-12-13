@@ -3,6 +3,7 @@
 from llmling_agent.commands.base import BaseCommand
 from llmling_agent.commands.builtin.hello import hello_command
 from llmling_agent.commands.builtin.help_cmd import help_cmd
+from llmling_agent.commands.builtin.prompts import list_prompts_cmd, prompt_cmd
 
 
 def get_builtin_commands() -> list[BaseCommand]:
@@ -10,4 +11,6 @@ def get_builtin_commands() -> list[BaseCommand]:
     return [
         hello_command,
         help_cmd,
+        list_prompts_cmd,
+        prompt_cmd,
     ]
