@@ -36,6 +36,7 @@ license = { file = "LICENSE" }
 dependencies = [
     "llmling>=1.0.0",
     "prompt-toolkit>=3.0.48",
+    "promptantic>=0.4.5",
     "pydantic",
     # Only add below (Copier)
     "pydantic-ai>=0.0.9",

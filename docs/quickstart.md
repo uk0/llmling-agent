@@ -4,11 +4,25 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 
 ## Quick Start
 
-### Installation
+### Creating Your First Configuration
+
+LLMling Agent provides commands to help you create your first configuration:
 
 ```bash
-pip install llmling-agent
+# Create a basic agent configuration
+llmling-agent init agents.yml
+
+# Or use the interactive wizard for more options (EXPERIMENTAL)
+llmling-agent init agents.yml --interactive
 ```
+
+The basic configuration includes:
+- A simple agent with common tools
+- Example system prompts
+- Basic environment configuration
+
+You can use this as a starting point and customize it for your needs.
+
 
 ### Basic Usage
 

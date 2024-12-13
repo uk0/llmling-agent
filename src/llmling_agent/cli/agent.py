@@ -3,17 +3,50 @@
 from __future__ import annotations
 
 import asyncio
+import shutil
 from typing import Any
 
 from llmling.cli.constants import output_format_opt, verbose_opt
 from llmling.cli.utils import format_output
+from promptantic import ModelGenerator
 from pydantic import ValidationError
 import typer as t
 
+from llmling_agent import config_resources
 from llmling_agent.cli import agent_store, resolve_agent_config
+from llmling_agent.models import AgentsManifest
 
 
 agent_cli = t.Typer(help="Agent management commands", no_args_is_help=True)
+
+
+@agent_cli.command("init")
+def init_agent_config(
+    output: str = t.Argument(help="Path to write agent configuration file"),
+    interactive: bool = t.Option(
+        False,
+        "--interactive/--no-interactive",
+        help="Use interactive configuration wizard",
+    ),
+) -> None:
+    """Initialize a new agent configuration file.
+
+    Creates a new configuration file at the specified path with agent definitions.
+    Use --interactive for a guided setup process.
+    """
+    if interactive:
+        generator = ModelGenerator()
+        manifest = generator.populate(AgentsManifest)
+        manifest.save(output)
+        print(f"\nCreated agent configuration file: {output}")
+    else:
+        # Copy template file
+        shutil.copy2(config_resources.AGENTS_TEMPLATE, output)
+        print(f"\nCreated agent configuration file: {output}")
+        print("\nTry these commands:")
+        print("  llmling-agent list")
+        print("  llmling-agent chat url_opener")
+        print("  llmling-agent run system_inspector")
 
 
 @agent_cli.command("add")
