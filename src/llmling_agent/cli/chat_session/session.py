@@ -164,6 +164,11 @@ class InteractiveSession:
         try:
             self._chat_session = await self._session_manager.create_session(self.agent)
             self._state.current_model = self._chat_session._model
+
+            # Register event handler AFTER session creation
+            cli_handler = CLIEventHandler()
+            self._chat_session.add_event_handler(cli_handler)
+
             self._register_cli_commands()  # Register after session creation
             await self._show_welcome()
 
@@ -235,7 +240,4 @@ async def start_interactive_session(
 ) -> None:
     """Start an interactive chat session."""
     session = InteractiveSession(agent, debug=debug)
-    # Register CLI event handler
-    # cli_handler = CLIEventHandler()
-    # session._chat_session.add_event_handler(cli_handler)  # type: ignore
     await session.start()
