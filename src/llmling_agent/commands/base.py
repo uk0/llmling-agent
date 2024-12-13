@@ -71,6 +71,12 @@ class BaseCommand(ABC):
         self.usage = usage
         self._help_text = help_text
 
+    def format_usage(self) -> str | None:
+        """Format usage string."""
+        if not self.usage:
+            return None
+        return f"Usage: /{self.name} {self.usage}"
+
     @property
     def help_text(self) -> str:
         """Get help text, falling back to description if not set."""
