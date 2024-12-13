@@ -107,12 +107,7 @@ def get_filtered_conversations(
     )
     conversations = get_conversations(filters)
     return [
-        format_conversation(
-            conv,
-            msgs,
-            compact=compact,
-            include_tokens=include_tokens,
-        )
+        format_conversation(conv, msgs, compact=compact, include_tokens=include_tokens)
         for conv, msgs in conversations
     ]
 

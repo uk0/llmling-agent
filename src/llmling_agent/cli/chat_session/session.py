@@ -13,8 +13,8 @@ from rich.live import Live
 from rich.markdown import Markdown
 
 from llmling_agent.chat_session import ChatSessionManager
-from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatMessage
+from llmling_agent.cli.chat_session import utils
 from llmling_agent.cli.chat_session.base import CommandContext
 from llmling_agent.cli.chat_session.config import HISTORY_DIR, SessionState
 from llmling_agent.cli.chat_session.status import StatusBar
@@ -76,21 +76,6 @@ class InteractiveSession:
             "You: ", history=self._history, auto_suggest=auto
         )
 
-    def _format_error(self, error: Exception) -> str:
-        """Format error message for display."""
-        # Known error types we want to handle specially
-        match error:
-            case ChatSessionConfigError():
-                return f"Chat session error: {error}"
-            case ValueError() if "token" in str(error):
-                return "Connection interrupted"
-            case httpx.ReadError():
-                return "Connection lost. Please try again."
-            case GeneratorExit():
-                return "Response stream interrupted"
-            case _:
-                return f"Error: {error}"
-
     async def _handle_message(self, message: str) -> None:
         """Handle chat message."""
         try:
@@ -123,7 +108,7 @@ class InteractiveSession:
             self.status_bar.render(self._state)
 
         except Exception as e:  # noqa: BLE001
-            error_msg = self._format_error(e)
+            error_msg = utils.format_error(e)
             self.console.print(f"\n[red bold]Error:[/] {error_msg}")
             if self.debug:
                 md = Markdown(f"```python\n{traceback.format_exc()}\n```")
@@ -155,7 +140,7 @@ class InteractiveSession:
                 except EOFError:
                     break
                 except Exception as e:  # noqa: BLE001
-                    error_msg = self._format_error(e)
+                    error_msg = utils.format_error(e)
                     self.console.print(f"\n[red bold]Error:[/] {error_msg}")
                     if self.debug:
                         md = Markdown(f"```python\n{traceback.format_exc()}\n```")
@@ -163,7 +148,7 @@ class InteractiveSession:
                     continue
 
         except Exception as e:  # noqa: BLE001
-            self.console.print(f"\n[red bold]Fatal Error:[/] {self._format_error(e)}")
+            self.console.print(f"\n[red bold]Fatal Error:[/] {utils.format_error(e)}")
             if self.debug:
                 md = Markdown(f"```python\n{traceback.format_exc()}\n```")
                 self.console.print("\n[dim]Debug traceback:[/]", md)

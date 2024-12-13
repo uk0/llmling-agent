@@ -211,11 +211,8 @@ class AgentChatSession:
             # Get cost information, handling both regular and async cases
             cost_result = result.cost()
             cost = await cost_result if hasattr(cost_result, "__await__") else cost_result  # pyright: ignore
-
-            if cost and all(
-                hasattr(cost, attr)
-                for attr in ("total_tokens", "request_tokens", "response_tokens")
-            ):
+            fields = ("total_tokens", "request_tokens", "response_tokens")
+            if cost and all(hasattr(cost, attr) for attr in fields):
                 usage = {
                     "total": cost.total_tokens,
                     "prompt": cost.request_tokens,

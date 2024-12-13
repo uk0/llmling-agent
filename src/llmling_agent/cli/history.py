@@ -17,11 +17,8 @@ from llmling_agent.history import (
 from llmling_agent.history.formatters import format_output
 
 
-history_cli = t.Typer(
-    name="history",
-    help="Conversation history management",
-    no_args_is_help=True,
-)
+help_text = "Conversation history management"
+history_cli = t.Typer(name="history", help=help_text, no_args_is_help=True)
 
 
 @history_cli.command(name="show")
