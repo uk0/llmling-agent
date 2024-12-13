@@ -72,7 +72,9 @@ class InteractiveSession:
     def _setup_prompt(self) -> None:
         """Setup prompt toolkit session."""
         auto = AutoSuggestFromHistory()
-        self._prompt = PromptSession("You: ", history=self._history, auto_suggest=auto)
+        self._prompt = PromptSession[str](
+            "You: ", history=self._history, auto_suggest=auto
+        )
 
     def _format_error(self, error: Exception) -> str:
         """Format error message for display."""

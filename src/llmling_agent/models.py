@@ -8,12 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self
 from llmling import Config
 from llmling.config.models import GlobalSettings, LLMCapabilitiesConfig
 from llmling.config.store import ConfigStore
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_ai import models  # noqa: TC002
 from upath.core import UPath
 import yamling
@@ -106,12 +101,6 @@ class AgentConfig(BaseModel):
     @staticmethod
     def _resolve_environment_path(env: str, config_file_path: str | None = None) -> str:
         """Resolve environment path from config store or relative path."""
-        logger.debug(
-            "Resolving environment path: env=%s, config_file_path=%s, cwd=%s",
-            env,
-            config_file_path,
-            UPath.cwd(),
-        )
         try:
             config_store = ConfigStore()
             return config_store.get_config(env)
@@ -135,9 +124,8 @@ class AgentConfig(BaseModel):
     def get_config(self) -> Config:
         """Get configuration for this agent."""
         if self.environment:
-            path = self._resolve_environment_path(
-                self.environment, getattr(self, "config_file_path", None)
-            )
+            cfg_path = getattr(self, "config_file_path", None)
+            path = self._resolve_environment_path(self.environment, cfg_path)
             return Config.from_file(path)
 
         caps = LLMCapabilitiesConfig(load_resource=False, get_resources=False)
@@ -183,10 +171,7 @@ class AgentsManifest(BaseModel):
         """Ensure all agent result_types exist in responses."""
         for agent_id, agent in self.agents.items():
             if agent.result_type not in self.responses:
-                msg = (
-                    f"Response type '{agent.result_type}' for agent '{agent_id}' "
-                    "not found in responses"
-                )
+                msg = f"'{agent.result_type=}' for '{agent_id=}' not found in responses"
                 raise ValueError(msg)
         return self
 

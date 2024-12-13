@@ -412,26 +412,22 @@ class LLMlingAgent[TResult]:
                     }
 
                 with Session(engine) as session:
-                    # Log user message
-                    session.add(
-                        Message(
-                            conversation_id=self._conversation_id,
-                            timestamp=now,
-                            role="user",
-                            content=prompt,
-                        )
+                    msg = Message(
+                        conversation_id=self._conversation_id,
+                        timestamp=now,
+                        role="user",
+                        content=prompt,
                     )
-                    # Log assistant response
-                    session.add(
-                        Message(
-                            conversation_id=self._conversation_id,
-                            timestamp=now,
-                            role="assistant",
-                            content=str(result.data),
-                            token_usage=token_usage,
-                            model=str(model or self._pydantic_agent.model),
-                        )
+                    session.add(msg)
+                    msg = Message(
+                        conversation_id=self._conversation_id,
+                        timestamp=now,
+                        role="assistant",
+                        content=str(result.data),
+                        token_usage=token_usage,
+                        model=str(model or self._pydantic_agent.model),
                     )
+                    session.add(msg)
                     session.commit()
 
             return cast(RunResult[TResult], result)
@@ -468,14 +464,13 @@ class LLMlingAgent[TResult]:
             if self._enable_logging:
                 now = datetime.now()
                 with Session(engine) as session:
-                    session.add(
-                        Message(
-                            conversation_id=self._conversation_id,
-                            timestamp=now,
-                            role="user",
-                            content=prompt,
-                        )
+                    msg = Message(
+                        conversation_id=self._conversation_id,
+                        timestamp=now,
+                        role="user",
+                        content=prompt,
                     )
+                    session.add(msg)
                     session.commit()
 
             result = self._pydantic_agent.run_stream(
@@ -644,7 +639,7 @@ class LLMlingAgent[TResult]:
         if tool_name not in self.runtime.tools and not any(
             t.name == tool_name for t in self._original_tools
         ):
-            msg = f"Tool '{tool_name}' not found"
+            msg = f"Tool {tool_name!r} not found"
             raise ValueError(msg)
         self._disabled_tools.discard(tool_name)
         logger.debug("Enabled tool: %s", tool_name)

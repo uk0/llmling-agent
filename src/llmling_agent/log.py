@@ -17,9 +17,8 @@ class LogCapturer:
         self.log_queue: Queue[str] = Queue()
         self.buffer = StringIO()
         self.handler = logging.StreamHandler(self.buffer)
-        self.handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        )
+        fmt = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        self.handler.setFormatter(fmt)
 
     def start(self) -> None:
         """Start capturing logs."""
