@@ -3,18 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-import json
 from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
 
 from pydantic_ai import messages
-from pydantic_ai.messages import (
-    Message,
-    ModelStructuredResponse,
-    ModelTextResponse,
-    RetryPrompt,
-    ToolReturn,
-)
 
 from llmling_agent.chat_session.events import (
     SessionEvent,
@@ -32,6 +24,7 @@ from llmling_agent.commands.base import (
 )
 from llmling_agent.commands.output import DefaultOutputWriter
 from llmling_agent.log import get_logger
+from llmling_agent.pydantic_ai_utils import format_response
 
 
 if TYPE_CHECKING:
@@ -224,47 +217,10 @@ class AgentChatSession:
 
         # Update history with new messages
         self._history = result.new_messages()
-        formatted = self._format_response(result.data)
+        formatted = format_response(result.data)
         model = self._model or self._agent.model_name
         meta = {"tokens": result.cost().total_tokens, "model": model}
         return ChatMessage(content=formatted, role="assistant", metadata=meta)
-
-    def _format_response(self, response: (str | Message)) -> str:  # noqa: PLR0911
-        """Format any kind of response in a readable way.
-
-        Args:
-            response: Response to format.
-
-        # TODO: Investigate if we should use result.new_messages() instead of
-        # result.data for consistency with the streaming interface.
-
-        Returns:
-            A human-readable string representation
-        """
-        match response:
-            case str():
-                return response
-            case ModelTextResponse():
-                return response.content
-            case ModelStructuredResponse():
-                try:
-                    calls = [
-                        f"Tool: {call.tool_name}\nArgs: {call.args}"
-                        for call in response.calls
-                    ]
-                    return "Tool Calls:\n" + "\n\n".join(calls)
-                except Exception as e:  # noqa: BLE001
-                    msg = f"Could not format structured response: {e}"
-                    logger.warning(msg)
-                    return str(response)
-            case ToolReturn():
-                return f"Tool {response.tool_name} returned: {response.content}"
-            case RetryPrompt():
-                if isinstance(response.content, str):
-                    return f"Retry needed: {response.content}"
-                return f"Validation errors:\n{json.dumps(response.content, indent=2)}"
-            case _:
-                return response.content
 
     async def _send_streaming(self, content: str) -> AsyncIterator[ChatMessage]:
         """Send message and stream responses."""
