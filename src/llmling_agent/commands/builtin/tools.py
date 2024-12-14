@@ -191,15 +191,10 @@ async def register_tool(
             description=description,
         )
         await ctx.output.print(result)
-
-        # Update tool states to reflect new tool
-        tool_states = ctx.session.get_tool_states()
-        if name:
-            tool_states[name] = True
-        else:
-            # Extract name from import path if not provided
-            default_name = import_path.split(".")[-1]
-            tool_states[default_name] = True
+        # Enable the tool automatically
+        tool_name = name if name else import_path.split(".")[-1]
+        ctx.session._agent.enable_tool(tool_name)
+        await ctx.output.print(f"Tool '{tool_name}' automatically enabled")
 
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Failed to register tool: {e}")
