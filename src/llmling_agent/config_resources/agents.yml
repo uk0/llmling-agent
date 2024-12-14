@@ -29,6 +29,7 @@ responses:
 
   FileInfoResult:
     description: "File system information result"
+    type: inline
     fields:
       current_dir:
         type: str
