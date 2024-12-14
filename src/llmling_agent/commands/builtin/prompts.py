@@ -45,6 +45,10 @@ list_prompts_cmd = Command(
     name="list-prompts",
     description="List available prompts",
     execute_func=list_prompts,
+    help_text=(
+        "Show all prompts available in the current configuration.\n"
+        "Each prompt is shown with its name and description."
+    ),
     category="prompts",
 )
 
@@ -53,6 +57,15 @@ prompt_cmd = Command(
     description="Execute a prompt",
     execute_func=prompt_command,
     usage="<name> [arg1=value1] [arg2=value2]",
-    help_text="Execute a prompt with optional arguments.",
+    help_text=(
+        "Execute a named prompt with optional arguments.\n\n"
+        "Arguments:\n"
+        "  name: Name of the prompt to execute\n"
+        "  argN=valueN: Optional arguments for the prompt\n\n"
+        "Examples:\n"
+        "  /prompt greet\n"
+        "  /prompt analyze file=test.py\n"
+        "  /prompt search query='python code'"
+    ),
     category="prompts",
 )

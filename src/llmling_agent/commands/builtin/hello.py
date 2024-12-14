@@ -21,5 +21,15 @@ hello_command = Command(
     description="Say hello",
     execute_func=hello,
     usage="[name] [--greeting msg]",
-    help_text="Greet someone. Use --greeting to customize the message.",
+    help_text=(
+        "Simple greeting command.\n\n"
+        "Arguments:\n"
+        "  name: Who to greet (default: World)\n"
+        "  --greeting: Custom greeting message\n\n"
+        "Examples:\n"
+        "  /hello\n"
+        "  /hello Alice\n"
+        "  /hello --greeting Hi"
+    ),
+    category="general",
 )

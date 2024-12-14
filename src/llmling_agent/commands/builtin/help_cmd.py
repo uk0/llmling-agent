@@ -36,6 +36,12 @@ help_cmd = Command(
     description="Show available commands",
     execute_func=help_command,
     usage="[command]",
-    help_text="Show all commands or details for a specific command.",
+    help_text=(
+        "Display help information about commands.\n\n"
+        "Usage:\n"
+        "  /help         - List all available commands\n"
+        "  /help <cmd>   - Show detailed help for a command\n\n"
+        "Example: /help register-tool"
+    ),
     category="system",
 )

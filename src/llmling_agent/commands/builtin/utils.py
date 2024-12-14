@@ -94,6 +94,10 @@ copy_clipboard_cmd = Command(
     name="copy-clipboard",
     description="Copy the last assistant message to clipboard",
     execute_func=copy_clipboard,
+    help_text=(
+        "Copy the most recent assistant response to the system clipboard.\n"
+        "Requires pyperclip package to be installed."
+    ),
     category="utils",
 )
 
@@ -101,5 +105,12 @@ edit_env_cmd = Command(
     name="edit-env",
     description="Edit the agent's environment configuration",
     execute_func=edit_env,
+    help_text=(
+        "Open the agent's environment configuration file in the default editor.\n"
+        "This allows you to modify:\n"
+        "- Available tools\n"
+        "- Resources\n"
+        "- Other environment settings"
+    ),
     category="utils",
 )

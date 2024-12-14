@@ -165,11 +165,72 @@ async def disable_tool(
     await toggle_tool(ctx, args, kwargs, enable=False)
 
 
-# Command definitions
+async def register_tool(
+    ctx: CommandContext,
+    args: list[str],
+    kwargs: dict[str, str],
+) -> None:
+    """Register a new tool from import path or function."""
+    if not args:
+        await ctx.output.print(
+            "Usage: /register-tool <import_path> [--name name] [--description desc]"
+        )
+        return
+
+    import_path = args[0]
+    name = kwargs.get("name")
+    description = kwargs.get("description")
+
+    try:
+        if not ctx.session._agent._context.runtime:
+            msg = "No runtime available"
+            raise RuntimeError(msg)  # noqa: TRY301
+
+        result = await ctx.session._agent._context.runtime.register_tool(
+            import_path,
+            name=name,
+            description=description,
+        )
+        await ctx.output.print(result)
+
+        # Update tool states to reflect new tool
+        tool_states = ctx.session.get_tool_states()
+        if name:
+            tool_states[name] = True
+        else:
+            # Extract name from import path if not provided
+            default_name = import_path.split(".")[-1]
+            tool_states[default_name] = True
+
+    except Exception as e:  # noqa: BLE001
+        await ctx.output.print(f"Failed to register tool: {e}")
+
+
+register_tool_cmd = Command(
+    name="register-tool",
+    description="Register a new tool from an import path",
+    execute_func=register_tool,
+    usage="<import_path> [--name name] [--description desc]",
+    help_text=(
+        "Register a new tool from a Python import path.\n"
+        "Examples:\n"
+        "  /register-tool webbrowser.open\n"
+        "  /register-tool json.dumps --name format_json\n"
+        "  /register-tool os.getcwd --description 'Get current directory'"
+    ),
+    category="tools",
+)
+
 list_tools_cmd = Command(
     name="list-tools",
     description="List all available tools",
     execute_func=list_tools,
+    usage="[--source runtime|agent|builtin]",
+    help_text=(
+        "Show all available tools and their current status.\n"
+        "Tools are grouped by source (runtime/agent/builtin).\n"
+        "✓ indicates enabled, ✗ indicates disabled."
+    ),
     category="tools",
 )
 
@@ -178,6 +239,14 @@ tool_info_cmd = Command(
     description="Show detailed information about a tool",
     execute_func=tool_info,
     usage="<name>",
+    help_text=(
+        "Display detailed information about a specific tool:\n"
+        "- Source (runtime/agent/builtin)\n"
+        "- Current status (enabled/disabled)\n"
+        "- Description\n"
+        "- Schema (for runtime tools)\n\n"
+        "Example: /tool-info open_browser"
+    ),
     category="tools",
 )
 
@@ -186,6 +255,11 @@ enable_tool_cmd = Command(
     description="Enable a specific tool",
     execute_func=enable_tool,
     usage="<name>",
+    help_text=(
+        "Enable a previously disabled tool.\n"
+        "Use /list-tools to see available tools.\n\n"
+        "Example: /enable-tool open_browser"
+    ),
     category="tools",
 )
 
@@ -194,5 +268,29 @@ disable_tool_cmd = Command(
     description="Disable a specific tool",
     execute_func=disable_tool,
     usage="<name>",
+    help_text=(
+        "Disable a tool to prevent its use.\n"
+        "Use /list-tools to see available tools.\n\n"
+        "Example: /disable-tool open_browser"
+    ),
+    category="tools",
+)
+
+register_tool_cmd = Command(
+    name="register-tool",
+    description="Register a new tool from an import path",
+    execute_func=register_tool,
+    usage="<import_path> [--name name] [--description desc]",
+    help_text=(
+        "Register a new tool from a Python import path.\n\n"
+        "Arguments:\n"
+        "  import_path: Python import path to the function\n"
+        "  --name: Optional custom name for the tool\n"
+        "  --description: Optional tool description\n\n"
+        "Examples:\n"
+        "  /register-tool webbrowser.open\n"
+        "  /register-tool json.dumps --name format_json\n"
+        "  /register-tool os.getcwd --description 'Get current directory'"
+    ),
     category="tools",
 )
