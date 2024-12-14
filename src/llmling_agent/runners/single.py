@@ -95,7 +95,10 @@ class SingleAgentRunner[T](AbstractAsyncContextManager):
 
         # Create agent with potential model override
         if self.model_override:
-            self.agent_config.model = self.model_override  # type: ignore
+            # might be worth checking out making the model unfrozen
+            self.agent_config = self.agent_config.model_copy(
+                update={"model": self.model_override}
+            )
 
         # Initialize agent
         kwargs = self.agent_config.get_agent_kwargs()
