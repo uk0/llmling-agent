@@ -104,6 +104,7 @@ markers = [
 filterwarnings = [
     "ignore::DeprecationWarning:pydantic.*:",
     "ignore::DeprecationWarning:litellm.*:",
+    "ignore::DeprecationWarning:typer.*",
 ]
 
 [tool.coverage.report]
