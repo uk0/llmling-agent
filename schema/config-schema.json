@@ -205,7 +205,7 @@
           "type": "boolean"
         },
         "history_access": {
-          "default": "own",
+          "default": "none",
           "description": "Level of access to conversation history.\n\nLevels:\n- none: No access to history\n- own: Can only access own conversations\n- all: Can access all agents' conversations",
           "enum": [
             "none",
@@ -216,7 +216,7 @@
           "type": "string"
         },
         "stats_access": {
-          "default": "own",
+          "default": "none",
           "description": "Level of access to usage statistics.\n\nLevels:\n- none: No access to statistics\n- own: Can only view own statistics\n- all: Can view all agents' statistics",
           "enum": [
             "none",
@@ -230,10 +230,16 @@
       "title": "Capabilities",
       "type": "object"
     },
-    "ResponseDefinition": {
+    "ImportedResponseDefinition": {
       "additionalProperties": false,
-      "description": "Definition of an agent response type.",
+      "description": "Definition for an imported response type.",
       "properties": {
+        "type": {
+          "const": "import",
+          "default": "import",
+          "title": "Type",
+          "type": "string"
+        },
         "description": {
           "anyOf": [
             {
@@ -244,14 +250,45 @@
             }
           ],
           "default": null,
-          "description": "Optional description of the response type",
+          "title": "Description"
+        },
+        "import_path": {
+          "title": "Import Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "import_path"
+      ],
+      "title": "ImportedResponseDefinition",
+      "type": "object"
+    },
+    "InlineResponseDefinition": {
+      "additionalProperties": false,
+      "description": "Definition for an inline-defined response type.",
+      "properties": {
+        "type": {
+          "const": "inline",
+          "default": "inline",
+          "title": "Type",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
           "title": "Description"
         },
         "fields": {
           "additionalProperties": {
             "$ref": "#/$defs/ResponseField"
           },
-          "description": "Mapping of field names to their definitions",
           "title": "Fields",
           "type": "object"
         }
@@ -259,7 +296,7 @@
       "required": [
         "fields"
       ],
-      "title": "ResponseDefinition",
+      "title": "InlineResponseDefinition",
       "type": "object"
     },
     "ResponseField": {
@@ -310,7 +347,21 @@
   "properties": {
     "responses": {
       "additionalProperties": {
-        "$ref": "#/$defs/ResponseDefinition"
+        "discriminator": {
+          "mapping": {
+            "import": "#/$defs/ImportedResponseDefinition",
+            "inline": "#/$defs/InlineResponseDefinition"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/InlineResponseDefinition"
+          },
+          {
+            "$ref": "#/$defs/ImportedResponseDefinition"
+          }
+        ]
       },
       "description": "Mapping of response names to their definitions",
       "title": "Responses",
