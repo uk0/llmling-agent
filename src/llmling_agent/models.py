@@ -101,6 +101,13 @@ class AgentConfig(BaseModel):
         use_attribute_docstrings=True,
     )
 
+    def get_environment_path(self) -> str:
+        """Get resolved environment file path."""
+        if not self.environment:
+            msg = "No environment file configured"
+            raise ValueError(msg)
+        return self._resolve_environment_path(self.environment, self.config_file_path)
+
     @staticmethod
     def _resolve_environment_path(env: str, config_file_path: str | None = None) -> str:
         """Resolve environment path from config store or relative path."""

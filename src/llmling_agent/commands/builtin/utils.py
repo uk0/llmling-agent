@@ -78,13 +78,10 @@ async def edit_env(
         raise CommandError(msg)
 
     config = ctx.session._agent._context.config
-    if not config.environment:
-        msg = "No environment file configured for this agent"
-        raise CommandError(msg)
-
     try:
-        webbrowser.open(config.environment)
-        await ctx.output.print(f"Opening environment file: {config.environment}")
+        resolved_path = config.get_environment_path()
+        webbrowser.open(resolved_path)
+        await ctx.output.print(f"Opening environment file: {resolved_path}")
     except Exception as e:
         msg = f"Failed to open environment file: {e}"
         raise CommandError(msg) from e
