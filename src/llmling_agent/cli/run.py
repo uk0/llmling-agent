@@ -160,7 +160,10 @@ def run_command(
                 if len(agent_names) == 1:
                     # Single agent results is a list of RunResults
                     for result in results:  # type: ignore
-                        format_output(result.data, output_format)
+                        if isinstance(result.data, str):
+                            print(result.data)
+                        else:
+                            format_output(result.data, output_format)
                 else:
                     # Multiple agent results is a dict of agent -> list[RunResult]
                     formatted: dict[str, list[Any]] = {
