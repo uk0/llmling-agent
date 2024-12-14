@@ -44,7 +44,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     timestamp: datetime = Field(sa_column=Column(DateTime))
     role: str
     content: str
-    token_usage: TokenUsage = Field(default=dict, sa_column=Column(JSON))
+    token_usage: TokenUsage | None = Field(None, sa_column=Column(JSON))
     cost: float | None = Field(default=None)
     model: str | None = Field(default=None)
 

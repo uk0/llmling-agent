@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any, Literal, TypeGuard
 from rich.console import Console
 from rich.markdown import Markdown
 
+from llmling_agent.storage.utils import aggregate_token_usage
+
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -64,10 +66,7 @@ def format_conversation(
     }
 
     if include_tokens:
-        total = sum((msg.token_usage).get("total", 0) for msg in messages)
-        comp = sum((msg.token_usage).get("completion", 0) for msg in messages)
-        prompt = sum((msg.token_usage).get("prompt", 0) for msg in messages)
-        result["token_usage"] = {"total": total, "completion": comp, "prompt": prompt}
+        result["token_usage"] = aggregate_token_usage(messages)
     return result
 
 
