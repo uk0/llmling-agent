@@ -23,6 +23,17 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 T = TypeVar("T")
 
+RUNTIME_NOT_INITIALIZED = """
+Runtime not initialized. Use 'async with' context manager:
+async with SingleAgentRunner(...) as runner:
+    result = await runner.run('prompt')
+"""
+AGENT_NOT_INITIALIZED = """
+Agent not initialized. Use 'async with' context manager:
+async with SingleAgentRunner(...) as runner:
+    result = await runner.run('prompt')
+"""
+
 
 class SingleAgentRunner[T](AbstractAsyncContextManager):
     """Handles execution of a single agent with its own runtime environment."""
@@ -58,12 +69,7 @@ class SingleAgentRunner[T](AbstractAsyncContextManager):
             NotInitializedError: If accessed outside context manager
         """
         if self._agent is None:
-            msg = (
-                "Agent not initialized. Use 'async with' context manager:\n"
-                "async with SingleAgentRunner(...) as runner:\n"
-                "    result = await runner.run('prompt')"
-            )
-            raise NotInitializedError(msg)
+            raise NotInitializedError(AGENT_NOT_INITIALIZED)
         return self._agent
 
     @property
@@ -77,12 +83,7 @@ class SingleAgentRunner[T](AbstractAsyncContextManager):
             NotInitializedError: If accessed outside context manager
         """
         if self._runtime is None:
-            msg = (
-                "Runtime not initialized. Use 'async with' context manager:\n"
-                "async with SingleAgentRunner(...) as runner:\n"
-                "    result = await runner.run('prompt')"
-            )
-            raise NotInitializedError(msg)
+            raise NotInitializedError(RUNTIME_NOT_INITIALIZED)
         return self._runtime
 
     async def __aenter__(self) -> SingleAgentRunner[T]:
