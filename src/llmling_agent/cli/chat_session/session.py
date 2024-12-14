@@ -19,6 +19,7 @@ from llmling_agent.chat_session.events import (
     SessionEventHandler,
     SessionEventType,
 )
+from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.cli.chat_session import utils
 from llmling_agent.cli.chat_session.config import HISTORY_DIR, SessionState
 from llmling_agent.cli.chat_session.status import StatusBar
@@ -218,16 +219,14 @@ class InteractiveSession:
 
     async def _show_welcome(self) -> None:
         """Show welcome message."""
-        self.console.print(f"\nStarted chat with {self.agent.name}")
-        self.console.print("Type /help for commands or /exit to quit\n")
+        assert self._chat_session is not None, (
+            "Chat session must be initialized before showing welcome"
+        )
 
-        # Show initial state
-        assert self._chat_session is not None
-        tools = self._chat_session.get_tool_states()
-        enabled = sum(1 for enabled in tools.values() if enabled)
-        text = f"Available tools: {len(tools)} ({enabled} enabled)"
-        self.console.print(text, style="dim")
-
+        welcome_info = create_welcome_messages(self._chat_session, streaming=self._stream)
+        for _, lines in welcome_info.all_sections():
+            for line in lines:
+                self.console.print(line)
         # Show initial status
         self.status_bar.render(self._state)
 
