@@ -6,7 +6,7 @@ import asyncio
 from collections.abc import Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
@@ -18,6 +18,7 @@ from typing_extensions import TypeVar
 from llmling_agent.context import AgentContext
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentsManifest
+from llmling_agent.pydantic_ai_utils import TokenUsage, extract_token_usage
 from llmling_agent.storage import Conversation, engine
 from llmling_agent.storage.models import Message
 from llmling_agent.tools import ToolConfirmation, ToolContext
@@ -136,7 +137,7 @@ class LLMlingAgent[TResult]:
             result_type=result_type or str,
             system_prompt=system_prompt,
             deps_type=AgentContext,
-            tools=tools,  # Pass complete tool list
+            tools=tools,
             retries=retries,
             result_tool_name=result_tool_name,
             result_tool_description=result_tool_description,
@@ -372,6 +373,37 @@ class LLMlingAgent[TResult]:
         # Default implementation just logs
         logger.debug("Received event: %s", event)
 
+    def _log_message(
+        self,
+        content: str,
+        role: Literal["user", "assistant", "system"],
+        *,
+        token_usage: TokenUsage | None = None,
+        model: str | None = None,
+    ) -> None:
+        """Log a single message to the database.
+
+        Args:
+            content: Message content
+            role: Message role (user/assistant/system)
+            token_usage: Optional token usage statistics
+            model: Optional model name used
+        """
+        if not self._enable_logging:
+            return
+
+        with Session(engine) as session:
+            msg = Message(
+                conversation_id=self._conversation_id,
+                timestamp=datetime.now(),
+                role=role,
+                content=content,
+                token_usage=token_usage,
+                model=model,
+            )
+            session.add(msg)
+            session.commit()
+
     async def run(
         self,
         prompt: str,
@@ -405,43 +437,18 @@ class LLMlingAgent[TResult]:
                 message_history=message_history,
                 model=model,
             )
-            logger.debug("Agent response: %s", result.data)
-
             if self._enable_logging:
-                now = datetime.now()
-                cost = result.cost()
+                # Log user message
+                self._log_message(prompt, role="user")
 
-                token_usage: dict[str, int] | None = None
-                if (
-                    cost
-                    and cost.total_tokens is not None
-                    and cost.request_tokens is not None
-                    and cost.response_tokens is not None
-                ):
-                    token_usage = {
-                        "total": cost.total_tokens,
-                        "prompt": cost.request_tokens,
-                        "completion": cost.response_tokens,
-                    }
-
-                with Session(engine) as session:
-                    msg = Message(
-                        conversation_id=self._conversation_id,
-                        timestamp=now,
-                        role="user",
-                        content=prompt,
-                    )
-                    session.add(msg)
-                    msg = Message(
-                        conversation_id=self._conversation_id,
-                        timestamp=now,
-                        role="assistant",
-                        content=str(result.data),
-                        token_usage=token_usage,
-                        model=str(model or self._pydantic_agent.model),
-                    )
-                    session.add(msg)
-                    session.commit()
+                # Log assistant response with stats
+                token_usage = extract_token_usage(result.cost())
+                self._log_message(
+                    str(result.data),
+                    role="assistant",
+                    token_usage=token_usage,
+                    model=self.model_name,
+                )
 
             return cast(RunResult[TResult], result)
         except Exception:
@@ -475,16 +482,7 @@ class LLMlingAgent[TResult]:
         """
         try:
             if self._enable_logging:
-                now = datetime.now()
-                with Session(engine) as session:
-                    msg = Message(
-                        conversation_id=self._conversation_id,
-                        timestamp=now,
-                        role="user",
-                        content=prompt,
-                    )
-                    session.add(msg)
-                    session.commit()
+                self._log_message(prompt, role="user")
 
             result = self._pydantic_agent.run_stream(
                 prompt,
