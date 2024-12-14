@@ -9,6 +9,8 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, DateTime
 from sqlmodel import JSON, Field, SQLModel
 
+from llmling_agent.pydantic_ai_utils import TokenUsage  # noqa: TC001
+
 
 class MessageLog(BaseModel):
     """Raw message log entry."""
@@ -42,7 +44,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     timestamp: datetime = Field(sa_column=Column(DateTime))
     role: str
     content: str
-    token_usage: dict[str, int] | None = Field(default=None, sa_column=Column(JSON))
+    token_usage: TokenUsage = Field(default=dict, sa_column=Column(JSON))
     cost: float | None = Field(default=None)
     model: str | None = Field(default=None)
 

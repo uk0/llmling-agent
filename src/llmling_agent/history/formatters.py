@@ -64,9 +64,9 @@ def format_conversation(
     }
 
     if include_tokens:
-        total = sum((msg.token_usage or {}).get("total", 0) for msg in messages)
-        comp = sum((msg.token_usage or {}).get("completion", 0) for msg in messages)
-        prompt = sum((msg.token_usage or {}).get("prompt", 0) for msg in messages)
+        total = sum((msg.token_usage).get("total", 0) for msg in messages)
+        comp = sum((msg.token_usage).get("completion", 0) for msg in messages)
+        prompt = sum((msg.token_usage).get("prompt", 0) for msg in messages)
         result["token_usage"] = {"total": total, "completion": comp, "prompt": prompt}
     return result
 

@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Literal, TypedDict
 if TYPE_CHECKING:
     from datetime import datetime
 
+    from llmling_agent.pydantic_ai_utils import TokenUsage
+
 
 GroupBy = Literal["agent", "model", "hour", "day"]
 
@@ -18,7 +20,7 @@ class MessageData(TypedDict):
     content: str
     timestamp: str
     model: str | None
-    token_usage: dict[str, int] | None
+    token_usage: TokenUsage | None
 
 
 class ConversationData(TypedDict):
@@ -28,7 +30,7 @@ class ConversationData(TypedDict):
     agent: str
     start_time: str
     messages: list[MessageData]
-    token_usage: dict[str, int] | None
+    token_usage: TokenUsage | None
 
 
 @dataclass
