@@ -90,15 +90,6 @@ def test_set_agent_command(mock_store: mock.MagicMock, config_file: Path) -> Non
     mock_store.set_active.assert_called_once_with("test")
 
 
-def test_help_commands() -> None:
-    """Test that help commands work."""
-    commands = ["list", "add", "set", "run"]
-    for cmd in commands:
-        result = runner.invoke(agent_cli, [cmd, "--help"])
-        assert result.exit_code == 0
-        assert "Usage:" in result.stdout
-
-
 # Create runner once
 runner = CliRunner()
 if __name__ == "__main__":

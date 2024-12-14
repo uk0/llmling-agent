@@ -5,15 +5,11 @@ from __future__ import annotations
 from llmling.cli.utils import get_command_help
 import typer as t
 
-from llmling_agent.cli.agent import (
-    add_agent_file,
-    list_agents,
-    run_agent,
-    set_active_file,
-)
+from llmling_agent.cli.agent import add_agent_file, list_agents, set_active_file
 from llmling_agent.cli.chat import chat_command
 from llmling_agent.cli.history import history_cli
 from llmling_agent.cli.quickstart import quickstart_command
+from llmling_agent.cli.run import run_command
 
 
 MAIN_HELP = "🤖 LLMling Agent CLI - Run and manage LLM agents"
@@ -29,7 +25,7 @@ cli = t.Typer(
 )
 
 cli.command(name="add")(add_agent_file)
-cli.command(name="run")(run_agent)
+cli.command(name="run")(run_command)
 cli.command(name="list")(list_agents)
 cli.command(name="set")(set_active_file)
 cli.command(name="chat")(chat_command)

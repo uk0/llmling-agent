@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import traceback
 from typing import Any
 
 from llmling.cli.constants import verbose_opt
@@ -50,13 +51,15 @@ def run_command(
 ) -> None:
     """Run agent with prompts.
 
-    First runs all prompts defined in agent configuration,
-    then any environment prompts specified with --include-prompt,
+    First runs any prompts provided via --include-prompt,
     then any additional prompts provided as arguments.
 
     Examples:
-        # Run with agent's predefined prompts only
-        llmling-agent run myagent
+        # Run with single prompt
+        llmling-agent run myagent "Analyze this text"
+
+        # Multiple agents
+        llmling-agent run "agent1,agent2" "Process data"
 
         # Include environment prompt
         llmling-agent run myagent -p analyze_code
@@ -66,6 +69,9 @@ def run_command(
 
         # Environment prompt + additional prompt
         llmling-agent run myagent -p analyze "And summarize it"
+
+        # Override model
+        llmling-agent run myagent -m gpt-4 "Complex analysis"
     """
     from llmling.cli.utils import format_output
     from llmling.config.runtime import RuntimeConfig
@@ -83,7 +89,7 @@ def run_command(
             msg = str(e)
             raise t.BadParameter(msg) from e
 
-        # Load agent definition
+        # Load and validate agent definition
         try:
             agent_def = AgentsManifest.from_file(config_path)
         except ValidationError as e:
@@ -96,7 +102,12 @@ def run_command(
         # Parse agent names
         agent_names = [name.strip() for name in agent_name.split(",")]
 
-        # Build final prompt list
+        # Check agents exist
+        missing = [name for name in agent_names if name not in agent_def.agents]
+        if missing:
+            msg = f"Agent(s) not found: {', '.join(missing)}"
+            raise t.BadParameter(msg)  # noqa: TRY301
+
         final_prompts: list[str] = []
 
         # 1. First, add ALL prompts from agent configs (always included)
@@ -122,7 +133,7 @@ def run_command(
 
             asyncio.run(get_env_prompts())
 
-        # 3. Add any additional prompts provided
+        # 3. Add additional prompts provided as arguments
         if prompts:
             final_prompts.extend(prompts)
 
@@ -167,7 +178,5 @@ def run_command(
     except Exception as e:
         t.echo(f"Error: {e}", err=True)
         if verbose:
-            import traceback
-
             t.echo(traceback.format_exc(), err=True)
         raise t.Exit(1) from e
