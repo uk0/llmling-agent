@@ -17,7 +17,7 @@ class Capabilities(BaseModel):
     can_observe_agents: bool = False
     """Whether the agent can monitor other agents' activities."""
 
-    history_access: Literal["none", "own", "all"] = "own"
+    history_access: Literal["none", "own", "all"] = "none"
     """Level of access to conversation history.
 
     Levels:
@@ -26,7 +26,7 @@ class Capabilities(BaseModel):
     - all: Can access all agents' conversations
     """
 
-    stats_access: Literal["none", "own", "all"] = "own"
+    stats_access: Literal["none", "own", "all"] = "none"
     """Level of access to usage statistics.
 
     Levels:
