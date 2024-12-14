@@ -34,11 +34,20 @@
 
 LLMling Agent is a framework for creating and managing LLM-powered agents. It integrates with LLMling's resource system and provides structured interactions with language models.
 
+
 ## Quick Start
 
-### Creating Your First Agent
+The fastest way to start chatting with an AI:
+```bash
+# Start an ephemeral chat session (requires uv)
+uvx llmling-agent quickstart openai:gpt-3.5-turbo
+```
 
-The easiest way to get started is to use the initialization command:
+This creates a temporary agent ready for chat - no configuration needed!
+LLMling-Agent is Pydantic-ai based, so all pydantic-ai models can be used.
+The according API keys need to be set as environment variables.
+
+For persistent agents, you can use:
 
 ```bash
 # Create a basic agent configuration
@@ -61,6 +70,42 @@ llmling-agent chat my-agent
 # Run an agent with a specific prompt
 llmling-agent run my-agent "What is the current system status?"
 ```
+
+## Features
+
+### Dynamic Environment
+
+LLMling Agent allows the AI to modify its own environment (when permitted):
+- Register new tools on the fly
+- Load and analyze resources
+- Install Python packages
+- Create new tools from code
+
+These capabilities can be controlled via roles and permissions to ensure safe operation.
+
+### Interactive Chat Sessions
+
+The chat interface provides rich features:
+```bash
+# Start a chat session
+llmling-agent chat my-agent
+
+# Available during chat:
+/list-tools              # See available tools
+/register-tool os.getcwd # Add new tools on the fly
+/list-resources         # View accessible resources
+/show-resource config   # Examine resource content
+/enable-tool tool_name  # Enable/disable tools
+/set-model gpt-4       # Switch models mid-conversation
+```
+
+### Safe and Configurable
+
+- Fine-grained capability control (resource access, tool registration, etc.)
+- Role-based permissions (overseer, specialist, assistant)
+- Tool confirmation for sensitive operations
+- Command history and usage statistics
+
 
 ### First Agent Configuration
 

@@ -13,6 +13,7 @@ from llmling_agent.cli.agent import (
 )
 from llmling_agent.cli.chat import chat_command
 from llmling_agent.cli.history import history_cli
+from llmling_agent.cli.quickstart import quickstart_command
 
 
 MAIN_HELP = "🤖 LLMling Agent CLI - Run and manage LLM agents"
@@ -32,6 +33,7 @@ cli.command(name="run")(run_agent)
 cli.command(name="list")(list_agents)
 cli.command(name="set")(set_active_file)
 cli.command(name="chat")(chat_command)
+cli.command(name="quickstart")(quickstart_command)
 cli.add_typer(history_cli, name="history")
 
 try:
