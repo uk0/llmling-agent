@@ -355,6 +355,15 @@ class LLMlingAgent[TResult]:
             case False:
                 return None
 
+    @property
+    def model_name(self) -> str | None:
+        """Get the model name in a consistent format."""
+        match self._pydantic_agent.model:
+            case str() | None:
+                return self._pydantic_agent.model
+            case _:
+                return self._pydantic_agent.model.name()
+
     async def handle_event(self, event: Event) -> None:
         """Handle runtime events.
 

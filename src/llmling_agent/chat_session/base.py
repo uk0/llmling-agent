@@ -15,7 +15,6 @@ from pydantic_ai.messages import (
     RetryPrompt,
     ToolReturn,
 )
-from pydantic_ai.models import KnownModelName, Model
 
 from llmling_agent.chat_session.events import (
     SessionEvent,
@@ -42,16 +41,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
-
-def get_model_name(model: KnownModelName | Model | None) -> str | None:
-    match model:
-        case str() | None:
-            return model
-        case Model():
-            return model.name()
-        case _:
-            return None
 
 
 class AgentChatSession:
@@ -81,7 +70,7 @@ class AgentChatSession:
         self._agent = agent
         self._history: list[messages.Message] = []
         self._tool_states = agent.list_tools()
-        self._model = model_override or get_model_name(agent._pydantic_agent.model)
+        self._model = model_override or agent.model_name
         msg = "Created chat session %s for agent %s"
         logger.debug(msg, self.id, agent.name)
         # Initialize command system
@@ -236,7 +225,7 @@ class AgentChatSession:
         # Update history with new messages
         self._history = result.new_messages()
         formatted = self._format_response(result.data)
-        model = self._model or str(self._agent._pydantic_agent.model)
+        model = self._model or self._agent.model_name
         meta = {"tokens": result.cost().total_tokens, "model": model}
         return ChatMessage(content=formatted, role="assistant", metadata=meta)
 
@@ -298,7 +287,8 @@ class AgentChatSession:
                         content = chunk.model_response()
                     case _:
                         content = str(chunk)
-                meta = {"model": self._model or str(self._agent._pydantic_agent.model)}
+                model = self._model or self._agent.model_name
+                meta = {"model": model}
                 yield ChatMessage(content=content, role="assistant", metadata=meta)
 
             # Get cost information, handling both regular and async cases
@@ -311,8 +301,8 @@ class AgentChatSession:
                     "prompt": cost.request_tokens,
                     "completion": cost.response_tokens,
                 }
-                model_name = self._model or str(self._agent._pydantic_agent.model)
-                metadata: dict[str, Any] = {"token_usage": usage, "model": model_name}
+                model = self._model or self._agent.model_name
+                metadata: dict[str, Any] = {"token_usage": usage, "model": model}
                 yield ChatMessage(content="", role="assistant", metadata=metadata)
 
             self._history = result.new_messages()

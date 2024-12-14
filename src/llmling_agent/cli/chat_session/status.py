@@ -207,10 +207,5 @@ class StatusBar:
             *(f"{field.label}: {field.get_value(info)}" for field in visible_fields)
         )
 
-        panel = Panel(
-            status,
-            style="dim",
-            padding=(0, 1),
-            border_style="dim",
-        )
+        panel = Panel(status, style="dim", padding=(0, 1), border_style="dim")
         self.console.print(panel)
