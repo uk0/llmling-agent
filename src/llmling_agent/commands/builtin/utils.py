@@ -1,43 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 import webbrowser
-
-from pydantic_ai.messages import Message, ModelStructuredResponse, ModelTextResponse
 
 from llmling_agent.commands.base import Command, CommandContext, CommandError
 from llmling_agent.log import get_logger
-
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
+from llmling_agent.pydantic_ai_utils import find_last_assistant_message
 
 
 logger = get_logger(__name__)
-
-
-def find_last_assistant_message(messages: Sequence[Message]) -> str | None:
-    """Find the last assistant message in history."""
-    for msg in reversed(messages):
-        match msg:
-            case ModelTextResponse():
-                return msg.content
-            case ModelStructuredResponse():
-                # Format structured response in a readable way
-                calls = []
-                for call in msg.calls:
-                    if isinstance(call.args, dict):
-                        args = call.args
-                    else:
-                        # Handle both ArgsJson and ArgsDict
-                        args = (
-                            call.args.args_dict
-                            if hasattr(call.args, "args_dict")
-                            else call.args.args_json
-                        )
-                    calls.append(f"Tool: {call.tool_name}\nArgs: {args}")
-                return "\n\n".join(calls)
-    return None
 
 
 async def copy_clipboard(

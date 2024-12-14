@@ -19,6 +19,8 @@ from llmling_agent.log import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pydantic_ai.result import Cost
 
 
@@ -92,3 +94,27 @@ def format_response(response: (str | Message)) -> str:  # noqa: PLR0911
             return f"Validation errors:\n{json.dumps(response.content, indent=2)}"
         case _:
             return response.content
+
+
+def find_last_assistant_message(messages: Sequence[Message]) -> str | None:
+    """Find the last assistant message in history."""
+    for msg in reversed(messages):
+        match msg:
+            case ModelTextResponse():
+                return msg.content
+            case ModelStructuredResponse():
+                # Format structured response in a readable way
+                calls = []
+                for call in msg.calls:
+                    if isinstance(call.args, dict):
+                        args = call.args
+                    else:
+                        # Handle both ArgsJson and ArgsDict
+                        args = (
+                            call.args.args_dict
+                            if hasattr(call.args, "args_dict")
+                            else call.args.args_json
+                        )
+                    calls.append(f"Tool: {call.tool_name}\nArgs: {args}")
+                return "\n\n".join(calls)
+    return None
