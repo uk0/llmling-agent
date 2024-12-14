@@ -24,7 +24,7 @@ from llmling_agent.commands.base import (
 )
 from llmling_agent.commands.output import DefaultOutputWriter
 from llmling_agent.log import get_logger
-from llmling_agent.pydantic_ai_utils import format_response
+from llmling_agent.pydantic_ai_utils import extract_token_usage, format_response
 
 
 if TYPE_CHECKING:
@@ -245,18 +245,14 @@ class AgentChatSession:
                 meta = {"model": model}
                 yield ChatMessage(content=content, role="assistant", metadata=meta)
 
-            # Get cost information, handling both regular and async cases
+            # Get cost information at the end of streaming
             cost_result = result.cost()
             cost = await cost_result if hasattr(cost_result, "__await__") else cost_result  # pyright: ignore
-            fields = ("total_tokens", "request_tokens", "response_tokens")
-            if cost and all(hasattr(cost, attr) for attr in fields):
-                usage = {
-                    "total": cost.total_tokens,
-                    "prompt": cost.request_tokens,
-                    "completion": cost.response_tokens,
-                }
+
+            # Only yield final message with token usage if we have valid cost data
+            if token_usage := extract_token_usage(cost):
                 model = self._model or self._agent.model_name
-                metadata: dict[str, Any] = {"token_usage": usage, "model": model}
+                metadata = {"token_usage": token_usage, "model": model}
                 yield ChatMessage(content="", role="assistant", metadata=metadata)
 
             self._history = result.new_messages()
