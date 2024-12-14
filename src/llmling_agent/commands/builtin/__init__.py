@@ -14,6 +14,11 @@ from llmling_agent.commands.builtin.tools import (
     disable_tool_cmd,
     register_tool_cmd,
 )
+from llmling_agent.commands.builtin.models import set_model_cmd
+from llmling_agent.commands.builtin.resources import (
+    list_resources_cmd,
+    show_resource_cmd,
+)
 
 
 def get_builtin_commands() -> list[BaseCommand]:
@@ -34,4 +39,7 @@ def get_builtin_commands() -> list[BaseCommand]:
         enable_tool_cmd,
         disable_tool_cmd,
         register_tool_cmd,
+        set_model_cmd,
+        list_resources_cmd,
+        show_resource_cmd,
     ]
