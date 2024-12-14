@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 import pathlib
 from typing import Any
 
@@ -22,12 +23,22 @@ def quickstart_command(
         "openai:gpt-3.5-turbo",
         help="Model to use (e.g. openai:gpt-3.5-turbo, gpt-4)",
     ),
-    debug: bool = t.Option(False, "--debug", "-d", help="Enable debug output"),
+    log_level: str = t.Option(
+        "INFO",
+        "--log-level",
+        "-l",
+        help="Log level (DEBUG, INFO, WARNING, ERROR)",
+    ),
 ) -> None:
     """Start an ephemeral chat session with minimal setup."""
     from tempfile import NamedTemporaryFile
 
     import yaml
+
+    level = getattr(logging, log_level.upper())
+    logging.basicConfig(level=level)
+    logging.getLogger("llmling_agent").setLevel(level)
+    logging.getLogger("llmling").setLevel(level)
 
     from llmling_agent.cli.chat_session.session import start_interactive_session
 
@@ -78,7 +89,7 @@ def quickstart_command(
                 agent_path,
                 "quickstart",
             ) as agent:
-                await start_interactive_session(agent, debug=debug)
+                await start_interactive_session(agent, log_level=level)
 
         asyncio.run(run_chat())
 

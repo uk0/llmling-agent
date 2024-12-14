@@ -23,6 +23,7 @@ from llmling_agent.cli.chat_session import utils
 from llmling_agent.cli.chat_session.config import HISTORY_DIR, SessionState
 from llmling_agent.cli.chat_session.status import StatusBar
 from llmling_agent.commands.base import Command, CommandContext
+from llmling_agent.commands.log import SessionLogHandler
 from llmling_agent.commands.output import DefaultOutputWriter
 
 
@@ -52,18 +53,24 @@ class InteractiveSession:
         self,
         agent: LLMlingAgent[str],
         *,
-        debug: bool = False,
+        log_level: int = logging.INFO,
     ) -> None:
         """Initialize interactive session."""
         self.agent = agent
-        self.debug = debug
+        self._log_level = log_level
         self.console = Console()
-
+        self._output_writer = DefaultOutputWriter()
         # Internal state
         self._session_manager = ChatSessionManager()
         self._chat_session: AgentChatSession | None = None
         self._state = SessionState()
         self.status_bar = StatusBar(self.console)
+
+        # Setup logging
+        self._log_handler = SessionLogHandler(self._output_writer)
+        self._log_handler.setLevel(log_level)
+        logging.getLogger("llmling_agent").addHandler(self._log_handler)
+        logging.getLogger("llmling").addHandler(self._log_handler)
 
         # Setup components
         self._setup_history()
@@ -154,9 +161,8 @@ class InteractiveSession:
         except Exception as e:  # noqa: BLE001
             error_msg = utils.format_error(e)
             self.console.print(f"\n[red bold]Error:[/] {error_msg}")
-            if self.debug:
-                md = Markdown(f"```python\n{traceback.format_exc()}\n```")
-                self.console.print("\n[dim]Debug traceback:[/]", md)
+            md = Markdown(f"```python\n{traceback.format_exc()}\n```")
+            self.console.print("\n[dim]Debug traceback:[/]", md)
             self.status_bar.render(self._state)
 
     async def start(self) -> None:
@@ -184,16 +190,14 @@ class InteractiveSession:
                 except Exception as e:  # noqa: BLE001
                     error_msg = utils.format_error(e)
                     self.console.print(f"\n[red bold]Error:[/] {error_msg}")
-                    if self.debug:
-                        md = Markdown(f"```python\n{traceback.format_exc()}\n```")
-                        self.console.print("\n[dim]Debug traceback:[/]", md)
+                    md = Markdown(f"```python\n{traceback.format_exc()}\n```")
+                    self.console.print("\n[dim]Debug traceback:[/]", md)
                     continue
 
         except Exception as e:  # noqa: BLE001
             self.console.print(f"\n[red bold]Fatal Error:[/] {utils.format_error(e)}")
-            if self.debug:
-                md = Markdown(f"```python\n{traceback.format_exc()}\n```")
-                self.console.print("\n[dim]Debug traceback:[/]", md)
+            md = Markdown(f"```python\n{traceback.format_exc()}\n```")
+            self.console.print("\n[dim]Debug traceback:[/]", md)
         finally:
             await self._cleanup()
             await self._show_summary()
@@ -214,7 +218,11 @@ class InteractiveSession:
         self.status_bar.render(self._state)
 
     async def _cleanup(self) -> None:
-        """Cleanup resources."""
+        """Clean up resources."""
+        # Remove log handler
+        logging.getLogger("llmling_agent").removeHandler(self._log_handler)
+        logging.getLogger("llmling").removeHandler(self._log_handler)
+
         if self._chat_session:
             # Any cleanup needed for chat session
             pass
@@ -236,8 +244,8 @@ class InteractiveSession:
 async def start_interactive_session(
     agent: LLMlingAgent[str],
     *,
-    debug: bool = False,
+    log_level: int = logging.INFO,
 ) -> None:
     """Start an interactive chat session."""
-    session = InteractiveSession(agent, debug=debug)
+    session = InteractiveSession(agent, log_level=log_level)
     await session.start()

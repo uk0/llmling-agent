@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 
 from llmling.core.log import get_logger
 import typer as t
@@ -20,10 +21,20 @@ def chat_command(
         None, "--config", "-c", help="Override agent config path"
     ),
     model: str | None = t.Option(None, "--model", "-m", help="Override agent's model"),
-    debug: bool = t.Option(False, "--debug", "-d", help="Enable debug output"),
+    log_level: str = t.Option(
+        "INFO",
+        "--log-level",
+        "-l",
+        help="Log level (DEBUG, INFO, WARNING, ERROR)",
+    ),
 ) -> None:
     """Start interactive chat session with an agent."""
     from llmling_agent.cli.chat_session.session import start_interactive_session
+
+    level = getattr(logging, log_level.upper())
+    logging.basicConfig(level=level)
+    logging.getLogger("llmling_agent").setLevel(level)
+    logging.getLogger("llmling").setLevel(level)
 
     try:
         # Resolve configuration
@@ -39,7 +50,7 @@ def chat_command(
                 agent_name,
                 model=model,  # type: ignore[arg-type]
             ) as agent:
-                await start_interactive_session(agent, debug=debug)
+                await start_interactive_session(agent, log_level=level)
 
         asyncio.run(run_chat())
 
