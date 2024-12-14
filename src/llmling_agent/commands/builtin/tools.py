@@ -189,6 +189,7 @@ async def register_tool(
             import_path,
             name=name,
             description=description,
+            auto_install=True,
         )
         await ctx.output.print(result)
         # Enable the tool automatically
