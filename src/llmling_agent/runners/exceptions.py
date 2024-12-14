@@ -13,3 +13,11 @@ class AgentNotFoundError(AgentOrchestratorError):
 
 class NoPromptsError(AgentOrchestratorError):
     """Raised when no prompts are provided."""
+
+
+class AgentRunnerError(Exception):
+    """Base exception for agent runner errors."""
+
+
+class NotInitializedError(AgentRunnerError):
+    """Raised when trying to access runner not initialized via context manager."""

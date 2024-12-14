@@ -9,6 +9,7 @@ from llmling.config.runtime import RuntimeConfig
 
 from llmling_agent.agent import LLMlingAgent
 from llmling_agent.log import get_logger
+from llmling_agent.runners.exceptions import NotInitializedError
 
 
 if TYPE_CHECKING:
@@ -21,14 +22,6 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 T = TypeVar("T")
-
-
-class AgentRunnerError(Exception):
-    """Base exception for agent runner errors."""
-
-
-class NotInitializedError(AgentRunnerError):
-    """Raised when trying to access runner not initialized via context manager."""
 
 
 class SingleAgentRunner[T](AbstractAsyncContextManager):
