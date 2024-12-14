@@ -17,9 +17,18 @@ async def list_agents(
 
     await ctx.output.print("\nAvailable agents:")
     for name, agent in definition.agents.items():
-        desc = f" - {agent.description}" if agent.description else ""
-        model = f" ({agent.model})" if agent.model else ""
-        await ctx.output.print(f"  {name}{model}{desc}")
+        # Keep the name clean and prominent
+        name_part = name
+
+        # Keep extra info simple with consistent width
+        model_part = str(agent.model) if agent.model else ""
+        desc_part = agent.description if agent.description else ""
+        env_part = f"📄 {agent.environment}" if agent.environment else ""
+
+        # Use dim style but maintain alignment
+        await ctx.output.print(
+            f"  {name_part:<20}[dim]{model_part:<15}{desc_part:<30}{env_part}[/dim]"
+        )
 
 
 async def switch_agent(
