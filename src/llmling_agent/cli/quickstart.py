@@ -29,6 +29,11 @@ def quickstart_command(
         "-l",
         help="Log level (DEBUG, INFO, WARNING, ERROR)",
     ),
+    stream: bool = t.Option(
+        False,  # Default to False
+        "--stream/--no-stream",
+        help="Enable streaming mode (default: off)",
+    ),
 ) -> None:
     """Start an ephemeral chat session with minimal setup."""
     from tempfile import NamedTemporaryFile
@@ -89,7 +94,7 @@ def quickstart_command(
                 agent_path,
                 "quickstart",
             ) as agent:
-                await start_interactive_session(agent, log_level=level)
+                await start_interactive_session(agent, log_level=level, stream=stream)
 
         asyncio.run(run_chat())
 
