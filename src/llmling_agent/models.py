@@ -182,7 +182,7 @@ class AgentsManifest(ConfigModel):
     def validate_response_types(self) -> AgentsManifest:
         """Ensure all agent result_types exist in responses."""
         for agent_id, agent in self.agents.items():
-            if agent.result_type not in self.responses:
+            if agent.result_type is not None and agent.result_type not in self.responses:
                 msg = f"'{agent.result_type=}' for '{agent_id=}' not found in responses"
                 raise ValueError(msg)
         return self
