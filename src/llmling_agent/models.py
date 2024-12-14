@@ -9,7 +9,7 @@ from llmling import Config
 from llmling.config.models import ConfigModel, GlobalSettings, LLMCapabilitiesConfig
 from llmling.config.store import ConfigStore
 from llmling.utils import importing
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 from pydantic_ai import models  # noqa: TC002
 from upath.core import UPath
 import yamling
@@ -22,6 +22,57 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     import os
+
+    from llmling_agent.context import AgentContext
+
+
+def resolve_response_type(
+    type_name: str,
+    context: AgentContext | None,
+) -> type[BaseModel]:
+    """Resolve response type from string name to actual type.
+
+    Args:
+        type_name: Name of the response type
+        context: Agent context containing response definitions
+
+    Returns:
+        Resolved Pydantic model type
+
+    Raises:
+        ValueError: If type cannot be resolved
+    """
+    if not context or type_name not in context.definition.responses:
+        msg = f"Result type {type_name} not found in responses"
+        raise ValueError(msg)
+
+    response_def = context.definition.responses[type_name]
+    match response_def:
+        case ImportedResponseDefinition():
+            return response_def.resolve_model()
+        case InlineResponseDefinition():
+            # Create Pydantic model from inline definition
+            fields = {}
+            for name, field in response_def.fields.items():
+                type_map = {
+                    "str": str,
+                    "bool": bool,
+                    "int": int,
+                    "float": float,
+                    "list[str]": list[str],
+                }
+                python_type = type_map.get(field.type)
+                if not python_type:
+                    msg = f"Unsupported field type: {field.type}"
+                    raise ValueError(msg)
+
+                field_info = Field(description=field.description)
+                fields[name] = (python_type, field_info)
+            cls_name = response_def.description or "ResponseType"
+            return create_model(cls_name, **fields, __base__=BaseModel)  # type: ignore[call-overload]
+        case _:
+            msg = f"Unknown response definition type: {type(response_def)}"
+            raise ValueError(msg)
 
 
 class ResponseField(BaseModel):
@@ -118,9 +169,6 @@ class AgentConfig(BaseModel):
     # defer_model_check: bool = False
     # """Whether to defer model evaluation until first run"""
 
-    enforce_response_type: bool = False
-    """Whether to enforce structured responses of result_type"""
-
     avatar: str | None = None
     """URL or path to agent's avatar image"""
 
@@ -208,8 +256,6 @@ class AgentConfig(BaseModel):
         # Note: result_type is handled separately as it needs to be resolved
         # from string to actual type in LLMlingAgent initialization
 
-        # Pop enforce_response_type from overrides to avoid passing it to PydanticAgent
-        overrides.pop("enforce_response_type", None)
         dct.update(overrides)
         return dct
 

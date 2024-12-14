@@ -17,7 +17,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.context import AgentContext
 from llmling_agent.log import get_logger
-from llmling_agent.models import AgentsManifest
+from llmling_agent.models import AgentsManifest, resolve_response_type
 from llmling_agent.pydantic_ai_utils import TokenUsage, extract_token_usage
 from llmling_agent.storage import Conversation, engine
 from llmling_agent.storage.models import Message
@@ -131,10 +131,17 @@ class LLMlingAgent[TResult]:
         tools = self._prepare_tools()
         self._setup_history_tools(tools)
 
+        # Resolve result type
+        actual_type: type[TResult]
+        if isinstance(result_type, str):
+            actual_type = resolve_response_type(result_type, context)  # type: ignore[assignment]
+        else:
+            actual_type = result_type or str  # type: ignore[assignment]
+
         # Initialize agent with all tools
         self._pydantic_agent = PydanticAgent(
             model=model,
-            result_type=result_type or str,
+            result_type=actual_type,
             system_prompt=system_prompt,
             deps_type=AgentContext,
             tools=tools,
