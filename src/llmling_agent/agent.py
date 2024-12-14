@@ -6,7 +6,6 @@ import asyncio
 from collections.abc import Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from datetime import datetime
-from inspect import Parameter, Signature
 from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
@@ -22,6 +21,7 @@ from llmling_agent.models import AgentsManifest
 from llmling_agent.storage import Conversation, engine
 from llmling_agent.storage.models import Message
 from llmling_agent.tools import ToolConfirmation, ToolContext
+from llmling_agent.tools.base import create_runtime_tool_wrapper
 
 
 if TYPE_CHECKING:
@@ -716,61 +716,18 @@ class LLMlingAgent[TResult]:
         logger.debug("Available runtime tools: %s", list(available_tools))
         logger.debug("Disabled tools: %s", self._disabled_tools)
 
-        def create_tool_wrapper(name: str, tool_def: Any) -> Tool[AgentContext]:
-            """Create wrapper for a specific tool."""
-            schema = tool_def.get_schema()
-
-            # Create function signature based on schema
-            params = [
-                Parameter(
-                    "ctx",
-                    Parameter.POSITIONAL_OR_KEYWORD,
-                    annotation=RunContext[AgentContext],
-                )
-            ]
-
-            # Add parameters from schema
-            properties = schema["function"].get("parameters", {}).get("properties", {})
-            for prop_name, info in properties.items():
-                default = Parameter.empty if info.get("required") else None
-                param = Parameter(
-                    prop_name,
-                    Parameter.POSITIONAL_OR_KEYWORD,
-                    annotation=Any,
-                    default=default,
-                )
-                params.append(param)
-
-            # Create signature
-            sig = Signature(params, return_annotation=Any)
-
-            async def tool_wrapper(*args: Any, **kwargs: Any) -> Any:
-                ctx = args[0]  # First arg is always context
-                if not ctx.deps.runtime:
-                    msg = f"No runtime available for tool {name}"
-                    raise RuntimeError(msg)
-                logger.debug("Executing tool %s with args: %s", name, kwargs)
-                return await ctx.deps.runtime.execute_tool(name, **kwargs)
-
-            # Apply signature and metadata
-            tool_wrapper.__signature__ = sig  # type: ignore
-            tool_wrapper.__name__ = name
-            tool_wrapper.__doc__ = schema["function"]["description"]
-            tool_wrapper.__annotations__ = {p.name: p.annotation for p in params}
-
-            return Tool(
-                tool_wrapper,
-                takes_ctx=True,
-                name=name,
-                description=tool_def.description,
-            )
-
         # Create and add tool wrappers
         for tool_name in self.runtime.tools:
             if tool_name not in self._disabled_tools:
                 logger.debug("Adding tool wrapper for: %s", tool_name)
                 tool_def = self.runtime.tools[tool_name]
-                tools.append(create_tool_wrapper(tool_name, tool_def))
+                schema = tool_def.get_schema()
+                wrapped = create_runtime_tool_wrapper(
+                    name=tool_name,
+                    schema=schema,
+                    description=tool_def.description,
+                )
+                tools.append(wrapped)
 
         logger.debug("Final tool list: %s", [t.name for t in tools])
         return tools
