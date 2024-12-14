@@ -28,7 +28,7 @@ async def list_tools(
 ) -> None:
     """List all available tools."""
     agent = ctx.session._agent
-    tool_states = ctx.session.get_tool_states()
+    tool_states = agent.list_tools()  # Single source of truth
 
     # Collect all tool info
     tools: list[ToolInfo] = []
@@ -40,24 +40,23 @@ async def list_tools(
             name=name,
             description=tool_def.description,
             source="runtime",
-            enabled=tool_states.get(name, False),
+            enabled=tool_states[name],
             schema=dict(tool_def.get_schema()),
         )
         tools.append(info)
 
-    # Agent's own tools
+    # Agent's custom tools
     for tool in agent._original_tools:
         info = ToolInfo(
             name=tool.name,
             description=tool.description,
             source="agent",
-            enabled=tool_states.get(tool.name, False),
+            enabled=tool_states[tool.name],  # Use same tool_states dict
         )
         tools.append(info)
 
     # Format output
     sections = ["# Available Tools\n"]
-
     for source in ["runtime", "agent", "builtin"]:
         source_tools = [t for t in tools if t.source == source]
         if source_tools:

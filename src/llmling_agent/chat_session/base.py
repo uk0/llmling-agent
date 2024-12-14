@@ -337,7 +337,7 @@ class AgentChatSession:
 
     def get_tool_states(self) -> dict[str, bool]:
         """Get current tool states."""
-        return self._tool_states.copy()
+        return self._agent.list_tools()
 
     @property
     def history(self) -> list[messages.Message]:
