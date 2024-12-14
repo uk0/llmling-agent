@@ -161,3 +161,19 @@ async with LLMlingAgent.open_agent("agents.yml", "system_checker") as agent:
     result = await agent.run("How much memory is available?")
     print(result.data)
 ```
+
+### Conversation History and Analytics
+
+LLMling Agent provides built-in conversation tracking and analysis:
+
+```bash
+# View recent conversations
+llmling-agent history show
+llmling-agent history show --period 24h  # Last 24 hours
+llmling-agent history show --query "database"  # Search content
+
+# View usage statistics
+llmling-agent history stats  # Basic stats
+llmling-agent history stats --group-by model  # Model usage
+llmling-agent history stats --group-by day    # Daily breakdown
+```
