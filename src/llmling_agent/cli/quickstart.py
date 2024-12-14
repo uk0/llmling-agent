@@ -45,28 +45,15 @@ def quickstart_command(
     logging.getLogger("llmling_agent").setLevel(level)
     logging.getLogger("llmling").setLevel(level)
 
+    from llmling import Config
+
     from llmling_agent.cli.chat_session.session import start_interactive_session
 
-    # Minimal runtime config
-    minimal_runtime_config = {
-        "version": "1.0",
-        "global_settings": {
-            "llm_capabilities": {
-                "load_resource": False,
-                "get_resources": False,
-                "install_package": False,
-                "register_tool": False,
-                "register_code_tool": False,
-            }
-        },
-        "resources": {},
-        "tools": {},
-    }
-
+    cfg = Config().model_dump(mode="json")
     try:
         # Create temporary runtime config
         with NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp_env:
-            yaml.dump(minimal_runtime_config, tmp_env)
+            yaml.dump(cfg, tmp_env)
             env_path = tmp_env.name
 
         # Minimal agent config
