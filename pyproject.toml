@@ -40,6 +40,7 @@ dependencies = [
     "pydantic",
     # Only add below (Copier)
     "pydantic-ai>=0.0.9",
+    "python-dotenv>=1.0.1",
     "sqlmodel>=0.0.22",
     "typer>=0.15.1",
 ]
