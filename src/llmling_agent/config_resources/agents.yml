@@ -44,7 +44,7 @@ responses:
 agents:
   url_opener:
     environment: env_website.yml
-    model: openai:gpt-3.5-turbo
+    model: openai:gpt-4o-mini
     result_type: BasicResult
     system_prompts:
       - |
@@ -57,7 +57,7 @@ agents:
 
   system_inspector:
     environment: env_system.yml
-    model: openai:gpt-3.5-turbo
+    model: openai:gpt-4o-mini
     result_type: SystemInfoResult
     system_prompts:
       - |
@@ -73,7 +73,7 @@ agents:
 
   file_explorer:
     environment: env_files.yml
-    model: openai:gpt-3.5-turbo
+    model: openai:gpt-4o-mini
     result_type: FileInfoResult
     system_prompts:
       - |

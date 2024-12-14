@@ -10,7 +10,7 @@ Create a simple agent that opens websites in your browser:
 # agents.yml
 agents:
   url_opener:
-    model: openai:gpt-3.5-turbo
+    model: openai:gpt-4o-mini
     role: assistant
     environment: env_web.yml
     system_prompts:

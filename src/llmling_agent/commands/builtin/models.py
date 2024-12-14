@@ -39,7 +39,7 @@ set_model_cmd = Command(
         "Previous messages and their context are preserved.\n\n"
         "Examples:\n"
         "  /set-model gpt-4\n"
-        "  /set-model openai:gpt-3.5-turbo\n"
+        "  /set-model openai:gpt-4o-mini\n"
         "  /set-model claude-2\n\n"
         "Note: Available models depend on your configuration and API access."
     ),

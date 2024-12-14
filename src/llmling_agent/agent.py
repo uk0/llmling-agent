@@ -54,26 +54,6 @@ class LLMlingAgent[TResult]:
     - Tool registration for resource operations
     - System prompt customization
     - Message history management
-
-    Example:
-        ```python
-        # Simple text agent
-        agent = LLMlingAgent(runtime)
-        result = await agent.run("Load and summarize test.txt")
-        print(result.data)  # Text summary
-
-        # Agent with structured output
-        class Analysis(BaseModel):
-            summary: str
-            complexity: int
-
-        agent = LLMlingAgent[Analysis](
-            runtime,
-            result_type=Analysis,
-        )
-        result = await agent.run("Analyze test.txt")
-        print(result.data.summary)  # Structured analysis
-        ```
     """
 
     def __init__(
@@ -255,10 +235,7 @@ class LLMlingAgent[TResult]:
 
         Example:
             ```python
-            async with LLMlingAgent.open(
-                "config.yml",
-                model="openai:gpt-3.5-turbo"
-            ) as agent:
+            async with LLMlingAgent.open("config.yml") as agent:
                 result = await agent.run("Hello!")
                 print(result.data)
             ```
@@ -758,7 +735,7 @@ if __name__ == "__main__":
 
     async def main() -> None:
         async with RuntimeConfig.open(config_resources.OPEN_BROWSER) as r:
-            agent: LLMlingAgent[str] = LLMlingAgent(r, model="openai:gpt-3.5-turbo")
+            agent: LLMlingAgent[str] = LLMlingAgent(r, model="openai:gpt-4o-mini")
             result = await agent.run(sys_prompt)
             print(result.data)
 
@@ -766,7 +743,7 @@ if __name__ == "__main__":
 
     # async def main() -> None:
     #     async with RuntimeConfig.open(config_resources.SUMMARIZE_README) as r:
-    #         agent: LLMlingAgent[str] = LLMlingAgent(r, model="openai:gpt-3.5-turbo")
+    #         agent: LLMlingAgent[str] = LLMlingAgent(r, model="openai:gpt-4o-mini")
     #         result = await agent.run(sys_prompt)
     #         print(result.data)
 

@@ -48,7 +48,7 @@ Here's a minimal example:
 # agents.yml - Agent configuration
 agents:
   system_checker:
-    model: openai:gpt-3.5-turbo
+    model: openai:gpt-4o-mini
     role: assistant
     environment: env_system.yml  # Reference to environment file
     system_prompts:

@@ -40,7 +40,7 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 The fastest way to start chatting with an AI:
 ```bash
 # Start an ephemeral chat session (requires uv)
-uvx llmling-agent quickstart openai:gpt-3.5-turbo
+uvx llmling-agent quickstart openai:gpt-4o-mini
 ```
 
 This creates a temporary agent ready for chat - no configuration needed!
@@ -119,7 +119,7 @@ Here's a minimal example:
 # agents.yml - Agent configuration
 agents:
   system_checker:
-    model: openai:gpt-3.5-turbo
+    model: openai:gpt-4o-mini
     role: assistant
     environment: env_system.yml  # Reference to environment file
     system_prompts:

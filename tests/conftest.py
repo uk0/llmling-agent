@@ -41,7 +41,7 @@ async def simple_agent(runtime: RuntimeConfig) -> LLMlingAgent[str]:
     return LLMlingAgent(
         runtime=runtime,
         name="test-agent",
-        model="openai:gpt-3.5-turbo",
+        model="openai:gpt-4o-mini",
     )
 
 

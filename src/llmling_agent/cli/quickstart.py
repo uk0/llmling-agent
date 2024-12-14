@@ -20,8 +20,8 @@ logger = get_logger(__name__)
 # @cli.command(name="quickstart")
 def quickstart_command(
     model: str = t.Argument(
-        "openai:gpt-3.5-turbo",
-        help="Model to use (e.g. openai:gpt-3.5-turbo, gpt-4)",
+        "openai:gpt-4o-mini",
+        help="Model to use (e.g. openai:gpt-4o-mini, gpt-4)",
     ),
     log_level: str = t.Option(
         "INFO",

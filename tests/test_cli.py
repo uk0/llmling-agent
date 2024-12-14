@@ -48,7 +48,7 @@ def config_file(tmp_path: Path) -> Path:
         "agents": {
             "test_agent": {
                 "name": "test_agent",
-                "model": "openai:gpt-3.5-turbo",
+                "model": "openai:gpt-4o-mini",
                 "result_type": "BasicResult",
                 "system_prompts": ["You are a test agent."],
                 "user_prompts": ["Hello!"],

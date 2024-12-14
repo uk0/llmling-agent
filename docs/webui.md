@@ -42,7 +42,7 @@ llmling-agent launch
 # agents.yml
 agents:
   assistant:
-    model: openai:gpt-3.5-turbo
+    model: openai:gpt-4o-mini
     role: assistant
     environment: env_basic.yml
     system_prompts:
