@@ -87,6 +87,46 @@ async def edit_env(
         raise CommandError(msg) from e
 
 
+async def edit_agent_file(
+    ctx: CommandContext,
+    args: list[str],
+    kwargs: dict[str, str],
+) -> None:
+    """Open agent's configuration file in default application."""
+    if not ctx.session._agent._context:
+        msg = "No agent context available"
+        raise CommandError(msg)
+
+    config = ctx.session._agent._context.config
+    if not config.config_file_path:
+        msg = "No configuration file path available"
+        raise CommandError(msg)
+
+    try:
+        webbrowser.open(config.config_file_path)
+        await ctx.output.print(f"Opening agent configuration: {config.config_file_path}")
+    except Exception as e:
+        msg = f"Failed to open configuration file: {e}"
+        raise CommandError(msg) from e
+
+
+edit_agent_file_cmd = Command(
+    name="edit-agent-file",
+    description="Edit the agent's configuration file",
+    execute_func=edit_agent_file,
+    help_text=(
+        "Open the agent's configuration file in your default editor.\n\n"
+        "This file contains:\n"
+        "- Agent settings and capabilities\n"
+        "- System prompts\n"
+        "- Model configuration\n"
+        "- Environment references\n"
+        "- Role definitions\n\n"
+        "Note: Changes to the configuration file require reloading the agent."
+    ),
+    category="utils",
+)
+
 copy_clipboard_cmd = Command(
     name="copy-clipboard",
     description="Copy the last assistant message to clipboard",
