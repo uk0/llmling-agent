@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeGuard
+import json
+from typing import TYPE_CHECKING, Any, Literal, TypeGuard
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -63,20 +64,16 @@ def format_conversation(
     }
 
     if include_tokens:
-        result["token_usage"] = {
-            "total": sum((msg.token_usage or {}).get("total", 0) for msg in messages),
-            "completion": sum(
-                (msg.token_usage or {}).get("completion", 0) for msg in messages
-            ),
-            "prompt": sum((msg.token_usage or {}).get("prompt", 0) for msg in messages),
-        }
-
+        total = sum((msg.token_usage or {}).get("total", 0) for msg in messages)
+        comp = sum((msg.token_usage or {}).get("completion", 0) for msg in messages)
+        prompt = sum((msg.token_usage or {}).get("prompt", 0) for msg in messages)
+        result["token_usage"] = {"total": total, "completion": comp, "prompt": prompt}
     return result
 
 
 def format_output(
     data: ConversationData | list[ConversationData] | dict[str, Any],
-    output_format: str = "text",
+    output_format: Literal["json", "yaml", "text"] = "text",
 ) -> str:
     """Format data for output in specified format.
 
@@ -86,8 +83,6 @@ def format_output(
     """
     match output_format:
         case "json":
-            import json
-
             return json.dumps(data, indent=2)
         case "yaml":
             import yaml

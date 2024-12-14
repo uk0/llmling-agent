@@ -98,30 +98,28 @@ class AgentChatSession:
     async def clear(self) -> None:
         """Clear chat history."""
         self._history = []
-        await self._notify_handlers(
-            SessionEvent(
-                type=SessionEventType.HISTORY_CLEARED,
-                timestamp=datetime.now(),
-                data={"session_id": str(self.id)},
-            )
+        event = SessionEvent(
+            type=SessionEventType.HISTORY_CLEARED,
+            timestamp=datetime.now(),
+            data={"session_id": str(self.id)},
         )
+        await self._notify_handlers(event)
 
     async def reset(self) -> None:
         """Reset session state."""
         old_tools = self._tool_states.copy()
         self._history = []
         self._tool_states = self._agent.list_tools()
-        await self._notify_handlers(
-            SessionEvent(
-                type=SessionEventType.SESSION_RESET,
-                timestamp=datetime.now(),
-                data={
-                    "session_id": str(self.id),
-                    "previous_tools": old_tools,
-                    "new_tools": self._tool_states,
-                },
-            )
+        event = SessionEvent(
+            type=SessionEventType.SESSION_RESET,
+            timestamp=datetime.now(),
+            data={
+                "session_id": str(self.id),
+                "previous_tools": old_tools,
+                "new_tools": self._tool_states,
+            },
         )
+        await self._notify_handlers(event)
 
     def register_command(self, command: BaseCommand) -> None:
         """Register additional command."""

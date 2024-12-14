@@ -104,9 +104,8 @@ class SingleAgentRunner[T](AbstractAsyncContextManager):
             self.agent_config.model = self.model_override  # type: ignore
 
         # Initialize agent
-        self._agent = LLMlingAgent(
-            runtime=self.runtime, **self.agent_config.get_agent_kwargs()
-        )
+        kwargs = self.agent_config.get_agent_kwargs()
+        self._agent = LLMlingAgent(runtime=self.runtime, **kwargs)
         return self
 
     async def __aexit__(
@@ -158,10 +157,8 @@ class SingleAgentRunner[T](AbstractAsyncContextManager):
         results.append(result)
 
         for prompt in prompts[1:]:
-            result = await self.agent.run(
-                prompt,
-                message_history=result.new_messages(),
-            )
+            history = result.new_messages()
+            result = await self.agent.run(prompt, message_history=history)
             results.append(result)
 
         return results
