@@ -100,8 +100,26 @@ class AgentConfig(BaseModel):
     environment: str | None = None
     """Path or name of the environment configuration to use"""
 
-    result_type: str | None = None  # References a response name or None for plain string
+    result_type: str | None = None
     """Name of the response definition to use"""
+
+    retries: int = 1
+    """Number of retries for failed operations (maps to pydantic-ai's retries)"""
+
+    result_tool_name: str = "final_result"
+    """Name of the tool used for structured responses"""
+
+    result_tool_description: str | None = None
+    """Custom description for the result tool"""
+
+    result_retries: int | None = None
+    """Max retries for result validation"""
+
+    # defer_model_check: bool = False
+    # """Whether to defer model evaluation until first run"""
+
+    enforce_response_type: bool = False
+    """Whether to enforce structured responses of result_type"""
 
     avatar: str | None = None
     """URL or path to agent's avatar image"""
@@ -179,10 +197,19 @@ class AgentConfig(BaseModel):
         dct = {
             "name": self.name,
             "model": self.model,
-            # "result_type": self.result_type,
             "system_prompt": self.system_prompts,
+            "retries": self.retries,
+            "result_tool_name": self.result_tool_name,
+            "result_tool_description": self.result_tool_description,
+            "result_retries": self.result_retries,
+            # "defer_model_check": self.defer_model_check,
             **self.model_settings,
         }
+        # Note: result_type is handled separately as it needs to be resolved
+        # from string to actual type in LLMlingAgent initialization
+
+        # Pop enforce_response_type from overrides to avoid passing it to PydanticAgent
+        overrides.pop("enforce_response_type", None)
         dct.update(overrides)
         return dct
 
