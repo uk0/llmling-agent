@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from llmling_agent.models import (
     AgentConfig,
     AgentsManifest,
-    ResponseDefinition,
+    InlineResponseDefinition,
     ResponseField,
 )
 from llmling_agent.runners import AgentOrchestrator, AgentRunConfig
@@ -22,7 +24,7 @@ async def test_parallel_agent_execution(test_model):
     """
     agent_def = AgentsManifest(
         responses={
-            "BasicResult": ResponseDefinition(
+            "BasicResult": InlineResponseDefinition(
                 description="Basic test result",
                 fields={"message": ResponseField(type="str", description="Test message")},
             )
@@ -49,7 +51,7 @@ async def test_parallel_agent_execution(test_model):
         prompts=["Process this input"],  # Same prompt for all agents
     )
 
-    orchestrator = AgentOrchestrator(agent_def, config)
+    orchestrator: AgentOrchestrator[Any] = AgentOrchestrator(agent_def, config)
     results = await orchestrator.run()
 
     # Verify each agent processed the prompt

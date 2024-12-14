@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from llmling import Config
 from llmling.config.models import ConfigModel, GlobalSettings, LLMCapabilitiesConfig
 from llmling.config.store import ConfigStore
+from llmling.utils import importing
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_ai import models  # noqa: TC002
 from upath.core import UPath
@@ -36,15 +37,41 @@ class ResponseField(BaseModel):
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
 
-class ResponseDefinition(BaseModel):
-    """Definition of an agent response type."""
+class InlineResponseDefinition(BaseModel):
+    """Definition for an inline-defined response type."""
 
+    type: Literal["inline"] = Field("inline", init=False)
     description: str | None = None
-    """Optional description of the response type"""
     fields: dict[str, ResponseField]
-    """Mapping of field names to their definitions"""
-
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
+
+
+class ImportedResponseDefinition(BaseModel):
+    """Definition for an imported response type."""
+
+    type: Literal["import"] = Field("import", init=False)
+    description: str | None = None
+    import_path: str
+    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
+
+    # mypy is confused about
+    def resolve_model(self) -> type[BaseModel]:  # type: ignore
+        """Import and return the model class."""
+        try:
+            model_class = importing.import_class(self.import_path)
+            if not issubclass(model_class, BaseModel):
+                msg = f"{self.import_path} must be a Pydantic model"
+                raise TypeError(msg)  # noqa: TRY301
+        except Exception as e:
+            msg = f"Failed to import response type {self.import_path}"
+            raise ValueError(msg) from e
+        else:
+            return model_class
+
+
+ResponseDefinition = Annotated[
+    InlineResponseDefinition | ImportedResponseDefinition, Field(discriminator="type")
+]
 
 
 class SystemPrompt(BaseModel):

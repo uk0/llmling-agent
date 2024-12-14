@@ -12,7 +12,12 @@ import pytest
 
 from llmling_agent import config_resources
 from llmling_agent.agent import LLMlingAgent
-from llmling_agent.models import AgentConfig, ResponseDefinition, ResponseField
+from llmling_agent.models import (
+    AgentConfig,
+    InlineResponseDefinition,
+    ResponseDefinition,
+    ResponseField,
+)
 
 
 if TYPE_CHECKING:
@@ -46,6 +51,7 @@ def valid_config() -> dict[str, Any]:
     return {
         "responses": {
             "SupportResult": {
+                "type": "inline",
                 "description": "Support agent response",
                 "fields": {
                     "advice": {
@@ -59,6 +65,7 @@ def valid_config() -> dict[str, Any]:
                 },
             },
             "ResearchResult": {
+                "type": "inline",
                 "description": "Research agent response",
                 "fields": {
                     "findings": {
@@ -114,7 +121,7 @@ def basic_response_def() -> dict[str, ResponseDefinition]:
     """Create basic response definitions for testing."""
     response = ResponseField(type="str", description="Test message")
     desc = "Basic test result"
-    definition = ResponseDefinition(description=desc, fields={"message": response})
+    definition = InlineResponseDefinition(description=desc, fields={"message": response})
     return {"BasicResult": definition}
 
 

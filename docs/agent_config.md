@@ -15,6 +15,7 @@ responses:
   # Define structured response types
   ResponseName:
     description: "Response description"
+    type: inline
     fields:
       field_name:
         type: str
@@ -46,6 +47,7 @@ Response types define structured outputs for agents. They use Pydantic models un
 responses:
   FileAnalysis:
     description: "Analysis of a file's contents"
+    type: inline
     fields:
       summary:
         type: str
@@ -62,6 +64,7 @@ responses:
 
   SystemStatus:
     description: "System health check result"
+    type: inline
     fields:
       status:
         type: str

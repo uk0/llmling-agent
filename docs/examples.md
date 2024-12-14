@@ -73,6 +73,7 @@ Define structured outputs for consistent response formats:
 # agents.yml
 responses:
   CodeReview:
+    type: inline
     description: "Code review result"
     fields:
       issues:

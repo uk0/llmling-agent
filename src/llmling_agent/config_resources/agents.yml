@@ -1,5 +1,6 @@
 responses:
   BasicResult:
+    type: inline
     description: "Simple operation result"
     fields:
       success:
@@ -10,6 +11,7 @@ responses:
         description: "Operation result message"
 
   SystemInfoResult:
+    type: inline
     description: "System information result"
     fields:
       platform:

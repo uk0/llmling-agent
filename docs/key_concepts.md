@@ -62,6 +62,7 @@ agents:
 responses:
   FileAnalysis:
     description: "File analysis result"
+    type: inline
     fields:
       content_summary:
         type: str

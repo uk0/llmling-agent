@@ -43,6 +43,7 @@ def test_valid_agent_definition():
         "responses": {
             "TestResponse": {
                 "description": "Test response",
+                "type": "inline",
                 "fields": {
                     "message": {
                         "type": "str",
@@ -109,6 +110,7 @@ def test_environment_path_resolution(tmp_path: Path) -> None:
         "responses": {
             "BasicResult": {
                 "description": "Test result",
+                "type": "inline",
                 "fields": {"message": {"type": "str", "description": "Test message"}},
             }
         },

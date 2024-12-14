@@ -38,6 +38,7 @@ def config_file(tmp_path: Path) -> Path:
         "responses": {
             "BasicResult": {
                 "description": "Simple test result",
+                "type": "inline",
                 "fields": {
                     "success": {"type": "bool"},
                     "message": {"type": "str"},
