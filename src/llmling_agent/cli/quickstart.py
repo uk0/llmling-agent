@@ -47,23 +47,23 @@ def quickstart_command(
         "tools": {},
     }
 
-    # Minimal agent config
-    minimal_agent_config = {
-        "agents": {
-            "quickstart": {
-                "name": "quickstart",
-                "model": model,
-                "role": "assistant",
-                "environment": "env.yml",  # Will point to our runtime config
-            }
-        }
-    }
-
     try:
         # Create temporary runtime config
         with NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp_env:
             yaml.dump(minimal_runtime_config, tmp_env)
             env_path = tmp_env.name
+
+        # Minimal agent config
+        minimal_agent_config = {
+            "agents": {
+                "quickstart": {
+                    "name": "quickstart",
+                    "model": model,
+                    "role": "assistant",
+                    "environment": env_path,  # Will point to our runtime config
+                }
+            }
+        }
 
         # Create temporary agent config referencing the runtime config
         with NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp_agent:
