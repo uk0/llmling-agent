@@ -54,11 +54,13 @@ class InteractiveSession:
         agent: LLMlingAgent[str],
         *,
         log_level: int = logging.INFO,
+        stream: bool = False,
     ) -> None:
         """Initialize interactive session."""
         self.agent = agent
         self._log_level = log_level
         self.console = Console()
+        self._stream = stream
         self._output_writer = DefaultOutputWriter()
         # Internal state
         self._session_manager = ChatSessionManager()
@@ -127,7 +129,7 @@ class InteractiveSession:
             assert self._chat_session is not None
 
             if content.startswith("/"):
-                # Handle command
+                # Handle command (no change needed)
                 result = await self._chat_session.send_message(
                     content,
                     output=DefaultOutputWriter(),
@@ -137,17 +139,29 @@ class InteractiveSession:
                 self.status_bar.render(self._state)
                 return
 
-            # Handle normal message with streaming
+            # Handle normal message with or without streaming
             self.console.print("\nAssistant:", style="bold blue")
-            async for chunk in await self._chat_session.send_message(
-                content,
-                stream=True,
-                output=DefaultOutputWriter(),
-            ):
-                if chunk.content:
-                    self.console.print(Markdown(chunk.content))
-                # Update tokens for assistant message
-                self._state.update_tokens(chunk)
+
+            if self._stream:
+                # Existing streaming code
+                async for chunk in await self._chat_session.send_message(
+                    content,
+                    stream=True,
+                    output=DefaultOutputWriter(),
+                ):
+                    if chunk.content:
+                        self.console.print(Markdown(chunk.content))
+                    self._state.update_tokens(chunk)
+            else:
+                # Non-streaming mode
+                result = await self._chat_session.send_message(
+                    content,
+                    stream=False,
+                    output=DefaultOutputWriter(),
+                )
+                if result.content:
+                    self.console.print(Markdown(result.content))
+                self._state.update_tokens(result)
 
             # Update message count after complete response
             self._state.message_count += 2
@@ -245,7 +259,8 @@ async def start_interactive_session(
     agent: LLMlingAgent[str],
     *,
     log_level: int = logging.INFO,
+    stream: bool = False,
 ) -> None:
     """Start an interactive chat session."""
-    session = InteractiveSession(agent, log_level=log_level)
+    session = InteractiveSession(agent, log_level=log_level, stream=stream)
     await session.start()

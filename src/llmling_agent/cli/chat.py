@@ -21,6 +21,11 @@ def chat_command(
         None, "--config", "-c", help="Override agent config path"
     ),
     model: str | None = t.Option(None, "--model", "-m", help="Override agent's model"),
+    stream: bool = t.Option(
+        False,  # Default to False
+        "--stream/--no-stream",
+        help="Enable streaming mode (default: off)",
+    ),
     log_level: str = t.Option(
         "INFO",
         "--log-level",
@@ -28,7 +33,11 @@ def chat_command(
         help="Log level (DEBUG, INFO, WARNING, ERROR)",
     ),
 ) -> None:
-    """Start interactive chat session with an agent."""
+    """Start interactive chat session with an agent.
+
+    By default, uses non-streaming mode for better support of structured responses
+    and debugging. Use --stream to enable streaming mode for real-time responses.
+    """
     from llmling_agent.cli.chat_session.session import start_interactive_session
 
     level = getattr(logging, log_level.upper())
