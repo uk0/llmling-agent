@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 from llmling_agent.commands.base import Command, CommandContext, CommandError
 from llmling_agent.log import get_logger
@@ -229,6 +229,83 @@ async def use_tool(
     finally:
         agent._tool_choice = previous_choice
 
+
+async def write_tool(
+    ctx: CommandContext,
+    args: list[str],
+    kwargs: dict[str, str],
+) -> None:
+    """Write and register a new tool interactively."""
+    from prompt_toolkit import PromptSession
+    from prompt_toolkit.lexers import PygmentsLexer
+    from pygments.lexers.python import PythonLexer
+
+    template = '''\
+def my_tool(text: str) -> str:
+    """A new tool.
+
+    Args:
+        text: Input text
+
+    Returns:
+        Tool result
+    """
+    return f"You said: {text}"
+'''
+
+    # Create editing session with syntax highlighting
+    session = PromptSession(
+        lexer=PygmentsLexer(PythonLexer),
+        multiline=True,
+    )
+
+    code = await session.prompt_async(
+        "\nEnter tool code (ESC + Enter or Alt + Enter to save):\n\n",
+        default=template,
+    )
+
+    try:
+        # Execute code in a namespace
+        namespace: dict[str, Any] = {}
+        exec(code, namespace)
+
+        # Find all callable non-private functions
+        tools = [
+            v
+            for v in namespace.values()
+            if callable(v)
+            and not v.__name__.startswith("_")
+            and v.__code__.co_filename == "<string>"
+        ]
+
+        if not tools:
+            await ctx.output.print("No tools found in code")
+            return
+
+        # Register all tools with ctx parameter added
+        for func in tools:
+            ctx.session._agent._pydantic_agent.tool_plain(func)
+            await ctx.output.print(f"Tool '{func.__name__}' registered!")
+
+    except Exception as e:  # noqa: BLE001
+        await ctx.output.print(f"Error creating tools: {e}")
+
+
+write_tool_cmd = Command(
+    name="write-tool",
+    description="Write and register new tools interactively",
+    execute_func=write_tool,
+    help_text=(
+        "Opens an interactive Python editor to create new tools.\n"
+        "- ESC + Enter or Alt + Enter to save and exit\n"
+        "- Functions will be available as tools immediately\n\n"
+        "Example template:\n"
+        "def my_tool(text: str) -> str:\n"
+        "    '''A new tool'''\n"
+        "    return f'You said: {text}'\n"
+    ),
+    category="tools",
+)
 
 use_tool_cmd = Command(
     name="use-tool",

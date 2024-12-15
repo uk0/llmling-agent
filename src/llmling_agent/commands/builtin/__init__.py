@@ -17,6 +17,7 @@ from llmling_agent.commands.builtin.tools import (
     enable_tool_cmd,
     disable_tool_cmd,
     register_tool_cmd,
+    write_tool_cmd,
 )
 from llmling_agent.commands.builtin.models import set_model_cmd
 from llmling_agent.commands.builtin.resources import (
@@ -49,4 +50,5 @@ def get_builtin_commands() -> list[BaseCommand]:
         edit_agent_file_cmd,
         set_env_cmd,
         show_env_cmd,
+        write_tool_cmd,
     ]
