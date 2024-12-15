@@ -33,16 +33,13 @@ class PromptToolkitCompleter(Completer):
 
         # Command completion
         if document.text.startswith("/"):
-            word = word_before_cursor.lstrip("/")
+            text = document.text[1:]  # remove slash
             for name, cmd in self._commands.items():
-                if name.startswith(word):
-                    # Calculate correct start position
-                    # If we have "/co", word_before_cursor is "co"
-                    # We want to complete from the "c"
+                if name.startswith(text):  # Match from start of command
                     yield Completion(
-                        name,  # completion text
-                        start_position=-len(word),  # replace from start of word
-                        display_meta=cmd.description,  # show description in menu
+                        name,
+                        start_position=-len(text),  # Replace everything after slash
+                        display_meta=cmd.description,
                     )
             return
 
