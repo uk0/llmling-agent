@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 import shlex
 from typing import TYPE_CHECKING, Any, Protocol
 
+from llmling_agent.commands.completion import CompletionProvider
+
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Awaitable
 
     from llmling_agent.chat_session.base import AgentChatSession
 
@@ -71,6 +74,14 @@ class BaseCommand(ABC):
         self.usage = usage
         self._help_text = help_text
 
+    def get_completer(self) -> CompletionProvider | None:
+        """Get completion provider for this command.
+
+        Returns:
+            CompletionProvider if command supports completion, None otherwise
+        """
+        return None
+
     def format_usage(self) -> str | None:
         """Format usage string."""
         if not self.usage:
@@ -104,6 +115,7 @@ class Command(BaseCommand):
         category: str = "general",
         usage: str | None = None,
         help_text: str | None = None,
+        completer: CompletionProvider | Callable[[], CompletionProvider] | None = None,
     ) -> None:
         super().__init__(
             name=name,
@@ -113,6 +125,7 @@ class Command(BaseCommand):
             help_text=help_text,
         )
         self._execute_func = execute_func
+        self._completer = completer
 
     async def execute(
         self,
@@ -122,6 +135,20 @@ class Command(BaseCommand):
     ) -> None:
         """Execute the command using provided function."""
         await self._execute_func(ctx, args, kwargs)
+
+    def get_completer(self) -> CompletionProvider | None:
+        """Get completion provider."""
+        match self._completer:
+            case None:
+                return None
+            case CompletionProvider() as completer:
+                return completer
+            case Callable() as factory:
+                return factory()
+            case _:
+                typ = type(self._completer)
+                msg = f"Completer must be CompletionProvider or callable, not {typ}"
+                raise TypeError(msg)
 
 
 def parse_command(cmd_str: str) -> ParsedCommand:
