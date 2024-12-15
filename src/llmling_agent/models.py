@@ -16,6 +16,7 @@ import yamling
 
 from llmling_agent.config.capabilities import BUILTIN_ROLES, Capabilities, RoleName
 from llmling_agent.environment import AgentEnvironment  # noqa: TC001
+from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 from llmling_agent.log import get_logger
 
 
@@ -208,10 +209,10 @@ class AgentConfig(BaseModel):
                 # Backward compatibility: treat as file path
                 resolved = self._resolve_environment_path(path, self.config_file_path)
                 return Config.from_file(resolved)
-            case {"type": "file", "uri": uri}:
+            case {"type": "file", "uri": uri} | FileEnvironment(uri=uri):
                 # Handle file environment
                 return Config.from_file(uri)
-            case {"type": "inline", "config": config}:
+            case {"type": "inline", "config": config} | InlineEnvironment(config=config):
                 # Handle inline environment
                 return config
             case _:
@@ -223,7 +224,7 @@ class AgentConfig(BaseModel):
         match self.environment:
             case str() as path:
                 return self._resolve_environment_path(path, self.config_file_path)
-            case {"type": "file", "uri": uri}:
+            case {"type": "file", "uri": uri} | FileEnvironment(uri=uri):
                 return uri
             case _:
                 return None
@@ -233,14 +234,16 @@ class AgentConfig(BaseModel):
         match self.environment:
             case str() as path:
                 return f"File: {path}"
-            case {"type": "file", "uri": uri}:
+            case {"type": "file", "uri": uri} | FileEnvironment(uri=uri):
                 return f"File: {uri}"
-            case {"type": "inline", "uri": uri} if uri:
+            case {"type": "inline", "uri": uri} | InlineEnvironment(uri=uri) if uri:
                 return f"Inline: {uri}"
-            case {"type": "inline"}:
+            case {"type": "inline"} | InlineEnvironment():
                 return "Inline configuration"
-            case _:
+            case None:
                 return "No environment configured"
+            case _:
+                return "Invalid environment configuration"
 
     @staticmethod
     def _resolve_environment_path(env: str, config_file_path: str | None = None) -> str:
