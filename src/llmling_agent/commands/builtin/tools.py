@@ -255,7 +255,7 @@ async def write_tool(
     from pygments.styles import get_style_by_name
 
     # Create editing session with syntax highlighting
-    session = PromptSession(
+    session: PromptSession[str] = PromptSession(
         lexer=PygmentsLexer(PythonLexer),
         multiline=True,
         style=style_from_pygments_cls(get_style_by_name("monokai")),
