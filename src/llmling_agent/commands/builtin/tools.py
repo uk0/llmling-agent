@@ -61,10 +61,10 @@ async def list_tools(
         source_tools = [t for t in tools if t.source == source]
         if source_tools:
             sections.append(f"\n## {source.title()} Tools")
-            for tool in source_tools:
-                status = "✓" if tool.enabled else "✗"
-                desc = f": {tool.description.split('\n')[0]}" if tool.description else ""
-                sections.append(f"- {status} **{tool.name}**{desc}")
+            for t in source_tools:
+                status = "✓" if t.enabled else "✗"
+                desc = f": {t.description.split('\n')[0]}" if t.description else ""
+                sections.append(f"- {status} **{t.name}**{desc}")
 
     await ctx.output.print("\n".join(sections))
 

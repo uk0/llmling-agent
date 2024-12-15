@@ -54,7 +54,7 @@ class ToolInfo:
 
 def extract_tool_info(tool: Tool[Any]) -> ToolInfo:
     """Extract tool information from pydantic-ai Tool."""
-    schema = tool._json_schema
+    schema = tool._parameters_json_schema
     properties = schema.get("properties", {})
     required = schema.get("required", [])
 
@@ -81,7 +81,7 @@ def format_result_schema(schema: ResultSchema[Any] | None) -> str:
         parts.append("Allows free text")
 
     for name, tool in schema.tools.items():
-        params = tool.json_schema["function"]["parameters"]
+        params = tool.tool_def.parameters_json_schema["function"]["parameters"]
         type_info = params.get("type", "object")
         if "properties" in params:
             properties = params["properties"]

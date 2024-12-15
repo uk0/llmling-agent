@@ -111,9 +111,9 @@ def find_last_assistant_message(messages: Sequence[Message]) -> str | None:
                     else:
                         # Handle both ArgsJson and ArgsDict
                         args = (
-                            call.args.args_dict
+                            call.args.args_dict  # type: ignore
                             if hasattr(call.args, "args_dict")
-                            else call.args.args_json
+                            else call.args.args_json  # type: ignore
                         )
                     calls.append(f"Tool: {call.tool_name}\nArgs: {args}")
                 return "\n\n".join(calls)

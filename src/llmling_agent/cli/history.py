@@ -99,7 +99,7 @@ def show_history(
         compact=compact,
         include_tokens=tokens,
     )
-    print(format_output(results, output_format))
+    print(format_output(results, output_format))  # type: ignore
 
 
 @history_cli.command(name="stats")
@@ -138,4 +138,4 @@ def show_stats(
     filters = StatsFilters(cutoff=cutoff, group_by=group_by, agent_name=agent_name)  # type: ignore
     stats = get_conversation_stats(filters)
     formatted = format_stats(stats, period, group_by)
-    print(format_output(formatted, output_format))
+    print(format_output(formatted, output_format))  # type: ignore
