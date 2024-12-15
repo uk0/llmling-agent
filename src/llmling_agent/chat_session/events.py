@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime  # noqa: TC003
+from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from typing import Any, Protocol
 
@@ -18,8 +18,8 @@ class SessionEvent:
     """Event data for session state changes."""
 
     type: SessionEventType
-    timestamp: datetime
     data: dict[str, Any]
+    timestamp: datetime = field(default_factory=datetime.now)
 
 
 class SessionEventHandler(Protocol):

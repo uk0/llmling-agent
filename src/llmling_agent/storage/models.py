@@ -41,7 +41,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
 
     id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
     conversation_id: str = Field(index=True)
-    timestamp: datetime = Field(sa_column=Column(DateTime))
+    timestamp: datetime = Field(sa_column=Column(DateTime), default_factory=datetime.now)
     role: str
     content: str
     token_usage: TokenUsage | None = Field(None, sa_column=Column(JSON))

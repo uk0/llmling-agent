@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
 
@@ -99,11 +98,7 @@ class AgentChatSession:
         """Clear chat history."""
         self._history = []
         data = {"session_id": str(self.id)}
-        event = SessionEvent(
-            type=SessionEventType.HISTORY_CLEARED,
-            timestamp=datetime.now(),
-            data=data,
-        )
+        event = SessionEvent(type=SessionEventType.HISTORY_CLEARED, data=data)
         await self._notify_handlers(event)
 
     async def reset(self) -> None:
@@ -116,11 +111,7 @@ class AgentChatSession:
             "previous_tools": old_tools,
             "new_tools": self._tool_states,
         }
-        event = SessionEvent(
-            type=SessionEventType.SESSION_RESET,
-            timestamp=datetime.now(),
-            data=data,
-        )
+        event = SessionEvent(type=SessionEventType.SESSION_RESET, data=data)
         await self._notify_handlers(event)
 
     def register_command(self, command: BaseCommand) -> None:

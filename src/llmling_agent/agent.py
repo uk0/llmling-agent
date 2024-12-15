@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, cast
 from uuid import uuid4
 
@@ -149,7 +148,7 @@ class LLMlingAgent[TResult]:
             # Log conversation start
             with Session(engine) as session:
                 id_ = self._conversation_id
-                convo = Conversation(id=id_, agent_name=name, start_time=datetime.now())
+                convo = Conversation(id=id_, agent_name=name)
                 session.add(convo)
                 session.commit()
 
@@ -382,7 +381,6 @@ class LLMlingAgent[TResult]:
         with Session(engine) as session:
             msg = Message(
                 conversation_id=self._conversation_id,
-                timestamp=datetime.now(),
                 role=role,
                 content=content,
                 token_usage=token_usage,
