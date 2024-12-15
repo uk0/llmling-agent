@@ -15,6 +15,7 @@ from upath.core import UPath
 import yamling
 
 from llmling_agent.config.capabilities import BUILTIN_ROLES, Capabilities, RoleName
+from llmling_agent.environment import AgentEnvironment  # noqa: TC001
 from llmling_agent.log import get_logger
 
 
@@ -148,8 +149,11 @@ class AgentConfig(BaseModel):
     model: models.Model | models.KnownModelName | None = None
     """The LLM model to use"""
 
-    environment: str | None = None
-    """Path or name of the environment configuration to use"""
+    environment: Annotated[
+        str | AgentEnvironment | None,
+        Field(description="Environment configuration (path or object)"),
+    ] = None
+    """Environment configuration"""
 
     result_type: str | None = None
     """Name of the response definition to use"""
@@ -194,12 +198,51 @@ class AgentConfig(BaseModel):
         use_attribute_docstrings=True,
     )
 
-    def get_environment_path(self) -> str:
-        """Get resolved environment file path."""
-        if not self.environment:
-            msg = "No environment file configured"
-            raise ValueError(msg)
-        return self._resolve_environment_path(self.environment, self.config_file_path)
+    def get_config(self) -> Config:
+        """Get configuration for this agent."""
+        match self.environment:
+            case None:
+                # Create minimal config
+                caps = LLMCapabilitiesConfig(load_resource=False, get_resources=False)
+                global_settings = GlobalSettings(llm_capabilities=caps)
+                return Config(global_settings=global_settings)
+            case str() as path:
+                # Backward compatibility: treat as file path
+                resolved = self._resolve_environment_path(path, self.config_file_path)
+                return Config.from_file(resolved)
+            case {"type": "file", "uri": uri}:
+                # Handle file environment
+                return Config.from_file(uri)
+            case {"type": "inline", "config": config}:
+                # Handle inline environment
+                return config
+            case _:
+                msg = f"Invalid environment configuration: {self.environment}"
+                raise ValueError(msg)
+
+    def get_environment_path(self) -> str | None:
+        """Get environment file path if available."""
+        match self.environment:
+            case str() as path:
+                return self._resolve_environment_path(path, self.config_file_path)
+            case {"type": "file", "uri": uri}:
+                return uri
+            case _:
+                return None
+
+    def get_environment_display(self) -> str:
+        """Get human-readable environment description."""
+        match self.environment:
+            case str() as path:
+                return f"File: {path}"
+            case {"type": "file", "uri": uri}:
+                return f"File: {uri}"
+            case {"type": "inline", "uri": uri} if uri:
+                return f"Inline: {uri}"
+            case {"type": "inline"}:
+                return "Inline configuration"
+            case _:
+                return "No environment configured"
 
     @staticmethod
     def _resolve_environment_path(env: str, config_file_path: str | None = None) -> str:
@@ -216,24 +259,11 @@ class AgentConfig(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def resolve_paths(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Resolve environment path before model creation."""
-        if env := data.get("environment"):
-            config_path = data.get("config_file_path")
-            data["environment"] = cls._resolve_environment_path(env, config_path)
-            # Store the config path for later use in get_config
-            data["config_file_path"] = config_path
+        """Store config file path for later use."""
+        if "environment" in data:
+            # Just store the config path for later use
+            data["config_file_path"] = data.get("config_file_path")
         return data
-
-    def get_config(self) -> Config:
-        """Get configuration for this agent."""
-        if self.environment:
-            cfg_path = getattr(self, "config_file_path", None)
-            path = self._resolve_environment_path(self.environment, cfg_path)
-            return Config.from_file(path)
-
-        caps = LLMCapabilitiesConfig(load_resource=False, get_resources=False)
-        global_settings = GlobalSettings(llm_capabilities=caps)
-        return Config(global_settings=global_settings)
 
     def get_agent_kwargs(self, **overrides) -> dict[str, Any]:
         """Get kwargs for LLMlingAgent constructor.
