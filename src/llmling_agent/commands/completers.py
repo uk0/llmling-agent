@@ -23,6 +23,39 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def get_file_kind(path: Path) -> str:
+    """Get more specific file kind based on extension."""
+    ext = path.suffix.lower()
+    return {
+        ".py": "python",
+        ".yml": "yaml",
+        ".yaml": "yaml",
+        ".json": "json",
+        ".md": "markdown",
+        ".txt": "text",
+    }.get(ext, "file")
+
+
+def format_size(size: int) -> str:
+    """Format file size in human readable format."""
+    for unit in ["B", "KB", "MB", "GB"]:
+        if size < 1024:  # noqa: PLR2004
+            return f"{size:.1f} {unit}"
+        size /= 1024  # type: ignore
+    return f"{size:.1f} TB"
+
+
+def get_metadata(path: Path) -> str:
+    """Get metadata for path entry."""
+    try:
+        if path.is_dir():
+            return f"Directory ({len(list(path.iterdir()))} items)"
+        size = format_size(path.stat().st_size)
+        return f"{path.suffix[1:].upper()} file, {size}"
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 class PathCompleter(CompletionProvider):
     """Provides filesystem path completions."""
 
@@ -118,49 +151,13 @@ class PathCompleter(CompletionProvider):
                     name = f"{name}{os.sep}"
                     kind = "directory"
                 else:
-                    kind = self._get_file_kind(entry)
-
-                yield CompletionItem(
-                    text=name,
-                    display=display,
-                    kind=kind,  # type: ignore[arg-type]
-                    metadata=self._get_metadata(entry),
-                )
+                    kind = get_file_kind(entry)
+                meta = get_metadata(entry)
+                yield CompletionItem(text=name, display=display, kind=kind, metadata=meta)  # type: ignore[arg-type]
 
         except Exception as e:  # noqa: BLE001
             # Log error but don't raise
             logger.debug("Path completion error: %s", e)
-
-    def _get_file_kind(self, path: Path) -> str:
-        """Get more specific file kind based on extension."""
-        ext = path.suffix.lower()
-        return {
-            ".py": "python",
-            ".yml": "yaml",
-            ".yaml": "yaml",
-            ".json": "json",
-            ".md": "markdown",
-            ".txt": "text",
-        }.get(ext, "file")
-
-    def _get_metadata(self, path: Path) -> str:
-        """Get metadata for path entry."""
-        try:
-            if path.is_dir():
-                return f"Directory ({len(list(path.iterdir()))} items)"
-            size = self._format_size(path.stat().st_size)
-            return f"{path.suffix[1:].upper()} file, {size}"
-        except Exception:  # noqa: BLE001
-            return ""
-
-    @staticmethod
-    def _format_size(size: int) -> str:
-        """Format file size in human readable format."""
-        for unit in ["B", "KB", "MB", "GB"]:
-            if size < 1024:  # noqa: PLR2004
-                return f"{size:.1f} {unit}"
-            size /= 1024  # type: ignore
-        return f"{size:.1f} TB"
 
 
 class EnvVarCompleter(CompletionProvider):

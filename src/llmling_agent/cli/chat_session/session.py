@@ -122,16 +122,13 @@ class InteractiveSession:
         """Handle user input."""
         if not content.strip():
             return
-
+        writer = DefaultOutputWriter()
         try:
             assert self._chat_session is not None
 
             if content.startswith("/"):
                 # Handle command (no change needed)
-                result = await self._chat_session.send_message(
-                    content,
-                    output=DefaultOutputWriter(),
-                )
+                result = await self._chat_session.send_message(content, output=writer)
                 if result.content:
                     self.console.print(result.content)
                 self.status_bar.render(self._state)
@@ -145,18 +142,14 @@ class InteractiveSession:
                 async for chunk in await self._chat_session.send_message(
                     content,
                     stream=True,
-                    output=DefaultOutputWriter(),
+                    output=writer,
                 ):
                     if chunk.content:
                         self.console.print(Markdown(chunk.content))
                     self._state.update_tokens(chunk)
             else:
                 # Non-streaming mode
-                result = await self._chat_session.send_message(
-                    content,
-                    stream=False,
-                    output=DefaultOutputWriter(),
-                )
+                result = await self._chat_session.send_message(content, output=writer)
                 if result.content:
                     self.console.print(Markdown(result.content))
                 self._state.update_tokens(result)

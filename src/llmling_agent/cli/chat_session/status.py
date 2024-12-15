@@ -201,11 +201,7 @@ class StatusBar:
         # Add a column for each visible field
         for field in visible_fields:
             status.add_column(style=field.style, justify=field.align)
-
         # Add all fields in one row
-        status.add_row(
-            *(f"{field.label}: {field.get_value(info)}" for field in visible_fields)
-        )
-
+        status.add_row(*(f"{f.label}: {f.get_value(info)}" for f in visible_fields))
         panel = Panel(status, style="dim", padding=(0, 1), border_style="dim")
         self.console.print(panel)

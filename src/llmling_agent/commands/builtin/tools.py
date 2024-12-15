@@ -9,6 +9,19 @@ from llmling_agent.log import get_logger
 
 logger = get_logger(__name__)
 
+CODE_TEMPLATE = '''\
+def my_tool(text: str) -> str:
+    """A new tool.
+
+    Args:
+        text: Input text
+
+    Returns:
+        Tool result
+    """
+    return f"You said: {text}"
+'''
+
 
 @dataclass
 class ToolInfo:
@@ -171,9 +184,8 @@ async def register_tool(
 ) -> None:
     """Register a new tool from import path or function."""
     if not args:
-        await ctx.output.print(
-            "Usage: /register-tool <import_path> [--name name] [--description desc]"
-        )
+        msg = "Usage: /register-tool <import_path> [--name name] [--description desc]"
+        await ctx.output.print(msg)
         return
 
     import_path = args[0]
@@ -238,32 +250,20 @@ async def write_tool(
     """Write and register a new tool interactively."""
     from prompt_toolkit import PromptSession
     from prompt_toolkit.lexers import PygmentsLexer
+    from prompt_toolkit.styles import style_from_pygments_cls
     from pygments.lexers.python import PythonLexer
-
-    template = '''\
-def my_tool(text: str) -> str:
-    """A new tool.
-
-    Args:
-        text: Input text
-
-    Returns:
-        Tool result
-    """
-    return f"You said: {text}"
-'''
+    from pygments.styles import get_style_by_name
 
     # Create editing session with syntax highlighting
     session = PromptSession(
         lexer=PygmentsLexer(PythonLexer),
         multiline=True,
+        style=style_from_pygments_cls(get_style_by_name("monokai")),
+        include_default_pygments_style=False,
+        mouse_support=True,
     )
-
-    code = await session.prompt_async(
-        "\nEnter tool code (ESC + Enter or Alt + Enter to save):\n\n",
-        default=template,
-    )
-
+    msg = "\nEnter tool code (ESC + Enter or Alt + Enter to save):\n\n"
+    code = await session.prompt_async(msg, default=CODE_TEMPLATE)
     try:
         # Execute code in a namespace
         namespace: dict[str, Any] = {}
