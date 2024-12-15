@@ -201,6 +201,48 @@ async def register_tool(
         await ctx.output.print(f"Failed to register tool: {e}")
 
 
+async def use_tool(
+    ctx: CommandContext,
+    args: list[str],
+    kwargs: dict[str, str],
+) -> None:
+    """Execute prompt with a specific tool."""
+    if len(args) < 2:  # noqa: PLR2004
+        await ctx.output.print("Usage: /use-tool <tool_name> <prompt>")
+        return
+
+    tool_name = args[0]
+    prompt = " ".join(args[1:])  # everything after tool name is the prompt
+    agent = ctx.session._agent
+
+    if tool_name not in agent.runtime.tools and not any(
+        t.name == tool_name for t in agent._original_tools
+    ):
+        await ctx.output.print(f"Tool '{tool_name}' not found")
+        return
+
+    previous_choice = agent._tool_choice
+    try:
+        agent._tool_choice = tool_name
+        result = await ctx.session.send_message(prompt)
+        await ctx.output.print(result.content)
+    finally:
+        agent._tool_choice = previous_choice
+
+
+use_tool_cmd = Command(
+    name="use-tool",
+    description="Execute prompt using a specific tool",
+    execute_func=use_tool,
+    usage="<tool_name> <prompt>",
+    help_text=(
+        "Execute a prompt using only the specified tool.\n\n"
+        "Example:\n"
+        "  /use-tool open_browser 'Open python.org'\n"
+    ),
+    category="tools",
+)
+
 register_tool_cmd = Command(
     name="register-tool",
     description="Register a new tool from an import path",
