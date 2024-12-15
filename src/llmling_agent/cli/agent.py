@@ -8,6 +8,7 @@ from llmling.cli.constants import output_format_opt, verbose_opt
 from llmling.cli.utils import format_output
 from promptantic import ModelGenerator
 import typer as t
+from upath import UPath
 
 from llmling_agent import config_resources
 from llmling_agent.cli import agent_store, resolve_agent_config
@@ -20,6 +21,12 @@ agent_cli = t.Typer(help="Agent management commands", no_args_is_help=True)
 @agent_cli.command("init")
 def init_agent_config(
     output: str = t.Argument(help="Path to write agent configuration file"),
+    name: str | None = t.Option(
+        None,
+        "--name",
+        "-n",
+        help="Name for the configuration (defaults to filename)",
+    ),
     interactive: bool = t.Option(
         False,
         "--interactive/--no-interactive",
@@ -28,22 +35,26 @@ def init_agent_config(
 ) -> None:
     """Initialize a new agent configuration file.
 
-    Creates a new configuration file at the specified path with agent definitions.
-    Use --interactive for a guided setup process.
+    Creates and activates a new agent configuration. The configuration will be
+    automatically registered and set as active.
     """
+    # Create config
     if interactive:
         generator = ModelGenerator()
         manifest = generator.populate(AgentsManifest)
         manifest.save(output)
-        print(f"\nCreated agent configuration file: {output}")
     else:
-        # Copy template file
         shutil.copy2(config_resources.AGENTS_TEMPLATE, output)
-        print(f"\nCreated agent configuration file: {output}")
-        print("\nTry these commands:")
-        print("  llmling-agent list")
-        print("  llmling-agent chat url_opener")
-        print("  llmling-agent run system_inspector")
+
+    # Add and set as active
+    config_name = name or UPath(output).stem
+    agent_store.add_config(config_name, output)
+    agent_store.set_active(config_name)
+
+    print(f"\nCreated and activated agent configuration '{config_name}': {output}")
+    print("\nTry these commands:")
+    print("  llmling-agent list")
+    print("  llmling-agent chat simple_agent")
 
 
 @agent_cli.command("add")

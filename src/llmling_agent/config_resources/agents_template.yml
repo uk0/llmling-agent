@@ -1,10 +1,19 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
-
 agents:
   simple_agent:
     description: "Basic agent with minimal configuration"
     model: openai:gpt-4o-mini
     role: assistant
-    environment: env_basic.yml
+    environment:
+      type: inline
+      config:
+        tools:
+          open_webpage:
+            import_path: webbrowser.open
+            description: "Open URL in browser"
+        resources:
+          help_text:
+            type: text
+            content: "Basic help text for the agent"
     system_prompts:
       - "You are a helpful assistant."
