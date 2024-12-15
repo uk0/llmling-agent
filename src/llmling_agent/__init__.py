@@ -5,7 +5,7 @@ from llmling_agent.agent import LLMlingAgent
 from llmling_agent.runners import AgentOrchestrator, AgentRunConfig, SingleAgentRunner
 from dotenv import load_dotenv
 
-__version__ = "0.5.1"
+__version__ = "0.6.0"
 
 load_dotenv()
 
