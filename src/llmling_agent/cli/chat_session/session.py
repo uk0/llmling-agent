@@ -21,6 +21,7 @@ from llmling_agent.chat_session.events import (
 )
 from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.cli.chat_session import utils
+from llmling_agent.cli.chat_session.completion import PromptToolkitCompleter
 from llmling_agent.cli.chat_session.config import HISTORY_DIR, SessionState
 from llmling_agent.cli.chat_session.status import StatusBar
 from llmling_agent.commands.base import Command, CommandContext
@@ -88,17 +89,13 @@ class InteractiveSession:
     def _setup_prompt(self) -> None:
         """Setup prompt toolkit session."""
         auto = AutoSuggestFromHistory()
+
+        # Initial setup without completer
         self._prompt = PromptSession[str](
-            "You: ", history=self._history, auto_suggest=auto
+            "You: ",
+            history=self._history,
+            auto_suggest=auto,
         )
-        # auto = AutoSuggestFromHistory()
-        # completer = CommandCompleter(self._chat_session)
-        # self._prompt = PromptSession[str](
-        #     "You: ",
-        #     history=self._history,
-        #     auto_suggest=auto,
-        #     completer=completer,
-        # )
 
     def _register_cli_commands(self) -> None:
         """Register CLI-specific commands."""
@@ -185,7 +182,10 @@ class InteractiveSession:
         try:
             self._chat_session = await self._session_manager.create_session(self.agent)
             self._state.current_model = self._chat_session._model
-
+            completer = PromptToolkitCompleter(
+                self._chat_session._command_store._commands
+            )
+            self._prompt.completer = completer  # Update the prompt's completer
             # Register event handler AFTER session creation
             cli_handler = CLIEventHandler()
             self._chat_session.add_event_handler(cli_handler)

@@ -126,11 +126,7 @@ set_env_cmd = Command(
         "Note: This will reload the runtime configuration and update available tools."
     ),
     category="environment",
-    completer=PathCompleter(
-        file_patterns=["*.yml", "*.yaml"],
-        directories=True,
-        show_hidden=False,
-    ),
+    completer=PathCompleter(file_patterns=["*.yml", "*.yaml"]),
 )
 
 edit_env_cmd = Command(
@@ -145,9 +141,5 @@ edit_env_cmd = Command(
         "- Other environment settings"
     ),
     category="environment",
-    completer=PathCompleter(
-        file_patterns=["*.yml", "*.yaml"],
-        directories=True,
-        show_hidden=False,
-    ),
+    completer=PathCompleter(file_patterns=["*.yml", "*.yaml"]),
 )
