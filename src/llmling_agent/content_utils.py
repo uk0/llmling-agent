@@ -17,6 +17,11 @@ type ContentType = Literal["text", "image", "audio", "video"]
 type ContentSource = str | bytes | Path | Any
 
 
+def to_base64(data: bytes) -> str:
+    """Convert bytes to base64 string."""
+    return base64.b64encode(data).decode()
+
+
 class MessageBuilder:
     """Static methods for building messages."""
 
@@ -72,10 +77,10 @@ class MessageBuilder:
             case str() | os.PathLike():
                 # Read file and convert to data URL
                 path = UPath(content)
-                content_b64 = MessageBuilder._to_base64(path.read_bytes())
+                content_b64 = to_base64(path.read_bytes())
                 return f"data:image/png;base64,{content_b64}"
             case bytes():
-                content_b64 = MessageBuilder._to_base64(content)
+                content_b64 = to_base64(content)
                 return f"data:image/png;base64,{content_b64}"
             case _:
                 msg = f"Unsupported image content type: {type(content)}"
@@ -103,18 +108,13 @@ class MessageBuilder:
                 return content
             case str() | os.PathLike():
                 path = UPath(content)
-                content_b64 = MessageBuilder._to_base64(path.read_bytes())
+                content_b64 = to_base64(path.read_bytes())
                 mime_type = get_audio_mime(path)
                 return f"data:{mime_type};base64,{content_b64}"
             case bytes():
                 # For raw bytes, default to mp3 as it's most common
-                content_b64 = MessageBuilder._to_base64(content)
+                content_b64 = to_base64(content)
                 return f"data:audio/mpeg;base64,{content_b64}"
             case _:
                 msg = f"Unsupported audio content type: {type(content)}"
                 raise ValueError(msg)
-
-    @staticmethod
-    def _to_base64(data: bytes) -> str:
-        """Convert bytes to base64 string."""
-        return base64.b64encode(data).decode()
