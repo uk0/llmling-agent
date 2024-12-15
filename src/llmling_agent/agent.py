@@ -72,6 +72,7 @@ class LLMlingAgent[TResult]:
         result_tool_name: str = "final_result",
         result_tool_description: str | None = None,
         result_retries: int | None = None,
+        tool_choice: bool | str | list[str] = True,
         defer_model_check: bool = False,
         enable_logging: bool = True,
         **kwargs,
@@ -92,6 +93,7 @@ class LLMlingAgent[TResult]:
             result_tool_name: Name of the tool used for final result
             result_tool_description: Description of the final result tool
             result_retries: Max retries for result validation (defaults to retries)
+            tool_choice: Ability to set a fixed tool or temporarily disable tools usage.
             defer_model_check: Whether to defer model evaluation until first run
             kwargs: Additional arguments for PydanticAI agent
             enable_logging: Whether to enable logging for the agent
@@ -105,6 +107,7 @@ class LLMlingAgent[TResult]:
         # Tool confirmation setup
         self._tool_confirmation = tool_confirmation
         self._confirm_tools = self._setup_tool_confirmation(confirm_tools)
+        self._tool_choice = tool_choice
 
         # Prepare all tools including runtime tools
         tools = list(self._tools)  # Start with registered tools
@@ -673,54 +676,47 @@ class LLMlingAgent[TResult]:
         })
         return tools
 
-    # def _prepare_tools(self) -> list[Tool[AgentContext]]:
-    #     """Prepare all tools respecting enabled/disabled state."""
-    #     tools = list(self._tools)  # Start with registered tools
-
-    #     # Add runtime tools if not disabled
-    #     for tool_name, llm_tool in self.runtime.tools.items():
-    #         if tool_name not in self._disabled_tools:
-    #             schema = llm_tool.get_schema()
-    #             confirm_cb = (
-    #                 self._tool_confirmation.confirm_tool
-    #                 if self._tool_confirmation
-    #                 and self._confirm_tools
-    #                 and tool_name in self._confirm_tools
-    #                 else None
-    #             )
-    #             wrapper: Callable[..., Awaitable[Any]] = create_confirmed_tool_wrapper(
-    #                 name=tool_name,
-    #                 schema=schema,
-    #                 confirm_callback=confirm_cb,
-    #             )
-    #             tools.append(Tool(wrapper, takes_ctx=True))
-
-    #     return tools
-
     def _prepare_tools(self) -> list[Tool[AgentContext]]:
         """Prepare all tools respecting enabled/disabled state."""
-        tools = list(self._tools)  # Start with registered tools
-        logger.debug("Initial tools: %s", [t.name for t in tools])
+        match self._tool_choice:
+            case False:  # no tools
+                return []
+            case str() as tool_name:  # specific tool
+                return self._get_tools([tool_name])
+            case list() as tool_names:  # list of specific tools
+                return self._get_tools(tool_names)
+            case True:  # auto - return all enabled tools
+                tools = list(self._tools)
+                for tool_name in self.runtime.tools:
+                    if (
+                        tool_name not in self._disabled_tools
+                    ):  # This could be refactored later
+                        tool_def = self.runtime.tools[tool_name]
+                        wrapped = create_runtime_tool_wrapper(
+                            name=tool_name,
+                            schema=tool_def.get_schema(),
+                            description=tool_def.description,
+                        )
+                        tools.append(wrapped)
+                return tools
+            case _:
+                return []
 
-        # Add runtime tools if not disabled
-        available_tools = self.runtime.tools
-        logger.debug("Available runtime tools: %s", list(available_tools))
-        logger.debug("Disabled tools: %s", self._disabled_tools)
-
-        # Create and add tool wrappers
-        for tool_name in self.runtime.tools:
-            if tool_name not in self._disabled_tools:
-                logger.debug("Adding tool wrapper for: %s", tool_name)
-                tool_def = self.runtime.tools[tool_name]
-                schema = tool_def.get_schema()
+    def _get_tools(self, tool_names: list[str]) -> list[Tool[AgentContext]]:
+        """Get specified tools from both runtime and custom tools."""
+        tools = []
+        for name in tool_names:
+            # Add runtime tool if it matches
+            if name in self.runtime.tools:
+                tool_def = self.runtime.tools[name]
                 wrapped = create_runtime_tool_wrapper(
-                    name=tool_name,
-                    schema=schema,
+                    name=name,
+                    schema=tool_def.get_schema(),
                     description=tool_def.description,
                 )
                 tools.append(wrapped)
-
-        logger.debug("Final tool list: %s", [t.name for t in tools])
+            # Add custom tool if it matches
+            tools.extend(t for t in self._tools if t.name == name)
         return tools
 
 
