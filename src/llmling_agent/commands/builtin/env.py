@@ -9,6 +9,7 @@ from upath import UPath
 
 from llmling_agent.commands.base import Command, CommandContext, CommandError
 from llmling_agent.commands.completers import PathCompleter
+from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 
 
 async def show_env(
@@ -91,13 +92,31 @@ async def edit_env(
         raise CommandError(msg)
 
     config = ctx.session._agent._context.config
-    try:
-        resolved_path = config.get_environment_path()
-        webbrowser.open(resolved_path)
-        await ctx.output.print(f"Opening environment file: {resolved_path}")
-    except Exception as e:
-        msg = f"Failed to open environment file: {e}"
-        raise CommandError(msg) from e
+    match config.environment:
+        case FileEnvironment(uri=uri):
+            # For file environments, open in browser
+            try:
+                webbrowser.open(uri)
+                await ctx.output.print(f"Opening environment file: {uri}")
+            except Exception as e:
+                msg = f"Failed to open environment file: {e}"
+                raise CommandError(msg) from e
+        case InlineEnvironment(config=cfg):
+            # For inline environments, display the configuration
+            await ctx.output.print("Inline environment configuration:")
+            yaml_config = cfg.model_dump_yaml()
+            await ctx.output.print(yaml_config)
+        case str() as path:
+            # Legacy string path
+            try:
+                resolved = config._resolve_environment_path(path, config.config_file_path)
+                webbrowser.open(resolved)
+                await ctx.output.print(f"Opening environment file: {resolved}")
+            except Exception as e:
+                msg = f"Failed to open environment file: {e}"
+                raise CommandError(msg) from e
+        case None:
+            await ctx.output.print("No environment configured")
 
 
 show_env_cmd = Command(
