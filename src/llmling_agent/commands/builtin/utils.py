@@ -37,26 +37,6 @@ async def copy_clipboard(
         await ctx.output.print("No assistant message found to copy")
 
 
-async def edit_env(
-    ctx: CommandContext,
-    args: list[str],
-    kwargs: dict[str, str],
-) -> None:
-    """Open agent's environment file in default application."""
-    if not ctx.session._agent._context:
-        msg = "No agent context available"
-        raise CommandError(msg)
-
-    config = ctx.session._agent._context.config
-    try:
-        resolved_path = config.get_environment_path()
-        webbrowser.open(resolved_path)
-        await ctx.output.print(f"Opening environment file: {resolved_path}")
-    except Exception as e:
-        msg = f"Failed to open environment file: {e}"
-        raise CommandError(msg) from e
-
-
 async def edit_agent_file(
     ctx: CommandContext,
     args: list[str],
@@ -81,8 +61,8 @@ async def edit_agent_file(
 
 
 edit_agent_file_cmd = Command(
-    name="edit-agent-file",
-    description="Edit the agent's configuration file",
+    name="open-agent-file",
+    description="Open the agent's configuration file",
     execute_func=edit_agent_file,
     help_text=(
         "Open the agent's configuration file in your default editor.\n\n"
@@ -104,20 +84,6 @@ copy_clipboard_cmd = Command(
     help_text=(
         "Copy the most recent assistant response to the system clipboard.\n"
         "Requires pyperclip package to be installed."
-    ),
-    category="utils",
-)
-
-edit_env_cmd = Command(
-    name="edit-env",
-    description="Edit the agent's environment configuration",
-    execute_func=edit_env,
-    help_text=(
-        "Open the agent's environment configuration file in the default editor.\n"
-        "This allows you to modify:\n"
-        "- Available tools\n"
-        "- Resources\n"
-        "- Other environment settings"
     ),
     category="utils",
 )
