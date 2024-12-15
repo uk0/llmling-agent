@@ -19,12 +19,20 @@ from llmling_agent.environment import AgentEnvironment  # noqa: TC001
 from llmling_agent.log import get_logger
 
 
-logger = get_logger(__name__)
-
 if TYPE_CHECKING:
     import os
 
     from llmling_agent.context import AgentContext
+
+TYPE_MAP = {
+    "str": str,
+    "bool": bool,
+    "int": int,
+    "float": float,
+    "list[str]": list[str],
+}
+
+logger = get_logger(__name__)
 
 
 def resolve_response_type(
@@ -55,14 +63,7 @@ def resolve_response_type(
             # Create Pydantic model from inline definition
             fields = {}
             for name, field in response_def.fields.items():
-                type_map = {
-                    "str": str,
-                    "bool": bool,
-                    "int": int,
-                    "float": float,
-                    "list[str]": list[str],
-                }
-                python_type = type_map.get(field.type)
+                python_type = TYPE_MAP.get(field.type)
                 if not python_type:
                     msg = f"Unsupported field type: {field.type}"
                     raise ValueError(msg)
@@ -149,11 +150,8 @@ class AgentConfig(BaseModel):
     model: models.Model | models.KnownModelName | None = None
     """The LLM model to use"""
 
-    environment: Annotated[
-        str | AgentEnvironment | None,
-        Field(description="Environment configuration (path or object)"),
-    ] = None
-    """Environment configuration"""
+    environment: str | AgentEnvironment | None = None
+    """Environment configuration (path or object)"""
 
     result_type: str | None = None
     """Name of the response definition to use"""
