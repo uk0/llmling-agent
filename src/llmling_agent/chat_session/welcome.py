@@ -69,10 +69,7 @@ def create_welcome_messages(
 
     model = session._model or agent.model_name or "default"
     mode = "streaming" if streaming else "non-streaming"
-    config_info = [
-        f"{fmt('Model:', 'bold')} {model}",
-        f"{fmt('Mode:', 'bold')} {mode}",
-    ]
+    config_info = [f"{fmt('Model:', 'bold')} {model}", f"{fmt('Mode:', 'bold')} {mode}"]
 
     tools = session.get_tool_states()
     enabled_tools = [name for name, enabled in tools.items() if enabled]

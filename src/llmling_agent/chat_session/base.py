@@ -98,10 +98,11 @@ class AgentChatSession:
     async def clear(self) -> None:
         """Clear chat history."""
         self._history = []
+        data = {"session_id": str(self.id)}
         event = SessionEvent(
             type=SessionEventType.HISTORY_CLEARED,
             timestamp=datetime.now(),
-            data={"session_id": str(self.id)},
+            data=data,
         )
         await self._notify_handlers(event)
 
@@ -110,14 +111,15 @@ class AgentChatSession:
         old_tools = self._tool_states.copy()
         self._history = []
         self._tool_states = self._agent.list_tools()
+        data = {
+            "session_id": str(self.id),
+            "previous_tools": old_tools,
+            "new_tools": self._tool_states,
+        }
         event = SessionEvent(
             type=SessionEventType.SESSION_RESET,
             timestamp=datetime.now(),
-            data={
-                "session_id": str(self.id),
-                "previous_tools": old_tools,
-                "new_tools": self._tool_states,
-            },
+            data=data,
         )
         await self._notify_handlers(event)
 
