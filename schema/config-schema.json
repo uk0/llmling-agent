@@ -94,11 +94,28 @@
               "type": "string"
             },
             {
+              "discriminator": {
+                "mapping": {
+                  "file": "#/$defs/FileEnvironment",
+                  "inline": "#/$defs/InlineEnvironment"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/FileEnvironment"
+                },
+                {
+                  "$ref": "#/$defs/InlineEnvironment"
+                }
+              ]
+            },
+            {
               "type": "null"
             }
           ],
           "default": null,
-          "description": "Path or name of the environment configuration to use",
+          "description": "Environment configuration (path or object)",
           "title": "Environment"
         },
         "result_type": {
@@ -113,6 +130,44 @@
           "default": null,
           "description": "Name of the response definition to use",
           "title": "Result Type"
+        },
+        "retries": {
+          "default": 1,
+          "description": "Number of retries for failed operations (maps to pydantic-ai's retries)",
+          "title": "Retries",
+          "type": "integer"
+        },
+        "result_tool_name": {
+          "default": "final_result",
+          "description": "Name of the tool used for structured responses",
+          "title": "Result Tool Name",
+          "type": "string"
+        },
+        "result_tool_description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Custom description for the result tool",
+          "title": "Result Tool Description"
+        },
+        "result_retries": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Max retries for result validation",
+          "title": "Result Retries"
         },
         "avatar": {
           "anyOf": [
@@ -183,6 +238,201 @@
       "title": "AgentConfig",
       "type": "object"
     },
+    "CLIResource": {
+      "description": "Resource from CLI command execution.",
+      "properties": {
+        "resource_type": {
+          "const": "cli",
+          "default": "cli",
+          "description": "Discriminator field identifying this as a CLI-based resource.",
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "description": "Human-readable description of the resource.",
+          "title": "Description",
+          "type": "string"
+        },
+        "uri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Canonical URI for this resource, set during registration if unset.",
+          "title": "Uri"
+        },
+        "processors": {
+          "description": "Processing steps to apply when loading this resource.",
+          "items": {
+            "$ref": "#/$defs/ProcessingStep"
+          },
+          "title": "Processors",
+          "type": "array"
+        },
+        "watch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WatchConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Configuration for file system watching, if supported."
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Technical identifier (automatically set from config key during registration).",
+          "title": "Name"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "description": "Command to execute (string or sequence of arguments).",
+          "title": "Command"
+        },
+        "shell": {
+          "default": false,
+          "description": "Whether to run the command through a shell.",
+          "title": "Shell",
+          "type": "boolean"
+        },
+        "cwd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Working directory for command execution.",
+          "title": "Cwd"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum time in seconds to wait for command completion.",
+          "title": "Timeout"
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "title": "CLIResource",
+      "type": "object"
+    },
+    "CallableResource": {
+      "description": "Resource from executing a Python callable.",
+      "properties": {
+        "resource_type": {
+          "const": "callable",
+          "default": "callable",
+          "description": "Discriminator field identifying this as a callable-based resource.",
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "description": "Human-readable description of the resource.",
+          "title": "Description",
+          "type": "string"
+        },
+        "uri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Canonical URI for this resource, set during registration if unset.",
+          "title": "Uri"
+        },
+        "processors": {
+          "description": "Processing steps to apply when loading this resource.",
+          "items": {
+            "$ref": "#/$defs/ProcessingStep"
+          },
+          "title": "Processors",
+          "type": "array"
+        },
+        "watch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WatchConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Configuration for file system watching, if supported."
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Technical identifier (automatically set from config key during registration).",
+          "title": "Name"
+        },
+        "import_path": {
+          "description": "Dotted import path to the callable to execute.",
+          "title": "Import Path",
+          "type": "string"
+        },
+        "keyword_args": {
+          "description": "Keyword arguments to pass to the callable.",
+          "title": "Keyword Args",
+          "type": "object"
+        }
+      },
+      "required": [
+        "import_path"
+      ],
+      "title": "CallableResource",
+      "type": "object"
+    },
     "Capabilities": {
       "description": "Base capabilities configuration.",
       "properties": {
@@ -230,6 +480,480 @@
       "title": "Capabilities",
       "type": "object"
     },
+    "Config": {
+      "additionalProperties": false,
+      "description": "Root configuration model.",
+      "properties": {
+        "version": {
+          "default": "1.0",
+          "description": "Version string for this configuration format.",
+          "title": "Version",
+          "type": "string"
+        },
+        "global_settings": {
+          "$ref": "#/$defs/GlobalSettings"
+        },
+        "context_processors": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ProcessorConfig"
+          },
+          "description": "Content processors available for resource transformation.",
+          "title": "Context Processors",
+          "type": "object"
+        },
+        "resources": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/PathResource"
+              },
+              {
+                "$ref": "#/$defs/TextResource"
+              },
+              {
+                "$ref": "#/$defs/CLIResource"
+              },
+              {
+                "$ref": "#/$defs/SourceResource"
+              },
+              {
+                "$ref": "#/$defs/CallableResource"
+              }
+            ]
+          },
+          "description": "Resource definitions keyed by name.",
+          "title": "Resources",
+          "type": "object"
+        },
+        "resource_groups": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "description": "Groups of resources for logical organization.",
+          "title": "Resource Groups",
+          "type": "object"
+        },
+        "tools": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ToolConfig"
+          },
+          "description": "Tool definitions keyed by name.",
+          "title": "Tools",
+          "type": "object"
+        },
+        "toolsets": {
+          "additionalProperties": {
+            "discriminator": {
+              "mapping": {
+                "custom": "#/$defs/CustomToolsetConfig",
+                "entry_points": "#/$defs/EntryPointToolsetConfig",
+                "openapi": "#/$defs/OpenAPIToolsetConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/OpenAPIToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/EntryPointToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CustomToolsetConfig"
+              }
+            ]
+          },
+          "description": "Toolset configurations for extensible tool collections.",
+          "title": "Toolsets",
+          "type": "object"
+        },
+        "prompts": {
+          "additionalProperties": {
+            "discriminator": {
+              "mapping": {
+                "file": "#/$defs/FilePrompt",
+                "function": "#/$defs/DynamicPrompt",
+                "text": "#/$defs/StaticPrompt"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/StaticPrompt"
+              },
+              {
+                "$ref": "#/$defs/DynamicPrompt"
+              },
+              {
+                "$ref": "#/$defs/FilePrompt"
+              }
+            ]
+          },
+          "description": "Prompt definitions keyed by name.",
+          "title": "Prompts",
+          "type": "object"
+        }
+      },
+      "title": "Config",
+      "type": "object"
+    },
+    "CustomToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for custom toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "custom",
+          "default": "custom",
+          "description": "Discriminator field identifying this as a custom toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "import_path": {
+          "description": "Dotted import path to the custom toolset implementation class.",
+          "title": "Import Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "import_path"
+      ],
+      "title": "CustomToolsetConfig",
+      "type": "object"
+    },
+    "DynamicPrompt": {
+      "additionalProperties": false,
+      "description": "Dynamic prompt loaded from callable.",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Technical identifier (automatically set from config key during registration).",
+          "title": "Name"
+        },
+        "description": {
+          "description": "Human-readable description of what this prompt does.",
+          "title": "Description",
+          "type": "string"
+        },
+        "arguments": {
+          "description": "List of arguments that this prompt accepts.",
+          "items": {
+            "$ref": "#/$defs/PromptParameter"
+          },
+          "title": "Arguments",
+          "type": "array"
+        },
+        "metadata": {
+          "description": "Additional metadata for storing custom prompt information.",
+          "title": "Metadata",
+          "type": "object"
+        },
+        "import_path": {
+          "description": "Dotted import path to the callable that generates the prompt.",
+          "title": "Import Path",
+          "type": "string"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional template string for formatting the callable's output.",
+          "title": "Template"
+        },
+        "completions": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional mapping of argument names to completion functions.",
+          "title": "Completions"
+        },
+        "type": {
+          "const": "function",
+          "default": "function",
+          "description": "Discriminator field identifying this as a function-based prompt.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "import_path"
+      ],
+      "title": "DynamicPrompt",
+      "type": "object"
+    },
+    "EntryPointToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for entry point toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "entry_points",
+          "default": "entry_points",
+          "description": "Discriminator field identifying this as an entry point toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "module": {
+          "description": "Python module path",
+          "title": "Module",
+          "type": "string"
+        }
+      },
+      "required": [
+        "module"
+      ],
+      "title": "EntryPointToolsetConfig",
+      "type": "object"
+    },
+    "FileEnvironment": {
+      "description": "File-based environment configuration.",
+      "properties": {
+        "config_file_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config File Path"
+        },
+        "type": {
+          "const": "file",
+          "default": "file",
+          "title": "Type",
+          "type": "string"
+        },
+        "uri": {
+          "description": "Path to environment file",
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "uri"
+      ],
+      "title": "FileEnvironment",
+      "type": "object"
+    },
+    "FilePrompt": {
+      "additionalProperties": false,
+      "description": "Prompt loaded from a file.\n\nThis type of prompt loads its content from a file, allowing for longer or more\ncomplex prompts to be managed in separate files. The file content is loaded\nand parsed according to the specified format.",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Technical identifier (automatically set from config key during registration).",
+          "title": "Name"
+        },
+        "description": {
+          "description": "Human-readable description of what this prompt does.",
+          "title": "Description",
+          "type": "string"
+        },
+        "arguments": {
+          "description": "List of arguments that this prompt accepts.",
+          "items": {
+            "$ref": "#/$defs/PromptParameter"
+          },
+          "title": "Arguments",
+          "type": "array"
+        },
+        "metadata": {
+          "description": "Additional metadata for storing custom prompt information.",
+          "title": "Metadata",
+          "type": "object"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            }
+          ],
+          "description": "Path to the file containing the prompt content.",
+          "title": "Path"
+        },
+        "format": {
+          "default": "text",
+          "description": "Format of the file content (text, markdown, or jinja2 template).",
+          "enum": [
+            "text",
+            "markdown",
+            "jinja2"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "type": {
+          "const": "file",
+          "default": "file",
+          "description": "Discriminator field identifying this as a file-based prompt.",
+          "title": "Type",
+          "type": "string"
+        },
+        "watch": {
+          "default": false,
+          "description": "Whether to watch the file for changes and reload automatically.",
+          "title": "Watch",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "description",
+        "path"
+      ],
+      "title": "FilePrompt",
+      "type": "object"
+    },
+    "GlobalSettings": {
+      "additionalProperties": false,
+      "description": "Global settings that apply to all components.",
+      "properties": {
+        "timeout": {
+          "default": 30,
+          "description": "Maximum time in seconds to wait for operations",
+          "title": "Timeout",
+          "type": "integer"
+        },
+        "max_retries": {
+          "default": 3,
+          "description": "Maximum number of retries for failed operations",
+          "title": "Max Retries",
+          "type": "integer"
+        },
+        "requirements": {
+          "description": "List of package requirments for the functions used in this file.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Requirements",
+          "type": "array"
+        },
+        "pip_index_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Alternative PyPI index URL for package installation",
+          "title": "Pip Index Url"
+        },
+        "extra_paths": {
+          "description": "Additional import paths",
+          "items": {
+            "type": "string"
+          },
+          "title": "Extra Paths",
+          "type": "array"
+        },
+        "scripts": {
+          "description": "PEP723 scripts (can be imported and will be scanned for dependencies)",
+          "items": {
+            "type": "string"
+          },
+          "title": "Scripts",
+          "type": "array"
+        },
+        "prefer_uv": {
+          "default": false,
+          "description": "Explicitely use uv for package installation / management ",
+          "title": "Prefer Uv",
+          "type": "boolean"
+        },
+        "log_level": {
+          "default": "INFO",
+          "description": "Log level for LLMling core.",
+          "enum": [
+            "DEBUG",
+            "INFO",
+            "WARNING",
+            "ERROR",
+            "CRITICAL"
+          ],
+          "title": "Log Level",
+          "type": "string"
+        },
+        "jinja_environment": {
+          "$ref": "#/$defs/Jinja2Config",
+          "description": "Jinja2 environment configuration"
+        },
+        "llm_capabilities": {
+          "$ref": "#/$defs/LLMCapabilitiesConfig",
+          "description": "Control which system capabilities are exposed to LLMs."
+        }
+      },
+      "title": "GlobalSettings",
+      "type": "object"
+    },
     "ImportedResponseDefinition": {
       "additionalProperties": false,
       "description": "Definition for an imported response type.",
@@ -261,6 +985,50 @@
         "import_path"
       ],
       "title": "ImportedResponseDefinition",
+      "type": "object"
+    },
+    "InlineEnvironment": {
+      "description": "Inline environment configuration.",
+      "properties": {
+        "config_file_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config File Path"
+        },
+        "type": {
+          "const": "inline",
+          "default": "inline",
+          "title": "Type",
+          "type": "string"
+        },
+        "uri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uri"
+        },
+        "config": {
+          "$ref": "#/$defs/Config",
+          "description": "Inline configuration"
+        }
+      },
+      "required": [
+        "config"
+      ],
+      "title": "InlineEnvironment",
       "type": "object"
     },
     "InlineResponseDefinition": {
@@ -297,6 +1065,553 @@
         "fields"
       ],
       "title": "InlineResponseDefinition",
+      "type": "object"
+    },
+    "Jinja2Config": {
+      "additionalProperties": false,
+      "description": "Configuration for Jinja2 environment.\n\nSee: https://jinja.palletsprojects.com/en/3.1.x/api/#jinja2.Environment",
+      "properties": {
+        "block_start_string": {
+          "default": "{%",
+          "description": "String denoting the beginning of a block (default: '{%').",
+          "title": "Block Start String",
+          "type": "string"
+        },
+        "block_end_string": {
+          "default": "%}",
+          "description": "String denoting the end of a block (default: '%}').",
+          "title": "Block End String",
+          "type": "string"
+        },
+        "variable_start_string": {
+          "default": "{{",
+          "description": "String denoting the beginning of a variable (default: '{{').",
+          "title": "Variable Start String",
+          "type": "string"
+        },
+        "variable_end_string": {
+          "default": "}}",
+          "description": "String denoting the end of a variable (default: '}}').",
+          "title": "Variable End String",
+          "type": "string"
+        },
+        "comment_start_string": {
+          "default": "{#",
+          "description": "String denoting the beginning of a comment (default: '{#').",
+          "title": "Comment Start String",
+          "type": "string"
+        },
+        "comment_end_string": {
+          "default": "#}",
+          "description": "String denoting the end of a comment (default: '#}').",
+          "title": "Comment End String",
+          "type": "string"
+        },
+        "line_statement_prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Prefix that begins a line-based statement (e.g., '#' for line statements).",
+          "title": "Line Statement Prefix"
+        },
+        "line_comment_prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Prefix that begins a line-based comment.",
+          "title": "Line Comment Prefix"
+        },
+        "trim_blocks": {
+          "default": false,
+          "description": "Remove first newline after a block (affects whitespace control).",
+          "title": "Trim Blocks",
+          "type": "boolean"
+        },
+        "lstrip_blocks": {
+          "default": false,
+          "description": "Remove leading spaces and tabs from the start of a line to a block.",
+          "title": "Lstrip Blocks",
+          "type": "boolean"
+        },
+        "newline_sequence": {
+          "default": "\n",
+          "description": "Sequence that starts a newline (default: '\n').",
+          "enum": [
+            "\n",
+            "\r\n",
+            "\r"
+          ],
+          "title": "Newline Sequence",
+          "type": "string"
+        },
+        "keep_trailing_newline": {
+          "default": false,
+          "description": "Preserve the trailing newline when rendering templates.",
+          "title": "Keep Trailing Newline",
+          "type": "boolean"
+        },
+        "extensions": {
+          "description": "List of Jinja2 extensions to load (e.g., 'jinja2.ext.do').",
+          "items": {
+            "type": "string"
+          },
+          "title": "Extensions",
+          "type": "array"
+        },
+        "undefined": {
+          "default": "default",
+          "description": "Behavior when accessing undefined variables (default, strict, debug, chainable).",
+          "enum": [
+            "default",
+            "strict",
+            "debug",
+            "chainable"
+          ],
+          "title": "Undefined",
+          "type": "string"
+        },
+        "filters": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Custom filters as mapping of names to import paths.",
+          "title": "Filters",
+          "type": "object"
+        },
+        "tests": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Custom tests as mapping of names to import paths.",
+          "title": "Tests",
+          "type": "object"
+        },
+        "globals": {
+          "description": "Global variables available to all templates.",
+          "title": "Globals",
+          "type": "object"
+        }
+      },
+      "title": "Jinja2Config",
+      "type": "object"
+    },
+    "LLMCapabilitiesConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for LLM system capabilities.",
+      "properties": {
+        "load_resource": {
+          "default": true,
+          "description": "Whether the LLM can load and access resource content.",
+          "title": "Load Resource",
+          "type": "boolean"
+        },
+        "get_resources": {
+          "default": true,
+          "description": "Whether the LLM can discover available resources.",
+          "title": "Get Resources",
+          "type": "boolean"
+        },
+        "install_package": {
+          "default": false,
+          "description": "Whether the LLM can install new Python packages for future tools.",
+          "title": "Install Package",
+          "type": "boolean"
+        },
+        "register_tool": {
+          "default": false,
+          "description": "Whether the LLM can register importable functions as new tools.",
+          "title": "Register Tool",
+          "type": "boolean"
+        },
+        "register_code_tool": {
+          "default": false,
+          "description": "Whether the LLM can create new tools from provided Python code.",
+          "title": "Register Code Tool",
+          "type": "boolean"
+        },
+        "chain_tools": {
+          "default": false,
+          "description": "Whether the LLM gains capability to chain multiple tool calls into one.",
+          "title": "Chain Tools",
+          "type": "boolean"
+        }
+      },
+      "title": "LLMCapabilitiesConfig",
+      "type": "object"
+    },
+    "MessageContent": {
+      "description": "Content item in a message.",
+      "properties": {
+        "type": {
+          "enum": [
+            "text",
+            "resource",
+            "image_url",
+            "image_base64"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        },
+        "alt_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alt Text"
+        }
+      },
+      "required": [
+        "type",
+        "content"
+      ],
+      "title": "MessageContent",
+      "type": "object"
+    },
+    "OpenAPIToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for OpenAPI toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "openapi",
+          "default": "openapi",
+          "description": "Discriminator field identifying this as an OpenAPI toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "spec": {
+          "description": "URL or path to the OpenAPI specification document.",
+          "title": "Spec",
+          "type": "string"
+        },
+        "base_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional base URL for API requests, overrides the one in spec.",
+          "title": "Base Url"
+        }
+      },
+      "required": [
+        "spec"
+      ],
+      "title": "OpenAPIToolsetConfig",
+      "type": "object"
+    },
+    "PathResource": {
+      "description": "Resource loaded from a file or URL.",
+      "properties": {
+        "resource_type": {
+          "const": "path",
+          "default": "path",
+          "description": "Discriminator field identifying this as a path-based resource.",
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "description": "Human-readable description of the resource.",
+          "title": "Description",
+          "type": "string"
+        },
+        "uri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Canonical URI for this resource, set during registration if unset.",
+          "title": "Uri"
+        },
+        "processors": {
+          "description": "Processing steps to apply when loading this resource.",
+          "items": {
+            "$ref": "#/$defs/ProcessingStep"
+          },
+          "title": "Processors",
+          "type": "array"
+        },
+        "watch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WatchConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Configuration for watching the file for changes."
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Technical identifier (automatically set from config key during registration).",
+          "title": "Name"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            }
+          ],
+          "description": "Path to the file or URL to load.",
+          "title": "Path"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "PathResource",
+      "type": "object"
+    },
+    "ProcessingStep": {
+      "description": "Configuration for a processing step.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "parallel": {
+          "default": false,
+          "title": "Parallel",
+          "type": "boolean"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "kwargs": {
+          "title": "Kwargs",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ProcessingStep",
+      "type": "object"
+    },
+    "ProcessorConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for content processors.",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "import_path": {
+          "title": "Import Path",
+          "type": "string"
+        },
+        "async_execution": {
+          "default": false,
+          "title": "Async Execution",
+          "type": "boolean"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "cache_results": {
+          "default": false,
+          "title": "Cache Results",
+          "type": "boolean"
+        },
+        "metadata": {
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "import_path"
+      ],
+      "title": "ProcessorConfig",
+      "type": "object"
+    },
+    "PromptMessage": {
+      "description": "A message in a prompt template.",
+      "properties": {
+        "role": {
+          "enum": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "content": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/MessageContent"
+            },
+            {
+              "items": {
+                "$ref": "#/$defs/MessageContent"
+              },
+              "type": "array"
+            }
+          ],
+          "default": "",
+          "title": "Content"
+        }
+      },
+      "required": [
+        "role"
+      ],
+      "title": "PromptMessage",
+      "type": "object"
+    },
+    "PromptParameter": {
+      "description": "Prompt argument with validation information.",
+      "properties": {
+        "name": {
+          "description": "Name of the argument as used in the prompt.",
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Human-readable description of the argument.",
+          "title": "Description"
+        },
+        "required": {
+          "default": false,
+          "description": "Whether this argument must be provided when formatting the prompt.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "type_hint": {
+          "default": "str",
+          "description": "Type annotation for the argument, defaults to str.",
+          "title": "Type Hint",
+          "type": "string"
+        },
+        "default": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Default value if argument is optional.",
+          "title": "Default"
+        },
+        "completion_function": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional function to provide argument completions.",
+          "title": "Completion Function"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "PromptParameter",
       "type": "object"
     },
     "ResponseField": {
@@ -339,6 +1654,309 @@
         "type"
       ],
       "title": "ResponseField",
+      "type": "object"
+    },
+    "SourceResource": {
+      "description": "Resource from Python source code.",
+      "properties": {
+        "resource_type": {
+          "const": "source",
+          "default": "source",
+          "description": "Discriminator field identifying this as a source code resource.",
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "description": "Human-readable description of the resource.",
+          "title": "Description",
+          "type": "string"
+        },
+        "uri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Canonical URI for this resource, set during registration if unset.",
+          "title": "Uri"
+        },
+        "processors": {
+          "description": "Processing steps to apply when loading this resource.",
+          "items": {
+            "$ref": "#/$defs/ProcessingStep"
+          },
+          "title": "Processors",
+          "type": "array"
+        },
+        "watch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WatchConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Configuration for file system watching, if supported."
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Technical identifier (automatically set from config key during registration).",
+          "title": "Name"
+        },
+        "import_path": {
+          "description": "Dotted import path to the Python module or object.",
+          "title": "Import Path",
+          "type": "string"
+        },
+        "recursive": {
+          "default": false,
+          "description": "Whether to include submodules recursively.",
+          "title": "Recursive",
+          "type": "boolean"
+        },
+        "include_tests": {
+          "default": false,
+          "description": "Whether to include test files and directories.",
+          "title": "Include Tests",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "import_path"
+      ],
+      "title": "SourceResource",
+      "type": "object"
+    },
+    "StaticPrompt": {
+      "additionalProperties": false,
+      "description": "Static prompt defined by message list.",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Technical identifier (automatically set from config key during registration).",
+          "title": "Name"
+        },
+        "description": {
+          "description": "Human-readable description of what this prompt does.",
+          "title": "Description",
+          "type": "string"
+        },
+        "arguments": {
+          "description": "List of arguments that this prompt accepts.",
+          "items": {
+            "$ref": "#/$defs/PromptParameter"
+          },
+          "title": "Arguments",
+          "type": "array"
+        },
+        "metadata": {
+          "description": "Additional metadata for storing custom prompt information.",
+          "title": "Metadata",
+          "type": "object"
+        },
+        "messages": {
+          "description": "List of messages that make up this prompt.",
+          "items": {
+            "$ref": "#/$defs/PromptMessage"
+          },
+          "title": "Messages",
+          "type": "array"
+        },
+        "type": {
+          "const": "text",
+          "default": "text",
+          "description": "Discriminator field identifying this as a static text prompt.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "messages"
+      ],
+      "title": "StaticPrompt",
+      "type": "object"
+    },
+    "TextResource": {
+      "description": "Raw text resource.",
+      "properties": {
+        "resource_type": {
+          "const": "text",
+          "default": "text",
+          "description": "Discriminator field identifying this as a text-based resource.",
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "description": "Human-readable description of the resource.",
+          "title": "Description",
+          "type": "string"
+        },
+        "uri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Canonical URI for this resource, set during registration if unset.",
+          "title": "Uri"
+        },
+        "processors": {
+          "description": "Processing steps to apply when loading this resource.",
+          "items": {
+            "$ref": "#/$defs/ProcessingStep"
+          },
+          "title": "Processors",
+          "type": "array"
+        },
+        "watch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WatchConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Configuration for file system watching, if supported."
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Technical identifier (automatically set from config key during registration).",
+          "title": "Name"
+        },
+        "content": {
+          "description": "The actual text content of the resource.",
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "title": "TextResource",
+      "type": "object"
+    },
+    "ToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for a tool.",
+      "properties": {
+        "import_path": {
+          "description": "Import path to the tool implementation (e.g. 'mymodule.tools.MyTool')",
+          "title": "Import Path",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional override for the tool's display name",
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional override for the tool's description",
+          "title": "Description"
+        }
+      },
+      "required": [
+        "import_path"
+      ],
+      "title": "ToolConfig",
+      "type": "object"
+    },
+    "WatchConfig": {
+      "additionalProperties": false,
+      "description": "Watch configuration for resources.",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "description": "Whether the watch is enabled",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "patterns": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of pathspec patterns (.gitignore style)",
+          "title": "Patterns"
+        },
+        "ignore_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Path to .gitignore-style file",
+          "title": "Ignore File"
+        }
+      },
+      "title": "WatchConfig",
       "type": "object"
     }
   },
