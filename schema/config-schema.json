@@ -33,59 +33,32 @@
         "model": {
           "anyOf": [
             {
-              "enum": [
-                "openai:gpt-4o",
-                "openai:gpt-4o-mini",
-                "openai:gpt-4-turbo",
-                "openai:gpt-4",
-                "openai:o1-preview",
-                "openai:o1-mini",
-                "openai:gpt-3.5-turbo",
-                "groq:llama-3.1-70b-versatile",
-                "groq:llama3-groq-70b-8192-tool-use-preview",
-                "groq:llama3-groq-8b-8192-tool-use-preview",
-                "groq:llama-3.1-70b-specdec",
-                "groq:llama-3.1-8b-instant",
-                "groq:llama-3.2-1b-preview",
-                "groq:llama-3.2-3b-preview",
-                "groq:llama-3.2-11b-vision-preview",
-                "groq:llama-3.2-90b-vision-preview",
-                "groq:llama3-70b-8192",
-                "groq:llama3-8b-8192",
-                "groq:mixtral-8x7b-32768",
-                "groq:gemma2-9b-it",
-                "groq:gemma-7b-it",
-                "gemini-1.5-flash",
-                "gemini-1.5-pro",
-                "vertexai:gemini-1.5-flash",
-                "vertexai:gemini-1.5-pro",
-                "ollama:codellama",
-                "ollama:gemma",
-                "ollama:gemma2",
-                "ollama:llama3",
-                "ollama:llama3.1",
-                "ollama:llama3.2",
-                "ollama:llama3.2-vision",
-                "ollama:llama3.3",
-                "ollama:mistral",
-                "ollama:mistral-nemo",
-                "ollama:mixtral",
-                "ollama:phi3",
-                "ollama:qwq",
-                "ollama:qwen",
-                "ollama:qwen2",
-                "ollama:qwen2.5",
-                "ollama:starcoder2",
-                "test"
-              ],
-              "type": "string"
+              "discriminator": {
+                "mapping": {
+                  "random": "#/$defs/RandomMultiModel",
+                  "string": "#/$defs/StringModel",
+                  "test": "#/$defs/TestModelWrapper"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/StringModel"
+                },
+                {
+                  "$ref": "#/$defs/RandomMultiModel"
+                },
+                {
+                  "$ref": "#/$defs/TestModelWrapper"
+                }
+              ]
             },
             {
               "type": "null"
             }
           ],
           "default": null,
-          "description": "The LLM model to use",
+          "description": "The model to use:\n- String model name (e.g. \"openai:gpt-4\")\n- Structured model definition (e.g. MultiModel)",
           "title": "Model"
         },
         "environment": {
@@ -241,11 +214,11 @@
     "CLIResource": {
       "description": "Resource from CLI command execution.",
       "properties": {
-        "resource_type": {
+        "type": {
           "const": "cli",
           "default": "cli",
           "description": "Discriminator field identifying this as a CLI-based resource.",
-          "title": "Resource Type",
+          "title": "Type",
           "type": "string"
         },
         "description": {
@@ -357,11 +330,11 @@
     "CallableResource": {
       "description": "Resource from executing a Python callable.",
       "properties": {
-        "resource_type": {
+        "type": {
           "const": "callable",
           "default": "callable",
           "description": "Discriminator field identifying this as a callable-based resource.",
-          "title": "Resource Type",
+          "title": "Type",
           "type": "string"
         },
         "description": {
@@ -503,7 +476,17 @@
         },
         "resources": {
           "additionalProperties": {
-            "anyOf": [
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableResource",
+                "cli": "#/$defs/CLIResource",
+                "path": "#/$defs/PathResource",
+                "source": "#/$defs/SourceResource",
+                "text": "#/$defs/TextResource"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
               {
                 "$ref": "#/$defs/PathResource"
               },
@@ -1212,13 +1195,13 @@
       "description": "Configuration for LLM system capabilities.",
       "properties": {
         "load_resource": {
-          "default": true,
+          "default": false,
           "description": "Whether the LLM can load and access resource content.",
           "title": "Load Resource",
           "type": "boolean"
         },
         "get_resources": {
-          "default": true,
+          "default": false,
           "description": "Whether the LLM can discover available resources.",
           "title": "Get Resources",
           "type": "boolean"
@@ -1340,11 +1323,11 @@
     "PathResource": {
       "description": "Resource loaded from a file or URL.",
       "properties": {
-        "resource_type": {
+        "type": {
           "const": "path",
           "default": "path",
           "description": "Discriminator field identifying this as a path-based resource.",
-          "title": "Resource Type",
+          "title": "Type",
           "type": "string"
         },
         "description": {
@@ -1614,6 +1597,75 @@
       "title": "PromptParameter",
       "type": "object"
     },
+    "RandomMultiModel": {
+      "additionalProperties": false,
+      "description": "Randomly selects from available models.",
+      "properties": {
+        "type": {
+          "const": "random",
+          "default": "random",
+          "title": "Type",
+          "type": "string"
+        },
+        "models": {
+          "items": {
+            "enum": [
+              "openai:gpt-4o",
+              "openai:gpt-4o-mini",
+              "openai:gpt-4-turbo",
+              "openai:gpt-4",
+              "openai:o1-preview",
+              "openai:o1-mini",
+              "openai:gpt-3.5-turbo",
+              "groq:llama-3.1-70b-versatile",
+              "groq:llama3-groq-70b-8192-tool-use-preview",
+              "groq:llama3-groq-8b-8192-tool-use-preview",
+              "groq:llama-3.1-70b-specdec",
+              "groq:llama-3.1-8b-instant",
+              "groq:llama-3.2-1b-preview",
+              "groq:llama-3.2-3b-preview",
+              "groq:llama-3.2-11b-vision-preview",
+              "groq:llama-3.2-90b-vision-preview",
+              "groq:llama3-70b-8192",
+              "groq:llama3-8b-8192",
+              "groq:mixtral-8x7b-32768",
+              "groq:gemma2-9b-it",
+              "groq:gemma-7b-it",
+              "gemini-1.5-flash",
+              "gemini-1.5-pro",
+              "vertexai:gemini-1.5-flash",
+              "vertexai:gemini-1.5-pro",
+              "ollama:codellama",
+              "ollama:gemma",
+              "ollama:gemma2",
+              "ollama:llama3",
+              "ollama:llama3.1",
+              "ollama:llama3.2",
+              "ollama:llama3.2-vision",
+              "ollama:llama3.3",
+              "ollama:mistral",
+              "ollama:mistral-nemo",
+              "ollama:mixtral",
+              "ollama:phi3",
+              "ollama:qwq",
+              "ollama:qwen",
+              "ollama:qwen2",
+              "ollama:qwen2.5",
+              "ollama:starcoder2",
+              "test"
+            ],
+            "type": "string"
+          },
+          "title": "Models",
+          "type": "array"
+        }
+      },
+      "required": [
+        "models"
+      ],
+      "title": "RandomMultiModel",
+      "type": "object"
+    },
     "ResponseField": {
       "additionalProperties": false,
       "description": "Field definition for agent responses.",
@@ -1659,11 +1711,11 @@
     "SourceResource": {
       "description": "Resource from Python source code.",
       "properties": {
-        "resource_type": {
+        "type": {
           "const": "source",
           "default": "source",
           "description": "Discriminator field identifying this as a source code resource.",
-          "title": "Resource Type",
+          "title": "Type",
           "type": "string"
         },
         "description": {
@@ -1800,14 +1852,191 @@
       "title": "StaticPrompt",
       "type": "object"
     },
+    "StringModel": {
+      "additionalProperties": false,
+      "description": "Wrapper for string model names.",
+      "properties": {
+        "type": {
+          "const": "string",
+          "default": "string",
+          "title": "Type",
+          "type": "string"
+        },
+        "identifier": {
+          "enum": [
+            "openai:gpt-4o",
+            "openai:gpt-4o-mini",
+            "openai:gpt-4-turbo",
+            "openai:gpt-4",
+            "openai:o1-preview",
+            "openai:o1-mini",
+            "openai:gpt-3.5-turbo",
+            "groq:llama-3.1-70b-versatile",
+            "groq:llama3-groq-70b-8192-tool-use-preview",
+            "groq:llama3-groq-8b-8192-tool-use-preview",
+            "groq:llama-3.1-70b-specdec",
+            "groq:llama-3.1-8b-instant",
+            "groq:llama-3.2-1b-preview",
+            "groq:llama-3.2-3b-preview",
+            "groq:llama-3.2-11b-vision-preview",
+            "groq:llama-3.2-90b-vision-preview",
+            "groq:llama3-70b-8192",
+            "groq:llama3-8b-8192",
+            "groq:mixtral-8x7b-32768",
+            "groq:gemma2-9b-it",
+            "groq:gemma-7b-it",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+            "vertexai:gemini-1.5-flash",
+            "vertexai:gemini-1.5-pro",
+            "ollama:codellama",
+            "ollama:gemma",
+            "ollama:gemma2",
+            "ollama:llama3",
+            "ollama:llama3.1",
+            "ollama:llama3.2",
+            "ollama:llama3.2-vision",
+            "ollama:llama3.3",
+            "ollama:mistral",
+            "ollama:mistral-nemo",
+            "ollama:mixtral",
+            "ollama:phi3",
+            "ollama:qwq",
+            "ollama:qwen",
+            "ollama:qwen2",
+            "ollama:qwen2.5",
+            "ollama:starcoder2",
+            "test"
+          ],
+          "title": "Identifier",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identifier"
+      ],
+      "title": "StringModel",
+      "type": "object"
+    },
+    "TestModel": {
+      "properties": {
+        "call_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "const": "all",
+              "type": "string"
+            }
+          ],
+          "default": "all",
+          "title": "Call Tools"
+        },
+        "custom_result_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Custom Result Text"
+        },
+        "custom_result_args": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Custom Result Args"
+        },
+        "seed": {
+          "default": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "agent_model_function_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ToolDefinition"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Agent Model Function Tools"
+        },
+        "agent_model_allow_text_result": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Agent Model Allow Text Result"
+        },
+        "agent_model_result_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ToolDefinition"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Agent Model Result Tools"
+        }
+      },
+      "title": "TestModel",
+      "type": "object"
+    },
+    "TestModelWrapper": {
+      "additionalProperties": false,
+      "description": "Wrapper for TestModel.",
+      "properties": {
+        "type": {
+          "const": "test",
+          "default": "test",
+          "title": "Type",
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/TestModel"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "title": "TestModelWrapper",
+      "type": "object"
+    },
     "TextResource": {
       "description": "Raw text resource.",
       "properties": {
-        "resource_type": {
+        "type": {
           "const": "text",
           "default": "text",
           "description": "Discriminator field identifying this as a text-based resource.",
-          "title": "Resource Type",
+          "title": "Type",
           "type": "string"
         },
         "description": {
@@ -1914,6 +2143,41 @@
         "import_path"
       ],
       "title": "ToolConfig",
+      "type": "object"
+    },
+    "ToolDefinition": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "parameters_json_schema": {
+          "title": "Parameters Json Schema",
+          "type": "object"
+        },
+        "outer_typed_dict_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outer Typed Dict Key"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "parameters_json_schema"
+      ],
+      "title": "ToolDefinition",
       "type": "object"
     },
     "WatchConfig": {
