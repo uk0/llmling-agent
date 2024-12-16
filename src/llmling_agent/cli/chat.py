@@ -31,6 +31,7 @@ def chat_command(
         "--log-level",
         "-l",
         help="Log level (DEBUG, INFO, WARNING, ERROR)",
+        case_sensitive=False,
     ),
 ) -> None:
     """Start interactive chat session with an agent.

@@ -28,6 +28,7 @@ def quickstart_command(
         "--log-level",
         "-l",
         help="Log level (DEBUG, INFO, WARNING, ERROR)",
+        case_sensitive=False,
     ),
     stream: bool = t.Option(
         False,  # Default to False
