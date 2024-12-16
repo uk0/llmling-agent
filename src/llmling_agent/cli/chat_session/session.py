@@ -56,6 +56,7 @@ class InteractiveSession:
         agent: LLMlingAgent[str],
         *,
         log_level: int = logging.INFO,
+        show_log_in_chat: bool = False,
         stream: bool = False,
     ) -> None:
         """Initialize interactive session."""
@@ -71,10 +72,11 @@ class InteractiveSession:
         self.status_bar = StatusBar(self.console)
 
         # Setup logging
-        self._log_handler = SessionLogHandler(self._output_writer)
-        self._log_handler.setLevel(log_level)
-        logging.getLogger("llmling_agent").addHandler(self._log_handler)
-        logging.getLogger("llmling").addHandler(self._log_handler)
+        if show_log_in_chat:
+            self._log_handler = SessionLogHandler(self._output_writer)
+            self._log_handler.setLevel(log_level)
+            logging.getLogger("llmling_agent").addHandler(self._log_handler)
+            logging.getLogger("llmling").addHandler(self._log_handler)
 
         # Setup components
         self._setup_history()
