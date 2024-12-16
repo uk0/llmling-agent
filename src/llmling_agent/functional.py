@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -18,11 +19,19 @@ from llmling import Config
 from llmling_agent import LLMlingAgent
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 from llmling_agent.log import get_logger
-from llmling_agent.models import AgentsManifest, SystemPrompt
+from llmling_agent.models import (
+    AgentConfig,
+    AgentsManifest,
+    InlineResponseDefinition,
+    ResponseField,
+    SystemPrompt,
+)
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+
+    from pydantic_ai.agent import models
 
     from llmling_agent.environment import AgentEnvironment
 
@@ -49,6 +58,265 @@ class PromptLike(Protocol):
 def ensure_str(prompt: str | PromptLike) -> str:
     """Convert prompt-like object to string."""
     return str(prompt)
+
+
+@overload
+async def run_with_model(
+    prompt: str | list[str] | SystemPrompt,
+    model: str | models.Model | models.KnownModelName,
+    *,
+    result_type: None = None,
+    system_prompt: str | list[str] | None = None,
+    output_format: Literal["text", "json", "yaml"] = "text",
+    stream: Literal[False] = False,
+    model_settings: dict[str, Any] | None = None,
+    tool_choice: bool | str | list[str] = True,
+    confirm_tools: set[str] | bool = False,
+    environment: str | Config | AgentEnvironment | None = None,
+    error_handling: ErrorHandling = "raise",
+) -> str: ...
+
+
+@overload
+async def run_with_model(
+    prompt: str | list[str] | SystemPrompt,
+    model: str | models.Model | models.KnownModelName,
+    *,
+    result_type: type[T],
+    system_prompt: str | list[str] | None = None,
+    output_format: OutputFormat = "raw",  # Allow any OutputFormat
+    stream: Literal[False] = False,
+    model_settings: dict[str, Any] | None = None,
+    tool_choice: bool | str | list[str] = True,
+    confirm_tools: set[str] | bool = False,
+    environment: str | Config | AgentEnvironment | None = None,
+    error_handling: ErrorHandling = "raise",
+) -> T: ...
+
+
+@overload
+async def run_with_model(
+    prompt: str | list[str] | SystemPrompt,
+    model: str | models.Model | models.KnownModelName,
+    *,
+    stream: Literal[True],
+    result_type: type[T] | None = None,
+    system_prompt: str | list[str] | None = None,
+    output_format: OutputFormat = "text",
+    model_settings: dict[str, Any] | None = None,
+    tool_choice: bool | str | list[str] = True,
+    confirm_tools: set[str] | bool = False,
+    environment: str | Config | AgentEnvironment | None = None,
+    error_handling: ErrorHandling = "raise",
+) -> AsyncIterator[str]: ...
+
+
+async def run_with_model(
+    prompt: str | list[str] | SystemPrompt,
+    model: str | models.Model | models.KnownModelName,
+    *,
+    result_type: type[T] | None = None,
+    system_prompt: str | list[str] | None = None,
+    output_format: OutputFormat = "text",
+    stream: bool = False,
+    model_settings: dict[str, Any] | None = None,
+    tool_choice: bool | str | list[str] = True,
+    confirm_tools: set[str] | bool = False,
+    environment: str | Config | AgentEnvironment | None = None,
+    error_handling: ErrorHandling = "raise",
+) -> T | str | AsyncIterator[str]:
+    """Run a prompt with a specific model.
+
+    Simple interface to execute prompts with LLMs without complex agent configuration.
+
+    Args:
+        prompt: Prompt(s) to send to the model
+        model: Model to use (name or instance)
+        result_type: Expected result type for validation
+        system_prompt: Optional system prompt(s)
+        output_format: Output format (text/json/yaml/raw)
+        stream: Whether to stream responses
+        model_settings: Model-specific settings
+        tool_choice: Control tool usage:
+            - True: Allow all tools
+            - False: No tools
+            - str: Use specific tool
+            - list[str]: Allow specific tools
+        confirm_tools: Which tools need confirmation
+        environment: Optional environment configuration
+        error_handling: How to handle errors (raise/return/ignore)
+
+    Returns:
+        - If stream=False: Formatted response or raw result
+        - If stream=True: AsyncIterator yielding response chunks
+
+    Examples:
+        # Simple text completion
+        >>> result = await run_with_model("Hello!", "gpt-4")
+
+        # Structured output
+        >>> result = await run_with_model(
+        ...     "Analyze this",
+        ...     "gpt-4",
+        ...     result_type=AnalysisResult,
+        ...     system_prompt="You are an expert analyzer",
+        ...     output_format="json"
+        ... )
+
+        # Streaming with tools
+        >>> async for chunk in await run_with_model(
+        ...     "Help me with task",
+        ...     "gpt-4",
+        ...     stream=True,
+        ...     environment="tools.yml"
+        ... ):
+        ...     print(chunk)
+    """
+    # Create minimal manifest with optional response type
+    responses = {}
+    if result_type is not None:
+        responses["DefaultResult"] = InlineResponseDefinition(
+            description="Default result type",
+            fields={"result": ResponseField(type="str", description="Result")},
+        )
+
+    match system_prompt:
+        case str():
+            sys_prompts = [system_prompt]
+        case Sequence():
+            sys_prompts = list(system_prompt)
+        case _:
+            sys_prompts = []
+
+    agent_environment = (
+        InlineEnvironment(config=environment)
+        if isinstance(environment, Config)
+        else environment
+    )
+
+    manifest = AgentsManifest(
+        responses=responses,
+        agents={
+            "default": AgentConfig(
+                name="default",
+                model=model,  # type: ignore
+                system_prompts=sys_prompts,
+                result_type="DefaultResult" if result_type else None,
+                environment=agent_environment,
+            )
+        },
+    )
+
+    if stream:
+        return await run_agent_pipeline(
+            "default",
+            prompt,
+            manifest,
+            output_format=output_format,
+            stream=True,
+            model_settings=model_settings,
+            tool_choice=tool_choice,
+            confirm_tools=confirm_tools,
+            error_handling=error_handling,
+            result_type=result_type,
+        )
+    return await run_agent_pipeline(
+        "default",
+        prompt,
+        manifest,
+        output_format=output_format,
+        stream=False,
+        model_settings=model_settings,
+        tool_choice=tool_choice,
+        confirm_tools=confirm_tools,
+        error_handling=error_handling,
+        result_type=result_type,
+    )
+
+
+@overload
+def run_with_model_sync(
+    prompt: str | list[str] | SystemPrompt,
+    model: str | models.Model | models.KnownModelName,
+    *,
+    result_type: None = None,
+    system_prompt: str | list[str] | None = None,
+    output_format: Literal["text", "json", "yaml"] = "text",
+    model_settings: dict[str, Any] | None = None,
+    tool_choice: bool | str | list[str] = True,
+    confirm_tools: set[str] | bool = False,
+    environment: str | Config | AgentEnvironment | None = None,
+    error_handling: ErrorHandling = "raise",
+) -> str: ...
+
+
+@overload
+def run_with_model_sync(
+    prompt: str | list[str] | SystemPrompt,
+    model: str | models.Model | models.KnownModelName,
+    *,
+    result_type: type[T],
+    system_prompt: str | list[str] | None = None,
+    output_format: Literal["raw"] = "raw",
+    model_settings: dict[str, Any] | None = None,
+    tool_choice: bool | str | list[str] = True,
+    confirm_tools: set[str] | bool = False,
+    environment: str | Config | AgentEnvironment | None = None,
+    error_handling: ErrorHandling = "raise",
+) -> T: ...
+
+
+def run_with_model_sync(
+    prompt: str | list[str] | SystemPrompt,
+    model: str | models.Model | models.KnownModelName,
+    *,
+    result_type: type[T] | None = None,
+    system_prompt: str | list[str] | None = None,
+    output_format: OutputFormat = "text",
+    model_settings: dict[str, Any] | None = None,
+    tool_choice: bool | str | list[str] = True,
+    confirm_tools: set[str] | bool = False,
+    environment: str | Config | AgentEnvironment | None = None,
+    error_handling: ErrorHandling = "raise",
+) -> T | str:
+    """Synchronous version of run_with_model.
+
+    This is a convenience wrapper that runs the async pipeline in a new event loop.
+    See run_with_model for full documentation.
+
+    Note: Streaming mode is not supported in the sync version.
+
+    Examples:
+        # Simple usage
+        >>> result = run_with_model_sync(
+        ...     "Hello!",
+        ...     "gpt-4",
+        ...     system_prompt="Be concise"
+        ... )
+
+        # With structured output
+        >>> result = run_with_model_sync(
+        ...     "Analyze this",
+        ...     "gpt-4",
+        ...     result_type=AnalysisResult,
+        ...     output_format="json"
+        ... )
+    """
+    return asyncio.run(
+        run_with_model(  # type: ignore
+            prompt=prompt,
+            model=model,
+            result_type=result_type,
+            system_prompt=system_prompt,
+            output_format=output_format,
+            stream=False,  # type: ignore[arg-type]
+            model_settings=model_settings,
+            tool_choice=tool_choice,
+            confirm_tools=confirm_tools,
+            environment=environment,
+            error_handling=error_handling,
+        )
+    )
 
 
 @overload
@@ -98,7 +366,16 @@ async def run_agent_pipeline(
     config: str | AgentsManifest,
     *,
     stream: Literal[True],
-    # ... other parameters ...
+    model: str | None = None,
+    output_format: OutputFormat = "text",
+    environment: str | Config | AgentEnvironment | None = None,
+    error_handling: ErrorHandling = "raise",
+    result_type: type[T] | None = None,
+    retries: int | None = None,
+    capabilities: dict[str, bool] | None = None,
+    tool_choice: bool | str | list[str] = True,
+    confirm_tools: set[str] | bool = False,
+    model_settings: dict[str, Any] | None = None,
 ) -> AsyncIterator[str]: ...
 
 
@@ -190,12 +467,7 @@ async def run_agent_pipeline(  # noqa: PLR0911
                 case Config():
                     # Direct runtime config
                     agent_config = agent_config.model_copy(
-                        update={
-                            "environment": {
-                                "type": "inline",
-                                "config": environment,
-                            }
-                        }
+                        update={"environment": InlineEnvironment(config=environment)}
                     )
                 case FileEnvironment() | InlineEnvironment():
                     # Complete environment definition
