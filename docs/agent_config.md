@@ -1,215 +1,208 @@
 # Agent Configuration
 
-This guide explains how to configure agents in LLMling Agent through YAML files.
+Agent configurations are defined in YAML files and consist of three main sections: agents, responses, and roles.
 
-## Configuration File Structure
+## Agents Section
 
-An agent configuration file consists of three main sections:
-- `agents`: Defines one or more agents
-- `responses`: Defines structured response types (optional)
-- `roles`: Defines custom capability roles (optional)
-
-Basic structure:
-```yaml
-responses:
-  # Define structured response types
-  ResponseName:
-    description: "Response description"
-    type: inline
-    fields:
-      field_name:
-        type: str
-        description: "Field description"
-
-roles:
-  # Custom roles (extends built-in roles)
-  analyst:
-    can_list_agents: false
-    history_access: "own"
-    stats_access: "own"
-
-agents:
-  # Agent definitions
-  agent_name:
-    model: openai:gpt-4
-    role: analyst
-    environment: env_file.yml
-    result_type: ResponseName
-    system_prompts: []
-    user_prompts: []
-```
-
-## Response Types
-
-Response types define structured outputs for agents. They use Pydantic models under the hood:
-
-```yaml
-responses:
-  FileAnalysis:
-    description: "Analysis of a file's contents"
-    type: inline
-    fields:
-      summary:
-        type: str
-        description: "Content summary"
-      word_count:
-        type: int
-        description: "Number of words"
-      sentiment:
-        type: float
-        description: "Sentiment score (-1 to 1)"
-        constraints:
-          ge: -1
-          le: 1
-
-  SystemStatus:
-    description: "System health check result"
-    type: inline
-    fields:
-      status:
-        type: str
-        description: "Overall status"
-        constraints:
-          enum: ["healthy", "warning", "error"]
-      messages:
-        type: list[str]
-        description: "Status messages"
-```
-
-## System Prompts
-
-System prompts define an agent's behavior and capabilities. You can provide multiple prompts that build on each other:
+Complete example of an agent configuration:
 
 ```yaml
 agents:
-  code_reviewer:
-    model: openai:gpt-4
+  web_assistant:                   # Name of the agent
+    description: "Helps with web tasks"  # Optional description
+    model: openai:gpt-4           # Model to use
+    role: assistant               # Role defining capabilities
+
+    # Environment configuration (file reference or inline)
+    environment:
+      type: inline               # Can be 'inline' or 'file'
+      config:                    # LLMling environment structure
+        tools:
+          open_browser:
+            import_path: webbrowser.open
+            description: "Opens URLs in browser"
+        resources:
+          bookmarks:
+            type: text
+            content: "Python: https://python.org"
+
+    # Alternative environment reference
+    # environment: env_file.yml
+
+    # Response type for structured output (optional)
+    result_type: WebResult       # Must be defined in 'responses' section
+
+    # Base behavior definition
     system_prompts:
-      # Base behavior
-      - "You are a code review assistant."
+      - "You are a web assistant."
+      - "Use open_browser to open URLs."
 
-      # Additional context
-      - |
-        Review guidelines:
-        - Focus on security and performance
-        - Suggest improvements
-        - Be constructive
-
-      # Tool usage instructions
-      - |
-        Available tools:
-        - analyze_code: Static code analysis
-        - test_coverage: Get test coverage
-        Use these tools to support your review.
-
-    # Default prompts to test the agent
+    # Default prompts for testing
     user_prompts:
-      - "Review this Python file: main.py"
-      - "What's the test coverage?"
-```
+      - "Open Python website"
 
-## Environmental Settings
-
-Agent configurations reference LLMling environment files that define available tools and resources:
-
-```yaml
-agents:
-  file_analyzer:
-    environment: env_files.yml  # Reference to environment file
-    model_settings:  # Model-specific settings
+    # Advanced settings
+    retries: 2                   # Number of retries for failed operations
+    model_settings:              # Model-specific settings
       temperature: 0.7
-      max_tokens: 2000
-    # ... other settings
+      max_tokens: 1000
 ```
 
-The referenced environment file (managed by LLMling):
+### Key Fields Explained
+
+**model**
+The language model to use. Can be:
+- Simple string: `openai:gpt-4`
+- Model name: `gpt-4`
+- Structured model configuration (for testing/development)
+
+**environment**
+Defines available tools and resources. Two formats:
+1. File reference: Path to LLMling environment file
+2. Inline configuration: Complete environment defined in agent file
+
+**system_prompts**
+List of prompts that define the agent's behavior. These are sent to the model before user input and can include:
+- Role definitions
+- Tool usage instructions
+- Response formatting requirements
+
+**result_type**
+Optional reference to a response type (defined in responses section) for structured output. Ensures the model returns data in a specific format.
+
+## Responses Section
+
+Complete example of response definitions:
+
 ```yaml
-# env_files.yml
-tools:
-  read_file:
-    import_path: builtins.open
-    description: "Read file contents"
+responses:
+  WebResult:                     # Name of the response type
+    type: inline                # Can be 'inline' or 'import'
+    description: "Web operation result"
+    fields:                     # Field definitions
+      success:
+        type: bool
+        description: "Whether operation succeeded"
+      url:
+        type: str
+        description: "URL that was processed"
 
-  get_stats:
-    import_path: os.stat
-    description: "Get file statistics"
-
-resources:
-  templates:
-    type: text
-    content: |
-      Analysis Template:
-      Size: {size}
-      Modified: {mtime}
-      Content Summary:
-      {summary}
+  AnalysisResult:
+    type: import                # Use existing Pydantic model
+    import_path: myapp.models.Analysis
+    description: "Complex analysis result"
 ```
 
-## Tool Management
+### Key Fields Explained
 
-Tools can be:
-1. Enabled/disabled per agent
-2. Restricted by role capabilities
-3. Protected by confirmation handlers
+**type**
+Determines how the response type is defined:
+- `inline`: Define structure directly in YAML
+- `import`: Use existing Pydantic model
+
+**fields** (for inline types)
+Define the structure of the response including:
+- Field names and types
+- Descriptions
+- Optional constraints (min/max values, regex patterns, etc.)
+
+## Roles Section
+
+```yaml
+roles:
+  analyst:                      # Name of the role
+    can_list_agents: false     # Agent discovery permission
+    history_access: "own"      # History access level
+    stats_access: "own"        # Statistics access level
+```
+
+> **Note**: The roles system is currently in development. The built-in roles
+> (`overseer`, `specialist`, `assistant`) are available with predefined capabilities.
+
+
+## Advanced Configuration Examples
+
+### Complex Response Types
+
+Define sophisticated structured outputs:
+
+```yaml
+responses:
+  WebResult:
+    type: inline
+    fields:
+      success:
+        type: bool
+        description: "Whether operation succeeded"
+      url:
+        type: str
+        description: "URL that was processed"
+      error:
+        type: str | None
+        description: "Error message if failed"
+      attempts:
+        type: int
+        description: "Number of attempts made"
+        constraints:
+          ge: 1
+          le: 5
+```
+
+### Tool Management
+
+Configure tool access and confirmation:
 
 ```yaml
 agents:
   secure_agent:
-    # ... other settings ...
+    # ... basic config ...
 
     # Tool confirmation settings
     confirm_tools:
-      - delete_file  # Require confirmation for specific tools
+      - delete_file     # Require confirmation for specific tools
       - modify_data
 
     # Or enable confirmation for all tools
     confirm_tools: true
-
-    # Tool-specific settings (if supported by the tool)
-    tool_settings:
-      read_file:
-        max_size: 1000000
-      analyze_code:
-        ignore_patterns: ["*.pyc", "__pycache__"]
 ```
 
-## Role-Based Capabilities
+### Inline Environment Configuration
 
-Roles define what agents can do. Use built-in roles or define custom ones:
+Complete environment definition within agent config:
 
 ```yaml
-# Built-in roles:
-# - overseer: Full access
-# - specialist: Own history/stats
-# - assistant: Basic access
-
-# Custom roles
-roles:
-  developer:
-    # Extend built-in capabilities
-    can_list_agents: true
-    can_delegate_tasks: false
-    can_observe_agents: false
-    history_access: "own"  # "none", "own", or "all"
-    stats_access: "own"
-
-  security_auditor:
-    can_list_agents: true
-    can_observe_agents: true
-    history_access: "all"
-    stats_access: "all"
-
 agents:
-  code_agent:
-    role: developer  # Use custom role
-    # ... other settings ...
+  web_assistant:
+    environment:
+      type: inline
+      config:
+        tools:
+          open_browser:
+            import_path: webbrowser.open
+            description: "Open URL in browser"
+          get_user:
+            import_path: getpass.getuser
+            description: "Get current system username"
 
-  audit_agent:
-    role: security_auditor
-    # ... other settings ...
+        resources:
+          bookmarks:
+            type: text
+            content: |
+              Python Website: https://python.org
+              Documentation: https://docs.python.org
+            description: "Common Python URLs"
 ```
 
-For complete examples and templates, see:
-- [Basic Examples](https://phil65.github.io/llmling-agent/examples/basic.html)
-- [Advanced Configuration](https://phil65.github.io/llmling-agent/examples/advanced.html)
-- [Environment Setup](https://phil65.github.io/llmling/configuration.html)
+### Model Settings
+
+Basic model configuration options:
+
+```yaml
+agents:
+  assistant:
+    model: openai:gpt-4
+    model_settings:
+      temperature: 0.7
+      max_tokens: 2000
+    retries: 3              # Number of retries for failed operations
+```

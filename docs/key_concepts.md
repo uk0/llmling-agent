@@ -1,136 +1,152 @@
 # Key Concepts
 
-## Agents and Their Capabilities
+## LLMling and LLMling-Agent
 
-An agent in LLMling Agent is a configurable entity that combines:
-- A language model (like GPT-4)
-- A set of capabilities (what it can do)
-- Tools it can use
-- System prompts that define its behavior
+LLMling-Agent extends LLMling's environment system to provide easy-to-configure agents:
 
-Agents have different capability levels defined by roles:
-
-```yaml
-# Basic roles and their capabilities
-roles:
-  overseer:
-    # Full access to agent management and history
-    can_list_agents: true
-    can_delegate_tasks: true
-    can_observe_agents: true
-    history_access: "all"
-    stats_access: "all"
-
-  specialist:
-    # Access to own history and statistics
-    history_access: "own"
-    stats_access: "own"
-
-  assistant:
-    # Basic access to own history only
-    history_access: "own"
-    stats_access: "none"
+```mermaid
+graph TD
+    A[LLMling-Agent] --> B[LLMling Core]
+    A --> C[Language Models]
+    B --> D[Tools & Resources]
 ```
 
-## Configuration Files
+### LLMling Core Provides
+- Resource management (files, APIs, databases)
+- Tool registration and execution
+- Environment configuration
+- Template processing
+- Prompt management
 
-LLMling Agent uses two types of configuration files:
+### LLMling-Agent Adds
+- Pure YAML-based agent configuration
+- Interactive chat sessions (CLI and web)
+- Model interaction handling
+- Session state management
+- Tool confirmation system
+- History tracking
 
-1. **Agent Configuration** (agents.yml)
-   - Defines agents and their behaviors
-   - Specifies models and system prompts
-   - References environment configurations
-   - Configures response types and roles
+## Core Strengths
 
-2. **Environment Configuration** (env_*.yml)
-   - Defines available tools and resources
-   - Managed by the LLMling core library
-   - Can be shared between multiple agents
-   - Configures technical capabilities
+### YAML-First Philosophy
+LLMling-Agent is built around the idea that AI agents should be:
+- Easily configurable through YAML
+- Fully reproducible
+- Version controllable
+- Human readable and verifiable
+- Shareable across teams and projects
 
-Example agent configuration:
+This means you can define complete agents, their capabilities, and their environments in pure YAML without writing any code.
+
+### Universal Resource Access
+Thanks to UPath integration, agents can work with resources from anywhere:
+- Local files
+- Remote URLs (http, https, s3, etc.)
+- Git repositories
+- Cloud storage
+- Any UPath-supported protocol
+
+Dependencies are handled automatically - if an agent needs specific packages to interact with resources, they're installed on demand.
+
+## Usage Patterns
+
+### 1. YAML-Based Configuration
+
+Define complete agents in YAML without writing code:
+
 ```yaml
+# agents.yml
 agents:
-  file_analyzer:
+  web_assistant:
     model: openai:gpt-4
-    role: specialist
-    environment: env_files.yml
-    result_type: FileAnalysis  # Reference to a response type
+    environment:  # LLMling Config structure
+      type: inline
+      config:
+        tools:
+          open_browser:
+            import_path: webbrowser.open
+            description: "Open URL in default browser"
+        resources:
+          bookmarks:
+            type: text
+            content: |
+              Python: https://python.org
+              Docs: https://docs.python.org
     system_prompts:
-      - "You analyze file contents and metadata."
+      - "You are a helpful web assistant."
+```
 
-responses:
-  FileAnalysis:
-    description: "File analysis result"
-    type: inline
-    fields:
-      content_summary:
-        type: str
-        description: "Summary of file contents"
-      size_bytes:
-        type: int
-        description: "File size in bytes"
+### 2. Interactive Sessions
+
+Quick access to agents through CLI or web interface:
+
+```bash
+# CLI chat
+llmling-agent chat web_assistant
+
+# Web interface
+llmling-agent launch
+```
+
+Both interfaces provide a consistent command system using slash commands:
+
+```bash
+/list-tools              # Show available tools
+/enable-tool <name>      # Enable a tool
+/disable-tool <name>     # Disable a tool
+/show-resource <name>    # View resource content
+/register-tool <path>    # Add new tool
+/set-model <model>       # Change model
+/history show           # View chat history
+/stats                  # Show usage statistics
+/help                   # Show all commands
+```
+
+### 3. Programmatic Usage
+
+For integration into larger applications:
+
+```python
+from llmling_agent import LLMlingAgent
+
+async with LLMlingAgent.open_agent("agents.yml", "web_assistant") as agent:
+    result = await agent.run("Open Python website")
 ```
 
 ## Tools and Resources
 
-Tools are functions that agents can call to interact with the system or perform tasks:
+LLMling-Agent leverages LLMling's resource system, providing agents with access to:
 
-1. **Built-in Tools**
-   - File operations
-   - System information
-   - History access (based on capabilities)
+### Tools
+- File operations
+- API interactions
+- System commands
+- Custom Python functions
 
-2. **Custom Tools**
-   - Defined in environment configurations
-   - Can be Python functions or external commands
-   - Have schemas for type safety
-   - Can require confirmation before execution
+### Resources
+- File content
+- API endpoints
+- Database connections
+- Memory storage
+- Template systems
 
-Example tool usage in code:
-```python
-@agent.tool
-async def analyze_file(ctx: RunContext[AgentContext], path: str) -> str:
-    """Analyze a file's contents."""
-    if not ctx.deps.capabilities.can_read_files:
-        raise PermissionError("No permission to read files")
-    # ... implementation
-```
+All tool and resource access is:
+- Configurable through YAML
+- Permission controlled
+- Usage tracked
+- Error handled
 
-## Chat Sessions
+## Agent Capabilities
 
-Chat sessions provide interactive conversations with agents:
+Agents have role-based capabilities that control their access to:
+- Tool usage
+- Resource access
+- History viewing
+- Statistics access
 
-1. **Types of Interaction**
-   - CLI-based interactive chat
-   - Web interface (using Gradio)
-   - Programmatic conversation API
+> **Note**: All agents are aligned with the Model Context Protocol (MCP), ensuring consistent
+> interaction patterns across different models and configurations.
 
-2. **Features**
-   - Message history management
-   - Tool state tracking
-   - Model overrides
-   - Token usage monitoring
-   - Conversation export
-
-Example chat session:
-```python
-from llmling_agent.chat_session import ChatSessionManager
-
-# Create a session
-manager = ChatSessionManager()
-session = await manager.create_session(agent)
-
-# Interactive conversation
-response = await session.send_message("Analyze this file")
-print(response.content)
-
-# Stream responses
-async for chunk in session.send_message("Long analysis...", stream=True):
-    print(chunk.content, end="", flush=True)
-```
-
-For more detailed information about specific concepts, see:
-- [Agent Configuration](https://phil65.github.io/llmling-agent/user-guide/agent-configuration.html)
-- [Running Agents](https://phil65.github.io/llmling-agent/user-guide/running-agents.html)
-- [Tool Development](https://phil65.github.io/llmling-agent/user-guide/agent-development.html)
+For detailed configuration options, see:
+- [Agent Configuration](https://github.com/phil65/llmling-agent/blob/main/docs/agent_config.md)
+- [LLMling Environment Documentation](https://github.com/phil65/llmling)
