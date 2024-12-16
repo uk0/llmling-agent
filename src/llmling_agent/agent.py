@@ -305,7 +305,7 @@ class LLMlingAgent[TResult]:
             capabilities=capabilities,
             definition=agent_def,
             config=agent_config,
-            model_settings=kwargs.get("model_settings", {}),
+            model_settings=kwargs.pop("model_settings", {}),
         )
 
         # Set up runtime
