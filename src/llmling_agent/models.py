@@ -204,7 +204,7 @@ class AgentConfig(BaseModel):
     description: str | None = None
     """Optional description of the agent's purpose"""
 
-    model: AnyModel | None = None
+    model: str | AnyModel | None = None
     """The model to use:
     - String model name (e.g. "openai:gpt-4")
     - Structured model definition (e.g. MultiModel)

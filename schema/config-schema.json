@@ -33,6 +33,9 @@
         "model": {
           "anyOf": [
             {
+              "type": "string"
+            },
+            {
               "discriminator": {
                 "mapping": {
                   "random": "#/$defs/RandomMultiModel",
