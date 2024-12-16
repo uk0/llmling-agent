@@ -9,6 +9,7 @@ from llmling import Config
 from llmling.config.models import ConfigModel, GlobalSettings, LLMCapabilitiesConfig
 from llmling.config.store import ConfigStore
 from llmling.utils import importing
+from llmling_models.types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 from pydantic_ai.models.test import TestModel
 from upath.core import UPath
@@ -18,7 +19,6 @@ from llmling_agent.config.capabilities import BUILTIN_ROLES, Capabilities, RoleN
 from llmling_agent.environment import AgentEnvironment  # noqa: TC001
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 from llmling_agent.log import get_logger
-from llmling_agent.pydanticai_models.types import AnyModel  # noqa: TC001
 
 
 if TYPE_CHECKING:

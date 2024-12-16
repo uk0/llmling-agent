@@ -34,6 +34,7 @@ keywords = []
 requires-python = ">=3.12"
 license = { file = "LICENSE" }
 dependencies = [
+    "llmling-models>=0.0.2",
     "llmling>=1.0.0",
     "prompt-toolkit>=3.0.48",
     "promptantic>=0.4.5",
