@@ -41,6 +41,14 @@ class MultiModel(PydanticModel):
             for model in self.models
         ]
 
+    @model_validator(mode="after")
+    def validate_models(self) -> MultiModel:
+        """Validate model configuration."""
+        if not self.models:
+            msg = "At least one model must be provided"
+            raise ValueError(msg)
+        return self
+
 
 class RandomMultiModel(MultiModel):
     """Randomly selects from configured models.
@@ -127,3 +135,93 @@ class RandomAgentModel(AgentModel):
         selected = random.choice(models)
         logger.debug("Selected model: %s", selected)
         return await selected.request(messages)
+
+
+class FallbackMultiModel(MultiModel):
+    """Tries models in sequence until one succeeds.
+
+    Example YAML configuration:
+        ```yaml
+        model:
+          type: fallback
+          models:
+            - openai:gpt-4  # Try this first
+            - openai:gpt-3.5-turbo  # Fall back to this if gpt-4 fails
+            - ollama:llama2  # Last resort
+        ```
+    """
+
+    type: Literal["fallback"] = "fallback"
+
+    def name(self) -> str:
+        """Get descriptive model name."""
+        return f"multi-fallback({len(self.models)})"
+
+    async def agent_model(
+        self,
+        *,
+        function_tools: list[ToolDefinition],
+        allow_text_result: bool,
+        result_tools: list[ToolDefinition],
+    ) -> AgentModel:
+        """Create agent model that implements fallback strategy."""
+        return FallbackAgentModel(
+            models=self.available_models,
+            function_tools=function_tools,
+            allow_text_result=allow_text_result,
+            result_tools=result_tools,
+        )
+
+
+class FallbackAgentModel(AgentModel):
+    """AgentModel that implements fallback strategy."""
+
+    def __init__(
+        self,
+        models: list[Model],
+        function_tools: list[ToolDefinition],
+        allow_text_result: bool,
+        result_tools: list[ToolDefinition],
+    ) -> None:
+        """Initialize with ordered list of models."""
+        if not models:
+            msg = "At least one model must be provided"
+            raise ValueError(msg)
+        self.models = models
+        self.function_tools = function_tools
+        self.allow_text_result = allow_text_result
+        self.result_tools = result_tools
+        self._initialized_models: list[AgentModel] | None = None
+
+    async def _initialize_models(self) -> list[AgentModel]:
+        """Initialize all agent models."""
+        if self._initialized_models is None:
+            self._initialized_models = []
+            for model in self.models:
+                agent_model = await model.agent_model(
+                    function_tools=self.function_tools,
+                    allow_text_result=self.allow_text_result,
+                    result_tools=self.result_tools,
+                )
+                self._initialized_models.append(agent_model)
+        return self._initialized_models
+
+    async def request(
+        self,
+        messages: list[Message],
+    ) -> tuple[ModelAnyResponse, Any]:
+        """Try each model in sequence until one succeeds."""
+        models = await self._initialize_models()
+        last_error = None
+
+        for model in models:
+            try:
+                logger.debug("Trying model: %s", model)
+                return await model.request(messages)
+            except Exception as e:  # noqa: BLE001
+                last_error = e
+                logger.debug("Model %s failed: %s", model, e)
+                continue
+
+        msg = f"All models failed. Last error: {last_error}"
+        raise RuntimeError(msg) from last_error
