@@ -27,7 +27,7 @@ def chat_command(
         help="Enable streaming mode (default: off)",
     ),
     log_level: str = t.Option(
-        "INFO",
+        "WARNING",
         "--log-level",
         "-l",
         help="Log level (DEBUG, INFO, WARNING, ERROR)",

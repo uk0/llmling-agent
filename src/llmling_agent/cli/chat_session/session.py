@@ -56,7 +56,7 @@ class InteractiveSession:
         self,
         agent: LLMlingAgent[str],
         *,
-        log_level: int = logging.INFO,
+        log_level: int = logging.WARNING,
         show_log_in_chat: bool = False,
         stream: bool = False,
     ) -> None:
@@ -260,7 +260,7 @@ class InteractiveSession:
 async def start_interactive_session(
     agent: LLMlingAgent[str],
     *,
-    log_level: int = logging.INFO,
+    log_level: int = logging.WARNING,
     stream: bool = False,
 ) -> None:
     """Start an interactive chat session."""

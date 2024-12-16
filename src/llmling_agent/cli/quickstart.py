@@ -24,7 +24,7 @@ def quickstart_command(
         help="Model to use (e.g. openai:gpt-4o-mini, gpt-4)",
     ),
     log_level: str = t.Option(
-        "INFO",
+        "WARNING",
         "--log-level",
         "-l",
         help="Log level (DEBUG, INFO, WARNING, ERROR)",
