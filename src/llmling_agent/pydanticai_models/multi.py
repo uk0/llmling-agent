@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 import random
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
+from pydantic import Field, model_validator
 from pydantic_ai.models import AgentModel, KnownModelName, Model, infer_model
 
 from llmling_agent.log import get_logger
@@ -13,92 +14,24 @@ from llmling_agent.pydanticai_models.base import PydanticModel
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncIterator
 
     from pydantic_ai.messages import Message, ModelAnyResponse
     from pydantic_ai.models import EitherStreamedResponse
-    from pydantic_ai.result import Cost
     from pydantic_ai.tools import ToolDefinition
-
-    from llmling_agent.pydanticai_models.types import ModelInput
 
 
 logger = get_logger(__name__)
 
 
-class MultiAgentModel(AgentModel):
-    """AgentModel implementation for multi-model setups."""
-
-    def __init__(
-        self,
-        models: Sequence[ModelInput],
-        function_tools: list[ToolDefinition],
-        allow_text_result: bool,
-        result_tools: list[ToolDefinition],
-    ) -> None:
-        """Initialize multi-agent model.
-
-        Args:
-            models: List of models to use
-            function_tools: Tools available for function calls
-            allow_text_result: Whether text results are allowed
-            result_tools: Tools for result validation
-        """
-        self.model_inputs = models
-        self.function_tools = function_tools
-        self.allow_text_result = allow_text_result
-        self.result_tools = result_tools
-        self._initialized_models: list[AgentModel] | None = None
-
-    async def _initialize_models(self) -> list[AgentModel]:
-        """Initialize all agent models."""
-        if self._initialized_models is None:
-            # Convert strings to Model instances
-            models = [
-                m if isinstance(m, Model) else infer_model(m)  # type: ignore
-                for m in self.model_inputs
-            ]
-            # Initialize agent models
-            self._initialized_models = []
-            for model in models:
-                agent_model = await model.agent_model(
-                    function_tools=self.function_tools,
-                    allow_text_result=self.allow_text_result,
-                    result_tools=self.result_tools,
-                )
-                self._initialized_models.append(agent_model)
-        return self._initialized_models
-
-    async def request(
-        self,
-        messages: list[Message],
-    ) -> tuple[ModelAnyResponse, Cost]:
-        """Make request to selected model."""
-        raise NotImplementedError
-
-    @asynccontextmanager
-    async def request_stream(
-        self,
-        messages: list[Message],
-    ) -> AsyncIterator[EitherStreamedResponse]:
-        """Stream response from selected model."""
-        raise NotImplementedError
-        yield  # required for generator
-
-
 class MultiModel(PydanticModel):
-    """Base for model configurations that combine multiple language models.
+    """Base for model configurations that combine multiple language models."""
 
-    Provides infrastructure for using multiple models in a coordinated way.
-    Subclasses implement specific strategies for model selection and usage,
-    such as random selection, round-robin, or conditional routing.
-    """
-
-    type: str
-    """Discriminator field for multi-model types."""
-
-    models: list[KnownModelName]
-    """List of models to use."""
+    type: str = Field(description="Discriminator field for multi-model types")
+    models: list[KnownModelName] = Field(
+        description="List of models to use",
+        min_length=1,  # Require at least one model
+    )
 
     def name(self) -> str:
         """Get model name."""
@@ -112,21 +45,55 @@ class MultiModel(PydanticModel):
         result_tools: list[ToolDefinition],
     ) -> AgentModel:
         """Create agent model implementation."""
-        return MultiAgentModel(
-            models=self.models,
-            function_tools=function_tools,
-            allow_text_result=allow_text_result,
-            result_tools=result_tools,
-        )
+        raise NotImplementedError
+
+    @property
+    def available_models(self) -> list[Model]:
+        """Get list of available models."""
+        return [infer_model(name) for name in self.models]  # type: ignore[arg-type]
+
+
+class MultiAgentModel(AgentModel):
+    """AgentModel implementation for multi-model setups."""
+
+    def __init__(
+        self,
+        models: list[Model],
+        function_tools: list[ToolDefinition],
+        allow_text_result: bool,
+        result_tools: list[ToolDefinition],
+    ) -> None:
+        """Initialize multi-agent model."""
+        if not models:
+            msg = "At least one model must be provided"
+            raise ValueError(msg)
+        self.models = models
+        self.function_tools = function_tools
+        self.allow_text_result = allow_text_result
+        self.result_tools = result_tools
+        self._initialized_models: list[AgentModel] | None = None
+
+    async def _initialize_models(self) -> list[AgentModel]:
+        """Initialize all agent models."""
+        if self._initialized_models is None:
+            self._initialized_models = []
+            for model in self.models:
+                agent_model = await model.agent_model(
+                    function_tools=self.function_tools,
+                    allow_text_result=self.allow_text_result,
+                    result_tools=self.result_tools,
+                )
+                self._initialized_models.append(agent_model)
+        return self._initialized_models
 
 
 class RandomAgentModel(MultiAgentModel):
-    """Randomly selects from available models for each request."""
+    """Randomly selects from available models."""
 
     async def request(
         self,
         messages: list[Message],
-    ) -> tuple[ModelAnyResponse, Cost]:
+    ) -> tuple[ModelAnyResponse, Any]:
         """Make request using randomly selected model."""
         models = await self._initialize_models()
         selected = random.choice(models)
@@ -151,6 +118,29 @@ class RandomMultiModel(MultiModel):
 
     type: Literal["random"] = "random"
 
+    models: list[KnownModelName | Model] = Field(min_length=1)
+    """List of models to use."""
+
+    @model_validator(mode="after")
+    def validate_models(self) -> RandomMultiModel:
+        """Validate model configuration."""
+        if not self.models:
+            msg = "At least one model must be provided"
+            raise ValueError(msg)
+        return self
+
+    def name(self) -> str:
+        """Get model name."""
+        return f"multi-random({len(self.models)})"
+
+    @property
+    def available_models(self) -> list[Model]:
+        """Get list of available models."""
+        return [
+            model if isinstance(model, Model) else infer_model(model)  # type: ignore[arg-type]
+            for model in self.models
+        ]
+
     async def agent_model(
         self,
         *,
@@ -160,7 +150,7 @@ class RandomMultiModel(MultiModel):
     ) -> AgentModel:
         """Create random agent model."""
         return RandomAgentModel(
-            models=self.models,
+            models=self.available_models,
             function_tools=function_tools,
             allow_text_result=allow_text_result,
             result_tools=result_tools,
