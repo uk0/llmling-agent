@@ -16,8 +16,9 @@ from typing_extensions import TypeVar
 
 from llmling_agent.context import AgentContext
 from llmling_agent.log import get_logger
-from llmling_agent.models import AgentsManifest, resolve_response_type
+from llmling_agent.models import AgentsManifest
 from llmling_agent.pydantic_ai_utils import TokenUsage, extract_token_usage
+from llmling_agent.responses import resolve_response_type
 from llmling_agent.storage import Conversation, engine
 from llmling_agent.storage.models import Message
 from llmling_agent.tools import ToolConfirmation, ToolContext

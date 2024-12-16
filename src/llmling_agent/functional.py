@@ -19,13 +19,8 @@ from llmling import Config
 from llmling_agent import LLMlingAgent
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 from llmling_agent.log import get_logger
-from llmling_agent.models import (
-    AgentConfig,
-    AgentsManifest,
-    InlineResponseDefinition,
-    ResponseField,
-    SystemPrompt,
-)
+from llmling_agent.models import AgentConfig, AgentsManifest, SystemPrompt
+from llmling_agent.responses import InlineResponseDefinition, ResponseField
 
 
 if TYPE_CHECKING:

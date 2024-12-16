@@ -6,12 +6,8 @@ from typing import Any
 
 import pytest
 
-from llmling_agent.models import (
-    AgentConfig,
-    AgentsManifest,
-    InlineResponseDefinition,
-    ResponseField,
-)
+from llmling_agent.models import AgentConfig, AgentsManifest
+from llmling_agent.responses import InlineResponseDefinition, ResponseField
 from llmling_agent.runners import AgentOrchestrator, AgentRunConfig
 
 

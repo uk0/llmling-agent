@@ -12,12 +12,8 @@ import pytest
 
 from llmling_agent import config_resources
 from llmling_agent.agent import LLMlingAgent
-from llmling_agent.models import (
-    AgentConfig,
-    InlineResponseDefinition,
-    ResponseDefinition,
-    ResponseField,
-)
+from llmling_agent.models import AgentConfig, ResponseDefinition
+from llmling_agent.responses import InlineResponseDefinition, ResponseField
 
 
 if TYPE_CHECKING:
