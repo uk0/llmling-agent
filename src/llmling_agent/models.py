@@ -10,7 +10,7 @@ from llmling.config.models import ConfigModel, GlobalSettings, LLMCapabilitiesCo
 from llmling.config.store import ConfigStore
 from llmling.utils import importing
 from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
-from pydantic_ai import models  # noqa: TC002
+from pydantic_ai.models.test import TestModel
 from upath.core import UPath
 import yamling
 
@@ -18,12 +18,14 @@ from llmling_agent.config.capabilities import BUILTIN_ROLES, Capabilities, RoleN
 from llmling_agent.environment import AgentEnvironment  # noqa: TC001
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 from llmling_agent.log import get_logger
+from llmling_agent.pydanticai_models.types import AnyModel  # noqa: TC001
 
 
 if TYPE_CHECKING:
     import os
 
     from llmling_agent.context import AgentContext
+
 
 TYPE_MAP = {
     "str": str,
@@ -148,8 +150,11 @@ class AgentConfig(BaseModel):
     description: str | None = None
     """Optional description of the agent's purpose"""
 
-    model: models.Model | models.KnownModelName | None = None
-    """The LLM model to use"""
+    model: AnyModel | None = None
+    """The model to use:
+    - String model name (e.g. "openai:gpt-4")
+    - Structured model definition (e.g. MultiModel)
+    """
 
     environment: str | AgentEnvironment | None = None
     """Environment configuration (path or object)"""
@@ -196,6 +201,19 @@ class AgentConfig(BaseModel):
         extra="forbid",
         use_attribute_docstrings=True,
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def handle_model_types(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Convert model inputs to appropriate format."""
+        model = data.get("model")
+        match model:
+            case str():
+                data["model"] = {"type": "string", "identifier": model}
+            case TestModel():
+                # Wrap TestModel in our custom wrapper
+                data["model"] = {"type": "test", "model": model}
+        return data
 
     def get_config(self) -> Config:
         """Get configuration for this agent."""
