@@ -25,7 +25,14 @@ class BaseEnvironment(BaseModel):
 
 
 class FileEnvironment(BaseEnvironment):
-    """File-based environment configuration."""
+    """File-based environment configuration.
+
+    Loads environment settings from external YAML files, supporting:
+    - Reusable environment configurations
+    - Separation of concerns
+    - Environment sharing between agents
+    - Version control of environment settings
+    """
 
     type: Literal["file"] = "file"
     uri: str = Field(description="Path to environment file", min_length=1)
@@ -41,7 +48,14 @@ class FileEnvironment(BaseEnvironment):
 
 
 class InlineEnvironment(BaseEnvironment):
-    """Inline environment configuration."""
+    """Direct environment configuration without external files.
+
+    Allows embedding complete environment settings directly in the agent
+    configuration instead of referencing external files. Useful for:
+    - Self-contained configurations
+    - Testing and development
+    - Simple agent setups
+    """
 
     type: Literal["inline"] = "inline"
     uri: str | None = None

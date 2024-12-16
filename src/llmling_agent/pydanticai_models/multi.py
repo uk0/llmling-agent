@@ -87,7 +87,12 @@ class MultiAgentModel(AgentModel):
 
 
 class MultiModel(PydanticModel):
-    """Base for multi-model implementations."""
+    """Base for model configurations that combine multiple language models.
+
+    Provides infrastructure for using multiple models in a coordinated way.
+    Subclasses implement specific strategies for model selection and usage,
+    such as random selection, round-robin, or conditional routing.
+    """
 
     type: str
     """Discriminator field for multi-model types."""

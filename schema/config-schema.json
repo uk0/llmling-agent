@@ -2,7 +2,7 @@
   "$defs": {
     "AgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for a single agent.",
+      "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\ncapabilities, and behavior settings. Each agent can have its own:\n- Language model configuration\n- Environment setup (tools and resources)\n- Response type definitions\n- System prompts and default user prompts\n- Role-based capabilities\n\nThe configuration can be loaded from YAML or created programmatically.",
       "properties": {
         "name": {
           "anyOf": [
@@ -407,7 +407,7 @@
       "type": "object"
     },
     "Capabilities": {
-      "description": "Base capabilities configuration.",
+      "description": "Defines what operations an agent is allowed to perform.\n\nControls an agent's permissions and access levels including:\n- Agent discovery and delegation abilities\n- History access permissions\n- Statistics viewing rights\n- Tool usage restrictions\n\nCan be defined per role or customized per agent.",
       "properties": {
         "can_list_agents": {
           "default": false,
@@ -740,7 +740,7 @@
       "type": "object"
     },
     "FileEnvironment": {
-      "description": "File-based environment configuration.",
+      "description": "File-based environment configuration.\n\nLoads environment settings from external YAML files, supporting:\n- Reusable environment configurations\n- Separation of concerns\n- Environment sharing between agents\n- Version control of environment settings",
       "properties": {
         "config_file_path": {
           "anyOf": [
@@ -939,7 +939,7 @@
     },
     "ImportedResponseDefinition": {
       "additionalProperties": false,
-      "description": "Definition for an imported response type.",
+      "description": "Response definition that imports an existing Pydantic model.\n\nAllows using externally defined Pydantic models as response types.\nBenefits:\n- Reuse existing model definitions\n- Full Python type support\n- Complex validation logic\n- IDE support for imported types\n\nExample:\n    responses:\n      AnalysisResult:\n        type: import\n        import_path: myapp.models.AnalysisResult",
       "properties": {
         "type": {
           "const": "import",
@@ -971,7 +971,7 @@
       "type": "object"
     },
     "InlineEnvironment": {
-      "description": "Inline environment configuration.",
+      "description": "Direct environment configuration without external files.\n\nAllows embedding complete environment settings directly in the agent\nconfiguration instead of referencing external files. Useful for:\n- Self-contained configurations\n- Testing and development\n- Simple agent setups",
       "properties": {
         "config_file_path": {
           "anyOf": [
@@ -1016,7 +1016,7 @@
     },
     "InlineResponseDefinition": {
       "additionalProperties": false,
-      "description": "Definition for an inline-defined response type.",
+      "description": "Inline definition of an agent's response structure.\n\nAllows defining response types directly in the configuration using:\n- Field definitions with types and descriptions\n- Optional validation constraints\n- Custom field descriptions\n\nExample:\n    responses:\n      BasicResult:\n        type: inline\n        fields:\n          success: {type: bool, description: \"Operation success\"}\n          message: {type: str, description: \"Result details\"}",
       "properties": {
         "type": {
           "const": "inline",
@@ -2225,7 +2225,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "Complete agent definition including responses.",
+  "description": "Complete agent configuration manifest defining all available agents.\n\nThis is the root configuration that:\n- Defines available response types (both inline and imported)\n- Configures all agent instances and their settings\n- Sets up custom role definitions and capabilities\n- Manages environment configurations\n\nA single manifest can define multiple agents that can work independently\nor collaborate through the orchestrator.",
   "properties": {
     "responses": {
       "additionalProperties": {

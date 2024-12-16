@@ -6,7 +6,16 @@ from pydantic import BaseModel, ConfigDict
 
 
 class Capabilities(BaseModel):
-    """Base capabilities configuration."""
+    """Defines what operations an agent is allowed to perform.
+
+    Controls an agent's permissions and access levels including:
+    - Agent discovery and delegation abilities
+    - History access permissions
+    - Statistics viewing rights
+    - Tool usage restrictions
+
+    Can be defined per role or customized per agent.
+    """
 
     can_list_agents: bool = False
     """Whether the agent can discover other available agents."""

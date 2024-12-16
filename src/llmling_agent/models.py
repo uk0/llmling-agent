@@ -94,7 +94,21 @@ class ResponseField(BaseModel):
 
 
 class InlineResponseDefinition(BaseModel):
-    """Definition for an inline-defined response type."""
+    """Inline definition of an agent's response structure.
+
+    Allows defining response types directly in the configuration using:
+    - Field definitions with types and descriptions
+    - Optional validation constraints
+    - Custom field descriptions
+
+    Example:
+        responses:
+          BasicResult:
+            type: inline
+            fields:
+              success: {type: bool, description: "Operation success"}
+              message: {type: str, description: "Result details"}
+    """
 
     type: Literal["inline"] = Field("inline", init=False)
     description: str | None = None
@@ -103,7 +117,21 @@ class InlineResponseDefinition(BaseModel):
 
 
 class ImportedResponseDefinition(BaseModel):
-    """Definition for an imported response type."""
+    """Response definition that imports an existing Pydantic model.
+
+    Allows using externally defined Pydantic models as response types.
+    Benefits:
+    - Reuse existing model definitions
+    - Full Python type support
+    - Complex validation logic
+    - IDE support for imported types
+
+    Example:
+        responses:
+          AnalysisResult:
+            type: import
+            import_path: myapp.models.AnalysisResult
+    """
 
     type: Literal["import"] = Field("import", init=False)
     description: str | None = None
@@ -131,7 +159,14 @@ ResponseDefinition = Annotated[
 
 
 class SystemPrompt(BaseModel):
-    """System prompt configuration."""
+    """System prompt configuration for agent behavior control.
+
+    Defines prompts that set up the agent's behavior and context.
+    Supports multiple types:
+    - Static text prompts
+    - Dynamic function-based prompts
+    - Template prompts with variable substitution
+    """
 
     type: Literal["text", "function", "template"]
     """Type of system prompt: static text, function call, or template"""
@@ -142,7 +177,18 @@ class SystemPrompt(BaseModel):
 
 
 class AgentConfig(BaseModel):
-    """Configuration for a single agent."""
+    """Configuration for a single agent in the system.
+
+    Defines an agent's complete configuration including its model, environment,
+    capabilities, and behavior settings. Each agent can have its own:
+    - Language model configuration
+    - Environment setup (tools and resources)
+    - Response type definitions
+    - System prompts and default user prompts
+    - Role-based capabilities
+
+    The configuration can be loaded from YAML or created programmatically.
+    """
 
     name: str | None = None
     """Name of the agent"""
@@ -310,7 +356,17 @@ class AgentConfig(BaseModel):
 
 
 class AgentsManifest(ConfigModel):
-    """Complete agent definition including responses."""
+    """Complete agent configuration manifest defining all available agents.
+
+    This is the root configuration that:
+    - Defines available response types (both inline and imported)
+    - Configures all agent instances and their settings
+    - Sets up custom role definitions and capabilities
+    - Manages environment configurations
+
+    A single manifest can define multiple agents that can work independently
+    or collaborate through the orchestrator.
+    """
 
     responses: dict[str, ResponseDefinition] = Field(default_factory=dict)
     """Mapping of response names to their definitions"""
