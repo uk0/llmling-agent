@@ -18,7 +18,7 @@ async def list_resources(
         for resource in resources:
             desc = f": {resource.description}" if resource.description else ""
             sections.append(f"- **{resource.name}**{desc}")
-            sections.append(f"  Type: {resource.resource_type}")
+            sections.append(f"  Type: {resource.type}")
             if resource.uri:
                 sections.append(f"  URI: `{resource.uri}`")
 
@@ -55,7 +55,7 @@ async def show_resource(
         # Show resource details
         sections = [
             f"# Resource: {name}\n",
-            f"Type: {resource_info.resource_type}",
+            f"Type: {resource_info.type}",
         ]
         if resource_info.uri:
             sections.append(f"URI: `{resource_info.uri}`")
