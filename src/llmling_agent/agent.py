@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence  # noqa: TC003
+from collections.abc import Callable, Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import TYPE_CHECKING, Any, Literal, cast
 from uuid import uuid4
@@ -270,6 +270,7 @@ class LLMlingAgent[TResult]:
         agent_name: str,
         *,
         model: models.Model | models.KnownModelName | None = None,
+        tools: list[str | Callable[..., Any]] | None = None,
         result_type: type[TResult] | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[LLMlingAgent[TResult]]:
@@ -279,6 +280,7 @@ class LLMlingAgent[TResult]:
             config: Path to agent configuration file or an AgentsManifest instance
             agent_name: Name of the agent to load
             model: Optional model override
+            tools: list of tools to additionaly register in the RuntimeConfig
             result_type: Optional type for structured responses
             **kwargs: Additional arguments for agent configuration
 
@@ -311,6 +313,9 @@ class LLMlingAgent[TResult]:
         # Set up runtime
         cfg = agent_config.get_config()
         async with RuntimeConfig.open(cfg) as runtime:
+            if tools:
+                for tool in tools:
+                    await runtime.register_tool(tool)
             agent = cls(
                 runtime=runtime,
                 context=context,
