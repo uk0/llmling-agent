@@ -81,7 +81,15 @@ def resolve_response_type(
 
 
 class ResponseField(BaseModel):
-    """Field definition for agent responses."""
+    """Field definition for inline response types.
+
+    Defines a single field in an inline response definition, including:
+    - Data type specification
+    - Optional description
+    - Validation constraints
+
+    Used by InlineResponseDefinition to structure response fields.
+    """
 
     type: str
     """Data type of the response field"""

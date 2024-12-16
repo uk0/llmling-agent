@@ -1668,7 +1668,7 @@
     },
     "ResponseField": {
       "additionalProperties": false,
-      "description": "Field definition for agent responses.",
+      "description": "Field definition for inline response types.\n\nDefines a single field in an inline response definition, including:\n- Data type specification\n- Optional description\n- Validation constraints\n\nUsed by InlineResponseDefinition to structure response fields.",
       "properties": {
         "type": {
           "description": "Data type of the response field",
