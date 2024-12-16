@@ -12,4 +12,5 @@ class PydanticModel(Model, BaseModel, ABC):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         extra="forbid",
+        use_attribute_docstrings=True,
     )
