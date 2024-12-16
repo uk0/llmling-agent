@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling/refs/heads/main/schema/config-schema.json
 tools:
   open_browser:
     import_path: "webbrowser.open"
