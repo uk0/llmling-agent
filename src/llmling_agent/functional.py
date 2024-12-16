@@ -180,10 +180,9 @@ async def run_with_model(
     # Create minimal manifest with optional response type
     responses = {}
     if result_type is not None:
-        responses["DefaultResult"] = InlineResponseDefinition(
-            description="Default result type",
-            fields={"result": ResponseField(type="str", description="Result")},
-        )
+        fields = {"result": ResponseField(type="str", description="Result")}
+        r = InlineResponseDefinition(description="Default result type", fields=fields)
+        responses["DefaultResult"] = r
 
     match system_prompt:
         case str():
@@ -477,19 +476,16 @@ async def run_agent_pipeline(  # noqa: PLR0911
             match environment:
                 case str():
                     # Path to environment file
-                    agent_config = agent_config.model_copy(
-                        update={"environment": environment}
-                    )
+                    update: dict[str, Any] = {"environment": environment}
+                    agent_config = agent_config.model_copy(update=update)
                 case Config():
                     # Direct runtime config
-                    agent_config = agent_config.model_copy(
-                        update={"environment": InlineEnvironment(config=environment)}
-                    )
+                    update = {"environment": InlineEnvironment(config=environment)}
+                    agent_config = agent_config.model_copy(update=update)
                 case FileEnvironment() | InlineEnvironment():
                     # Complete environment definition
-                    agent_config = agent_config.model_copy(
-                        update={"environment": environment}
-                    )
+                    update = {"environment": environment}
+                    agent_config = agent_config.model_copy(update=update)
                 case _:
                     msg = f"Invalid environment type: {type(environment)}"
                     raise TypeError(msg)  # noqa: TRY301
@@ -498,9 +494,8 @@ async def run_agent_pipeline(  # noqa: PLR0911
         if capabilities and agent_config.role in agent_def.roles:
             current = agent_def.roles[agent_config.role].model_dump()
             current.update(capabilities)
-            agent_def.roles[agent_config.role] = agent_def.roles[
-                agent_config.role
-            ].model_copy(update=current)
+            role = agent_def.roles[agent_config.role]
+            agent_def.roles[agent_config.role] = role.model_copy(update=current)
 
         # Create agent with all settings
         async with LLMlingAgent[T].open_agent(
@@ -593,11 +588,5 @@ def run_agent_pipeline_sync(
         msg = "Streaming not supported in synchronous version"
         raise ValueError(msg)
 
-    return asyncio.run(
-        run_agent_pipeline(
-            agent_name=agent_name,
-            prompt=prompt,
-            config=config,
-            **kwargs,
-        )
-    )
+    fn = run_agent_pipeline(agent_name=agent_name, prompt=prompt, config=config, **kwargs)
+    return asyncio.run(fn)
