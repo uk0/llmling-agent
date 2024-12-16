@@ -2,8 +2,117 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+import yaml
+
 from llmling_agent.agent import LLMlingAgent
 from llmling_agent.commands.base import Command, CommandContext
+
+
+def create_annotated_dump(
+    config: dict[str, Any],
+    overrides: dict[str, Any],
+    *,
+    indent: int = 2,
+) -> str:
+    """Create YAML dump with override annotations.
+
+    Args:
+        config: Configuration dictionary
+        overrides: Dictionary of overridden values
+        indent: Indentation level (default: 2)
+
+    Returns:
+        YAML string with override comments
+    """
+    lines = []
+    base_yaml = yaml.dump(
+        config,
+        sort_keys=False,
+        indent=indent,
+        default_flow_style=False,
+        allow_unicode=True,
+    )
+
+    for line in base_yaml.splitlines():
+        # Check if this line contains an overridden field
+        for key in overrides:
+            if line.startswith(f"{key}:"):
+                # Add comment indicating original value
+                original = config.get(key, "not set")
+                lines.append(f"{line}  # Override (was: {original})")
+                break
+        else:
+            lines.append(line)
+
+    return "\n".join(lines)
+
+
+async def show_agent(
+    ctx: CommandContext,
+    args: list[str],
+    kwargs: dict[str, str],
+) -> None:
+    """Show current agent's configuration."""
+    if not ctx.session._agent._context:
+        await ctx.output.print("No agent context available")
+        return
+
+    # Get the agent's config with current overrides
+    config = ctx.session._agent._context.config
+
+    # Track overrides
+    overrides = {}
+
+    # Check model override
+    if ctx.session._model:
+        overrides["model"] = ctx.session._model
+
+    # Get base config as dict
+    config_dict = config.model_dump(exclude_none=True)
+
+    # Apply overrides
+    if overrides:
+        config_dict.update(overrides)
+
+    # Format as annotated YAML
+    yaml_config = create_annotated_dump(config_dict, overrides)
+
+    # Add header and format for display
+    sections = [
+        "\n[bold]Current Agent Configuration:[/]",
+        "```yaml",
+        yaml_config,
+        "```",
+    ]
+
+    if overrides:
+        sections.extend([
+            "",
+            "[dim]Note: Fields marked with '# Override' show runtime overrides[/]",
+        ])
+
+    await ctx.output.print("\n".join(sections))
+
+
+show_agent_cmd = Command(
+    name="show-agent",
+    description="Show current agent's configuration",
+    execute_func=show_agent,
+    help_text=(
+        "Display the complete configuration of the current agent as YAML.\n"
+        "Shows:\n"
+        "- Basic agent settings\n"
+        "- Model configuration (with override indicators)\n"
+        "- Environment settings (including inline environments)\n"
+        "- System prompts\n"
+        "- Response type configuration\n"
+        "- Other settings\n\n"
+        "Fields that have been overridden at runtime are marked with comments."
+    ),
+    category="agents",
+)
 
 
 async def list_agents(
@@ -59,6 +168,22 @@ async def switch_agent(
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Failed to switch agent: {e}")
 
+
+show_agent_cmd = Command(
+    name="show-agent",
+    description="Show current agent's configuration",
+    execute_func=show_agent,
+    help_text=(
+        "Display detailed information about the current agent including:\n"
+        "- Basic configuration\n"
+        "- Model settings\n"
+        "- Environment configuration\n"
+        "- Response type details\n"
+        "- System prompts\n"
+        "- Other settings"
+    ),
+    category="agents",
+)
 
 list_agents_cmd = Command(
     name="list-agents",

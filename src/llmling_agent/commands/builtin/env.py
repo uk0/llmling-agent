@@ -12,25 +12,6 @@ from llmling_agent.commands.completers import PathCompleter
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 
 
-async def show_env(
-    ctx: CommandContext,
-    args: list[str],
-    kwargs: dict[str, str],
-) -> None:
-    """Show current environment file path."""
-    if not ctx.session._agent._context:
-        msg = "No agent context available"
-        raise CommandError(msg)
-
-    config = ctx.session._agent._context.config
-    try:
-        resolved_path = config.get_environment_path()
-        await ctx.output.print(f"Current environment file: {resolved_path}")
-    except Exception as e:
-        msg = f"Failed to get environment file: {e}"
-        raise CommandError(msg) from e
-
-
 async def set_env(
     ctx: CommandContext,
     args: list[str],
@@ -118,17 +99,6 @@ async def edit_env(
         case None:
             await ctx.output.print("No environment configured")
 
-
-show_env_cmd = Command(
-    name="show-env",
-    description="Show current environment file path",
-    execute_func=show_env,
-    help_text=(
-        "Display the path to the current environment configuration file.\n"
-        "This file defines available tools and resources."
-    ),
-    category="environment",
-)
 
 set_env_cmd = Command(
     name="set-env",
