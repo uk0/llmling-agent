@@ -21,6 +21,7 @@ from llmling_agent.commands.base import (
     CommandError,
     OutputWriter,
 )
+from llmling_agent.commands.exceptions import ExitCommandError
 from llmling_agent.commands.output import DefaultOutputWriter
 from llmling_agent.log import get_logger
 from llmling_agent.pydantic_ai_utils import extract_token_usage, format_response
@@ -178,11 +179,13 @@ class AgentChatSession:
             msg = "Message cannot be empty"
             raise ValueError(msg)
         if content.startswith("/"):
-            # Use provided output or fall back to default
             writer = output or DefaultOutputWriter()
             try:
                 await self.handle_command(content[1:], output=writer, metadata=metadata)
                 return ChatMessage(content="", role="system")
+            except ExitCommandError:
+                # Re-raise without wrapping in CommandError
+                raise
             except CommandError as e:
                 return ChatMessage(content=f"Command error: {e}", role="system")
         self._history.append(messages.UserPrompt(content=content))

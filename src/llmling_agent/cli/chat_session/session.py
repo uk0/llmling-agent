@@ -25,6 +25,7 @@ from llmling_agent.cli.chat_session.completion import PromptToolkitCompleter
 from llmling_agent.cli.chat_session.config import HISTORY_DIR, SessionState
 from llmling_agent.cli.chat_session.status import StatusBar
 from llmling_agent.commands.base import Command, CommandContext
+from llmling_agent.commands.exceptions import ExitCommandError
 from llmling_agent.commands.log import SessionLogHandler
 from llmling_agent.commands.output import DefaultOutputWriter
 
@@ -72,6 +73,7 @@ class InteractiveSession:
         self.status_bar = StatusBar(self.console)
 
         # Setup logging
+        self._log_handler = None
         if show_log_in_chat:
             self._log_handler = SessionLogHandler(self._output_writer)
             self._log_handler.setLevel(log_level)
@@ -108,7 +110,8 @@ class InteractiveSession:
             kwargs: dict[str, str],
         ) -> None:
             """Exit the chat session."""
-            raise EOFError
+            msg = "Session ended."
+            raise ExitCommandError(msg)
 
         exit_cmd = Command(
             name="exit",
@@ -129,11 +132,15 @@ class InteractiveSession:
             assert self._chat_session is not None
 
             if content.startswith("/"):
-                # Handle command (no change needed)
-                result = await self._chat_session.send_message(content, output=writer)
-                if result.content:
-                    self.console.print(result.content)
-                self.status_bar.render(self._state)
+                try:
+                    result = await self._chat_session.send_message(content, output=writer)
+                    if result.content:
+                        self.console.print(result.content)
+                    self.status_bar.render(self._state)
+                except ExitCommandError as e:
+                    # Handle clean exit
+                    self.console.print("\nGoodbye!")
+                    raise EOFError from e
                 return
 
             # Handle normal message with or without streaming
@@ -228,8 +235,9 @@ class InteractiveSession:
     async def _cleanup(self) -> None:
         """Clean up resources."""
         # Remove log handler
-        logging.getLogger("llmling_agent").removeHandler(self._log_handler)
-        logging.getLogger("llmling").removeHandler(self._log_handler)
+        if self._log_handler:
+            logging.getLogger("llmling_agent").removeHandler(self._log_handler)
+            logging.getLogger("llmling").removeHandler(self._log_handler)
 
         if self._chat_session:
             # Any cleanup needed for chat session
