@@ -40,7 +40,7 @@
                 "mapping": {
                   "random": "#/$defs/RandomMultiModel",
                   "string": "#/$defs/StringModel",
-                  "test": "#/$defs/TestModelWrapper"
+                  "test": "#/$defs/_TestModelWrapper"
                 },
                 "propertyName": "type"
               },
@@ -52,7 +52,7 @@
                   "$ref": "#/$defs/RandomMultiModel"
                 },
                 {
-                  "$ref": "#/$defs/TestModelWrapper"
+                  "$ref": "#/$defs/_TestModelWrapper"
                 }
               ]
             },
@@ -1602,7 +1602,7 @@
     },
     "RandomMultiModel": {
       "additionalProperties": false,
-      "description": "Randomly selects from available models.",
+      "description": "Randomly selects from configured models.\n\nExample YAML configuration:\n    ```yaml\n    model:\n      type: random\n      models:\n        - openai:gpt-4\n        - openai:gpt-3.5-turbo\n    ```",
       "properties": {
         "type": {
           "const": "random",
@@ -1611,6 +1611,7 @@
           "type": "string"
         },
         "models": {
+          "description": "\"List of models to use\".",
           "items": {
             "enum": [
               "openai:gpt-4o",
@@ -1663,9 +1664,6 @@
           "type": "array"
         }
       },
-      "required": [
-        "models"
-      ],
       "title": "RandomMultiModel",
       "type": "object"
     },
@@ -2012,26 +2010,6 @@
       "title": "TestModel",
       "type": "object"
     },
-    "TestModelWrapper": {
-      "additionalProperties": false,
-      "description": "Wrapper for TestModel.",
-      "properties": {
-        "type": {
-          "const": "test",
-          "default": "test",
-          "title": "Type",
-          "type": "string"
-        },
-        "model": {
-          "$ref": "#/$defs/TestModel"
-        }
-      },
-      "required": [
-        "model"
-      ],
-      "title": "TestModelWrapper",
-      "type": "object"
-    },
     "TextResource": {
       "description": "Raw text resource.",
       "properties": {
@@ -2224,6 +2202,26 @@
         }
       },
       "title": "WatchConfig",
+      "type": "object"
+    },
+    "_TestModelWrapper": {
+      "additionalProperties": false,
+      "description": "Wrapper for TestModel.",
+      "properties": {
+        "type": {
+          "const": "test",
+          "default": "test",
+          "title": "Type",
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/TestModel"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "title": "_TestModelWrapper",
       "type": "object"
     }
   },

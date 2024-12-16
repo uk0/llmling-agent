@@ -9,7 +9,7 @@ from llmling_agent.pydanticai_models.base import PydanticModel
 from llmling_agent.pydanticai_models.multi import RandomMultiModel
 
 
-class TestModelWrapper(PydanticModel):
+class _TestModelWrapper(PydanticModel):
     """Wrapper for TestModel."""
 
     type: Literal["test"] = "test"
@@ -64,5 +64,5 @@ type ModelInput = str | KnownModelName | Model | PydanticModel
 """Type for internal model handling (after validation)."""
 
 AnyModel = Annotated[
-    StringModel | RandomMultiModel | TestModelWrapper, Field(discriminator="type")
+    StringModel | RandomMultiModel | _TestModelWrapper, Field(discriminator="type")
 ]

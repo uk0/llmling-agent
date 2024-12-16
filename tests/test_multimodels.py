@@ -8,7 +8,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent.pydanticai_models.multi import RandomMultiModel
-from llmling_agent.pydanticai_models.types import TestModelWrapper
+from llmling_agent.pydanticai_models.types import _TestModelWrapper
 
 
 @pytest.fixture
@@ -27,8 +27,8 @@ async def test_random_model_basic(test_models: tuple[TestModel, TestModel]) -> N
     random_model = RandomMultiModel(
         type="random",
         models=[
-            TestModelWrapper(type="test", model=model1),
-            TestModelWrapper(type="test", model=model2),
+            _TestModelWrapper(type="test", model=model1),
+            _TestModelWrapper(type="test", model=model2),
         ],
     )
 
@@ -54,8 +54,8 @@ async def test_random_model_with_tools(test_models: tuple[TestModel, TestModel])
     random_model = RandomMultiModel(
         type="random",
         models=[
-            TestModelWrapper(type="test", model=model1),
-            TestModelWrapper(type="test", model=model2),
+            _TestModelWrapper(type="test", model=model1),
+            _TestModelWrapper(type="test", model=model2),
         ],
     )
 
