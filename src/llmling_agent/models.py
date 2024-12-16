@@ -205,10 +205,8 @@ class AgentConfig(BaseModel):
     """Optional description of the agent's purpose"""
 
     model: str | AnyModel | None = None
-    """The model to use:
-    - String model name (e.g. "openai:gpt-4")
-    - Structured model definition (e.g. MultiModel)
-    """
+    """The model to use for this agent. Can be either a simple model name
+    string (e.g. 'openai:gpt-4') or a structured model definition."""
 
     environment: str | AgentEnvironment | None = None
     """Environment configuration (path or object)"""

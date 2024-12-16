@@ -61,7 +61,7 @@
             }
           ],
           "default": null,
-          "description": "The model to use:\n- String model name (e.g. \"openai:gpt-4\")\n- Structured model definition (e.g. MultiModel)",
+          "description": "The model to use for this agent. Can be either a simple model name\nstring (e.g. 'openai:gpt-4') or a structured model definition.",
           "title": "Model"
         },
         "environment": {
