@@ -266,48 +266,106 @@ class LLMlingAgent[TResult]:
     @asynccontextmanager
     async def open_agent(
         cls,
-        config: str | os.PathLike[str] | AgentsManifest,
+        config: str | AgentsManifest,
         agent_name: str,
         *,
-        model: models.Model | models.KnownModelName | None = None,
-        tools: list[str | Callable[..., Any]] | None = None,
+        # Model configuration
+        model: str | models.Model | models.KnownModelName | None = None,
         result_type: type[TResult] | None = None,
-        **kwargs: Any,
+        model_settings: dict[str, Any] | None = None,
+        # Tool configuration
+        tools: list[str | Callable[..., Any]] | None = None,
+        tool_choice: bool | str | list[str] = True,
+        confirm_tools: set[str] | bool = False,
+        tool_confirmation: ToolConfirmation | None = None,
+        # Execution settings
+        retries: int = 1,
+        result_tool_name: str = "final_result",
+        result_tool_description: str | None = None,
+        result_retries: int | None = None,
+        # Other settings
+        system_prompt: str | Sequence[str] | None = None,
+        enable_logging: bool = True,
     ) -> AsyncIterator[LLMlingAgent[TResult]]:
-        """Open a specific agent from agent configuration.
+        """Open and configure a specific agent from configuration.
 
         Args:
-            config: Path to agent configuration file or an AgentsManifest instance
+            config: Path to agent configuration file or AgentsManifest instance
             agent_name: Name of the agent to load
+
+            # Model Configuration
             model: Optional model override
-            tools: list of tools to additionaly register in the RuntimeConfig
             result_type: Optional type for structured responses
-            **kwargs: Additional arguments for agent configuration
+            model_settings: Additional model-specific settings
+
+            # Tool Configuration
+            tools: Additional tools to register (import paths or callables)
+            tool_choice: Control tool usage:
+                - True: Allow all tools
+                - False: No tools
+                - str: Use specific tool
+                - list[str]: Allow specific tools
+            confirm_tools: Which tools need confirmation:
+                - True: All tools
+                - False: No tools
+                - set[str]: Specific tools
+            tool_confirmation: Optional callback for tool confirmation
+
+            # Execution Settings
+            retries: Default number of retries for failed operations
+            result_tool_name: Name of the tool used for final result
+            result_tool_description: Description of the final result tool
+            result_retries: Max retries for result validation (defaults to retries)
+
+            # Other Settings
+            system_prompt: Additional system prompts
+            enable_logging: Whether to enable logging for the agent
 
         Yields:
             Configured LLMlingAgent instance
 
         Raises:
-            ValueError: If agent not found in configuration
+            ValueError: If agent not found or configuration invalid
+            RuntimeError: If agent initialization fails
+
+        Example:
+            ```python
+            async with LLMlingAgent.open_agent(
+                "agents.yml",
+                "my_agent",
+                model="gpt-4",
+                tools=[my_custom_tool],
+                confirm_tools={"dangerous_tool"},
+            ) as agent:
+                result = await agent.run("Do something")
+            ```
         """
         if isinstance(config, AgentsManifest):
             agent_def = config
         else:
             agent_def = AgentsManifest.from_file(config)
+
         if agent_name not in agent_def.agents:
             msg = f"Agent '{agent_name}' not found in {config}"
             raise ValueError(msg)
 
         agent_config = agent_def.agents[agent_name]
 
-        # Create context
+        # Use model from override or agent config
+        actual_model = model or agent_config.model
+        if not actual_model:
+            msg = "Model must be specified either in config or as override"
+            raise ValueError(msg)
+
         capabilities = agent_def.get_capabilities(agent_config.role)
+
+        # Create context
         context = AgentContext(
             agent_name=agent_name,
             capabilities=capabilities,
             definition=agent_def,
             config=agent_config,
-            model_settings=kwargs.pop("model_settings", {}),
+            model_settings=model_settings or {},
         )
 
         # Set up runtime
@@ -316,12 +374,21 @@ class LLMlingAgent[TResult]:
             if tools:
                 for tool in tools:
                     await runtime.register_tool(tool)
+
             agent = cls(
                 runtime=runtime,
                 context=context,
                 result_type=result_type,
-                model=model or agent_config.model,
-                **kwargs,
+                model=actual_model,  # type: ignore[arg-type]
+                tool_confirmation=tool_confirmation,
+                confirm_tools=confirm_tools,
+                retries=retries,
+                result_tool_name=result_tool_name,
+                result_tool_description=result_tool_description,
+                result_retries=result_retries,
+                tool_choice=tool_choice,
+                system_prompt=system_prompt or [],
+                enable_logging=enable_logging,
             )
             try:
                 yield agent
