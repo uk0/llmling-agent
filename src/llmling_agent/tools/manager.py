@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator, MutableMapping
 from typing import TYPE_CHECKING, Literal
+
+from llmling.tools import LLMCallableTool
 
 from llmling_agent.log import get_logger
 
@@ -10,13 +13,11 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from llmling.tools import LLMCallableTool
-
 
 logger = get_logger(__name__)
 
 
-class ToolManager:
+class ToolManager(MutableMapping[str, LLMCallableTool]):
     """Manages tool registration, enabling/disabling and access."""
 
     def __init__(
@@ -39,6 +40,24 @@ class ToolManager:
         self._disabled_tools: set[str] = set()
         self.tool_choice = tool_choice
 
+    # Required MutableMapping methods
+    def __getitem__(self, key: str) -> LLMCallableTool:
+        return self._tools[key]  # Raises KeyError naturally
+
+    def __setitem__(self, key: str, value: LLMCallableTool) -> None:
+        self._tools[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        self._tools.pop(key)  # Raises KeyError naturally
+        self._disabled_tools.discard(key)
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._tools)
+
+    def __len__(self) -> int:
+        return len(self._tools)
+
+    # Our methods
     def enable_tool(self, tool_name: str) -> None:
         """Enable a previously disabled tool."""
         self._disabled_tools.discard(tool_name)
