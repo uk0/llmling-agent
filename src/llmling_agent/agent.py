@@ -146,9 +146,8 @@ class LLMlingAgent[TResult]:
         """Set up history-related tools based on capabilities."""
         if not self._context:
             return
-
+        history_tools = HistoryTools(self._context)
         if self._context.capabilities.history_access != "none":
-            history_tools = HistoryTools(self._context)
             search_tool = LLMCallableTool.from_callable(history_tools.search_history)
             self._tool_manager._tools[search_tool.name] = search_tool
 
