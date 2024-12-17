@@ -9,7 +9,8 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
-from pydantic_ai import Agent as PydanticAgent, Tool, messages
+from llmling.tools import LLMCallableTool
+from pydantic_ai import Agent as PydanticAgent, messages
 from pydantic_ai.result import RunResult, StreamedRunResult
 from sqlmodel import Session
 from typing_extensions import TypeVar
@@ -21,7 +22,7 @@ from llmling_agent.pydantic_ai_utils import TokenUsage, extract_token_usage
 from llmling_agent.responses import resolve_response_type
 from llmling_agent.storage import Conversation, engine
 from llmling_agent.storage.models import Message
-from llmling_agent.tools.base import wrap_runtime_tool
+from llmling_agent.tools.history import HistoryTools
 from llmling_agent.tools.manager import ToolManager
 
 
@@ -63,7 +64,7 @@ class LLMlingAgent[TResult]:
         model: models.Model | models.KnownModelName | None = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
-        tools: Sequence[Tool[AgentContext]] = (),
+        tools: Sequence[LLMCallableTool] = (),
         retries: int = 1,
         result_tool_name: str = "final_result",
         result_tool_description: str | None = None,
@@ -97,11 +98,10 @@ class LLMlingAgent[TResult]:
         self._context.runtime = runtime
 
         # Initialize tool manager
-        self._tool_manager = ToolManager(tools=tools, tool_choice=tool_choice)
-
-        # Prepare all tools including runtime tools
-        tools = self._prepare_tools()
-        self._setup_history_tools(tools)
+        all_tools = list(tools)
+        all_tools.extend(runtime.tools.values())  # Add runtime tools directly
+        self._tool_manager = ToolManager(tools=all_tools, tool_choice=tool_choice)
+        self._setup_history_tools()
 
         # Resolve result type
         actual_type: type[TResult]
@@ -116,7 +116,7 @@ class LLMlingAgent[TResult]:
             result_type=actual_type,
             system_prompt=system_prompt,
             deps_type=AgentContext,
-            tools=tools,
+            tools=[],  # tools get added for each call explicitely
             retries=retries,
             result_tool_name=result_tool_name,
             result_tool_description=result_tool_description,
@@ -142,18 +142,19 @@ class LLMlingAgent[TResult]:
                 session.add(convo)
                 session.commit()
 
-    def _setup_history_tools(self, tools: list[Tool[AgentContext]]) -> None:
+    def _setup_history_tools(self) -> None:
         """Set up history-related tools based on capabilities."""
         if not self._context:
             return
 
         if self._context.capabilities.history_access != "none":
-            from llmling_agent.tools.history import HistoryTools
-
             history_tools = HistoryTools(self._context)
-            tools.append(Tool(history_tools.search_history, takes_ctx=True))
-            if self._context.capabilities.stats_access != "none":
-                tools.append(Tool(history_tools.show_statistics, takes_ctx=True))
+            search_tool = LLMCallableTool.from_callable(history_tools.search_history)
+            self._tool_manager._tools[search_tool.name] = search_tool
+
+        if self._context.capabilities.stats_access != "none":
+            stats_tool = LLMCallableTool.from_callable(history_tools.show_statistics)
+            self._tool_manager._tools[stats_tool.name] = stats_tool
 
     @classmethod
     @asynccontextmanager
@@ -411,6 +412,14 @@ class LLMlingAgent[TResult]:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         try:
+            # Clear all tools
+            self._pydantic_agent._function_tools = {}
+
+            # Register currently enabled tools
+            enabled_tools = self._tool_manager.get_tools(state="enabled")
+            for tool in enabled_tools:
+                self._pydantic_agent.tool_plain(tool._original_callable)
+
             logger.debug("agent run prompt=%s", prompt)
             logger.debug("  preparing model and tools run_step=%d", 1)
 
@@ -467,6 +476,10 @@ class LLMlingAgent[TResult]:
             ```
         """
         try:
+            enabled_tools = self._tool_manager.get_tools(state="enabled")
+            for tool in enabled_tools:
+                self._pydantic_agent.tool_plain(tool._original_callable)
+
             if self._enable_logging:
                 self._log_message(prompt, role="user")
 
@@ -585,36 +598,13 @@ class LLMlingAgent[TResult]:
         """
         return self._tool_manager.is_tool_enabled(name)
 
-    def remove_tool(self, tool_name: str) -> Tool[AgentContext]:
-        return self._pydantic_agent._function_tools.pop(tool_name)
-
     def list_tools(self) -> dict[str, bool]:
         """Get a mapping of all tools and their enabled status.
 
         Returns:
             Dict mapping tool names to their enabled status
         """
-        disabled = self._tool_manager._disabled_tools
-        tools = {name: name not in disabled for name in self.runtime.tools}
-        # Add custom tools from manager
-        tools.update(self._tool_manager.list_tools())
-        return tools
-
-    def _prepare_tools(self) -> list[Tool[AgentContext]]:
-        """Prepare all tools respecting enabled/disabled state."""
-        tools = list(self._tool_manager.get_tools(state="enabled"))
-
-        # Add runtime tools
-        disabled = self._tool_manager._disabled_tools
-        enabled = [t for t in self.runtime.tools if t not in disabled]
-
-        for tool_name in enabled:
-            tool_def = self.runtime.tools[tool_name]
-            schema = tool_def.get_schema()
-            desc = tool_def.description
-            wrapped = wrap_runtime_tool(name=tool_name, schema=schema, description=desc)
-            tools.append(wrapped)
-        return tools
+        return self._tool_manager.list_tools()
 
 
 if __name__ == "__main__":

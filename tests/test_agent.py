@@ -6,12 +6,12 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from llmling.config.runtime import RuntimeConfig  # noqa: TC002
-from pydantic_ai import RunContext, messages
+from llmling.tools import LLMCallableTool
+from pydantic_ai import messages
 from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent.agent import LLMlingAgent
-from llmling_agent.context import AgentContext  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -127,7 +127,6 @@ async def test_agent_model_override(no_tool_runtime: RuntimeConfig) -> None:
 @pytest.mark.asyncio
 async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig) -> None:
     """Test agent using tools."""
-    from pydantic_ai import Tool
     from pydantic_ai.messages import (
         ModelStructuredResponse,
         ModelTextResponse,
@@ -136,26 +135,20 @@ async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig) -> None:
     )
 
     # Create tool before agent initialization
-    async def test_tool(ctx: RunContext[AgentContext], message: str = "test") -> str:
+    async def test_tool(message: str = "test") -> str:
         """A test tool."""
         return f"Tool response: {message}"
 
     tools = [
-        Tool(
-            test_tool,
-            takes_ctx=True,
-            name="test_tool",
-            description="A test tool.",
+        LLMCallableTool.from_callable(
+            test_tool, name_override="test_tool", description_override="A test tool."
         )
     ]
 
     agent: LLMlingAgent[str] = LLMlingAgent(
         runtime=no_tool_runtime,
         name="test-agent",
-        model=TestModel(
-            custom_result_text=TEST_RESPONSE,
-            call_tools=["test_tool"],
-        ),
+        model=TestModel(custom_result_text=TEST_RESPONSE, call_tools=["test_tool"]),
         tools=tools,  # Pass tools during initialization
     )
 
@@ -164,9 +157,8 @@ async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig) -> None:
 
     # Check message sequence
     messages = result.new_messages()
-    assert (
-        len(messages) == 4  # noqa: PLR2004
-    )  # user prompt -> structured response -> tool return -> final response
+    # user prompt -> structured response -> tool return -> final response
+    assert len(messages) == 4  # noqa: PLR2004
 
     # Check specific message types
     assert isinstance(messages[0], UserPrompt)
@@ -213,10 +205,9 @@ async def test_agent_context_manager(tmp_path: Path) -> None:
     # Write config to temporary file
     config_path = tmp_path / "test_config.yml"
     config_path.write_text(yaml.dump(config))
-    async with LLMlingAgent.open(
-        config_path,
-        name="test-agent",
-        model=TestModel(custom_result_text=TEST_RESPONSE),
+    model = TestModel(custom_result_text=TEST_RESPONSE)
+    async with LLMlingAgent[str].open(
+        config_path, name="test-agent", model=model
     ) as agent:
         result = await agent.run(SIMPLE_PROMPT)
         assert result.data == TEST_RESPONSE

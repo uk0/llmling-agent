@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Literal
 
 from llmling_agent.log import get_logger
 
@@ -10,7 +10,7 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai import Tool
+    from llmling.tools import LLMCallableTool
 
 
 logger = get_logger(__name__)
@@ -21,7 +21,7 @@ class ToolManager:
 
     def __init__(
         self,
-        tools: Sequence[Tool[Any]] = (),
+        tools: Sequence[LLMCallableTool] = (),
         tool_choice: bool | str | list[str] = True,
     ) -> None:
         """Initialize tool manager.
@@ -34,7 +34,7 @@ class ToolManager:
                 - str: Use specific tool
                 - list[str]: Allow specific tools
         """
-        self._tools: dict[str, Tool[Any]] = {t.name: t for t in tools}
+        self._tools: dict[str, LLMCallableTool] = {t.name: t for t in tools}
         self._original_tools = list(tools)
         self._disabled_tools: set[str] = set()
         self._tool_choice = tool_choice
@@ -61,7 +61,7 @@ class ToolManager:
         self,
         state: Literal["all", "enabled", "disabled"] = "all",
         names: list[str] | None = None,
-    ) -> list[Tool[Any]]:
+    ) -> list[LLMCallableTool]:
         """Get tool objects based on filters."""
         # First filter by state
         match state:

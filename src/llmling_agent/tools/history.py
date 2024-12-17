@@ -3,8 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Literal
 
-from pydantic_ai import RunContext  # noqa: TC002
-
 from llmling_agent.context import AgentContext  # noqa: TC001
 from llmling_agent.history import (
     StatsFilters,
@@ -30,9 +28,9 @@ class HistoryTools:
         """Get agent's capabilities."""
         return self._context.capabilities
 
-    async def search_history(  # noqa: D417
+    async def search_history(
         self,
-        ctx: RunContext[AgentContext],
+        # ctx: RunContext[AgentContext],
         query: str | None = None,
         hours: int = 24,
         limit: int = 5,
@@ -63,9 +61,9 @@ class HistoryTools:
         )
         return format_output(results, output_format="text")
 
-    async def show_statistics(  # noqa: D417
+    async def show_statistics(
         self,
-        ctx: RunContext[AgentContext],
+        # ctx: RunContext[AgentContext],
         group_by: Literal["agent", "model", "hour", "day"] = "model",
         hours: int = 24,
     ) -> str:
