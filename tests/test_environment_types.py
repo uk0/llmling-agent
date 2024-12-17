@@ -6,7 +6,6 @@ import pathlib
 from typing import Any
 
 from llmling import Config
-from llmling.config.models import GlobalSettings
 from pydantic import ValidationError
 import pytest
 import yaml
@@ -105,12 +104,12 @@ def test_environment_display_names() -> None:
     """Test display name generation for different environment types."""
     file_env = FileEnvironment(uri="config.yml")
     assert file_env.get_display_name() == "File: config.yml"
-    cfg = Config(global_settings=GlobalSettings())
+    cfg = Config()
     inline_env = InlineEnvironment(config=cfg, uri="custom-env")
     assert inline_env.get_display_name() == "Inline: custom-env"
 
     # Without URI
-    inline_env = InlineEnvironment(config=Config(global_settings=GlobalSettings()))
+    inline_env = InlineEnvironment(config=Config())
     assert inline_env.get_display_name() == "Inline configuration"
 
 
