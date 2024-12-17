@@ -1,6 +1,8 @@
 """Command-related exceptions."""
 
-from llmling_agent.commands.base import CommandError
+
+class CommandError(Exception):
+    """Base exception for command-related errors."""
 
 
 class ExitCommandError(CommandError):

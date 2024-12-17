@@ -4,14 +4,13 @@ from llmling_agent.commands.base import (
     BaseCommand,
     Command,
     CommandContext,
-    CommandError,
     ParsedCommand,
     ParsedCommandArgs,
     parse_command,
 )
 from llmling_agent.commands.output import DefaultOutputWriter
 from llmling_agent.commands.store import CommandStore
-
+from llmling_agent.commands.exceptions import CommandError, ExitCommandError
 
 __all__ = [
     "BaseCommand",
@@ -20,6 +19,7 @@ __all__ = [
     "CommandError",
     "CommandStore",
     "DefaultOutputWriter",
+    "ExitCommandError",
     "ParsedCommand",
     "ParsedCommandArgs",
     "parse_command",

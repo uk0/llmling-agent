@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from llmling_agent.commands.base import CommandContext, CommandError, parse_command
+from llmling_agent.commands.base import CommandContext, parse_command
+from llmling_agent.commands.exceptions import CommandError
 from llmling_agent.log import get_logger
 
 

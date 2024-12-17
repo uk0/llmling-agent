@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import webbrowser
 
-from llmling_agent.commands.base import Command, CommandContext, CommandError
+from llmling_agent.commands.base import Command, CommandContext
+from llmling_agent.commands.exceptions import CommandError
 from llmling_agent.log import get_logger
 from llmling_agent.pydantic_ai_utils import find_last_assistant_message
 

@@ -9,6 +9,7 @@ import shlex
 from typing import TYPE_CHECKING, Any, Protocol
 
 from llmling_agent.commands.completion import CompletionProvider
+from llmling_agent.commands.exceptions import CommandError
 
 
 if TYPE_CHECKING:
@@ -51,10 +52,6 @@ class ParsedCommand:
 
 
 type ExecuteFunc = Callable[[CommandContext, list[str], dict[str, str]], Awaitable[None]]
-
-
-class CommandError(Exception):
-    """Base exception for command-related errors."""
 
 
 class BaseCommand(ABC):

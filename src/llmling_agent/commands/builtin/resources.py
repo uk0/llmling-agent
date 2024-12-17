@@ -53,10 +53,7 @@ async def show_resource(
             return
 
         # Show resource details
-        sections = [
-            f"# Resource: {name}\n",
-            f"Type: {resource_info.type}",
-        ]
+        sections = [f"# Resource: {name}\n", f"Type: {resource_info.type}"]
         if resource_info.uri:
             sections.append(f"URI: `{resource_info.uri}`")
         if resource_info.description:

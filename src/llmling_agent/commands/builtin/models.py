@@ -19,10 +19,8 @@ async def set_model(
     try:
         # Create new session with model override
         await ctx.session.reset()  # Clear history and reset state
-        await ctx.session._agent.run(
-            "Model changed. How can I help you?",
-            model=model,  # type: ignore[arg-type]
-        )
+        msg = "Model changed. How can I help you?"
+        await ctx.session._agent.run(msg, model=model)  # type: ignore[arg-type]
         await ctx.output.print(f"Model changed to: {model}")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Failed to change model: {e}")

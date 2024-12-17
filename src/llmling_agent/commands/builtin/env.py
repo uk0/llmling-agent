@@ -7,8 +7,9 @@ import webbrowser
 from llmling.config.runtime import RuntimeConfig
 from upath import UPath
 
-from llmling_agent.commands.base import Command, CommandContext, CommandError
+from llmling_agent.commands.base import Command, CommandContext
 from llmling_agent.commands.completers import PathCompleter
+from llmling_agent.commands.exceptions import CommandError
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 
 

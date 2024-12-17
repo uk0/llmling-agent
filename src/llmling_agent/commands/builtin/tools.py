@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from llmling_agent.commands.base import Command, CommandContext, CommandError
+from llmling_agent.commands.base import Command, CommandContext
+from llmling_agent.commands.exceptions import CommandError
 from llmling_agent.log import get_logger
 
 
