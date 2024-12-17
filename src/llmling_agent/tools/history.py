@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Literal
 
-from llmling_agent.context import AgentContext  # noqa: TC001
 from llmling_agent.history import (
     StatsFilters,
     format_stats,
@@ -20,13 +19,8 @@ if TYPE_CHECKING:
 class HistoryTools:
     """History-related tools for LLM agents."""
 
-    def __init__(self, agent_context: AgentContext) -> None:
-        self._context = agent_context
-
-    @property
-    def capabilities(self) -> Capabilities:
-        """Get agent's capabilities."""
-        return self._context.capabilities
+    def __init__(self, capabilities: Capabilities) -> None:
+        self.capabilities = capabilities
 
     async def search_history(
         self,

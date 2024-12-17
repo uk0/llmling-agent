@@ -16,6 +16,8 @@ from llmling_agent.tools.base import ToolInfo
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from llmling_agent.config.capabilities import Capabilities
+
 
 logger = get_logger(__name__)
 
@@ -151,3 +153,37 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
     ) -> set[str]:
         """Get tool names based on state."""
         return {name for name, info in self.items() if info.matches_filter(state)}
+
+    def setup_history_tools(self, capabilities: Capabilities) -> None:
+        """Set up history-related tools based on capabilities.
+
+        Args:
+            capabilities: Configuration determining tool access
+        """
+        from llmling_agent.tools.history import HistoryTools
+
+        history_tools = HistoryTools(capabilities)
+
+        if capabilities.history_access != "none":
+            search_tool = LLMCallableTool.from_callable(
+                history_tools.search_history,
+                description_override="Search conversation history",
+            )
+            self[search_tool.name] = ToolInfo(
+                callable=search_tool,
+                source="builtin",
+                priority=200,  # Lower priority than regular tools
+                requires_capability="history_access",
+            )
+
+        if capabilities.stats_access != "none":
+            stats_tool = LLMCallableTool.from_callable(
+                history_tools.show_statistics,
+                description_override="Show usage statistics",
+            )
+            self[stats_tool.name] = ToolInfo(
+                callable=stats_tool,
+                source="builtin",
+                priority=200,
+                requires_capability="stats_access",
+            )

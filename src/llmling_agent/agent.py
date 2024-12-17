@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
-from llmling.tools import LLMCallableTool
 from pydantic_ai import Agent as PydanticAgent, messages
 from pydantic_ai.result import RunResult, StreamedRunResult
 from sqlmodel import Session
@@ -22,7 +21,6 @@ from llmling_agent.pydantic_ai_utils import TokenUsage, extract_token_usage
 from llmling_agent.responses import resolve_response_type
 from llmling_agent.storage import Conversation, engine
 from llmling_agent.storage.models import Message
-from llmling_agent.tools.history import HistoryTools
 from llmling_agent.tools.manager import ToolManager
 
 
@@ -31,6 +29,7 @@ if TYPE_CHECKING:
     import os
 
     from llmling.core.events import Event
+    from llmling.tools import LLMCallableTool
     from pydantic_ai.agent import models
 
 
@@ -101,7 +100,7 @@ class LLMlingAgent[TResult]:
         all_tools = list(tools)
         all_tools.extend(runtime.tools.values())  # Add runtime tools directly
         self._tool_manager = ToolManager(tools=all_tools, tool_choice=tool_choice)
-        self._setup_history_tools()
+        self._tool_manager.setup_history_tools(self._context.capabilities)
 
         # Resolve result type
         actual_type: type[TResult]
@@ -141,19 +140,6 @@ class LLMlingAgent[TResult]:
                 convo = Conversation(id=id_, agent_name=name)
                 session.add(convo)
                 session.commit()
-
-    def _setup_history_tools(self) -> None:
-        """Set up history-related tools based on capabilities."""
-        if not self._context:
-            return
-        history_tools = HistoryTools(self._context)
-        if self._context.capabilities.history_access != "none":
-            search_tool = LLMCallableTool.from_callable(history_tools.search_history)
-            self._tool_manager[search_tool.name] = search_tool
-
-        if self._context.capabilities.stats_access != "none":
-            stats_tool = LLMCallableTool.from_callable(history_tools.show_statistics)
-            self._tool_manager[stats_tool.name] = stats_tool
 
     @classmethod
     @asynccontextmanager
