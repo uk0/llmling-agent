@@ -37,7 +37,7 @@ class ToolManager:
         self._tools: dict[str, LLMCallableTool] = {t.name: t for t in tools}
         self._original_tools = list(tools)
         self._disabled_tools: set[str] = set()
-        self._tool_choice = tool_choice
+        self.tool_choice = tool_choice
 
     def enable_tool(self, tool_name: str) -> None:
         """Enable a previously disabled tool."""

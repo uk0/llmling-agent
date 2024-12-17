@@ -62,7 +62,7 @@ class AgentChatSession:
         self.id = session_id or uuid4()
         self._agent = agent
         self._history: list[messages.Message] = []
-        self._tool_states = agent.list_tools()
+        self._tool_states = agent.tools.list_tools()
         self._model = model_override or agent.model_name
         msg = "Created chat session %s for agent %s"
         logger.debug(msg, self.id, agent.name)
@@ -106,7 +106,7 @@ class AgentChatSession:
         """Reset session state."""
         old_tools = self._tool_states.copy()
         self._history = []
-        self._tool_states = self._agent.list_tools()
+        self._tool_states = self._agent.tools.list_tools()
         data = {
             "session_id": str(self.id),
             "previous_tools": old_tools,
@@ -269,10 +269,10 @@ class AgentChatSession:
         for tool, enabled in updates.items():
             try:
                 if enabled:
-                    self._agent.enable_tool(tool)
+                    self._agent.tools.enable_tool(tool)
                     results[tool] = "enabled"
                 else:
-                    self._agent.disable_tool(tool)
+                    self._agent.tools.disable_tool(tool)
                     results[tool] = "disabled"
                 self._tool_states[tool] = enabled
             except ValueError as e:
@@ -283,7 +283,7 @@ class AgentChatSession:
 
     def get_tool_states(self) -> dict[str, bool]:
         """Get current tool states."""
-        return self._agent.list_tools()
+        return self._agent.tools.list_tools()
 
     @property
     def history(self) -> list[messages.Message]:

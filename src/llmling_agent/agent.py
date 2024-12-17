@@ -571,39 +571,9 @@ class LLMlingAgent[TResult]:
         """Get agent name."""
         return self._name
 
-    def enable_tool(self, name: str) -> None:
-        """Enable a previously disabled tool.
-
-        Args:
-            name: Name of the tool to enable
-
-        Raises:
-            ValueError: If tool doesn't exist
-        """
-        self._tool_manager.enable_tool(name)
-
-    def disable_tool(self, name: str) -> None:
-        """Disable a tool."""
-        self._tool_manager.disable_tool(name)
-
-    def is_tool_enabled(self, name: str) -> bool:
-        """Check if a tool is currently enabled.
-
-        Args:
-            name: Name of the tool to check
-
-        Returns:
-            Whether the tool is enabled
-        """
-        return self._tool_manager.is_tool_enabled(name)
-
-    def list_tools(self) -> dict[str, bool]:
-        """Get a mapping of all tools and their enabled status.
-
-        Returns:
-            Dict mapping tool names to their enabled status
-        """
-        return self._tool_manager.list_tools()
+    @property
+    def tools(self) -> ToolManager:
+        return self._tool_manager
 
 
 if __name__ == "__main__":

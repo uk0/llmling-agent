@@ -36,7 +36,7 @@ def mock_agent() -> MagicMock:
     agent = MagicMock()
     agent.name = DEFAULT_AGENT_NAME
     # Set up default tool states
-    agent.list_tools.return_value = {"tool1": True, "tool2": False}
+    agent.tools.list_tools.return_value = {"tool1": True, "tool2": False}
     # Set up async methods
     agent.run = AsyncMock()
     agent.run_stream = AsyncMock()
@@ -66,7 +66,7 @@ async def test_chat_session_initialization(mock_agent: MagicMock) -> None:
     assert session.metadata.agent_name == DEFAULT_AGENT_NAME
     assert session.metadata.model == DEFAULT_MODEL
     assert isinstance(session.metadata.start_time, datetime)
-    assert session.metadata.tool_states == mock_agent.list_tools()
+    assert session.metadata.tool_states == mock_agent.tools.list_tools()
 
 
 @pytest.mark.asyncio
@@ -257,8 +257,8 @@ async def test_configure_tools(chat_session: AgentChatSession) -> None:
 
     assert "tool1" in results
     assert "tool2" in results
-    chat_session._agent.disable_tool.assert_called_once_with("tool1")
-    chat_session._agent.enable_tool.assert_called_once_with("tool2")
+    chat_session._agent.tools.disable_tool.assert_called_once_with("tool1")
+    chat_session._agent.tools.enable_tool.assert_called_once_with("tool2")
 
     # Verify tool states were updated
     assert not chat_session.get_tool_states()["tool1"]
@@ -268,7 +268,7 @@ async def test_configure_tools(chat_session: AgentChatSession) -> None:
 @pytest.mark.asyncio
 async def test_configure_invalid_tool(chat_session: AgentChatSession) -> None:
     """Test configuration of non-existent tools."""
-    chat_session._agent.enable_tool.side_effect = ValueError("Tool not found")
+    chat_session._agent.tools.enable_tool.side_effect = ValueError("Tool not found")
 
     results = chat_session.configure_tools({"invalid_tool": True})
 
@@ -418,5 +418,5 @@ async def test_chat_session_with_tools(mock_agent):
     assert session.get_tool_states()["tool1"]
 
     # Verify that mock_agent's enable/disable methods were called
-    mock_agent.enable_tool.assert_called_with("tool1")
-    mock_agent.disable_tool.assert_called_with("tool1")
+    mock_agent.tools.enable_tool.assert_called_with("tool1")
+    mock_agent.tools.disable_tool.assert_called_with("tool1")

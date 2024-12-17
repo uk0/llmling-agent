@@ -163,7 +163,7 @@ async def switch_agent(
             ctx.session._agent = new_agent
             # Reset session state
             ctx.session._history = []
-            ctx.session._tool_states = new_agent.list_tools()
+            ctx.session._tool_states = new_agent.tools.list_tools()
             await ctx.output.print(f"Switched to agent: {name}")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Failed to switch agent: {e}")

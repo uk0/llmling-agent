@@ -41,43 +41,13 @@ async def list_tools(
 ) -> None:
     """List all available tools."""
     agent = ctx.session._agent
-    tool_states = agent.list_tools()  # Single source of truth
-
-    # Collect all tool info
-    tools: list[ToolInfo] = []
-
-    # Runtime tools
-    for name in agent.runtime.tools:
-        tool_def = agent.runtime.tools[name]
-        info = ToolInfo(
-            name=name,
-            description=tool_def.description,
-            source="runtime",
-            enabled=tool_states[name],
-            schema=dict(tool_def.get_schema()),
-        )
-        tools.append(info)
-
-    # Agent's custom tools
-    for tool in agent._original_tools:
-        info = ToolInfo(
-            name=tool.name,
-            description=tool.description,
-            source="agent",
-            enabled=tool_states[tool.name],  # Use same tool_states dict
-        )
-        tools.append(info)
+    tool_states = agent.tools.list_tools()  # Get all tools from ToolManager
 
     # Format output
     sections = ["# Available Tools\n"]
-    for source in ["runtime", "agent", "builtin"]:
-        source_tools = [t for t in tools if t.source == source]
-        if source_tools:
-            sections.append(f"\n## {source.title()} Tools")
-            for t in source_tools:
-                status = "✓" if t.enabled else "✗"
-                desc = f": {t.description.split('\n')[0]}" if t.description else ""
-                sections.append(f"- {status} **{t.name}**{desc}")
+    for name, enabled in tool_states.items():
+        status = "✓" if enabled else "✗"
+        sections.append(f"- {status} **{name}**")
 
     await ctx.output.print("\n".join(sections))
 
@@ -118,7 +88,7 @@ async def tool_info(
         return
 
     # Check agent tools
-    for tool in agent._original_tools:
+    for tool in agent.tools.get_tools():
         if tool.name == name:
             sections = [
                 f"# Tool: {name}",
@@ -149,9 +119,9 @@ async def toggle_tool(
     name = args[0]
     try:
         if enable:
-            ctx.session._agent.enable_tool(name)
+            ctx.session._agent.tools.enable_tool(name)
         else:
-            ctx.session._agent.disable_tool(name)
+            ctx.session._agent.tools.disable_tool(name)
         action = "enabled" if enable else "disabled"
         await ctx.output.print(f"Tool '{name}' {action}")
     except ValueError as e:
@@ -206,7 +176,7 @@ async def register_tool(
         await ctx.output.print(result)
         # Enable the tool automatically
         tool_name = name if name else import_path.split(".")[-1]
-        ctx.session._agent.enable_tool(tool_name)
+        ctx.session._agent.tools.enable_tool(tool_name)
         await ctx.output.print(f"Tool '{tool_name}' automatically enabled")
 
     except Exception as e:  # noqa: BLE001
@@ -228,18 +198,18 @@ async def use_tool(
     agent = ctx.session._agent
 
     if tool_name not in agent.runtime.tools and not any(
-        t.name == tool_name for t in agent._original_tools
+        t.name == tool_name for t in agent.tools.get_tools()
     ):
         await ctx.output.print(f"Tool '{tool_name}' not found")
         return
 
-    previous_choice = agent._tool_choice
+    previous_choice = agent.tools.tool_choice
     try:
-        agent._tool_choice = tool_name
+        agent.tools.tool_choice = tool_name
         result = await ctx.session.send_message(prompt)
         await ctx.output.print(result.content)
     finally:
-        agent._tool_choice = previous_choice
+        agent.tools.tool_choice = previous_choice
 
 
 async def write_tool(
