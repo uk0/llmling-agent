@@ -188,19 +188,14 @@ async def run_with_model(
         if isinstance(environment, Config)
         else environment
     )
-
-    manifest = AgentsManifest(
-        responses=responses,
-        agents={
-            "default": AgentConfig(
-                name="default",
-                model=model,  # type: ignore
-                system_prompts=sys_prompts,
-                result_type="DefaultResult" if result_type else None,
-                environment=agent_environment,
-            )
-        },
+    cfg = AgentConfig(
+        name="default",
+        model=model,  # type: ignore
+        system_prompts=sys_prompts,
+        result_type="DefaultResult" if result_type else None,
+        environment=agent_environment,
     )
+    manifest = AgentsManifest(responses=responses, agents={"default": cfg})
 
     if stream:
         return await run_agent_pipeline(

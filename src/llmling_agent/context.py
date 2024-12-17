@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from llmling import RuntimeConfig  # noqa: TC002
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from llmling_agent.config.capabilities import Capabilities
 from llmling_agent.models import AgentConfig, AgentsManifest
@@ -24,16 +24,13 @@ class AgentContext(BaseModel):
     config: AgentConfig
     """Current agent's specific configuration."""
 
-    model_settings: dict[str, Any]
+    model_settings: dict[str, Any] = Field(default_factory=dict)
     """Model-specific settings."""
 
     runtime: RuntimeConfig | None = None
     """Reference to the runtime configuration."""
 
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-        use_attribute_docstrings=True,
-    )
+    model_config = ConfigDict(arbitrary_types_allowed=True, use_attribute_docstrings=True)
 
     def get_capabilities(self) -> Capabilities:
         """Get the current agent's capabilities."""
@@ -51,17 +48,7 @@ class AgentContext(BaseModel):
             name: Name of the agent
             capabilities: Optional custom capabilities (defaults to minimal access)
         """
-        caps = capabilities or Capabilities(
-            history_access="none",
-            stats_access="none",
-            can_list_agents=False,
-            can_delegate_tasks=False,
-            can_observe_agents=False,
-        )
-        return cls(
-            agent_name=name,
-            capabilities=caps,
-            definition=AgentsManifest(responses={}, agents={}, roles={}),
-            config=AgentConfig(name=name, role="assistant"),
-            model_settings={},
-        )
+        caps = capabilities or Capabilities(history_access="none", stats_access="none")
+        defn = AgentsManifest(responses={}, agents={}, roles={})
+        cfg = AgentConfig(name=name, role="assistant")
+        return cls(agent_name=name, capabilities=caps, definition=defn, config=cfg)
