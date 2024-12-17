@@ -189,11 +189,8 @@ class EnvVarCompleter(CompletionProvider):
                 continue
 
             if key.startswith(word):
-                yield CompletionItem(
-                    text=f"${key}",
-                    metadata=value[:50] + "..." if self.include_values else None,
-                    kind="env",  # type: ignore[arg-type]
-                )
+                meta = value[:50] + "..." if self.include_values else None
+                yield CompletionItem(text=f"${key}", metadata=meta, kind="env")  # type: ignore[arg-type]
 
 
 class ChoiceCompleter(CompletionProvider):
@@ -231,11 +228,8 @@ class ChoiceCompleter(CompletionProvider):
             matches = (c for c in self.choices if c.startswith(word))
 
         for choice in matches:
-            yield CompletionItem(
-                text=choice,
-                metadata=self.descriptions.get(choice),
-                kind="choice",  # type: ignore[arg-type]
-            )
+            meta = self.descriptions.get(choice)
+            yield CompletionItem(text=choice, metadata=meta, kind="choice")  # type: ignore[arg-type]
 
 
 class MultiValueCompleter(CompletionProvider):
@@ -316,11 +310,7 @@ class KeywordCompleter(CompletionProvider):
             prefix = word[2:]
             for name, desc in self.keywords.items():
                 if name.startswith(prefix):
-                    yield CompletionItem(
-                        text=f"--{name}",
-                        metadata=str(desc),
-                        kind="keyword",  # type: ignore[arg-type]
-                    )
+                    yield CompletionItem(f"--{name}", metadata=str(desc), kind="keyword")  # type: ignore[arg-type]
             return
 
         # Complete keyword values if provider exists

@@ -75,10 +75,7 @@ class WebOutputWriter(OutputWriter):
     async def print(self, message: str) -> None:
         """Send message to web UI."""
         logger.debug("WebOutputWriter printing: %s", message)
-        chat_message = ChatMessage(
-            content=message,
-            role="system",
-        )
+        chat_message = ChatMessage(content=message, role="system")
         await self._callback(chat_message)
 
 
@@ -264,11 +261,8 @@ class UIState:
     ) -> UIUpdate:
         """Handle message sending."""
         if not message.strip():
-            return UIUpdate(
-                message_box="",
-                status="Message is empty",
-                debug_logs=self.get_debug_logs(),
-            )
+            logs = self.get_debug_logs()
+            return UIUpdate(message_box="", status="Message is empty", debug_logs=logs)
 
         if not self._current_session:
             return UIUpdate(

@@ -41,11 +41,9 @@ async def set_env(
         # Create new runtime with updated config
         async with RuntimeConfig.open(config.get_config()) as new_runtime:
             # Create new agent with updated runtime
-            new_agent = agent.__class__(
-                runtime=new_runtime,
-                context=agent._context,
-                **agent._context.config.get_agent_kwargs(),
-            )
+            kw_args = agent._context.config.get_agent_kwargs()
+            kls = agent.__class__
+            new_agent = kls(runtime=new_runtime, context=agent._context, **kw_args)
 
             # Update session's agent
             ctx.session._agent = new_agent
