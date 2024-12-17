@@ -202,9 +202,4 @@ def wrap_runtime_tool(
     tool_wrapper.__doc__ = schema["function"]["description"]
     tool_wrapper.__annotations__ = {p.name: p.annotation for p in params}
 
-    return Tool(
-        tool_wrapper,
-        takes_ctx=True,
-        name=name,
-        description=description,
-    )
+    return Tool(tool_wrapper, takes_ctx=True, name=name, description=description)
