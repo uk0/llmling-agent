@@ -5,7 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from llmling_agent.pydantic_ai_utils import format_response
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    TextPart,
+    ToolCallPart,
+)
+
+from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
@@ -13,7 +21,9 @@ if TYPE_CHECKING:
 
     from pydantic_ai import Tool
     from pydantic_ai._result import ResultSchema
-    from pydantic_ai.messages import Message
+
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -68,7 +78,11 @@ def extract_tool_info(tool: Tool[Any]) -> ToolInfo:
         )
         parameters.append(param)
 
-    return ToolInfo(name=tool.name, description=tool.description, parameters=parameters)
+    return ToolInfo(
+        name=tool.name,
+        description=tool.description,
+        parameters=parameters,
+    )
 
 
 def format_result_schema(schema: ResultSchema[Any] | None) -> str:
@@ -98,7 +112,7 @@ def format_result_schema(schema: ResultSchema[Any] | None) -> str:
 def format_request_info(
     prompt: str,
     tools: list[Tool[Any]],
-    new_messages: Sequence[Message],
+    new_messages: Sequence[ModelMessage],
     model: str | None = None,
     result_schema: ResultSchema[Any] | None = None,
 ) -> str:
@@ -141,8 +155,26 @@ def format_request_info(
             "-" * 18,
         ])
         for msg in new_messages:
-            content = format_response(msg)
-            sections.append(f"  [{msg.role}] {content[:100]}...")
+            match msg:
+                case ModelRequest() as req:
+                    for p in req.parts:
+                        content = str(p.content)
+                        sections.append(f"  [{p.part_kind}] {content[:100]}...")
+                case ModelResponse() as resp:
+                    for part in resp.parts:
+                        match part:
+                            case TextPart():
+                                content = part.content
+                            case ToolCallPart():
+                                args = (
+                                    part.args.args_dict
+                                    if hasattr(part.args, "args_dict")
+                                    else part.args.args_json
+                                )
+                                content = f"Tool: {part.tool_name}, Args: {args}"
+                            case _:
+                                content = str(part)
+                        sections.append(f"  [{part.part_kind}] {content[:100]}...")
 
     # Current prompt
     sections.extend([

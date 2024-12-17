@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai.messages import UserPrompt
+from pydantic_ai.messages import ModelRequest, UserPromptPart
 from pydantic_ai.result import Cost, RunResult
 from typing_extensions import TypeVar
 
@@ -130,7 +130,11 @@ class AgentOrchestrator[T]:
                 if not isinstance(result, Exception)
                 else [
                     RunResult(
-                        _all_messages=[UserPrompt(content=f"Error occurred: {result}")],
+                        _all_messages=[
+                            ModelRequest(
+                                parts=[UserPromptPart(content=f"Error: {result}")]
+                            )
+                        ],
                         _new_message_index=0,
                         data=f"Error: {result}",  # type: ignore[arg-type]
                         _cost=Cost(),

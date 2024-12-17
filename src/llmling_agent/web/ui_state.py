@@ -8,13 +8,6 @@ from typing import TYPE_CHECKING, Any
 import gradio as gr
 from llmling.config.store import ConfigStore
 from pydantic import BaseModel, model_validator
-from pydantic_ai.messages import (
-    ModelStructuredResponse,
-    ModelTextResponse,
-    RetryPrompt,
-    SystemPrompt,
-    ToolReturn,
-)
 from upath import UPath
 import yamling
 
@@ -29,7 +22,6 @@ from llmling_agent.commands.base import OutputWriter
 from llmling_agent.log import LogCapturer
 from llmling_agent.web.handlers import AgentHandler
 from llmling_agent.web.type_utils import ChatHistory, validate_chat_message
-from llmling_agent.web.utils import format_message_with_metadata
 
 
 if TYPE_CHECKING:
@@ -350,20 +342,19 @@ class UIState:
                 "role": "user",
             })
 
-            async for chunk in await self._current_session.send_message(
+            # Get the iterator from send_message
+            message_iterator = await self._current_session.send_message(
                 message, stream=True
-            ):
-                match chunk:
-                    case (
-                        ModelStructuredResponse()
-                        | ToolReturn()
-                        | ModelTextResponse()
-                        | RetryPrompt()
-                    ):
-                        messages.append(await format_message_with_metadata(chunk))
-                    case SystemPrompt():
-                        # Might want to show system messages differently or not at all
-                        pass
+            )
+
+            # Iterate over the chat messages
+            async for chat_msg in message_iterator:
+                messages.append({
+                    "content": chat_msg.content,
+                    "role": "assistant",
+                    "metadata": chat_msg.metadata or {},
+                })
+
                 yield UIUpdate(
                     chat_history=messages,
                     status="Receiving response...",
@@ -372,7 +363,7 @@ class UIState:
             # Final update
             yield UIUpdate(
                 message_box="",
-                chat_history=messages,  # Note: changed from current_messages
+                chat_history=messages,
                 status="Message sent",
                 debug_logs=self.get_debug_logs(),
             )

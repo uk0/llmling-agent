@@ -5,18 +5,11 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
-import json
 from typing import TYPE_CHECKING, Any, Literal, cast
 from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
-from pydantic_ai import Agent as PydanticAgent, UnexpectedModelBehavior, messages
-from pydantic_ai.messages import (
-    ModelMessage,
-    ModelResponse,
-    TextPart,
-    ToolCallPart,
-)
+from pydantic_ai import Agent as PydanticAgent, messages
 from pydantic_ai.result import RunResult, StreamedRunResult
 from sqlmodel import Session
 from typing_extensions import TypeVar
@@ -39,6 +32,7 @@ if TYPE_CHECKING:
     from llmling.core.events import Event
     from llmling.tools import LLMCallableTool
     from pydantic_ai.agent import models
+    from pydantic_ai.messages import ModelMessage
 
 
 logger = get_logger(__name__)
@@ -389,28 +383,6 @@ class LLMlingAgent[TResult]:
             session.add(msg)
             session.commit()
 
-    async def _process_response(self, response: ModelResponse) -> T:
-        """Process a model response and extract the final result."""
-        for part in response.parts:
-            match part:
-                case TextPart():
-                    return cast(T, part.content)  # Simple text response
-                case ToolCallPart() as tool_call:
-                    if tool := self.tools.get_tools(
-                        state="enabled", names=[tool_call.tool_name]
-                    ):
-                        # Execute tool and get result
-                        tool_result = await tool[0].run(
-                            tool_call.args.args_dict
-                            if isinstance(tool_call.args, ArgsDict)
-                            else json.loads(tool_call.args.args_json)
-                        )
-                        return cast(T, tool_result)
-
-        # If we get here, no valid response was found
-        msg = "No valid response or tool call found in model output"
-        raise UnexpectedModelBehavior(msg)
-
     async def run(
         self,
         prompt: str,
@@ -536,8 +508,9 @@ class LLMlingAgent[TResult]:
             Result containing response and run information
         """
         try:
-            main = self.run(prompt, message_history=message_history, model=model)
-            return asyncio.run(main)
+            return asyncio.run(
+                self.run(prompt, message_history=message_history, model=model)
+            )
         except KeyboardInterrupt:
             raise
         except Exception:
@@ -576,7 +549,7 @@ class LLMlingAgent[TResult]:
         return self._pydantic_agent.result_validator(*args, **kwargs)
 
     @property
-    def last_run_messages(self) -> list[messages.Message] | None:
+    def last_run_messages(self) -> list[messages.ModelMessage] | None:
         """Get messages from the last run."""
         return self._pydantic_agent.last_run_messages
 
@@ -607,7 +580,7 @@ if __name__ == "__main__":
     async def main() -> None:
         async with RuntimeConfig.open(config_resources.OPEN_BROWSER) as r:
             agent: LLMlingAgent[str] = LLMlingAgent(r, model="openai:gpt-4o-mini")
-            result = await agent.run(sys_prompt)
+            result: RunResult[Any] = await agent.run(sys_prompt)
             print(result.data)
 
     asyncio.run(main())

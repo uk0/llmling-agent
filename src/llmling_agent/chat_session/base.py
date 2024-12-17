@@ -5,8 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
 
-from pydantic_ai import messages
-
 from llmling_agent.chat_session.events import (
     SessionEvent,
     SessionEventHandler,
@@ -29,6 +27,9 @@ from llmling_agent.pydantic_ai_utils import extract_token_usage
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+
+    from pydantic_ai import messages
+    from pydantic_ai.result import RunResult
 
     from llmling_agent import LLMlingAgent
 
@@ -61,7 +62,7 @@ class AgentChatSession:
         """
         self.id = session_id or uuid4()
         self._agent = agent
-        self._history: list[messages.Message] = []
+        self._history: list[messages.ModelMessage] = []
         self._tool_states = agent.tools.list_tools()
         self._model = model_override or agent.model_name
         msg = "Created chat session %s for agent %s"
@@ -204,10 +205,10 @@ class AgentChatSession:
         """Send message and get single response."""
         model_override = self._model if self._model and self._model.strip() else None
 
-        result = await self._agent.run(
+        result: RunResult = await self._agent.run(
             content,
             message_history=self._history,
-            model=model_override,
+            model=model_override,  # type: ignore
         )
 
         # Update history with new messages
@@ -229,7 +230,7 @@ class AgentChatSession:
         async with await self._agent.run_stream(
             content,
             message_history=self._history,
-            model=model_override,
+            model=model_override or "",  # type: ignore
         ) as stream_result:
             async for response in stream_result.stream():
                 yield ChatMessage(
@@ -282,6 +283,6 @@ class AgentChatSession:
         return self._agent.tools.list_tools()
 
     @property
-    def history(self) -> list[messages.Message]:
+    def history(self) -> list[messages.ModelMessage]:
         """Get conversation history."""
         return list(self._history)

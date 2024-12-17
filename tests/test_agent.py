@@ -7,9 +7,17 @@ from typing import TYPE_CHECKING
 
 from llmling.config.runtime import RuntimeConfig  # noqa: TC002
 from llmling.tools import LLMCallableTool
-from pydantic_ai import messages
+from pydantic_ai.messages import (
+    ModelRequest,
+    ModelResponse,
+    TextPart,
+    ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
+)
 from pydantic_ai.models.test import TestModel
 import pytest
+import yaml
 
 from llmling_agent.agent import LLMlingAgent
 
@@ -35,14 +43,13 @@ async def test_simple_agent_run(test_agent: LLMlingAgent[str]) -> None:
 async def test_agent_message_history(test_agent: LLMlingAgent[str]) -> None:
     """Test agent with message history."""
     history = [
-        messages.UserPrompt(content="Previous message"),
-        messages.ModelTextResponse(content="Previous response"),
+        ModelRequest(parts=[UserPromptPart(content="Previous message")]),
+        ModelResponse(parts=[TextPart(content="Previous response")]),
     ]
     result = await test_agent.run(SIMPLE_PROMPT, message_history=history)
     assert result.data == TEST_RESPONSE
     assert test_agent.last_run_messages
-    # Check that history was included
-    assert len(test_agent.last_run_messages) >= len(history) + 2  # +2 for new exchange
+    assert len(test_agent.last_run_messages) >= len(history) + 2
 
 
 @pytest.mark.asyncio
@@ -58,37 +65,29 @@ async def test_agent_streaming(test_agent: LLMlingAgent[str]) -> None:
 async def test_agent_streaming_with_history(test_agent: LLMlingAgent[str]) -> None:
     """Test streaming with message history."""
     history = [
-        messages.UserPrompt(content="Previous message"),
-        messages.ModelTextResponse(content="Previous response"),
+        ModelRequest(parts=[UserPromptPart(content="Previous message")]),
+        ModelResponse(parts=[TextPart(content="Previous response")]),
     ]
 
     stream_ctx = test_agent.run_stream(SIMPLE_PROMPT, message_history=history)
     async with await stream_ctx as stream:
-        collected = []
-        async for message in stream.stream():
-            if isinstance(message, messages.ModelTextResponse):
-                collected.append(message.content)
-            elif hasattr(message, "data"):
-                collected.append(str(message.data))
-            else:
-                collected.append(str(message))
-
+        collected = [str(msg) async for msg in stream.stream()]
         result = "".join(collected)
         assert result == TEST_RESPONSE
 
         # Verify we get the current exchange messages
         new_messages = stream.new_messages()
         assert len(new_messages) == 2  # Current prompt + response  # noqa: PLR2004
-        assert isinstance(new_messages[0], messages.UserPrompt)
-        assert isinstance(
-            new_messages[1],
-            messages.ModelTextResponse | messages.ModelStructuredResponse,
-        )
-        assert new_messages[0].content == SIMPLE_PROMPT  # Current prompt
-        if isinstance(new_messages[1], messages.ModelTextResponse):
-            assert new_messages[1].content == TEST_RESPONSE
-        else:
-            assert str(new_messages[1].data) == TEST_RESPONSE
+
+        # Check prompt message
+        assert isinstance(new_messages[0], ModelRequest)
+        assert isinstance(new_messages[0].parts[0], UserPromptPart)
+        assert new_messages[0].parts[0].content == SIMPLE_PROMPT
+
+        # Check response message
+        assert isinstance(new_messages[1], ModelResponse)
+        assert isinstance(new_messages[1].parts[0], TextPart)
+        assert new_messages[1].parts[0].content == TEST_RESPONSE
 
 
 @pytest.mark.asyncio
@@ -127,14 +126,7 @@ async def test_agent_model_override(no_tool_runtime: RuntimeConfig) -> None:
 @pytest.mark.asyncio
 async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig) -> None:
     """Test agent using tools."""
-    from pydantic_ai.messages import (
-        ModelStructuredResponse,
-        ModelTextResponse,
-        ToolReturn,
-        UserPrompt,
-    )
 
-    # Create tool before agent initialization
     async def test_tool(message: str = "test") -> str:
         """A test tool."""
         return f"Tool response: {message}"
@@ -145,35 +137,40 @@ async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig) -> None:
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE, call_tools=["test_tool"]),
-        tools=tools,  # Pass tools during initialization
+        tools=tools,
     )
 
     result = await agent.run("Use the test tool")
     assert result.data == TEST_RESPONSE
 
-    # Check message sequence
     messages = result.new_messages()
-    # user prompt -> structured response -> tool return -> final response
+    # user prompt -> response with tool call -> request with tool return
+    #  -> response with final text
     assert len(messages) == 4  # noqa: PLR2004
 
     # Check specific message types
-    assert isinstance(messages[0], UserPrompt)
-    assert isinstance(messages[1], ModelStructuredResponse)
-    assert isinstance(messages[2], ToolReturn)
-    assert isinstance(messages[3], ModelTextResponse)
+    assert isinstance(messages[0], ModelRequest)
+    assert isinstance(messages[0].parts[0], UserPromptPart)
+
+    assert isinstance(messages[1], ModelResponse)
+    assert isinstance(messages[1].parts[0], ToolCallPart)
+
+    assert isinstance(messages[2], ModelRequest)
+    assert isinstance(messages[2].parts[0], ToolReturnPart)
+
+    assert isinstance(messages[3], ModelResponse)
+    assert isinstance(messages[3].parts[0], TextPart)
 
     # Verify tool call details
-    tool_call = messages[1].calls[0]  # First (and only) tool call
-    assert tool_call.tool_name == "test_tool"
+    tool_part = messages[1].parts[0]
+    assert isinstance(tool_part, ToolCallPart)
+    assert tool_part.tool_name == "test_tool"
 
     # Verify tool return
-    tool_return = messages[2]
-    assert isinstance(tool_return, ToolReturn)
+    tool_return = messages[2].parts[0]
+    assert isinstance(tool_return, ToolReturnPart)
     assert tool_return.tool_name == "test_tool"
     assert tool_return.content.startswith("Tool response:")
-
-    # Verify final response
-    assert messages[3].content == TEST_RESPONSE
 
 
 def test_sync_wrapper(test_agent: LLMlingAgent[str]) -> None:
@@ -182,12 +179,9 @@ def test_sync_wrapper(test_agent: LLMlingAgent[str]) -> None:
     assert result.data == TEST_RESPONSE
 
 
-# @pytest.mark.asyncio
+@pytest.mark.asyncio
 async def test_agent_context_manager(tmp_path: Path) -> None:
     """Test using agent as async context manager."""
-    from pydantic_ai.messages import ModelTextResponse, UserPrompt
-    import yaml
-
     # Create a minimal config file
     caps = {"load_resource": False, "get_resources": False}
     config = {"global_settings": {"llm_capabilities": caps}}
@@ -196,6 +190,7 @@ async def test_agent_context_manager(tmp_path: Path) -> None:
     config_path = tmp_path / "test_config.yml"
     config_path.write_text(yaml.dump(config))
     model = TestModel(custom_result_text=TEST_RESPONSE)
+
     async with LLMlingAgent[str].open(
         config_path, name="test-agent", model=model
     ) as agent:
@@ -204,10 +199,18 @@ async def test_agent_context_manager(tmp_path: Path) -> None:
 
         # Verify we get expected message sequence
         messages = result.new_messages()
-        assert len(messages) == 2  # user prompt -> model response  # noqa: PLR2004
-        assert isinstance(messages[0], UserPrompt)
-        assert isinstance(messages[1], ModelTextResponse)
-        assert messages[1].content == TEST_RESPONSE
+        # user prompt -> model response
+        assert len(messages) == 2  # noqa: PLR2004
+
+        # Check prompt message
+        assert isinstance(messages[0], ModelRequest)
+        assert isinstance(messages[0].parts[0], UserPromptPart)
+        assert messages[0].parts[0].content == SIMPLE_PROMPT
+
+        # Check response message
+        assert isinstance(messages[1], ModelResponse)
+        assert isinstance(messages[1].parts[0], TextPart)
+        assert messages[1].parts[0].content == TEST_RESPONSE
 
 
 @pytest.mark.asyncio

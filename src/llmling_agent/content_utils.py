@@ -8,7 +8,12 @@ import os
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic_ai import messages
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    SystemPromptPart,
+    UserPromptPart,
+)
 from upath import UPath
 
 
@@ -29,7 +34,7 @@ class MessageBuilder:
     def create_message(
         contents: list[tuple[ContentType, ContentSource]] | str,
         role: Literal["user", "system"] = "user",
-    ) -> messages.Message:
+    ) -> ModelMessage:
         """Create a message from content pairs.
 
         For multi-modal content, creates a JSON string that models like GPT-4V
@@ -37,10 +42,12 @@ class MessageBuilder:
         """
         # Handle simple text case
         if isinstance(contents, str):
-            return (
-                messages.UserPrompt(content=contents)
-                if role == "user"
-                else messages.SystemPrompt(content=contents)
+            return ModelRequest(
+                parts=[
+                    UserPromptPart(content=contents)
+                    if role == "user"
+                    else SystemPromptPart(content=contents)
+                ]
             )
 
         # For multi-modal, convert to a JSON string
@@ -59,13 +66,14 @@ class MessageBuilder:
                     msg = f"Unsupported content type: {type_}"
                     raise ValueError(msg)
 
-        # Convert to JSON string
+        # Convert to JSON string and create appropriate message part
         content_str = json.dumps({"content": content_list})
-
-        return (
-            messages.UserPrompt(content=content_str)
-            if role == "user"
-            else messages.SystemPrompt(content=content_str)
+        return ModelRequest(
+            parts=[
+                UserPromptPart(content=content_str)
+                if role == "user"
+                else SystemPromptPart(content=content_str)
+            ]
         )
 
     @staticmethod
