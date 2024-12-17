@@ -149,7 +149,7 @@ def create_confirmed_tool_wrapper(
     return confirmed_tool_wrapper
 
 
-def create_runtime_tool_wrapper(
+def wrap_runtime_tool(
     name: str,
     schema: OpenAIFunctionTool,
     description: str | None = None,

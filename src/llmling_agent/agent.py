@@ -21,7 +21,7 @@ from llmling_agent.pydantic_ai_utils import TokenUsage, extract_token_usage
 from llmling_agent.responses import resolve_response_type
 from llmling_agent.storage import Conversation, engine
 from llmling_agent.storage.models import Message
-from llmling_agent.tools.base import create_runtime_tool_wrapper
+from llmling_agent.tools.base import wrap_runtime_tool
 from llmling_agent.tools.manager import ToolManager
 
 
@@ -591,10 +591,8 @@ class LLMlingAgent[TResult]:
         Returns:
             Dict mapping tool names to their enabled status
         """
-        tools = {
-            name: name not in self._tool_manager._disabled_tools
-            for name in self.runtime.tools
-        }
+        disabled = self._tool_manager._disabled_tools
+        tools = {name: name not in disabled for name in self.runtime.tools}
         # Add custom tools from manager
         tools.update(self._tool_manager.list_tools())
         return tools
@@ -604,15 +602,15 @@ class LLMlingAgent[TResult]:
         tools = list(self._tool_manager.get_enabled_tools())
 
         # Add runtime tools
-        for tool_name in self.runtime.tools:
-            if tool_name not in self._tool_manager._disabled_tools:
-                tool_def = self.runtime.tools[tool_name]
-                wrapped = create_runtime_tool_wrapper(
-                    name=tool_name,
-                    schema=tool_def.get_schema(),
-                    description=tool_def.description,
-                )
-                tools.append(wrapped)
+        disabled = self._tool_manager._disabled_tools
+        enabled = [t for t in self.runtime.tools if t not in disabled]
+
+        for tool_name in enabled:
+            tool_def = self.runtime.tools[tool_name]
+            schema = tool_def.get_schema()
+            desc = tool_def.description
+            wrapped = wrap_runtime_tool(name=tool_name, schema=schema, description=desc)
+            tools.append(wrapped)
         return tools
 
 
