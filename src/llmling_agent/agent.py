@@ -602,7 +602,7 @@ class LLMlingAgent[TResult]:
 
     def _prepare_tools(self) -> list[Tool[AgentContext]]:
         """Prepare all tools respecting enabled/disabled state."""
-        tools = list(self._tool_manager.get_enabled_tools())
+        tools = list(self._tool_manager.get_tools(state="enabled"))
 
         # Add runtime tools
         disabled = self._tool_manager._disabled_tools

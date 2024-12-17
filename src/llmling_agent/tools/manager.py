@@ -34,7 +34,7 @@ class ToolManager:
                 - str: Use specific tool
                 - list[str]: Allow specific tools
         """
-        self._tools = list(tools)
+        self._tools: dict[str, Tool[Any]] = {t.name: t for t in tools}
         self._original_tools = list(tools)
         self._disabled_tools: set[str] = set()
         self._tool_choice = tool_choice
@@ -57,52 +57,26 @@ class ToolManager:
         """Get a mapping of all tools and their enabled status."""
         return {t.name: t.name not in self._disabled_tools for t in self._original_tools}
 
-    def get_tool_names(
-        self,
-        state: Literal["all", "enabled", "disabled"] = "all",
-    ) -> set[str]:
-        """Get tool names based on state.
-
-        Args:
-            state: Which tools to return:
-                  - "all": All registered tools
-                  - "enabled": Only enabled tools
-                  - "disabled": Only disabled tools
-        """
-        match state:
-            case "all":
-                return {tool.name for tool in self._tools}
-            case "enabled":
-                return {
-                    tool.name
-                    for tool in self._tools
-                    if tool.name not in self._disabled_tools
-                }
-            case "disabled":
-                return self._disabled_tools
-
     def get_tools(
         self,
         state: Literal["all", "enabled", "disabled"] = "all",
         names: list[str] | None = None,
     ) -> list[Tool[Any]]:
-        """Get tool objects based on filters.
-
-        Args:
-            state: Which tools to return:
-                  - "all": All registered tools
-                  - "enabled": Only enabled tools
-                  - "disabled": Only disabled tools
-            names: Optional list of tool names to filter by
-        """
+        """Get tool objects based on filters."""
         # First filter by state
         match state:
             case "all":
-                tools = list(self._tools)
+                tools = list(self._tools.values())
             case "enabled":
-                tools = [t for t in self._tools if t.name not in self._disabled_tools]
+                tools = [
+                    t
+                    for name, t in self._tools.items()
+                    if name not in self._disabled_tools
+                ]
             case "disabled":
-                tools = [t for t in self._tools if t.name in self._disabled_tools]
+                tools = [
+                    t for name, t in self._tools.items() if name in self._disabled_tools
+                ]
 
         # Then filter by names if specified
         if names is not None:
@@ -110,16 +84,14 @@ class ToolManager:
 
         return tools
 
-    def get_enabled_tools(self) -> list[Tool[Any]]:
-        """Get currently enabled tools based on tool_choice setting."""
-        match self._tool_choice:
-            case False:  # no tools
-                return []
-            case str() as tool_name:  # specific tool
-                return self.get_tools(names=[tool_name])
-            case list() as tool_names:  # list of specific tools
-                return self.get_tools(names=tool_names)
-            case True:  # auto - return all enabled tools
-                return [t for t in self._tools if t.name not in self._disabled_tools]
-            case _:
-                return []
+    def get_tool_names(
+        self, state: Literal["all", "enabled", "disabled"] = "all"
+    ) -> set[str]:
+        """Get tool names based on state."""
+        match state:
+            case "all":
+                return set(self._tools)
+            case "enabled":
+                return set(self._tools) - self._disabled_tools
+            case "disabled":
+                return self._disabled_tools
