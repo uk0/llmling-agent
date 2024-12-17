@@ -10,6 +10,9 @@ from upath import UPath
 class BaseEnvironment(BaseModel):
     """Base class for environment configurations."""
 
+    type: str = Field(init=False)
+    """Type discriminator for Environments."""
+
     config_file_path: str | None = None
     """Path to agent config file for resolving relative paths"""
 
@@ -34,7 +37,7 @@ class FileEnvironment(BaseEnvironment):
     - Version control of environment settings
     """
 
-    type: Literal["file"] = "file"
+    type: Literal["file"] = Field(default="file", init=False)
     uri: str = Field(description="Path to environment file", min_length=1)
 
     def get_display_name(self) -> str:
@@ -57,7 +60,7 @@ class InlineEnvironment(BaseEnvironment):
     - Simple agent setups
     """
 
-    type: Literal["inline"] = "inline"
+    type: Literal["inline"] = Field(default="inline", init=False)
     uri: str | None = None
     config: Config = Field(..., description="Inline configuration")
 

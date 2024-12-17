@@ -52,11 +52,11 @@ def test_file_environment_validation() -> None:
     """Test validation rules for file environments."""
     # URI is required
     with pytest.raises(ValidationError):
-        FileEnvironment(type="file")  # type: ignore
+        FileEnvironment()  # type: ignore
 
     # Empty URI
     with pytest.raises(ValidationError):
-        FileEnvironment(type="file", uri="")
+        FileEnvironment(uri="")
 
 
 def test_inline_environment_basic(sample_config: Config) -> None:
