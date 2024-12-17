@@ -23,7 +23,6 @@ graph TD
 - Interactive chat sessions (CLI and web)
 - Model interaction handling
 - Session state management
-- Tool confirmation system
 - History tracking
 
 ## Core Strengths

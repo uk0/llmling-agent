@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
-from pydantic_ai import Agent as PydanticAgent, RunContext, Tool, messages
+from pydantic_ai import Agent as PydanticAgent, Tool, messages
 from pydantic_ai.result import RunResult, StreamedRunResult
 from sqlmodel import Session
 from typing_extensions import TypeVar
@@ -21,8 +21,8 @@ from llmling_agent.pydantic_ai_utils import TokenUsage, extract_token_usage
 from llmling_agent.responses import resolve_response_type
 from llmling_agent.storage import Conversation, engine
 from llmling_agent.storage.models import Message
-from llmling_agent.tools import ToolConfirmation, ToolContext
 from llmling_agent.tools.base import create_runtime_tool_wrapper
+from llmling_agent.tools.manager import ToolManager
 
 
 if TYPE_CHECKING:
@@ -30,7 +30,6 @@ if TYPE_CHECKING:
     import os
 
     from llmling.core.events import Event
-    from py2openai import OpenAIFunctionTool
     from pydantic_ai.agent import models
 
 
@@ -64,8 +63,6 @@ class LLMlingAgent[TResult]:
         model: models.Model | models.KnownModelName | None = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
-        tool_confirmation: ToolConfirmation | None = None,
-        confirm_tools: set[str] | bool = False,
         tools: Sequence[Tool[AgentContext]] = (),
         retries: int = 1,
         result_tool_name: str = "final_result",
@@ -85,8 +82,6 @@ class LLMlingAgent[TResult]:
             model: The default model to use (defaults to GPT-4)
             system_prompt: Static system prompts to use for this agent
             name: Name of the agent for logging
-            tool_confirmation: Callback class for tool confirmation
-            confirm_tools: List of tools requiring confirmation or global on / off
             tools: List of tools to register with the agent
             retries: Default number of retries for failed operations
             result_tool_name: Name of the tool used for final result
@@ -100,16 +95,11 @@ class LLMlingAgent[TResult]:
         self._runtime = runtime
         self._context = context or AgentContext.create_default(name)
         self._context.runtime = runtime
-        self._tools = list(tools)
-        self._disabled_tools: set[str] = set()
-        self._original_tools = list(tools)  # Store original tools for reference
-        # Tool confirmation setup
-        self._tool_confirmation = tool_confirmation
-        self._confirm_tools = self._setup_tool_confirmation(confirm_tools)
-        self._tool_choice = tool_choice
+
+        # Initialize tool manager
+        self._tool_manager = ToolManager(tools=tools, tool_choice=tool_choice)
 
         # Prepare all tools including runtime tools
-        tools = list(self._tools)  # Start with registered tools
         tools = self._prepare_tools()
         self._setup_history_tools(tools)
 
@@ -164,39 +154,6 @@ class LLMlingAgent[TResult]:
             tools.append(Tool(history_tools.search_history, takes_ctx=True))
             if self._context.capabilities.stats_access != "none":
                 tools.append(Tool(history_tools.show_statistics, takes_ctx=True))
-
-    async def _confirm_tool(
-        self,
-        tool_name: str,
-        args: dict[str, Any],
-        schema: OpenAIFunctionTool,
-        runtime_ctx: RunContext[AgentContext],
-    ) -> bool:
-        """Request confirmation for tool execution.
-
-        Args:
-            tool_name: Name of the tool to execute
-            args: Tool arguments
-            schema: Tool's OpenAI function schema
-            runtime_ctx: Current runtime context
-
-        Returns:
-            Whether execution was confirmed
-        """
-        if (
-            not self._tool_confirmation
-            or self._confirm_tools is None
-            or tool_name not in self._confirm_tools
-        ):
-            return True
-
-        tool_ctx = ToolContext(
-            name=tool_name,
-            args=args,
-            schema=schema,
-            runtime_ctx=runtime_ctx,
-        )
-        return await self._tool_confirmation.confirm_tool(tool_ctx)
 
     @classmethod
     @asynccontextmanager
@@ -276,8 +233,6 @@ class LLMlingAgent[TResult]:
         # Tool configuration
         tools: list[str | Callable[..., Any]] | None = None,
         tool_choice: bool | str | list[str] = True,
-        confirm_tools: set[str] | bool = False,
-        tool_confirmation: ToolConfirmation | None = None,
         # Execution settings
         retries: int = 1,
         result_tool_name: str = "final_result",
@@ -305,11 +260,6 @@ class LLMlingAgent[TResult]:
                 - False: No tools
                 - str: Use specific tool
                 - list[str]: Allow specific tools
-            confirm_tools: Which tools need confirmation:
-                - True: All tools
-                - False: No tools
-                - set[str]: Specific tools
-            tool_confirmation: Optional callback for tool confirmation
 
             # Execution Settings
             retries: Default number of retries for failed operations
@@ -335,7 +285,6 @@ class LLMlingAgent[TResult]:
                 "my_agent",
                 model="gpt-4",
                 tools=[my_custom_tool],
-                confirm_tools={"dangerous_tool"},
             ) as agent:
                 result = await agent.run("Do something")
             ```
@@ -380,8 +329,6 @@ class LLMlingAgent[TResult]:
                 context=context,
                 result_type=result_type,
                 model=actual_model,  # type: ignore[arg-type]
-                tool_confirmation=tool_confirmation,
-                confirm_tools=confirm_tools,
                 retries=retries,
                 result_tool_name=result_tool_name,
                 result_tool_description=result_tool_description,
@@ -395,24 +342,6 @@ class LLMlingAgent[TResult]:
             finally:
                 # Any cleanup if needed
                 pass
-
-    def _setup_tool_confirmation(self, confirm_tools: set[str] | bool) -> set[str] | None:
-        """Set up tool confirmation configuration.
-
-        Args:
-            confirm_tools: What tools need confirmation
-                           (True=all, set=specific tools, False=none)
-
-        Returns:
-            Set of tool names requiring confirmation, or None if disabled
-        """
-        match confirm_tools:
-            case True:
-                return set(self.runtime.tools)
-            case set() | list():
-                return set(confirm_tools)
-            case False:
-                return None
 
     @property
     def model_name(self) -> str | None:
@@ -630,43 +559,31 @@ class LLMlingAgent[TResult]:
         """Get agent name."""
         return self._name
 
-    def enable_tool(self, tool_name: str) -> None:
+    def enable_tool(self, name: str) -> None:
         """Enable a previously disabled tool.
 
         Args:
-            tool_name: Name of the tool to enable
+            name: Name of the tool to enable
 
         Raises:
             ValueError: If tool doesn't exist
         """
-        if tool_name not in self.runtime.tools and not any(
-            t.name == tool_name for t in self._original_tools
-        ):
-            msg = f"Tool {tool_name!r} not found"
-            raise ValueError(msg)
-        self._disabled_tools.discard(tool_name)
-        logger.debug("Enabled tool: %s", tool_name)
+        self._tool_manager.enable_tool(name)
 
-    def disable_tool(self, tool_name: str) -> None:
+    def disable_tool(self, name: str) -> None:
         """Disable a tool."""
-        if tool_name not in self.runtime.tools and not any(
-            t.name == tool_name for t in self._original_tools
-        ):
-            msg = f"Tool '{tool_name}' not found"
-            raise ValueError(msg)
-        self._disabled_tools.add(tool_name)
-        logger.debug("Disabled tool: %s", tool_name)
+        self._tool_manager.disable_tool(name)
 
-    def is_tool_enabled(self, tool_name: str) -> bool:
+    def is_tool_enabled(self, name: str) -> bool:
         """Check if a tool is currently enabled.
 
         Args:
-            tool_name: Name of the tool to check
+            name: Name of the tool to check
 
         Returns:
             Whether the tool is enabled
         """
-        return tool_name not in self._disabled_tools
+        return self._tool_manager.is_tool_enabled(name)
 
     def list_tools(self) -> dict[str, bool]:
         """Get a mapping of all tools and their enabled status.
@@ -674,54 +591,28 @@ class LLMlingAgent[TResult]:
         Returns:
             Dict mapping tool names to their enabled status
         """
-        tools = {name: name not in self._disabled_tools for name in self.runtime.tools}
-        # Add custom tools
-        tools.update({
-            t.name: t.name not in self._disabled_tools for t in self._original_tools
-        })
+        tools = {
+            name: name not in self._tool_manager._disabled_tools
+            for name in self.runtime.tools
+        }
+        # Add custom tools from manager
+        tools.update(self._tool_manager.list_tools())
         return tools
 
     def _prepare_tools(self) -> list[Tool[AgentContext]]:
         """Prepare all tools respecting enabled/disabled state."""
-        match self._tool_choice:
-            case False:  # no tools
-                return []
-            case str() as tool_name:  # specific tool
-                return self._get_tools([tool_name])
-            case list() as tool_names:  # list of specific tools
-                return self._get_tools(tool_names)
-            case True:  # auto - return all enabled tools
-                tools = list(self._tools)
-                for tool_name in self.runtime.tools:
-                    if (
-                        tool_name not in self._disabled_tools
-                    ):  # This could be refactored later
-                        tool_def = self.runtime.tools[tool_name]
-                        wrapped = create_runtime_tool_wrapper(
-                            name=tool_name,
-                            schema=tool_def.get_schema(),
-                            description=tool_def.description,
-                        )
-                        tools.append(wrapped)
-                return tools
-            case _:
-                return []
+        tools = list(self._tool_manager.get_enabled_tools())
 
-    def _get_tools(self, tool_names: list[str]) -> list[Tool[AgentContext]]:
-        """Get specified tools from both runtime and custom tools."""
-        tools = []
-        for name in tool_names:
-            # Add runtime tool if it matches
-            if name in self.runtime.tools:
-                tool_def = self.runtime.tools[name]
+        # Add runtime tools
+        for tool_name in self.runtime.tools:
+            if tool_name not in self._tool_manager._disabled_tools:
+                tool_def = self.runtime.tools[tool_name]
                 wrapped = create_runtime_tool_wrapper(
-                    name=name,
+                    name=tool_name,
                     schema=tool_def.get_schema(),
                     description=tool_def.description,
                 )
                 tools.append(wrapped)
-            # Add custom tool if it matches
-            tools.extend(t for t in self._tools if t.name == name)
         return tools
 
 

@@ -67,7 +67,6 @@ async def run_with_model(
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[str | Callable[..., Any]] | None = None,
-    confirm_tools: set[str] | bool = False,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> str: ...
@@ -85,7 +84,6 @@ async def run_with_model(
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[str | Callable[..., Any]] | None = None,
-    confirm_tools: set[str] | bool = False,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> T: ...
@@ -103,7 +101,6 @@ async def run_with_model(
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[str | Callable[..., Any]] | None = None,
-    confirm_tools: set[str] | bool = False,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> AsyncIterator[str]: ...
@@ -120,7 +117,6 @@ async def run_with_model(
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[str | Callable[..., Any]] | None = None,
-    confirm_tools: set[str] | bool = False,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> T | str | AsyncIterator[str]:
@@ -142,7 +138,6 @@ async def run_with_model(
             - str: Use specific tool
             - list[str]: Allow specific tools
         tools: list of callables or import paths which can be used as tools
-        confirm_tools: Which tools need confirmation
         environment: Optional environment configuration
         error_handling: How to handle errors (raise/return/ignore)
 
@@ -216,7 +211,6 @@ async def run_with_model(
             model_settings=model_settings,
             tool_choice=tool_choice,
             tools=tools,
-            confirm_tools=confirm_tools,
             error_handling=error_handling,
             result_type=result_type,
         )
@@ -229,7 +223,6 @@ async def run_with_model(
         model_settings=model_settings,
         tool_choice=tool_choice,
         tools=tools,
-        confirm_tools=confirm_tools,
         error_handling=error_handling,
         result_type=result_type,
     )
@@ -246,7 +239,6 @@ def run_with_model_sync(
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[str | Callable[..., Any]] | None = None,
-    confirm_tools: set[str] | bool = False,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> str: ...
@@ -263,7 +255,6 @@ def run_with_model_sync(
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[str | Callable[..., Any]] | None = None,
-    confirm_tools: set[str] | bool = False,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> T: ...
@@ -279,7 +270,6 @@ def run_with_model_sync(
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[str | Callable[..., Any]] | None = None,
-    confirm_tools: set[str] | bool = False,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> T | str:
@@ -317,7 +307,6 @@ def run_with_model_sync(
             model_settings=model_settings,
             tool_choice=tool_choice,
             tools=tools,
-            confirm_tools=confirm_tools,
             environment=environment,
             error_handling=error_handling,
         )
@@ -340,7 +329,6 @@ async def run_agent_pipeline(
     capabilities: dict[str, bool] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[str | Callable[..., Any]] | None = None,
-    confirm_tools: set[str] | bool = False,
     model_settings: dict[str, Any] | None = None,
 ) -> T: ...
 
@@ -361,7 +349,6 @@ async def run_agent_pipeline(
     capabilities: dict[str, bool] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[str | Callable[..., Any]] | None = None,
-    confirm_tools: set[str] | bool = False,
     model_settings: dict[str, Any] | None = None,
 ) -> str: ...
 
@@ -382,7 +369,6 @@ async def run_agent_pipeline(
     capabilities: dict[str, bool] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[str | Callable[..., Any]] | None = None,
-    confirm_tools: set[str] | bool = False,
     model_settings: dict[str, Any] | None = None,
 ) -> AsyncIterator[str]: ...
 
@@ -402,7 +388,6 @@ async def run_agent_pipeline(  # noqa: PLR0911
     capabilities: dict[str, bool] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[str | Callable[..., Any]] | None = None,
-    confirm_tools: set[str] | bool = False,
     model_settings: dict[str, Any] | None = None,
 ) -> T | str | AsyncIterator[str]:
     """Execute complete agent pipeline.
@@ -438,10 +423,6 @@ async def run_agent_pipeline(  # noqa: PLR0911
             - str: Use specific tool
             - list[str]: Allow specific tools
         tools: list of callables or import paths which can be used as tools
-        confirm_tools: Which tools need confirmation:
-            - True: All tools
-            - False: No tools
-            - set[str]: Specific tools
         model_settings: Additional model-specific settings
 
     Returns:
@@ -501,7 +482,6 @@ async def run_agent_pipeline(  # noqa: PLR0911
             retries=retries or 1,
             tools=tools,
             tool_choice=tool_choice,
-            confirm_tools=confirm_tools,
             model_settings=model_settings or {},
         ) as agent:
             # Handle different prompt types

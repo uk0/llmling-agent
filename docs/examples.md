@@ -113,10 +113,6 @@ agents:
 
         Always confirm before modifying files.
 
-    # Require confirmation for potentially dangerous operations
-    confirm_tools:
-      - delete_file
-      - modify_file
 ```
 
 ```yaml

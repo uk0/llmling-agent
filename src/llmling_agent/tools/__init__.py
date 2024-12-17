@@ -10,6 +10,7 @@ from llmling_agent.tools.base import (
     create_confirmed_tool_wrapper,
 )
 from llmling_agent.tools.history import HistoryTools
+from llmling_agent.tools.manager import ToolManager
 
 
 __all__ = [
@@ -18,5 +19,6 @@ __all__ = [
     "ToolConfirmation",
     "ToolContext",
     "ToolExecutionDeniedError",
+    "ToolManager",
     "create_confirmed_tool_wrapper",
 ]

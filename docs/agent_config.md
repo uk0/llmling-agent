@@ -148,24 +148,6 @@ responses:
           le: 5
 ```
 
-### Tool Management
-
-Configure tool access and confirmation:
-
-```yaml
-agents:
-  secure_agent:
-    # ... basic config ...
-
-    # Tool confirmation settings
-    confirm_tools:
-      - delete_file     # Require confirmation for specific tools
-      - modify_data
-
-    # Or enable confirmation for all tools
-    confirm_tools: true
-```
-
 ### Inline Environment Configuration
 
 Complete environment definition within agent config:
