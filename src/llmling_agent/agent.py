@@ -403,6 +403,7 @@ class LLMlingAgent[TResult]:
             # Register currently enabled tools
             enabled_tools = self._tool_manager.get_tools(state="enabled")
             for tool in enabled_tools:
+                assert tool._original_callable
                 self._pydantic_agent.tool_plain(tool._original_callable)
 
             logger.debug("agent run prompt=%s", prompt)
@@ -463,6 +464,7 @@ class LLMlingAgent[TResult]:
         try:
             enabled_tools = self._tool_manager.get_tools(state="enabled")
             for tool in enabled_tools:
+                assert tool._original_callable
                 self._pydantic_agent.tool_plain(tool._original_callable)
 
             if self._enable_logging:
