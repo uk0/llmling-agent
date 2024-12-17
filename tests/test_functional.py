@@ -17,13 +17,11 @@ from llmling_agent.responses import InlineResponseDefinition, ResponseField
 def pipeline_manifest(test_model: Any) -> AgentsManifest:
     """Create test manifest for pipeline testing."""
     # Create basic response type for simple text responses
-    basic_response = InlineResponseDefinition(
-        description="Basic test result",
-        fields={"message": ResponseField(type="str", description="Test message")},
-    )
+    fields = {"message": ResponseField(type="str", description="Test message")}
+    basic_response = InlineResponseDefinition(description="Basic test", fields=fields)
 
     # Create structured response type
-    structured_response = InlineResponseDefinition(
+    struct_response = InlineResponseDefinition(
         description="Structured test result",
         fields={
             "success": ResponseField(type="bool", description="Operation success"),
@@ -33,29 +31,23 @@ def pipeline_manifest(test_model: Any) -> AgentsManifest:
     )
 
     # Create a separate TestModel for structured responses
-    structured_model = TestModel(
-        custom_result_text=json.dumps({"success": True, "data": "Test data", "score": 42})
+    text = json.dumps({"success": True, "data": "Test data", "score": 42})
+    structured_model = TestModel(custom_result_text=text)
+    test_agent = AgentConfig(
+        name="test_agent",
+        model=test_model,  # Regular TestModel for text responses
+        result_type="BasicResult",
+        system_prompts=["You are a test agent"],
     )
-
+    struct_agent = AgentConfig(
+        name="struct_agent",
+        model=structured_model,  # Use structured TestModel
+        result_type="StructuredResult",
+        system_prompts=["You provide structured responses"],
+    )
     return AgentsManifest(
-        responses={
-            "BasicResult": basic_response,
-            "StructuredResult": structured_response,
-        },
-        agents={
-            "test_agent": AgentConfig(
-                name="test_agent",
-                model=test_model,  # Regular TestModel for text responses
-                result_type="BasicResult",
-                system_prompts=["You are a test agent"],
-            ),
-            "structured_agent": AgentConfig(
-                name="structured_agent",
-                model=structured_model,  # Use structured TestModel
-                result_type="StructuredResult",
-                system_prompts=["You provide structured responses"],
-            ),
-        },
+        responses={"BasicResult": basic_response, "StructuredResult": struct_response},
+        agents={"test_agent": test_agent, "struct_agent": struct_agent},
     )
 
 
@@ -98,7 +90,7 @@ class TestAgentPipeline:
     async def test_structured_output(self, pipeline_manifest: AgentsManifest) -> None:
         """Test structured response handling."""
         result = await run_agent_pipeline(
-            "structured_agent",
+            "struct_agent",
             "Process this",
             pipeline_manifest,
             output_format="json",

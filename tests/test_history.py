@@ -38,16 +38,10 @@ def sample_data(cleanup_database: None) -> None:
     """Create sample conversation data."""
     with Session(engine) as session:
         # Create two conversations
-        conv1 = Conversation(
-            id="conv1",
-            agent_name="test_agent",
-            start_time=BASE_TIME - timedelta(hours=1),  # 11:00
-        )
-        conv2 = Conversation(
-            id="conv2",
-            agent_name="other_agent",
-            start_time=BASE_TIME - timedelta(hours=2),  # 10:00
-        )
+        start = BASE_TIME - timedelta(hours=1)  # 11:00
+        conv1 = Conversation(id="conv1", agent_name="test_agent", start_time=start)
+        start = BASE_TIME - timedelta(hours=2)  # 10:00
+        conv2 = Conversation(id="conv2", agent_name="other_agent", start_time=start)
         session.add(conv1)
         session.add(conv2)
         session.commit()
@@ -117,10 +111,8 @@ def test_get_conversations(sample_data: None) -> None:
 
 def test_get_stats_data(sample_data: None) -> None:
     """Test statistics data retrieval."""
-    filters = StatsFilters(
-        cutoff=BASE_TIME - timedelta(hours=3),
-        group_by="model",
-    )
+    cutoff = BASE_TIME - timedelta(hours=3)
+    filters = StatsFilters(cutoff=cutoff, group_by="model")
     rows = get_stats_data(filters)
 
     # Should get all messages
@@ -156,10 +148,8 @@ def test_stats_aggregation(sample_data: None) -> None:
     from llmling_agent.history.stats import aggregate_stats
 
     # Get raw data
-    filters = StatsFilters(
-        cutoff=BASE_TIME - timedelta(hours=3),
-        group_by="model",
-    )
+    cutoff = BASE_TIME - timedelta(hours=3)
+    filters = StatsFilters(cutoff=cutoff, group_by="model")
     rows = get_stats_data(filters)
 
     # Test model grouping
