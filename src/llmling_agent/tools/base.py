@@ -1,3 +1,5 @@
+"""Base tool classes."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -104,7 +106,3 @@ class ToolInfo:
                 return self.enabled
             case "disabled":
                 return not self.enabled
-
-
-class ToolExecutionDeniedError(Exception):
-    """Raised when tool execution is denied by user."""
