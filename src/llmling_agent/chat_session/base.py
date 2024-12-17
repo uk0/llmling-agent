@@ -213,15 +213,9 @@ class AgentChatSession:
 
         # Update history with new messages
         self._history = result.new_messages()
-
-        return ChatMessage(
-            content=str(result.data),
-            role="assistant",
-            metadata={
-                "token_usage": extract_token_usage(result.cost()),
-                "model": self._agent.model_name,
-            },
-        )
+        usage = extract_token_usage(result.cost())
+        meta = {"token_usage": usage, "model": self._agent.model_name}
+        return ChatMessage(content=str(result.data), role="assistant", metadata=meta)
 
     async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage]:
         """Send message and stream responses."""
@@ -233,22 +227,14 @@ class AgentChatSession:
             model=model_override or "",  # type: ignore
         ) as stream_result:
             async for response in stream_result.stream():
-                yield ChatMessage(
-                    content=str(response),
-                    role="assistant",
-                    metadata={"model": self._agent.model_name},
-                )
+                meta = {"model": self._agent.model_name}
+                yield ChatMessage(content=str(response), role="assistant", metadata=meta)
 
             # Final message with token usage after stream completes
             cost = stream_result.cost()
-            yield ChatMessage(
-                content="",
-                role="assistant",
-                metadata={
-                    "token_usage": extract_token_usage(cost),
-                    "model": self._agent.model_name,
-                },
-            )
+            usage = extract_token_usage(cost)
+            metadata = {"token_usage": usage, "model": self._agent.model_name}
+            yield ChatMessage(content="", role="assistant", metadata=metadata)
 
     def configure_tools(
         self,

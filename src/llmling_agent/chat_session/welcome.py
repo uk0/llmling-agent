@@ -58,10 +58,7 @@ def create_welcome_messages(
     agent = session._agent
 
     # Build all sections
-    header = [
-        fmt("LLMling Agent Chat", "bold blue"),
-        "=" * 50,
-    ]
+    header = [fmt("LLMling Agent Chat", "bold blue"), "=" * 50]
 
     agent_info = [f"{fmt('Agent:', 'bold')} {agent.name}"]
     if agent._context and agent._context.config.description:
