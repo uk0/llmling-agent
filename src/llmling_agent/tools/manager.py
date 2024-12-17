@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from llmling_agent.log import get_logger
 
@@ -57,9 +57,58 @@ class ToolManager:
         """Get a mapping of all tools and their enabled status."""
         return {t.name: t.name not in self._disabled_tools for t in self._original_tools}
 
-    def _get_tools(self, tool_names: list[str]) -> list[Tool[Any]]:
-        """Get specified tools."""
-        return [t for t in self._tools if t.name in tool_names]
+    def get_tool_names(
+        self,
+        state: Literal["all", "enabled", "disabled"] = "all",
+    ) -> set[str]:
+        """Get tool names based on state.
+
+        Args:
+            state: Which tools to return:
+                  - "all": All registered tools
+                  - "enabled": Only enabled tools
+                  - "disabled": Only disabled tools
+        """
+        match state:
+            case "all":
+                return {tool.name for tool in self._tools}
+            case "enabled":
+                return {
+                    tool.name
+                    for tool in self._tools
+                    if tool.name not in self._disabled_tools
+                }
+            case "disabled":
+                return self._disabled_tools
+
+    def get_tools(
+        self,
+        state: Literal["all", "enabled", "disabled"] = "all",
+        names: list[str] | None = None,
+    ) -> list[Tool[Any]]:
+        """Get tool objects based on filters.
+
+        Args:
+            state: Which tools to return:
+                  - "all": All registered tools
+                  - "enabled": Only enabled tools
+                  - "disabled": Only disabled tools
+            names: Optional list of tool names to filter by
+        """
+        # First filter by state
+        match state:
+            case "all":
+                tools = list(self._tools)
+            case "enabled":
+                tools = [t for t in self._tools if t.name not in self._disabled_tools]
+            case "disabled":
+                tools = [t for t in self._tools if t.name in self._disabled_tools]
+
+        # Then filter by names if specified
+        if names is not None:
+            tools = [t for t in tools if t.name in names]
+
+        return tools
 
     def get_enabled_tools(self) -> list[Tool[Any]]:
         """Get currently enabled tools based on tool_choice setting."""
@@ -67,9 +116,9 @@ class ToolManager:
             case False:  # no tools
                 return []
             case str() as tool_name:  # specific tool
-                return self._get_tools([tool_name])
+                return self.get_tools(names=[tool_name])
             case list() as tool_names:  # list of specific tools
-                return self._get_tools(tool_names)
+                return self.get_tools(names=tool_names)
             case True:  # auto - return all enabled tools
                 return [t for t in self._tools if t.name not in self._disabled_tools]
             case _:
