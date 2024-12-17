@@ -622,12 +622,4 @@ if __name__ == "__main__":
             result = await agent.run(sys_prompt)
             print(result.data)
 
-    # sys_prompt = "Check your resources and summarize the readme"
-
-    # async def main() -> None:
-    #     async with RuntimeConfig.open(config_resources.SUMMARIZE_README) as r:
-    #         agent: LLMlingAgent[str] = LLMlingAgent(r, model="openai:gpt-4o-mini")
-    #         result = await agent.run(sys_prompt)
-    #         print(result.data)
-
     asyncio.run(main())
