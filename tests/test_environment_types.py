@@ -36,21 +36,13 @@ def test_file_environment_path_resolution(tmp_path: pathlib.Path) -> None:
     env_file = config_dir / "env.yml"
 
     # Create valid YAML content
-    env_content = {
-        "global_settings": {
-            "llm_capabilities": {
-                "load_resource": False,
-                "get_resources": False,
-            }
-        }
-    }
+    caps = {"load_resource": False, "get_resources": False}
+    env_content = {"global_settings": {"llm_capabilities": caps}}
     env_file.write_text(yaml.dump(env_content))
 
     # Test relative path resolution
-    env = FileEnvironment(
-        uri="env.yml",
-        config_file_path=str(config_dir / "agent.yml"),
-    )
+    path = str(config_dir / "agent.yml")
+    env = FileEnvironment(uri="env.yml", config_file_path=path)
     resolved = env.get_file_path()
     assert pathlib.Path(resolved).is_absolute()
     assert pathlib.Path(resolved).parent == config_dir
@@ -69,10 +61,7 @@ def test_file_environment_validation() -> None:
 
 def test_inline_environment_basic(sample_config: Config) -> None:
     """Test basic inline environment creation."""
-    env = InlineEnvironment(
-        uri="default-tools",
-        config=sample_config,
-    )
+    env = InlineEnvironment(uri="default-tools", config=sample_config)
     assert env.type == "inline"
     assert env.uri == "default-tools"
     assert env.get_display_name() == "Inline: default-tools"
@@ -116,11 +105,8 @@ def test_environment_display_names() -> None:
     """Test display name generation for different environment types."""
     file_env = FileEnvironment(uri="config.yml")
     assert file_env.get_display_name() == "File: config.yml"
-
-    inline_env = InlineEnvironment(
-        config=Config(global_settings=GlobalSettings()),
-        uri="custom-env",
-    )
+    cfg = Config(global_settings=GlobalSettings())
+    inline_env = InlineEnvironment(config=cfg, uri="custom-env")
     assert inline_env.get_display_name() == "Inline: custom-env"
 
     # Without URI

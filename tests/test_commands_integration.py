@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from llmling import Config, RuntimeConfig
 from llmling.prompts.models import PromptMessage, PromptParameter, StaticPrompt
 import pytest
@@ -26,7 +28,7 @@ def runtime_config() -> Config:
 
     # Create prompt parameters
     name_param = PromptParameter(
-        name="name", description="Name to greet", required=False, default="World"
+        name="name", description="Name to greet", default="World"
     )
 
     data_param = PromptParameter(
@@ -62,22 +64,14 @@ async def test_prompt_command_simple(runtime_config: Config) -> None:
             messages.append(message)
 
     async with RuntimeConfig.from_config(runtime_config) as runtime:
-        agent = LLMlingAgent(runtime)
+        agent: LLMlingAgent[Any] = LLMlingAgent(runtime)
         session = AgentChatSession(agent)
 
         # Create command context directly
-        context = CommandContext(
-            output=TestOutput(),
-            session=session,
-            metadata={},
-        )
+        context = CommandContext(output=TestOutput(), session=session)
 
         # Execute prompt command
-        await prompt_cmd.execute(
-            ctx=context,
-            args=["greet"],
-            kwargs={},
-        )
+        await prompt_cmd.execute(ctx=context, args=["greet"])
 
     # Verify output
     assert len(messages) == 1
@@ -94,22 +88,15 @@ async def test_prompt_command_with_args(runtime_config: Config) -> None:
             messages.append(message)
 
     async with RuntimeConfig.from_config(runtime_config) as runtime:
-        agent = LLMlingAgent(runtime)
+        agent: LLMlingAgent[Any] = LLMlingAgent(runtime)
         session = AgentChatSession(agent)
 
         # Create command context directly
-        context = CommandContext(
-            output=TestOutput(),
-            session=session,
-            metadata={},
-        )
+        context = CommandContext(output=TestOutput(), session=session)
 
         # Execute prompt command with arguments
-        await prompt_cmd.execute(
-            ctx=context,
-            args=["analyze"],
-            kwargs={"data": "test.txt"},
-        )
+        kwargs = {"data": "test.txt"}
+        await prompt_cmd.execute(ctx=context, args=["analyze"], kwargs=kwargs)
 
     # Verify output
     assert len(messages) == 2  # noqa: PLR2004

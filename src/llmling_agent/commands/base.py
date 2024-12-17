@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import shlex
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -31,7 +31,7 @@ class CommandContext:
 
     output: OutputWriter
     session: AgentChatSession
-    metadata: dict[str, Any]  # For interface-specific data
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -130,11 +130,11 @@ class Command(BaseCommand):
     async def execute(
         self,
         ctx: CommandContext,
-        args: list[str],
-        kwargs: dict[str, str],
+        args: list[str] | None = None,
+        kwargs: dict[str, str] | None = None,
     ) -> None:
         """Execute the command using provided function."""
-        await self._execute_func(ctx, args, kwargs)
+        await self._execute_func(ctx, args or [], kwargs or {})
 
     def get_completer(self) -> CompletionProvider | None:
         """Get completion provider."""

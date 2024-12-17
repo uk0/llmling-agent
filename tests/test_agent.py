@@ -139,11 +139,7 @@ async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig) -> None:
         """A test tool."""
         return f"Tool response: {message}"
 
-    tools = [
-        LLMCallableTool.from_callable(
-            test_tool, name_override="test_tool", description_override="A test tool."
-        )
-    ]
+    tools = [LLMCallableTool.from_callable(test_tool)]
 
     agent: LLMlingAgent[str] = LLMlingAgent(
         runtime=no_tool_runtime,
@@ -193,14 +189,8 @@ async def test_agent_context_manager(tmp_path: Path) -> None:
     import yaml
 
     # Create a minimal config file
-    config = {
-        "global_settings": {
-            "llm_capabilities": {
-                "load_resource": False,
-                "get_resources": False,
-            }
-        }
-    }
+    caps = {"load_resource": False, "get_resources": False}
+    config = {"global_settings": {"llm_capabilities": caps}}
 
     # Write config to temporary file
     config_path = tmp_path / "test_config.yml"

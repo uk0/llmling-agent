@@ -18,28 +18,22 @@ async def test_parallel_agent_execution(test_model):
     The orchestrator runs each prompt through all agents, allowing comparison
     of how different agents handle the same input.
     """
-    agent_def = AgentsManifest(
-        responses={
-            "BasicResult": InlineResponseDefinition(
-                description="Basic test result",
-                fields={"message": ResponseField(type="str", description="Test message")},
-            )
-        },
-        agents={
-            "agent1": AgentConfig(
-                name="First Agent",
-                model=test_model,
-                result_type="BasicResult",
-                system_prompts=["You are the first agent"],
-            ),
-            "agent2": AgentConfig(
-                name="Second Agent",
-                model=test_model,
-                result_type="BasicResult",
-                system_prompts=["You are the second agent"],
-            ),
-        },
+    fields = {"message": ResponseField(type="str", description="Test message")}
+    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
+    a1 = AgentConfig(
+        name="First Agent",
+        model=test_model,
+        result_type="BasicResult",
+        system_prompts=["You are the first agent"],
     )
+    a2 = AgentConfig(
+        name="Second Agent",
+        model=test_model,
+        result_type="BasicResult",
+        system_prompts=["You are the second agent"],
+    )
+    agents = {"agent1": a1, "agent2": a2}
+    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
     # Run same prompt through multiple agents
     config = AgentRunConfig(

@@ -94,14 +94,8 @@ def test_missing_referenced_response():
 def test_environment_path_resolution(tmp_path: Path) -> None:
     """Test that environment paths are resolved relative to config file."""
     # Create a mock environment config with valid structure
-    env_config = {
-        "global_settings": {
-            "llm_capabilities": {
-                "load_resource": False,
-                "get_resources": False,
-            }
-        }
-    }
+    caps = {"load_resource": False, "get_resources": False}
+    env_config = {"global_settings": {"llm_capabilities": caps}}
     env_file = tmp_path / "env.yml"
     env_file.write_text(yamling.dump_yaml(env_config))
 

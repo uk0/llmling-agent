@@ -83,11 +83,7 @@ class HistoryTools:
             raise PermissionError(msg)
 
         cutoff = datetime.now() - timedelta(hours=hours)
-        stats = get_conversation_stats(
-            StatsFilters(
-                cutoff=cutoff,
-                group_by=group_by,
-            )
-        )
+        filters = StatsFilters(cutoff=cutoff, group_by=group_by)
+        stats = get_conversation_stats(filters)
         formatted = format_stats(stats, f"{hours}h", group_by)
         return format_output(formatted, output_format="text")
