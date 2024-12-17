@@ -6,12 +6,13 @@ import json
 from typing import TYPE_CHECKING, TypedDict
 
 from pydantic_ai.messages import (
-    Message,
-    ModelStructuredResponse,
-    ModelTextResponse,
-    RetryPrompt,
-    ToolReturn,
+    ArgsDict,
+    ModelMessage,
+    ModelResponse,
+    TextPart,
+    ToolCallPart,
 )
+from pydantic_ai.result import Cost
 
 from llmling_agent.log import get_logger
 
@@ -58,7 +59,7 @@ def extract_token_usage(cost: Cost) -> TokenUsage | None:
     return None
 
 
-def format_response(response: (str | Message)) -> str:  # noqa: PLR0911
+def format_response(response: str | ModelMessage | ModelResponse) -> str:
     """Format any kind of response in a readable way.
 
     Args:
@@ -73,48 +74,40 @@ def format_response(response: (str | Message)) -> str:  # noqa: PLR0911
     match response:
         case str():
             return response
-        case ModelTextResponse():
-            return response.content
-        case ModelStructuredResponse():
-            try:
-                calls = [
-                    f"Tool: {call.tool_name}\nArgs: {call.args}"
-                    for call in response.calls
-                ]
-                return "Tool Calls:\n" + "\n\n".join(calls)
-            except Exception as e:  # noqa: BLE001
-                msg = f"Could not format structured response: {e}"
-                logger.warning(msg)
-                return str(response)
-        case ToolReturn():
-            return f"Tool {response.tool_name} returned: {response.content}"
-        case RetryPrompt():
-            if isinstance(response.content, str):
-                return f"Retry needed: {response.content}"
-            return f"Validation errors:\n{json.dumps(response.content, indent=2)}"
+        case ModelResponse() as resp:
+            # Handle response parts
+            parts = []
+            for part in resp.parts:
+                match part:
+                    case TextPart():
+                        parts.append(part.content)
+                    case ToolCallPart() as tool_call:
+                        args = (
+                            tool_call.args.args_dict
+                            if isinstance(tool_call.args, ArgsDict)
+                            else json.loads(tool_call.args.args_json)
+                        )
+                        parts.append(f"Tool: {tool_call.tool_name}\nArgs: {args}")
+            return "\n\n".join(parts) if parts else ""
         case _:
-            return response.content
+            # Fallback for other message types
+            return str(response)
 
 
-def find_last_assistant_message(messages: Sequence[Message]) -> str | None:
+def find_last_assistant_message(messages: Sequence[ModelMessage]) -> str | None:
     """Find the last assistant message in history."""
     for msg in reversed(messages):
-        match msg:
-            case ModelTextResponse():
-                return msg.content
-            case ModelStructuredResponse():
-                # Format structured response in a readable way
-                calls = []
-                for call in msg.calls:
-                    if isinstance(call.args, dict):
-                        args = call.args
-                    else:
-                        # Handle both ArgsJson and ArgsDict
+        if isinstance(msg, ModelResponse):
+            for part in msg.parts:
+                match part:
+                    case TextPart():
+                        return part.content
+                    case ToolCallPart() as tool_call:
+                        # Format tool calls nicely
                         args = (
-                            call.args.args_dict  # type: ignore
-                            if hasattr(call.args, "args_dict")
-                            else call.args.args_json  # type: ignore
+                            tool_call.args.args_dict
+                            if isinstance(tool_call.args, ArgsDict)
+                            else json.loads(tool_call.args.args_json)
                         )
-                    calls.append(f"Tool: {call.tool_name}\nArgs: {args}")
-                return "\n\n".join(calls)
+                        return f"Tool: {tool_call.tool_name}\nArgs: {args}"
     return None

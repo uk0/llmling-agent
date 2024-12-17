@@ -5,11 +5,18 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
+import json
 from typing import TYPE_CHECKING, Any, Literal, cast
 from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
-from pydantic_ai import Agent as PydanticAgent, messages
+from pydantic_ai import Agent as PydanticAgent, UnexpectedModelBehavior, messages
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelResponse,
+    TextPart,
+    ToolCallPart,
+)
 from pydantic_ai.result import RunResult, StreamedRunResult
 from sqlmodel import Session
 from typing_extensions import TypeVar
@@ -382,13 +389,35 @@ class LLMlingAgent[TResult]:
             session.add(msg)
             session.commit()
 
+    async def _process_response(self, response: ModelResponse) -> T:
+        """Process a model response and extract the final result."""
+        for part in response.parts:
+            match part:
+                case TextPart():
+                    return cast(T, part.content)  # Simple text response
+                case ToolCallPart() as tool_call:
+                    if tool := self.tools.get_tools(
+                        state="enabled", names=[tool_call.tool_name]
+                    ):
+                        # Execute tool and get result
+                        tool_result = await tool[0].run(
+                            tool_call.args.args_dict
+                            if isinstance(tool_call.args, ArgsDict)
+                            else json.loads(tool_call.args.args_json)
+                        )
+                        return cast(T, tool_result)
+
+        # If we get here, no valid response was found
+        msg = "No valid response or tool call found in model output"
+        raise UnexpectedModelBehavior(msg)
+
     async def run(
         self,
         prompt: str,
         *,
-        message_history: list[messages.Message] | None = None,
+        message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-    ) -> RunResult[TResult]:
+    ) -> RunResult[T]:
         """Run agent with prompt and get response.
 
         Args:
@@ -404,10 +433,10 @@ class LLMlingAgent[TResult]:
         """
         try:
             # Clear all tools
-            self._pydantic_agent._function_tools = {}
+            self._pydantic_agent._function_tools.clear()
 
             # Register currently enabled tools
-            enabled_tools = self._tool_manager.get_tools(state="enabled")
+            enabled_tools = self.tools.get_tools(state="enabled")
             for tool in enabled_tools:
                 assert tool._original_callable
                 self._pydantic_agent.tool_plain(tool._original_callable)
@@ -415,15 +444,14 @@ class LLMlingAgent[TResult]:
             logger.debug("agent run prompt=%s", prompt)
             logger.debug("  preparing model and tools run_step=%d", 1)
 
-            # Log what the model sees
-            logger.debug("Funtion tools: %s", self._pydantic_agent._function_tools)
-            logger.debug("System prompts: %s", self._pydantic_agent._system_prompts)
+            # Run through pydantic-ai's public interface
             result = await self._pydantic_agent.run(
                 prompt,
                 deps=self._context,
                 message_history=message_history,
                 model=model,
             )
+
             if self._enable_logging:
                 # Log user message
                 self._log_message(prompt, role="user")
@@ -437,7 +465,7 @@ class LLMlingAgent[TResult]:
                     model=self.model_name,
                 )
 
-            return cast(RunResult[TResult], result)
+            return cast(RunResult[T], result)
         except Exception:
             logger.exception("Agent run failed")
             raise
@@ -446,9 +474,9 @@ class LLMlingAgent[TResult]:
         self,
         prompt: str,
         *,
-        message_history: list[messages.Message] | None = None,
+        message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-    ) -> AbstractAsyncContextManager[StreamedRunResult[TResult, messages.Message]]:
+    ) -> AbstractAsyncContextManager[StreamedRunResult[AgentContext, TResult]]:
         """Run agent with prompt and get streaming response.
 
         Args:
@@ -468,7 +496,9 @@ class LLMlingAgent[TResult]:
             ```
         """
         try:
-            enabled_tools = self._tool_manager.get_tools(state="enabled")
+            # Update pydantic agent's tools
+            self._pydantic_agent._function_tools.clear()
+            enabled_tools = self.tools.get_tools(state="enabled")
             for tool in enabled_tools:
                 assert tool._original_callable
                 self._pydantic_agent.tool_plain(tool._original_callable)
@@ -476,16 +506,14 @@ class LLMlingAgent[TResult]:
             if self._enable_logging:
                 self._log_message(prompt, role="user")
 
-            result = self._pydantic_agent.run_stream(
+            # Return the context manager directly - no await needed
+            return self._pydantic_agent.run_stream(
                 prompt,
-                deps=self._context,
                 message_history=message_history,
                 model=model,
+                deps=self._context,
             )
-            return cast(
-                AbstractAsyncContextManager[StreamedRunResult[TResult, messages.Message]],
-                result,
-            )
+
         except Exception:
             logger.exception("Agent stream failed")
             raise
@@ -494,21 +522,18 @@ class LLMlingAgent[TResult]:
         self,
         prompt: str,
         *,
-        message_history: list[messages.Message] | None = None,
+        message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
     ) -> RunResult[TResult]:
         """Run agent synchronously (convenience wrapper).
 
         Args:
             prompt: User query or instruction
-            message_history:too Optional previous messages for context
+            message_history: Optional previous messages for context
             model: Optional model override
 
         Returns:
             Result containing response and run information
-
-        Raises:
-            UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         try:
             main = self.run(prompt, message_history=message_history, model=model)

@@ -24,7 +24,7 @@ from llmling_agent.commands.base import (
 from llmling_agent.commands.exceptions import ExitCommandError
 from llmling_agent.commands.output import DefaultOutputWriter
 from llmling_agent.log import get_logger
-from llmling_agent.pydantic_ai_utils import extract_token_usage, format_response
+from llmling_agent.pydantic_ai_utils import extract_token_usage
 
 
 if TYPE_CHECKING:
@@ -167,17 +167,11 @@ class AgentChatSession:
         output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> ChatMessage | AsyncIterator[ChatMessage]:
-        """Send a message and get response(s).
-
-        Args:
-            content: Message content to send
-            stream: Whether to stream the response
-            output: Optional output writer for command responses
-            metadata: Optional interface-specific metadata
-        """
+        """Send a message and get response(s)."""
         if not content.strip():
             msg = "Message cannot be empty"
             raise ValueError(msg)
+
         if content.startswith("/"):
             writer = output or DefaultOutputWriter()
             try:
@@ -188,12 +182,19 @@ class AgentChatSession:
                 raise
             except CommandError as e:
                 return ChatMessage(content=f"Command error: {e}", role="system")
-        self._history.append(messages.UserPrompt(content=content))
 
         try:
+            # Update tool states in pydantic agent before call
+            self._agent._pydantic_agent._function_tools.clear()
+            enabled_tools = self._agent.tools.get_tools(state="enabled")
+            for tool in enabled_tools:
+                assert tool._original_callable
+                self._agent._pydantic_agent.tool_plain(tool._original_callable)
+
             if stream:
-                return self._send_streaming(content)
+                return self._stream_message(content)
             return await self._send_normal(content)
+
         except Exception as e:
             logger.exception("Error processing message")
             msg = f"Error processing message: {e}"
@@ -206,52 +207,47 @@ class AgentChatSession:
         result = await self._agent.run(
             content,
             message_history=self._history,
-            model=model_override,  # type: ignore[arg-type]
+            model=model_override,
         )
 
         # Update history with new messages
         self._history = result.new_messages()
-        formatted = format_response(result.data)
-        model = self._model or self._agent.model_name
-        meta = {"tokens": result.cost().total_tokens, "model": model}
-        return ChatMessage(content=formatted, role="assistant", metadata=meta)
 
-    async def _send_streaming(self, content: str) -> AsyncIterator[ChatMessage]:
+        return ChatMessage(
+            content=str(result.data),
+            role="assistant",
+            metadata={
+                "token_usage": extract_token_usage(result.cost()),
+                "model": self._agent.model_name,
+            },
+        )
+
+    async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage]:
         """Send message and stream responses."""
         model_override = self._model if self._model and self._model.strip() else None
 
         async with await self._agent.run_stream(
             content,
             message_history=self._history,
-            model=model_override,  # type: ignore[arg-type]
-        ) as result:
-            # First yield all content chunks
-            async for chunk in result.stream():
-                content = ""
-                match chunk:
-                    case messages.ModelTextResponse():
-                        content = chunk.content
-                    case messages.ToolReturn():
-                        content = chunk.model_response_str()
-                    case messages.RetryPrompt():
-                        content = chunk.model_response()
-                    case _:
-                        content = str(chunk)
-                model = self._model or self._agent.model_name
-                meta = {"model": model}
-                yield ChatMessage(content=content, role="assistant", metadata=meta)
+            model=model_override,
+        ) as stream_result:
+            async for response in stream_result.stream():
+                yield ChatMessage(
+                    content=str(response),
+                    role="assistant",
+                    metadata={"model": self._agent.model_name},
+                )
 
-            # Get cost information at the end of streaming
-            cost_result = result.cost()
-            cost = await cost_result if hasattr(cost_result, "__await__") else cost_result  # pyright: ignore
-
-            # Only yield final message with token usage if we have valid cost data
-            if token_usage := extract_token_usage(cost):
-                model = self._model or self._agent.model_name
-                metadata = {"token_usage": token_usage, "model": model}
-                yield ChatMessage(content="", role="assistant", metadata=metadata)
-
-            self._history = result.new_messages()
+            # Final message with token usage after stream completes
+            cost = stream_result.cost()
+            yield ChatMessage(
+                content="",
+                role="assistant",
+                metadata={
+                    "token_usage": extract_token_usage(cost),
+                    "model": self._agent.model_name,
+                },
+            )
 
     def configure_tools(
         self,
