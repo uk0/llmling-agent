@@ -585,6 +585,9 @@ class LLMlingAgent[TResult]:
         """
         return self._tool_manager.is_tool_enabled(name)
 
+    def remove_tool(self, tool_name: str) -> Tool[AgentContext]:
+        return self._pydantic_agent._function_tools.pop(tool_name)
+
     def list_tools(self) -> dict[str, bool]:
         """Get a mapping of all tools and their enabled status.
 
