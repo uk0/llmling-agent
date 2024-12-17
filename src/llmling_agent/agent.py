@@ -32,7 +32,6 @@ if TYPE_CHECKING:
     from llmling.core.events import Event
     from py2openai import OpenAIFunctionTool
     from pydantic_ai.agent import models
-    from pydantic_ai.tools import ToolFuncEither, ToolFuncPlain, ToolParams
 
 
 logger = get_logger(__name__)
@@ -584,71 +583,6 @@ class LLMlingAgent[TResult]:
         except Exception:
             logger.exception("Sync agent run failed")
             raise
-
-    def tool(
-        self,
-        func: ToolFuncEither[AgentContext, ...] | None = None,
-        *,
-        max_retries: int | None = None,
-        name: str | None = None,
-        description: str | None = None,
-    ) -> Any:
-        """Register a tool with the agent.
-
-        Can be used as a decorator or called directly.
-
-        Example:
-            ```python
-            @agent.tool
-            async def my_tool(ctx: RunContext[AgentContext], arg: str) -> str:
-                caps = ctx.deps.capabilities
-                if not caps.some_permission:
-                    raise PermissionError("Permission denied")
-                return f"Processed {arg}"
-            ```
-        """
-        if func is None:
-            return lambda f: self.tool(
-                f, max_retries=max_retries, name=name, description=description
-            )
-
-        # Create Tool instance and append to tools list
-        tool_instance: Tool[AgentContext] = Tool(
-            func,
-            takes_ctx=True,
-            max_retries=max_retries,
-            name=name,
-            description=description,
-        )
-        self._tools.append(tool_instance)  # Collect tools for initialization
-        return func
-
-    def tool_plain(
-        self,
-        func: ToolFuncPlain[ToolParams] | None = None,
-        *,
-        max_retries: int | None = None,
-        name: str | None = None,
-        description: str | None = None,
-    ) -> Any:
-        """Register a plain tool (without context) with the agent."""
-        if func is None:
-            return lambda f: self.tool_plain(
-                f,
-                max_retries=max_retries,
-                name=name,
-                description=description,
-            )
-
-        tool_instance: Tool[AgentContext] = Tool(
-            func,
-            takes_ctx=False,
-            max_retries=max_retries,
-            name=name,
-            description=description,
-        )
-        self._tools.append(tool_instance)
-        return func
 
     def system_prompt(self, *args: Any, **kwargs: Any) -> Any:
         """Register a dynamic system prompt.
