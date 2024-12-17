@@ -5,7 +5,7 @@ from __future__ import annotations
 from llmling.tools import LLMCallableTool
 import pytest
 
-from llmling_agent.tools.manager import ToolError, ToolManager
+from llmling_agent.tools import ToolError, ToolManager
 
 
 def test_basic_tool_management() -> None:

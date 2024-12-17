@@ -228,25 +228,6 @@ async with runtime as r:
 - Don't leak implementation details
 - Consider using templates
 
-### Error Handling
-```python
-from llmling.core.exceptions import LLMError
-
-try:
-    result = await agent.run("Query")
-except LLMError as e:
-    print(f"Model error: {e}")
-except Exception as e:
-    print(f"General error: {e}")
-```
-
-## Performance Tips
-
-- Use streaming for long responses
-- Cache expensive tool results
-- Use appropriate timeouts
-- Consider batching requests
-- Profile tool performance
 
 ## Next Steps
 

@@ -6,8 +6,8 @@ from dataclasses import fields
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling.core.baseregistry import BaseRegistry
-from llmling.core.exceptions import LLMLingError
 from llmling.tools import LLMCallableTool
+from llmling.tools.exceptions import ToolError
 
 from llmling_agent.log import get_logger
 from llmling_agent.tools.base import ToolInfo
@@ -20,10 +20,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
-
-class ToolError(LLMLingError):
-    """Tool-related errors."""
 
 
 class ToolManager(BaseRegistry[str, ToolInfo]):
@@ -62,7 +58,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             self.register(tool.name, ToolInfo(callable=tool))
 
     @property
-    def _error_class(self) -> type[LLMLingError]:
+    def _error_class(self) -> type[ToolError]:
         """Error class for tool operations."""
         return ToolError
 
