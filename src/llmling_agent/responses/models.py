@@ -5,7 +5,16 @@ from __future__ import annotations
 from typing import Annotated, Any, Literal
 
 from llmling.utils import importing
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, create_model
+
+
+TYPE_MAP = {
+    "str": str,
+    "bool": bool,
+    "int": int,
+    "float": float,
+    "list[str]": list[str],
+}
 
 
 class ResponseField(BaseModel):
@@ -50,6 +59,21 @@ class InlineResponseDefinition(BaseModel):
     description: str | None = None
     fields: dict[str, ResponseField]
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
+
+    def create_model(self) -> type[BaseModel]:  # type: ignore
+        """Create Pydantic model from inline definition."""
+        fields = {}
+        for name, field in self.fields.items():
+            python_type = TYPE_MAP.get(field.type)
+            if not python_type:
+                msg = f"Unsupported field type: {field.type}"
+                raise ValueError(msg)
+
+            field_info = Field(description=field.description)
+            fields[name] = (python_type, field_info)
+
+        cls_name = self.description or "ResponseType"
+        return create_model(cls_name, **fields, __base__=BaseModel)  # type: ignore[call-overload]
 
 
 class ImportedResponseDefinition(BaseModel):

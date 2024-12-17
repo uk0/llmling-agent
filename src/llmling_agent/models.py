@@ -18,6 +18,7 @@ from llmling_agent.config.capabilities import BUILTIN_ROLES, Capabilities, RoleN
 from llmling_agent.environment import AgentEnvironment  # noqa: TC001
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 from llmling_agent.responses import ResponseDefinition  # noqa: TC001
+from llmling_agent.responses.models import InlineResponseDefinition
 
 
 if TYPE_CHECKING:
@@ -69,7 +70,7 @@ class AgentConfig(BaseModel):
     environment: str | AgentEnvironment | None = None
     """Environment configuration (path or object)"""
 
-    result_type: str | None = None
+    result_type: str | ResponseDefinition | None = None
     """Name of the response definition to use"""
 
     retries: int = 1
@@ -111,6 +112,19 @@ class AgentConfig(BaseModel):
         extra="forbid",
         use_attribute_docstrings=True,
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_result_type(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Convert result type to proper format."""
+        result_type = data.get("result_type")
+        if isinstance(result_type, dict):
+            # Convert inline definition to ResponseDefinition
+            if "type" not in result_type:
+                # Default to inline type if not specified
+                result_type["type"] = "inline"
+            data["result_type"] = InlineResponseDefinition(**result_type)
+        return data
 
     @model_validator(mode="before")
     @classmethod
@@ -249,9 +263,12 @@ class AgentsManifest(ConfigModel):
 
     @model_validator(mode="after")
     def validate_response_types(self) -> AgentsManifest:
-        """Ensure all agent result_types exist in responses."""
+        """Ensure all agent result_types exist in responses or are inline."""
         for agent_id, agent in self.agents.items():
-            if agent.result_type is not None and agent.result_type not in self.responses:
+            if (
+                isinstance(agent.result_type, str)
+                and agent.result_type not in self.responses
+            ):
                 msg = f"'{agent.result_type=}' for '{agent_id=}' not found in responses"
                 raise ValueError(msg)
         return self

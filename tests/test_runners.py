@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent.models import (
-    AgentConfig,
-    AgentsManifest,
-    ResponseDefinition,
-)
+from llmling_agent.models import AgentConfig, AgentsManifest, ResponseDefinition
 from llmling_agent.runners import AgentOrchestrator, AgentRunConfig, SingleAgentRunner
 from llmling_agent.runners.exceptions import AgentNotFoundError, NoPromptsError
 
@@ -66,7 +62,7 @@ async def test_orchestrator_single_agent(
 
     config = AgentRunConfig(agent_names=["test_agent"], prompts=["Hello!"])
 
-    orchestrator = AgentOrchestrator(agent_def=agent_def, run_config=config)
+    orchestrator: AgentOrchestrator[Any] = AgentOrchestrator(agent_def, run_config=config)
     results = await orchestrator.run()
 
     # For single agent, results should be a list of RunResults
@@ -88,7 +84,7 @@ async def test_orchestrator_multiple_agents(
 
     config = AgentRunConfig(agent_names=["agent1", "agent2"], prompts=["Hello!"])
 
-    orchestrator = AgentOrchestrator(agent_def=agent_def, run_config=config)
+    orchestrator: AgentOrchestrator[Any] = AgentOrchestrator(agent_def, run_config=config)
     results = await orchestrator.run()
 
     assert isinstance(results, dict)
@@ -110,12 +106,12 @@ async def test_orchestrator_validation(
 
     # Test no prompts first
     config = AgentRunConfig(agent_names=["test_agent"], prompts=[])
-    orchestrator = AgentOrchestrator(agent_def, config)
+    orch: AgentOrchestrator[Any] = AgentOrchestrator(agent_def, config)
     with pytest.raises(NoPromptsError):
-        orchestrator.validate()
+        orch.validate()
 
     # Then test missing agent
     config = AgentRunConfig(agent_names=["nonexistent"], prompts=["Hello!"])
-    orchestrator = AgentOrchestrator(agent_def, config)
+    orch2: AgentOrchestrator[Any] = AgentOrchestrator(agent_def, config)
     with pytest.raises(AgentNotFoundError):
-        orchestrator.validate()
+        orch2.validate()

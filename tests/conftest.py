@@ -12,7 +12,7 @@ import pytest
 
 from llmling_agent import config_resources
 from llmling_agent.agent import LLMlingAgent
-from llmling_agent.models import AgentConfig, ResponseDefinition
+from llmling_agent.models import AgentConfig
 from llmling_agent.responses import InlineResponseDefinition, ResponseField
 
 
@@ -113,7 +113,7 @@ def test_model() -> TestModel:
 
 
 @pytest.fixture
-def basic_response_def() -> dict[str, ResponseDefinition]:
+def basic_response_def() -> dict[str, InlineResponseDefinition]:
     """Create basic response definitions for testing."""
     response = ResponseField(type="str", description="Test message")
     desc = "Basic test result"
