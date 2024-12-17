@@ -337,10 +337,7 @@ class UIState:
 
         try:
             messages = list(history)
-            messages.append({
-                "content": message,
-                "role": "user",
-            })
+            messages.append({"content": message, "role": "user"})
 
             # Get the iterator from send_message
             message_iterator = await self._current_session.send_message(
@@ -355,10 +352,7 @@ class UIState:
                     "metadata": chat_msg.metadata or {},
                 })
 
-                yield UIUpdate(
-                    chat_history=messages,
-                    status="Receiving response...",
-                )
+                yield UIUpdate(chat_history=messages, status="Receiving response...")
 
             # Final update
             yield UIUpdate(
@@ -370,10 +364,8 @@ class UIState:
 
         except Exception as e:
             logger.exception("Failed to stream message")
-            yield UIUpdate(
-                status=f"Error: {e}",
-                debug_logs=self.get_debug_logs(),
-            )
+            logs = self.get_debug_logs()
+            yield UIUpdate(status=f"Error: {e}", debug_logs=logs)
 
     async def update_tool_states(self, updates: dict[str, bool]) -> UIUpdate:
         """Update tool states in current session."""
