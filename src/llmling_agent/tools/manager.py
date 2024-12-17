@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, MutableMapping
-from typing import TYPE_CHECKING, Literal
+from dataclasses import fields
+from typing import TYPE_CHECKING, Any, Literal
 
+from llmling.core.baseregistry import BaseRegistry
+from llmling.core.exceptions import LLMLingError
 from llmling.tools import LLMCallableTool
 
 from llmling_agent.log import get_logger
+from llmling_agent.tools.base import ToolInfo
 
 
 if TYPE_CHECKING:
@@ -17,8 +20,22 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class ToolManager(MutableMapping[str, LLMCallableTool]):
-    """Manages tool registration, enabling/disabling and access."""
+class ToolError(LLMLingError):
+    """Tool-related errors."""
+
+
+class ToolManager(BaseRegistry[str, ToolInfo]):
+    """Manages tool registration, enabling/disabling and access.
+
+    Inherits from BaseRegistry providing:
+    - Dict-like access: manager["tool_name"] -> ToolInfo
+    - Async startup/shutdown: await manager.startup()
+    - Event observation: manager.add_observer(observer)
+    - Registration: manager.register("tool_name", tool)
+    - Listing: manager.list_items()
+    - State check: manager.is_empty, manager.has_item()
+    - Async iteration: async for name, tool in manager: ...
+    """
 
     def __init__(
         self,
@@ -35,46 +52,81 @@ class ToolManager(MutableMapping[str, LLMCallableTool]):
                 - str: Use specific tool
                 - list[str]: Allow specific tools
         """
-        self._tools: dict[str, LLMCallableTool] = {t.name: t for t in tools}
-        self._original_tools = list(tools)
-        self._disabled_tools: set[str] = set()
+        super().__init__()
         self.tool_choice = tool_choice
 
-    # Required MutableMapping methods
-    def __getitem__(self, key: str) -> LLMCallableTool:
-        return self._tools[key]  # Raises KeyError naturally
+        # Register initial tools
+        for tool in tools:
+            self.register(tool.name, ToolInfo(callable=tool))
 
-    def __setitem__(self, key: str, value: LLMCallableTool) -> None:
-        self._tools[key] = value
+    @property
+    def _error_class(self) -> type[LLMLingError]:
+        """Error class for tool operations."""
+        return ToolError
 
-    def __delitem__(self, key: str) -> None:
-        self._tools.pop(key)  # Raises KeyError naturally
-        self._disabled_tools.discard(key)
+    def _validate_item(
+        self, item: ToolInfo | LLMCallableTool | dict[str, Any]
+    ) -> ToolInfo:
+        """Validate and convert items before registration."""
+        match item:
+            case ToolInfo():
+                return item
+            case LLMCallableTool():
+                return ToolInfo(callable=item)
+            case _ if callable(item):
+                tool = LLMCallableTool.from_callable(item)
+                return ToolInfo(callable=tool)
+            case {"callable": callable_item, **config} if callable(
+                callable_item
+            ) or isinstance(callable_item, LLMCallableTool):
+                # First convert callable to LLMCallableTool if needed
+                tool = (
+                    callable_item
+                    if isinstance(callable_item, LLMCallableTool)
+                    else LLMCallableTool.from_callable(callable_item)
+                )
 
-    def __iter__(self) -> Iterator[str]:
-        return iter(self._tools)
+                # Get valid fields from ToolInfo dataclass (excluding 'callable')
+                valid_keys = {f.name for f in fields(ToolInfo)} - {"callable"}
+                tool_config = {k: v for k, v in config.items() if k in valid_keys}
 
-    def __len__(self) -> int:
-        return len(self._tools)
+                return ToolInfo(callable=tool, **tool_config)  # type: ignore
 
-    # Our methods
+            case _:
+                typ = type(item)
+                msg = f"Item must be ToolInfo, LLMCallableTool, or callable. Got {typ}"
+                raise ToolError(msg)
+
+    # Public API maintaining compatibility
     def enable_tool(self, tool_name: str) -> None:
         """Enable a previously disabled tool."""
-        self._disabled_tools.discard(tool_name)
-        logger.debug("Enabled tool: %s", tool_name)
+        if tool_name in self:
+            tool_info = self[tool_name]
+            tool_info.enabled = True
+            self._notify_item_modified(tool_name, tool_info)
+            logger.debug("Enabled tool: %s", tool_name)
+        else:
+            msg = f"Tool not found: {tool_name}"
+            raise ToolError(msg)
 
     def disable_tool(self, tool_name: str) -> None:
         """Disable a tool."""
-        self._disabled_tools.add(tool_name)
-        logger.debug("Disabled tool: %s", tool_name)
+        if tool_name in self:
+            tool_info = self[tool_name]
+            tool_info.enabled = False
+            self._notify_item_modified(tool_name, tool_info)
+            logger.debug("Disabled tool: %s", tool_name)
+        else:
+            msg = f"Tool not found: {tool_name}"
+            raise ToolError(msg)
 
     def is_tool_enabled(self, tool_name: str) -> bool:
         """Check if a tool is currently enabled."""
-        return tool_name not in self._disabled_tools
+        return self[tool_name].enabled if tool_name in self else False
 
     def list_tools(self) -> dict[str, bool]:
         """Get a mapping of all tools and their enabled status."""
-        return {t.name: t.name not in self._disabled_tools for t in self._original_tools}
+        return {name: info.enabled for name, info in self.items()}
 
     def get_tools(
         self,
@@ -82,35 +134,20 @@ class ToolManager(MutableMapping[str, LLMCallableTool]):
         names: list[str] | None = None,
     ) -> list[LLMCallableTool]:
         """Get tool objects based on filters."""
-        # First filter by state
-        match state:
-            case "all":
-                tools = list(self._tools.values())
-            case "enabled":
-                tools = [
-                    t
-                    for name, t in self._tools.items()
-                    if name not in self._disabled_tools
-                ]
-            case "disabled":
-                tools = [
-                    t for name, t in self._tools.items() if name in self._disabled_tools
-                ]
+        filtered_tools = [
+            info.callable
+            for info in self.values()
+            if info.matches_filter(state) and (names is None or info.name in names)
+        ]
 
-        # Then filter by names if specified
-        if names is not None:
-            tools = [t for t in tools if t.name in names]
+        # Sort by priority (if any have non-default priority)
+        if any(self[t.name].priority != 100 for t in filtered_tools):  # noqa: PLR2004
+            filtered_tools.sort(key=lambda t: self[t.name].priority)
 
-        return tools
+        return filtered_tools
 
     def get_tool_names(
         self, state: Literal["all", "enabled", "disabled"] = "all"
     ) -> set[str]:
         """Get tool names based on state."""
-        match state:
-            case "all":
-                return set(self._tools)
-            case "enabled":
-                return set(self._tools) - self._disabled_tools
-            case "disabled":
-                return self._disabled_tools
+        return {name for name, info in self.items() if info.matches_filter(state)}

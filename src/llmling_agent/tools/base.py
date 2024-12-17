@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import inspect
 from inspect import Parameter, Signature
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar
 
 from py2openai import OpenAIFunctionTool  # noqa: TC002
 from pydantic_ai import RunContext, Tool
@@ -15,6 +15,7 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    from llmling.tools import LLMCallableTool
     from py2openai.typedefs import ToolParameters
 
 T = TypeVar("T")
@@ -70,6 +71,57 @@ class ToolConfirmation(Protocol):
             Whether the tool execution was confirmed
         """
         ...
+
+
+@dataclass
+class ToolInfo:
+    """Information about a registered tool."""
+
+    callable: LLMCallableTool
+    """The actual tool implementation"""
+
+    enabled: bool = True
+    """Whether the tool is currently enabled"""
+
+    source: Literal["runtime", "agent", "builtin", "dynamic"] = "runtime"
+    """Where the tool came from:
+    - runtime: From RuntimeConfig
+    - agent: Specific to an agent
+    - builtin: Built-in tool
+    - dynamic: Added during runtime
+    """
+
+    priority: int = 100
+    """Priority for tool execution (lower = higher priority)"""
+
+    requires_confirmation: bool = False
+    """Whether tool execution needs explicit confirmation"""
+
+    requires_capability: str | None = None
+    """Optional capability required to use this tool"""
+
+    metadata: dict[str, str] | None = None
+    """Additional tool metadata"""
+
+    @property
+    def name(self) -> str:
+        """Get tool name."""
+        return self.callable.name
+
+    @property
+    def description(self) -> str | None:
+        """Get tool description."""
+        return self.callable.description
+
+    def matches_filter(self, state: Literal["all", "enabled", "disabled"]) -> bool:
+        """Check if tool matches state filter."""
+        match state:
+            case "all":
+                return True
+            case "enabled":
+                return self.enabled
+            case "disabled":
+                return not self.enabled
 
 
 class ToolExecutionDeniedError(Exception):

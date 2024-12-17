@@ -149,11 +149,11 @@ class LLMlingAgent[TResult]:
         history_tools = HistoryTools(self._context)
         if self._context.capabilities.history_access != "none":
             search_tool = LLMCallableTool.from_callable(history_tools.search_history)
-            self._tool_manager._tools[search_tool.name] = search_tool
+            self._tool_manager[search_tool.name] = search_tool
 
         if self._context.capabilities.stats_access != "none":
             stats_tool = LLMCallableTool.from_callable(history_tools.show_statistics)
-            self._tool_manager._tools[stats_tool.name] = stats_tool
+            self._tool_manager[stats_tool.name] = stats_tool
 
     @classmethod
     @asynccontextmanager
