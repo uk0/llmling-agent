@@ -5,12 +5,11 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
 from pydantic_ai import Agent as PydanticAgent, messages
-from pydantic_ai.result import RunResult, StreamedRunResult
 from sqlmodel import Session
 from typing_extensions import TypeVar
 
@@ -32,6 +31,7 @@ if TYPE_CHECKING:
     from llmling.tools import LLMCallableTool
     from pydantic_ai.agent import models
     from pydantic_ai.messages import ModelMessage
+    from pydantic_ai.result import RunResult, StreamedRunResult
 
 
 logger = get_logger(__name__)
@@ -378,7 +378,7 @@ class LLMlingAgent[TResult]:
         *,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-    ) -> RunResult[T]:
+    ) -> RunResult[TResult]:
         """Run agent with prompt and get response.
 
         Args:
@@ -435,10 +435,11 @@ class LLMlingAgent[TResult]:
                     cost_info=cost,
                     model=model_name,
                 )
-            return cast(RunResult[T], result)
         except Exception:
             logger.exception("Agent run failed")
             raise
+        else:
+            return result
 
     async def run_stream(
         self,
