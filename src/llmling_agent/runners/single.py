@@ -17,7 +17,8 @@ if TYPE_CHECKING:
 
     from pydantic_ai.result import RunResult
 
-    from llmling_agent.models import AgentConfig, ResponseDefinition
+    from llmling_agent.models import AgentConfig
+    from llmling_agent.responses import ResponseDefinition
 
 
 logger = get_logger(__name__)

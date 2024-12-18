@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from llmling import Config
 from llmling.config.models import ConfigModel, GlobalSettings, LLMCapabilitiesConfig
@@ -23,24 +22,6 @@ from llmling_agent.responses.models import InlineResponseDefinition
 
 if TYPE_CHECKING:
     import os
-
-
-class SystemPrompt(BaseModel):
-    """System prompt configuration for agent behavior control.
-
-    Defines prompts that set up the agent's behavior and context.
-    Supports multiple types:
-    - Static text prompts
-    - Dynamic function-based prompts
-    - Template prompts with variable substitution
-    """
-
-    type: Literal["text", "function", "template"]
-    """Type of system prompt: static text, function call, or template"""
-    value: str
-    """The prompt text, function path, or template string"""
-
-    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
 
 class AgentConfig(BaseModel):
@@ -321,21 +302,3 @@ class AgentsManifest(ConfigModel):
             return BUILTIN_ROLES[role_name]  # type: ignore[index]
         msg = f"Unknown role: {role_name}"
         raise ValueError(msg)
-
-
-@dataclass
-class ResourceInfo:
-    """Information about an available resource.
-
-    This class provides essential information about a resource that can be loaded.
-    Use the resource name with load_resource() to access the actual content.
-    """
-
-    name: str
-    """Name of the resource, use this with load_resource()"""
-
-    uri: str
-    """URI identifying the resource location"""
-
-    description: str | None = None
-    """Optional description of the resource's content or purpose"""

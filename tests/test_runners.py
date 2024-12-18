@@ -5,13 +5,15 @@ from typing import TYPE_CHECKING, Any
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent.models import AgentConfig, AgentsManifest, ResponseDefinition
+from llmling_agent.models import AgentConfig, AgentsManifest
 from llmling_agent.runners import AgentOrchestrator, AgentRunConfig, SingleAgentRunner
 from llmling_agent.runners.exceptions import AgentNotFoundError, NoPromptsError
 
 
 if TYPE_CHECKING:
     from llmling.config.runtime import RuntimeConfig
+
+    from llmling_agent.responses import ResponseDefinition
 
 
 @pytest.mark.asyncio
