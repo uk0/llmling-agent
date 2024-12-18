@@ -10,9 +10,9 @@ import pytest
 
 from llmling_agent import LLMlingAgent
 from llmling_agent.chat_session import AgentChatSession
+from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.commands.base import CommandContext
 from llmling_agent.commands.builtin.prompts import prompt_cmd
-from llmling_agent.commands.output import DefaultOutputWriter
 
 
 @pytest.fixture
