@@ -36,7 +36,37 @@ engine = create_engine(
 
 def init_database() -> None:
     """Initialize database tables."""
-    # Import here to avoid circular imports
+    import sqlalchemy as sa
+    from sqlalchemy import inspect
+
     from llmling_agent.storage.models import SQLModel
 
+    # Create tables if they don't exist
     SQLModel.metadata.create_all(engine)
+
+    # Auto-add missing columns
+    with engine.connect() as conn:
+        inspector = inspect(engine)
+
+        # For each table in our models
+        for table_name, table in SQLModel.metadata.tables.items():
+            existing_columns = {col["name"] for col in inspector.get_columns(table_name)}
+
+            # For each column in model that doesn't exist in DB
+            for col in table.columns:
+                if col.name not in existing_columns:
+                    # Create ALTER TABLE statement based on column type
+                    type_sql = col.type.compile(engine.dialect)
+                    nullable = "" if col.nullable else " NOT NULL"
+                    default = (
+                        f" DEFAULT {col.default.arg}" if col.default is not None else ""
+                    )
+
+                    conn.execute(
+                        sa.text(
+                            f"ALTER TABLE {table_name} "
+                            f"ADD COLUMN {col.name} {type_sql}{nullable}{default}"
+                        )
+                    )
+
+        conn.commit()
