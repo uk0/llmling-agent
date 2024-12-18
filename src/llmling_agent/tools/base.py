@@ -116,8 +116,8 @@ class ToolInfo:
     def parameters(self) -> list[ToolParameter]:
         """Get information about tool parameters."""
         schema = self.schema["function"]
-        properties = schema.get("properties", {})
-        required = schema.get("required", [])
+        properties: dict[str, Any] = schema.get("properties", {})
+        required: list[str] = schema.get("required", [])
 
         params = []
         for name, details in properties.items():

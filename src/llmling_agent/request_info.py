@@ -16,8 +16,9 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from pydantic_ai import Tool
     from pydantic_ai._result import ResultSchema
+
+    from llmling_agent.tools.base import ToolInfo
 
 
 logger = get_logger(__name__)
@@ -76,7 +77,7 @@ def format_messages(messages: list[ModelMessage], indent: str = "  ") -> list[st
 
 def format_request_info(
     prompt: str,
-    tools: list[Tool[Any]],
+    tools: list[ToolInfo],
     new_messages: list[ModelMessage],
     model: str | None = None,
     result_schema: ResultSchema[Any] | None = None,
@@ -90,8 +91,6 @@ def format_request_info(
         model: Model being used (if specified)
         result_schema: Schema for expected results
     """
-    from llmling_agent.tools.base import ToolInfo
-
     sections = [
         "Request Information",
         "=" * 50,
@@ -110,10 +109,7 @@ def format_request_info(
             "Available Tools",
             "-" * 15,
         ])
-        for tool in tools:
-            # Convert to our ToolInfo format
-            tool_info = ToolInfo(callable=tool)
-            sections.append(tool_info.format_info())
+        sections.extend(tool.format_info() for tool in tools)
 
     # Message information
     if new_messages:

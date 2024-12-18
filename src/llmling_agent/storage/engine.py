@@ -58,9 +58,17 @@ def init_database() -> None:
                     # Create ALTER TABLE statement based on column type
                     type_sql = col.type.compile(engine.dialect)
                     nullable = "" if col.nullable else " NOT NULL"
-                    default = (
-                        f" DEFAULT {col.default.arg}" if col.default is not None else ""
-                    )
+                    default = ""
+                    if col.default is not None:
+                        if hasattr(col.default, "arg"):
+                            # Simple default value
+                            default = f" DEFAULT {col.default.arg}"
+                        elif isinstance(col.default, sa.Computed):
+                            # Computed default
+                            default = f" DEFAULT {col.default.sqltext}"
+                        elif isinstance(col.default, sa.FetchedValue):
+                            # Server-side default
+                            pass
 
                     conn.execute(
                         sa.text(
