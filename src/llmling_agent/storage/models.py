@@ -57,3 +57,5 @@ class Conversation(SQLModel, table=True):  # type: ignore[call-arg]
     start_time: datetime = Field(
         default_factory=datetime.now, sa_column=Column(DateTime, index=True)
     )
+    total_tokens: int = Field(default=0)
+    total_cost: float = Field(default=0.0)

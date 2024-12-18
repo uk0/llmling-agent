@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 from typing import TYPE_CHECKING, TypedDict
 
@@ -14,6 +15,7 @@ from pydantic_ai.messages import (
     ToolCallPart,
 )
 from pydantic_ai.result import Cost
+import tokencost
 
 from llmling_agent.log import get_logger
 
@@ -37,27 +39,55 @@ class TokenUsage(TypedDict):
     """Tokens used in the completion"""
 
 
-def extract_token_usage(cost: Cost) -> TokenUsage | None:
-    """Extract token usage statistics from a cost object.
+@dataclass(frozen=True)
+class TokenAndCostResult:
+    """Combined token and cost tracking."""
+
+    token_usage: TokenUsage
+    """Token counts for prompt and completion"""
+    cost_usd: float
+    """Total cost in USD"""
+
+
+def extract_token_usage_and_cost(
+    cost: Cost,
+    model: str,
+    prompt: str,
+    completion: str,
+) -> TokenAndCostResult | None:
+    """Extract token usage and calculate actual USD cost.
 
     Args:
-        cost: Cost object from model response
+        cost: Token counts from pydantic-ai Cost object
+        model: Name of the model used
+        prompt: The prompt text sent to model
+        completion: The completion text received
 
     Returns:
-        Token usage statistics if available, None otherwise
+        Token usage and USD cost, or None if counts unavailable
     """
-    if (
+    if not (
         cost
         and cost.total_tokens is not None
         and cost.request_tokens is not None
         and cost.response_tokens is not None
     ):
-        return TokenUsage(
-            total=cost.total_tokens,
-            prompt=cost.request_tokens,
-            completion=cost.response_tokens,
-        )
-    return None
+        return None
+
+    token_usage = TokenUsage(
+        total=cost.total_tokens,
+        prompt=cost.request_tokens,
+        completion=cost.response_tokens,
+    )
+
+    model = model.split(":", 1)[1] if ":" in model else model
+
+    # Calculate actual USD costs using tokencost
+    prompt_cost = tokencost.calculate_prompt_cost(prompt, model)
+    completion_cost = tokencost.calculate_completion_cost(completion, model)
+    total_cost = float(prompt_cost + completion_cost)
+
+    return TokenAndCostResult(token_usage=token_usage, cost_usd=total_cost)
 
 
 def format_response(response: str | _messages.ModelRequestPart) -> str:  # noqa: PLR0911

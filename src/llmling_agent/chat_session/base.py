@@ -17,7 +17,7 @@ from llmling_agent.commands.base import BaseCommand, CommandContext, OutputWrite
 from llmling_agent.commands.exceptions import CommandError, ExitCommandError
 from llmling_agent.commands.output import DefaultOutputWriter
 from llmling_agent.log import get_logger
-from llmling_agent.pydantic_ai_utils import extract_token_usage
+from llmling_agent.pydantic_ai_utils import extract_token_usage_and_cost
 
 
 if TYPE_CHECKING:
@@ -211,9 +211,30 @@ class AgentChatSession:
 
         # Update history with new messages
         self._history = result.new_messages()
-        usage = extract_token_usage(result.cost())
-        meta = {"token_usage": usage, "model": self._agent.model_name}
-        return ChatMessage(content=str(result.data), role="assistant", metadata=meta)
+
+        model_name = model_override or self._agent.model_name
+        response = str(result.data)
+        cost_info = (
+            extract_token_usage_and_cost(
+                result.cost(),
+                model_name,
+                content,  # prompt
+                response,  # completion
+            )
+            if model_name
+            else None
+        )
+
+        metadata = {}
+        if cost_info:
+            metadata.update({
+                "token_usage": cost_info.token_usage,
+                "cost_usd": cost_info.cost_usd,
+            })
+        if model_name:
+            metadata["model"] = model_name
+
+        return ChatMessage(content=response, role="assistant", metadata=metadata)
 
     async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage]:
         """Send message and stream responses."""
@@ -229,9 +250,25 @@ class AgentChatSession:
                 yield ChatMessage(content=str(response), role="assistant", metadata=meta)
 
             # Final message with token usage after stream completes
-            cost = stream_result.cost()
-            usage = extract_token_usage(cost)
-            metadata = {"token_usage": usage, "model": self._agent.model_name}
+            model_name = model_override or self._agent.model_name
+            cost_info = (
+                extract_token_usage_and_cost(
+                    stream_result.cost(),
+                    model_name,
+                    content,  # prompt
+                    response,  # completion
+                )
+                if model_name
+                else None
+            )
+            metadata = {}
+            if cost_info:
+                metadata.update({
+                    "token_usage": cost_info.token_usage,
+                    "cost_usd": cost_info.cost_usd,
+                })
+            if model_name:
+                metadata["model"] = model_name
             yield ChatMessage(content="", role="assistant", metadata=metadata)
 
     def configure_tools(

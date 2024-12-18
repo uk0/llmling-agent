@@ -17,7 +17,10 @@ from typing_extensions import TypeVar
 from llmling_agent.context import AgentContext
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentsManifest
-from llmling_agent.pydantic_ai_utils import TokenUsage, extract_token_usage
+from llmling_agent.pydantic_ai_utils import (
+    TokenAndCostResult,
+    extract_token_usage_and_cost,
+)
 from llmling_agent.responses import resolve_response_type
 from llmling_agent.responses.models import InlineResponseDefinition
 from llmling_agent.storage import Conversation, engine
@@ -346,7 +349,7 @@ class LLMlingAgent[TResult]:
         content: str,
         role: Literal["user", "assistant", "system"],
         *,
-        token_usage: TokenUsage | None = None,
+        cost_info: TokenAndCostResult | None = None,
         model: str | None = None,
     ) -> None:
         """Log a single message to the database.
@@ -354,7 +357,7 @@ class LLMlingAgent[TResult]:
         Args:
             content: Message content
             role: Message role (user/assistant/system)
-            token_usage: Optional token usage statistics
+            cost_info: Combined token usage and cost information
             model: Optional model name used
         """
         if not self._enable_logging:
@@ -365,7 +368,8 @@ class LLMlingAgent[TResult]:
                 conversation_id=self._conversation_id,
                 role=role,
                 content=content,
-                token_usage=token_usage,
+                token_usage=cost_info.token_usage if cost_info else None,
+                cost=cost_info.cost_usd if cost_info else None,
                 model=model,
             )
             session.add(msg)
@@ -416,15 +420,24 @@ class LLMlingAgent[TResult]:
                 # Log user message
                 self._log_message(prompt, role="user")
 
-                # Log assistant response with stats
-                token_usage = extract_token_usage(result.cost())
-                self._log_message(
-                    str(result.data),
-                    role="assistant",
-                    token_usage=token_usage,
-                    model=self.model_name,
+                # Get cost info for assistant response
+                result_str = str(result.data)
+                model_name = self.model_name
+                cost = (
+                    extract_token_usage_and_cost(
+                        result.cost(), model_name, prompt, result_str
+                    )
+                    if model_name
+                    else None
                 )
 
+                # Log assistant response with all info
+                self._log_message(
+                    result_str,
+                    role="assistant",
+                    cost_info=cost,
+                    model=model_name,
+                )
             return cast(RunResult[T], result)
         except Exception:
             logger.exception("Agent run failed")
