@@ -57,15 +57,28 @@ class MessageMetadata(BaseModel):
     token_usage: TokenUsage | None = Field(default=None)
     cost: float | None = Field(default=None)
     tool: str | None = Field(default=None)
+    # Add web UI specific fields
+    avatar: str | None = Field(default=None)
+    name: str | None = Field(default=None)
 
     model_config = {"frozen": True}
 
 
 class ChatMessage(BaseModel):
-    """Common message format."""
+    """Common message format for all UI types."""
 
     content: str
     role: Literal["user", "assistant", "system"]
     metadata: MessageMetadata | None = Field(default=None)
 
     model_config = {"frozen": True}
+
+    def to_gradio_format(self) -> tuple[str | None, str | None]:
+        """Convert to Gradio chatbot format."""
+        match self.role:
+            case "user":
+                return (self.content, None)
+            case "assistant":
+                return (None, self.content)
+            case "system":
+                return (None, f"System: {self.content}")

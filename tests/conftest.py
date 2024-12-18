@@ -14,13 +14,43 @@ from llmling_agent import config_resources
 from llmling_agent.agent import LLMlingAgent
 from llmling_agent.models import AgentConfig
 from llmling_agent.responses import InlineResponseDefinition, ResponseField
+from llmling_agent.testing.ui import TestUI
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, AsyncIterator
 
 
 TEST_RESPONSE = "I am a test response"
+
+
+@pytest.fixture
+async def test_ui() -> AsyncIterator[TestUI]:
+    """Provide a clean TestUI instance."""
+    ui = TestUI()
+    yield ui
+    ui.clear_interactions()
+
+
+@pytest.fixture
+async def error_ui() -> AsyncIterator[TestUI]:
+    """Provide a TestUI that raises errors."""
+    ui = TestUI(raise_errors=True)
+    yield ui
+    ui.clear_interactions()
+
+
+@pytest.fixture
+async def streaming_ui() -> AsyncIterator[TestUI]:
+    """Provide a TestUI with streaming responses."""
+    ui = TestUI(
+        message_responses={
+            "hello": "Hello World!",
+            "test": "Test Response",
+        }
+    )
+    yield ui
+    ui.clear_interactions()
 
 
 @pytest.fixture

@@ -4,43 +4,16 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Literal,
     Protocol,
     runtime_checkable,
 )
 
-from pydantic import BaseModel, Field
-
-from llmling_agent.models import TokenUsage  # noqa: TC001
-
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-    from datetime import datetime
 
     from llmling_agent.commands.completion import CompletionProvider
-
-
-class MessageMetadata(BaseModel):
-    """Metadata for chat messages."""
-
-    timestamp: datetime | None = Field(default=None)
-    model: str | None = Field(default=None)
-    token_usage: TokenUsage | None = Field(default=None)
-    cost: float | None = Field(default=None)
-    tool: str | None = Field(default=None)
-
-    model_config = {"frozen": True}
-
-
-class ChatMessage(BaseModel):
-    """Common message format."""
-
-    content: str
-    role: Literal["user", "assistant", "system"]
-    metadata: MessageMetadata | None = Field(default=None)
-
-    model_config = {"frozen": True}
+    from llmling_agent.models.messages import ChatMessage
 
 
 @runtime_checkable

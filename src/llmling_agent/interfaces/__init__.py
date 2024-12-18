@@ -7,16 +7,12 @@ from llmling_agent.interfaces.ui import (
     CodeEditingUI,
     ToolAwareUI,
     UserInterface,
-    ChatMessage,
-    MessageMetadata,
 )
 
 __all__ = [
-    "ChatMessage",
     "CodeEditingUI",
     "CompletionUI",
     "CoreUI",
-    "MessageMetadata",
     "ToolAwareUI",
     "UserInterface",
 ]
