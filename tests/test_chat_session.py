@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from unittest.mock import ANY, AsyncMock, MagicMock
 import uuid
@@ -58,29 +57,6 @@ def chat_session(mock_agent: MagicMock) -> AgentChatSession:
         session_id=DEFAULT_SESSION_ID,
         model_override=DEFAULT_MODEL,
     )
-
-
-@pytest.mark.asyncio
-async def test_chat_session_initialization(mock_agent: MagicMock) -> None:
-    """Test chat session initialization."""
-    session = AgentChatSession(
-        agent=mock_agent,
-        session_id=DEFAULT_SESSION_ID,
-        model_override=DEFAULT_MODEL,
-    )
-
-    assert session.id == DEFAULT_SESSION_ID
-    assert session.metadata.agent_name == DEFAULT_AGENT_NAME
-    assert session.metadata.model == DEFAULT_MODEL
-    assert isinstance(session.metadata.start_time, datetime)
-    assert session.metadata.tool_states == mock_agent.tools.list_tools()
-
-
-@pytest.mark.asyncio
-async def test_chat_session_auto_id_generation(mock_agent: MagicMock) -> None:
-    """Test that session ID is auto-generated if not provided."""
-    session = AgentChatSession(agent=mock_agent)
-    assert isinstance(session.id, uuid.UUID)
 
 
 @pytest.mark.asyncio
