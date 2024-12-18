@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 from unittest.mock import ANY, AsyncMock, MagicMock
-import uuid
 
 from pydantic_ai.messages import (
     ModelRequest,
@@ -29,8 +28,6 @@ if TYPE_CHECKING:
 
 
 # Constants for testing
-DEFAULT_SESSION_ID = uuid.UUID("12345678-1234-5678-1234-567812345678")
-DEFAULT_AGENT_NAME = "test-agent"
 DEFAULT_MODEL = "openai:gpt-3.5-turbo"
 TEST_MESSAGE = "Hello, agent!"
 TEST_RESPONSE = "Hello, human!"
@@ -40,7 +37,7 @@ TEST_RESPONSE = "Hello, human!"
 def mock_agent() -> MagicMock:
     """Create a mock LLMlingAgent."""
     agent = MagicMock()
-    agent.name = DEFAULT_AGENT_NAME
+    agent.name = "test-agent"
     # Set up default tool states
     agent.tools.list_tools.return_value = {"tool1": True, "tool2": False}
     # Set up async methods
@@ -52,11 +49,7 @@ def mock_agent() -> MagicMock:
 @pytest.fixture
 def chat_session(mock_agent: MagicMock) -> AgentChatSession:
     """Create a ChatSession with a mock agent."""
-    return AgentChatSession(
-        agent=mock_agent,
-        session_id=DEFAULT_SESSION_ID,
-        model_override=DEFAULT_MODEL,
-    )
+    return AgentChatSession(agent=mock_agent, model_override=DEFAULT_MODEL)
 
 
 @pytest.mark.asyncio
@@ -130,10 +123,9 @@ async def test_send_message_with_history(chat_session: AgentChatSession) -> None
     mock_result1.cost.return_value = MagicMock(total_tokens=10)
 
     # Set up first message history
-    first_history = [
-        ModelRequest(parts=[UserPromptPart(content=TEST_MESSAGE)]),
-        ModelResponse(parts=[TextPart(content="First response")]),
-    ]
+    user = UserPromptPart(content=TEST_MESSAGE)
+    text = TextPart(content="First response")
+    first_history = [ModelRequest(parts=[user]), ModelResponse(parts=[text])]
     mock_result1.new_messages.return_value = first_history
     chat_session._agent.run = AsyncMock(return_value=mock_result1)  # type: ignore
 

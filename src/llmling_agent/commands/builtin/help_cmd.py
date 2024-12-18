@@ -31,6 +31,60 @@ async def help_command(
         await ctx.output.print(f"  /{cmd.name:<12} - {cmd.description}")
 
 
+async def show_command(
+    ctx: CommandContext,
+    args: list[str],
+    kwargs: dict[str, str],
+) -> None:
+    """Show detailed information about a command."""
+    if not args:
+        await ctx.output.print("Usage: /show-command <command_name>")
+        return
+
+    command_name = args[0].strip("/")  # Remove leading slash if present
+    command_store = ctx.session._command_store
+
+    if command := command_store.get_command(command_name):
+        sections = [
+            f"Command: /{command.name}",
+            f"Category: {command.category}",
+            "",
+            "Description:",
+            command.description,
+            "",
+        ]
+        if command.usage:
+            sections.extend([
+                "Usage:",
+                f"/{command.name} {command.usage}",
+                "",
+            ])
+        if command.help_text:
+            sections.extend([
+                "Help:",
+                command.help_text,
+            ])
+
+        await ctx.output.print("\n".join(sections))
+    else:
+        await ctx.output.print(f"Command not found: {command_name}")
+
+
+show_command_cmd = Command(
+    name="show-command",
+    description="Show detailed information about a command",
+    execute_func=show_command,
+    usage="<command_name>",
+    help_text=(
+        "Display detailed help and usage information about a specific command.\n\n"
+        "Examples:\n"
+        "  /show-command meta\n"
+        "  /show-command help"
+    ),
+    category="help",
+)
+
+
 help_cmd = Command(
     name="help",
     description="Show available commands",
