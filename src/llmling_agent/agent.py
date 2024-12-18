@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     import os
 
-    from llmling.core.events import Event
     from llmling.tools import LLMCallableTool
     from pydantic_ai.agent import models
     from pydantic_ai.messages import ModelMessage
@@ -130,9 +129,6 @@ class LLMlingAgent[TResult]:
             defer_model_check=defer_model_check,
             **kwargs,
         )
-        # Set up event handling
-        self._runtime.add_event_handler(self)
-
         self._name = name
         msg = "Initialized %s (model=%s, result_type=%s)"
         logger.debug(msg, self._name, model, result_type or "str")
@@ -344,14 +340,6 @@ class LLMlingAgent[TResult]:
                 return self._pydantic_agent.model
             case _:
                 return self._pydantic_agent.model.name()
-
-    async def handle_event(self, event: Event) -> None:
-        """Handle runtime events.
-
-        Override this method to add custom event handling.
-        """
-        # Default implementation just logs
-        logger.debug("Received event: %s", event)
 
     def _log_message(
         self,

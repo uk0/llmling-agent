@@ -101,7 +101,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         if tool_name in self:
             tool_info = self[tool_name]
             tool_info.enabled = True
-            self._notify_item_modified(tool_name, tool_info)
+            self.events.changed(tool_name, tool_info)
             logger.debug("Enabled tool: %s", tool_name)
         else:
             msg = f"Tool not found: {tool_name}"
@@ -112,7 +112,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         if tool_name in self:
             tool_info = self[tool_name]
             tool_info.enabled = False
-            self._notify_item_modified(tool_name, tool_info)
+            self.events.changed(tool_name, tool_info)
             logger.debug("Disabled tool: %s", tool_name)
         else:
             msg = f"Tool not found: {tool_name}"
