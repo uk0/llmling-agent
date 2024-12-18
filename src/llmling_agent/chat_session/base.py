@@ -46,7 +46,7 @@ class AgentChatSession:
         self,
         agent: LLMlingAgent[str],
         *,
-        session_id: UUID | None = None,
+        session_id: UUID | str | None = None,
         model_override: str | None = None,
     ) -> None:
         """Initialize chat session.
@@ -56,7 +56,13 @@ class AgentChatSession:
             session_id: Optional session ID (generated if not provided)
             model_override: Optional model override for this session
         """
-        self.id = session_id or uuid4()
+        match session_id:
+            case str():
+                self.id = UUID(session_id)
+            case UUID():
+                self.id = session_id
+            case None:
+                self.id = uuid4()
         self._agent = agent
         self._history: list[messages.ModelMessage] = []
         self._tool_states = agent.tools.list_tools()
