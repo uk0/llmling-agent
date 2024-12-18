@@ -11,7 +11,7 @@ from typing import (
 
 from pydantic import BaseModel, Field
 
-from llmling_agent.models.messages import TokenUsage  # noqa: TC001
+from llmling_agent.models import TokenUsage  # noqa: TC001
 
 
 if TYPE_CHECKING:

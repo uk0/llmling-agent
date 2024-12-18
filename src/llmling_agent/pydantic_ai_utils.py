@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
 
 from pydantic_ai import messages as _messages
 from pydantic_ai.messages import (
@@ -18,6 +17,7 @@ from pydantic_ai.result import Cost
 import tokencost
 
 from llmling_agent.log import get_logger
+from llmling_agent.models.messages import TokenAndCostResult, TokenUsage
 
 
 logger = get_logger(__name__)
@@ -26,27 +26,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from pydantic_ai.result import Cost
-
-
-class TokenUsage(TypedDict):
-    """Token usage statistics from model responses."""
-
-    total: int
-    """Total tokens used"""
-    prompt: int
-    """Tokens used in the prompt"""
-    completion: int
-    """Tokens used in the completion"""
-
-
-@dataclass(frozen=True)
-class TokenAndCostResult:
-    """Combined token and cost tracking."""
-
-    token_usage: TokenUsage
-    """Token counts for prompt and completion"""
-    cost_usd: float
-    """Total cost in USD"""
 
 
 def extract_token_usage_and_cost(

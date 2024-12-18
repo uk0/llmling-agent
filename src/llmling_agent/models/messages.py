@@ -4,19 +4,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime  # noqa: TC003
-from typing import Literal
+from typing import Literal, TypedDict
 
 from pydantic import BaseModel, Field
 
 
-class TokenUsage(BaseModel):
+class TokenUsage(TypedDict):
     """Token usage statistics from model responses."""
 
     total: int
+    """Total tokens used"""
     prompt: int
+    """Tokens used in the prompt"""
     completion: int
-
-    model_config = {"frozen": True}
+    """Tokens used in the completion"""
 
 
 @dataclass(frozen=True)
@@ -24,7 +25,28 @@ class TokenAndCostResult:
     """Combined token and cost tracking."""
 
     token_usage: TokenUsage
+    """Token counts for prompt and completion"""
     cost_usd: float
+    """Total cost in USD"""
+
+
+# TODO: switch to this
+# class TokenUsage(BaseModel):
+#     """Token usage statistics from model responses."""
+
+#     total: int
+#     prompt: int
+#     completion: int
+
+#     model_config = {"frozen": True}
+
+
+# @dataclass(frozen=True)
+# class TokenAndCostResult:
+#     """Combined token and cost tracking."""
+
+#     token_usage: TokenUsage
+#     cost_usd: float
 
 
 class MessageMetadata(BaseModel):
