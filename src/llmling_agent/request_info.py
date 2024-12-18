@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai.messages import (
@@ -17,72 +16,11 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from pydantic_ai import Tool
     from pydantic_ai._result import ResultSchema
 
 
 logger = get_logger(__name__)
-
-
-@dataclass
-class ToolParameter:
-    """Information about a tool parameter."""
-
-    name: str
-    required: bool
-    type_info: str | None = None
-    description: str | None = None
-
-    def __str__(self) -> str:
-        """Format parameter info."""
-        req = "*" if self.required else ""
-        type_str = f": {self.type_info}" if self.type_info else ""
-        desc = f" - {self.description}" if self.description else ""
-        return f"{self.name}{req}{type_str}{desc}"
-
-
-@dataclass
-class ToolInfo:
-    """Information about an available tool."""
-
-    name: str
-    parameters: list[ToolParameter]
-    description: str | None = None
-
-    def format(self, indent: str = "  ") -> str:
-        """Format tool information."""
-        lines = [f"{indent}→ {self.name}"]
-        if self.description:
-            lines.append(f"{indent}  {self.description}")
-        if self.parameters:
-            lines.append(f"{indent}  Parameters:")
-            lines.extend(f"{indent}    {param}" for param in self.parameters)
-        return "\n".join(lines)
-
-
-def extract_tool_info(tool: Tool[Any]) -> ToolInfo:
-    """Extract tool information from pydantic-ai Tool."""
-    schema = tool._parameters_json_schema
-    properties = schema.get("properties", {})
-    required = schema.get("required", [])
-
-    parameters = []
-    for name, details in properties.items():
-        param = ToolParameter(
-            name=name,
-            required=name in required,
-            type_info=details.get("type"),
-            description=details.get("description"),
-        )
-        parameters.append(param)
-
-    return ToolInfo(
-        name=tool.name,
-        description=tool.description,
-        parameters=parameters,
-    )
 
 
 def format_result_schema(schema: ResultSchema[Any] | None) -> str:
@@ -109,10 +47,37 @@ def format_result_schema(schema: ResultSchema[Any] | None) -> str:
     return "\n  ".join(parts)
 
 
+def format_messages(messages: list[ModelMessage], indent: str = "  ") -> list[str]:
+    """Format model messages."""
+    formatted = []
+    for msg in messages:
+        match msg:
+            case ModelRequest() as req:
+                for p in req.parts:
+                    content = str(p.content)
+                    formatted.append(f"{indent}[{p.part_kind}] {content[:100]}...")
+            case ModelResponse() as resp:
+                for part in resp.parts:
+                    match part:
+                        case TextPart():
+                            content = part.content
+                        case ToolCallPart():
+                            args = (
+                                part.args.args_dict
+                                if hasattr(part.args, "args_dict")
+                                else part.args.args_json
+                            )
+                            content = f"Tool: {part.tool_name}, Args: {args}"
+                        case _:
+                            content = str(part)
+                    formatted.append(f"{indent}[{part.part_kind}] {content[:100]}...")
+    return formatted
+
+
 def format_request_info(
     prompt: str,
     tools: list[Tool[Any]],
-    new_messages: Sequence[ModelMessage],
+    new_messages: list[ModelMessage],
     model: str | None = None,
     result_schema: ResultSchema[Any] | None = None,
 ) -> str:
@@ -125,6 +90,8 @@ def format_request_info(
         model: Model being used (if specified)
         result_schema: Schema for expected results
     """
+    from llmling_agent.tools.base import ToolInfo
+
     sections = [
         "Request Information",
         "=" * 50,
@@ -144,8 +111,9 @@ def format_request_info(
             "-" * 15,
         ])
         for tool in tools:
-            tool_info = extract_tool_info(tool)
-            sections.append(tool_info.format())
+            # Convert to our ToolInfo format
+            tool_info = ToolInfo(callable=tool)
+            sections.append(tool_info.format_info())
 
     # Message information
     if new_messages:
@@ -154,27 +122,7 @@ def format_request_info(
             "New Context Messages",
             "-" * 18,
         ])
-        for msg in new_messages:
-            match msg:
-                case ModelRequest() as req:
-                    for p in req.parts:
-                        content = str(p.content)
-                        sections.append(f"  [{p.part_kind}] {content[:100]}...")
-                case ModelResponse() as resp:
-                    for part in resp.parts:
-                        match part:
-                            case TextPart():
-                                content = part.content
-                            case ToolCallPart():
-                                args = (
-                                    part.args.args_dict
-                                    if hasattr(part.args, "args_dict")
-                                    else part.args.args_json
-                                )
-                                content = f"Tool: {part.tool_name}, Args: {args}"
-                            case _:
-                                content = str(part)
-                        sections.append(f"  [{part.part_kind}] {content[:100]}...")
+        sections.extend(format_messages(new_messages))
 
     # Current prompt
     sections.extend([

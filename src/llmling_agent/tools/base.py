@@ -111,3 +111,53 @@ class ToolInfo:
                 return self.enabled
             case "disabled":
                 return not self.enabled
+
+    @property
+    def parameters(self) -> list[ToolParameter]:
+        """Get information about tool parameters."""
+        schema = self.schema["function"]
+        properties = schema.get("properties", {})
+        required = schema.get("required", [])
+
+        params = []
+        for name, details in properties.items():
+            param = ToolParameter(
+                name=name,
+                required=name in required,
+                type_info=details.get("type"),
+                description=details.get("description"),
+            )
+            params.append(param)
+        return params
+
+    def format_info(self, indent: str = "  ") -> str:
+        """Format complete tool information."""
+        lines = [f"{indent}→ {self.name}"]
+        if self.description:
+            lines.append(f"{indent}  {self.description}")
+        if self.parameters:
+            lines.append(f"{indent}  Parameters:")
+            lines.extend(f"{indent}    {param}" for param in self.parameters)
+        if self.metadata:
+            lines.append(f"{indent}  Metadata:")
+            lines.extend(
+                f"{indent}    {key}: {value}" for key, value in self.metadata.items()
+            )
+        return "\n".join(lines)
+
+
+@dataclass
+class ToolParameter:
+    """Information about a tool parameter."""
+
+    name: str
+    required: bool
+    type_info: str | None = None
+    description: str | None = None
+
+    def __str__(self) -> str:
+        """Format parameter info."""
+        req = "*" if self.required else ""
+        type_str = f": {self.type_info}" if self.type_info else ""
+        desc = f" - {self.description}" if self.description else ""
+        return f"{self.name}{req}{type_str}{desc}"
