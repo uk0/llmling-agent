@@ -15,15 +15,15 @@ from rich.markdown import Markdown
 from llmling_agent.chat_session import ChatSessionManager
 from llmling_agent.chat_session.exceptions import format_error
 from llmling_agent.chat_session.handlers import PrintEventHandler
+from llmling_agent.chat_session.models import SessionState
 from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.cli.chat_session.completion import PromptToolkitCompleter
-from llmling_agent.cli.chat_session.config import SessionState
 from llmling_agent.cli.chat_session.history import SessionHistory
-from llmling_agent.cli.chat_session.status import StatusBar
 from llmling_agent.commands.base import Command, CommandContext
 from llmling_agent.commands.exceptions import ExitCommandError
 from llmling_agent.commands.log import SessionLogHandler
+from llmling_agent.ui.status import StatusBar
 
 
 if TYPE_CHECKING:
