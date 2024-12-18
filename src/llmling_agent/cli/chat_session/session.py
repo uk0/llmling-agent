@@ -13,12 +13,8 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from llmling_agent.chat_session import ChatSessionManager
-from llmling_agent.chat_session.events import (
-    SessionEvent,
-    SessionEventHandler,
-    SessionEventType,
-)
 from llmling_agent.chat_session.exceptions import format_error
+from llmling_agent.chat_session.handlers import PrintEventHandler
 from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.cli.chat_session.completion import PromptToolkitCompleter
@@ -36,17 +32,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-class CLIEventHandler(SessionEventHandler):
-    """Handles session events for CLI interface."""
-
-    async def handle_session_event(self, event: SessionEvent) -> None:
-        match event.type:
-            case SessionEventType.HISTORY_CLEARED:
-                print("\nChat history cleared")
-            case SessionEventType.SESSION_RESET:
-                print("\nSession reset. Tools restored to default state.")
 
 
 class InteractiveSession:
@@ -194,7 +179,7 @@ class InteractiveSession:
             )
             self._prompt.completer = completer  # Update the prompt's completer
             # Register event handler AFTER session creation
-            cli_handler = CLIEventHandler()
+            cli_handler = PrintEventHandler()
             self._chat_session.add_event_handler(cli_handler)
 
             self._register_cli_commands()  # Register after session creation

@@ -14,7 +14,7 @@ from llmling_agent.models.messages import ChatMessage
 
 
 if TYPE_CHECKING:
-    from llmling_agent.interfaces.ui import CoreUI
+    from llmling_agent.ui.interfaces import CoreUI
 
 
 logger = get_logger(__name__)
@@ -43,3 +43,14 @@ class SessionUIHandler(SessionEventHandler):
                     ChatMessage(content="Session reset", role="system")
                 )
                 await self.ui.update_status("Session reset with default tools")
+
+
+class PrintEventHandler(SessionEventHandler):
+    """Handles session events for CLI interface."""
+
+    async def handle_session_event(self, event: SessionEvent) -> None:
+        match event.type:
+            case SessionEventType.HISTORY_CLEARED:
+                print("\nChat history cleared")
+            case SessionEventType.SESSION_RESET:
+                print("\nSession reset. Tools restored to default state.")
