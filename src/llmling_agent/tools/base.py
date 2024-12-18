@@ -88,6 +88,11 @@ class ToolInfo:
     """Additional tool metadata"""
 
     @property
+    def schema(self) -> OpenAIFunctionTool:
+        """Get the OpenAI function schema for the tool."""
+        return self.callable.get_schema()
+
+    @property
     def name(self) -> str:
         """Get tool name."""
         return self.callable.name
