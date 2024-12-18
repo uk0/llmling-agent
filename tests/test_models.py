@@ -30,7 +30,7 @@ def test_valid_system_prompt():
 def test_invalid_system_prompt():
     """Test invalid system prompt configurations."""
     with pytest.raises(ValidationError):
-        SystemPrompt(type="invalid", value="test")  # invalid not in Literal
+        SystemPrompt(type="invalid", value="test")  # pyright: ignore
 
     with pytest.raises(ValidationError):
         # missing required value
@@ -70,7 +70,7 @@ def test_valid_agent_definition():
         },
     }
     agent_def = AgentsManifest.model_validate(config)
-    assert agent_def.responses["TestResponse"].fields["score"].constraints == {
+    assert agent_def.responses["TestResponse"].fields["score"].constraints == {  # pyright: ignore
         "ge": 0,
         "le": 100,
     }
