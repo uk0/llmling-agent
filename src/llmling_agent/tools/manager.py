@@ -37,7 +37,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
     def __init__(
         self,
-        tools: Sequence[LLMCallableTool] = (),
+        tools: Sequence[ToolInfo | LLMCallableTool | dict[str, Any]] = (),
         tool_choice: bool | str | list[str] = True,
     ) -> None:
         """Initialize tool manager.
@@ -55,7 +55,8 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
         # Register initial tools
         for tool in tools:
-            self.register(tool.name, ToolInfo(callable=tool))
+            t = self._validate_item(tool)
+            self.register(t.name, t)
 
     @property
     def _error_class(self) -> type[ToolError]:
