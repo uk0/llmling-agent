@@ -1,7 +1,8 @@
+"""Tool management commands."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any
 
 from llmling_agent.commands.base import Command, CommandContext
 from llmling_agent.commands.exceptions import CommandError
@@ -24,17 +25,6 @@ def my_tool(text: str) -> str:
 '''
 
 
-@dataclass
-class ToolInfo:
-    """Information about a tool."""
-
-    name: str
-    description: str | None
-    source: Literal["runtime", "agent", "builtin"]
-    enabled: bool
-    schema: dict | None = None
-
-
 async def list_tools(
     ctx: CommandContext,
     args: list[str],
@@ -42,13 +32,11 @@ async def list_tools(
 ) -> None:
     """List all available tools."""
     agent = ctx.session._agent
-    tool_states = agent.tools.list_tools()  # Get all tools from ToolManager
-
-    # Format output
+    # Format output using ToolInfo formatting
     sections = ["# Available Tools\n"]
-    for name, enabled in tool_states.items():
-        status = "✓" if enabled else "✗"
-        sections.append(f"- {status} **{name}**")
+    for tool_info in agent.tools.values():
+        status = "✓" if tool_info.enabled else "✗"
+        sections.append(f"{status} {tool_info.format_info()}")
 
     await ctx.output.print("\n".join(sections))
 
@@ -62,20 +50,37 @@ async def tool_info(
     if not args:
         await ctx.output.print("Usage: /tool-info <name>")
         return
-    tool = ctx.session._agent.tools.get(args[0])
-    if not tool:
-        await ctx.output.print(f"Tool '{args[0]}' not found")
-        return
-    sections = [
-        f"# Tool: {tool.name}",
-        "\n## Details",
-        f"- **Source**: {tool.source}",
-        f"- **Enabled**: {'Yes' if tool.enabled else 'No'}",
-        f"- **Description**: {tool.description or 'N/A'}",
-    ]
-    sections.extend(["\n## Schema", "```json", str(tool.schema), "```"])
-    await ctx.output.print("\n".join(sections))
-    return
+
+    tool_name = args[0]
+    agent = ctx.session._agent
+
+    try:
+        tool_info = agent.tools[tool_name]
+
+        # Start with the standard tool info format
+        sections = [tool_info.format_info(indent="")]
+
+        # Add extra metadata section if we have any additional info
+        extra_info = []
+        if tool_info.requires_capability:
+            extra_info.append(f"Required Capability: {tool_info.requires_capability}")
+        if tool_info.requires_confirmation:
+            extra_info.append("Requires Confirmation: Yes")
+        if tool_info.source != "runtime":  # Only show if not default
+            extra_info.append(f"Source: {tool_info.source}")
+        if tool_info.priority != 100:  # Only show if not default  # noqa: PLR2004
+            extra_info.append(f"Priority: {tool_info.priority}")
+        if tool_info.metadata:
+            extra_info.append("\nMetadata:")
+            extra_info.extend(f"- {k}: {v}" for k, v in tool_info.metadata.items())
+
+        if extra_info:
+            sections.append("\nAdditional Information:")
+            sections.extend(extra_info)
+
+        await ctx.output.print("\n".join(sections))
+    except KeyError:
+        await ctx.output.print(f"Tool '{tool_name}' not found")
 
 
 async def toggle_tool(
@@ -138,53 +143,35 @@ async def register_tool(
     description = kwargs.get("description")
 
     try:
-        if not ctx.session._agent._context.runtime:
-            msg = "No runtime available"
-            raise RuntimeError(msg)  # noqa: TRY301
+        # Import the callable
+        from llmling.tools import LLMCallableTool
+        from llmling.utils.importing import import_callable
 
-        result = await ctx.session._agent._context.runtime.register_tool(
-            import_path,
-            name=name,
-            description=description,
-            auto_install=True,
+        callable_func = import_callable(import_path)
+
+        # Create LLMCallableTool with optional overrides
+        llm_tool = LLMCallableTool.from_callable(
+            callable_func,
+            name_override=name,
+            description_override=description,
         )
-        await ctx.output.print(result)
-        # Enable the tool automatically
-        tool_name = name if name else import_path.split(".")[-1]
-        ctx.session._agent.tools.enable_tool(tool_name)
-        await ctx.output.print(f"Tool '{tool_name}' automatically enabled")
 
-    except Exception as e:  # noqa: BLE001
-        await ctx.output.print(f"Failed to register tool: {e}")
+        # Register with ToolManager
+        meta = {"import_path": import_path, "registered_via": "register-tool"}
+        tool_info = ctx.session._agent.tools.register_tool(
+            llm_tool,
+            enabled=True,
+            source="dynamic",
+            metadata=meta,
+        )
 
+        # Show the registered tool info
+        await ctx.output.print("Tool registered successfully:")
+        await ctx.output.print(tool_info.format_info())
 
-async def use_tool(
-    ctx: CommandContext,
-    args: list[str],
-    kwargs: dict[str, str],
-) -> None:
-    """Execute prompt with a specific tool."""
-    if len(args) < 2:  # noqa: PLR2004
-        await ctx.output.print("Usage: /use-tool <tool_name> <prompt>")
-        return
-
-    tool_name = args[0]
-    prompt = " ".join(args[1:])  # everything after tool name is the prompt
-    agent = ctx.session._agent
-
-    if tool_name not in agent.runtime.tools and not any(
-        t.name == tool_name for t in agent.tools.get_tools()
-    ):
-        await ctx.output.print(f"Tool '{tool_name}' not found")
-        return
-
-    previous_choice = agent.tools.tool_choice
-    try:
-        agent.tools.tool_choice = tool_name
-        result = await ctx.session.send_message(prompt)
-        await ctx.output.print(result.content)
-    finally:
-        agent.tools.tool_choice = previous_choice
+    except Exception as e:
+        msg = f"Failed to register tool: {e}"
+        raise CommandError(msg) from e
 
 
 async def write_tool(
@@ -229,11 +216,15 @@ async def write_tool(
 
         # Register all tools with ctx parameter added
         for func in tools:
-            ctx.session._agent._pydantic_agent.tool_plain(func)
-            await ctx.output.print(f"Tool '{func.__name__}' registered!")
+            tool_info = ctx.session._agent.tools.register_tool(
+                func, source="dynamic", metadata={"created_by": "write-tool"}
+            )
+            await ctx.output.print(f"Tool '{tool_info.name}' registered!")
+            await ctx.output.print(tool_info.format_info())
 
-    except Exception as e:  # noqa: BLE001
-        await ctx.output.print(f"Error creating tools: {e}")
+    except Exception as e:
+        msg = f"Error creating tools: {e}"
+        raise CommandError(msg) from e
 
 
 write_tool_cmd = Command(
@@ -248,19 +239,6 @@ write_tool_cmd = Command(
         "def my_tool(text: str) -> str:\n"
         "    '''A new tool'''\n"
         "    return f'You said: {text}'\n"
-    ),
-    category="tools",
-)
-
-use_tool_cmd = Command(
-    name="use-tool",
-    description="Execute prompt using a specific tool",
-    execute_func=use_tool,
-    usage="<tool_name> <prompt>",
-    help_text=(
-        "Execute a prompt using only the specified tool.\n\n"
-        "Example:\n"
-        "  /use-tool open_browser 'Open python.org'\n"
     ),
     category="tools",
 )
@@ -302,8 +280,9 @@ tool_info_cmd = Command(
         "Display detailed information about a specific tool:\n"
         "- Source (runtime/agent/builtin)\n"
         "- Current status (enabled/disabled)\n"
-        "- Description\n"
-        "- Schema (for runtime tools)\n\n"
+        "- Priority and capabilities\n"
+        "- Parameter descriptions\n"
+        "- Additional metadata\n\n"
         "Example: /tool-info open_browser"
     ),
     category="tools",
@@ -331,25 +310,6 @@ disable_tool_cmd = Command(
         "Disable a tool to prevent its use.\n"
         "Use /list-tools to see available tools.\n\n"
         "Example: /disable-tool open_browser"
-    ),
-    category="tools",
-)
-
-register_tool_cmd = Command(
-    name="register-tool",
-    description="Register a new tool from an import path",
-    execute_func=register_tool,
-    usage="<import_path> [--name name] [--description desc]",
-    help_text=(
-        "Register a new tool from a Python import path.\n\n"
-        "Arguments:\n"
-        "  import_path: Python import path to the function\n"
-        "  --name: Optional custom name for the tool\n"
-        "  --description: Optional tool description\n\n"
-        "Examples:\n"
-        "  /register-tool webbrowser.open\n"
-        "  /register-tool json.dumps --name format_json\n"
-        "  /register-tool os.getcwd --description 'Get current directory'"
     ),
     category="tools",
 )
