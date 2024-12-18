@@ -579,7 +579,7 @@ if __name__ == "__main__":
     async def main() -> None:
         async with RuntimeConfig.open(config_resources.OPEN_BROWSER) as r:
             agent: LLMlingAgent[str] = LLMlingAgent(r, model="openai:gpt-4o-mini")
-            result: RunResult[Any] = await agent.run(sys_prompt)
+            result = await agent.run(sys_prompt)
             print(result.data)
 
     asyncio.run(main())

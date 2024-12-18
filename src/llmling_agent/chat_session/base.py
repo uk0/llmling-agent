@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from pydantic_ai import messages
-    from pydantic_ai.result import RunResult
 
     from llmling_agent import LLMlingAgent
     from llmling_agent.tools.manager import ToolManager
@@ -203,7 +202,7 @@ class AgentChatSession:
         """Send message and get single response."""
         model_override = self._model if self._model and self._model.strip() else None
 
-        result: RunResult = await self._agent.run(
+        result = await self._agent.run(
             content,
             message_history=self._history,
             model=model_override,  # type: ignore

@@ -27,7 +27,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from pydantic_ai.agent import models
-    from pydantic_ai.result import RunResult
 
     from llmling_agent.environment import AgentEnvironment
 
@@ -506,7 +505,7 @@ async def run_agent_pipeline(  # noqa: PLR0911
             last_messages = None
 
             for p in prompts:
-                result: RunResult = await agent.run(p, message_history=last_messages)
+                result = await agent.run(p, message_history=last_messages)
                 last_result = result
                 last_messages = result.new_messages()
 
