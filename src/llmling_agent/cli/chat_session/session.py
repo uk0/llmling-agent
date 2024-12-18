@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 import logging
-import pathlib
 import traceback
 from typing import TYPE_CHECKING
 
 import httpx
-from platformdirs import user_data_dir
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-from prompt_toolkit.history import FileHistory
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -26,6 +23,7 @@ from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.cli.chat_session import utils
 from llmling_agent.cli.chat_session.completion import PromptToolkitCompleter
 from llmling_agent.cli.chat_session.config import SessionState
+from llmling_agent.cli.chat_session.history import SessionHistory
 from llmling_agent.cli.chat_session.status import StatusBar
 from llmling_agent.commands.base import Command, CommandContext
 from llmling_agent.commands.exceptions import ExitCommandError
@@ -35,9 +33,6 @@ from llmling_agent.commands.log import SessionLogHandler
 if TYPE_CHECKING:
     from llmling_agent import LLMlingAgent
     from llmling_agent.chat_session.base import AgentChatSession
-
-
-HISTORY_DIR = pathlib.Path(user_data_dir("llmling", "llmling")) / "history"
 
 
 logger = logging.getLogger(__name__)
@@ -86,23 +81,16 @@ class InteractiveSession:
             logging.getLogger("llmling").addHandler(self._log_handler)
 
         # Setup components
-        self._setup_history()
         self._setup_prompt()
-
-    def _setup_history(self) -> None:
-        """Setup command history."""
-        HISTORY_DIR.mkdir(parents=True, exist_ok=True)
-        history_file = HISTORY_DIR / f"{self.agent.name}.history"
-        self._history = FileHistory(str(history_file))
 
     def _setup_prompt(self) -> None:
         """Setup prompt toolkit session."""
         auto = AutoSuggestFromHistory()
+        history = SessionHistory(self.session)
 
-        # Initial setup without completer
         self._prompt = PromptSession[str](
             "You: ",
-            history=self._history,
+            history=history,
             auto_suggest=auto,
         )
 
@@ -183,6 +171,18 @@ class InteractiveSession:
             md = Markdown(f"```python\n{traceback.format_exc()}\n```")
             self.console.print("\n[dim]Debug traceback:[/]", md)
             self.status_bar.render(self._state)
+
+    @property
+    def session(self) -> AgentChatSession:
+        """Get the current chat session.
+
+        Raises:
+            NotInitializedError: If accessed before session is initialized
+        """
+        if self._chat_session is None:
+            msg = "Session not initialized"
+            raise RuntimeError(msg)
+        return self._chat_session
 
     async def start(self) -> None:
         """Start interactive session."""

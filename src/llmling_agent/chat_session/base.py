@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
+import pathlib
 from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
+
+from platformdirs import user_data_dir
 
 from llmling_agent.chat_session.events import (
     SessionEvent,
@@ -35,6 +38,7 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+HISTORY_DIR = pathlib.Path(user_data_dir("llmling", "llmling")) / "history"
 
 
 class AgentChatSession:
@@ -79,6 +83,35 @@ class AgentChatSession:
         self._event_handlers: list[SessionEventHandler] = []
         self.start_time = datetime.now()
         self._state = SessionState(current_model=self._model)
+
+        # Command history
+        self._commands: list[str] = []
+        HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+        self._history_file = HISTORY_DIR / f"{agent.name}.history"
+        self._load_commands()
+
+    def _load_commands(self) -> None:
+        """Load command history from file."""
+        try:
+            if self._history_file.exists():
+                self._commands = self._history_file.read_text().splitlines()
+        except Exception:
+            logger.exception("Failed to load command history")
+            self._commands = []
+
+    def add_command(self, command: str) -> None:
+        """Add command to history."""
+        if command.strip():
+            self._commands.append(command)
+            try:
+                with self._history_file.open("a", encoding="utf-8") as f:
+                    f.write(f"{command}\n")
+            except Exception:
+                logger.exception("Failed to save command")
+
+    def get_commands(self) -> list[str]:
+        """Get all previous commands."""
+        return list(self._commands)
 
     @property
     def metadata(self) -> ChatSessionMetadata:
