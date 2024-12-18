@@ -41,10 +41,7 @@ class PromptTemplate(BaseModel):
         content = self.template.format(**template_vars) if self.template else goal
 
         # Create temporary pydantic agent
-        agent = Agent(
-            model=model,
-            system_prompt=self.system,
-        )
+        agent = Agent(model=model, system_prompt=self.system)  # type: ignore
 
         # Run through the model
         result = await agent.run(content)
