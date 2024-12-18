@@ -62,46 +62,20 @@ async def tool_info(
     if not args:
         await ctx.output.print("Usage: /tool-info <name>")
         return
-
-    name = args[0]
-    agent = ctx.session._agent
-    tool_states = ctx.session.get_tool_states()
-
-    # Check runtime tools
-    if name in agent.runtime.tools:
-        tool_def = agent.runtime.tools[name]
-        schema = tool_def.get_schema()
-        sections = [
-            f"# Tool: {name}",
-            "\n## Details",
-            "- **Source**: Runtime",
-            f"- **Enabled**: {'Yes' if tool_states.get(name, False) else 'No'}",
-            f"- **Description**: {tool_def.description or 'N/A'}",
-        ]
-        if schema:
-            sections.extend([
-                "\n## Schema",
-                "```json",
-                str(schema),
-                "```",
-            ])
-        await ctx.output.print("\n".join(sections))
+    tool = ctx.session._agent.tools.get(args[0])
+    if not tool:
+        await ctx.output.print(f"Tool '{args[0]}' not found")
         return
-
-    # Check agent tools
-    for tool in agent.tools.get_tools():
-        if tool.name == name:
-            sections = [
-                f"# Tool: {name}",
-                "\n## Details",
-                "- **Source**: Agent",
-                f"- **Enabled**: {'Yes' if tool_states.get(name, False) else 'No'}",
-                f"- **Description**: {tool.description or 'N/A'}",
-            ]
-            await ctx.output.print("\n".join(sections))
-            return
-
-    await ctx.output.print(f"Tool '{name}' not found")
+    sections = [
+        f"# Tool: {tool.name}",
+        "\n## Details",
+        f"- **Source**: {tool.source}",
+        f"- **Enabled**: {'Yes' if tool.enabled else 'No'}",
+        f"- **Description**: {tool.description or 'N/A'}",
+    ]
+    sections.extend(["\n## Schema", "```json", str(tool.schema), "```"])
+    await ctx.output.print("\n".join(sections))
+    return
 
 
 async def toggle_tool(
@@ -320,7 +294,7 @@ list_tools_cmd = Command(
 )
 
 tool_info_cmd = Command(
-    name="tool-info",
+    name="show-tool",
     description="Show detailed information about a tool",
     execute_func=tool_info,
     usage="<name>",
