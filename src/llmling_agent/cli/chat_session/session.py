@@ -18,9 +18,9 @@ from llmling_agent.chat_session.events import (
     SessionEventHandler,
     SessionEventType,
 )
+from llmling_agent.chat_session.exceptions import format_error
 from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.chat_session.welcome import create_welcome_messages
-from llmling_agent.cli.chat_session import utils
 from llmling_agent.cli.chat_session.completion import PromptToolkitCompleter
 from llmling_agent.cli.chat_session.config import SessionState
 from llmling_agent.cli.chat_session.history import SessionHistory
@@ -166,7 +166,7 @@ class InteractiveSession:
         except EOFError:
             raise
         except Exception as e:  # noqa: BLE001
-            error_msg = utils.format_error(e)
+            error_msg = format_error(e)
             self.console.print(f"\n[red bold]Error:[/] {error_msg}")
             md = Markdown(f"```python\n{traceback.format_exc()}\n```")
             self.console.print("\n[dim]Debug traceback:[/]", md)
@@ -210,14 +210,14 @@ class InteractiveSession:
                 except EOFError:
                     break
                 except Exception as e:  # noqa: BLE001
-                    error_msg = utils.format_error(e)
+                    error_msg = format_error(e)
                     self.console.print(f"\n[red bold]Error:[/] {error_msg}")
                     md = Markdown(f"```python\n{traceback.format_exc()}\n```")
                     self.console.print("\n[dim]Debug traceback:[/]", md)
                     continue
 
         except Exception as e:  # noqa: BLE001
-            self.console.print(f"\n[red bold]Fatal Error:[/] {utils.format_error(e)}")
+            self.console.print(f"\n[red bold]Fatal Error:[/] {format_error(e)}")
             md = Markdown(f"```python\n{traceback.format_exc()}\n```")
             self.console.print("\n[dim]Debug traceback:[/]", md)
         finally:
