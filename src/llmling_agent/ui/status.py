@@ -9,28 +9,16 @@ from typing import TYPE_CHECKING, Literal, Protocol
 from rich.panel import Panel
 from rich.table import Table
 
+from llmling_agent.chat_session.models import SessionState
+
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from rich.console import Console
 
-    from .config import SessionState
 
 Alignment = Literal["left", "center", "right"]
-
-
-@dataclass
-class StatusInfo:
-    """Current status information."""
-
-    model: str
-    total_tokens: int
-    prompt_tokens: int
-    completion_tokens: int
-    total_cost: float
-    messages: int
-    duration: str
 
 
 class StatusBarField(Protocol):
@@ -51,11 +39,11 @@ class StatusBarField(Protocol):
         """Get field alignment."""
         ...
 
-    def should_show(self, info: StatusInfo) -> bool:
+    def should_show(self, info: SessionState) -> bool:
         """Determine if field should be shown."""
         ...
 
-    def get_value(self, info: StatusInfo) -> str:
+    def get_value(self, info: SessionState) -> str:
         """Get formatted value for this field."""
         ...
 
@@ -67,9 +55,9 @@ class BaseField:
     label: str
     style: str = "dim"
     align: Alignment = "right"
-    condition: Callable[[StatusInfo], bool] | None = None
+    condition: Callable[[SessionState], bool] | None = None
 
-    def should_show(self, info: StatusInfo) -> bool:
+    def should_show(self, info: SessionState) -> bool:
         """Check if field should be shown."""
         if self.condition is None:
             return True
@@ -84,12 +72,12 @@ class ModelField(BaseField):
         self,
         style: str = "dim",
         align: Alignment = "left",
-        condition: Callable[[StatusInfo], bool] | None = None,
+        condition: Callable[[SessionState], bool] | None = None,
     ) -> None:
         super().__init__("Model", style, align, condition)
 
-    def get_value(self, info: StatusInfo) -> str:
-        return info.model or "default"
+    def get_value(self, info: SessionState) -> str:
+        return info.current_model or "default"
 
 
 @dataclass
@@ -100,11 +88,11 @@ class TokensField(BaseField):
         self,
         style: str = "dim",
         align: Alignment = "right",
-        condition: Callable[[StatusInfo], bool] | None = None,
+        condition: Callable[[SessionState], bool] | None = None,
     ) -> None:
         super().__init__("Tokens", style, align, condition)
 
-    def get_value(self, info: StatusInfo) -> str:
+    def get_value(self, info: SessionState) -> str:
         return (
             f"{info.total_tokens:,} "
             f"(Prompt: {info.prompt_tokens:,} "
@@ -120,11 +108,11 @@ class CostField(BaseField):
         self,
         style: str = "dim",
         align: Alignment = "right",
-        condition: Callable[[StatusInfo], bool] | None = lambda i: i.total_cost > 0,
+        condition: Callable[[SessionState], bool] | None = lambda i: i.total_cost > 0,
     ) -> None:
         super().__init__("Cost", style, align, condition)
 
-    def get_value(self, info: StatusInfo) -> str:
+    def get_value(self, info: SessionState) -> str:
         return f"${info.total_cost:.3f}"
 
 
@@ -136,12 +124,12 @@ class MessagesField(BaseField):
         self,
         style: str = "dim",
         align: Alignment = "right",
-        condition: Callable[[StatusInfo], bool] | None = None,
+        condition: Callable[[SessionState], bool] | None = None,
     ) -> None:
         super().__init__("Messages", style, align, condition)
 
-    def get_value(self, info: StatusInfo) -> str:
-        return str(info.messages)
+    def get_value(self, info: SessionState) -> str:
+        return str(info.message_count)
 
 
 @dataclass
@@ -152,11 +140,11 @@ class TimeField(BaseField):
         self,
         style: str = "dim",
         align: Alignment = "right",
-        condition: Callable[[StatusInfo], bool] | None = None,
+        condition: Callable[[SessionState], bool] | None = None,
     ) -> None:
         super().__init__("Time", style, align, condition)
 
-    def get_value(self, info: StatusInfo) -> str:
+    def get_value(self, info: SessionState) -> str:
         return info.duration
 
 
@@ -185,14 +173,14 @@ class StatusBar:
         hours, remainder = divmod(int(duration.total_seconds()), 3600)
         minutes, seconds = divmod(remainder, 60)
 
-        info = StatusInfo(
-            model=state.current_model or "default",
+        info = SessionState(
+            current_model=state.current_model or "default",
             total_tokens=state.total_tokens,
             prompt_tokens=state.prompt_tokens,
             completion_tokens=state.completion_tokens,
             total_cost=state.total_cost,
-            messages=state.message_count,
-            duration=f"{hours:02d}:{minutes:02d}:{seconds:02d}",
+            message_count=state.message_count,
+            start_time=state.start_time,
         )
 
         status = Table.grid(padding=1)

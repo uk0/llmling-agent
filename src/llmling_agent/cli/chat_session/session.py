@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
+import pathlib
 import traceback
 from typing import TYPE_CHECKING
 
 import httpx
+from platformdirs import user_data_dir
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.history import FileHistory
@@ -23,7 +25,7 @@ from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.cli.chat_session import utils
 from llmling_agent.cli.chat_session.completion import PromptToolkitCompleter
-from llmling_agent.cli.chat_session.config import HISTORY_DIR, SessionState
+from llmling_agent.cli.chat_session.config import SessionState
 from llmling_agent.cli.chat_session.status import StatusBar
 from llmling_agent.commands.base import Command, CommandContext
 from llmling_agent.commands.exceptions import ExitCommandError
@@ -33,6 +35,9 @@ from llmling_agent.commands.log import SessionLogHandler
 if TYPE_CHECKING:
     from llmling_agent import LLMlingAgent
     from llmling_agent.chat_session.base import AgentChatSession
+
+
+HISTORY_DIR = pathlib.Path(user_data_dir("llmling", "llmling")) / "history"
 
 
 logger = logging.getLogger(__name__)

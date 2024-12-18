@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
 
@@ -11,7 +12,11 @@ from llmling_agent.chat_session.events import (
     SessionEventType,
 )
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
-from llmling_agent.chat_session.models import ChatMessage, ChatSessionMetadata
+from llmling_agent.chat_session.models import (
+    ChatMessage,
+    ChatSessionMetadata,
+    SessionState,
+)
 from llmling_agent.chat_session.output import DefaultOutputWriter, OutputWriter
 from llmling_agent.commands import CommandStore
 from llmling_agent.commands.base import BaseCommand, CommandContext
@@ -72,6 +77,8 @@ class AgentChatSession:
         self._command_store = CommandStore()
         self._command_store.register_builtin_commands()
         self._event_handlers: list[SessionEventHandler] = []
+        self.start_time = datetime.now()
+        self._state = SessionState(current_model=self._model)
 
     @property
     def metadata(self) -> ChatSessionMetadata:
@@ -233,23 +240,34 @@ class AgentChatSession:
         if model_name:
             metadata["model"] = model_name
 
-        return ChatMessage(content=response, role="assistant", metadata=metadata)
+        # Update session state before returning
+        self._state.message_count += 2  # User and assistant messages
+        chat_msg = ChatMessage(
+            content=response, role="assistant", metadata=metadata if metadata else None
+        )
+        self._state.update_tokens(chat_msg)
 
-    async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage]:
+        return chat_msg
+
+    async def _stream_message(
+        self,
+        content: str,
+    ) -> AsyncIterator[ChatMessage]:
         """Send message and stream responses."""
-        model_override = self._model if self._model and self._model.strip() else None
-
         async with await self._agent.run_stream(
             content,
             message_history=self._history,
-            model=model_override or "",  # type: ignore
+            model=self._model or "",  # type: ignore
         ) as stream_result:
             async for response in stream_result.stream():
-                meta = {"model": self._agent.model_name}
-                yield ChatMessage(content=str(response), role="assistant", metadata=meta)
+                chat_msg = ChatMessage(
+                    content=str(response),
+                    role="assistant",
+                )
+                yield chat_msg
 
             # Final message with token usage after stream completes
-            model_name = model_override or self._agent.model_name
+            model_name = self._model or self._agent.model_name
             cost_info = (
                 extract_token_usage_and_cost(
                     stream_result.cost(),
@@ -268,7 +286,16 @@ class AgentChatSession:
                 })
             if model_name:
                 metadata["model"] = model_name
-            yield ChatMessage(content="", role="assistant", metadata=metadata)
+
+            # Update session state after stream completes
+            self._state.message_count += 2  # User and assistant messages
+            final_msg = ChatMessage(
+                content="",  # Empty content for final status message
+                role="assistant",
+                metadata=metadata if metadata else None,
+            )
+            self._state.update_tokens(final_msg)
+            yield final_msg
 
     def configure_tools(
         self,
@@ -311,3 +338,7 @@ class AgentChatSession:
     def history(self) -> list[messages.ModelMessage]:
         """Get conversation history."""
         return list(self._history)
+
+    def get_status(self) -> SessionState:
+        """Get current session status."""
+        return self._state

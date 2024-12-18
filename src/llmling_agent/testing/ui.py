@@ -6,10 +6,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from llmling_agent.interfaces.ui import (
-    UserInterface,
-)
 from llmling_agent.models import ChatMessage, MessageMetadata
+from llmling_agent.ui.interfaces import UserInterface
 
 
 if TYPE_CHECKING:
@@ -27,7 +25,7 @@ class UIInteraction:
     timestamp: datetime = field(default_factory=datetime.now)
 
 
-class TestUI(UserInterface):
+class DummyUI(UserInterface):
     """Test implementation recording all UI interactions."""
 
     def __init__(

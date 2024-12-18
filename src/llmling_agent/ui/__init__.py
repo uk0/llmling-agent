@@ -1,7 +1,7 @@
 # src/llmling_agent/interfaces/__init__.py
 """Interface definitions for LLMling agent."""
 
-from llmling_agent.interfaces.ui import (
+from llmling_agent.ui.interfaces import (
     CoreUI,
     CompletionUI,
     CodeEditingUI,

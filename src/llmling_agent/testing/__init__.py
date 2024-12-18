@@ -1,8 +1,8 @@
 """Testing utilities for llmling-agent."""
 
-from llmling_agent.testing.ui import TestUI, UIInteraction
+from llmling_agent.testing.ui import DummyUI, UIInteraction
 
 __all__ = [
-    "TestUI",
+    "DummyUI",
     "UIInteraction",
 ]
