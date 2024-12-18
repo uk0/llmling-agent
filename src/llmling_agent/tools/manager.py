@@ -14,7 +14,7 @@ from llmling_agent.tools.base import ToolInfo
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
     from llmling_agent.config.capabilities import Capabilities
 
@@ -184,3 +184,47 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 priority=200,
                 requires_capability="stats_access",
             )
+
+    def register_tool(
+        self,
+        tool: LLMCallableTool | Callable[..., Any],
+        *,
+        enabled: bool = True,
+        source: Literal["runtime", "agent", "builtin", "dynamic"] = "runtime",
+        priority: int = 100,
+        requires_confirmation: bool = False,
+        requires_capability: str | None = None,
+        metadata: dict[str, str] | None = None,
+    ) -> ToolInfo:
+        """Register a new tool with custom settings.
+
+        Args:
+            tool: Tool to register (callable, LLMCallableTool, or config dict)
+            enabled: Whether tool is initially enabled
+            source: Tool source (runtime/agent/builtin/dynamic)
+            priority: Execution priority (lower = higher priority)
+            requires_confirmation: Whether tool needs confirmation
+            requires_capability: Optional capability needed to use tool
+            metadata: Additional tool metadata
+
+        Returns:
+            Created ToolInfo instance
+        """
+        # First convert to basic ToolInfo
+        if not isinstance(tool, LLMCallableTool):
+            llm_tool = LLMCallableTool.from_callable(tool)
+        else:
+            llm_tool = tool
+
+        tool_info = ToolInfo(
+            llm_tool,
+            enabled=enabled,
+            source=source,
+            priority=priority,
+            requires_confirmation=requires_confirmation,
+            requires_capability=requires_capability,
+            metadata=metadata or {},
+        )
+        # Register the tool
+        self.register(tool_info.name, tool_info)
+        return tool_info
