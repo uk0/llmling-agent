@@ -128,11 +128,7 @@ class AgentChatSession:
             output: Output writer implementation
             metadata: Optional interface-specific metadata
         """
-        ctx = CommandContext(
-            output=output,
-            session=self,
-            metadata=metadata or {},
-        )
+        ctx = CommandContext(output=output, session=self, metadata=metadata or {})
         await self._command_store.execute_command(command_str, ctx)
 
     @overload
