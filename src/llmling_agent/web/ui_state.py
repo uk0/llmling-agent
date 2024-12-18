@@ -371,10 +371,8 @@ class UIState:
             status = "; ".join(f"{k}: {v}" for k, v in results.items())
 
             # Get updated tool states
-            tool_states = [
-                [name, enabled]
-                for name, enabled in self._current_session.get_tool_states().items()
-            ]
+            manager = self._current_session.tools
+            tool_states = [[t.name, t.enabled] for t in manager.values()]
             logs = self.get_debug_logs()
             msg = f"Updated tools: {status}"
             return UIUpdate(status=msg, tool_states=tool_states, debug_logs=logs)

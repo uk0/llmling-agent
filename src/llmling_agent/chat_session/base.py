@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from pydantic_ai.result import RunResult
 
     from llmling_agent import LLMlingAgent
+    from llmling_agent.tools.manager import ToolManager
 
 
 logger = get_logger(__name__)
@@ -258,6 +259,11 @@ class AgentChatSession:
     def get_tool_states(self) -> dict[str, bool]:
         """Get current tool states."""
         return self._agent.tools.list_tools()
+
+    @property
+    def tools(self) -> ToolManager:
+        """Get current tool states."""
+        return self._agent.tools
 
     @property
     def history(self) -> list[messages.ModelMessage]:

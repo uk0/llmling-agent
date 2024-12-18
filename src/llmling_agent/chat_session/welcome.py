@@ -68,9 +68,8 @@ def create_welcome_messages(
     mode = "streaming" if streaming else "non-streaming"
     config_info = [f"{fmt('Model:', 'bold')} {model}", f"{fmt('Mode:', 'bold')} {mode}"]
 
-    tools = session.get_tool_states()
-    enabled_tools = [name for name, enabled in tools.items() if enabled]
-    disabled_tools = [name for name, enabled in tools.items() if not enabled]
+    enabled_tools = [t.name for t in session.tools.values() if t.enabled]
+    disabled_tools = [t.name for t in session.tools.values() if not t.enabled]
 
     tools_info = [fmt("Tools:", "bold")]
     if enabled_tools:
