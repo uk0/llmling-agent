@@ -11,7 +11,7 @@ from llmling_agent.functional import (
 )
 from dotenv import load_dotenv
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
 load_dotenv()
 
