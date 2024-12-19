@@ -57,7 +57,7 @@ class InteractiveSession:
         self._chat_session: AgentChatSession | None = None
         self._state = SessionState()
         self.status_bar = StatusBar()
-        self._prompt = None
+        self._prompt: PromptSession | None = None
         # Setup logging
         self._log_handler = None
         if show_log_in_chat:
