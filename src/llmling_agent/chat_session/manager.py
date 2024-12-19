@@ -30,6 +30,7 @@ class ChatSessionManager:
         model_override = model if model and model.strip() else None
 
         session = AgentChatSession(agent, model_override=model_override)
+        await session.initialize()
         self._sessions[session.id] = session
         return session
 

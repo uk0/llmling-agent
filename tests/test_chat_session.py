@@ -47,9 +47,11 @@ def mock_agent() -> MagicMock:
 
 
 @pytest.fixture
-def chat_session(mock_agent: MagicMock) -> AgentChatSession:
-    """Create a ChatSession with a mock agent."""
-    return AgentChatSession(agent=mock_agent, model_override=DEFAULT_MODEL)
+async def chat_session(mock_agent) -> AgentChatSession:
+    """Provide a test chat session."""
+    session = AgentChatSession(agent=mock_agent, model_override=DEFAULT_MODEL)
+    await session.initialize()  # Add this line
+    return session
 
 
 @pytest.mark.asyncio

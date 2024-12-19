@@ -64,6 +64,7 @@ class AgentChatSession:
             session_id: Optional session ID (generated if not provided)
             model_override: Optional model override for this session
         """
+        # Basic setup that doesn't need async
         match session_id:
             case str():
                 self.id = UUID(session_id)
@@ -72,23 +73,52 @@ class AgentChatSession:
             case None:
                 self.id = uuid4()
         self._agent = agent
-        self._history: list[messages.ModelMessage] = []
-        self._tool_states = agent.tools.list_tools()
         self._model = model_override or agent.model_name
-        msg = "Created chat session %s for agent %s"
-        logger.debug(msg, self.id, agent.name)
-        # Initialize command system
+        self._history: list[messages.ModelMessage] = []
+        self._commands: list[str] = []
+        self._history_file = HISTORY_DIR / f"{agent.name}.history"
+        self._initialized = False  # Track initialization state
+
+        # Initialize basic structures
         self._command_store = CommandStore()
-        self._command_store.register_builtin_commands()
         self._event_handlers: list[SessionEventHandler] = []
         self.start_time = datetime.now()
         self._state = SessionState(current_model=self._model)
 
-        # Command history
-        self._commands: list[str] = []
+    def _ensure_initialized(self) -> None:
+        """Check if session is initialized."""
+        if not self._initialized:
+            msg = "Session not initialized. Call initialize() first."
+            raise RuntimeError(msg)
+
+    async def initialize(self) -> None:
+        """Initialize async resources and load data."""
+        if self._initialized:
+            return
+
+        # Ensure directories exist
         HISTORY_DIR.mkdir(parents=True, exist_ok=True)
-        self._history_file = HISTORY_DIR / f"{agent.name}.history"
-        self._load_commands()
+
+        # Load command history
+        try:
+            if self._history_file.exists():
+                self._commands = self._history_file.read_text().splitlines()
+        except Exception:
+            logger.exception("Failed to load command history")
+            self._commands = []
+
+        # Initialize tool states
+        self._tool_states = self._agent.tools.list_tools()
+
+        # Initialize command system
+        self._command_store.register_builtin_commands()
+
+        # Any other async initialization...
+
+        self._initialized = True
+        logger.debug(
+            "Initialized chat session %s for agent %s", self.id, self._agent.name
+        )
 
     def _load_commands(self) -> None:
         """Load command history from file."""
@@ -174,6 +204,7 @@ class AgentChatSession:
             output: Output writer implementation
             metadata: Optional interface-specific metadata
         """
+        self._ensure_initialized()
         ctx = CommandContext(output=output, session=self, metadata=metadata or {})
         await self._command_store.execute_command(command_str, ctx)
 
@@ -206,6 +237,7 @@ class AgentChatSession:
         metadata: dict[str, Any] | None = None,
     ) -> ChatMessage | AsyncIterator[ChatMessage]:
         """Send a message and get response(s)."""
+        self._ensure_initialized()
         if not content.strip():
             msg = "Message cannot be empty"
             raise ValueError(msg)

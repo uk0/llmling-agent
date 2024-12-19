@@ -56,7 +56,7 @@ class InteractiveSession:
         self._chat_session: AgentChatSession | None = None
         self._state = SessionState()
         self.status_bar = StatusBar(self.console)
-
+        self._prompt = None
         # Setup logging
         self._log_handler = None
         if show_log_in_chat:
@@ -64,9 +64,6 @@ class InteractiveSession:
             self._log_handler.setLevel(log_level)
             logging.getLogger("llmling_agent").addHandler(self._log_handler)
             logging.getLogger("llmling").addHandler(self._log_handler)
-
-        # Setup components
-        self._setup_prompt()
 
     def _setup_prompt(self) -> None:
         """Setup prompt toolkit session."""
@@ -159,14 +156,8 @@ class InteractiveSession:
 
     @property
     def session(self) -> AgentChatSession:
-        """Get the current chat session.
-
-        Raises:
-            NotInitializedError: If accessed before session is initialized
-        """
-        if self._chat_session is None:
-            msg = "Session not initialized"
-            raise RuntimeError(msg)
+        """Get the current chat session."""
+        assert self._chat_session is not None
         return self._chat_session
 
     async def start(self) -> None:
@@ -177,6 +168,8 @@ class InteractiveSession:
             completer = PromptToolkitCompleter(
                 self._chat_session._command_store._commands
             )
+            self._setup_prompt()
+            assert self._prompt
             self._prompt.completer = completer  # Update the prompt's completer
             # Register event handler AFTER session creation
             cli_handler = PrintEventHandler()
