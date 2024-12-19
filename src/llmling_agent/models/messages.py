@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime  # noqa: TC003
+from datetime import datetime
 from typing import Literal, TypedDict
 
 from pydantic import BaseModel, Field
@@ -52,7 +52,7 @@ class TokenAndCostResult:
 class MessageMetadata(BaseModel):
     """Metadata for chat messages."""
 
-    timestamp: datetime | None = Field(default=None)
+    timestamp: datetime = Field(default_factory=datetime.now)
     model: str | None = Field(default=None)
     token_usage: TokenUsage | None = Field(default=None)
     cost: float | None = Field(default=None)

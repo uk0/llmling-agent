@@ -62,7 +62,7 @@ class DummyUI(UserInterface):
         chat_message = ChatMessage(
             content=response,
             role="assistant",
-            metadata=MessageMetadata(timestamp=datetime.now()),
+            metadata=MessageMetadata(),
         )
 
         if stream:
