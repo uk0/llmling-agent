@@ -140,27 +140,3 @@ async def calculate_token_cost(
         return total_cost
     logger.debug("No costs found for model")
     return None
-
-
-if __name__ == "__main__":
-    import asyncio
-    import logging
-
-    logging.basicConfig(level=logging.DEBUG)
-
-    async def test_costs() -> None:
-        models = [
-            "openai:gpt-4o-mini",  # with provider prefix
-            "gpt-4o-mini",  # without prefix
-        ]
-
-        for model in models:
-            costs = await get_model_costs(model)
-            print(f"\nCosts for {model}:")
-            if costs:
-                print(f"Input cost per token:    ${costs['input_cost_per_token']:.6f}")
-                print(f"Output cost per token:   ${costs['output_cost_per_token']:.6f}")
-            else:
-                print("Not found")
-
-    asyncio.run(test_costs())
