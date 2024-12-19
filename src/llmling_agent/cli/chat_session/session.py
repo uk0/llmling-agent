@@ -14,7 +14,6 @@ from rich.markdown import Markdown
 
 from llmling_agent.chat_session import ChatSessionManager
 from llmling_agent.chat_session.exceptions import format_error
-from llmling_agent.chat_session.handlers import PrintEventHandler
 from llmling_agent.chat_session.models import SessionState
 from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.chat_session.welcome import create_welcome_messages
@@ -29,6 +28,7 @@ from llmling_agent.ui.status import StatusBar
 if TYPE_CHECKING:
     from llmling_agent import LLMlingAgent
     from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.events import HistoryClearedEvent, SessionResetEvent
 
 
 logger = logging.getLogger(__name__)
@@ -64,6 +64,22 @@ class InteractiveSession:
             self._log_handler.setLevel(log_level)
             logging.getLogger("llmling_agent").addHandler(self._log_handler)
             logging.getLogger("llmling").addHandler(self._log_handler)
+
+    def _connect_signals(self) -> None:
+        """Connect to chat session signals."""
+        assert self._chat_session is not None
+
+        # Connect to signals with bound methods
+        self._chat_session.history_cleared.connect(self._on_history_cleared)
+        self._chat_session.session_reset.connect(self._on_session_reset)
+
+    def _on_history_cleared(self, event: HistoryClearedEvent) -> None:
+        """Handle history cleared event."""
+        self.console.print("\nChat history cleared")
+
+    def _on_session_reset(self, event: SessionResetEvent) -> None:
+        """Handle session reset event."""
+        self.console.print("\nSession reset. Tools restored to default state.")
 
     def _setup_prompt(self) -> None:
         """Setup prompt toolkit session."""
@@ -161,6 +177,8 @@ class InteractiveSession:
         try:
             self._chat_session = await self._session_manager.create_session(self.agent)
             self._state.current_model = self._chat_session._model
+            self._connect_signals()
+
             completer = PromptToolkitCompleter(
                 self._chat_session._command_store._commands
             )
@@ -168,8 +186,6 @@ class InteractiveSession:
             assert self._prompt
             self._prompt.completer = completer  # Update the prompt's completer
             # Register event handler AFTER session creation
-            cli_handler = PrintEventHandler()
-            self._chat_session.add_event_handler(cli_handler)
 
             self._register_cli_commands()  # Register after session creation
             await self._show_welcome()

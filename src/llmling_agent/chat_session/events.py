@@ -2,28 +2,31 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Any, Protocol
+from typing import Protocol
 
 
-class SessionEventType(Enum):
-    """Types of session events."""
+@dataclass(frozen=True)
+class HistoryClearedEvent:
+    """Emitted when chat history is cleared."""
 
-    HISTORY_CLEARED = "history_cleared"
-    SESSION_RESET = "session_reset"
+    session_id: str
+    timestamp: datetime = field(default_factory=datetime.now)
 
 
-@dataclass
-class SessionEvent:
-    """Event data for session state changes."""
+@dataclass(frozen=True)
+class SessionResetEvent:
+    """Emitted when session is reset."""
 
-    type: SessionEventType
-    data: dict[str, Any]
+    session_id: str
+    previous_tools: dict[str, bool]
+    new_tools: dict[str, bool]
     timestamp: datetime = field(default_factory=datetime.now)
 
 
 class SessionEventHandler(Protocol):
     """Protocol for session event handlers."""
 
-    async def handle_session_event(self, event: SessionEvent) -> None:
+    async def handle_session_event(
+        self, event: SessionResetEvent | HistoryClearedEvent
+    ) -> None:
         """Handle a session event."""

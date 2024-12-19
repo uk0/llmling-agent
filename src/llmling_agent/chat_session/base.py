@@ -8,13 +8,14 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
 
 from platformdirs import user_data_dir
+from psygnal import Signal
 from sqlalchemy import desc
 from sqlmodel import Session, select
 
 from llmling_agent.chat_session.events import (
-    SessionEvent,
+    HistoryClearedEvent,
     SessionEventHandler,
-    SessionEventType,
+    SessionResetEvent,
 )
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
@@ -51,6 +52,9 @@ class AgentChatSession:
     2. Handles conversation flow
     3. Tracks session state and metadata
     """
+
+    history_cleared = Signal(HistoryClearedEvent)
+    session_reset = Signal(SessionResetEvent)
 
     def __init__(
         self,
@@ -178,30 +182,24 @@ class AgentChatSession:
         if handler in self._event_handlers:
             self._event_handlers.remove(handler)
 
-    async def _notify_handlers(self, event: SessionEvent) -> None:
-        """Notify all handlers of an event."""
-        for handler in self._event_handlers:
-            await handler.handle_session_event(event)
-
     async def clear(self) -> None:
         """Clear chat history."""
         self._history = []
-        data = {"session_id": str(self.id)}
-        event = SessionEvent(type=SessionEventType.HISTORY_CLEARED, data=data)
-        await self._notify_handlers(event)
+        event = HistoryClearedEvent(session_id=str(self.id))
+        self.history_cleared.emit(event)
 
     async def reset(self) -> None:
         """Reset session state."""
         old_tools = self._tool_states.copy()
         self._history = []
         self._tool_states = self._agent.tools.list_tools()
-        data = {
-            "session_id": str(self.id),
-            "previous_tools": old_tools,
-            "new_tools": self._tool_states,
-        }
-        event = SessionEvent(type=SessionEventType.SESSION_RESET, data=data)
-        await self._notify_handlers(event)
+
+        event = SessionResetEvent(
+            session_id=str(self.id),
+            previous_tools=old_tools,
+            new_tools=self._tool_states,
+        )
+        self.session_reset.emit(event)
 
     def register_command(self, command: BaseCommand) -> None:
         """Register additional command."""
