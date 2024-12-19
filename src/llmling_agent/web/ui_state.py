@@ -241,8 +241,8 @@ class UIState:
             self._connect_signals()
 
             # Get tool states for UI
-            states = self._current_session.get_tool_states()
-            tool_states = [[name, enabled] for name, enabled in states.items()]
+            tools = self._current_session.tools
+            tool_states = [[t.name, t.enabled] for t in tools.values()]
 
             return UIUpdate(
                 status=f"Agent {agent_name} ready",
