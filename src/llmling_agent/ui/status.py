@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 
 if TYPE_CHECKING:
@@ -17,7 +17,7 @@ Alignment = Literal["left", "center", "right"]
 class BaseField:
     """Field in a status bar."""
 
-    label: str = ""
+    label: ClassVar[str]
     style: str = "dim"
     align: Alignment = "right"
     icon: str | None = None
