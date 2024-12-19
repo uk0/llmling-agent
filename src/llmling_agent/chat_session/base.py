@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
 
 from platformdirs import user_data_dir
+from sqlalchemy import desc
+from sqlmodel import Session, select
 
 from llmling_agent.chat_session.events import (
     SessionEvent,
@@ -23,6 +25,8 @@ from llmling_agent.commands.exceptions import CommandError, ExitCommandError
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
 from llmling_agent.pydantic_ai_utils import extract_token_usage_and_cost
+from llmling_agent.storage import engine
+from llmling_agent.storage.models import CommandHistory
 
 
 if TYPE_CHECKING:
@@ -126,17 +130,34 @@ class AgentChatSession:
 
     def add_command(self, command: str) -> None:
         """Add command to history."""
-        if command.strip():
-            self._commands.append(command)
-            try:
-                with self._history_file.open("a", encoding="utf-8") as f:
-                    f.write(f"{command}\n")
-            except Exception:
-                logger.exception("Failed to save command")
+        if not command.strip():
+            return
 
-    def get_commands(self) -> list[str]:
-        """Get all previous commands."""
-        return list(self._commands)
+        with Session(engine) as session:
+            history = CommandHistory(
+                session_id=str(self.id),  # Convert UUID to str
+                agent_name=self._agent.name,
+                command=command,
+            )
+            session.add(history)
+            session.commit()
+
+    def get_commands(
+        self, limit: int | None = None, current_session_only: bool = False
+    ) -> list[str]:
+        """Get command history ordered by newest first."""
+        with Session(engine) as session:
+            query = select(CommandHistory)
+            if current_session_only:
+                query = query.where(CommandHistory.session_id == str(self.id))
+            else:
+                query = query.where(CommandHistory.agent_name == self._agent.name)
+
+            # Use the column reference from the model class
+            query = query.order_by(desc(CommandHistory.timestamp))
+            if limit:
+                query = query.limit(limit)
+            return [h.command for h in session.exec(query)]
 
     @property
     def metadata(self) -> ChatSessionMetadata:

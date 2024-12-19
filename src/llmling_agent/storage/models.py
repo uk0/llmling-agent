@@ -12,6 +12,18 @@ from sqlmodel import JSON, Field, SQLModel
 from llmling_agent.pydantic_ai_utils import TokenUsage  # noqa: TC001
 
 
+class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
+    """Database model for command history."""
+
+    id: int = Field(default=None, primary_key=True)
+    session_id: str = Field(index=True)
+    agent_name: str = Field(index=True)
+    command: str
+    timestamp: datetime = Field(
+        sa_column=Column(DateTime, default=datetime.now), default_factory=datetime.now
+    )
+
+
 class MessageLog(BaseModel):
     """Raw message log entry."""
 

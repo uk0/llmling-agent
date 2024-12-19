@@ -1,5 +1,3 @@
-"""Interactive chat session implementation."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -14,16 +12,16 @@ if TYPE_CHECKING:
 
 
 class SessionHistory(History):
-    """History implementation backed by AgentChatSession."""
+    """Simple history implementation using session storage."""
 
     def __init__(self, session: AgentChatSession) -> None:
         super().__init__()
         self.session = session
 
     def load_history_strings(self) -> Iterable[str]:
-        """Load history strings from session."""
+        """Load history strings (newest first)."""
         return self.session.get_commands()
 
     def store_string(self, string: str) -> None:
-        """Store string in session history."""
+        """Store new command."""
         self.session.add_command(string)
