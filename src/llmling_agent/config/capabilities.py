@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from psygnal import EventedModel
+from pydantic import ConfigDict
 
 
-class Capabilities(BaseModel):
+class Capabilities(EventedModel):
     """Defines what operations an agent is allowed to perform.
 
     Controls an agent's permissions and access levels including:
@@ -43,6 +44,14 @@ class Capabilities(BaseModel):
     - own: Can only view own statistics
     - all: Can view all agents' statistics
     """
+
+    def enable(self, capability: str) -> None:
+        """Enable a capability."""
+        setattr(self, capability, True)
+
+    def disable(self, capability: str) -> None:
+        """Disable a capability."""
+        setattr(self, capability, False)
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
