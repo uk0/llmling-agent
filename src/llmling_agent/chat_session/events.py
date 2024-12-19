@@ -27,4 +27,3 @@ class SessionEventHandler(Protocol):
 
     async def handle_session_event(self, event: SessionEvent) -> None:
         """Handle a session event."""
-        ...
