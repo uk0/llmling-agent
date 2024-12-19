@@ -9,6 +9,7 @@ from llmling.config.models import ConfigModel, GlobalSettings, LLMCapabilitiesCo
 from llmling.config.store import ConfigStore
 from llmling_models.types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic_ai.agent import EndStrategy  # noqa: TC002
 from pydantic_ai.models.test import TestModel
 from upath.core import UPath
 import yamling
@@ -65,6 +66,9 @@ class AgentConfig(BaseModel):
 
     result_retries: int | None = None
     """Max retries for result validation"""
+
+    end_strategy: EndStrategy = "early"
+    """The strategy for handling multiple tool calls when a final result is found"""
 
     # defer_model_check: bool = False
     # """Whether to defer model evaluation until first run"""
@@ -204,6 +208,7 @@ class AgentConfig(BaseModel):
             "result_tool_name": self.result_tool_name,
             "result_tool_description": self.result_tool_description,
             "result_retries": self.result_retries,
+            "end_strategy": self.end_strategy,
             # "defer_model_check": self.defer_model_check,
             **self.model_settings,
         }

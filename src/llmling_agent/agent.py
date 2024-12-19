@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     import os
 
     from llmling.tools import LLMCallableTool
-    from pydantic_ai.agent import models
+    from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.messages import ModelMessage
     from pydantic_ai.result import RunResult, StreamedRunResult
 
@@ -70,6 +70,7 @@ class LLMlingAgent[TResult]:
         result_tool_description: str | None = None,
         result_retries: int | None = None,
         tool_choice: bool | str | list[str] = True,
+        end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         enable_logging: bool = True,
         **kwargs,
@@ -89,6 +90,8 @@ class LLMlingAgent[TResult]:
             result_tool_description: Description of the final result tool
             result_retries: Max retries for result validation (defaults to retries)
             tool_choice: Ability to set a fixed tool or temporarily disable tools usage.
+            end_strategy: Strategy for handling tool calls that are requested alongside
+                          a final result
             defer_model_check: Whether to defer model evaluation until first run
             kwargs: Additional arguments for PydanticAI agent
             enable_logging: Whether to enable logging for the agent
@@ -125,6 +128,7 @@ class LLMlingAgent[TResult]:
             retries=retries,
             result_tool_name=result_tool_name,
             result_tool_description=result_tool_description,
+            end_strategy=end_strategy,
             result_retries=result_retries,
             defer_model_check=defer_model_check,
             **kwargs,
@@ -158,6 +162,7 @@ class LLMlingAgent[TResult]:
         result_tool_name: str = "final_result",
         result_tool_description: str | None = None,
         result_retries: int | None = None,
+        end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         **kwargs: Any,
     ) -> AsyncIterator[LLMlingAgent[TResult]]:
@@ -175,6 +180,8 @@ class LLMlingAgent[TResult]:
             result_tool_name: Name of the tool used for final result
             result_tool_description: Description of the final result tool
             result_retries: Max retries for result validation (defaults to retries)
+            end_strategy: Strategy for handling tool calls that are requested alongside
+                          a final result
             defer_model_check: Whether to defer model evaluation until first run
             **kwargs: Additional arguments for PydanticAI agent
 
@@ -196,6 +203,7 @@ class LLMlingAgent[TResult]:
                 system_prompt=system_prompt,
                 name=name,
                 retries=retries,
+                end_strategy=end_strategy,
                 result_tool_name=result_tool_name,
                 result_tool_description=result_tool_description,
                 result_retries=result_retries,
@@ -222,6 +230,7 @@ class LLMlingAgent[TResult]:
         # Tool configuration
         tools: list[str | Callable[..., Any]] | None = None,
         tool_choice: bool | str | list[str] = True,
+        end_strategy: EndStrategy = "early",
         # Execution settings
         retries: int = 1,
         result_tool_name: str = "final_result",
@@ -249,6 +258,8 @@ class LLMlingAgent[TResult]:
                 - False: No tools
                 - str: Use specific tool
                 - list[str]: Allow specific tools
+            end_strategy: Strategy for handling tool calls that are requested alongside
+                            a final result
 
             # Execution Settings
             retries: Default number of retries for failed operations
@@ -284,7 +295,7 @@ class LLMlingAgent[TResult]:
             agent_def = AgentsManifest.from_file(config)
 
         if agent_name not in agent_def.agents:
-            msg = f"Agent '{agent_name}' not found in {config}"
+            msg = f"Agent {agent_name!r} not found in {config}"
             raise ValueError(msg)
 
         agent_config = agent_def.agents[agent_name]
@@ -322,6 +333,7 @@ class LLMlingAgent[TResult]:
                 result_tool_name=result_tool_name,
                 result_tool_description=result_tool_description,
                 result_retries=result_retries,
+                end_strategy=end_strategy,
                 tool_choice=tool_choice,
                 system_prompt=system_prompt or [],
                 enable_logging=enable_logging,
