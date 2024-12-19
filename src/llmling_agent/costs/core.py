@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
-import asyncio
-import contextlib
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 import httpx
 from moka_py import Moka
+
+from llmling_agent.log import get_logger
+
+
+if TYPE_CHECKING:
+    from llmling_agent.models.messages import TokenUsage
+
+
+logger = get_logger(__name__)
 
 
 class ModelCosts(TypedDict):
@@ -36,125 +43,121 @@ def find_litellm_model_name(model: str) -> str | None:
     Returns:
         Matching LiteLLM model name if found, None otherwise
     """
+    logger.debug("Looking up model costs for: %s", model)
+
+    # Normalize case
+    model = model.lower()
+
     # First check direct match
     if _cost_cache.get(model, None) is not None:
+        logger.debug("Found direct cache match for: %s", model)
         return model
 
     # For provider:model format, try both variants
     if ":" in model:
         provider, model_name = model.split(":", 1)
-        # Try just model name
+        # Try just model name (normalized)
+        model_name = model_name.lower()
         if _cost_cache.get(model_name, None) is not None:
+            logger.debug("Found cache match for base name: %s", model_name)
             return model_name
-        # Try provider/model format
-        provider_format = f"{provider}/{model_name}"
+        # Try provider/model format (normalized)
+        provider_format = f"{provider.lower()}/{model_name}"
         if _cost_cache.get(provider_format, None) is not None:
+            logger.debug("Found cache match for provider format: %s", provider_format)
             return provider_format
 
+    logger.debug("No cache match found for: %s", model)
     return None
 
 
-async def _fetch_costs() -> dict[str, ModelCosts]:
-    """Fetch cost data from LiteLLM's GitHub."""
-    async with httpx.AsyncClient() as client:
-        response = await client.get(LITELLM_PRICES_URL)
-        response.raise_for_status()
-        data = response.json()
+async def get_model_costs(model: str) -> ModelCosts | None:
+    """Get cost information for a model."""
+    # Find matching model name in LiteLLM format
+    if litellm_name := find_litellm_model_name(model):
+        return _cost_cache.get(litellm_name, None)
 
-    # Extract just the cost information we need
-    return {
-        model: {
-            "input_cost_per_token": info["input_cost_per_token"],
-            "output_cost_per_token": info["output_cost_per_token"],
-        }
-        for model, info in data.items()
-        if isinstance(info, dict)  # Skip sample_spec
-        and "input_cost_per_token" in info
-        and "output_cost_per_token" in info
-    }
-
-
-async def get_model_costs_async(model: str) -> ModelCosts | None:
-    """Get cost information for a model (async version).
-
-    Args:
-        model: Model identifier (e.g. 'gpt-4', 'claude-2')
-
-    Returns:
-        Cost information if available, None otherwise
-    """
-    # Check cache first
-    if costs := _cost_cache.get(model):
-        return costs
-
-    # Not in cache, fetch fresh data
+    # Not in cache, try to fetch
     try:
-        all_costs = await _fetch_costs()
+        logger.debug("Downloading pricing data from LiteLLM...")
+        async with httpx.AsyncClient() as client:
+            response = await client.get(LITELLM_PRICES_URL)
+            response.raise_for_status()
+            data = response.json()
+        logger.debug("Successfully downloaded pricing data")
+
+        # Extract just the cost information we need
+        all_costs: dict[str, ModelCosts] = {}
+        for name, info in data.items():
+            if not isinstance(info, dict):  # Skip sample_spec
+                continue
+            if "input_cost_per_token" not in info or "output_cost_per_token" not in info:
+                continue
+            # Store with normalized case
+            all_costs[name.lower()] = ModelCosts(
+                input_cost_per_token=float(info["input_cost_per_token"]),
+                output_cost_per_token=float(info["output_cost_per_token"]),
+            )
+
+        logger.debug("Extracted costs for %d models", len(all_costs))
 
         # Update cache with all costs
         for model_name, cost_info in all_costs.items():
             _cost_cache.set(model_name, cost_info)
+        logger.debug("Updated cache with new pricing data")
 
-        return all_costs.get(model)
-    except Exception:  # noqa: BLE001
+        # Return costs for requested model
+        if model in all_costs:
+            logger.debug("Found costs for requested model: %s", model)
+            return all_costs[model]
+    except Exception as e:  # noqa: BLE001
+        logger.debug("Failed to get model costs: %s", e)
+        return None
+    else:
+        logger.debug("No costs found for model: %s", model)
         return None
 
 
-def get_model_costs(model: str) -> ModelCosts | None:
-    """Get cost information for a model (sync version).
-
-    This will use an existing event loop if available, otherwise creates one.
-
-    Args:
-        model: Model identifier (e.g. 'gpt-4', 'claude-2')
-
-    Returns:
-        Cost information if available, None otherwise
-    """
-    # Check cache first
-    if costs := _cost_cache.get(model):
-        return costs
-
-    # Try to use existing event loop
-    try:
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(get_model_costs_async(model))
-    except RuntimeError:
-        # No event loop in thread, create one
-        with contextlib.suppress(Exception):
-            return asyncio.run(get_model_costs_async(model))
+async def calculate_token_cost(
+    model: str,
+    token_usage: TokenUsage,
+) -> float | None:
+    """Calculate total cost for token usage."""
+    costs = await get_model_costs(model)
+    if costs:
+        prompt_cost = token_usage["prompt"] * costs["input_cost_per_token"]
+        completion_cost = token_usage["completion"] * costs["output_cost_per_token"]
+        total_cost = float(prompt_cost + completion_cost)
+        logger.debug(
+            "Cost calculation - prompt: $%.6f, completion: $%.6f, total: $%.6f",
+            prompt_cost,
+            completion_cost,
+            total_cost,
+        )
+        return total_cost
+    logger.debug("No costs found for model")
     return None
 
 
-def calculate_prompt_cost(prompt: str, model: str) -> float:
-    """Calculate cost for prompt tokens."""
-    if costs := get_model_costs(model):
-        # Simple approximation: 4 chars = 1 token
-        token_count = len(prompt) // 4
-        return token_count * costs["input_cost_per_token"]
-    return 0.0
+if __name__ == "__main__":
+    import asyncio
+    import logging
 
+    logging.basicConfig(level=logging.DEBUG)
 
-def calculate_completion_cost(completion: str, model: str) -> float:
-    """Calculate cost for completion tokens."""
-    if costs := get_model_costs(model):
-        # Simple approximation: 4 chars = 1 token
-        token_count = len(completion) // 4
-        return token_count * costs["output_cost_per_token"]
-    return 0.0
+    async def test_costs() -> None:
+        models = [
+            "openai:gpt-4o-mini",  # with provider prefix
+            "gpt-4o-mini",  # without prefix
+        ]
 
+        for model in models:
+            costs = await get_model_costs(model)
+            print(f"\nCosts for {model}:")
+            if costs:
+                print(f"Input cost per token:    ${costs['input_cost_per_token']:.6f}")
+                print(f"Output cost per token:   ${costs['output_cost_per_token']:.6f}")
+            else:
+                print("Not found")
 
-async def calculate_prompt_cost_async(prompt: str, model: str) -> float:
-    """Calculate cost for prompt tokens (async version)."""
-    if costs := await get_model_costs_async(model):
-        token_count = len(prompt) // 4
-        return token_count * costs["input_cost_per_token"]
-    return 0.0
-
-
-async def calculate_completion_cost_async(completion: str, model: str) -> float:
-    """Calculate cost for completion tokens (async version)."""
-    if costs := await get_model_costs_async(model):
-        token_count = len(completion) // 4
-        return token_count * costs["output_cost_per_token"]
-    return 0.0
+    asyncio.run(test_costs())

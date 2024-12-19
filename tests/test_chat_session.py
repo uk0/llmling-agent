@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING, Any
-from unittest.mock import ANY, AsyncMock, MagicMock
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 from pydantic_ai.messages import (
     ModelRequest,
@@ -21,6 +21,7 @@ from llmling_agent.chat_session import (
     ChatSessionError,
     ChatSessionManager,
 )
+from llmling_agent.models.messages import TokenAndCostResult
 
 
 if TYPE_CHECKING:
@@ -56,31 +57,37 @@ async def chat_session(mock_agent) -> AgentChatSession:
 
 @pytest.mark.asyncio
 async def test_send_message_normal(chat_session: AgentChatSession) -> None:
-    """Test sending a normal message and getting a response."""
-    mock_result = AsyncMock(spec=RunResult)
-    mock_result.data = TEST_RESPONSE
+    """Test normal message sending."""
+    mock_result = AsyncMock()
     mock_cost = MagicMock()
     mock_cost.total_tokens = 10
     mock_cost.request_tokens = 5
     mock_cost.response_tokens = 5
     mock_result.cost.return_value = mock_cost
+    mock_result.data = TEST_RESPONSE
 
-    user_part: ModelRequestPart = UserPromptPart(content=TEST_MESSAGE)
-    response_part: ModelResponsePart = TextPart(content=TEST_RESPONSE)
+    # Mock the token cost calculation
+    mock_token_result = TokenAndCostResult(
+        token_usage={"total": 10, "prompt": 5, "completion": 5}, cost_usd=0.0001
+    )
+    with patch(
+        "llmling_agent.chat_session.base.extract_token_usage_and_cost",
+        AsyncMock(return_value=mock_token_result),
+    ):
+        user_part: ModelRequestPart = UserPromptPart(content=TEST_MESSAGE)
+        response_part: ModelResponsePart = TextPart(content=TEST_RESPONSE)
+        mock_result.new_messages.return_value = [
+            ModelRequest(parts=[user_part]),
+            ModelResponse(parts=[response_part]),
+        ]
+        chat_session._agent.run = AsyncMock(return_value=mock_result)  # type: ignore
 
-    mock_result.new_messages.return_value = [
-        ModelRequest(parts=[user_part]),
-        ModelResponse(parts=[response_part]),
-    ]
-    chat_session._agent.run = AsyncMock(return_value=mock_result)  # type: ignore
-
-    response = await chat_session.send_message(TEST_MESSAGE)
-
-    assert isinstance(response, ChatMessage)
-    assert response.content == TEST_RESPONSE
-    assert response.role == "assistant"
-    assert response.metadata
-    assert response.metadata["token_usage"]["total"] == 10  # noqa: PLR2004
+        response = await chat_session.send_message(TEST_MESSAGE)
+        assert isinstance(response, ChatMessage)
+        assert response.content == TEST_RESPONSE
+        assert response.role == "assistant"
+        assert response.metadata
+        assert response.metadata["token_usage"]["total"] == 10  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
@@ -94,26 +101,28 @@ async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession
             yield chunk
 
     stream_result.stream = mock_stream
-
-    # Mock cost with immediate value instead of coroutine
     mock_cost = MagicMock()
     mock_cost.total_tokens = 10
     mock_cost.request_tokens = 5
     mock_cost.response_tokens = 5
     stream_result.cost = MagicMock(return_value=mock_cost)
+    # Mock the token cost calculation
+    mock_token_result = TokenAndCostResult(
+        token_usage={"total": 10, "prompt": 5, "completion": 5}, cost_usd=0.0001
+    )
+    with patch(
+        "llmling_agent.chat_session.base.extract_token_usage_and_cost",
+        AsyncMock(return_value=mock_token_result),
+    ):
+        context_mock = AsyncMock()
+        context_mock.__aenter__.return_value = stream_result
+        chat_session._agent.run_stream = AsyncMock(return_value=context_mock)  # type: ignore
 
-    context_mock = AsyncMock()
-    context_mock.__aenter__.return_value = stream_result
-    chat_session._agent.run_stream = AsyncMock(return_value=context_mock)  # type: ignore
-    response_stream = await chat_session.send_message(TEST_MESSAGE, stream=True)
-
-    messages = [msg async for msg in response_stream]
-
-    final_msg = messages[-1]
-    assert final_msg.metadata
-    assert final_msg.metadata["token_usage"]["total"] == 10  # noqa: PLR2004
-    assert final_msg.metadata["token_usage"]["prompt"] == 5  # noqa: PLR2004
-    assert final_msg.metadata["token_usage"]["completion"] == 5  # noqa: PLR2004
+        response_stream = await chat_session.send_message(TEST_MESSAGE, stream=True)
+        messages = [msg async for msg in response_stream]
+        final_msg = messages[-1]
+        assert final_msg.metadata
+        assert final_msg.metadata["token_usage"]["total"] == 10  # noqa: PLR2004
 
 
 @pytest.mark.asyncio

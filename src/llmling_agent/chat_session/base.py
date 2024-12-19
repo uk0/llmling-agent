@@ -286,7 +286,7 @@ class AgentChatSession:
         model_name = model_override or self._agent.model_name
         response = str(result.data)
         cost_info = (
-            extract_token_usage_and_cost(
+            await extract_token_usage_and_cost(
                 result.cost(),
                 model_name,
                 content,  # prompt
@@ -334,7 +334,7 @@ class AgentChatSession:
             # Final message with token usage after stream completes
             model_name = self._model or self._agent.model_name
             cost_info = (
-                extract_token_usage_and_cost(
+                await extract_token_usage_and_cost(
                     stream_result.cost(),
                     model_name,
                     content,  # prompt

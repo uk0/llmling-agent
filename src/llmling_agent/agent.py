@@ -421,7 +421,7 @@ class LLMlingAgent[TResult]:
                 result_str = str(result.data)
                 model_name = self.model_name
                 cost = (
-                    extract_token_usage_and_cost(
+                    await extract_token_usage_and_cost(
                         result.cost(), model_name, prompt, result_str
                     )
                     if model_name

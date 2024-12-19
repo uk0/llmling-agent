@@ -14,7 +14,7 @@ from pydantic_ai.messages import (
     ToolCallPart,
 )
 
-from llmling_agent.costs.core import calculate_completion_cost, calculate_prompt_cost
+from llmling_agent.costs.core import calculate_token_cost
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import TokenAndCostResult, TokenUsage
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from pydantic_ai.result import Cost
 
 
-def extract_token_usage_and_cost(
+async def extract_token_usage_and_cost(
     cost: Cost,
     model: str,
     prompt: str,
@@ -50,6 +50,7 @@ def extract_token_usage_and_cost(
         and cost.request_tokens is not None
         and cost.response_tokens is not None
     ):
+        logger.debug("Missing token counts in cost object")
         return None
 
     token_usage = TokenUsage(
@@ -57,15 +58,15 @@ def extract_token_usage_and_cost(
         prompt=cost.request_tokens,
         completion=cost.response_tokens,
     )
+    logger.debug("Token usage: %s", token_usage)
 
-    model = model.split(":", 1)[1] if ":" in model else model
+    cost_usd = await calculate_token_cost(model, token_usage)
+    if cost_usd is not None:
+        logger.debug("Calculated cost: $%.6f", cost_usd)
+        return TokenAndCostResult(token_usage=token_usage, cost_usd=cost_usd)
 
-    # Calculate actual USD costs using our own implementation
-    prompt_cost = calculate_prompt_cost(prompt, model)
-    completion_cost = calculate_completion_cost(completion, model)
-    total_cost = float(prompt_cost + completion_cost)
-
-    return TokenAndCostResult(token_usage=token_usage, cost_usd=total_cost)
+    logger.debug("Failed to calculate USD cost")
+    return None
 
 
 def format_response(response: str | _messages.ModelRequestPart) -> str:  # noqa: PLR0911

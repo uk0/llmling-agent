@@ -9,6 +9,11 @@ from uuid import UUID  # noqa: TC003
 
 from pydantic import BaseModel, Field
 
+from llmling_agent.log import get_logger
+
+
+logger = get_logger(__name__)
+
 
 class ChatMessage(BaseModel):
     """A message in the conversation."""
@@ -43,14 +48,16 @@ class SessionState:
     last_command: str | None = None
 
     def update_tokens(self, message: ChatMessage) -> None:
-        """Update token counts from message metadata."""
-        if message.metadata and (token_usage := message.metadata.get("token_usage")):
-            self.total_tokens += token_usage.get("total", 0)
-            self.prompt_tokens += token_usage.get("prompt", 0)
-            self.completion_tokens += token_usage.get("completion", 0)
+        """Update token counts and costs from message metadata."""
+        if message.metadata:
+            if token_usage := message.metadata.get("token_usage"):
+                self.total_tokens = token_usage["total"]
+                self.prompt_tokens = token_usage["prompt"]
+                self.completion_tokens = token_usage["completion"]
 
-        if message.metadata and (cost := message.metadata.get("cost")):
-            self.total_cost += cost
+            if cost := message.metadata.get("cost_usd"):
+                self.total_cost = float(cost)
+                logger.debug("Updated session cost to: $%.6f", self.total_cost)
 
     @property
     def duration(self) -> str:

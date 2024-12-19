@@ -237,6 +237,9 @@ class InteractiveSession:
                 f"Completion: {self._state.completion_tokens:,})"
             )
             self.console.print(token_info)
+            if self._state.total_cost > 0:
+                cost_info = f"Total cost: ${self._state.total_cost:.6f}"
+                self.console.print(cost_info)
 
 
 # Helper function for CLI
