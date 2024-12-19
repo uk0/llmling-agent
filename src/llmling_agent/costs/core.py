@@ -27,6 +27,33 @@ _cost_cache: Moka[str, ModelCosts] = Moka(
 LITELLM_PRICES_URL = "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json"
 
 
+def find_litellm_model_name(model: str) -> str | None:
+    """Find matching model name in LiteLLM pricing data.
+
+    Args:
+        model: Input model name (e.g. "openai:gpt-4", "gpt-4")
+
+    Returns:
+        Matching LiteLLM model name if found, None otherwise
+    """
+    # First check direct match
+    if _cost_cache.get(model, None) is not None:
+        return model
+
+    # For provider:model format, try both variants
+    if ":" in model:
+        provider, model_name = model.split(":", 1)
+        # Try just model name
+        if _cost_cache.get(model_name, None) is not None:
+            return model_name
+        # Try provider/model format
+        provider_format = f"{provider}/{model_name}"
+        if _cost_cache.get(provider_format, None) is not None:
+            return provider_format
+
+    return None
+
+
 async def _fetch_costs() -> dict[str, ModelCosts]:
     """Fetch cost data from LiteLLM's GitHub."""
     async with httpx.AsyncClient() as client:
