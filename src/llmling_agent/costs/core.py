@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import pathlib
 from typing import TYPE_CHECKING, TypedDict
 
+import diskcache
 import httpx
-from moka_py import Moka
+from platformdirs import user_data_dir
 
 from llmling_agent.log import get_logger
 
@@ -24,12 +26,13 @@ class ModelCosts(TypedDict):
     output_cost_per_token: float
 
 
-# Cache cost data for 1 hour, with 5 minute time-to-idle
-_cost_cache: Moka[str, ModelCosts] = Moka(
-    capacity=1000,
-    ttl=86400,  # 24 hours
-    tti=3600,  # 1 hour of inactivity
-)
+# Cache cost data persistently
+PRICING_DIR = pathlib.Path(user_data_dir("llmling", "llmling")) / "pricing"
+PRICING_DIR.mkdir(parents=True, exist_ok=True)
+_cost_cache = diskcache.Cache(directory=str(PRICING_DIR))
+
+# Cache timeout in seconds (24 hours)
+_CACHE_TIMEOUT = 86400
 
 LITELLM_PRICES_URL = "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json"
 
@@ -49,7 +52,7 @@ def find_litellm_model_name(model: str) -> str | None:
     model = model.lower()
 
     # First check direct match
-    if _cost_cache.get(model, None) is not None:
+    if model in _cost_cache:
         logger.debug("Found direct cache match for: %s", model)
         return model
 
@@ -75,7 +78,7 @@ async def get_model_costs(model: str) -> ModelCosts | None:
     """Get cost information for a model."""
     # Find matching model name in LiteLLM format
     if litellm_name := find_litellm_model_name(model):
-        return _cost_cache.get(litellm_name, None)
+        return _cost_cache.get(litellm_name)
 
     # Not in cache, try to fetch
     try:
@@ -103,7 +106,7 @@ async def get_model_costs(model: str) -> ModelCosts | None:
 
         # Update cache with all costs
         for model_name, cost_info in all_costs.items():
-            _cost_cache.set(model_name, cost_info)
+            _cost_cache.set(model_name, cost_info, expire=_CACHE_TIMEOUT)
         logger.debug("Updated cache with new pricing data")
 
         # Return costs for requested model

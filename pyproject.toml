@@ -44,8 +44,8 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "sqlmodel>=0.0.22",
     "typer>=0.15.1",
-    "moka-py>=0.1.15",
     "psygnal>=0.11.1",
+    "diskcache>=5.6.3",
 ]
 
 [project.scripts]
