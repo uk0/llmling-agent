@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from llmling.tools import LLMCallableTool
+from llmling.utils.importing import import_callable
+
 from llmling_agent.commands.base import Command, CommandContext
 from llmling_agent.commands.exceptions import CommandError
 from llmling_agent.log import get_logger
@@ -143,10 +146,6 @@ async def register_tool(
     description = kwargs.get("description")
 
     try:
-        # Import the callable
-        from llmling.tools import LLMCallableTool
-        from llmling.utils.importing import import_callable
-
         callable_func = import_callable(import_path)
 
         # Create LLMCallableTool with optional overrides

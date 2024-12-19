@@ -96,28 +96,25 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 msg = f"Item must be ToolInfo, LLMCallableTool, or callable. Got {typ}"
                 raise ToolError(msg)
 
-    # Public API maintaining compatibility
     def enable_tool(self, tool_name: str) -> None:
         """Enable a previously disabled tool."""
-        if tool_name in self:
-            tool_info = self[tool_name]
-            tool_info.enabled = True
-            self.events.changed(tool_name, tool_info)
-            logger.debug("Enabled tool: %s", tool_name)
-        else:
+        if tool_name not in self:
             msg = f"Tool not found: {tool_name}"
             raise ToolError(msg)
+        tool_info = self[tool_name]
+        tool_info.enabled = True
+        self.events.changed(tool_name, tool_info)
+        logger.debug("Enabled tool: %s", tool_name)
 
     def disable_tool(self, tool_name: str) -> None:
         """Disable a tool."""
-        if tool_name in self:
-            tool_info = self[tool_name]
-            tool_info.enabled = False
-            self.events.changed(tool_name, tool_info)
-            logger.debug("Disabled tool: %s", tool_name)
-        else:
+        if tool_name not in self:
             msg = f"Tool not found: {tool_name}"
             raise ToolError(msg)
+        tool_info = self[tool_name]
+        tool_info.enabled = False
+        self.events.changed(tool_name, tool_info)
+        logger.debug("Disabled tool: %s", tool_name)
 
     def is_tool_enabled(self, tool_name: str) -> bool:
         """Check if a tool is currently enabled."""
