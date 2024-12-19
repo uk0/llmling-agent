@@ -14,7 +14,6 @@ from sqlmodel import Session, select
 
 from llmling_agent.chat_session.events import (
     HistoryClearedEvent,
-    SessionEventHandler,
     SessionResetEvent,
 )
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
@@ -87,7 +86,6 @@ class AgentChatSession:
 
         # Initialize basic structures
         self._command_store = CommandStore()
-        self._event_handlers: list[SessionEventHandler] = []
         self.start_time = datetime.now()
         self._state = SessionState(current_model=self._model)
 
@@ -158,7 +156,7 @@ class AgentChatSession:
                 query = query.where(CommandHistory.agent_name == self._agent.name)
 
             # Use the column reference from the model class
-            query = query.order_by(desc(CommandHistory.timestamp))
+            query = query.order_by(desc(CommandHistory.timestamp))  # type: ignore
             if limit:
                 query = query.limit(limit)
             return [h.command for h in session.exec(query)]
@@ -172,15 +170,6 @@ class AgentChatSession:
             model=self._model,
             tool_states=self._tool_states,
         )
-
-    def add_event_handler(self, handler: SessionEventHandler) -> None:
-        """Register an event handler."""
-        self._event_handlers.append(handler)
-
-    def remove_event_handler(self, handler: SessionEventHandler) -> None:
-        """Remove an event handler."""
-        if handler in self._event_handlers:
-            self._event_handlers.remove(handler)
 
     async def clear(self) -> None:
         """Clear chat history."""

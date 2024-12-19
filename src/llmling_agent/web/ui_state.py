@@ -12,11 +12,6 @@ from upath import UPath
 import yamling
 
 from llmling_agent.chat_session import AgentChatSession, ChatSessionManager
-from llmling_agent.chat_session.events import (
-    SessionEvent,
-    SessionEventHandler,
-    SessionEventType,
-)
 from llmling_agent.chat_session.output import CallbackOutputWriter
 from llmling_agent.log import LogCapturer
 from llmling_agent.web.handlers import AgentHandler
@@ -26,37 +21,14 @@ from llmling_agent.web.type_utils import ChatHistory, validate_chat_message
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+    from llmling_agent.chat_session.events import (
+        HistoryClearedEvent,
+        SessionResetEvent,
+    )
     from llmling_agent.chat_session.models import ChatMessage
 
 
 logger = logging.getLogger(__name__)
-
-
-class WebEventHandler(SessionEventHandler):
-    """Handles session events for web interface."""
-
-    def __init__(self, ui_state: UIState) -> None:
-        self.ui_state = ui_state
-
-    async def handle_session_event(self, event: SessionEvent) -> None:
-        match event.type:
-            case SessionEventType.HISTORY_CLEARED:
-                # Use empty history with existing UI update mechanism
-                await self.ui_state.send_message(
-                    message="",
-                    history=[],
-                    agent_name=None,
-                    model=None,
-                )
-            case SessionEventType.SESSION_RESET:
-                # Clear chat and update tool states
-                _update = await self.ui_state.send_message(
-                    message="",
-                    history=[],
-                    agent_name=None,
-                    model=None,
-                )
-                await self.ui_state.update_tool_states(event.data["new_tools"])
 
 
 class UIUpdate(BaseModel):
@@ -114,9 +86,36 @@ class UIState:
         self.log_capturer = LogCapturer()
         self.debug_mode = False
         self.handler: AgentHandler | None = None
-        self._event_handler: WebEventHandler | None = None
         self._session_manager = ChatSessionManager()
         self._current_session: AgentChatSession | None = None
+
+    def _connect_signals(self) -> None:
+        """Connect to chat session signals."""
+        assert self._current_session is not None
+
+        # Connect to signals with bound methods
+        self._current_session.history_cleared.connect(self._on_history_cleared)
+        self._current_session.session_reset.connect(self._on_session_reset)
+
+    async def _on_history_cleared(self, event: HistoryClearedEvent) -> None:
+        """Handle history cleared event."""
+        await self.send_message(
+            message="",
+            history=[],
+            agent_name=None,
+            model=None,
+        )
+
+    async def _on_session_reset(self, event: SessionResetEvent) -> None:
+        """Handle session reset event."""
+        # Clear chat and update tool states
+        _update = await self.send_message(
+            message="",
+            history=[],
+            agent_name=None,
+            model=None,
+        )
+        await self.update_tool_states(event.new_tools)
 
     def toggle_debug(self, enabled: bool) -> UIUpdate:
         """Toggle debug mode."""
@@ -203,19 +202,13 @@ class UIState:
 
             agent = self.handler.state.current_runner.agent
 
-            # Create chat session with the agent
-            if self._current_session and self._event_handler:
-                self._current_session.remove_event_handler(self._event_handler)
-
             # Create new session
             self._current_session = await self._session_manager.create_session(
                 agent=agent,
                 model=model,
             )
+            self._connect_signals()
 
-            # Register new event handler
-            self._event_handler = WebEventHandler(self)
-            self._current_session.add_event_handler(self._event_handler)
             # Get tool states for UI
             states = self._current_session.get_tool_states()
             tool_states = [[name, enabled] for name, enabled in states.items()]
