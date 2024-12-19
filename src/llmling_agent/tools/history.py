@@ -35,8 +35,8 @@ class HistoryTools:
 
         Args:
             query: Text to search for in messages
-            hours: Show conversations from last N hours (default: 24)
-            limit: Maximum number of conversations to show (default: 5)
+            hours: Show conversations from last N hours
+            limit: Maximum number of conversations to show
 
         Examples:
             - "search_history('database schema')"

@@ -252,24 +252,6 @@ def launch_app(
         server_name: Server hostname (default: "127.0.0.1")
         server_port: Optional server port number
         block: Whether to block the thread. Set to False when using programmatically.
-
-    Example:
-        ```python
-        from llmling_agent.web import launch_app
-
-        # Basic local launch
-        launch_app()
-
-        # Launch public instance
-        launch_app(share=True)
-
-        # Custom server configuration
-        launch_app(server_name="0.0.0.0", server_port=8080)
-
-        # Non-blocking for programmatic use
-        launch_app(block=False)
-        # ... do other things while server runs
-        ```
     """
     setup_logging()
     logger.info("Starting web interface")

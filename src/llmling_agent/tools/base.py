@@ -68,12 +68,7 @@ class ToolInfo:
     """Whether the tool is currently enabled"""
 
     source: Literal["runtime", "agent", "builtin", "dynamic"] = "runtime"
-    """Where the tool came from:
-    - runtime: From RuntimeConfig
-    - agent: Specific to an agent
-    - builtin: Built-in tool
-    - dynamic: Added during runtime
-    """
+    """Where the tool came from."""
 
     priority: int = 100
     """Priority for tool execution (lower = higher priority)"""
