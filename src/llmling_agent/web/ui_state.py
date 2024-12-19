@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
         SessionResetEvent,
     )
     from llmling_agent.chat_session.models import ChatMessage
+    from llmling_agent.tools.base import ToolInfo
 
 
 logger = logging.getLogger(__name__)
@@ -88,6 +90,7 @@ class UIState:
         self.handler: AgentHandler | None = None
         self._session_manager = ChatSessionManager()
         self._current_session: AgentChatSession | None = None
+        self._pending_tasks: set[asyncio.Task[Any]] = set()
 
     def _connect_signals(self) -> None:
         """Connect to chat session signals."""
@@ -96,6 +99,34 @@ class UIState:
         # Connect to signals with bound methods
         self._current_session.history_cleared.connect(self._on_history_cleared)
         self._current_session.session_reset.connect(self._on_session_reset)
+        # Tool events
+        self._current_session.tool_added.connect(self._handle_tool_added)
+        self._current_session.tool_removed.connect(self._handle_tool_removed)
+        self._current_session.tool_changed.connect(self._handle_tool_changed)
+
+    def _handle_tool_added(self, tool: ToolInfo) -> None:
+        """Sync handler for tool addition."""
+        task = asyncio.create_task(self.update_tool_states({tool.name: tool.enabled}))
+        self._pending_tasks.add(task)
+        task.add_done_callback(self._pending_tasks.discard)
+
+    def _handle_tool_removed(self, tool_name: str) -> None:
+        """Sync handler for tool removal."""
+        task = asyncio.create_task(self.update_tool_states({}))
+        self._pending_tasks.add(task)
+        task.add_done_callback(self._pending_tasks.discard)
+
+    def _handle_tool_changed(self, name: str, tool: ToolInfo) -> None:
+        """Sync handler for tool state changes."""
+        task = asyncio.create_task(self.update_tool_states({name: tool.enabled}))
+        self._pending_tasks.add(task)
+        task.add_done_callback(self._pending_tasks.discard)
+
+    async def cleanup(self) -> None:
+        """Clean up pending tasks."""
+        if self._pending_tasks:
+            await asyncio.gather(*self._pending_tasks, return_exceptions=True)
+            self._pending_tasks.clear()
 
     async def _on_history_cleared(self, event: HistoryClearedEvent) -> None:
         """Handle history cleared event."""

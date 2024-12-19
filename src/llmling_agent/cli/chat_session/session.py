@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from llmling_agent import LLMlingAgent
     from llmling_agent.chat_session.base import AgentChatSession
     from llmling_agent.chat_session.events import HistoryClearedEvent, SessionResetEvent
+    from llmling_agent.tools.base import ToolInfo
 
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,25 @@ class InteractiveSession:
         # Connect to signals with bound methods
         self._chat_session.history_cleared.connect(self._on_history_cleared)
         self._chat_session.session_reset.connect(self._on_session_reset)
+        self._chat_session.tool_added.connect(self._on_tool_added)
+        self._chat_session.tool_removed.connect(self._on_tool_removed)
+        self._chat_session.tool_changed.connect(self._on_tool_changed)
+
+    def _on_tool_added(self, tool: ToolInfo) -> None:
+        """Handle tool addition."""
+        self.console.print(f"\nTool added: {tool.name}")
+        self.status_bar.render(self._state)
+
+    def _on_tool_removed(self, tool_name: str) -> None:
+        """Handle tool removal."""
+        self.console.print(f"\nTool removed: {tool_name}")
+        self.status_bar.render(self._state)
+
+    def _on_tool_changed(self, name: str, tool: ToolInfo) -> None:
+        """Handle tool state changes."""
+        state = "enabled" if tool.enabled else "disabled"
+        self.console.print(f"\nTool '{name}' {state}")
+        self.status_bar.render(self._state)
 
     def _on_history_cleared(self, event: HistoryClearedEvent) -> None:
         """Handle history cleared event."""

@@ -27,6 +27,7 @@ from llmling_agent.models.messages import ChatMessage, MessageMetadata
 from llmling_agent.pydantic_ai_utils import extract_token_usage_and_cost
 from llmling_agent.storage import engine
 from llmling_agent.storage.models import CommandHistory
+from llmling_agent.tools.base import ToolInfo
 
 
 if TYPE_CHECKING:
@@ -54,6 +55,9 @@ class AgentChatSession:
 
     history_cleared = Signal(HistoryClearedEvent)
     session_reset = Signal(SessionResetEvent)
+    tool_added = Signal(ToolInfo)
+    tool_removed = Signal(str)  # tool_name
+    tool_changed = Signal(str, ToolInfo)  # name, new_info
 
     def __init__(
         self,
@@ -78,6 +82,11 @@ class AgentChatSession:
             case None:
                 self.id = uuid4()
         self._agent = agent
+        # forward ToolManager signals to ours
+
+        self._agent.tools.events.added.connect(self.tool_added.emit)
+        self._agent.tools.events.removed.connect(self.tool_removed.emit)
+        self._agent.tools.events.changed.connect(self.tool_changed.emit)
         self._model = model_override or agent.model_name
         self._history: list[messages.ModelMessage] = []
         self._commands: list[str] = []
