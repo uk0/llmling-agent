@@ -19,6 +19,7 @@ from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.cli.chat_session.completion import PromptToolkitCompleter
 from llmling_agent.cli.chat_session.history import SessionHistory
+from llmling_agent.cli.chat_session.status import render_status_bar
 from llmling_agent.commands.base import Command, CommandContext
 from llmling_agent.commands.exceptions import ExitCommandError
 from llmling_agent.commands.log import SessionLogHandler
@@ -56,7 +57,7 @@ class InteractiveSession:
         self._session_manager = ChatSessionManager()
         self._chat_session: AgentChatSession | None = None
         self._state = SessionState()
-        self.status_bar = StatusBar(self.console)
+        self.status_bar = StatusBar()
         self._prompt = None
         # Setup logging
         self._log_handler = None
@@ -80,18 +81,18 @@ class InteractiveSession:
     def _on_tool_added(self, tool: ToolInfo) -> None:
         """Handle tool addition."""
         self.console.print(f"\nTool added: {tool.name}")
-        self.status_bar.render(self._state)
+        self.update_status_bar()
 
     def _on_tool_removed(self, tool_name: str) -> None:
         """Handle tool removal."""
         self.console.print(f"\nTool removed: {tool_name}")
-        self.status_bar.render(self._state)
+        self.update_status_bar()
 
     def _on_tool_changed(self, name: str, tool: ToolInfo) -> None:
         """Handle tool state changes."""
         state = "enabled" if tool.enabled else "disabled"
         self.console.print(f"\nTool '{name}' {state}")
-        self.status_bar.render(self._state)
+        self.update_status_bar()
 
     def _on_history_cleared(self, event: HistoryClearedEvent) -> None:
         """Handle history cleared event."""
@@ -143,7 +144,6 @@ class InteractiveSession:
                     result = await self._chat_session.send_message(content, output=writer)
                     if result.content:
                         self.console.print(result.content)
-                    self.status_bar.render(self._state)
                 except ExitCommandError as e:
                     # Handle clean exit
                     self.console.print("\nGoodbye!")
@@ -172,11 +172,8 @@ class InteractiveSession:
 
             # Update message count after complete response
             self._state.message_count += 2
-            self.status_bar.render(self._state)
-
         except (httpx.ReadError, GeneratorExit):
             self.console.print("\nConnection interrupted.")
-            self.status_bar.render(self._state)
         except EOFError:
             raise
         except Exception as e:  # noqa: BLE001
@@ -184,7 +181,13 @@ class InteractiveSession:
             self.console.print(f"\n[red bold]Error:[/] {error_msg}")
             md = Markdown(f"```python\n{traceback.format_exc()}\n```")
             self.console.print("\n[dim]Debug traceback:[/]", md)
-            self.status_bar.render(self._state)
+        finally:
+            self.update_status_bar()
+
+    def update_status_bar(self):
+        """Update and render status bar."""
+        self.status_bar.update(self._state)
+        render_status_bar(self.status_bar, self.console)
 
     @property
     def session(self) -> AgentChatSession:
@@ -245,7 +248,7 @@ class InteractiveSession:
             for line in lines:
                 self.console.print(line)
         # Show initial status
-        self.status_bar.render(self._state)
+        self.update_status_bar()
 
     async def _cleanup(self) -> None:
         """Clean up resources."""
