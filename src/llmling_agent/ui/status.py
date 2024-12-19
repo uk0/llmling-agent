@@ -155,7 +155,7 @@ class StatusBar:
         self,
         console: Console,
         fields: list[StatusBarField] | None = None,
-    ) -> None:
+    ):
         """Initialize status bar."""
         self.console = console
         # Default fields if none provided

@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 class AgentHandler:
     """Handles web interface events."""
 
-    def __init__(self, file_path: str) -> None:
+    def __init__(self, file_path: str):
         """Initialize handler.
 
         Args:
