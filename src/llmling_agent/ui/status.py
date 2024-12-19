@@ -73,7 +73,7 @@ class ModelField(BaseField):
         style: str = "dim",
         align: Alignment = "left",
         condition: Callable[[SessionState], bool] | None = None,
-    ) -> None:
+    ):
         super().__init__("Model", style, align, condition)
 
     def get_value(self, info: SessionState) -> str:
@@ -89,7 +89,7 @@ class TokensField(BaseField):
         style: str = "dim",
         align: Alignment = "right",
         condition: Callable[[SessionState], bool] | None = None,
-    ) -> None:
+    ):
         super().__init__("Tokens", style, align, condition)
 
     def get_value(self, info: SessionState) -> str:
@@ -109,7 +109,7 @@ class CostField(BaseField):
         style: str = "dim",
         align: Alignment = "right",
         condition: Callable[[SessionState], bool] | None = lambda i: i.total_cost > 0,
-    ) -> None:
+    ):
         super().__init__("Cost", style, align, condition)
 
     def get_value(self, info: SessionState) -> str:
@@ -125,7 +125,7 @@ class MessagesField(BaseField):
         style: str = "dim",
         align: Alignment = "right",
         condition: Callable[[SessionState], bool] | None = None,
-    ) -> None:
+    ):
         super().__init__("Messages", style, align, condition)
 
     def get_value(self, info: SessionState) -> str:
@@ -141,7 +141,7 @@ class TimeField(BaseField):
         style: str = "dim",
         align: Alignment = "right",
         condition: Callable[[SessionState], bool] | None = None,
-    ) -> None:
+    ):
         super().__init__("Time", style, align, condition)
 
     def get_value(self, info: SessionState) -> str:
@@ -167,7 +167,7 @@ class StatusBar:
             TimeField(),
         ]
 
-    def render(self, state: SessionState) -> None:
+    def render(self, state: SessionState):
         """Render status bar with current state."""
         duration = datetime.now() - state.start_time
         hours, remainder = divmod(int(duration.total_seconds()), 3600)
