@@ -9,7 +9,7 @@ from llmling_agent.commands.builtin.agents import (
     switch_agent_cmd,
     show_agent_cmd,
 )
-from llmling_agent.commands.builtin.session import clear_cmd, reset_cmd
+from llmling_agent.commands.builtin.session import clear_cmd, reset_cmd, exit_cmd
 from llmling_agent.commands.builtin.env import set_env_cmd, edit_env_cmd
 from llmling_agent.commands.builtin.utils import (
     copy_clipboard_cmd,
@@ -56,4 +56,5 @@ def get_builtin_commands() -> list[BaseCommand]:
         write_tool_cmd,
         meta_cmd,
         show_command_cmd,
+        exit_cmd,
     ]

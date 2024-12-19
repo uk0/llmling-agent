@@ -20,7 +20,6 @@ from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.cli.chat_session.completion import PromptToolkitCompleter
 from llmling_agent.cli.chat_session.history import SessionHistory
 from llmling_agent.cli.chat_session.status import render_status_bar
-from llmling_agent.commands.base import Command, CommandContext
 from llmling_agent.commands.exceptions import ExitCommandError
 from llmling_agent.commands.log import SessionLogHandler
 from llmling_agent.ui.status import StatusBar
@@ -109,28 +108,6 @@ class InteractiveSession:
 
         self._prompt = PromptSession[str]("You: ", history=history, auto_suggest=auto)
 
-    def _register_cli_commands(self) -> None:
-        """Register CLI-specific commands."""
-
-        async def exit_command(
-            ctx: CommandContext,
-            args: list[str],
-            kwargs: dict[str, str],
-        ) -> None:
-            """Exit the chat session."""
-            msg = "Session ended."
-            raise ExitCommandError(msg)
-
-        exit_cmd = Command(
-            name="exit",
-            description="Exit chat session",
-            execute_func=exit_command,
-            category="cli",
-        )
-
-        assert self._chat_session is not None
-        self._chat_session.register_command(exit_cmd)
-
     async def _handle_input(self, content: str) -> None:
         """Handle user input."""
         if not content.strip():
@@ -210,7 +187,6 @@ class InteractiveSession:
             self._prompt.completer = completer  # Update the prompt's completer
             # Register event handler AFTER session creation
 
-            self._register_cli_commands()  # Register after session creation
             await self._show_welcome()
 
             while True:
