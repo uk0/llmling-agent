@@ -16,12 +16,12 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 
-from llmling_agent.web.type_utils import ChatMessage
+from llmling_agent.web.type_utils import GradioChatMessage
 
 
 async def format_message_with_metadata(  # noqa: PLR0911
     message: ModelMessage | ModelRequestPart | ModelResponsePart,
-) -> ChatMessage:
+) -> GradioChatMessage:
     """Format message with metadata for Gradio chat."""
     match message:
         case ModelResponse() as resp:
@@ -41,13 +41,13 @@ async def format_message_with_metadata(  # noqa: PLR0911
                         tool_info = f"🛠️ {part.tool_name}: {args}"
                         parts.append(tool_info)
                         metadata["tool"] = part.tool_name
-            return ChatMessage(
+            return GradioChatMessage(
                 role="assistant",
                 content="\n".join(parts) if parts else "",
                 metadata=metadata,
             )
         case TextPart():
-            return ChatMessage(
+            return GradioChatMessage(
                 role="assistant",
                 content=message.content,
             )
@@ -57,13 +57,13 @@ async def format_message_with_metadata(  # noqa: PLR0911
                 if isinstance(message.args, ArgsDict)
                 else message.args.args_json
             )
-            return ChatMessage(
+            return GradioChatMessage(
                 role="assistant",
                 content=f"🛠️ Using tool: {message.tool_name}",
                 metadata={"tool": message.tool_name, "args": args},
             )
         case ToolReturnPart():
-            return ChatMessage(
+            return GradioChatMessage(
                 role="assistant",
                 content=message.content,
                 metadata={"title": f"🛠️ Used tool: {message.tool_name}"},
@@ -75,7 +75,7 @@ async def format_message_with_metadata(  # noqa: PLR0911
                 error_content = "\n".join(
                     f"- {error['loc']}: {error['msg']}" for error in message.content
                 )
-            return ChatMessage(
+            return GradioChatMessage(
                 role="assistant",
                 content=error_content,
                 metadata={
@@ -84,12 +84,12 @@ async def format_message_with_metadata(  # noqa: PLR0911
                 },
             )
         case SystemPromptPart() | UserPromptPart():
-            return ChatMessage(
+            return GradioChatMessage(
                 role="user" if isinstance(message, UserPromptPart) else "system",
                 content=message.content,
             )
         case _:
-            return ChatMessage(
+            return GradioChatMessage(
                 role="assistant",
                 content=str(message),
             )

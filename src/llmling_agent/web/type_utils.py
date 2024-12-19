@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Literal, NotRequired, TypedDict
 
 
-class ChatMessage(TypedDict):
+class GradioChatMessage(TypedDict):
     """Single chat message format for Gradio chatbot."""
 
     content: str
@@ -15,10 +15,10 @@ class ChatMessage(TypedDict):
     metadata: NotRequired[dict[str, Any]]
 
 
-type ChatHistory = list[ChatMessage]
+type ChatHistory = list[GradioChatMessage]
 
 
-def validate_chat_message(msg: Any) -> ChatMessage:
+def validate_chat_message(msg: Any) -> GradioChatMessage:
     """Validate chat message format.
 
     Args:
