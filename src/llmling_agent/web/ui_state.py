@@ -17,15 +17,16 @@ from llmling_agent.chat_session.events import (
     SessionEventHandler,
     SessionEventType,
 )
-from llmling_agent.chat_session.models import ChatMessage
-from llmling_agent.commands.base import OutputWriter
+from llmling_agent.chat_session.output import CallbackOutputWriter
 from llmling_agent.log import LogCapturer
 from llmling_agent.web.handlers import AgentHandler
 from llmling_agent.web.type_utils import ChatHistory, validate_chat_message
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Awaitable, Callable
+    from collections.abc import AsyncIterator
+
+    from llmling_agent.chat_session.models import ChatMessage
 
 
 logger = logging.getLogger(__name__)
@@ -56,27 +57,6 @@ class WebEventHandler(SessionEventHandler):
                     model=None,
                 )
                 await self.ui_state.update_tool_states(event.data["new_tools"])
-
-
-class WebOutputWriter(OutputWriter):
-    """Output writer that sends messages to web UI."""
-
-    def __init__(
-        self,
-        message_callback: Callable[[ChatMessage], Awaitable[None]],
-    ) -> None:
-        """Initialize web output writer.
-
-        Args:
-            message_callback: Async function to call with new messages
-        """
-        self._callback = message_callback
-
-    async def print(self, message: str) -> None:
-        """Send message to web UI."""
-        logger.debug("WebOutputWriter printing: %s", message)
-        chat_message = ChatMessage(content=message, role="system")
-        await self._callback(chat_message)
 
 
 class UIUpdate(BaseModel):
@@ -289,7 +269,7 @@ class UIState:
                     messages.append({"content": msg.content, "role": msg.role})
 
             # Send message through chat session
-            writer = WebOutputWriter(add_message)
+            writer = CallbackOutputWriter(add_message)
             result = await self._current_session.send_message(message, output=writer)
 
             # For non-command messages, add the regular response
