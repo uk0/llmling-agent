@@ -304,7 +304,11 @@ class AgentChatSession:
 
         # Update session state before returning
         self._state.message_count += 2  # User and assistant messages
-        metadata_obj = MessageMetadata(**metadata)
+        metadata_obj = MessageMetadata(
+            model=model_name,
+            token_usage=cost_info.token_usage if cost_info else None,
+            cost=cost_info.cost_usd if cost_info else None,
+        )
 
         chat_msg = ChatMessage(
             content=response,
