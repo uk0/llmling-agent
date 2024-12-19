@@ -35,7 +35,8 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-HISTORY_DIR = pathlib.Path(user_data_dir("llmling", "llmling")) / "history"
+HISTORY_DIR = pathlib.Path(user_data_dir("llmling", "llmling")) / "cli_history"
+HISTORY_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class AgentChatSession:
@@ -92,9 +93,6 @@ class AgentChatSession:
         """Initialize async resources and load data."""
         if self._initialized:
             return
-
-        # Ensure directories exist
-        HISTORY_DIR.mkdir(parents=True, exist_ok=True)
 
         # Load command history
         try:

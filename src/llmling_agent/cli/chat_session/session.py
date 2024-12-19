@@ -70,11 +70,7 @@ class InteractiveSession:
         auto = AutoSuggestFromHistory()
         history = SessionHistory(self.session)
 
-        self._prompt = PromptSession[str](
-            "You: ",
-            history=history,
-            auto_suggest=auto,
-        )
+        self._prompt = PromptSession[str]("You: ", history=history, auto_suggest=auto)
 
     def _register_cli_commands(self) -> None:
         """Register CLI-specific commands."""
