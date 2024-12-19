@@ -13,9 +13,8 @@ from pydantic_ai.messages import (
     TextPart,
     ToolCallPart,
 )
-from pydantic_ai.result import Cost
-import tokencost
 
+from llmling_agent.costs.core import calculate_completion_cost, calculate_prompt_cost
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import TokenAndCostResult, TokenUsage
 
@@ -61,9 +60,9 @@ def extract_token_usage_and_cost(
 
     model = model.split(":", 1)[1] if ":" in model else model
 
-    # Calculate actual USD costs using tokencost
-    prompt_cost = tokencost.calculate_prompt_cost(prompt, model)
-    completion_cost = tokencost.calculate_completion_cost(completion, model)
+    # Calculate actual USD costs using our own implementation
+    prompt_cost = calculate_prompt_cost(prompt, model)
+    completion_cost = calculate_completion_cost(completion, model)
     total_cost = float(prompt_cost + completion_cost)
 
     return TokenAndCostResult(token_usage=token_usage, cost_usd=total_cost)
