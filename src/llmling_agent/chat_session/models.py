@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal
+from typing import TYPE_CHECKING
 from uuid import UUID  # noqa: TC003
 
 from pydantic import BaseModel, Field
@@ -12,16 +12,11 @@ from pydantic import BaseModel, Field
 from llmling_agent.log import get_logger
 
 
+if TYPE_CHECKING:
+    from llmling_agent.models.messages import ChatMessage
+
+
 logger = get_logger(__name__)
-
-
-class ChatMessage(BaseModel):
-    """A message in the conversation."""
-
-    content: str
-    role: Literal["user", "assistant", "system"]
-    metadata: dict[str, Any] | None = None
-    timestamp: datetime = Field(default_factory=datetime.now)
 
 
 class ChatSessionMetadata(BaseModel):
@@ -50,12 +45,12 @@ class SessionState:
     def update_tokens(self, message: ChatMessage) -> None:
         """Update token counts and costs from message metadata."""
         if message.metadata:
-            if token_usage := message.metadata.get("token_usage"):
+            if token_usage := message.metadata.token_usage:
                 self.total_tokens = token_usage["total"]
                 self.prompt_tokens = token_usage["prompt"]
                 self.completion_tokens = token_usage["completion"]
 
-            if cost := message.metadata.get("cost_usd"):
+            if cost := message.metadata.cost:
                 self.total_cost = float(cost)
                 logger.debug("Updated session cost to: $%.6f", self.total_cost)
 

@@ -17,11 +17,10 @@ import pytest
 
 from llmling_agent.chat_session import (
     AgentChatSession,
-    ChatMessage,
     ChatSessionError,
     ChatSessionManager,
 )
-from llmling_agent.models.messages import TokenAndCostResult
+from llmling_agent.models.messages import ChatMessage, TokenAndCostResult
 
 
 if TYPE_CHECKING:
@@ -87,7 +86,8 @@ async def test_send_message_normal(chat_session: AgentChatSession) -> None:
         assert response.content == TEST_RESPONSE
         assert response.role == "assistant"
         assert response.metadata
-        assert response.metadata["token_usage"]["total"] == 10  # noqa: PLR2004
+        assert response.token_usage
+        assert response.token_usage["total"] == 10  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
@@ -122,7 +122,8 @@ async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession
         messages = [msg async for msg in response_stream]
         final_msg = messages[-1]
         assert final_msg.metadata
-        assert final_msg.metadata["token_usage"]["total"] == 10  # noqa: PLR2004
+        assert final_msg.metadata.token_usage
+        assert final_msg.metadata.token_usage["total"] == 10  # noqa: PLR2004
 
 
 @pytest.mark.asyncio

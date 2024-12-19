@@ -15,16 +15,13 @@ from llmling_agent.chat_session.events import (
     SessionEventType,
 )
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
-from llmling_agent.chat_session.models import (
-    ChatMessage,
-    ChatSessionMetadata,
-    SessionState,
-)
+from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
 from llmling_agent.chat_session.output import DefaultOutputWriter, OutputWriter
 from llmling_agent.commands import CommandStore
 from llmling_agent.commands.base import BaseCommand, CommandContext
 from llmling_agent.commands.exceptions import CommandError, ExitCommandError
 from llmling_agent.log import get_logger
+from llmling_agent.models.messages import ChatMessage, MessageMetadata
 from llmling_agent.pydantic_ai_utils import extract_token_usage_and_cost
 
 
@@ -307,8 +304,13 @@ class AgentChatSession:
 
         # Update session state before returning
         self._state.message_count += 2  # User and assistant messages
+        metadata_obj = MessageMetadata(**metadata)
+
         chat_msg = ChatMessage(
-            content=response, role="assistant", metadata=metadata if metadata else None
+            content=response,
+            role="assistant",
+            metadata=metadata_obj,
+            token_usage=metadata_obj.token_usage,
         )
         self._state.update_tokens(chat_msg)
 
@@ -354,10 +356,12 @@ class AgentChatSession:
 
             # Update session state after stream completes
             self._state.message_count += 2  # User and assistant messages
+            meta_obj = MessageMetadata(**metadata)
             final_msg = ChatMessage(
                 content="",  # Empty content for final status message
                 role="assistant",
-                metadata=metadata if metadata else None,
+                metadata=meta_obj,
+                token_usage=meta_obj.token_usage,
             )
             self._state.update_tokens(final_msg)
             yield final_msg

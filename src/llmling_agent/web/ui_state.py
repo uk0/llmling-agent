@@ -343,7 +343,9 @@ class UIState:
                 messages.append({
                     "content": chat_msg.content,
                     "role": "assistant",
-                    "metadata": chat_msg.metadata or {},
+                    "metadata": chat_msg.metadata.model_dump()
+                    if chat_msg.metadata
+                    else {},
                 })
 
                 yield UIUpdate(chat_history=messages, status="Receiving response...")

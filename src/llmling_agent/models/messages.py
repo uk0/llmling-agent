@@ -68,8 +68,11 @@ class ChatMessage(BaseModel):
     """Common message format for all UI types."""
 
     content: str
+    model: str | None = Field(default=None)
     role: Literal["user", "assistant", "system"]
     metadata: MessageMetadata | None = Field(default=None)
+    timestamp: datetime = Field(default_factory=datetime.now)
+    token_usage: TokenUsage | None = Field(default=None)
 
     model_config = {"frozen": True}
 
