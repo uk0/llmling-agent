@@ -40,7 +40,7 @@ dependencies = [
     "promptantic>=0.4.5",
     "pydantic",
     # Only add below (Copier)
-    "pydantic-ai[logfire]>=0.0.13",
+    "pydantic-ai[logfire]>=0.0.14",
     "python-dotenv>=1.0.1",
     "sqlmodel>=0.0.22",
     "typer>=0.15.1",

@@ -6,7 +6,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai.messages import ModelRequest, UserPromptPart
-from pydantic_ai.result import Cost, RunResult
+from pydantic_ai.result import RunResult, Usage
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
@@ -137,7 +137,7 @@ class AgentOrchestrator[T]:
                         ],
                         _new_message_index=0,
                         data=f"Error: {result}",  # type: ignore[arg-type]
-                        _cost=Cost(),
+                        _usage=Usage(),
                     )
                 ]
             )

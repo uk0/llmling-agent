@@ -299,7 +299,7 @@ class AgentChatSession:
         response = str(result.data)
         cost_info = (
             await extract_token_usage_and_cost(
-                result.cost(),
+                result.usage(),
                 model_name,
                 content,  # prompt
                 response,  # completion
@@ -356,7 +356,7 @@ class AgentChatSession:
             model_name = self._model or self._agent.model_name
             cost_info = (
                 await extract_token_usage_and_cost(
-                    stream_result.cost(),
+                    stream_result.usage(),
                     model_name,
                     content,  # prompt
                     response,  # completion

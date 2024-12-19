@@ -58,11 +58,11 @@ async def chat_session(mock_agent) -> AgentChatSession:
 async def test_send_message_normal(chat_session: AgentChatSession) -> None:
     """Test normal message sending."""
     mock_result = AsyncMock()
-    mock_cost = MagicMock()
-    mock_cost.total_tokens = 10
-    mock_cost.request_tokens = 5
-    mock_cost.response_tokens = 5
-    mock_result.cost.return_value = mock_cost
+    mock_usage = MagicMock()
+    mock_usage.total_tokens = 10
+    mock_usage.request_tokens = 5
+    mock_usage.response_tokens = 5
+    mock_result.usage.return_value = mock_usage
     mock_result.data = TEST_RESPONSE
 
     # Mock the token cost calculation
@@ -101,11 +101,11 @@ async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession
             yield chunk
 
     stream_result.stream = mock_stream
-    mock_cost = MagicMock()
-    mock_cost.total_tokens = 10
-    mock_cost.request_tokens = 5
-    mock_cost.response_tokens = 5
-    stream_result.cost = MagicMock(return_value=mock_cost)
+    mock_usage = MagicMock()
+    mock_usage.total_tokens = 10
+    mock_usage.request_tokens = 5
+    mock_usage.response_tokens = 5
+    stream_result.usage = MagicMock(return_value=mock_usage)
     # Mock the token cost calculation
     mock_token_result = TokenAndCostResult(
         token_usage={"total": 10, "prompt": 5, "completion": 5}, cost_usd=0.0001
@@ -132,7 +132,7 @@ async def test_send_message_with_history(chat_session: AgentChatSession) -> None
     # First message
     mock_result1 = AsyncMock(spec=RunResult)
     mock_result1.data = "First response"
-    mock_result1.cost.return_value = MagicMock(total_tokens=10)
+    mock_result1.usage.return_value = MagicMock(total_tokens=10)
 
     # Set up first message history
     user = UserPromptPart(content=TEST_MESSAGE)
@@ -149,7 +149,7 @@ async def test_send_message_with_history(chat_session: AgentChatSession) -> None
     # Second message setup
     mock_result2 = AsyncMock(spec=RunResult)
     mock_result2.data = "Second response"
-    mock_result2.cost.return_value = MagicMock(total_tokens=15)
+    mock_result2.usage.return_value = MagicMock(total_tokens=15)
 
     # Set up second message history
     second_history = [
@@ -186,11 +186,11 @@ async def test_send_message_streaming(chat_session: AgentChatSession) -> None:
     stream_result.stream = mock_stream
 
     # Create a MagicMock for cost instead of AsyncMock
-    mock_cost = MagicMock()
-    mock_cost.total_tokens = None
-    mock_cost.request_tokens = None
-    mock_cost.response_tokens = None
-    stream_result.cost = MagicMock(return_value=mock_cost)
+    mock_usage = MagicMock()
+    mock_usage.total_tokens = None
+    mock_usage.request_tokens = None
+    mock_usage.response_tokens = None
+    stream_result.usage = MagicMock(return_value=mock_usage)
 
     context_mock = AsyncMock()
     context_mock.__aenter__.return_value = stream_result
@@ -265,7 +265,7 @@ async def test_long_conversation(chat_session: AgentChatSession) -> None:
         # Create async mock result
         mock_result = AsyncMock(spec=RunResult)
         mock_result.data = f"Response {i}"
-        mock_result.cost.return_value = MagicMock(total_tokens=10)
+        mock_result.usage.return_value = MagicMock(total_tokens=10)
 
         # Create current exchange
         user_message = ModelRequest(
@@ -298,7 +298,7 @@ async def test_concurrent_messages(chat_session: AgentChatSession) -> None:
         await asyncio.sleep(0.1)
         mock_result = AsyncMock(spec=RunResult)
         mock_result.data = f"Response to: {content}"
-        mock_result.cost.return_value = MagicMock(total_tokens=10)
+        mock_result.usage.return_value = MagicMock(total_tokens=10)
 
         # Create properly typed parts
         user_part: ModelRequestPart = UserPromptPart(content=content)
@@ -339,7 +339,7 @@ async def test_message_after_tool_update(chat_session: AgentChatSession) -> None
     # Then send message
     mock_result = AsyncMock(spec=RunResult)
     mock_result.data = TEST_RESPONSE
-    mock_result.cost.return_value = MagicMock(total_tokens=10)
+    mock_result.usage.return_value = MagicMock(total_tokens=10)
 
     # Create properly typed parts
     user_part: ModelRequestPart = UserPromptPart(content=TEST_MESSAGE)

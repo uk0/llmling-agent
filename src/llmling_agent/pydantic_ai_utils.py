@@ -24,11 +24,11 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai.result import Cost
+    from pydantic_ai.result import Usage
 
 
 async def extract_token_usage_and_cost(
-    cost: Cost,
+    cost: Usage,
     model: str,
     prompt: str,
     completion: str,

@@ -36,7 +36,7 @@ async def test_simple_agent_run(test_agent: LLMlingAgent[str]) -> None:
     result = await test_agent.run(SIMPLE_PROMPT)
     assert isinstance(result.data, str)
     assert result.data == TEST_RESPONSE
-    assert result.cost() is not None
+    assert result.usage() is not None
 
 
 @pytest.mark.asyncio
