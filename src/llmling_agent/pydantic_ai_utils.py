@@ -13,8 +13,8 @@ from pydantic_ai.messages import (
     TextPart,
     ToolCallPart,
 )
+import tokonomics
 
-from llmling_agent.costs.core import calculate_token_cost
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import TokenAndCostResult, TokenUsage
 
@@ -60,7 +60,7 @@ async def extract_token_usage_and_cost(
     )
     logger.debug("Token usage: %s", token_usage)
 
-    cost_usd = await calculate_token_cost(model, token_usage)
+    cost_usd = await tokonomics.calculate_token_cost(model, token_usage)
     if cost_usd is not None:
         logger.debug("Calculated cost: $%.6f", cost_usd)
         return TokenAndCostResult(token_usage=token_usage, cost_usd=cost_usd)

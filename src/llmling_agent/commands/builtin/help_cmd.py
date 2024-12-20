@@ -28,7 +28,7 @@ async def help_command(
     # Simple flat list of commands
     await ctx.output.print("\nAvailable commands:")
     for cmd in store.list_commands():
-        await ctx.output.print(f"  /{cmd.name:<12} - {cmd.description}")
+        await ctx.output.print(f"  /{cmd.name:<16} - {cmd.description}")
 
 
 async def show_command(
