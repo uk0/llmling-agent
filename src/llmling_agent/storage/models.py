@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, DateTime
-from sqlmodel import JSON, Field, SQLModel
+from sqlmodel import JSON, Field, Session, SQLModel
 
 from llmling_agent.pydantic_ai_utils import TokenUsage  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    from llmling_agent.models.messages import TokenAndCostResult
 
 
 class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
@@ -60,6 +65,30 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     cost: float | None = Field(default=None)
     model: str | None = Field(default=None)
 
+    @classmethod
+    def log(
+        cls,
+        conversation_id: str,
+        content: str,
+        role: Literal["user", "assistant", "system"],
+        *,
+        cost_info: TokenAndCostResult | None = None,
+        model: str | None = None,
+    ):
+        from llmling_agent.storage import engine
+
+        with Session(engine) as session:
+            msg = cls(
+                conversation_id=conversation_id,
+                role=role,
+                content=content,
+                token_usage=cost_info.token_usage if cost_info else None,
+                cost=cost_info.cost_usd if cost_info else None,
+                model=model,
+            )
+            session.add(msg)
+            session.commit()
+
 
 class Conversation(SQLModel, table=True):  # type: ignore[call-arg]
     """Database model for conversations."""
@@ -71,3 +100,12 @@ class Conversation(SQLModel, table=True):  # type: ignore[call-arg]
     )
     total_tokens: int = Field(default=0)
     total_cost: float = Field(default=0.0)
+
+    @classmethod
+    def log(cls, conversation_id: str, name: str):
+        from llmling_agent.storage import engine
+
+        with Session(engine) as session:
+            convo = cls(id=conversation_id, agent_name=name)
+            session.add(convo)
+            session.commit()

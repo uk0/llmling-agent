@@ -10,7 +10,6 @@ from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
 from pydantic_ai import Agent as PydanticAgent
-from sqlmodel import Session
 from typing_extensions import TypeVar
 
 from llmling_agent.context import AgentContext
@@ -22,8 +21,7 @@ from llmling_agent.pydantic_ai_utils import (
 )
 from llmling_agent.responses import resolve_response_type
 from llmling_agent.responses.models import InlineResponseDefinition
-from llmling_agent.storage import Conversation, engine
-from llmling_agent.storage.models import Message
+from llmling_agent.storage import Conversation, Message
 from llmling_agent.tools.manager import ToolManager
 
 
@@ -146,12 +144,7 @@ class LLMlingAgent[TResult]:
         self._conversation_id = str(uuid4())
 
         if enable_logging:
-            # Log conversation start
-            with Session(engine) as session:
-                id_ = self._conversation_id
-                convo = Conversation(id=id_, agent_name=name)
-                session.add(convo)
-                session.commit()
+            Conversation.log(self._conversation_id, name)
 
     @classmethod
     @asynccontextmanager
@@ -374,20 +367,13 @@ class LLMlingAgent[TResult]:
             cost_info: Combined token usage and cost information
             model: Optional model name used
         """
-        if not self._enable_logging:
-            return
-
-        with Session(engine) as session:
-            msg = Message(
-                conversation_id=self._conversation_id,
-                role=role,
-                content=content,
-                token_usage=cost_info.token_usage if cost_info else None,
-                cost=cost_info.cost_usd if cost_info else None,
-                model=model,
-            )
-            session.add(msg)
-            session.commit()
+        Message.log(
+            conversation_id=self._conversation_id,
+            content=content,
+            role=role,
+            cost_info=cost_info,
+            model=model,
+        )
 
     async def run(
         self,
