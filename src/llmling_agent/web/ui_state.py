@@ -130,21 +130,13 @@ class UIState:
 
     async def _on_history_cleared(self, event: HistoryClearedEvent) -> None:
         """Handle history cleared event."""
-        await self.send_message(
-            message="",
-            history=[],
-            agent_name=None,
-            model=None,
-        )
+        await self.send_message(message="", history=[], agent_name=None, model=None)
 
     async def _on_session_reset(self, event: SessionResetEvent) -> None:
         """Handle session reset event."""
         # Clear chat and update tool states
         _update = await self.send_message(
-            message="",
-            history=[],
-            agent_name=None,
-            model=None,
+            message="", history=[], agent_name=None, model=None
         )
         await self.update_tool_states(event.new_tools)
 

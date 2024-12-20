@@ -36,10 +36,7 @@ logger = get_logger(__name__)
 # Type for the result
 T = TypeVar("T")
 
-# Type for output format
 OutputFormat = Literal["text", "json", "yaml", "raw"]
-
-# Type for error handling
 ErrorHandling = Literal["raise", "return", "ignore"]
 
 

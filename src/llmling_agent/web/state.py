@@ -80,7 +80,6 @@ class AgentState:
                 response_defs=self.agent_def.responses,
                 model_override=model,
             )
-            # Initialize the runner using context manager
             await runner.__aenter__()
             self.current_runner = runner
 
