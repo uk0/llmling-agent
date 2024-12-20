@@ -57,18 +57,16 @@ class UIUpdate(BaseModel):
         updates = []
         for output in outputs:
             match output:
+                case gr.Dropdown() if self.agent_choices is not None:
+                    updates.append(gr.update(choices=self.agent_choices))
+                case gr.Dropdown() if self.file_choices is not None:
+                    updates.append(gr.update(choices=self.file_choices))
                 case gr.Dropdown():
-                    if self.agent_choices is not None:
-                        updates.append(gr.update(choices=self.agent_choices))
-                    elif self.file_choices is not None:
-                        updates.append(gr.update(choices=self.file_choices))
-                    else:
-                        updates.append(gr.update())
+                    updates.append(gr.update())
+                case gr.Markdown() if "debug-logs" in (output.elem_classes or []):
+                    updates.append(gr.update(value=self.debug_logs))
                 case gr.Markdown():
-                    if output.elem_classes and "debug-logs" in output.elem_classes:
-                        updates.append(gr.update(value=self.debug_logs))
-                    else:
-                        updates.append(gr.update(value=self.status))
+                    updates.append(gr.update(value=self.status))
                 case gr.Chatbot():
                     updates.append(gr.update(value=self.chat_history))
                 case gr.Textbox():
@@ -370,7 +368,7 @@ class UIState:
 
             # Get updated tool states
             manager = self._current_session.tools
-            tool_states = [[t.name, t.enabled] for t in manager.values()]
+            tool_states = [(t.name, t.enabled) for t in manager.values()]
             logs = self.get_debug_logs()
             msg = f"Updated tools: {status}"
             return UIUpdate(status=msg, tool_states=tool_states, debug_logs=logs)
