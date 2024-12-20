@@ -224,10 +224,8 @@ class UIState:
             agent = self.handler.state.current_runner.agent
 
             # Create new session
-            self._current_session = await self._session_manager.create_session(
-                agent=agent,
-                model=model,
-            )
+            manager = self._session_manager
+            self._current_session = await manager.create_session(agent=agent, model=model)
             self._connect_signals()
 
             # Get tool states for UI
@@ -319,7 +317,8 @@ class UIState:
         history: ChatHistory,
     ) -> AsyncIterator[UIUpdate]:
         """Stream message responses."""
-        if not self._current_session:
+        session = self._current_session
+        if not session:
             yield UIUpdate(status="No active session")
             return
 
@@ -328,9 +327,7 @@ class UIState:
             messages.append({"content": message, "role": "user"})
 
             # Get the iterator from send_message
-            message_iterator = await self._current_session.send_message(
-                message, stream=True
-            )
+            message_iterator = await session.send_message(message, stream=True)
 
             # Iterate over the chat messages
             async for chat_msg in message_iterator:
