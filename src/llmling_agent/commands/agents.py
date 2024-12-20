@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from slashed import Command, CommandContext
 import yaml
 
 from llmling_agent.agent import LLMlingAgent
-from llmling_agent.commands.base import Command, CommandContext
 
 
 def create_annotated_dump(
@@ -55,19 +55,19 @@ async def show_agent(
     kwargs: dict[str, str],
 ) -> None:
     """Show current agent's configuration."""
-    if not ctx.session._agent._context:
+    if not ctx.data._agent._context:
         await ctx.output.print("No agent context available")
         return
 
     # Get the agent's config with current overrides
-    config = ctx.session._agent._context.config
+    config = ctx.data._agent._context.config
 
     # Track overrides
     overrides = {}
 
     # Check model override
-    if ctx.session._model:
-        overrides["model"] = ctx.session._model
+    if ctx.data._model:
+        overrides["model"] = ctx.data._model
 
     # Get base config as dict
     config_dict = config.model_dump(exclude_none=True)
@@ -122,7 +122,7 @@ async def list_agents(
 ) -> None:
     """List all available agents."""
     # Get agent definition through context
-    definition = ctx.session._agent._context.definition
+    definition = ctx.data._agent._context.definition
 
     await ctx.output.print("\nAvailable agents:")
     for name, agent in definition.agents.items():
@@ -151,7 +151,7 @@ async def switch_agent(
         return
 
     name = args[0]
-    definition = ctx.session._agent._context.definition
+    definition = ctx.data._agent._context.definition
 
     if name not in definition.agents:
         await ctx.output.print(f"Unknown agent: {name}")
@@ -160,10 +160,10 @@ async def switch_agent(
     try:
         async with LLMlingAgent[str].open_agent(definition, name) as new_agent:
             # Update session's agent
-            ctx.session._agent = new_agent
+            ctx.data._agent = new_agent
             # Reset session state
-            ctx.session._history = []
-            ctx.session._tool_states = new_agent.tools.list_tools()
+            ctx.data._history = []
+            ctx.data._tool_states = new_agent.tools.list_tools()
             await ctx.output.print(f"Switched to agent: {name}")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Failed to switch agent: {e}")

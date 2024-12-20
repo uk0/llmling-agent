@@ -12,7 +12,8 @@ from typing import (
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from llmling_agent.commands.completion import CompletionProvider
+    from slashed import CompletionProvider
+
     from llmling_agent.models.messages import ChatMessage
 
 

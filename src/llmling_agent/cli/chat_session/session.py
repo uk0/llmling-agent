@@ -11,6 +11,8 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from rich.console import Console
 from rich.markdown import Markdown
+from slashed import ExitCommandError
+from slashed.log import SessionLogHandler
 
 from llmling_agent.chat_session import ChatSessionManager
 from llmling_agent.chat_session.exceptions import format_error
@@ -20,8 +22,6 @@ from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.cli.chat_session.completion import PromptToolkitCompleter
 from llmling_agent.cli.chat_session.history import SessionHistory
 from llmling_agent.cli.chat_session.status import render_status_bar
-from llmling_agent.commands.exceptions import ExitCommandError
-from llmling_agent.commands.log import SessionLogHandler
 from llmling_agent.ui.status import StatusBar
 
 

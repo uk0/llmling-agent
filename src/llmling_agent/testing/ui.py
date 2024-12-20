@@ -13,7 +13,7 @@ from llmling_agent.ui.interfaces import UserInterface
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from llmling_agent.commands.completion import CompletionProvider
+    from slashed import CompletionProvider
 
 
 @dataclass

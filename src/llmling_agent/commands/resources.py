@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from llmling_agent.commands.base import Command, CommandContext
+from slashed import Command, CommandContext
 
 
 async def list_resources(
@@ -12,7 +12,7 @@ async def list_resources(
 ) -> None:
     """List available resources."""
     try:
-        resources = ctx.session._agent.runtime.get_resources()
+        resources = ctx.data._agent.runtime.get_resources()
 
         sections = ["# Available Resources\n"]
         for resource in resources:
@@ -46,7 +46,7 @@ async def show_resource(
     name = args[0]
     try:
         # First get resource info
-        resources = ctx.session._agent.runtime.get_resources()
+        resources = ctx.data._agent.runtime.get_resources()
         resource_info = next((r for r in resources if r.name == name), None)
         if not resource_info:
             await ctx.output.print(f"Resource '{name}' not found")
@@ -68,7 +68,7 @@ async def show_resource(
 
         # Try to load content with provided parameters
         try:
-            content = await ctx.session._agent.runtime.load_resource(name, **kwargs)
+            content = await ctx.data._agent.runtime.load_resource(name, **kwargs)
             sections.extend(["\n# Content:", "```", str(content), "```"])
         except Exception as e:  # noqa: BLE001
             sections.append(f"\nFailed to load content: {e}")

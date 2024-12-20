@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from llmling_agent.commands.base import Command, CommandContext
+from slashed import Command, CommandContext
 
 
 async def set_model(
@@ -18,9 +18,9 @@ async def set_model(
     model = args[0]
     try:
         # Create new session with model override
-        await ctx.session.reset()  # Clear history and reset state
+        await ctx.data.reset()  # Clear history and reset state
         msg = "Model changed. How can I help you?"
-        await ctx.session._agent.run(msg, model=model)  # type: ignore[arg-type]
+        await ctx.data._agent.run(msg, model=model)  # type: ignore[arg-type]
         await ctx.output.print(f"Model changed to: {model}")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Failed to change model: {e}")

@@ -5,11 +5,9 @@ from __future__ import annotations
 import webbrowser
 
 from llmling.config.runtime import RuntimeConfig
+from slashed import Command, CommandContext, CommandError, PathCompleter
 from upath import UPath
 
-from llmling_agent.commands.base import Command, CommandContext
-from llmling_agent.commands.completers import PathCompleter
-from llmling_agent.commands.exceptions import CommandError
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 
 
@@ -30,7 +28,7 @@ async def set_env(
 
     try:
         # Get current agent configuration
-        agent = ctx.session._agent
+        agent = ctx.data._agent
         if not agent._context or not agent._context.config:
             msg = "No agent context available"
             raise CommandError(msg)  # noqa: TRY301
@@ -47,9 +45,9 @@ async def set_env(
             new_agent = kls(runtime=new_runtime, context=agent._context, **kw_args)
 
             # Update session's agent
-            ctx.session._agent = new_agent
+            ctx.data._agent = new_agent
             # Reset session state but keep history
-            ctx.session._tool_states = new_agent.tools.list_tools()
+            ctx.data._tool_states = new_agent.tools.list_tools()
 
             await ctx.output.print(
                 f"Environment changed to: {env_path}\n"
@@ -67,11 +65,11 @@ async def edit_env(
     kwargs: dict[str, str],
 ) -> None:
     """Open agent's environment file in default application."""
-    if not ctx.session._agent._context:
+    if not ctx.data._agent._context:
         msg = "No agent context available"
         raise CommandError(msg)
 
-    config = ctx.session._agent._context.config
+    config = ctx.data._agent._context.config
     match config.environment:
         case FileEnvironment(uri=uri):
             # For file environments, open in browser

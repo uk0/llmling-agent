@@ -5,16 +5,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from prompt_toolkit.completion import Completer, Completion
-
-from llmling_agent.commands.completion import CompletionContext
+from slashed import CompletionContext
 
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
     from prompt_toolkit.document import Document
-
-    from llmling_agent.commands.base import BaseCommand
+    from slashed import BaseCommand
 
 
 class PromptToolkitCompleter(Completer):

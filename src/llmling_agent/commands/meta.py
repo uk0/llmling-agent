@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from llmling_agent.commands.base import Command, CommandContext
-from llmling_agent.commands.exceptions import CommandError
+from slashed import Command, CommandContext, CommandError
+
 from llmling_agent.prompts import DEFAULT_PROMPTS, PromptLibrary
 from llmling_agent.prompts.models import PromptTemplate
 
@@ -56,7 +56,7 @@ async def meta_command(
         if chain:
             # Sequential application (multiple LLM calls)
             current_prompt = goal
-            model = ctx.session._agent.model_name
+            model = ctx.data._agent.model_name
             for prompt in prompts:
                 current_prompt = await prompt.apply(
                     current_prompt, model=model, max_length=max_length
@@ -90,7 +90,7 @@ async def meta_command(
             result = await combined.apply(
                 goal=goal,
                 styles=", ".join(style_names),
-                model=ctx.session._agent.model_name,
+                model=ctx.data._agent.model_name,
                 max_length=max_length,
             )
         await ctx.output.print("\nGenerated Prompt:\n" + result)

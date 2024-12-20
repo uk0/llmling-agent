@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import webbrowser
 
-from llmling_agent.commands.base import Command, CommandContext
-from llmling_agent.commands.exceptions import CommandError
+from slashed import Command, CommandContext, CommandError
+
 from llmling_agent.log import get_logger
 from llmling_agent.pydantic_ai_utils import find_last_assistant_message
 
@@ -23,11 +23,11 @@ async def copy_clipboard(
         msg = "pyperclip package required for clipboard operations"
         raise CommandError(msg) from e
 
-    if not ctx.session.history:
+    if not ctx.data.history:
         await ctx.output.print("No messages to copy")
         return
 
-    if content := find_last_assistant_message(ctx.session.history):
+    if content := find_last_assistant_message(ctx.data.history):
         try:
             pyperclip.copy(content)
             await ctx.output.print("Last assistant message copied to clipboard")
@@ -44,11 +44,11 @@ async def edit_agent_file(
     kwargs: dict[str, str],
 ) -> None:
     """Open agent's configuration file in default application."""
-    if not ctx.session._agent._context:
+    if not ctx.data._agent._context:
         msg = "No agent context available"
         raise CommandError(msg)
 
-    config = ctx.session._agent._context.config
+    config = ctx.data._agent._context.config
     if not config.config_file_path:
         msg = "No configuration file path available"
         raise CommandError(msg)

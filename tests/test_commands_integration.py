@@ -7,12 +7,12 @@ from typing import Any
 from llmling import Config, RuntimeConfig
 from llmling.prompts.models import PromptMessage, PromptParameter, StaticPrompt
 import pytest
+from slashed import CommandStore
 
 from llmling_agent import LLMlingAgent
 from llmling_agent.chat_session import AgentChatSession
 from llmling_agent.chat_session.output import DefaultOutputWriter
-from llmling_agent.commands.base import CommandContext
-from llmling_agent.commands.builtin.prompts import prompt_cmd
+from llmling_agent.commands.prompts import prompt_cmd
 
 
 @pytest.fixture
@@ -67,8 +67,8 @@ async def test_prompt_command_simple(runtime_config: Config) -> None:
         agent: LLMlingAgent[Any] = LLMlingAgent(runtime)
         session = AgentChatSession(agent)
 
-        # Create command context directly
-        context = CommandContext(output=TestOutput(), session=session)
+        store = CommandStore()
+        context = store.create_context(session, output_writer=TestOutput())
 
         # Execute prompt command
         await prompt_cmd.execute(ctx=context, args=["greet"])
@@ -91,8 +91,8 @@ async def test_prompt_command_with_args(runtime_config: Config) -> None:
         agent: LLMlingAgent[Any] = LLMlingAgent(runtime)
         session = AgentChatSession(agent)
 
-        # Create command context directly
-        context = CommandContext(output=TestOutput(), session=session)
+        store = CommandStore()
+        context = store.create_context(session, output_writer=TestOutput())
 
         # Execute prompt command with arguments
         kwargs = {"data": "test.txt"}

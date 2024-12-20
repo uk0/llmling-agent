@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from llmling_agent.commands.base import Command, CommandContext
-from llmling_agent.commands.exceptions import ExitCommandError
+from slashed import Command, CommandContext, ExitCommandError
 
 
 async def clear_command(
@@ -10,7 +9,7 @@ async def clear_command(
     kwargs: dict[str, str],
 ) -> None:
     """Clear chat history."""
-    await ctx.session.clear()
+    await ctx.data.clear()
 
 
 async def reset_command(
@@ -19,7 +18,7 @@ async def reset_command(
     kwargs: dict[str, str],
 ) -> None:
     """Reset session state."""
-    await ctx.session.reset()
+    await ctx.data.reset()
 
 
 async def exit_command(

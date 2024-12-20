@@ -9,6 +9,12 @@ from uuid import UUID, uuid4
 
 from platformdirs import user_data_dir
 from psygnal import Signal
+from slashed import (
+    BaseCommand,
+    CommandError,
+    CommandStore,
+    ExitCommandError,
+)
 from sqlalchemy import desc
 from sqlmodel import Session, select
 
@@ -19,9 +25,7 @@ from llmling_agent.chat_session.events import (
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
 from llmling_agent.chat_session.output import DefaultOutputWriter, OutputWriter
-from llmling_agent.commands import CommandStore
-from llmling_agent.commands.base import BaseCommand, CommandContext
-from llmling_agent.commands.exceptions import CommandError, ExitCommandError
+from llmling_agent.commands import get_commands
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
 from llmling_agent.pydantic_ai_utils import extract_token_usage_and_cost
@@ -122,7 +126,8 @@ class AgentChatSession:
 
         # Initialize command system
         self._command_store.register_builtin_commands()
-
+        for cmd in get_commands():
+            self._command_store.register_command(cmd)
         # Any other async initialization...
 
         self._initialized = True
@@ -217,7 +222,12 @@ class AgentChatSession:
             metadata: Optional interface-specific metadata
         """
         self._ensure_initialized()
-        ctx = CommandContext(output=output, session=self, metadata=metadata or {})
+        meta = metadata or {}
+        ctx = self._command_store.create_context(
+            self,
+            output_writer=output,
+            metadata=meta,
+        )
         await self._command_store.execute_command(command_str, ctx)
 
     @overload

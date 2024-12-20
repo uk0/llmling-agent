@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from llmling_agent.commands.base import Command, CommandContext
+from slashed import Command, CommandContext
 
 
 async def list_prompts(
@@ -11,7 +11,7 @@ async def list_prompts(
     kwargs: dict[str, str],
 ) -> None:
     """List available prompts."""
-    prompts = ctx.session._agent.runtime.get_prompts()
+    prompts = ctx.data._agent.runtime.get_prompts()
     await ctx.output.print("\nAvailable prompts:")
     for prompt in prompts:
         await ctx.output.print(f"  {prompt.name:<20} - {prompt.description}")
@@ -32,7 +32,7 @@ async def prompt_command(
 
     name = args[0]
     try:
-        messages = await ctx.session._agent.runtime.render_prompt(name, kwargs)
+        messages = await ctx.data._agent.runtime.render_prompt(name, kwargs)
         # Convert prompt messages to chat format and send to agent
         for msg in messages:
             # TODO: Handle sending multiple messages to agent

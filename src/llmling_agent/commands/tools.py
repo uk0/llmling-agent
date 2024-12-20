@@ -6,9 +6,8 @@ from typing import Any
 
 from llmling.tools import LLMCallableTool
 from llmling.utils.importing import import_callable
+from slashed import Command, CommandContext, CommandError
 
-from llmling_agent.commands.base import Command, CommandContext
-from llmling_agent.commands.exceptions import CommandError
 from llmling_agent.log import get_logger
 
 
@@ -34,7 +33,7 @@ async def list_tools(
     kwargs: dict[str, str],
 ) -> None:
     """List all available tools."""
-    agent = ctx.session._agent
+    agent = ctx.data._agent
     # Format output using ToolInfo formatting
     sections = ["# Available Tools\n"]
     for tool_info in agent.tools.values():
@@ -55,7 +54,7 @@ async def tool_info(
         return
 
     tool_name = args[0]
-    agent = ctx.session._agent
+    agent = ctx.data._agent
 
     try:
         tool_info = agent.tools[tool_name]
@@ -102,9 +101,9 @@ async def toggle_tool(
     name = args[0]
     try:
         if enable:
-            ctx.session._agent.tools.enable_tool(name)
+            ctx.data._agent.tools.enable_tool(name)
         else:
-            ctx.session._agent.tools.disable_tool(name)
+            ctx.data._agent.tools.disable_tool(name)
         action = "enabled" if enable else "disabled"
         await ctx.output.print(f"Tool '{name}' {action}")
     except ValueError as e:
@@ -157,7 +156,7 @@ async def register_tool(
 
         # Register with ToolManager
         meta = {"import_path": import_path, "registered_via": "register-tool"}
-        tool_info = ctx.session._agent.tools.register_tool(
+        tool_info = ctx.data._agent.tools.register_tool(
             llm_tool,
             enabled=True,
             source="dynamic",
@@ -215,7 +214,7 @@ async def write_tool(
 
         # Register all tools with ctx parameter added
         for func in tools:
-            tool_info = ctx.session._agent.tools.register_tool(
+            tool_info = ctx.data._agent.tools.register_tool(
                 func, source="dynamic", metadata={"created_by": "write-tool"}
             )
             await ctx.output.print(f"Tool '{tool_info.name}' registered!")
