@@ -309,7 +309,7 @@ class LLMlingAgent[TResult]:
         capabilities = agent_def.get_capabilities(agent_config.role)
 
         # Create context
-        context: AgentContext[None] = AgentContext(
+        context: AgentContext[Any] = AgentContext(
             agent_name=agent_name,
             capabilities=capabilities,
             definition=agent_def,
