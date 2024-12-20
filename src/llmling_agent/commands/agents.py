@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from slashed import Command, CommandContext
 import yaml
@@ -10,11 +10,26 @@ import yaml
 from llmling_agent.agent import LLMlingAgent
 
 
+if TYPE_CHECKING:
+    from llmling_agent.chat_session.base import AgentChatSession
+
+
+SHOW_AGENT_HELP_TEXT = """\
+Display the complete configuration of the current agent as YAML.
+Shows:
+- Basic agent settings
+- Model configuration (with override indicators)
+- Environment settings (including inline environments)
+- System prompts
+- Response type configuration
+- Other settings
+
+Fields that have been overridden at runtime are marked with comments.
+"""
+
+
 def create_annotated_dump(
-    config: dict[str, Any],
-    overrides: dict[str, Any],
-    *,
-    indent: int = 2,
+    config: dict[str, Any], overrides: dict[str, Any], *, indent: int = 2
 ) -> str:
     """Create YAML dump with override annotations.
 
@@ -50,7 +65,7 @@ def create_annotated_dump(
 
 
 async def show_agent(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
@@ -94,25 +109,6 @@ async def show_agent(
         ])
 
     await ctx.output.print("\n".join(sections))
-
-
-show_agent_cmd = Command(
-    name="show-agent",
-    description="Show current agent's configuration",
-    execute_func=show_agent,
-    help_text=(
-        "Display the complete configuration of the current agent as YAML.\n"
-        "Shows:\n"
-        "- Basic agent settings\n"
-        "- Model configuration (with override indicators)\n"
-        "- Environment settings (including inline environments)\n"
-        "- System prompts\n"
-        "- Response type configuration\n"
-        "- Other settings\n\n"
-        "Fields that have been overridden at runtime are marked with comments."
-    ),
-    category="agents",
-)
 
 
 async def list_agents(
@@ -173,15 +169,7 @@ show_agent_cmd = Command(
     name="show-agent",
     description="Show current agent's configuration",
     execute_func=show_agent,
-    help_text=(
-        "Display detailed information about the current agent including:\n"
-        "- Basic configuration\n"
-        "- Model settings\n"
-        "- Environment configuration\n"
-        "- Response type details\n"
-        "- System prompts\n"
-        "- Other settings"
-    ),
+    help_text=SHOW_AGENT_HELP_TEXT,
     category="agents",
 )
 
