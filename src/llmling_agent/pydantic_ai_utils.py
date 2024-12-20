@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 
 async def extract_token_usage_and_cost(
-    cost: Usage,
+    usage: Usage,
     model: str,
     prompt: str,
     completion: str,
@@ -36,7 +36,7 @@ async def extract_token_usage_and_cost(
     """Extract token usage and calculate actual USD cost.
 
     Args:
-        cost: Token counts from pydantic-ai Cost object
+        usage: Token counts from pydantic-ai Usage object
         model: Name of the model used
         prompt: The prompt text sent to model
         completion: The completion text received
@@ -45,25 +45,25 @@ async def extract_token_usage_and_cost(
         Token usage and USD cost, or None if counts unavailable
     """
     if not (
-        cost
-        and cost.total_tokens is not None
-        and cost.request_tokens is not None
-        and cost.response_tokens is not None
+        usage
+        and usage.total_tokens is not None
+        and usage.request_tokens is not None
+        and usage.response_tokens is not None
     ):
-        logger.debug("Missing token counts in cost object")
+        logger.debug("Missing token counts in Usage object")
         return None
 
     token_usage = TokenUsage(
-        total=cost.total_tokens,
-        prompt=cost.request_tokens,
-        completion=cost.response_tokens,
+        total=usage.total_tokens,
+        prompt=usage.request_tokens,
+        completion=usage.response_tokens,
     )
     logger.debug("Token usage: %s", token_usage)
 
-    cost_usd = await tokonomics.calculate_token_cost(model, token_usage)
-    if cost_usd is not None:
-        logger.debug("Calculated cost: $%.6f", cost_usd)
-        return TokenAndCostResult(token_usage=token_usage, cost_usd=cost_usd)
+    cost = await tokonomics.calculate_token_cost(model, token_usage)
+    if cost is not None:
+        logger.debug("Calculated cost: $%.6f", cost)
+        return TokenAndCostResult(token_usage=token_usage, cost_usd=cost)
 
     logger.debug("Failed to calculate USD cost")
     return None
