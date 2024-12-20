@@ -2,21 +2,32 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import messages as _messages
 from pydantic_ai.messages import (
     ArgsDict,
     ModelMessage,
+    ModelRequest,
     ModelResponse,
+    RetryPromptPart,
+    SystemPromptPart,
     TextPart,
     ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
 )
 import tokonomics
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import TokenAndCostResult, TokenUsage
+from llmling_agent.models.messages import (
+    ChatMessage,
+    MessageMetadata,
+    TokenAndCostResult,
+    TokenUsage,
+)
 
 
 logger = get_logger(__name__)
@@ -116,3 +127,90 @@ def find_last_assistant_message(messages: Sequence[ModelMessage]) -> str | None:
                         )
                         return f"Tool: {tool_call.tool_name}\nArgs: {args}"
     return None
+
+
+def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: PLR0911
+    """Convert a pydantic-ai message to our ChatMessage format.
+
+    Args:
+        message: Message to convert (ModelMessage or its parts)
+
+    Returns:
+        Converted ChatMessage
+
+    Raises:
+        ValueError: If message type is not supported
+    """
+    match message:
+        case ModelRequest():
+            # Use first part's content
+            part = message.parts[0]
+            return ChatMessage(
+                content=str(part.content),
+                role="user" if isinstance(part, UserPromptPart) else "system",
+                timestamp=datetime.now(),
+            )
+
+        case ModelResponse():
+            # Convert first part (shouldn't have multiple typically)
+            return convert_model_message(message.parts[0])
+
+        case TextPart():
+            return ChatMessage(
+                content=message.content,
+                role="assistant",
+                timestamp=datetime.now(),
+            )
+
+        case ToolCallPart():
+            args = (
+                message.args.args_dict
+                if isinstance(message.args, ArgsDict)
+                else message.args.args_json
+            )
+            return ChatMessage(
+                content=f"Tool call: {message.tool_name}\nArgs: {args}",
+                role="assistant",
+                metadata=MessageMetadata(tool=message.tool_name),
+                timestamp=datetime.now(),
+            )
+
+        case ToolReturnPart():
+            return ChatMessage(
+                content=f"Tool {message.tool_name} returned: {message.content}",
+                role="assistant",
+                metadata=MessageMetadata(tool=message.tool_name),
+                timestamp=datetime.now(),
+            )
+
+        case RetryPromptPart():
+            error_content = (
+                message.content
+                if isinstance(message.content, str)
+                else "\n".join(
+                    f"- {error['loc']}: {error['msg']}" for error in message.content
+                )
+            )
+            return ChatMessage(
+                content=f"Retry needed: {error_content}",
+                role="assistant",
+                timestamp=datetime.now(),
+            )
+
+        case SystemPromptPart():
+            return ChatMessage(
+                content=message.content,
+                role="system",
+                timestamp=datetime.now(),
+            )
+
+        case UserPromptPart():
+            return ChatMessage(
+                content=message.content,
+                role="user",
+                timestamp=datetime.now(),
+            )
+
+        case _:
+            msg = f"Unsupported message type: {type(message)}"
+            raise ValueError(msg)

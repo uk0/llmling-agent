@@ -9,14 +9,17 @@ from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
-from pydantic_ai import Agent as PydanticAgent, messages
+from pydantic_ai import Agent as PydanticAgent
 from sqlmodel import Session
 from typing_extensions import TypeVar
 
 from llmling_agent.context import AgentContext
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentsManifest, TokenAndCostResult
-from llmling_agent.pydantic_ai_utils import extract_token_usage_and_cost
+from llmling_agent.pydantic_ai_utils import (
+    convert_model_message,
+    extract_token_usage_and_cost,
+)
 from llmling_agent.responses import resolve_response_type
 from llmling_agent.responses.models import InlineResponseDefinition
 from llmling_agent.storage import Conversation, engine
@@ -32,6 +35,8 @@ if TYPE_CHECKING:
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.messages import ModelMessage
     from pydantic_ai.result import RunResult, StreamedRunResult
+
+    from llmling_agent.models.messages import ChatMessage
 
 
 logger = get_logger(__name__)
@@ -561,9 +566,12 @@ class LLMlingAgent[TResult]:
         return self._pydantic_agent.result_validator(*args, **kwargs)
 
     @property
-    def last_run_messages(self) -> list[messages.ModelMessage] | None:
-        """Get messages from the last run."""
-        return self._pydantic_agent.last_run_messages
+    def last_run_messages(self) -> list[ChatMessage]:
+        """Get messages from the last run converted to our format."""
+        return [
+            convert_model_message(msg)
+            for msg in self._pydantic_agent.last_run_messages or []
+        ]
 
     @property
     def runtime(self) -> RuntimeConfig:
