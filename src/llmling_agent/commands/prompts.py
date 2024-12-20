@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from slashed import Command, CommandContext
 
 
+if TYPE_CHECKING:
+    from llmling_agent.chat_session.base import AgentChatSession
+
+
 async def list_prompts(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
@@ -18,7 +24,7 @@ async def list_prompts(
 
 
 async def prompt_command(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:

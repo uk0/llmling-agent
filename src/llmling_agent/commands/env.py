@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 import webbrowser
 
 from llmling.config.runtime import RuntimeConfig
@@ -11,8 +12,12 @@ from upath import UPath
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 
 
+if TYPE_CHECKING:
+    from llmling_agent.chat_session.base import AgentChatSession
+
+
 async def set_env(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
@@ -60,7 +65,7 @@ async def set_env(
 
 
 async def edit_env(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:

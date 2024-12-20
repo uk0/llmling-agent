@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from slashed import Command, CommandContext, CommandError
 
 from llmling_agent.prompts import DEFAULT_PROMPTS, PromptLibrary
 from llmling_agent.prompts.models import PromptTemplate
 
 
+if TYPE_CHECKING:
+    from llmling_agent.chat_session.base import AgentChatSession
+
+
 async def meta_command(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
