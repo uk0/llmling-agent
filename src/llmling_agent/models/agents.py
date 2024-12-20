@@ -82,6 +82,9 @@ class AgentConfig(BaseModel):
     user_prompts: list[str] = Field(default_factory=list)
     """Default user prompts for the agent"""
 
+    include_role_prompts: bool = True
+    """Whether to include default prompts based on the agent's role."""
+
     model_settings: dict[str, Any] = Field(default_factory=dict)
     """Additional settings to pass to the model"""
 

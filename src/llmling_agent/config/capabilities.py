@@ -89,3 +89,27 @@ BUILTIN_ROLES: dict[BuiltinRole, Capabilities] = {
         stats_access="none",
     ),
 }
+
+DEFAULT_ROLE_PROMPTS: dict[RoleName, list[str]] = {
+    "overseer": [
+        """You are an overseer agent that coordinates with specialists.
+        When you encounter tasks that could benefit from specific expertise:
+        1. Use list_available_agents to discover specialists
+        2. Use delegate_to when another agent would be more suitable
+        3. Stop after delegating - the specialist will handle the request
+        """,
+    ],
+    "specialist": [
+        """You are a specialist agent. While you can delegate tasks,
+        prefer handling requests within your domain of expertise.
+        Use list_available_agents and delegate_to only when you encounter
+        tasks clearly outside your specialty.
+        """,
+    ],
+    "assistant": [
+        """You are a general assistant agent.
+        You can delegate tasks to specialists when their expertise
+        would provide better results.
+        """,
+    ],
+}
