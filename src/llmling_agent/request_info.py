@@ -64,9 +64,9 @@ def format_messages(messages: list[ModelMessage], indent: str = "  ") -> list[st
                             content = part.content
                         case ToolCallPart():
                             args = (
-                                part.args.args_dict
+                                part.args.args_dict  # pyright: ignore
                                 if hasattr(part.args, "args_dict")
-                                else part.args.args_json
+                                else part.args.args_json  # pyright: ignore
                             )
                             content = f"Tool: {part.tool_name}, Args: {args}"
                         case _:
@@ -104,28 +104,15 @@ def format_request_info(
 
     # Tool information
     if tools:
-        sections.extend([
-            "",
-            "Available Tools",
-            "-" * 15,
-        ])
+        sections.extend(["", "Available Tools", "-" * 15])
         sections.extend(tool.format_info() for tool in tools)
 
     # Message information
     if new_messages:
-        sections.extend([
-            "",
-            "New Context Messages",
-            "-" * 18,
-        ])
+        sections.extend(["", "New Context Messages", "-" * 18])
         sections.extend(format_messages(new_messages))
 
     # Current prompt
-    sections.extend([
-        "",
-        "Current Prompt",
-        "-" * 13,
-        prompt,
-    ])
+    sections.extend(["", "Current Prompt", "-" * 13, prompt])
 
     return "\n".join(sections)
