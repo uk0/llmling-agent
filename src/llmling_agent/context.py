@@ -4,12 +4,16 @@ from typing import Any
 
 from llmling import RuntimeConfig  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field
+from typing_extensions import TypeVar
 
 from llmling_agent.config.capabilities import Capabilities
 from llmling_agent.models import AgentConfig, AgentsManifest
 
 
-class AgentContext(BaseModel):
+TDeps = TypeVar("TDeps", default=Any)
+
+
+class AgentContext[TDeps](BaseModel):
     """Runtime context for agent execution."""
 
     agent_name: str
@@ -24,8 +28,14 @@ class AgentContext(BaseModel):
     config: AgentConfig
     """Current agent's specific configuration."""
 
+    current_prompt: str | None = None
+    """Current prompt text for the agent."""
+
     model_settings: dict[str, Any] = Field(default_factory=dict)
     """Model-specific settings."""
+
+    data: TDeps | None = None
+    """Custom context data."""
 
     runtime: RuntimeConfig | None = None
     """Reference to the runtime configuration."""

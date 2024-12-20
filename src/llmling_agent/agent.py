@@ -309,7 +309,7 @@ class LLMlingAgent[TResult]:
         capabilities = agent_def.get_capabilities(agent_config.role)
 
         # Create context
-        context = AgentContext(
+        context: AgentContext[None] = AgentContext(
             agent_name=agent_name,
             capabilities=capabilities,
             definition=agent_def,
@@ -407,7 +407,8 @@ class LLMlingAgent[TResult]:
         try:
             # Clear all tools
             self._pydantic_agent._function_tools.clear()
-
+            if self._context:
+                self._context.current_prompt = prompt
             # Register currently enabled tools
             enabled_tools = self.tools.get_tools(state="enabled")
             for tool in enabled_tools:
