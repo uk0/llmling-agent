@@ -42,17 +42,18 @@ class SessionState:
     start_time: datetime = field(default_factory=datetime.now)
     last_command: str | None = None
 
-    def update_tokens(self, message: ChatMessage) -> None:
+    def update_tokens(self, message: ChatMessage):
         """Update token counts and costs from message metadata."""
-        if message.metadata:
-            if token_usage := message.metadata.token_usage:
-                self.total_tokens = token_usage["total"]
-                self.prompt_tokens = token_usage["prompt"]
-                self.completion_tokens = token_usage["completion"]
+        if not message.metadata:
+            return
+        if token_usage := message.metadata.token_usage:
+            self.total_tokens = token_usage["total"]
+            self.prompt_tokens = token_usage["prompt"]
+            self.completion_tokens = token_usage["completion"]
 
-            if cost := message.metadata.cost:
-                self.total_cost = float(cost)
-                logger.debug("Updated session cost to: $%.6f", self.total_cost)
+        if cost := message.metadata.cost:
+            self.total_cost = float(cost)
+            logger.debug("Updated session cost to: $%.6f", self.total_cost)
 
     @property
     def duration(self) -> str:

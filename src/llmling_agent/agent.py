@@ -15,12 +15,8 @@ from typing_extensions import TypeVar
 from llmling_agent.context import AgentContext
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentsManifest, TokenAndCostResult
-from llmling_agent.pydantic_ai_utils import (
-    convert_model_message,
-    extract_token_usage_and_cost,
-)
-from llmling_agent.responses import resolve_response_type
-from llmling_agent.responses.models import InlineResponseDefinition
+from llmling_agent.pydantic_ai_utils import convert_model_message, extract_usage
+from llmling_agent.responses import InlineResponseDefinition, resolve_response_type
 from llmling_agent.storage import Conversation, Message
 from llmling_agent.tools.manager import ToolManager
 
@@ -423,12 +419,10 @@ class LLMlingAgent[TResult]:
 
                 # Get cost info for assistant response
                 result_str = str(result.data)
-                model_name = self.model_name
+                usage = result.usage()
                 cost = (
-                    await extract_token_usage_and_cost(
-                        result.usage(), model_name, prompt, result_str
-                    )
-                    if model_name
+                    await extract_usage(usage, self.model_name, prompt, result_str)
+                    if self.model_name
                     else None
                 )
 
@@ -437,7 +431,7 @@ class LLMlingAgent[TResult]:
                     result_str,
                     role="assistant",
                     cost_info=cost,
-                    model=model_name,
+                    model=self.model_name,
                 )
         except Exception:
             logger.exception("Agent run failed")
@@ -473,8 +467,7 @@ class LLMlingAgent[TResult]:
         try:
             # Update pydantic agent's tools
             self._pydantic_agent._function_tools.clear()
-            enabled_tools = self.tools.get_tools(state="enabled")
-            for tool in enabled_tools:
+            for tool in self.tools.get_tools(state="enabled"):
                 assert tool._original_callable
                 self._pydantic_agent.tool_plain(tool._original_callable)
 
@@ -554,10 +547,8 @@ class LLMlingAgent[TResult]:
     @property
     def last_run_messages(self) -> list[ChatMessage]:
         """Get messages from the last run converted to our format."""
-        return [
-            convert_model_message(msg)
-            for msg in self._pydantic_agent.last_run_messages or []
-        ]
+        messages = self._pydantic_agent.last_run_messages or []
+        return [convert_model_message(msg) for msg in messages]
 
     @property
     def runtime(self) -> RuntimeConfig:

@@ -28,7 +28,7 @@ from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
 from llmling_agent.commands import get_commands
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
-from llmling_agent.pydantic_ai_utils import extract_token_usage_and_cost
+from llmling_agent.pydantic_ai_utils import extract_usage
 from llmling_agent.storage import engine
 from llmling_agent.storage.models import CommandHistory
 from llmling_agent.tools.base import ToolInfo
@@ -151,11 +151,9 @@ class AgentChatSession:
             return
 
         with Session(engine) as session:
-            history = CommandHistory(
-                session_id=str(self.id),  # Convert UUID to str
-                agent_name=self._agent.name,
-                command=command,
-            )
+            name = self._agent.name
+            id_ = str(self.id)
+            history = CommandHistory(session_id=id_, agent_name=name, command=command)
             session.add(history)
             session.commit()
 
@@ -321,12 +319,7 @@ class AgentChatSession:
         model_name = model_override or self._agent.model_name
         response = str(result.data)
         cost_info = (
-            await extract_token_usage_and_cost(
-                result.usage(),
-                model_name,
-                content,  # prompt
-                response,  # completion
-            )
+            await extract_usage(result.usage(), model_name, content, response)
             if model_name
             else None
         )
@@ -373,12 +366,7 @@ class AgentChatSession:
             # Final message with token usage after stream completes
             model_name = self._model or self._agent.model_name
             cost_info = (
-                await extract_token_usage_and_cost(
-                    stream_result.usage(),
-                    model_name,
-                    content,  # prompt
-                    response,  # completion
-                )
+                await extract_usage(stream_result.usage(), model_name, content, response)
                 if model_name
                 else None
             )

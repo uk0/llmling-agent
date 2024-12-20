@@ -70,7 +70,7 @@ async def test_send_message_normal(chat_session: AgentChatSession) -> None:
         token_usage={"total": 10, "prompt": 5, "completion": 5}, cost_usd=0.0001
     )
     with patch(
-        "llmling_agent.chat_session.base.extract_token_usage_and_cost",
+        "llmling_agent.chat_session.base.extract_usage",
         AsyncMock(return_value=mock_token_result),
     ):
         user_part: ModelRequestPart = UserPromptPart(content=TEST_MESSAGE)
@@ -111,7 +111,7 @@ async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession
         token_usage={"total": 10, "prompt": 5, "completion": 5}, cost_usd=0.0001
     )
     with patch(
-        "llmling_agent.chat_session.base.extract_token_usage_and_cost",
+        "llmling_agent.chat_session.base.extract_usage",
         AsyncMock(return_value=mock_token_result),
     ):
         context_mock = AsyncMock()

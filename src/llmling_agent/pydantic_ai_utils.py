@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from pydantic_ai.result import Usage
 
 
-async def extract_token_usage_and_cost(
+async def extract_usage(
     usage: Usage,
     model: str,
     prompt: str,
