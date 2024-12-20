@@ -253,6 +253,12 @@ def launch_app(
         server_port: Optional server port number
         block: Whether to block the thread. Set to False when using programmatically.
     """
+    import asyncio
+    import platform
+
+    if platform.system() == "Windows":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
     setup_logging()
     logger.info("Starting web interface")
     app = create_app(theme=theme)
