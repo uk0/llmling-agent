@@ -13,6 +13,7 @@ from slashed import (
     BaseCommand,
     CommandError,
     CommandStore,
+    DefaultOutputWriter,
     ExitCommandError,
 )
 from sqlalchemy import desc
@@ -24,7 +25,6 @@ from llmling_agent.chat_session.events import (
 )
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
-from llmling_agent.chat_session.output import DefaultOutputWriter, OutputWriter
 from llmling_agent.commands import get_commands
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from pydantic_ai import messages
 
     from llmling_agent import LLMlingAgent
+    from llmling_agent.chat_session.output import OutputWriter
     from llmling_agent.tools.manager import ToolManager
 
 
@@ -230,6 +231,23 @@ class AgentChatSession:
         )
         await self._command_store.execute_command(command_str, ctx)
 
+    async def send_slash_command(
+        self,
+        content: str,
+        *,
+        output: OutputWriter | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> ChatMessage:
+        writer = output or DefaultOutputWriter()
+        try:
+            await self.handle_command(content[1:], output=writer, metadata=metadata)
+            return ChatMessage(content="", role="system")
+        except ExitCommandError:
+            # Re-raise without wrapping in CommandError
+            raise
+        except CommandError as e:
+            return ChatMessage(content=f"Command error: {e}", role="system")
+
     @overload
     async def send_message(
         self,
@@ -265,16 +283,11 @@ class AgentChatSession:
             raise ValueError(msg)
 
         if content.startswith("/"):
-            writer = output or DefaultOutputWriter()
-            try:
-                await self.handle_command(content[1:], output=writer, metadata=metadata)
-                return ChatMessage(content="", role="system")
-            except ExitCommandError:
-                # Re-raise without wrapping in CommandError
-                raise
-            except CommandError as e:
-                return ChatMessage(content=f"Command error: {e}", role="system")
-
+            return await self.send_slash_command(
+                content,
+                output=output,
+                metadata=metadata,
+            )
         try:
             # Update tool states in pydantic agent before call
             self._agent._pydantic_agent._function_tools.clear()
