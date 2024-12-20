@@ -367,10 +367,7 @@ class AgentChatSession:
             model=self._model or "",  # type: ignore
         ) as stream_result:
             async for response in stream_result.stream():
-                chat_msg = ChatMessage(
-                    content=str(response),
-                    role="assistant",
-                )
+                chat_msg = ChatMessage(content=str(response), role="assistant")
                 yield chat_msg
 
             # Final message with token usage after stream completes

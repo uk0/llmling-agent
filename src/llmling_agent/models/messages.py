@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -30,25 +30,6 @@ class TokenAndCostResult:
     """Total cost in USD"""
 
 
-# TODO: switch to this
-# class TokenUsage(BaseModel):
-#     """Token usage statistics from model responses."""
-
-#     total: int
-#     prompt: int
-#     completion: int
-
-#     model_config = {"frozen": True}
-
-
-# @dataclass(frozen=True)
-# class TokenAndCostResult:
-#     """Combined token and cost tracking."""
-
-#     token_usage: TokenUsage
-#     cost_usd: float
-
-
 class MessageMetadata(BaseModel):
     """Metadata for chat messages."""
 
@@ -60,7 +41,8 @@ class MessageMetadata(BaseModel):
     # Add web UI specific fields
     avatar: str | None = Field(default=None)
     name: str | None = Field(default=None)
-
+    tool_args: dict[str, Any] | None = None
+    tool_result: Any | None = None
     model_config = {"frozen": True}
 
 
