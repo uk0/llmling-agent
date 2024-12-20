@@ -42,7 +42,7 @@ class UIUpdate(BaseModel):
     debug_logs: str | None = None
     agent_choices: list[str] | None = None
     file_choices: list[str] | None = None
-    tool_states: list[list[Any]] | None = None
+    tool_states: list[tuple[str, bool]] | None = None
 
     @model_validator(mode="after")
     def validate_chat_history(self) -> UIUpdate:
@@ -234,7 +234,7 @@ class UIState:
 
             # Get tool states for UI
             tools = self._current_session.tools
-            tool_states = [[t.name, t.enabled] for t in tools.values()]
+            tool_states = [(t.name, t.enabled) for t in tools.values()]
 
             return UIUpdate(
                 status=f"Agent {agent_name} ready",
