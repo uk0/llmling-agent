@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from llmling.tools import LLMCallableTool
 from llmling.utils.importing import import_callable
 from slashed import Command, CommandContext, CommandError
 
 from llmling_agent.log import get_logger
+
+
+if TYPE_CHECKING:
+    from llmling_agent.chat_session.base import AgentChatSession
 
 
 logger = get_logger(__name__)
@@ -26,9 +30,59 @@ def my_tool(text: str) -> str:
     return f"You said: {text}"
 '''
 
+TOOL_INFO_HELP = """\
+Display detailed information about a specific tool:
+- Source (runtime/agent/builtin)
+- Current status (enabled/disabled)
+- Priority and capabilities
+- Parameter descriptions
+- Additional metadata
+
+Example: /tool-info open_browser
+"""
+
+WRITE_TOOL_HELP = """\
+Opens an interactive Python editor to create new tools.
+- ESC + Enter or Alt + Enter to save and exit
+- Functions will be available as tools immediately
+
+Example template:
+def my_tool(text: str) -> str:
+    '''A new tool'''
+    return f'You said: {text}'
+"""
+
+REGISTER_TOOL_HELP = """\
+Register a new tool from a Python import path.
+Examples:
+  /register-tool webbrowser.open
+  /register-tool json.dumps --name format_json
+  /register-tool os.getcwd --description 'Get current directory'
+"""
+
+ENABLE_TOOL_HELP = """\
+Enable a previously disabled tool.
+Use /list-tools to see available tools.
+
+Example: /enable-tool open_browser
+"""
+
+DISABLE_TOOL_HELP = """\
+Disable a tool to prevent its use.
+Use /list-tools to see available tools.
+
+Example: /disable-tool open_browser
+"""
+
+LIST_TOOLS_HELP = """\
+Show all available tools and their current status.
+Tools are grouped by source (runtime/agent/builtin).
+✓ indicates enabled, ✗ indicates disabled.
+"""
+
 
 async def list_tools(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
@@ -44,7 +98,7 @@ async def list_tools(
 
 
 async def tool_info(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
@@ -86,7 +140,7 @@ async def tool_info(
 
 
 async def toggle_tool(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
     *,
@@ -112,7 +166,7 @@ async def toggle_tool(
 
 
 async def enable_tool(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
@@ -121,7 +175,7 @@ async def enable_tool(
 
 
 async def disable_tool(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
@@ -130,7 +184,7 @@ async def disable_tool(
 
 
 async def register_tool(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
@@ -173,7 +227,7 @@ async def register_tool(
 
 
 async def write_tool(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
@@ -229,15 +283,7 @@ write_tool_cmd = Command(
     name="write-tool",
     description="Write and register new tools interactively",
     execute_func=write_tool,
-    help_text=(
-        "Opens an interactive Python editor to create new tools.\n"
-        "- ESC + Enter or Alt + Enter to save and exit\n"
-        "- Functions will be available as tools immediately\n\n"
-        "Example template:\n"
-        "def my_tool(text: str) -> str:\n"
-        "    '''A new tool'''\n"
-        "    return f'You said: {text}'\n"
-    ),
+    help_text=WRITE_TOOL_HELP,
     category="tools",
 )
 
@@ -246,13 +292,7 @@ register_tool_cmd = Command(
     description="Register a new tool from an import path",
     execute_func=register_tool,
     usage="<import_path> [--name name] [--description desc]",
-    help_text=(
-        "Register a new tool from a Python import path.\n"
-        "Examples:\n"
-        "  /register-tool webbrowser.open\n"
-        "  /register-tool json.dumps --name format_json\n"
-        "  /register-tool os.getcwd --description 'Get current directory'"
-    ),
+    help_text=REGISTER_TOOL_HELP,
     category="tools",
 )
 
@@ -261,11 +301,7 @@ list_tools_cmd = Command(
     description="List all available tools",
     execute_func=list_tools,
     usage="[--source runtime|agent|builtin]",
-    help_text=(
-        "Show all available tools and their current status.\n"
-        "Tools are grouped by source (runtime/agent/builtin).\n"
-        "✓ indicates enabled, ✗ indicates disabled."
-    ),
+    help_text=LIST_TOOLS_HELP,
     category="tools",
 )
 
@@ -274,15 +310,7 @@ tool_info_cmd = Command(
     description="Show detailed information about a tool",
     execute_func=tool_info,
     usage="<name>",
-    help_text=(
-        "Display detailed information about a specific tool:\n"
-        "- Source (runtime/agent/builtin)\n"
-        "- Current status (enabled/disabled)\n"
-        "- Priority and capabilities\n"
-        "- Parameter descriptions\n"
-        "- Additional metadata\n\n"
-        "Example: /tool-info open_browser"
-    ),
+    help_text=TOOL_INFO_HELP,
     category="tools",
 )
 
@@ -291,11 +319,7 @@ enable_tool_cmd = Command(
     description="Enable a specific tool",
     execute_func=enable_tool,
     usage="<name>",
-    help_text=(
-        "Enable a previously disabled tool.\n"
-        "Use /list-tools to see available tools.\n\n"
-        "Example: /enable-tool open_browser"
-    ),
+    help_text=ENABLE_TOOL_HELP,
     category="tools",
 )
 
@@ -304,10 +328,6 @@ disable_tool_cmd = Command(
     description="Disable a specific tool",
     execute_func=disable_tool,
     usage="<name>",
-    help_text=(
-        "Disable a tool to prevent its use.\n"
-        "Use /list-tools to see available tools.\n\n"
-        "Example: /disable-tool open_browser"
-    ),
+    help_text=DISABLE_TOOL_HELP,
     category="tools",
 )

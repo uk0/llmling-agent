@@ -1,10 +1,16 @@
 from __future__ import annotations
 
-from slashed import Command, CommandContext, ExitCommandError
+from typing import TYPE_CHECKING
+
+from slashed import Command, CommandContext
+
+
+if TYPE_CHECKING:
+    from llmling_agent.chat_session.base import AgentChatSession
 
 
 async def clear_command(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
@@ -13,30 +19,13 @@ async def clear_command(
 
 
 async def reset_command(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
     """Reset session state."""
     await ctx.data.reset()
 
-
-async def exit_command(
-    ctx: CommandContext,
-    args: list[str],
-    kwargs: dict[str, str],
-) -> None:
-    """Exit the chat session."""
-    msg = "Session ended."
-    raise ExitCommandError(msg)
-
-
-exit_cmd = Command(
-    name="exit",
-    description="Exit chat session",
-    execute_func=exit_command,
-    category="cli",
-)
 
 clear_cmd = Command(
     name="clear",

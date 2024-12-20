@@ -10,6 +10,19 @@ from slashed import Command, CommandContext
 if TYPE_CHECKING:
     from llmling_agent.chat_session.base import AgentChatSession
 
+EXECUTE_PROMPT_HELP = """\
+Execute a named prompt with optional arguments.
+
+Arguments:
+  name: Name of the prompt to execute
+  argN=valueN: Optional arguments for the prompt
+
+Examples:
+  /prompt greet
+  /prompt analyze file=test.py
+  /prompt search query='python code'
+"""
+
 
 async def list_prompts(
     ctx: CommandContext[AgentChatSession],
@@ -63,15 +76,6 @@ prompt_cmd = Command(
     description="Execute a prompt",
     execute_func=prompt_command,
     usage="<name> [arg1=value1] [arg2=value2]",
-    help_text=(
-        "Execute a named prompt with optional arguments.\n\n"
-        "Arguments:\n"
-        "  name: Name of the prompt to execute\n"
-        "  argN=valueN: Optional arguments for the prompt\n\n"
-        "Examples:\n"
-        "  /prompt greet\n"
-        "  /prompt analyze file=test.py\n"
-        "  /prompt search query='python code'"
-    ),
+    help_text=EXECUTE_PROMPT_HELP,
     category="prompts",
 )

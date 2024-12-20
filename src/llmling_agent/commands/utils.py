@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 import webbrowser
 
 from slashed import Command, CommandContext, CommandError
@@ -8,11 +9,35 @@ from llmling_agent.log import get_logger
 from llmling_agent.pydantic_ai_utils import find_last_assistant_message
 
 
+if TYPE_CHECKING:
+    from llmling_agent.chat_session.base import AgentChatSession
+
+
 logger = get_logger(__name__)
 
 
+EDIT_AGENT_HELP = """\
+Open the agent's configuration file in your default editor.
+
+This file contains:
+- Agent settings and capabilities
+- System prompts
+- Model configuration
+- Environment references
+- Role definitions
+
+Note: Changes to the configuration file require reloading the agent.
+
+"""
+
+COPY_CB_HELP = """\
+"Copy the most recent assistant response to the system clipboard.\n"
+"Requires pyperclip package to be installed."
+"""
+
+
 async def copy_clipboard(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
@@ -39,7 +64,7 @@ async def copy_clipboard(
 
 
 async def edit_agent_file(
-    ctx: CommandContext,
+    ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
 ) -> None:
@@ -65,16 +90,7 @@ edit_agent_file_cmd = Command(
     name="open-agent-file",
     description="Open the agent's configuration file",
     execute_func=edit_agent_file,
-    help_text=(
-        "Open the agent's configuration file in your default editor.\n\n"
-        "This file contains:\n"
-        "- Agent settings and capabilities\n"
-        "- System prompts\n"
-        "- Model configuration\n"
-        "- Environment references\n"
-        "- Role definitions\n\n"
-        "Note: Changes to the configuration file require reloading the agent."
-    ),
+    help_text=EDIT_AGENT_HELP,
     category="utils",
 )
 
@@ -82,9 +98,6 @@ copy_clipboard_cmd = Command(
     name="copy-clipboard",
     description="Copy the last assistant message to clipboard",
     execute_func=copy_clipboard,
-    help_text=(
-        "Copy the most recent assistant response to the system clipboard.\n"
-        "Requires pyperclip package to be installed."
-    ),
+    help_text=COPY_CB_HELP,
     category="utils",
 )

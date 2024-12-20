@@ -15,7 +15,7 @@ from llmling_agent.commands.resources import (
     list_resources_cmd,
     show_resource_cmd,
 )
-from llmling_agent.commands.session import clear_cmd, exit_cmd, reset_cmd
+from llmling_agent.commands.session import clear_cmd, reset_cmd
 from llmling_agent.commands.tools import (
     disable_tool_cmd,
     enable_tool_cmd,
@@ -54,5 +54,4 @@ def get_commands() -> list[BaseCommand]:
         show_agent_cmd,
         write_tool_cmd,
         meta_cmd,
-        exit_cmd,
     ]
