@@ -56,7 +56,7 @@ class AgentLogger:
         )
         Message.log(
             conversation_id=self.conversation_id,
-            content=message.content,
+            content=str(message.content),
             role=message.role,
             cost_info=cost_info,
             model=message.model or message.metadata.model,

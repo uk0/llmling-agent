@@ -349,6 +349,13 @@ class LLMlingAgent[TDeps, TResult]:
             case _:
                 return self._pydantic_agent.model.name()
 
+    def _update_tools(self) -> None:
+        """Update pydantic-ai tools."""
+        self._pydantic_agent._function_tools.clear()
+        for tool in self.tools.get_tools(state="enabled"):
+            assert tool._original_callable
+            self._pydantic_agent.tool_plain(tool._original_callable)
+
     async def run(
         self,
         prompt: str,
@@ -375,14 +382,10 @@ class LLMlingAgent[TDeps, TResult]:
             self._context.data = deps
         try:
             # Clear all tools
-            self._pydantic_agent._function_tools.clear()
             if self._context:
                 self._context.current_prompt = prompt
             # Register currently enabled tools
-            enabled_tools = self.tools.get_tools(state="enabled")
-            for tool in enabled_tools:
-                assert tool._original_callable
-                self._pydantic_agent.tool_plain(tool._original_callable)
+            self._update_tools()
 
             logger.debug("agent run prompt=%s", prompt)
             logger.debug("  preparing model and tools run_step=%d", 1)
@@ -409,8 +412,8 @@ class LLMlingAgent[TDeps, TResult]:
             )
 
             # Create and emit assistant message
-            assistant_msg: ChatMessage[TResult] = ChatMessage(
-                content=result_str,
+            assistant_msg: ChatMessage[TResult] = ChatMessage[TResult](
+                content=result.data,
                 role="assistant",
                 metadata=MessageMetadata(
                     model=self.model_name,
@@ -456,12 +459,7 @@ class LLMlingAgent[TDeps, TResult]:
         if deps is not None:
             self._context.data = deps
         try:
-            # Update pydantic agent's tools
-            self._pydantic_agent._function_tools.clear()
-            for tool in self.tools.get_tools(state="enabled"):
-                assert tool._original_callable
-                self._pydantic_agent.tool_plain(tool._original_callable)
-
+            self._update_tools()
             # Emit user message
             user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
             self.message_received.emit(user_msg)
