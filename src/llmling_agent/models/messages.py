@@ -52,7 +52,7 @@ class ChatMessage(BaseModel):
     content: str
     model: str | None = Field(default=None)
     role: Literal["user", "assistant", "system"]
-    metadata: MessageMetadata | None = Field(default=None)
+    metadata: MessageMetadata = Field(default_factory=MessageMetadata)
     timestamp: datetime = Field(default_factory=datetime.now)
     token_usage: TokenUsage | None = Field(default=None)
 

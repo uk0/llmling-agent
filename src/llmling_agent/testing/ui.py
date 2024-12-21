@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from llmling_agent.models import ChatMessage, MessageMetadata
+from llmling_agent.models import ChatMessage
 from llmling_agent.ui.interfaces import UserInterface
 
 
@@ -58,13 +58,7 @@ class DummyUI(UserInterface):
         response = self.message_responses.get(
             message.content, f"Test response to: {message.content}"
         )
-
-        chat_message = ChatMessage(
-            content=response,
-            role="assistant",
-            metadata=MessageMetadata(),
-        )
-
+        chat_message = ChatMessage(content=response, role="assistant")
         if stream:
 
             async def message_stream() -> AsyncIterator[ChatMessage]:
