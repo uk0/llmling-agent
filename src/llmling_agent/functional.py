@@ -466,7 +466,7 @@ async def run_agent_pipeline(  # noqa: PLR0911
             agent_def.roles[agent_config.role] = role.model_copy(update=current)
 
         # Create agent with all settings
-        async with LLMlingAgent[T].open_agent(
+        async with LLMlingAgent[Any, T].open_agent(
             agent_def,
             agent_name,
             model=model,  # type: ignore[arg-type]

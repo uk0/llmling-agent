@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from llmling_agent.chat_session.base import AgentChatSession
 from llmling_agent.chat_session.exceptions import ChatSessionNotFoundError
@@ -22,7 +22,7 @@ class ChatSessionManager:
 
     async def create_session(
         self,
-        agent: LLMlingAgent[str],
+        agent: LLMlingAgent[Any, str],
         *,
         model: str | None = None,
     ) -> AgentChatSession:

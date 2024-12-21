@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import Any
 
 from llmling.core.log import get_logger
 import typer as t
@@ -55,7 +56,7 @@ def chat_command(
             raise t.BadParameter(msg) from e
 
         async def run_chat() -> None:
-            async with LLMlingAgent[str].open_agent(
+            async with LLMlingAgent[Any, str].open_agent(
                 config_path,
                 agent_name,
                 model=model,  # type: ignore[arg-type]

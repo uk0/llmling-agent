@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import traceback
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import httpx
 from prompt_toolkit import PromptSession
@@ -40,7 +40,7 @@ class InteractiveSession:
 
     def __init__(
         self,
-        agent: LLMlingAgent[str],
+        agent: LLMlingAgent[Any, str],
         *,
         log_level: int = logging.WARNING,
         show_log_in_chat: bool = False,
@@ -255,7 +255,7 @@ class InteractiveSession:
 
 # Helper function for CLI
 async def start_interactive_session(
-    agent: LLMlingAgent[str],
+    agent: LLMlingAgent[str, str],
     *,
     log_level: int = logging.WARNING,
     stream: bool = False,

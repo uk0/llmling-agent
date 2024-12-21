@@ -78,7 +78,7 @@ def quickstart_command(
 
         async def run_chat() -> None:
             # Use open_agent with our temporary configs
-            async with LLMlingAgent[Any].open_agent(
+            async with LLMlingAgent[Any, Any].open_agent(
                 agent_path,
                 "quickstart",
             ) as agent:

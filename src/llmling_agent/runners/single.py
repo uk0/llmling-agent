@@ -56,11 +56,11 @@ class SingleAgentRunner[T](AbstractAsyncContextManager):
         self.agent_config = agent_config
         self.response_defs = response_defs
         self.model_override = model_override
-        self._agent: LLMlingAgent[Any] | None = None
+        self._agent: LLMlingAgent[Any, Any] | None = None
         self._runtime: RuntimeConfig | None = None
 
     @property
-    def agent(self) -> LLMlingAgent[Any]:
+    def agent(self) -> LLMlingAgent[Any, Any]:
         """Get the initialized agent.
 
         Returns:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from llmling.config.runtime import RuntimeConfig  # noqa: TC002
 from llmling.tools import LLMCallableTool
@@ -31,7 +31,7 @@ TEST_RESPONSE = "I am a test response"
 
 
 @pytest.mark.asyncio
-async def test_simple_agent_run(test_agent: LLMlingAgent[str]) -> None:
+async def test_simple_agent_run(test_agent: LLMlingAgent[Any, str]) -> None:
     """Test basic agent text response."""
     result = await test_agent.run(SIMPLE_PROMPT)
     assert isinstance(result.data, str)
@@ -40,7 +40,7 @@ async def test_simple_agent_run(test_agent: LLMlingAgent[str]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_message_history(test_agent: LLMlingAgent[str]) -> None:
+async def test_agent_message_history(test_agent: LLMlingAgent[Any, str]) -> None:
     """Test agent with message history."""
     history = [
         ModelRequest(parts=[UserPromptPart(content="Previous message")]),
@@ -53,7 +53,7 @@ async def test_agent_message_history(test_agent: LLMlingAgent[str]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_streaming(test_agent: LLMlingAgent[str]) -> None:
+async def test_agent_streaming(test_agent: LLMlingAgent[Any, str]) -> None:
     """Test agent streaming response."""
     stream_ctx = test_agent.run_stream(SIMPLE_PROMPT)
     async with await stream_ctx as stream:
@@ -62,7 +62,7 @@ async def test_agent_streaming(test_agent: LLMlingAgent[str]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_streaming_with_history(test_agent: LLMlingAgent[str]) -> None:
+async def test_agent_streaming_with_history(test_agent: LLMlingAgent[Any, str]) -> None:
     """Test streaming with message history."""
     history = [
         ModelRequest(parts=[UserPromptPart(content="Previous message")]),
@@ -91,7 +91,7 @@ async def test_agent_streaming_with_history(test_agent: LLMlingAgent[str]) -> No
 
 
 @pytest.mark.asyncio
-async def test_agent_concurrent_runs(test_agent: LLMlingAgent[str]) -> None:
+async def test_agent_concurrent_runs(test_agent: LLMlingAgent[Any, str]) -> None:
     """Test running multiple prompts concurrently."""
     prompts = ["Hello!", "Hi there!", "Good morning!"]
     tasks = [test_agent.run(prompt) for prompt in prompts]
@@ -105,7 +105,7 @@ async def test_agent_model_override(no_tool_runtime: RuntimeConfig) -> None:
     default_response = "default response"
     override_response = "override response"
 
-    agent: LLMlingAgent[str] = LLMlingAgent(
+    agent: LLMlingAgent[Any, str] = LLMlingAgent(
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=default_response),
@@ -133,7 +133,7 @@ async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig) -> None:
 
     tools = [LLMCallableTool.from_callable(test_tool)]
 
-    agent: LLMlingAgent[str] = LLMlingAgent(
+    agent: LLMlingAgent[Any, str] = LLMlingAgent(
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE, call_tools=["test_tool"]),
@@ -173,7 +173,7 @@ async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig) -> None:
     assert tool_return.content.startswith("Tool response:")
 
 
-def test_sync_wrapper(test_agent: LLMlingAgent[str]) -> None:
+def test_sync_wrapper(test_agent: LLMlingAgent[Any, str]) -> None:
     """Test synchronous wrapper method."""
     result = test_agent.run_sync(SIMPLE_PROMPT)
     assert result.data == TEST_RESPONSE
@@ -191,7 +191,7 @@ async def test_agent_context_manager(tmp_path: Path) -> None:
     config_path.write_text(yaml.dump(config))
     model = TestModel(custom_result_text=TEST_RESPONSE)
 
-    async with LLMlingAgent[str].open(
+    async with LLMlingAgent[Any, str].open(
         config_path, name="test-agent", model=model
     ) as agent:
         result = await agent.run(SIMPLE_PROMPT)
@@ -217,7 +217,7 @@ async def test_agent_context_manager(tmp_path: Path) -> None:
 async def test_agent_logging(no_tool_runtime: RuntimeConfig) -> None:
     """Test agent logging functionality."""
     # Test with logging enabled
-    agent1: LLMlingAgent[str] = LLMlingAgent(
+    agent1: LLMlingAgent[Any, str] = LLMlingAgent(
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE),
@@ -227,7 +227,7 @@ async def test_agent_logging(no_tool_runtime: RuntimeConfig) -> None:
     assert result1.data == TEST_RESPONSE
 
     # Test with logging disabled
-    agent2: LLMlingAgent[str] = LLMlingAgent(
+    agent2: LLMlingAgent[Any, str] = LLMlingAgent(
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE),

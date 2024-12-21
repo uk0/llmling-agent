@@ -66,7 +66,7 @@ class AgentChatSession:
 
     def __init__(
         self,
-        agent: LLMlingAgent[str],
+        agent: LLMlingAgent[Any, str],
         *,
         session_id: UUID | str | None = None,
         model_override: str | None = None,

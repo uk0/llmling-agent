@@ -9,12 +9,14 @@ from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
+from psygnal import Signal
 from pydantic_ai import Agent as PydanticAgent
 from typing_extensions import TypeVar
 
 from llmling_agent.context import AgentContext
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentsManifest, TokenAndCostResult
+from llmling_agent.models.messages import ChatMessage
 from llmling_agent.pydantic_ai_utils import convert_model_message, extract_usage
 from llmling_agent.responses import InlineResponseDefinition, resolve_response_type
 from llmling_agent.storage import Conversation, Message
@@ -30,19 +32,18 @@ if TYPE_CHECKING:
     from pydantic_ai.messages import ModelMessage
     from pydantic_ai.result import RunResult, StreamedRunResult
 
-    from llmling_agent.models.messages import ChatMessage
-
 
 logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=str)
+TDeps = TypeVar("TDeps", default=Any)
 T = TypeVar("T")  # For the return type
 
 
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
 
-class LLMlingAgent[TResult]:
+class LLMlingAgent[TDeps, TResult]:
     """Agent for AI-powered interaction with LLMling resources and tools.
 
     This agent integrates LLMling's resource system with PydanticAI's agent capabilities.
@@ -54,10 +55,14 @@ class LLMlingAgent[TResult]:
     - Message history management
     """
 
+    message_received = Signal(ChatMessage)
+    message_added = Signal(ChatMessage)
+    message_exchanged = Signal(ChatMessage)
+
     def __init__(
         self,
         runtime: RuntimeConfig,
-        context: AgentContext | None = None,
+        context: AgentContext[TDeps] | None = None,
         result_type: type[TResult] | None = None,
         *,
         model: models.Model | models.KnownModelName | None = None,
@@ -96,8 +101,11 @@ class LLMlingAgent[TResult]:
             enable_logging: Whether to enable logging for the agent
         """
         self._runtime = runtime
-        self._context = context or AgentContext.create_default(name)
+        self._context = context or AgentContext[TDeps].create_default(name)
         self._context.runtime = runtime
+
+        self.message_received.connect(self.message_exchanged.emit)
+        self.message_added.connect(self.message_exchanged.emit)
 
         # Initialize tool manager
         all_tools = list(tools)
@@ -159,7 +167,7 @@ class LLMlingAgent[TResult]:
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         **kwargs: Any,
-    ) -> AsyncIterator[LLMlingAgent[TResult]]:
+    ) -> AsyncIterator[LLMlingAgent[TDeps, TResult]]:
         """Create an agent with an auto-managed runtime configuration.
 
         This is a convenience method that combines RuntimeConfig.open with agent creation.
@@ -233,7 +241,7 @@ class LLMlingAgent[TResult]:
         # Other settings
         system_prompt: str | Sequence[str] | None = None,
         enable_logging: bool = True,
-    ) -> AsyncIterator[LLMlingAgent[TResult]]:
+    ) -> AsyncIterator[LLMlingAgent[TDeps, TResult]]:
         """Open and configure a specific agent from configuration.
 
         Args:
@@ -375,6 +383,7 @@ class LLMlingAgent[TResult]:
         self,
         prompt: str,
         *,
+        deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
     ) -> RunResult[TResult]:
@@ -382,6 +391,7 @@ class LLMlingAgent[TResult]:
 
         Args:
             prompt: User query or instruction
+            deps: Optional dependencies for the agent
             message_history: Optional previous messages for context
             model: Optional model override
 
@@ -391,6 +401,8 @@ class LLMlingAgent[TResult]:
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
+        if deps is not None:
+            self._context.data = deps
         try:
             # Clear all tools
             self._pydantic_agent._function_tools.clear()
@@ -443,13 +455,15 @@ class LLMlingAgent[TResult]:
         self,
         prompt: str,
         *,
+        deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-    ) -> AbstractAsyncContextManager[StreamedRunResult[AgentContext, TResult]]:
+    ) -> AbstractAsyncContextManager[StreamedRunResult[AgentContext[TDeps], TResult]]:
         """Run agent with prompt and get streaming response.
 
         Args:
             prompt: User query or instruction
+            deps: Optional dependencies for the agent
             message_history: Optional previous messages for context
             model: Optional model override
 
@@ -464,6 +478,8 @@ class LLMlingAgent[TResult]:
                     print(message)
             ```
         """
+        if deps is not None:
+            self._context.data = deps
         try:
             # Update pydantic agent's tools
             self._pydantic_agent._function_tools.clear()
@@ -490,6 +506,7 @@ class LLMlingAgent[TResult]:
         self,
         prompt: str,
         *,
+        deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
     ) -> RunResult[TResult]:
@@ -497,6 +514,7 @@ class LLMlingAgent[TResult]:
 
         Args:
             prompt: User query or instruction
+            deps: Optional dependencies for the agent
             message_history: Optional previous messages for context
             model: Optional model override
 
@@ -505,7 +523,7 @@ class LLMlingAgent[TResult]:
         """
         try:
             return asyncio.run(
-                self.run(prompt, message_history=message_history, model=model)
+                self.run(prompt, message_history=message_history, deps=deps, model=model)
             )
         except KeyboardInterrupt:
             raise
@@ -576,7 +594,7 @@ if __name__ == "__main__":
 
     async def main() -> None:
         async with RuntimeConfig.open(config_resources.OPEN_BROWSER) as r:
-            agent: LLMlingAgent[str] = LLMlingAgent(r, model="openai:gpt-4o-mini")
+            agent: LLMlingAgent = LLMlingAgent(r, model="openai:gpt-4o-mini")
             result = await agent.run(sys_prompt)
             print(result.data)
 

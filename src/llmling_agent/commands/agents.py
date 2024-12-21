@@ -154,7 +154,7 @@ async def switch_agent(
         return
 
     try:
-        async with LLMlingAgent[str].open_agent(definition, name) as new_agent:
+        async with LLMlingAgent[Any, str].open_agent(definition, name) as new_agent:
             # Update session's agent
             ctx.data._agent = new_agent
             # Reset session state
