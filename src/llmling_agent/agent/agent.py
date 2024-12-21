@@ -5,8 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
-from typing import TYPE_CHECKING, Any, Literal
-from uuid import uuid4
+from typing import TYPE_CHECKING, Any
 
 from llmling.config.runtime import RuntimeConfig
 from psygnal import Signal
@@ -14,11 +13,10 @@ from pydantic_ai import Agent as PydanticAgent
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent.models import AgentContext, AgentsManifest, TokenAndCostResult
+from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
 from llmling_agent.pydantic_ai_utils import convert_model_message, extract_usage
 from llmling_agent.responses import InlineResponseDefinition, resolve_response_type
-from llmling_agent.storage import Conversation, Message
 from llmling_agent.tools.manager import ToolManager
 
 
@@ -143,11 +141,9 @@ class LLMlingAgent[TDeps, TResult]:
         msg = "Initialized %s (model=%s, result_type=%s)"
         logger.debug(msg, self._name, model, result_type or "str")
 
-        self._enable_logging = enable_logging
-        self._conversation_id = str(uuid4())
+        from llmling_agent.agent import AgentLogger
 
-        if enable_logging:
-            Conversation.log(self._conversation_id, name)
+        self._logger = AgentLogger(self, enable_logging=enable_logging)
 
     @classmethod
     @asynccontextmanager
@@ -353,30 +349,6 @@ class LLMlingAgent[TDeps, TResult]:
                 return self._pydantic_agent.model
             case _:
                 return self._pydantic_agent.model.name()
-
-    def _log_message(
-        self,
-        content: str,
-        role: Literal["user", "assistant", "system"],
-        *,
-        cost_info: TokenAndCostResult | None = None,
-        model: str | None = None,
-    ) -> None:
-        """Log a single message to the database.
-
-        Args:
-            content: Message content
-            role: Message role (user/assistant/system)
-            cost_info: Combined token usage and cost information
-            model: Optional model name used
-        """
-        Message.log(
-            conversation_id=self._conversation_id,
-            content=content,
-            role=role,
-            cost_info=cost_info,
-            model=model,
-        )
 
     async def run(
         self,
