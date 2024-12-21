@@ -139,3 +139,96 @@ def show_stats(
     stats = get_conversation_stats(filters)
     formatted = format_stats(stats, period, group_by)
     print(format_output(formatted, output_format))  # type: ignore
+
+
+@history_cli.command(name="reset")
+def reset_history(
+    confirm: bool = t.Option(
+        False,
+        "--confirm",
+        "-y",
+        help="Confirm deletion without prompting",
+    ),
+    agent_name: str | None = t.Option(
+        None,
+        "--agent",
+        "-a",
+        help="Only delete history for specific agent",
+    ),
+) -> None:
+    """Reset (clear) conversation history.
+
+    Examples:
+        # Clear all history (with confirmation)
+        llmling-agent history reset
+
+        # Clear without confirmation
+        llmling-agent history reset --confirm
+
+        # Clear history for specific agent
+        llmling-agent history reset --agent myagent
+    """
+    from sqlalchemy import text
+    from sqlmodel import Session, select
+
+    from llmling_agent.storage import engine
+    from llmling_agent.storage.models import Conversation, Message
+    from llmling_agent.storage.queries import (
+        DELETE_AGENT_CONVERSATIONS,
+        DELETE_AGENT_MESSAGES,
+        DELETE_ALL_CONVERSATIONS,
+        DELETE_ALL_MESSAGES,
+    )
+
+    with Session(engine) as session:
+        # Get count before deletion
+        if agent_name:
+            conv_query = select(Conversation).where(Conversation.agent_name == agent_name)
+            msg_query = (
+                select(Message)
+                .join(Conversation)
+                .where(Conversation.agent_name == agent_name)
+            )
+        else:
+            conv_query = select(Conversation)
+            msg_query = select(Message)
+
+        conv_count = len(session.exec(conv_query).all())
+        msg_count = len(session.exec(msg_query).all())
+
+        if not conv_count:
+            print("No conversations to delete.")
+            return
+
+        # Ask for confirmation if needed
+        if not confirm:
+            agent_str = f" for agent '{agent_name}'" if agent_name else ""
+            msg = (
+                f"This will delete {conv_count} conversations and {msg_count} messages"
+                f"{agent_str}.\nAre you sure? [y/N] "
+            )
+            if input(msg).lower() != "y":
+                print("Operation cancelled.")
+                return
+
+        # Delete messages first (foreign key constraint)
+        if agent_name:
+            # Delete messages from specific agent's conversations
+            session.execute(
+                text(DELETE_AGENT_MESSAGES),
+                {"agent": agent_name},
+            )
+            # Delete conversations
+            session.execute(
+                text(DELETE_AGENT_CONVERSATIONS),
+                {"agent": agent_name},
+            )
+        else:
+            # Delete all
+            session.execute(text(DELETE_ALL_MESSAGES))
+            session.execute(text(DELETE_ALL_CONVERSATIONS))
+
+        session.commit()
+
+        agent_str = f" for {agent_name}" if agent_name else ""
+        print(f"Deleted {conv_count} conversations and {msg_count} messages{agent_str}.")
