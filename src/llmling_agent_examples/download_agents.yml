@@ -1,0 +1,89 @@
+agents:
+  # downloader_template:
+  #   description: "Downloads files from URLs"
+  #   model: openai:gpt-4o-mini
+  #   role: specialist
+  #   environment:
+  #     type: inline
+  #     config:
+  #       resources:
+  #         download_url:
+  #           type: text
+  #           content: "http://speedtest.tele2.net/10MB.zip"
+  #       tools:
+  #         download_file:
+  #           callable: llmling_agent.tools.download.download_file
+  #           description: "Download file from URL to target path"
+  #         get_download_url:
+  #           callable: llmling_agent.tools.download.get_download_url
+  #           description: "Get the download URL from configuration"
+  #   system_prompts:
+  #     - |
+  #       You are {{ agent.name }}.
+  #       Your job is simple:
+  #       1. Use get_download_url to get the URL from configuration
+  #       2. Use download_file to download the file
+  #       3. Report ONLY the actual download result
+
+  #       DO NOT explain how downloads work or provide code examples.
+  #       JUST execute the download and report the result.
+  file_getter_1:
+    name: "File Downloader 1"
+    description: "Downloads files from URLs"
+    model: openai:gpt-4o-mini
+    role: specialist
+    system_prompts:
+      - |
+        You are a file download specialist. You have ONE job: use the download_file tool to download files.
+        DO NOT explain how to download files or provide code examples.
+        Just use the download_file tool and report its results.
+        When asked to download a file, respond ONLY with the download result.
+    environment:
+      type: inline
+      config:
+        tools:
+          download_file:
+            import_path: llmling_agent.tools.download.download_file
+            description: "Download file from URL to local path"
+  file_getter_2:
+    name: "File Downloader 2"
+    description: "Downloads files from URLs"
+    model: openai:gpt-4o-mini
+    role: specialist
+    system_prompts:
+      - |
+        You are a file download specialist. You have ONE job: use the download_file tool to download files.
+        DO NOT explain how to download files or provide code examples.
+        Just use the download_file tool and report its results.
+        When asked to download a file, respond ONLY with the download result.
+    environment:
+      type: inline
+      config:
+        tools:
+          download_file:
+            import_path: llmling_agent.tools.download.download_file
+            description: "Download file from URL to local path"
+
+  overseer:
+    name: "Download Coordinator"
+    description: "Coordinates parallel downloads"
+    model: openai:gpt-4o-mini
+    role: overseer
+    environment:
+      type: inline
+      config: {} # Uses delegation tools
+    system_prompts:
+      - |
+        You coordinate file downloads using available agents. Your job is to:
+        1. Use delegate_to to assign download tasks to file_getter_1 and file_getter_2
+        2. Report the EXACT download results from the agents including speeds and sizes
+
+        DO NOT:
+        - Provide code examples
+        - Explain how to implement downloads
+        - Explain the concept of parallel downloads
+        - Give programming advice
+
+        JUST:
+        - Delegate the tasks to the agents
+        - Report their actual download results
