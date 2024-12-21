@@ -18,11 +18,8 @@ Web interface commands require gradio.
 Install with: pip install llmling-agent[ui]
 """
 # Create CLI app
-cli = t.Typer(
-    name="LLMling Agent",
-    help=get_command_help(MAIN_HELP),
-    no_args_is_help=True,
-)
+help_text = get_command_help(MAIN_HELP)
+cli = t.Typer(name="LLMling Agent", help=help_text, no_args_is_help=True)
 
 cli.command(name="add")(add_agent_file)
 cli.command(name="run")(run_command)

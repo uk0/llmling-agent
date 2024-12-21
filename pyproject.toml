@@ -45,7 +45,6 @@ dependencies = [
     "sqlmodel>=0.0.22",
     "typer>=0.15.1",
     "psygnal>=0.11.1",
-    "diskcache>=5.6.3",
     "tokonomics>=0.1.0",
     "slashed>=0.1.0",
 ]
