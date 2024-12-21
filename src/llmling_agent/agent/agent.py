@@ -15,7 +15,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest, TokenAndCostResult
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.models.messages import ChatMessage, MessageMetadata
 from llmling_agent.pydantic_ai_utils import convert_model_message, extract_usage
 from llmling_agent.responses import InlineResponseDefinition, resolve_response_type
 from llmling_agent.storage import Conversation, Message
@@ -55,7 +55,7 @@ class LLMlingAgent[TDeps, TResult]:
     """
 
     message_received = Signal(ChatMessage)
-    message_added = Signal(ChatMessage)
+    message_sent = Signal(ChatMessage)
     message_exchanged = Signal(ChatMessage)
 
     def __init__(
@@ -104,7 +104,7 @@ class LLMlingAgent[TDeps, TResult]:
         self._context.runtime = runtime
 
         self.message_received.connect(self.message_exchanged.emit)
-        self.message_added.connect(self.message_exchanged.emit)
+        self.message_sent.connect(self.message_exchanged.emit)
 
         # Initialize tool manager
         all_tools = list(tools)
@@ -424,26 +424,31 @@ class LLMlingAgent[TDeps, TResult]:
                 model=model,
             )
 
-            if self._enable_logging:
-                # Log user message
-                self._log_message(prompt, role="user")
+            # Emit user message
+            user_msg = ChatMessage(content=prompt, role="user")
+            self.message_received.emit(user_msg)
 
-                # Get cost info for assistant response
-                result_str = str(result.data)
-                usage = result.usage()
-                cost = (
-                    await extract_usage(usage, self.model_name, prompt, result_str)
-                    if self.model_name
-                    else None
-                )
+            # Get cost info for assistant response
+            result_str = str(result.data)
+            usage = result.usage()
+            cost = (
+                await extract_usage(usage, self.model_name, prompt, result_str)
+                if self.model_name
+                else None
+            )
 
-                # Log assistant response with all info
-                self._log_message(
-                    result_str,
-                    role="assistant",
-                    cost_info=cost,
+            # Create and emit assistant message
+            assistant_msg = ChatMessage(
+                content=result_str,
+                role="assistant",
+                metadata=MessageMetadata(
                     model=self.model_name,
-                )
+                    token_usage=cost.token_usage if cost else None,
+                    cost=cost.cost_usd if cost else None,
+                ),
+            )
+            self.message_sent.emit(assistant_msg)
+
         except Exception:
             logger.exception("Agent run failed")
             raise
@@ -486,8 +491,9 @@ class LLMlingAgent[TDeps, TResult]:
                 assert tool._original_callable
                 self._pydantic_agent.tool_plain(tool._original_callable)
 
-            if self._enable_logging:
-                self._log_message(prompt, role="user")
+            # Emit user message
+            user_msg = ChatMessage(content=prompt, role="user")
+            self.message_received.emit(user_msg)
 
             # Return the context manager directly - no await needed
             return self._pydantic_agent.run_stream(
