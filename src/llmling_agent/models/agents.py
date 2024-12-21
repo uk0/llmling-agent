@@ -19,6 +19,7 @@ from llmling_agent.environment import AgentEnvironment  # noqa: TC001
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 from llmling_agent.responses import ResponseDefinition  # noqa: TC001
 from llmling_agent.responses.models import InlineResponseDefinition
+from llmling_agent.templating import render_prompt
 
 
 if TYPE_CHECKING:
@@ -126,6 +127,21 @@ class AgentConfig(BaseModel):
                 # Wrap TestModel in our custom wrapper
                 data["model"] = {"type": "test", "model": model}
         return data
+
+    def render_system_prompts(self, context: dict[str, Any] | None = None) -> list[str]:
+        """Render system prompts with context."""
+        if not context:
+            # Default context
+            context = {
+                "name": self.name,
+                "id": 1,  # Default ID
+                "role": self.role,
+                "model": self.model,
+            }
+
+        return [
+            render_prompt(prompt, {"agent": context}) for prompt in self.system_prompts
+        ]
 
     def get_config(self) -> Config:
         """Get configuration for this agent."""
@@ -249,6 +265,60 @@ class AgentsManifest(ConfigModel):
         extra="forbid",
         arbitrary_types_allowed=True,
     )
+
+    def clone_agent_config(
+        self,
+        name: str,
+        new_name: str | None = None,
+        *,
+        template_context: dict[str, Any] | None = None,
+        **overrides: Any,
+    ) -> str:
+        """Create a copy of an agent configuration.
+
+        Args:
+            name: Name of agent to clone
+            new_name: Optional new name (auto-generated if None)
+            template_context: Variables for template rendering
+            **overrides: Configuration overrides for the clone
+
+        Returns:
+            Name of the new agent
+
+        Raises:
+            KeyError: If original agent not found
+            ValueError: If new name already exists or if overrides invalid
+        """
+        if name not in self.agents:
+            msg = f"Agent {name} not found"
+            raise KeyError(msg)
+
+        actual_name = new_name or f"{name}_copy_{len(self.agents)}"
+        if actual_name in self.agents:
+            msg = f"Agent {actual_name} already exists"
+            raise ValueError(msg)
+
+        # Deep copy the configuration
+        config = self.agents[name].model_copy(deep=True)
+
+        # Apply overrides
+        for key, value in overrides.items():
+            if not hasattr(config, key):
+                msg = f"Invalid override: {key}"
+                raise ValueError(msg)
+            setattr(config, key, value)
+
+        # Handle template rendering if context provided
+        if template_context:
+            # Apply name from context if not explicitly overridden
+            if "name" in template_context and "name" not in overrides:
+                config.name = template_context["name"]
+
+            # Render system prompts
+            config.system_prompts = config.render_system_prompts(template_context)
+
+        self.agents[actual_name] = config
+        return actual_name
 
     @model_validator(mode="after")
     def validate_response_types(self) -> AgentsManifest:

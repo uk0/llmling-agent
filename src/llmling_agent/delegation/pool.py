@@ -82,6 +82,68 @@ class AgentPool:
 
         self._agents_to_load = to_load
 
+    async def clone_agent[TDeps, TResult](
+        self,
+        agent: LLMlingAgent[TDeps, TResult] | str,
+        new_name: str | None = None,
+        *,
+        model_override: str | None = None,
+        system_prompts: list[str] | None = None,
+        template_context: dict[str, Any] | None = None,
+    ) -> LLMlingAgent[TDeps, TResult]:
+        """Create a copy of an agent.
+
+        Args:
+            agent: Agent instance or name to clone
+            new_name: Optional name for the clone
+            model_override: Optional different model
+            system_prompts: Optional different prompts
+            template_context: Variables for template rendering
+
+        Returns:
+            The new agent instance
+        """
+        # Get original config
+        if isinstance(agent, str):
+            if agent not in self.manifest.agents:
+                msg = f"Agent {agent} not found"
+                raise KeyError(msg)
+            config = self.manifest.agents[agent]
+            original_agent: LLMlingAgent[TDeps, TResult] = await self.get_agent(agent)
+        else:
+            config = agent._context.config  # type: ignore
+            original_agent = agent
+
+        # Create new config
+        new_config = config.model_copy(deep=True)
+
+        # Apply overrides
+        if model_override:
+            new_config.model = model_override
+        if system_prompts:
+            new_config.system_prompts = system_prompts
+
+        # Handle template rendering
+        if template_context:
+            new_config.system_prompts = new_config.render_system_prompts(template_context)
+
+        # Create new agent with same runtime
+        new_agent = LLMlingAgent[TDeps, TResult](
+            runtime=original_agent._runtime,
+            context=original_agent._context,
+            result_type=original_agent._pydantic_agent._result_type,  # type: ignore
+            model=new_config.model,  # type: ignore
+            system_prompt=new_config.system_prompts,
+            name=new_name or f"{config.name}_copy_{len(self.agents)}",
+        )
+
+        # Register in pool
+        agent_name = new_agent.name
+        self.manifest.agents[agent_name] = new_config
+        self.agents[agent_name] = new_agent
+
+        return new_agent
+
     async def get_agent[TDeps, TResult](
         self,
         name: str,
@@ -269,3 +331,27 @@ class AgentPool:
         for agent in self.agents.values():
             if agent._runtime:
                 await agent._runtime.shutdown()
+
+
+async def main():
+    async with AgentPool.open("agents.yml") as pool:
+        overseer: LLMlingAgent[Any, str] = await pool.get_agent("overseer")
+        from llmling_agent.delegation.tools import register_delegation_tools
+
+        # Register all delegation tools
+        register_delegation_tools(overseer, pool)
+
+        # Now the overseer can use any delegation tool
+        result = await overseer.run("""
+            Please coordinate a team analysis:
+            1. Use brainstorm with the development team
+            2. Have the critic review the ideas
+            3. Start a debate about the best approach
+        """)
+        print(result)
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
