@@ -26,11 +26,7 @@ T = TypeVar("T", default=str)
 class AgentOrchestrator[T]:
     """Orchestrates multiple agent runners."""
 
-    def __init__(
-        self,
-        agent_def: AgentsManifest,
-        run_config: AgentRunConfig,
-    ) -> None:
+    def __init__(self, agent_def: AgentsManifest, run_config: AgentRunConfig) -> None:
         """Initialize orchestrator.
 
         Args:
