@@ -51,9 +51,9 @@ class LLMlingAgent[TDeps, TResult]:
     - Message history management
     """
 
-    message_received = Signal(ChatMessage)
-    message_sent = Signal(ChatMessage)
-    message_exchanged = Signal(ChatMessage)
+    message_received = Signal(ChatMessage[str])  # Always string
+    message_sent = Signal(ChatMessage[TResult])
+    message_exchanged = Signal(ChatMessage[TResult | str])
 
     def __init__(
         self,
@@ -396,7 +396,7 @@ class LLMlingAgent[TDeps, TResult]:
             )
 
             # Emit user message
-            user_msg = ChatMessage(content=prompt, role="user")
+            user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
             self.message_received.emit(user_msg)
 
             # Get cost info for assistant response
@@ -409,7 +409,7 @@ class LLMlingAgent[TDeps, TResult]:
             )
 
             # Create and emit assistant message
-            assistant_msg = ChatMessage(
+            assistant_msg: ChatMessage[TResult] = ChatMessage(
                 content=result_str,
                 role="assistant",
                 metadata=MessageMetadata(
@@ -463,7 +463,7 @@ class LLMlingAgent[TDeps, TResult]:
                 self._pydantic_agent.tool_plain(tool._original_callable)
 
             # Emit user message
-            user_msg = ChatMessage(content=prompt, role="user")
+            user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
             self.message_received.emit(user_msg)
 
             # Return the context manager directly - no await needed

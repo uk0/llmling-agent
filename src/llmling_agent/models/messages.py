@@ -7,6 +7,10 @@ from datetime import datetime
 from typing import Any, Literal, TypedDict
 
 from pydantic import BaseModel, Field
+from typing_extensions import TypeVar
+
+
+T = TypeVar("T", str, BaseModel, default=str)
 
 
 class TokenUsage(TypedDict):
@@ -46,10 +50,10 @@ class MessageMetadata(BaseModel):
     model_config = {"frozen": True}
 
 
-class ChatMessage(BaseModel):
+class ChatMessage[T](BaseModel):
     """Common message format for all UI types."""
 
-    content: str
+    content: T
     model: str | None = Field(default=None)
     role: Literal["user", "assistant", "system"]
     metadata: MessageMetadata = Field(default_factory=MessageMetadata)
@@ -58,12 +62,24 @@ class ChatMessage(BaseModel):
 
     model_config = {"frozen": True}
 
+    def _get_content_str(self) -> str:
+        """Get string representation of content."""
+        match self.content:
+            case str():
+                return self.content
+            case BaseModel():
+                return self.content.model_dump_json(indent=2)
+            case _:
+                msg = f"Unexpected content type: {type(self.content)}"
+                raise ValueError(msg)
+
     def to_gradio_format(self) -> tuple[str | None, str | None]:
         """Convert to Gradio chatbot format."""
+        content_str = self._get_content_str()
         match self.role:
             case "user":
-                return (self.content, None)
+                return (content_str, None)
             case "assistant":
-                return (None, self.content)
+                return (None, content_str)
             case "system":
-                return (None, f"System: {self.content}")
+                return (None, f"System: {content_str}")
