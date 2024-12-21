@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from py2openai.typedefs import ToolParameters
     from pydantic_ai import RunContext
 
-    from llmling_agent.context import AgentContext
+    from llmling_agent.models import AgentContext
 
 T = TypeVar("T")
 

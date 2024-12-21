@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
 from pydantic_ai import RunContext  # noqa: TC002
-from llmling_agent.context import AgentContext  # noqa: TC001
+from llmling_agent.models import AgentContext  # noqa: TC001
 
 
 if TYPE_CHECKING:

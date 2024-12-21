@@ -9,9 +9,11 @@ from llmling_agent.models.messages import (
 )
 from llmling_agent.models.prompts import SystemPrompt
 from llmling_agent.models.resources import ResourceInfo
+from llmling_agent.models.context import AgentContext
 
 __all__ = [
     "AgentConfig",
+    "AgentContext",
     "AgentsManifest",
     "ChatMessage",
     "MessageMetadata",

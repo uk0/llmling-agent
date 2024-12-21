@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pydantic import BaseModel
 
-    from llmling_agent.context import AgentContext
+    from llmling_agent.models import AgentContext
     from llmling_agent.responses.models import InlineResponseDefinition
 
 
