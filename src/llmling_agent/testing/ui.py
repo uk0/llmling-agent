@@ -54,19 +54,14 @@ class DummyUI(UserInterface):
     ) -> AsyncIterator[ChatMessage] | ChatMessage:
         """Record message and return predefined response."""
         self._record("send_message", message=message, stream=stream)
-
-        response = self.message_responses.get(
-            message.content, f"Test response to: {message.content}"
-        )
+        msg = f"Test response to: {message.content}"
+        response = self.message_responses.get(message.content, msg)
         chat_message: ChatMessage[str] = ChatMessage(content=response, role="assistant")
         if stream:
 
             async def message_stream() -> AsyncIterator[ChatMessage]:
                 for word in response.split():
-                    yield ChatMessage(
-                        content=word + " ",
-                        role="assistant",
-                    )
+                    yield ChatMessage(content=word + " ", role="assistant")
                 yield chat_message
 
             return message_stream()
@@ -114,12 +109,7 @@ class DummyUI(UserInterface):
         cost: float | None = None,
     ) -> None:
         """Record model info update."""
-        self._record(
-            "update_model_info",
-            model=model,
-            token_count=token_count,
-            cost=cost,
-        )
+        self._record("update_model_info", model=model, token_count=token_count, cost=cost)
 
     def get_interactions(
         self,
