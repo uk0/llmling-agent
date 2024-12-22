@@ -11,7 +11,7 @@ from llmling.config.store import ConfigStore
 from upath import UPath
 
 from llmling_agent.chat_session import ChatSessionManager
-from llmling_agent.web.ui_state import UIState
+from llmling_agent_web.ui_state import UIState
 
 
 THEMES = {

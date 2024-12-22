@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from llmling_agent.log import get_logger
 from llmling_agent.runners.single import NotInitializedError
-from llmling_agent.web.state import AgentState
+from llmling_agent_web.state import AgentState
 
 
 logger = get_logger(__name__)

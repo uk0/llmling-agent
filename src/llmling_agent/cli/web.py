@@ -18,7 +18,7 @@ def launch_gui(
     browser: bool = t.Option(True, "--browser/--no-browser", help="Open in browser"),
 ) -> None:
     """Launch the web interface."""
-    from llmling_agent.web.app import launch_app
+    from llmling_agent_web.app import launch_app
 
     if browser:
         url = f"http://{host}:{port or 7860}"

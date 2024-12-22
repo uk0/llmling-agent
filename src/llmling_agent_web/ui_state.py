@@ -15,8 +15,8 @@ import yamling
 from llmling_agent.chat_session import AgentChatSession, ChatSessionManager
 from llmling_agent.chat_session.output import CallbackOutputWriter
 from llmling_agent.log import LogCapturer
-from llmling_agent.web.handlers import AgentHandler
-from llmling_agent.web.type_utils import ChatHistory, validate_chat_message
+from llmling_agent_web.handlers import AgentHandler
+from llmling_agent_web.type_utils import ChatHistory, validate_chat_message
 
 
 if TYPE_CHECKING:
@@ -288,7 +288,7 @@ class UIState:
             if not message.startswith("/"):
                 messages.append({"content": message, "role": "user"})
                 if result.content:
-                    messages.append({"content": result.content, "role": "assistant"})
+                    messages.append({"content": str(result.content), "role": "assistant"})
             # For commands, add the collected output as a response
             elif command_outputs:
                 content = "\n".join(command_outputs)
@@ -332,7 +332,7 @@ class UIState:
             # Iterate over the chat messages
             async for chat_msg in message_iterator:
                 messages.append({
-                    "content": chat_msg.content,
+                    "content": str(chat_msg.content),
                     "role": "assistant",
                     "metadata": chat_msg.metadata.model_dump()
                     if chat_msg.metadata

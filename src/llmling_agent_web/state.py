@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentsManifest
 from llmling_agent.runners import SingleAgentRunner
-from llmling_agent.web.type_utils import ChatHistory  # noqa: TC001
+from llmling_agent_web.type_utils import ChatHistory  # noqa: TC001
 
 
 logger = get_logger(__name__)

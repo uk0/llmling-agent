@@ -16,7 +16,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 
-from llmling_agent.web.type_utils import GradioChatMessage
+from llmling_agent_web.type_utils import GradioChatMessage
 
 
 async def format_message_with_metadata(  # noqa: PLR0911
