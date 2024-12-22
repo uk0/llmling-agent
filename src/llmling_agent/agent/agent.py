@@ -54,6 +54,8 @@ class LLMlingAgent[TDeps, TResult]:
     message_received = Signal(ChatMessage[str])  # Always string
     message_sent = Signal(ChatMessage[TResult])
     message_exchanged = Signal(ChatMessage[TResult | str])
+    # `message_forwarded` defined in __init__
+    message_forwarded = Signal(object, ChatMessage[Any])
 
     def __init__(
         self,
@@ -102,6 +104,8 @@ class LLMlingAgent[TDeps, TResult]:
 
         self.message_received.connect(self.message_exchanged.emit)
         self.message_sent.connect(self.message_exchanged.emit)
+        # self.message_forwarded = Signal(LLMlingAgent[Any, Any], ChatMessage[Any])
+        self.message_sent.connect(self._forward_message)
 
         # Initialize tool manager
         all_tools = list(tools)
@@ -143,6 +147,7 @@ class LLMlingAgent[TDeps, TResult]:
         from llmling_agent.agent import AgentLogger
 
         self._logger = AgentLogger(self, enable_logging=enable_logging)
+        self._pending_tasks: set[asyncio.Task[Any]] = set()
 
     @classmethod
     @asynccontextmanager
@@ -340,6 +345,11 @@ class LLMlingAgent[TDeps, TResult]:
                 # Any cleanup if needed
                 pass
 
+    def _forward_message(self, message: ChatMessage[Any]) -> None:
+        """Forward sent messages."""
+        logger.debug("forwarding message from %s: %s", self.name, message.content)
+        self.message_forwarded.emit(self, message)
+
     @property
     def model_name(self) -> str | None:
         """Get the model name in a consistent format."""
@@ -505,6 +515,11 @@ class LLMlingAgent[TDeps, TResult]:
             logger.exception("Sync agent run failed")
             raise
 
+    async def complete_tasks(self) -> None:
+        """Wait for all pending tasks to complete."""
+        if self._pending_tasks:
+            await asyncio.wait(self._pending_tasks)
+
     def system_prompt(self, *args: Any, **kwargs: Any) -> Any:
         """Register a dynamic system prompt.
 
@@ -520,10 +535,24 @@ class LLMlingAgent[TDeps, TResult]:
         """
         return self._pydantic_agent.system_prompt(*args, **kwargs)
 
-    async def handle_message(self, message: ChatMessage[Any]) -> None:
-        """Handle a message from another agent. Can be used as signal slot."""
-        # Convert any message to string for now as input
-        await self.run(str(message.content))
+    # async def handle_message(self, message: ChatMessage[Any]) -> None:
+    #     """Handle a message from another agent. Can be used as signal slot."""
+    #     msg = "handle_message called on %s from %s with message %s"
+    #     logger.debug(msg, self.name, source.name, message.content)
+    #     # Convert any message to string for now as input
+    #     await self.run(str(message.content))
+
+    def handle_message(
+        self, source: LLMlingAgent[Any, Any], message: ChatMessage[Any]
+    ) -> None:
+        """Handle a message forwarded from another agent."""
+        msg = "handle_message called on %s from %s with message %s"
+        logger.debug(msg, self.name, source.name, message.content)
+        # await self.run(str(message.content), deps=source)
+        loop = asyncio.get_event_loop()
+        task = loop.create_task(self.run(str(message.content), deps=source))  # type: ignore[arg-type]
+        self._pending_tasks.add(task)
+        task.add_done_callback(self._pending_tasks.discard)
 
     def result_validator(self, *args: Any, **kwargs: Any) -> Any:
         """Register a result validator.
