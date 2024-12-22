@@ -157,8 +157,10 @@ class LLMlingAgent[TDeps, TResult]:
         logger.debug(msg, self._name, model, result_type or "str")
 
         from llmling_agent.agent import AgentLogger
+        from llmling_agent.events import EventManager
 
         self._logger = AgentLogger(self, enable_logging=enable_logging)
+        self._events = EventManager(self, enable_events=True)
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._connected_agents: set[LLMlingAgent[Any, Any]] = set()
 
