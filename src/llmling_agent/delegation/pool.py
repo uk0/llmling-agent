@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from llmling_agent import LLMlingAgent
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentsManifest
+from llmling_agent.models.forward_targets import AgentTarget
 
 
 if TYPE_CHECKING:
@@ -22,6 +23,8 @@ if TYPE_CHECKING:
 
     from llmling import Config
     from pydantic_ai.result import RunResult
+
+    from llmling_agent.models.agents import AgentConfig
 
 
 logger = get_logger(__name__)
@@ -85,6 +88,20 @@ class AgentPool:
 
         self._agents_to_load = to_load
 
+    def _connect_signals(self) -> None:
+        """Set up forwarding connections between agents."""
+        for name, config in self.manifest.agents.items():
+            if name not in self.agents:
+                continue
+            agent = self.agents[name]
+            for target in config.forward_to:
+                if isinstance(target, AgentTarget):
+                    if target.name not in self.agents:
+                        msg = f"Forward target {target.name} not loaded for {name}"
+                        raise ValueError(msg)
+                    target_agent = self.agents[target.name]
+                    agent.pass_results_to(target_agent)
+
     async def __aenter__(self) -> Self:
         """Enter async context."""
         return self
@@ -97,6 +114,26 @@ class AgentPool:
     ) -> None:
         """Exit async context."""
         await self.cleanup()
+
+    def _create_agent(
+        self,
+        name: str,
+        config: AgentConfig,
+    ) -> LLMlingAgent[Any, Any]:
+        """Create an agent from configuration."""
+        # Create runtime from agent's config
+        cfg = config.get_config()
+        runtime = RuntimeConfig.from_config(cfg)
+
+        # Create agent with runtime
+        agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+            runtime=runtime,
+            result_type=None,  # type: ignore[arg-type]
+            model=config.model,  # type: ignore[arg-type]
+            system_prompt=config.system_prompts,
+            name=name,
+        )
+        return agent
 
     async def clone_agent[TDeps, TResult](
         self,
