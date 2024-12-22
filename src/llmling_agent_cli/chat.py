@@ -23,7 +23,7 @@ def chat_command(
     ),
     model: str | None = t.Option(None, "--model", "-m", help="Override agent's model"),
     stream: bool = t.Option(
-        False,  # Default to False
+        True,
         "--stream/--no-stream",
         help="Enable streaming mode (default: off)",
     ),
@@ -61,7 +61,7 @@ def chat_command(
                 agent_name,
                 model=model,  # type: ignore[arg-type]
             ) as agent:
-                await start_interactive_session(agent, log_level=level)
+                await start_interactive_session(agent, log_level=level, stream=stream)
 
         asyncio.run(run_chat())
 

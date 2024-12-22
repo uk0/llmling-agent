@@ -31,7 +31,7 @@ def quickstart_command(
         case_sensitive=False,
     ),
     stream: bool = t.Option(
-        False,  # Default to False
+        True,
         "--stream/--no-stream",
         help="Enable streaming mode (default: off)",
     ),
