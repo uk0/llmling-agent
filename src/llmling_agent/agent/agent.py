@@ -14,8 +14,13 @@ from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
+from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
-from llmling_agent.pydantic_ai_utils import convert_model_message, extract_usage
+from llmling_agent.pydantic_ai_utils import (
+    convert_model_message,
+    extract_usage,
+    get_tool_calls,
+)
 from llmling_agent.responses import InlineResponseDefinition, resolve_response_type
 from llmling_agent.tools.manager import ToolManager
 
@@ -54,6 +59,8 @@ class LLMlingAgent[TDeps, TResult]:
     message_received = Signal(ChatMessage[str])  # Always string
     message_sent = Signal(ChatMessage[TResult])
     message_exchanged = Signal(ChatMessage[TResult | str])
+    tool_used = Signal(ToolCallInfo)  # Now we emit the whole info object
+
     # `outbox` defined in __init__
     outbox = Signal(object, ChatMessage[Any])
 
@@ -443,8 +450,9 @@ class LLMlingAgent[TDeps, TResult]:
                     cost=cost.cost_usd if cost else None,
                 ),
             )
+            for call in get_tool_calls(self._pydantic_agent.last_run_messages or []):
+                self.tool_used.emit(call)
             self.message_sent.emit(assistant_msg)
-
         except Exception:
             logger.exception("Agent run failed")
             raise

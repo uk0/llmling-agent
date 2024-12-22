@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Self
 
 from llmling import Config
@@ -380,3 +381,12 @@ class AgentsManifest(ConfigModel):
             return BUILTIN_ROLES[role_name]  # type: ignore[index]
         msg = f"Unknown role: {role_name}"
         raise ValueError(msg)
+
+
+@dataclass(frozen=True)
+class ToolCallInfo:
+    """Information about an executed tool call."""
+
+    tool_name: str
+    args: dict[str, Any]
+    result: Any

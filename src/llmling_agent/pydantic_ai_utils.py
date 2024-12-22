@@ -22,6 +22,7 @@ from pydantic_ai.messages import (
 import tokonomics
 
 from llmling_agent.log import get_logger
+from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import (
     ChatMessage,
     MessageMetadata,
@@ -127,6 +128,29 @@ def find_last_assistant_message(messages: Sequence[ModelMessage]) -> str | None:
                         )
                         return f"Tool: {tool_call.tool_name}\nArgs: {args}"
     return None
+
+
+def get_tool_calls(messages: list[ModelMessage]) -> list[ToolCallInfo]:
+    """Extract tool call information from message history."""
+    tool_calls: list[ToolCallInfo] = []
+    messages = [m for m in messages if not isinstance(m, ModelRequest)]
+    for msg in messages:
+        parts = msg.parts
+        for i, part in enumerate(parts[:-1]):
+            if not isinstance(part, ToolCallPart):
+                continue
+            next_part = parts[i + 1]
+            if not isinstance(next_part, ToolReturnPart):
+                continue
+            args = (
+                part.args.args_dict
+                if isinstance(part.args, ArgsDict)
+                else json.loads(part.args.args_json)
+            )
+            name = part.tool_name
+            info = ToolCallInfo(tool_name=name, args=args, result=next_part.content)
+            tool_calls.append(info)
+    return tool_calls
 
 
 def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: PLR0911
