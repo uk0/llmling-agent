@@ -54,8 +54,8 @@ class LLMlingAgent[TDeps, TResult]:
     message_received = Signal(ChatMessage[str])  # Always string
     message_sent = Signal(ChatMessage[TResult])
     message_exchanged = Signal(ChatMessage[TResult | str])
-    # `message_forwarded` defined in __init__
-    message_forwarded = Signal(object, ChatMessage[Any])
+    # `outbox` defined in __init__
+    outbox = Signal(object, ChatMessage[Any])
 
     def __init__(
         self,
@@ -104,7 +104,7 @@ class LLMlingAgent[TDeps, TResult]:
 
         self.message_received.connect(self.message_exchanged.emit)
         self.message_sent.connect(self.message_exchanged.emit)
-        # self.message_forwarded = Signal(LLMlingAgent[Any, Any], ChatMessage[Any])
+        # self.outbox = Signal(LLMlingAgent[Any, Any], ChatMessage[Any])
         self.message_sent.connect(self._forward_message)
 
         # Initialize tool manager
@@ -348,7 +348,7 @@ class LLMlingAgent[TDeps, TResult]:
     def _forward_message(self, message: ChatMessage[Any]) -> None:
         """Forward sent messages."""
         logger.debug("forwarding message from %s: %s", self.name, message.content)
-        self.message_forwarded.emit(self, message)
+        self.outbox.emit(self, message)
 
     @property
     def model_name(self) -> str | None:

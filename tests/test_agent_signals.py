@@ -29,11 +29,11 @@ async def test_message_chain(test_agent: LLMlingAgent[Any, str], no_tool_runtime
         forwarded.append((source, msg))
 
     # Connect both agents' forwards to our collector
-    test_agent.message_forwarded.connect(collect)
-    agent_b.message_forwarded.connect(collect)
+    test_agent.outbox.connect(collect)
+    agent_b.outbox.connect(collect)
 
     # Connect the chain
-    test_agent.message_forwarded.connect(agent_b.handle_message)
+    test_agent.outbox.connect(agent_b.handle_message)
 
     # When test_agent sends a message
     await test_agent.run("Start message")
