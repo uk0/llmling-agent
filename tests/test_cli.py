@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 from typing import TYPE_CHECKING
 from unittest import mock
@@ -13,6 +12,28 @@ from llmling_agent.cli.agent import agent_cli
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+TEST_CONFIG = """\
+responses:
+  BasicResult:
+    description: Simple test result
+    type: inline
+    fields:
+      success:
+        type: bool
+      message:
+        type: str
+
+agents:
+  test_agent:
+    name: test_agent
+    model: openai:gpt-4o-mini
+    result_type: BasicResult
+    system_prompts:
+      - You are a test agent.
+    user_prompts:
+      - Hello!
+"""
 
 
 @pytest.fixture(autouse=True)
@@ -34,29 +55,8 @@ def setup_environment():
 @pytest.fixture
 def config_file(tmp_path: Path) -> Path:
     """Create a minimal test config file."""
-    config = {
-        "responses": {
-            "BasicResult": {
-                "description": "Simple test result",
-                "type": "inline",
-                "fields": {
-                    "success": {"type": "bool"},
-                    "message": {"type": "str"},
-                },
-            }
-        },
-        "agents": {
-            "test_agent": {
-                "name": "test_agent",
-                "model": "openai:gpt-4o-mini",
-                "result_type": "BasicResult",
-                "system_prompts": ["You are a test agent."],
-                "user_prompts": ["Hello!"],
-            }
-        },
-    }
     config_path = tmp_path / "test_config.yml"
-    config_path.write_text(json.dumps(config))
+    config_path.write_text(TEST_CONFIG)
     return config_path
 
 

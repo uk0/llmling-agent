@@ -9,6 +9,7 @@ from llmling.config.models import GlobalSettings, LLMCapabilitiesConfig
 from llmling.config.runtime import RuntimeConfig
 from pydantic_ai.models.test import TestModel
 import pytest
+import yamling
 
 from llmling_agent import config_resources
 from llmling_agent.agent import LLMlingAgent
@@ -22,6 +23,46 @@ if TYPE_CHECKING:
 
 
 TEST_RESPONSE = "I am a test response"
+VALID_CONFIG = """\
+responses:
+  SupportResult:
+    type: inline
+    description: Support agent response
+    fields:
+      advice:
+        type: str
+        description: Support advice
+      risk:
+        type: int
+        constraints:
+          ge: 0
+          le: 100
+  ResearchResult:
+    type: inline
+    description: Research agent response
+    fields:
+      findings:
+        type: str
+        description: Research findings
+
+agents:
+  support:
+    name: Support Agent
+    model: openai:gpt-4
+    model_settings:
+      retries: 3
+      result_retries: 2
+    result_type: SupportResult
+    system_prompts:
+      - You are a support agent
+      - "Context: {data}"
+  researcher:
+    name: Research Agent
+    model: openai:gpt-4
+    result_type: ResearchResult
+    system_prompts:
+      - You are a researcher
+"""
 
 
 @pytest.fixture
@@ -74,55 +115,7 @@ async def simple_agent(runtime: RuntimeConfig) -> LLMlingAgent[Any, str]:
 @pytest.fixture
 def valid_config() -> dict[str, Any]:
     """Fixture providing valid agent configuration."""
-    return {
-        "responses": {
-            "SupportResult": {
-                "type": "inline",
-                "description": "Support agent response",
-                "fields": {
-                    "advice": {
-                        "type": "str",
-                        "description": "Support advice",
-                    },
-                    "risk": {
-                        "type": "int",
-                        "constraints": {"ge": 0, "le": 100},
-                    },
-                },
-            },
-            "ResearchResult": {
-                "type": "inline",
-                "description": "Research agent response",
-                "fields": {
-                    "findings": {
-                        "type": "str",
-                        "description": "Research findings",
-                    },
-                },
-            },
-        },
-        "agents": {
-            "support": {
-                "name": "Support Agent",
-                "model": "openai:gpt-4",
-                "model_settings": {
-                    "retries": 3,
-                    "result_retries": 2,
-                },
-                "result_type": "SupportResult",
-                "system_prompts": [
-                    "You are a support agent",
-                    "Context: {data}",
-                ],
-            },
-            "researcher": {
-                "name": "Research Agent",
-                "model": "openai:gpt-4",
-                "result_type": "ResearchResult",
-                "system_prompts": ["You are a researcher"],
-            },
-        },
-    }
+    return yamling.load_yaml(VALID_CONFIG)
 
 
 @pytest.fixture

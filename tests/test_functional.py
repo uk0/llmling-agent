@@ -32,7 +32,7 @@ def pipeline_manifest(test_model: Any) -> AgentsManifest:
 
     # Create a separate TestModel for structured responses
     text = json.dumps({"success": True, "data": "Test data", "score": 42})
-    structured_model = TestModel(custom_result_text=text)
+    model = TestModel(custom_result_text=text)
     test_agent = AgentConfig(
         name="test_agent",
         model=test_model,  # Regular TestModel for text responses
@@ -41,7 +41,7 @@ def pipeline_manifest(test_model: Any) -> AgentsManifest:
     )
     struct_agent = AgentConfig(
         name="struct_agent",
-        model=structured_model,  # Use structured TestModel
+        model=model,  # type: ignore
         result_type="StructuredResult",
         system_prompts=["You provide structured responses"],
     )

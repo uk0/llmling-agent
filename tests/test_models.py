@@ -15,6 +15,42 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+VALID_AGENT_CONFIG = """\
+responses:
+  TestResponse:
+    description: Test response
+    type: inline
+    fields:
+      message:
+        type: str
+        description: A message
+      score:
+        type: int
+        constraints:
+          ge: 0
+          le: 100
+
+agents:
+  test_agent:  # Key is the agent ID
+    name: Test Agent
+    description: A test agent
+    model: openai:gpt-4
+    model_settings: {}
+    result_type: TestResponse
+    system_prompts:
+      - You are a test agent
+"""
+
+INVALID_RESPONSE_CONFIG = """\
+responses: {}
+agent:
+  name: Test Agent
+  model: openai:gpt-4
+  result_type: NonExistentResponse
+  system_prompts: []
+"""
+
+
 def test_valid_system_prompt():
     """Test valid system prompt configurations."""
     prompts = [
@@ -39,54 +75,14 @@ def test_invalid_system_prompt():
 
 def test_valid_agent_definition():
     """Test valid complete agent configuration."""
-    config = {
-        "responses": {
-            "TestResponse": {
-                "description": "Test response",
-                "type": "inline",
-                "fields": {
-                    "message": {
-                        "type": "str",
-                        "description": "A message",
-                    },
-                    "score": {
-                        "type": "int",
-                        "constraints": {"ge": 0, "le": 100},
-                    },
-                },
-            },
-        },
-        "agents": {  # This should be a dict of agents
-            "test_agent": {  # Key is the agent ID
-                "name": "Test Agent",
-                "description": "A test agent",
-                "model": "openai:gpt-4",
-                "model_settings": {},
-                "result_type": "TestResponse",
-                "system_prompts": [
-                    "You are a test agent",
-                ],
-            },
-        },
-    }
-    agent_def = AgentsManifest.model_validate(config)
-    assert agent_def.responses["TestResponse"].fields["score"].constraints == {  # pyright: ignore
-        "ge": 0,
-        "le": 100,
-    }
+    agent_def = AgentsManifest.model_validate(yamling.load_yaml(VALID_AGENT_CONFIG))
+    score = agent_def.responses["TestResponse"].fields["score"]  # pyright: ignore
+    assert score.constraints == {"ge": 0, "le": 100}
 
 
 def test_missing_referenced_response():
     """Test referencing non-existent response model."""
-    config = {
-        "responses": {},
-        "agent": {
-            "name": "Test Agent",
-            "model": "openai:gpt-4",
-            "result_type": "NonExistentResponse",
-            "system_prompts": [],
-        },
-    }
+    config = yamling.load_yaml(INVALID_RESPONSE_CONFIG)
     with pytest.raises(ValidationError):
         AgentsManifest.model_validate(config)
 
