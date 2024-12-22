@@ -65,7 +65,7 @@ class LLMlingAgent[TDeps, TResult]:
     message_exchanged = Signal(ChatMessage[TResult | str])
     tool_used = Signal(ToolCallInfo)  # Now we emit the whole info object
     model_changed = Signal(object)  # Model | None
-
+    chunk_streamed = Signal(str)
     # `outbox` defined in __init__
     outbox = Signal(object, ChatMessage[Any])
 
@@ -399,6 +399,7 @@ class LLMlingAgent[TDeps, TResult]:
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
+        # wait_for_chain: bool = True,
     ) -> RunResult[TResult]:
         """Run agent with prompt and get response.
 
@@ -414,6 +415,7 @@ class LLMlingAgent[TDeps, TResult]:
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
+        wait_for_chain = False  # TODO
         if deps is not None:
             self._context.data = deps
         try:
@@ -474,6 +476,8 @@ class LLMlingAgent[TDeps, TResult]:
             logger.exception("Agent run failed")
             raise
         else:
+            if wait_for_chain:
+                await self.wait_for_chain()
             return result
         finally:
             if model:
@@ -489,6 +493,7 @@ class LLMlingAgent[TDeps, TResult]:
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
+        # wait_for_chain: bool = True,
     ) -> AbstractAsyncContextManager[StreamedRunResult[AgentContext[TDeps], TResult]]:
         """Run agent with prompt and get streaming response.
 
@@ -509,21 +514,68 @@ class LLMlingAgent[TDeps, TResult]:
                     print(message)
             ```
         """
+        wait_for_chain = False
         if deps is not None:
             self._context.data = deps
         try:
             self._update_tools()
+
             # Emit user message
             user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
             self.message_received.emit(user_msg)
 
-            # Return the context manager directly - no await needed
-            return self._pydantic_agent.run_stream(
+            stream_ctx = self._pydantic_agent.run_stream(
                 prompt,
                 message_history=message_history,
                 model=model,
                 deps=self._context,
             )
+
+            @asynccontextmanager
+            async def wrapper():
+                async with stream_ctx as stream:
+                    yield stream
+                    # After completion
+                    if stream.is_complete:
+                        result_str = str(await stream.get_data())
+                        usage = stream.usage()
+                        cost = (
+                            await extract_usage(
+                                usage, self.model_name, prompt, result_str
+                            )
+                            if self.model_name
+                            else None
+                        )
+                        message_id = str(uuid4())
+
+                        # Create and emit assistant message
+                        meta = MessageMetadata(
+                            model=self.model_name,
+                            token_usage=cost.token_usage if cost else None,
+                            cost=cost.cost_usd if cost else None,
+                        )
+                        assistant_msg: ChatMessage[TResult] = ChatMessage[TResult](
+                            content=await stream.get_data(),
+                            role="assistant",
+                            message_id=message_id,
+                            metadata=meta,
+                        )
+                        # Emit tool calls
+                        for call in get_tool_calls(
+                            self._pydantic_agent.last_run_messages or []
+                        ):
+                            call.message_id = message_id
+                            call.context_data = (
+                                self._context.data if self._context else None
+                            )
+                            self.tool_used.emit(call)
+
+                        self.message_sent.emit(assistant_msg)
+
+                if wait_for_chain:
+                    await self.wait_for_chain()
+
+            return wrapper()
 
         except Exception:
             logger.exception("Agent stream failed")
@@ -562,6 +614,20 @@ class LLMlingAgent[TDeps, TResult]:
         """Wait for all pending tasks to complete."""
         if self._pending_tasks:
             await asyncio.wait(self._pending_tasks)
+
+    async def wait_for_chain(self, _seen: set[str] | None = None):
+        """Wait for this agent and all connected agents to complete their tasks."""
+        # Track seen agents to avoid cycles
+        seen = _seen or {self.name}
+
+        # Wait for our own tasks
+        await self.complete_tasks()
+
+        # Wait for connected agents
+        for agent in self._connected_agents:
+            if agent.name not in seen:
+                seen.add(agent.name)
+                await agent.wait_for_chain(seen)
 
     def system_prompt(self, *args: Any, **kwargs: Any) -> Any:
         """Register a dynamic system prompt.
