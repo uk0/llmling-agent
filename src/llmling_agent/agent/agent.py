@@ -230,7 +230,7 @@ class LLMlingAgent[TDeps, TResult]:
     @asynccontextmanager
     async def open_agent(
         cls,
-        config: str | AgentsManifest,
+        config: str | os.PathLike[str] | AgentsManifest,
         agent_name: str,
         *,
         # Model configuration
