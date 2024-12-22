@@ -458,6 +458,7 @@ class LLMlingAgent[TDeps, TResult]:
             )
             for call in get_tool_calls(self._pydantic_agent.last_run_messages or []):
                 call.message_id = message_id
+                call.context_data = self._context.data if self._context else None
                 self.tool_used.emit(call)
             self.message_sent.emit(assistant_msg)
         except Exception:

@@ -389,8 +389,22 @@ class ToolCallInfo:
     """Information about an executed tool call."""
 
     tool_name: str
+    """Name of the tool that was called."""
+
     args: dict[str, Any]
+    """Arguments passed to the tool."""
+
     result: Any
-    tool_call_id: str | None  # From model (e.g. OpenAI function call ID)
+    """Result returned by the tool."""
+
+    tool_call_id: str | None
+    """ID provided by the model (e.g. OpenAI function call ID)."""
+
     timestamp: datetime = field(default_factory=datetime.now)
+    """When the tool was called."""
+
     message_id: str | None = None
+    """ID of the message that triggered this tool call."""
+
+    context_data: Any | None = None
+    """Optional context data that was passed to the agent's run() method."""
