@@ -55,7 +55,7 @@ def pipeline_manifest(test_model: Any) -> AgentsManifest:
 class TestAgentPipeline:
     """Test async pipeline functionality."""
 
-    async def test_simple_prompt(self, pipeline_manifest: AgentsManifest) -> None:
+    async def test_simple_prompt(self, pipeline_manifest: AgentsManifest):
         """Test basic prompt execution."""
         result = await run_agent_pipeline(
             "test_agent",
@@ -66,7 +66,7 @@ class TestAgentPipeline:
         assert isinstance(result, str)
         assert result == "Test response"  # From TestModel fixture
 
-    async def test_system_prompt(self, pipeline_manifest: AgentsManifest) -> None:
+    async def test_system_prompt(self, pipeline_manifest: AgentsManifest):
         """Test using SystemPrompt."""
         prompt = SystemPrompt(type="text", value="Test instruction")
         result = await run_agent_pipeline(
@@ -77,7 +77,7 @@ class TestAgentPipeline:
         )
         assert result == "Test response"
 
-    async def test_multiple_prompts(self, pipeline_manifest: AgentsManifest) -> None:
+    async def test_multiple_prompts(self, pipeline_manifest: AgentsManifest):
         """Test sequence of prompts."""
         result = await run_agent_pipeline(
             "test_agent",
@@ -87,7 +87,7 @@ class TestAgentPipeline:
         )
         assert result == "Test response"  # Last response
 
-    async def test_structured_output(self, pipeline_manifest: AgentsManifest) -> None:
+    async def test_structured_output(self, pipeline_manifest: AgentsManifest):
         """Test structured response handling."""
         result = await run_agent_pipeline(
             "struct_agent",
@@ -99,7 +99,7 @@ class TestAgentPipeline:
         assert "data" in result
         assert "score" in result
 
-    async def test_streaming(self, pipeline_manifest: AgentsManifest) -> None:
+    async def test_streaming(self, pipeline_manifest: AgentsManifest):
         """Test streaming mode."""
         chunks = [
             chunk
@@ -113,7 +113,7 @@ class TestAgentPipeline:
         assert chunks  # Should have received chunks
         assert "".join(chunks) == "Test response"
 
-    async def test_error_handling_raise(self, pipeline_manifest: AgentsManifest) -> None:
+    async def test_error_handling_raise(self, pipeline_manifest: AgentsManifest):
         """Test error handling with raise mode."""
         with pytest.raises(ValueError):  # noqa: PT011
             await run_agent_pipeline(
@@ -123,7 +123,7 @@ class TestAgentPipeline:
                 error_handling="raise",
             )
 
-    async def test_error_handling_return(self, pipeline_manifest: AgentsManifest) -> None:
+    async def test_error_handling_return(self, pipeline_manifest: AgentsManifest):
         """Test error handling with return mode."""
         result: Any = await run_agent_pipeline(
             "nonexistent_agent",
@@ -134,7 +134,7 @@ class TestAgentPipeline:
         assert isinstance(result, str)
         assert result.startswith("Error:")
 
-    async def test_with_capabilities(self, pipeline_manifest: AgentsManifest) -> None:
+    async def test_with_capabilities(self, pipeline_manifest: AgentsManifest):
         """Test with capability overrides."""
         result = await run_agent_pipeline(
             "test_agent",
@@ -145,7 +145,7 @@ class TestAgentPipeline:
         )
         assert result == "Test response"
 
-    async def test_tool_control(self, pipeline_manifest: AgentsManifest) -> None:
+    async def test_tool_control(self, pipeline_manifest: AgentsManifest):
         """Test tool control options."""
         # Test with specific tool enabled
         result = await run_agent_pipeline(
@@ -168,7 +168,7 @@ class TestAgentPipeline:
         assert result == "Test response"
 
 
-def test_sync_pipeline(pipeline_manifest: AgentsManifest) -> None:
+def test_sync_pipeline(pipeline_manifest: AgentsManifest):
     """Test synchronous pipeline version."""
     result = run_agent_pipeline_sync(
         "test_agent",
@@ -179,7 +179,7 @@ def test_sync_pipeline(pipeline_manifest: AgentsManifest) -> None:
     assert result == "Test response"
 
 
-def test_sync_pipeline_streaming_error(pipeline_manifest: AgentsManifest) -> None:
+def test_sync_pipeline_streaming_error(pipeline_manifest: AgentsManifest):
     """Test that streaming raises error in sync version."""
     with pytest.raises(ValueError, match="Streaming not supported"):
         run_agent_pipeline_sync(

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from llmling_agent.ui.status import StatusBar
 
 
-def render_status_bar(status_bar: StatusBar, console: Console) -> None:
+def render_status_bar(status_bar: StatusBar, console: Console):
     """Render status bar to console."""
     status = Table.grid(padding=1)
 

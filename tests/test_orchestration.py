@@ -12,13 +12,13 @@ from llmling_agent.runners import AgentOrchestrator, AgentRunConfig
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_with_complex_config(valid_config: dict[str, Any]) -> None:
+async def test_orchestrator_with_complex_config(valid_config: dict[str, Any]):
     """Test orchestrator with full configuration including multiple agents."""
     agent_def = AgentsManifest.model_validate(valid_config)
     names = ["support", "researcher"]
     config = AgentRunConfig(agent_names=names, prompts=["Hello!"])
 
-    orchestrator = AgentOrchestrator(agent_def, config)
+    orchestrator: AgentOrchestrator[Any] = AgentOrchestrator(agent_def, config)
     results = await orchestrator.run()
 
     assert isinstance(results, dict)
@@ -37,7 +37,7 @@ async def test_orchestrator_with_complex_config(valid_config: dict[str, Any]) ->
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_missing_response(basic_agent_config: AgentConfig) -> None:
+async def test_orchestrator_missing_response(basic_agent_config: AgentConfig):
     """Test orchestrator with missing response definition."""
     update = {"result_type": "NonExistentResponse"}
     agents = {"test": basic_agent_config.model_copy(update=update)}

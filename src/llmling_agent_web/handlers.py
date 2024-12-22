@@ -39,7 +39,7 @@ class AgentHandler:
         await handler.initialize()
         return handler
 
-    async def initialize(self) -> None:
+    async def initialize(self):
         """Initialize the handler state.
 
         Raises:

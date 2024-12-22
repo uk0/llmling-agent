@@ -34,7 +34,7 @@ engine = create_engine(
 )
 
 
-def init_database() -> None:
+def init_database():
     """Initialize database tables."""
     import sqlalchemy as sa
     from sqlalchemy import inspect

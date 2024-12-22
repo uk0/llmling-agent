@@ -18,7 +18,7 @@ async def meta_command(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Generate a prompt using meta-prompts."""
     if not args:
         await ctx.output.print(

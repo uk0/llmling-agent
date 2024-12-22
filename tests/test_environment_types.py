@@ -19,7 +19,7 @@ def sample_config() -> Config:
     return Config()
 
 
-def test_file_environment_basic() -> None:
+def test_file_environment_basic():
     """Test basic file environment creation."""
     env = FileEnvironment(uri="config.yml")
     assert env.type == "file"
@@ -27,7 +27,7 @@ def test_file_environment_basic() -> None:
     assert env.get_display_name() == "File: config.yml"
 
 
-def test_file_environment_path_resolution(tmp_path: pathlib.Path) -> None:
+def test_file_environment_path_resolution(tmp_path: pathlib.Path):
     """Test path resolution relative to config file."""
     # Create a mock config structure
     config_dir = tmp_path / "configs"
@@ -47,7 +47,7 @@ def test_file_environment_path_resolution(tmp_path: pathlib.Path) -> None:
     assert pathlib.Path(resolved).parent == config_dir
 
 
-def test_file_environment_validation() -> None:
+def test_file_environment_validation():
     """Test validation rules for file environments."""
     # URI is required
     with pytest.raises(ValidationError):
@@ -58,7 +58,7 @@ def test_file_environment_validation() -> None:
         FileEnvironment(uri="")
 
 
-def test_inline_environment_basic(sample_config: Config) -> None:
+def test_inline_environment_basic(sample_config: Config):
     """Test basic inline environment creation."""
     env = InlineEnvironment(uri="default-tools", config=sample_config)
     assert env.type == "inline"
@@ -92,7 +92,7 @@ def test_environment_types(
     env_data: dict[str, Any],
     expected_type: type[FileEnvironment | InlineEnvironment],
     expected_path: str | None,
-) -> None:
+):
     """Test environment type creation and path handling."""
     # Validate using the specific model
     env = expected_type.model_validate(env_data)
@@ -100,7 +100,7 @@ def test_environment_types(
     assert env.get_file_path() == expected_path
 
 
-def test_environment_display_names() -> None:
+def test_environment_display_names():
     """Test display name generation for different environment types."""
     file_env = FileEnvironment(uri="config.yml")
     assert file_env.get_display_name() == "File: config.yml"
@@ -113,7 +113,7 @@ def test_environment_display_names() -> None:
     assert inline_env.get_display_name() == "Inline configuration"
 
 
-def test_environment_serialization(sample_config: Config) -> None:
+def test_environment_serialization(sample_config: Config):
     """Test environment serialization."""
     # File environment
     file_env = FileEnvironment(uri="config.yml")

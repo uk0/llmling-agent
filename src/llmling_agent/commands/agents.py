@@ -65,10 +65,8 @@ def create_annotated_dump(
 
 
 async def show_agent(
-    ctx: CommandContext[AgentChatSession],
-    args: list[str],
-    kwargs: dict[str, str],
-) -> None:
+    ctx: CommandContext[AgentChatSession], args: list[str], kwargs: dict[str, str]
+):
     """Show current agent's configuration."""
     if not ctx.data._agent._context:
         await ctx.output.print("No agent context available")
@@ -111,11 +109,7 @@ async def show_agent(
     await ctx.output.print("\n".join(sections))
 
 
-async def list_agents(
-    ctx: CommandContext,
-    args: list[str],
-    kwargs: dict[str, str],
-) -> None:
+async def list_agents(ctx: CommandContext, args: list[str], kwargs: dict[str, str]):
     """List all available agents."""
     # Get agent definition through context
     definition = ctx.data._agent._context.definition
@@ -136,11 +130,7 @@ async def list_agents(
         )
 
 
-async def switch_agent(
-    ctx: CommandContext,
-    args: list[str],
-    kwargs: dict[str, str],
-) -> None:
+async def switch_agent(ctx: CommandContext, args: list[str], kwargs: dict[str, str]):
     """Switch to a different agent."""
     if not args:
         await ctx.output.print("Usage: /switch-agent <name>")

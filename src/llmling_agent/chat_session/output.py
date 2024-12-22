@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class OutputWriter(Protocol):
     """Interface for command output."""
 
-    async def print(self, message: str) -> None:
+    async def print(self, message: str):
         """Write a message to output."""
         ...
 
@@ -29,11 +29,11 @@ class CallbackOutputWriter(OutputWriter):
     def __init__(
         self,
         message_callback: Callable[[ChatMessage], Awaitable[None]],
-    ) -> None:
+    ):
         """Initialize writer with callback."""
         self._callback = message_callback
 
-    async def print(self, message: str) -> None:
+    async def print(self, message: str):
         """Send message through callback."""
         logger.debug("CallbackOutputWriter printing: %s", message)
         chat_message: ChatMessage[str] = ChatMessage(content=message, role="system")
@@ -43,7 +43,7 @@ class CallbackOutputWriter(OutputWriter):
 class DefaultOutputWriter(OutputWriter):
     """Default output implementation using rich if available."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Initialize output writer."""
         try:
             from rich.console import Console
@@ -52,7 +52,7 @@ class DefaultOutputWriter(OutputWriter):
         except ImportError:
             self._console = None
 
-    async def print(self, message: str) -> None:
+    async def print(self, message: str):
         """Write message to output.
 
         Uses rich.Console if available, else regular print().

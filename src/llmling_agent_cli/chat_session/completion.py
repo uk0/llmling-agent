@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class PromptToolkitCompleter(Completer):
     """Adapts our completion system to prompt-toolkit."""
 
-    def __init__(self, commands: dict[str, BaseCommand]) -> None:
+    def __init__(self, commands: dict[str, BaseCommand]):
         self._commands = commands
 
     def get_completions(

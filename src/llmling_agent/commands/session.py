@@ -13,7 +13,7 @@ async def clear_command(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Clear chat history."""
     await ctx.data.clear()
 
@@ -22,7 +22,7 @@ async def reset_command(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Reset session state."""
     await ctx.data.reset()
 

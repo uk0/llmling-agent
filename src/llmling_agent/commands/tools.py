@@ -85,7 +85,7 @@ async def list_tools(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """List all available tools."""
     agent = ctx.data._agent
     # Format output using ToolInfo formatting
@@ -101,7 +101,7 @@ async def tool_info(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Show detailed information about a tool."""
     if not args:
         await ctx.output.print("Usage: /tool-info <name>")
@@ -145,7 +145,7 @@ async def toggle_tool(
     kwargs: dict[str, str],
     *,
     enable: bool,
-) -> None:
+):
     """Enable or disable a tool."""
     if not args:
         action = "enable" if enable else "disable"
@@ -169,7 +169,7 @@ async def enable_tool(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Enable a tool."""
     await toggle_tool(ctx, args, kwargs, enable=True)
 
@@ -178,7 +178,7 @@ async def disable_tool(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Disable a tool."""
     await toggle_tool(ctx, args, kwargs, enable=False)
 
@@ -187,7 +187,7 @@ async def register_tool(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Register a new tool from import path or function."""
     if not args:
         msg = "Usage: /register-tool <import_path> [--name name] [--description desc]"
@@ -230,7 +230,7 @@ async def write_tool(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Write and register a new tool interactively."""
     from prompt_toolkit import PromptSession
     from prompt_toolkit.lexers import PygmentsLexer

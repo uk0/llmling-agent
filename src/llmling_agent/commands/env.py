@@ -20,7 +20,7 @@ async def set_env(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Change the environment file path."""
     if not args:
         await ctx.output.print("Usage: /set-env <path>")
@@ -68,7 +68,7 @@ async def edit_env(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Open agent's environment file in default application."""
     if not ctx.data._agent._context:
         msg = "No agent context available"

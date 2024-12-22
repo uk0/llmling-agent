@@ -21,7 +21,7 @@ async def test_single_agent_runner_basic(
     basic_agent_config: AgentConfig,
     basic_response_def: dict[str, ResponseDefinition],
     no_tool_runtime: RuntimeConfig,
-) -> None:
+):
     """Test basic SingleAgentRunner functionality."""
     async with SingleAgentRunner[str](
         agent_config=basic_agent_config,
@@ -39,7 +39,7 @@ async def test_single_agent_runner_basic(
 async def test_single_agent_runner_conversation(
     basic_agent_config: AgentConfig,
     basic_response_def: dict[str, ResponseDefinition],
-) -> None:
+):
     """Test conversation flow with SingleAgentRunner."""
     async with SingleAgentRunner[str](
         agent_config=basic_agent_config,
@@ -57,7 +57,7 @@ async def test_single_agent_runner_conversation(
 async def test_orchestrator_single_agent(
     basic_agent_config: AgentConfig,
     basic_response_def: dict[str, ResponseDefinition],
-) -> None:
+):
     """Test orchestrator with single agent."""
     agents = {"test_agent": basic_agent_config}
     agent_def = AgentsManifest(responses=basic_response_def, agents=agents)
@@ -78,7 +78,7 @@ async def test_orchestrator_multiple_agents(
     basic_agent_config: AgentConfig,
     basic_response_def: dict[str, ResponseDefinition],
     test_model: TestModel,
-) -> None:
+):
     """Test orchestrator with multiple agents."""
     test_config = basic_agent_config.model_copy(update={"model": test_model})
     agents = {"agent1": test_config, "agent2": test_config}
@@ -101,7 +101,7 @@ async def test_orchestrator_multiple_agents(
 async def test_orchestrator_validation(
     basic_agent_config: AgentConfig,
     basic_response_def: dict[str, ResponseDefinition],
-) -> None:
+):
     """Test orchestrator validation."""
     agents = {"test_agent": basic_agent_config}
     agent_def = AgentsManifest(responses=basic_response_def, agents=agents)

@@ -40,7 +40,7 @@ async def copy_clipboard(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Copy last assistant message to clipboard."""
     try:
         import pyperclip
@@ -67,7 +67,7 @@ async def edit_agent_file(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Open agent's configuration file in default application."""
     if not ctx.data._agent._context:
         msg = "No agent context available"

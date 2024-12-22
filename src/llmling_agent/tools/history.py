@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class HistoryTools:
     """History-related tools for LLM agents."""
 
-    def __init__(self, capabilities: Capabilities) -> None:
+    def __init__(self, capabilities: Capabilities):
         self.capabilities = capabilities
 
     async def search_history(

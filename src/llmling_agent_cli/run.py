@@ -48,7 +48,7 @@ def run_command(
         help="Output format (text/json/yaml)",
     ),
     verbose: bool = verbose_opt,
-) -> None:
+):
     """Run agent with prompts.
 
     First runs any prompts provided via --include-prompt,
@@ -119,7 +119,7 @@ def run_command(
         # 2. Add RuntimeConfig prompts if specified
         if include_prompt:
 
-            async def get_env_prompts() -> None:
+            async def get_env_prompts():
                 async with RuntimeConfig.open(config_path) as runtime:
                     for prompt_name in include_prompt:
                         try:
@@ -153,7 +153,7 @@ def run_command(
         # Create and run orchestrator
         orchestrator = AgentOrchestrator[Any](agent_def, run_config)
 
-        async def run() -> None:
+        async def run():
             try:
                 results = await orchestrator.run()
                 # Format results based on whether we ran single or multiple agents

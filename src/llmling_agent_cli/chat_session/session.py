@@ -46,7 +46,7 @@ class InteractiveSession:
         log_level: int = logging.WARNING,
         show_log_in_chat: bool = False,
         stream: bool = False,
-    ) -> None:
+    ):
         """Initialize interactive session."""
         self.agent = agent
 
@@ -68,7 +68,7 @@ class InteractiveSession:
             logging.getLogger("llmling_agent").addHandler(self._log_handler)
             logging.getLogger("llmling").addHandler(self._log_handler)
 
-    def _connect_signals(self) -> None:
+    def _connect_signals(self):
         """Connect to chat session signals."""
         assert self._chat_session is not None
 
@@ -80,17 +80,17 @@ class InteractiveSession:
         self._chat_session.tool_changed.connect(self._on_tool_changed)
         self._chat_session._agent.tool_used.connect(self._on_tool_call)
 
-    def _on_tool_added(self, tool: ToolInfo) -> None:
+    def _on_tool_added(self, tool: ToolInfo):
         """Handle tool addition."""
         self.console.print(f"\nTool added: {tool.name}")
         self.update_status_bar()
 
-    def _on_tool_removed(self, tool_name: str) -> None:
+    def _on_tool_removed(self, tool_name: str):
         """Handle tool removal."""
         self.console.print(f"\nTool removed: {tool_name}")
         self.update_status_bar()
 
-    def _on_tool_call(self, tool_call: ToolCallInfo) -> None:
+    def _on_tool_call(self, tool_call: ToolCallInfo):
         """Handle tool usage signal."""
         logger.debug("Tool call received: %s", tool_call.tool_name)
         self.console.print(
@@ -99,28 +99,28 @@ class InteractiveSession:
             f"  Result: {tool_call.result}"
         )
 
-    def _on_tool_changed(self, name: str, tool: ToolInfo) -> None:
+    def _on_tool_changed(self, name: str, tool: ToolInfo):
         """Handle tool state changes."""
         state = "enabled" if tool.enabled else "disabled"
         self.console.print(f"\nTool '{name}' {state}")
         self.update_status_bar()
 
-    def _on_history_cleared(self, event: HistoryClearedEvent) -> None:
+    def _on_history_cleared(self, event: HistoryClearedEvent):
         """Handle history cleared event."""
         self.console.print("\nChat history cleared")
 
-    def _on_session_reset(self, event: SessionResetEvent) -> None:
+    def _on_session_reset(self, event: SessionResetEvent):
         """Handle session reset event."""
         self.console.print("\nSession reset. Tools restored to default state.")
 
-    def _setup_prompt(self) -> None:
+    def _setup_prompt(self):
         """Setup prompt toolkit session."""
         auto = AutoSuggestFromHistory()
         history = SessionHistory(self.session)
 
         self._prompt = PromptSession[str]("You: ", history=history, auto_suggest=auto)
 
-    async def _handle_input(self, content: str) -> None:
+    async def _handle_input(self, content: str):
         """Handle user input."""
         if not content.strip():
             return
@@ -184,7 +184,7 @@ class InteractiveSession:
         assert self._chat_session is not None
         return self._chat_session
 
-    async def start(self) -> None:
+    async def start(self):
         """Start interactive session."""
         try:
             self._chat_session = await self._session_manager.create_session(self.agent)
@@ -225,7 +225,7 @@ class InteractiveSession:
             await self._cleanup()
             await self._show_summary()
 
-    async def _show_welcome(self) -> None:
+    async def _show_welcome(self):
         """Show welcome message."""
         assert self._chat_session is not None, (
             "Chat session must be initialized before showing welcome"
@@ -238,7 +238,7 @@ class InteractiveSession:
         # Show initial status
         self.update_status_bar()
 
-    async def _cleanup(self) -> None:
+    async def _cleanup(self):
         """Clean up resources."""
         # Remove log handler
         if self._log_handler:
@@ -249,7 +249,7 @@ class InteractiveSession:
             # Any cleanup needed for chat session
             pass
 
-    async def _show_summary(self) -> None:
+    async def _show_summary(self):
         """Show session summary."""
         if self._state.message_count > 0:
             self.console.print("\nSession Summary:")
@@ -271,7 +271,7 @@ async def start_interactive_session(
     *,
     log_level: int = logging.WARNING,
     stream: bool = False,
-) -> None:
+):
     """Start an interactive chat session."""
     session = InteractiveSession(agent, log_level=log_level, stream=stream)
     await session.start()

@@ -26,7 +26,7 @@ T = TypeVar("T", default=str)
 class AgentOrchestrator[T]:
     """Orchestrates multiple agent runners."""
 
-    def __init__(self, agent_def: AgentsManifest, run_config: AgentRunConfig) -> None:
+    def __init__(self, agent_def: AgentsManifest, run_config: AgentRunConfig):
         """Initialize orchestrator.
 
         Args:
@@ -37,7 +37,7 @@ class AgentOrchestrator[T]:
         self.run_config = run_config
         self.runners: dict[str, SingleAgentRunner] = {}
 
-    def validate(self) -> None:
+    def validate(self):
         """Validate configuration before running.
 
         Raises:
@@ -151,7 +151,7 @@ class AgentOrchestrator[T]:
             return await self.run_single()
         return await self.run_multiple()
 
-    async def cleanup_agent(self, agent_name: str) -> None:
+    async def cleanup_agent(self, agent_name: str):
         """Clean up a specific agent's resources.
 
         Args:
@@ -160,7 +160,7 @@ class AgentOrchestrator[T]:
         if runner := self.runners.pop(agent_name, None):
             await runner.__aexit__(None, None, None)
 
-    async def cleanup(self) -> None:
+    async def cleanup(self):
         """Clean up all runners."""
         for runner in list(self.runners.values()):
             await runner.__aexit__(None, None, None)

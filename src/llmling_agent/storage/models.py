@@ -107,7 +107,7 @@ class ToolCall(SQLModel, table=True):  # type: ignore[call-arg]
         conversation_id: str,
         message_id: str,
         tool_call: ToolCallInfo,
-    ) -> None:
+    ):
         """Log a tool call to the database."""
         from llmling_agent.storage import engine
 

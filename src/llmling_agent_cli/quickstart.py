@@ -35,7 +35,7 @@ def quickstart_command(
         "--stream/--no-stream",
         help="Enable streaming mode (default: off)",
     ),
-) -> None:
+):
     """Start an ephemeral chat session with minimal setup."""
     from tempfile import NamedTemporaryFile
 
@@ -76,7 +76,7 @@ def quickstart_command(
             yaml.dump(minimal_agent_config, tmp_agent)
             agent_path = tmp_agent.name
 
-        async def run_chat() -> None:
+        async def run_chat():
             # Use open_agent with our temporary configs
             async with LLMlingAgent[Any, Any].open_agent(
                 agent_path,

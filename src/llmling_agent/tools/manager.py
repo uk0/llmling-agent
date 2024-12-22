@@ -39,7 +39,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         self,
         tools: Sequence[ToolInfo | LLMCallableTool | dict[str, Any]] = (),
         tool_choice: bool | str | list[str] = True,
-    ) -> None:
+    ):
         """Initialize tool manager.
 
         Args:
@@ -96,7 +96,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 msg = f"Item must be ToolInfo, LLMCallableTool, or callable. Got {typ}"
                 raise ToolError(msg)
 
-    def enable_tool(self, tool_name: str) -> None:
+    def enable_tool(self, tool_name: str):
         """Enable a previously disabled tool."""
         if tool_name not in self:
             msg = f"Tool not found: {tool_name}"
@@ -106,7 +106,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         self.events.changed(tool_name, tool_info)
         logger.debug("Enabled tool: %s", tool_name)
 
-    def disable_tool(self, tool_name: str) -> None:
+    def disable_tool(self, tool_name: str):
         """Disable a tool."""
         if tool_name not in self:
             msg = f"Tool not found: {tool_name}"
@@ -148,7 +148,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         """Get tool names based on state."""
         return {name for name, info in self.items() if info.matches_filter(state)}
 
-    def setup_history_tools(self, capabilities: Capabilities) -> None:
+    def setup_history_tools(self, capabilities: Capabilities):
         """Set up history-related tools based on capabilities.
 
         Args:

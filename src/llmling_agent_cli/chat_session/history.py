@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class SessionHistory(History):
     """Simple history implementation using session storage."""
 
-    def __init__(self, session: AgentChatSession) -> None:
+    def __init__(self, session: AgentChatSession):
         super().__init__()
         self.session = session
 
@@ -22,6 +22,6 @@ class SessionHistory(History):
         """Load history strings (newest first)."""
         return self.session.get_commands()
 
-    def store_string(self, string: str) -> None:
+    def store_string(self, string: str):
         """Store new command."""
         self.session.add_command(string)

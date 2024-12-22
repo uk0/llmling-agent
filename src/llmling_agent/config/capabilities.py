@@ -45,11 +45,11 @@ class Capabilities(EventedModel):
     - all: Can view all agents' statistics
     """
 
-    def enable(self, capability: str) -> None:
+    def enable(self, capability: str):
         """Enable a capability."""
         setattr(self, capability, True)
 
-    def disable(self, capability: str) -> None:
+    def disable(self, capability: str):
         """Disable a capability."""
         setattr(self, capability, False)
 

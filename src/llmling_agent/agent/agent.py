@@ -86,7 +86,7 @@ class LLMlingAgent[TDeps, TResult]:
         defer_model_check: bool = False,
         enable_logging: bool = True,
         **kwargs,
-    ) -> None:
+    ):
         """Initialize agent with runtime configuration.
 
         Args:
@@ -356,17 +356,17 @@ class LLMlingAgent[TDeps, TResult]:
                 # Any cleanup if needed
                 pass
 
-    def _forward_message(self, message: ChatMessage[Any]) -> None:
+    def _forward_message(self, message: ChatMessage[Any]):
         """Forward sent messages."""
         logger.debug("forwarding message from %s: %s", self.name, message.content)
         self.outbox.emit(self, message)
 
-    def pass_results_to(self, other: LLMlingAgent[Any, Any]) -> None:
+    def pass_results_to(self, other: LLMlingAgent[Any, Any]):
         """Forward results to another agent."""
         self.outbox.connect(other._handle_message)
         self._connected_agents.add(other)
 
-    def stop_passing_results_to(self, other: LLMlingAgent[Any, Any]) -> None:
+    def stop_passing_results_to(self, other: LLMlingAgent[Any, Any]):
         """Stop forwarding results to another agent."""
         if other in self._connected_agents:
             self.outbox.disconnect(other._handle_message)
@@ -381,7 +381,7 @@ class LLMlingAgent[TDeps, TResult]:
             case _:
                 return self._pydantic_agent.model.name()
 
-    def _update_tools(self) -> None:
+    def _update_tools(self):
         """Update pydantic-ai tools."""
         self._pydantic_agent._function_tools.clear()
         for tool in self.tools.get_tools(state="enabled"):
@@ -543,7 +543,7 @@ class LLMlingAgent[TDeps, TResult]:
             logger.exception("Sync agent run failed")
             raise
 
-    async def complete_tasks(self) -> None:
+    async def complete_tasks(self):
         """Wait for all pending tasks to complete."""
         if self._pending_tasks:
             await asyncio.wait(self._pending_tasks)
@@ -563,14 +563,14 @@ class LLMlingAgent[TDeps, TResult]:
         """
         return self._pydantic_agent.system_prompt(*args, **kwargs)
 
-    # async def _handle_message(self, message: ChatMessage[Any]) -> None:
+    # async def _handle_message(self, message: ChatMessage[Any]):
     #     """Handle a message from another agent. Can be used as signal slot."""
     #     msg = "_handle_message called on %s from %s with message %s"
     #     logger.debug(msg, self.name, source.name, message.content)
     #     # Convert any message to string for now as input
     #     await self.run(str(message.content))
 
-    def clear_history(self) -> None:
+    def clear_history(self):
         """Clear both internal and pydantic-ai history."""
         self._logger.clear_state()
         self._pydantic_agent.last_run_messages = None
@@ -578,9 +578,7 @@ class LLMlingAgent[TDeps, TResult]:
             tool.current_retry = 0
         logger.debug("Cleared history and reset tool state")
 
-    def _handle_message(
-        self, source: LLMlingAgent[Any, Any], message: ChatMessage[Any]
-    ) -> None:
+    def _handle_message(self, source: LLMlingAgent[Any, Any], message: ChatMessage[Any]):
         """Handle a message forwarded from another agent."""
         msg = "_handle_message called on %s from %s with message %s"
         logger.debug(msg, self.name, source.name, message.content)
@@ -636,7 +634,7 @@ if __name__ == "__main__":
 
     sys_prompt = "Open browser with google, please"
 
-    async def main() -> None:
+    async def main():
         async with RuntimeConfig.open(config_resources.OPEN_BROWSER) as r:
             agent: LLMlingAgent = LLMlingAgent(r, model="openai:gpt-4o-mini")
             result = await agent.run(sys_prompt)

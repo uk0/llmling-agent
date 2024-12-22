@@ -70,7 +70,7 @@ class AgentChatSession:
         *,
         session_id: UUID | str | None = None,
         model_override: str | None = None,
-    ) -> None:
+    ):
         """Initialize chat session.
 
         Args:
@@ -103,13 +103,13 @@ class AgentChatSession:
         self.start_time = datetime.now()
         self._state = SessionState(current_model=self._model)
 
-    def _ensure_initialized(self) -> None:
+    def _ensure_initialized(self):
         """Check if session is initialized."""
         if not self._initialized:
             msg = "Session not initialized. Call initialize() first."
             raise RuntimeError(msg)
 
-    async def initialize(self) -> None:
+    async def initialize(self):
         """Initialize async resources and load data."""
         if self._initialized:
             return
@@ -136,7 +136,7 @@ class AgentChatSession:
             "Initialized chat session %s for agent %s", self.id, self._agent.name
         )
 
-    def _load_commands(self) -> None:
+    def _load_commands(self):
         """Load command history from file."""
         try:
             if self._history_file.exists():
@@ -145,7 +145,7 @@ class AgentChatSession:
             logger.exception("Failed to load command history")
             self._commands = []
 
-    def add_command(self, command: str) -> None:
+    def add_command(self, command: str):
         """Add command to history."""
         if not command.strip():
             return
@@ -184,13 +184,13 @@ class AgentChatSession:
             tool_states=self._tool_states,
         )
 
-    async def clear(self) -> None:
+    async def clear(self):
         """Clear chat history."""
         self._history = []
         event = HistoryClearedEvent(session_id=str(self.id))
         self.history_cleared.emit(event)
 
-    async def reset(self) -> None:
+    async def reset(self):
         """Reset session state."""
         old_tools = self._tool_states.copy()
         self._history = []
@@ -203,7 +203,7 @@ class AgentChatSession:
         )
         self.session_reset.emit(event)
 
-    def register_command(self, command: BaseCommand) -> None:
+    def register_command(self, command: BaseCommand):
         """Register additional command."""
         self._command_store.register_command(command)
 
@@ -212,7 +212,7 @@ class AgentChatSession:
         command_str: str,
         output: OutputWriter,
         metadata: dict[str, Any] | None = None,
-    ) -> None:
+    ):
         """Handle a slash command.
 
         Args:

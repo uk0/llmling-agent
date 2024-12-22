@@ -30,11 +30,11 @@ class CoreUI(Protocol):
         """Send message to UI."""
         ...
 
-    async def update_status(self, message: str) -> None:
+    async def update_status(self, message: str):
         """Update UI status."""
         ...
 
-    async def show_error(self, message: str) -> None:
+    async def show_error(self, message: str):
         """Show error message."""
         ...
 
@@ -43,7 +43,7 @@ class CoreUI(Protocol):
 class CompletionUI(Protocol):
     """UI supporting command completion."""
 
-    def set_completer(self, completer: CompletionProvider | None) -> None:
+    def set_completer(self, completer: CompletionProvider | None):
         """Set completion provider."""
         ...
 
@@ -70,7 +70,7 @@ class ToolAwareUI(Protocol):
     async def update_tool_states(
         self,
         states: dict[str, bool],
-    ) -> None:
+    ):
         """Update tool enable/disable states."""
         ...
 
@@ -79,7 +79,7 @@ class ToolAwareUI(Protocol):
         model: str | None = None,
         token_count: int | None = None,
         cost: float | None = None,
-    ) -> None:
+    ):
         """Update model usage information."""
         ...
 

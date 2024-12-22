@@ -12,7 +12,7 @@ import time
 class LogCapturer:
     """Captures log output for display in UI."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Initialize log capturer."""
         self.log_queue: Queue[str] = Queue()
         self.buffer = StringIO()
@@ -20,11 +20,11 @@ class LogCapturer:
         fmt = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         self.handler.setFormatter(fmt)
 
-    def start(self) -> None:
+    def start(self):
         """Start capturing logs."""
         logging.getLogger().addHandler(self.handler)
 
-        def monitor() -> None:
+        def monitor():
             while True:
                 if self.buffer.tell():
                     self.buffer.seek(0)
@@ -36,7 +36,7 @@ class LogCapturer:
         self.monitor_thread = threading.Thread(target=monitor, daemon=True)
         self.monitor_thread.start()
 
-    def stop(self) -> None:
+    def stop(self):
         """Stop capturing logs."""
         logging.getLogger().removeHandler(self.handler)
 

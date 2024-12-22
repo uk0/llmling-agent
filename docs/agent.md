@@ -117,7 +117,7 @@ Add custom tools and system prompts:
 
 ```python
 class CodeAgent(LLMlingAgent[Any, Analysis]):
-    def __init__(self, runtime: RuntimeConfig) -> None:
+    def __init__(self, runtime: RuntimeConfig):
         super().__init__(
             runtime,
             result_type=Analysis,
@@ -125,7 +125,7 @@ class CodeAgent(LLMlingAgent[Any, Analysis]):
         )
         self._setup_tools()
 
-    def _setup_tools(self) -> None:
+    def _setup_tools(self):
         @self.tool
         async def analyze_code(
             ctx: RunContext[AgentContext],
@@ -188,7 +188,7 @@ The agent can handle runtime events:
 
 ```python
 class MyAgent(LLMlingAgent[Any, str]):
-    async def handle_event(self, event: Event) -> None:
+    async def handle_event(self, event: Event):
         """Handle runtime events."""
         match event.type:
             case "RESOURCE_MODIFIED":

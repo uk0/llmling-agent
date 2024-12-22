@@ -32,7 +32,7 @@ def init_agent_config(
         "--interactive/--no-interactive",
         help="Use interactive configuration wizard",
     ),
-) -> None:
+):
     """Initialize a new agent configuration file.
 
     Creates and activates a new agent configuration. The configuration will be
@@ -62,7 +62,7 @@ def add_agent_file(
     name: str = t.Argument(help="Name for the agent configuration file"),
     path: str = t.Argument(help="Path to agent configuration file"),
     verbose: bool = verbose_opt,
-) -> None:
+):
     """Add a new agent configuration file."""
     try:
         agent_store.add_config(name, path)
@@ -76,7 +76,7 @@ def add_agent_file(
 def set_active_file(
     name: str = t.Argument(help="Name of agent configuration to set as active"),
     verbose: bool = verbose_opt,
-) -> None:
+):
     """Set the active agent configuration file."""
     try:
         agent_store.set_active(name)
@@ -96,7 +96,7 @@ def list_agents(
     ),
     output_format: str = output_format_opt,
     verbose: bool = verbose_opt,
-) -> None:
+):
     """List agents from the active (or specified) configuration."""
     from llmling_agent.models import AgentsManifest
 

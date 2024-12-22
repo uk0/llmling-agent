@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 class ChatSessionManager:
     """Manages multiple agent chat sessions."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         self._sessions: dict[UUID, AgentChatSession] = {}
 
     async def create_session(
@@ -42,6 +42,6 @@ class ChatSessionManager:
             msg = f"Session {session_id} not found"
             raise ChatSessionNotFoundError(msg) from e
 
-    def end_session(self, session_id: UUID) -> None:
+    def end_session(self, session_id: UUID):
         """End and cleanup a session."""
         self._sessions.pop(session_id, None)

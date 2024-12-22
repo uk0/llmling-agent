@@ -113,7 +113,7 @@ def test_missing_referenced_response():
         AgentsManifest.model_validate(config)
 
 
-def test_environment_path_resolution(tmp_path: Path) -> None:
+def test_environment_path_resolution(tmp_path: Path):
     """Test that environment paths are resolved relative to config file."""
     # Create a mock environment config with valid structure
     env_file = tmp_path / "env.yml"

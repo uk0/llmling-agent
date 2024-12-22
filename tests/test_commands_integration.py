@@ -54,13 +54,13 @@ def runtime_config() -> Config:
 
 
 @pytest.mark.asyncio
-async def test_prompt_command_simple(runtime_config: Config) -> None:
+async def test_prompt_command_simple(runtime_config: Config):
     """Test executing a simple prompt without arguments."""
     messages = []
 
     # Create output writer to capture output
     class TestOutput(DefaultOutputWriter):
-        async def print(self, message: str) -> None:
+        async def print(self, message: str):
             messages.append(message)
 
     async with RuntimeConfig.from_config(runtime_config) as runtime:
@@ -79,12 +79,12 @@ async def test_prompt_command_simple(runtime_config: Config) -> None:
 
 
 @pytest.mark.asyncio
-async def test_prompt_command_with_args(runtime_config: Config) -> None:
+async def test_prompt_command_with_args(runtime_config: Config):
     """Test executing a prompt with arguments."""
     messages = []
 
     class TestOutput(DefaultOutputWriter):
-        async def print(self, message: str) -> None:
+        async def print(self, message: str):
             messages.append(message)
 
     async with RuntimeConfig.from_config(runtime_config) as runtime:

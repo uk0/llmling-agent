@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 class DelegationTools:
     """Tools for agent delegation and collaboration."""
 
-    def __init__(self, pool: AgentPool) -> None:
+    def __init__(self, pool: AgentPool):
         """Initialize delegation tools.
 
         Args:
@@ -229,7 +229,7 @@ class DelegationTools:
         ]
 
 
-def register_delegation_tools(agent: LLMlingAgent[Any, Any], pool: AgentPool) -> None:
+def register_delegation_tools(agent: LLMlingAgent[Any, Any], pool: AgentPool):
     """Register all delegation tools with an agent.
 
     Args:

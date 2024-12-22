@@ -31,7 +31,7 @@ TEST_RESPONSE = "I am a test response"
 
 
 @pytest.mark.asyncio
-async def test_simple_agent_run(test_agent: LLMlingAgent[Any, str]) -> None:
+async def test_simple_agent_run(test_agent: LLMlingAgent[Any, str]):
     """Test basic agent text response."""
     result = await test_agent.run(SIMPLE_PROMPT)
     assert isinstance(result.data, str)
@@ -40,7 +40,7 @@ async def test_simple_agent_run(test_agent: LLMlingAgent[Any, str]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_message_history(test_agent: LLMlingAgent[Any, str]) -> None:
+async def test_agent_message_history(test_agent: LLMlingAgent[Any, str]):
     """Test agent with message history."""
     history = [
         ModelRequest(parts=[UserPromptPart(content="Previous message")]),
@@ -53,7 +53,7 @@ async def test_agent_message_history(test_agent: LLMlingAgent[Any, str]) -> None
 
 
 @pytest.mark.asyncio
-async def test_agent_streaming(test_agent: LLMlingAgent[Any, str]) -> None:
+async def test_agent_streaming(test_agent: LLMlingAgent[Any, str]):
     """Test agent streaming response."""
     stream_ctx = test_agent.run_stream(SIMPLE_PROMPT)
     async with await stream_ctx as stream:
@@ -62,7 +62,7 @@ async def test_agent_streaming(test_agent: LLMlingAgent[Any, str]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_streaming_with_history(test_agent: LLMlingAgent[Any, str]) -> None:
+async def test_agent_streaming_with_history(test_agent: LLMlingAgent[Any, str]):
     """Test streaming with message history."""
     history = [
         ModelRequest(parts=[UserPromptPart(content="Previous message")]),
@@ -91,7 +91,7 @@ async def test_agent_streaming_with_history(test_agent: LLMlingAgent[Any, str]) 
 
 
 @pytest.mark.asyncio
-async def test_agent_concurrent_runs(test_agent: LLMlingAgent[Any, str]) -> None:
+async def test_agent_concurrent_runs(test_agent: LLMlingAgent[Any, str]):
     """Test running multiple prompts concurrently."""
     prompts = ["Hello!", "Hi there!", "Good morning!"]
     tasks = [test_agent.run(prompt) for prompt in prompts]
@@ -100,7 +100,7 @@ async def test_agent_concurrent_runs(test_agent: LLMlingAgent[Any, str]) -> None
 
 
 @pytest.mark.asyncio
-async def test_agent_model_override(no_tool_runtime: RuntimeConfig) -> None:
+async def test_agent_model_override(no_tool_runtime: RuntimeConfig):
     """Test overriding model for specific runs."""
     default_response = "default response"
     override_response = "override response"
@@ -124,7 +124,7 @@ async def test_agent_model_override(no_tool_runtime: RuntimeConfig) -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig) -> None:
+async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig):
     """Test agent using tools."""
 
     async def test_tool(message: str = "test") -> str:
@@ -173,14 +173,14 @@ async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig) -> None:
     assert tool_return.content.startswith("Tool response:")
 
 
-def test_sync_wrapper(test_agent: LLMlingAgent[Any, str]) -> None:
+def test_sync_wrapper(test_agent: LLMlingAgent[Any, str]):
     """Test synchronous wrapper method."""
     result = test_agent.run_sync(SIMPLE_PROMPT)
     assert result.data == TEST_RESPONSE
 
 
 @pytest.mark.asyncio
-async def test_agent_context_manager(tmp_path: Path) -> None:
+async def test_agent_context_manager(tmp_path: Path):
     """Test using agent as async context manager."""
     # Create a minimal config file
     caps = {"load_resource": False, "get_resources": False}
@@ -214,7 +214,7 @@ async def test_agent_context_manager(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_logging(no_tool_runtime: RuntimeConfig) -> None:
+async def test_agent_logging(no_tool_runtime: RuntimeConfig):
     """Test agent logging functionality."""
     # Test with logging enabled
     agent1: LLMlingAgent[Any, str] = LLMlingAgent(

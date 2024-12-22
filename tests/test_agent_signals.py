@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.asyncio
-async def test_message_chain(test_agent: LLMlingAgent[Any, str], no_tool_runtime) -> None:
+async def test_message_chain(test_agent: LLMlingAgent[Any, str], no_tool_runtime):
     """Test that messages flow through a chain of connected agents."""
     # Create second agent
     model = TestModel(custom_result_text="Response from B")
@@ -26,7 +26,7 @@ async def test_message_chain(test_agent: LLMlingAgent[Any, str], no_tool_runtime
     # Track all forwarded messages
     forwarded: list[tuple[LLMlingAgent[Any, Any], ChatMessage[Any]]] = []
 
-    def collect(source: LLMlingAgent[Any, Any], msg: ChatMessage[Any]) -> None:
+    def collect(source: LLMlingAgent[Any, Any], msg: ChatMessage[Any]):
         forwarded.append((source, msg))
 
     # Connect both agents' forwards to our collector

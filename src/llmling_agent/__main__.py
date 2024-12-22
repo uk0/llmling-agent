@@ -38,7 +38,7 @@ except ImportError:
     web_cli = t.Typer(help="Web interface commands (not installed)")
 
     @web_cli.callback()
-    def web_not_installed() -> None:
+    def web_not_installed():
         """Web interface functionality (not installed)."""
         print(MISSING_WEB)
         raise t.Exit(1)

@@ -16,7 +16,7 @@ def launch_gui(
         "soft", "--theme", help="UI theme (soft/base/monochrome/glass/default)"
     ),
     browser: bool = t.Option(True, "--browser/--no-browser", help="Open in browser"),
-) -> None:
+):
     """Launch the web interface."""
     from llmling_agent_web.app import launch_app
 

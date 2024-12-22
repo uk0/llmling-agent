@@ -59,7 +59,7 @@ class AgentState:
         self,
         agent_name: str,
         model: str | None = None,
-    ) -> None:
+    ):
         """Select and initialize an agent.
 
         Args:
@@ -91,7 +91,7 @@ class AgentState:
             error_msg = f"Failed to initialize agent: {e}"
             raise ValueError(error_msg) from e
 
-    async def cleanup(self) -> None:
+    async def cleanup(self):
         """Clean up resources."""
         if self.current_runner:
             await self.current_runner.__aexit__(None, None, None)

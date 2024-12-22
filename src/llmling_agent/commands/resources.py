@@ -58,7 +58,7 @@ async def list_resources(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """List available resources."""
     try:
         resources = ctx.data._agent.runtime.get_resources()
@@ -84,7 +84,7 @@ async def show_resource(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Show details or content of a resource."""
     if not args:
         await ctx.output.print(

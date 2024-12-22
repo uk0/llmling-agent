@@ -45,7 +45,7 @@ class SingleAgentRunner[T](AbstractAsyncContextManager):
         response_defs: dict[str, ResponseDefinition],
         *,
         model_override: str | None = None,
-    ) -> None:
+    ):
         """Initialize agent runner.
 
         Args:
@@ -111,7 +111,7 @@ class SingleAgentRunner[T](AbstractAsyncContextManager):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Clean up resources."""
         if self._runtime:
             await self._runtime.__aexit__(exc_type, exc_val, exc_tb)

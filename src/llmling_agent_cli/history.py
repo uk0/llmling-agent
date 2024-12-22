@@ -67,7 +67,7 @@ def show_history(
         help="Include token usage statistics",
     ),
     output_format: str = output_format_opt,
-) -> None:
+):
     """Show conversation history with filtering options.
 
     Examples:
@@ -121,7 +121,7 @@ def show_stats(
         help="Group by: agent, model, hour, day",
     ),
     output_format: str = output_format_opt,
-) -> None:
+):
     """Show usage statistics.
 
     Examples:
@@ -155,7 +155,7 @@ def reset_history(
         "-a",
         help="Only delete history for specific agent",
     ),
-) -> None:
+):
     """Reset (clear) conversation history.
 
     Examples:

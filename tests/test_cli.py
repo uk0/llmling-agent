@@ -60,7 +60,7 @@ def config_file(tmp_path: Path) -> Path:
     return config_path
 
 
-def test_list_agents_command(config_file: Path) -> None:
+def test_list_agents_command(config_file: Path):
     """Test that list command runs and returns expected format."""
     result = runner.invoke(agent_cli, ["list", "--config", str(config_file)])
     assert result.exit_code == 0
@@ -68,9 +68,7 @@ def test_list_agents_command(config_file: Path) -> None:
 
 
 @mock.patch("llmling_agent_cli.agent.agent_store")
-def test_add_agent_command(
-    mock_store: mock.MagicMock, tmp_path: Path, config_file: Path
-) -> None:
+def test_add_agent_command(mock_store: mock.MagicMock, tmp_path: Path, config_file: Path):
     """Test that add command runs successfully."""
     result = runner.invoke(agent_cli, ["add", "test", str(config_file)])
     assert result.exit_code == 0
@@ -79,7 +77,7 @@ def test_add_agent_command(
 
 
 @mock.patch("llmling_agent_cli.agent.agent_store")
-def test_set_agent_command(mock_store: mock.MagicMock, config_file: Path) -> None:
+def test_set_agent_command(mock_store: mock.MagicMock, config_file: Path):
     """Test that set command runs."""
     # Configure mock to simulate existing config
     mock_store.get_config.return_value = str(config_file)

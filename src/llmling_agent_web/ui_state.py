@@ -81,7 +81,7 @@ class UIUpdate(BaseModel):
 class UIState:
     """Maintains UI state and handles updates."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Initialize UI state."""
         self.log_capturer = LogCapturer()
         self.debug_mode = False
@@ -90,7 +90,7 @@ class UIState:
         self._current_session: AgentChatSession | None = None
         self._pending_tasks: set[asyncio.Task[Any]] = set()
 
-    def _connect_signals(self) -> None:
+    def _connect_signals(self):
         """Connect to chat session signals."""
         assert self._current_session is not None
 
@@ -102,35 +102,35 @@ class UIState:
         self._current_session.tool_removed.connect(self._handle_tool_removed)
         self._current_session.tool_changed.connect(self._handle_tool_changed)
 
-    def _handle_tool_added(self, tool: ToolInfo) -> None:
+    def _handle_tool_added(self, tool: ToolInfo):
         """Sync handler for tool addition."""
         task = asyncio.create_task(self.update_tool_states({tool.name: tool.enabled}))
         self._pending_tasks.add(task)
         task.add_done_callback(self._pending_tasks.discard)
 
-    def _handle_tool_removed(self, tool_name: str) -> None:
+    def _handle_tool_removed(self, tool_name: str):
         """Sync handler for tool removal."""
         task = asyncio.create_task(self.update_tool_states({}))
         self._pending_tasks.add(task)
         task.add_done_callback(self._pending_tasks.discard)
 
-    def _handle_tool_changed(self, name: str, tool: ToolInfo) -> None:
+    def _handle_tool_changed(self, name: str, tool: ToolInfo):
         """Sync handler for tool state changes."""
         task = asyncio.create_task(self.update_tool_states({name: tool.enabled}))
         self._pending_tasks.add(task)
         task.add_done_callback(self._pending_tasks.discard)
 
-    async def cleanup(self) -> None:
+    async def cleanup(self):
         """Clean up pending tasks."""
         if self._pending_tasks:
             await asyncio.gather(*self._pending_tasks, return_exceptions=True)
             self._pending_tasks.clear()
 
-    async def _on_history_cleared(self, event: HistoryClearedEvent) -> None:
+    async def _on_history_cleared(self, event: HistoryClearedEvent):
         """Handle history cleared event."""
         await self.send_message(message="", history=[], agent_name=None, model=None)
 
-    async def _on_session_reset(self, event: SessionResetEvent) -> None:
+    async def _on_session_reset(self, event: SessionResetEvent):
         """Handle session reset event."""
         # Clear chat and update tool states
         _update = await self.send_message(
@@ -274,7 +274,7 @@ class UIState:
             # Collect command outputs
             command_outputs: list[str] = []
 
-            async def add_message(msg: ChatMessage) -> None:
+            async def add_message(msg: ChatMessage):
                 if message.startswith("/"):
                     command_outputs.append(msg.content)
                 else:

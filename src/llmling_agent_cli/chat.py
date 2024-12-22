@@ -34,7 +34,7 @@ def chat_command(
         help="Log level (DEBUG, INFO, WARNING, ERROR)",
         case_sensitive=False,
     ),
-) -> None:
+):
     """Start interactive chat session with an agent.
 
     By default, uses non-streaming mode for better support of structured responses
@@ -55,7 +55,7 @@ def chat_command(
             msg = str(e)
             raise t.BadParameter(msg) from e
 
-        async def run_chat() -> None:
+        async def run_chat():
             async with LLMlingAgent[Any, str].open_agent(
                 config_path,
                 agent_name,

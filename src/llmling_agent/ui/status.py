@@ -60,14 +60,14 @@ class TimeField(BaseField):
 class StatusBar:
     """UI-agnostic status bar."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.model = ModelField()
         self.tokens = TokensField()
         self.cost = CostField()
         self.messages = MessagesField()
         self.time = TimeField()
 
-    def update(self, state: SessionState) -> None:
+    def update(self, state: SessionState):
         """Update field values from state."""
         self.model.value = state.current_model or "default"
         self.tokens.value = f"{state.total_tokens:,}"

@@ -28,7 +28,7 @@ async def list_prompts(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """List available prompts."""
     prompts = ctx.data._agent.runtime.get_prompts()
     await ctx.output.print("\nAvailable prompts:")
@@ -40,7 +40,7 @@ async def prompt_command(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Execute a prompt.
 
     The first argument is the prompt name, remaining kwargs are prompt arguments.

@@ -55,7 +55,7 @@ async def chat_session(mock_agent) -> AgentChatSession:
 
 
 @pytest.mark.asyncio
-async def test_send_message_normal(chat_session: AgentChatSession) -> None:
+async def test_send_message_normal(chat_session: AgentChatSession):
     """Test normal message sending."""
     mock_result = AsyncMock()
     mock_usage = MagicMock()
@@ -91,7 +91,7 @@ async def test_send_message_normal(chat_session: AgentChatSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession) -> None:
+async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession):
     """Test streaming message responses with token information."""
     chunks = ["Hel", "lo, ", "human!"]
     stream_result = AsyncMock(spec=StreamedRunResult)
@@ -127,7 +127,7 @@ async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession
 
 
 @pytest.mark.asyncio
-async def test_send_message_with_history(chat_session: AgentChatSession) -> None:
+async def test_send_message_with_history(chat_session: AgentChatSession):
     """Test sending a message with existing conversation history."""
     # First message
     mock_result1 = AsyncMock(spec=RunResult)
@@ -174,7 +174,7 @@ async def test_send_message_with_history(chat_session: AgentChatSession) -> None
 
 
 @pytest.mark.asyncio
-async def test_send_message_streaming(chat_session: AgentChatSession) -> None:
+async def test_send_message_streaming(chat_session: AgentChatSession):
     """Test streaming message responses."""
     chunks = ["Hel", "lo, ", "human!"]
     stream_result = AsyncMock(spec=StreamedRunResult)
@@ -205,7 +205,7 @@ async def test_send_message_streaming(chat_session: AgentChatSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_empty_message(chat_session: AgentChatSession) -> None:
+async def test_empty_message(chat_session: AgentChatSession):
     """Test handling of empty messages."""
     with pytest.raises(ValueError, match="Message cannot be empty"):
         await chat_session.send_message("")
@@ -215,7 +215,7 @@ async def test_empty_message(chat_session: AgentChatSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_error_handling(chat_session: AgentChatSession) -> None:
+async def test_agent_error_handling(chat_session: AgentChatSession):
     """Test handling of agent errors."""
     error_msg = "Model error"
     chat_session._agent.run.side_effect = Exception(error_msg)  # type: ignore
@@ -226,7 +226,7 @@ async def test_agent_error_handling(chat_session: AgentChatSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_configure_tools(chat_session: AgentChatSession) -> None:
+async def test_configure_tools(chat_session: AgentChatSession):
     """Test tool configuration."""
     updates = {"tool1": False, "tool2": True}
 
@@ -243,7 +243,7 @@ async def test_configure_tools(chat_session: AgentChatSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_configure_invalid_tool(chat_session: AgentChatSession) -> None:
+async def test_configure_invalid_tool(chat_session: AgentChatSession):
     """Test configuration of non-existent tools."""
     chat_session._agent.tools.enable_tool.side_effect = ValueError("Tool not found")  # type: ignore
 
@@ -254,7 +254,7 @@ async def test_configure_invalid_tool(chat_session: AgentChatSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_long_conversation(chat_session: AgentChatSession) -> None:
+async def test_long_conversation(chat_session: AgentChatSession):
     """Test a longer conversation with multiple messages."""
     messages_count = 5
 
@@ -291,7 +291,7 @@ async def test_long_conversation(chat_session: AgentChatSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_concurrent_messages(chat_session: AgentChatSession) -> None:
+async def test_concurrent_messages(chat_session: AgentChatSession):
     """Test handling of concurrent message sending."""
 
     async def slow_response(content: str, **kwargs: Any) -> RunResult:
@@ -331,7 +331,7 @@ async def test_concurrent_messages(chat_session: AgentChatSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_message_after_tool_update(chat_session: AgentChatSession) -> None:
+async def test_message_after_tool_update(chat_session: AgentChatSession):
     """Test sending messages after tool configuration changes."""
     # First configure tools
     chat_session.configure_tools({"tool1": False})

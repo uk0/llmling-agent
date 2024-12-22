@@ -8,7 +8,7 @@ import pytest
 from llmling_agent.tools import ToolError, ToolManager
 
 
-def test_basic_tool_management() -> None:
+def test_basic_tool_management():
     """Test basic tool enabling/disabling."""
     tool1 = LLMCallableTool.from_callable(lambda x: x, name_override="tool1")
     tool2 = LLMCallableTool.from_callable(lambda x: x, name_override="tool2")
@@ -25,7 +25,7 @@ def test_basic_tool_management() -> None:
     assert manager.is_tool_enabled("tool1")
 
 
-def test_priority_sorting() -> None:
+def test_priority_sorting():
     """Test tools are sorted by priority."""
     tool1 = LLMCallableTool.from_callable(lambda x: x, name_override="tool1")
     tool2 = LLMCallableTool.from_callable(lambda x: x, name_override="tool2")
@@ -38,7 +38,7 @@ def test_priority_sorting() -> None:
     assert [t.name for t in tools] == ["tool2", "tool1"]
 
 
-def test_state_filtering() -> None:
+def test_state_filtering():
     """Test filtering tools by state."""
     tool1 = LLMCallableTool.from_callable(lambda x: x, name_override="tool1")
     tool2 = LLMCallableTool.from_callable(lambda x: x, name_override="tool2")
@@ -55,7 +55,7 @@ def test_state_filtering() -> None:
     assert disabled[0].name == "tool1"
 
 
-def test_invalid_tool_operations() -> None:
+def test_invalid_tool_operations():
     """Test error handling for invalid tool operations."""
     manager = ToolManager()
 

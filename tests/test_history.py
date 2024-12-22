@@ -16,7 +16,7 @@ BASE_TIME = datetime(2024, 1, 1, 12, 0)  # noon on Jan 1, 2024
 
 
 @pytest.fixture(autouse=True)
-def cleanup_database() -> None:
+def cleanup_database():
     """Clean up the database before each test."""
     with Session(engine) as session:
         # Delete all messages first (due to foreign key)
@@ -34,7 +34,7 @@ def cleanup_database() -> None:
 
 
 @pytest.fixture
-def sample_data(cleanup_database: None) -> None:
+def sample_data(cleanup_database: None):
     """Create sample conversation data."""
     with Session(engine) as session:
         # Create two conversations
@@ -81,14 +81,14 @@ def sample_data(cleanup_database: None) -> None:
         session.commit()
 
 
-def test_parse_time_period() -> None:
+def test_parse_time_period():
     """Test time period parsing."""
     assert parse_time_period("1h") == timedelta(hours=1)
     assert parse_time_period("2d") == timedelta(days=2)
     assert parse_time_period("1w") == timedelta(weeks=1)
 
 
-def test_get_conversations(sample_data: None) -> None:
+def test_get_conversations(sample_data: None):
     """Test conversation retrieval with filters."""
     # Get all conversations
     filters = QueryFilters()
@@ -109,7 +109,7 @@ def test_get_conversations(sample_data: None) -> None:
     assert len(results) == 1
 
 
-def test_get_stats_data(sample_data: None) -> None:
+def test_get_stats_data(sample_data: None):
     """Test statistics data retrieval."""
     cutoff = BASE_TIME - timedelta(hours=3)
     filters = StatsFilters(cutoff=cutoff, group_by="model")
@@ -126,7 +126,7 @@ def test_get_stats_data(sample_data: None) -> None:
     assert isinstance(usage, dict | None)
 
 
-def test_complex_filtering(sample_data: None) -> None:
+def test_complex_filtering(sample_data: None):
     """Test combined filtering capabilities."""
     # Filter by multiple criteria
     filters = QueryFilters(
@@ -143,7 +143,7 @@ def test_complex_filtering(sample_data: None) -> None:
     assert all(msg.model == "gpt-4" for msg in msgs)
 
 
-def test_stats_aggregation(sample_data: None) -> None:
+def test_stats_aggregation(sample_data: None):
     """Test statistics aggregation by different criteria."""
     from llmling_agent.history.stats import aggregate_stats
 

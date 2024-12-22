@@ -34,7 +34,7 @@ class DummyUI(UserInterface):
         message_responses: dict[str, str] | None = None,
         code_responses: dict[str, str] | None = None,
         raise_errors: bool = False,
-    ) -> None:
+    ):
         """Initialize test UI."""
         self.interactions: list[UIInteraction] = []
         self.message_responses = message_responses or {}
@@ -42,7 +42,7 @@ class DummyUI(UserInterface):
         self.raise_errors = raise_errors
         self.completer: CompletionProvider | None = None
 
-    def _record(self, type_: str, **data: Any) -> None:
+    def _record(self, type_: str, **data: Any):
         """Record an interaction."""
         self.interactions.append(UIInteraction(type=type_, data=data))
 
@@ -67,17 +67,17 @@ class DummyUI(UserInterface):
             return message_stream()
         return chat_message
 
-    async def update_status(self, message: str) -> None:
+    async def update_status(self, message: str):
         """Record status update."""
         self._record("update_status", message=message)
 
-    async def show_error(self, message: str) -> None:
+    async def show_error(self, message: str):
         """Record error and optionally raise."""
         self._record("show_error", message=message)
         if self.raise_errors:
             raise RuntimeError(message)
 
-    def set_completer(self, completer: CompletionProvider | None) -> None:
+    def set_completer(self, completer: CompletionProvider | None):
         """Record completer setting."""
         self._record("set_completer", completer=completer)
         self.completer = completer
@@ -98,7 +98,7 @@ class DummyUI(UserInterface):
         )
         return self.code_responses.get(initial_text, initial_text + "\n# Edited")
 
-    async def update_tool_states(self, states: dict[str, bool]) -> None:
+    async def update_tool_states(self, states: dict[str, bool]):
         """Record tool state update."""
         self._record("update_tool_states", states=states)
 
@@ -107,7 +107,7 @@ class DummyUI(UserInterface):
         model: str | None = None,
         token_count: int | None = None,
         cost: float | None = None,
-    ) -> None:
+    ):
         """Record model info update."""
         self._record("update_model_info", model=model, token_count=token_count, cost=cost)
 
@@ -120,6 +120,6 @@ class DummyUI(UserInterface):
             return self.interactions
         return [i for i in self.interactions if i.type == type_]
 
-    def clear_interactions(self) -> None:
+    def clear_interactions(self):
         """Clear recorded interactions."""
         self.interactions.clear()

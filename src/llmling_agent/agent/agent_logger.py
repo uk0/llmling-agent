@@ -22,9 +22,7 @@ logger = logging.getLogger(__name__)
 class AgentLogger:
     """Handles database logging for agent interactions."""
 
-    def __init__(
-        self, agent: LLMlingAgent[Any, Any], enable_logging: bool = True
-    ) -> None:
+    def __init__(self, agent: LLMlingAgent[Any, Any], enable_logging: bool = True):
         """Initialize logger.
 
         Args:
@@ -59,11 +57,11 @@ class AgentLogger:
         """Get last tool call in history."""
         return self.toolcall_history[-1] if self.toolcall_history else None
 
-    def init_conversation(self) -> None:
+    def init_conversation(self):
         """Create initial conversation record."""
         Conversation.log(self.conversation_id, self.agent.name)
 
-    def log_message(self, message: ChatMessage) -> None:
+    def log_message(self, message: ChatMessage):
         """Handle message from chat signal."""
         self.message_history.append(message)
 
@@ -84,7 +82,7 @@ class AgentLogger:
             model=message.model or message.metadata.model,
         )
 
-    def log_tool_call(self, tool_call: ToolCallInfo) -> None:
+    def log_tool_call(self, tool_call: ToolCallInfo):
         """Handle tool usage signal."""
         self.toolcall_history.append(tool_call)
 

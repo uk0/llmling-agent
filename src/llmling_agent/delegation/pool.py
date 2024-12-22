@@ -70,7 +70,7 @@ class AgentPool:
         manifest: AgentsManifest,
         *,
         agents_to_load: list[str] | None = None,
-    ) -> None:
+    ):
         """Initialize agent pool."""
         self.agents: dict[str, LLMlingAgent[Any, Any]] = {}
         self.manifest = manifest
@@ -350,7 +350,7 @@ class AgentPool:
         """List available agent names."""
         return list(self.manifest.agents)
 
-    async def cleanup(self) -> None:
+    async def cleanup(self):
         """Clean up pool resources."""
         # Clean up each agent's runtime
         for agent in self.agents.values():

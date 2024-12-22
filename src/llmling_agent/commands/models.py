@@ -30,7 +30,7 @@ async def set_model(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
     kwargs: dict[str, str],
-) -> None:
+):
     """Change the model for the current conversation."""
     if not args:
         await ctx.output.print("Usage: /set-model <model>\nExample: /set-model gpt-4")

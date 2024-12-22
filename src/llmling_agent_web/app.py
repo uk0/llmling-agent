@@ -215,7 +215,7 @@ class AgentUI:
         return app
 
 
-def setup_logging() -> None:
+def setup_logging():
     """Set up logging configuration."""
     fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=logging.INFO, force=True, format=fmt)
