@@ -22,8 +22,6 @@ def render_status_bar(status_bar: StatusBar, console: Console) -> None:
             status.add_column(style=field.style, justify=field.align)
 
     # Add values in one row
-    status.add_row(
-        *(f"{field.label}: {field.value}" for field in status_bar.fields if field.visible)
-    )
-
-    console.print(Panel(status, style="dim", padding=(0, 1)))
+    status.add_row(*(f"{f.label}: {f.value}" for f in status_bar.fields if f.visible))
+    panel = Panel(status, style="dim", padding=(0, 1))
+    console.print(panel)
