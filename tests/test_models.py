@@ -51,6 +51,32 @@ agent:
 """
 
 
+ENV_CONFIG = """\
+global_settings:
+    llm_capabilities:
+        load_resource: false
+        get_resources: false
+"""
+
+ENV_AGENT = """\
+responses:
+    BasicResult:
+        description: Test result
+        type: inline
+        fields:
+            message:
+                type: str
+                description: Test message
+
+agents:
+    test_agent:
+        name: test
+        model: test
+        result_type: BasicResult
+        environment: env.yml  # Relative path
+"""
+
+
 def test_valid_system_prompt():
     """Test valid system prompt configurations."""
     prompts = [
@@ -90,32 +116,11 @@ def test_missing_referenced_response():
 def test_environment_path_resolution(tmp_path: Path) -> None:
     """Test that environment paths are resolved relative to config file."""
     # Create a mock environment config with valid structure
-    caps = {"load_resource": False, "get_resources": False}
-    env_config = {"global_settings": {"llm_capabilities": caps}}
     env_file = tmp_path / "env.yml"
-    env_file.write_text(yamling.dump_yaml(env_config))
-
+    env_file.write_text(ENV_CONFIG)
     # Create agent config referencing the environment
-    agent_config = {
-        "responses": {
-            "BasicResult": {
-                "description": "Test result",
-                "type": "inline",
-                "fields": {"message": {"type": "str", "description": "Test message"}},
-            }
-        },
-        "agents": {
-            "test_agent": {
-                "name": "test",
-                "model": "test",
-                "result_type": "BasicResult",
-                "environment": "env.yml",  # Relative path
-            }
-        },
-    }
-
     config_file = tmp_path / "agents.yml"
-    config_file.write_text(yamling.dump_yaml(agent_config))
+    config_file.write_text(ENV_AGENT)
 
     # Load the config and verify path resolution
     agent_def = AgentsManifest.from_file(config_file)
