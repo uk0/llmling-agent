@@ -59,22 +59,22 @@ def init_database():
                     type_sql = col.type.compile(engine.dialect)
                     nullable = "" if col.nullable else " NOT NULL"
                     default = ""
-                    if col.default is not None:
-                        if hasattr(col.default, "arg"):
+                    match col.default:
+                        case None:
+                            pass
+                        case _ if hasattr(col.default, "arg"):
                             # Simple default value
-                            default = f" DEFAULT {col.default.arg}"
-                        elif isinstance(col.default, sa.Computed):
+                            default = f" DEFAULT {col.default.arg}"  # pyright: ignore
+                        case sa.Computed():
                             # Computed default
                             default = f" DEFAULT {col.default.sqltext}"
-                        elif isinstance(col.default, sa.FetchedValue):
+                        case sa.FetchedValue():
                             # Server-side default
                             pass
-
-                    conn.execute(
-                        sa.text(
-                            f"ALTER TABLE {table_name} "
-                            f"ADD COLUMN {col.name} {type_sql}{nullable}{default}"
-                        )
+                    text = sa.text(
+                        f"ALTER TABLE {table_name} "
+                        f"ADD COLUMN {col.name} {type_sql}{nullable}{default}"
                     )
+                    conn.execute(text)
 
         conn.commit()

@@ -5,14 +5,6 @@ from typing import Any
 from jinja2 import Environment
 
 
-def create_template_env() -> Environment:
-    """Create Jinja environment with safety settings."""
-    return Environment(
-        autoescape=True,  # Safety first
-        keep_trailing_newline=True,
-    )
-
-
 def render_prompt(
     template: str,
     agent_context: dict[str, Any],
@@ -25,6 +17,6 @@ def render_prompt(
         agent.role: Role of the agent
         agent.model: Model name
     """
-    env = create_template_env()
+    env = Environment(autoescape=True, keep_trailing_newline=True)
     tpl = env.from_string(template)
     return tpl.render(agent=agent_context)
