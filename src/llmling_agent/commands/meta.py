@@ -21,9 +21,8 @@ async def meta_command(
 ):
     """Generate a prompt using meta-prompts."""
     if not args:
-        await ctx.output.print(
-            "Usage: /meta <goal> --category <name> [--max-length <n>] [--chain]"
-        )
+        msg = "Usage: /meta <goal> --category <name> [--max-length <n>] [--chain]"
+        await ctx.output.print(msg)
         return
 
     goal = args[0]
