@@ -295,7 +295,7 @@ class AgentPool:
         *,
         mode: Literal["parallel", "sequential"] = "parallel",
         model_override: str | None = None,
-        environment_override: str | None = None,
+        environment_override: str | os.PathLike[str] | Config | None = None,
     ) -> list[AgentResponse]:
         """Execute a task with a team of agents.
 
@@ -374,6 +374,8 @@ class AgentPool:
         for agent in self.agents.values():
             if agent._runtime:
                 await agent._runtime.shutdown()
+        # Clear the agents dictionary
+        self.agents.clear()
 
 
 async def main():

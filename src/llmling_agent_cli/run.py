@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from llmling.cli.constants import verbose_opt
 from pydantic import ValidationError
 import typer as t
+
+
+if TYPE_CHECKING:
+    from llmling_agent.agent.agent import LLMlingAgent
 
 
 def run_command(
@@ -76,9 +80,8 @@ def run_command(
     from llmling.cli.utils import format_output
     from llmling.config.runtime import RuntimeConfig
 
+    from llmling_agent.delegation import AgentPool
     from llmling_agent.models import AgentsManifest
-    from llmling_agent.runners.models import AgentRunConfig
-    from llmling_agent.runners.orchestrator import AgentOrchestrator
     from llmling_agent_cli import resolve_agent_config
 
     try:
@@ -141,38 +144,40 @@ def run_command(
             msg = "No prompts available (neither in config nor provided)"
             raise t.BadParameter(msg)  # noqa: TRY301
 
-        # Create run configuration
-        run_config = AgentRunConfig(
-            agent_names=agent_names,
-            prompts=final_prompts,
-            environment=environment,
-            model=model,
-            output_format=output_format,
-        )
-
-        # Create and run orchestrator
-        orchestrator = AgentOrchestrator[Any](agent_def, run_config)
-
         async def run():
-            try:
-                results = await orchestrator.run()
-                # Format results based on whether we ran single or multiple agents
+            async with AgentPool.open(config_path, agents=agent_names) as pool:
+                if environment:
+                    # Set environment override for all agents
+                    pool.manifest.agents = {
+                        name: config.model_copy(update={"environment": environment})
+                        for name, config in pool.manifest.agents.items()
+                    }
+
                 if len(agent_names) == 1:
-                    # Single agent results is a list of RunResults
-                    for result in results:  # type: ignore
+                    # Single agent execution
+                    agent: LLMlingAgent[Any, Any] = await pool.get_agent(
+                        agent_names[0], model_override=model
+                    )
+                    results = []
+                    for prompt in final_prompts:
+                        result = await agent.run(prompt)
                         if isinstance(result.data, str):
                             print(result.data)
                         else:
                             format_output(result.data, output_format)
+                        results.append(result)
                 else:
-                    # Multiple agent results is a dict of agent -> list[RunResult]
-                    formatted: dict[str, list[Any]] = {
-                        name: [r.data for r in agent_results]
-                        for name, agent_results in results.items()  # type: ignore
-                    }
-                    format_output(formatted, output_format)
-            finally:
-                await orchestrator.cleanup()
+                    # Team task execution
+                    for prompt in final_prompts:
+                        responses = await pool.team_task(
+                            prompt,
+                            agent_names,
+                            mode="parallel",
+                            model_override=model,
+                            environment_override=environment,
+                        )
+                        formatted = {r.agent_name: r.response for r in responses}
+                        format_output(formatted, output_format)
 
         asyncio.run(run())
 

@@ -1,119 +1,160 @@
+"""Tests for AgentPool functionality."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai.models.test import TestModel
 import pytest
 
+from llmling_agent.delegation import AgentPool
 from llmling_agent.models import AgentConfig, AgentsManifest
-from llmling_agent.runners import AgentOrchestrator, AgentRunConfig, SingleAgentRunner
-from llmling_agent.runners.exceptions import AgentNotFoundError, NoPromptsError
+from llmling_agent.responses import InlineResponseDefinition, ResponseField
 
 
 if TYPE_CHECKING:
-    from llmling.config.runtime import RuntimeConfig
-
-    from llmling_agent.responses import ResponseDefinition
+    from llmling_agent.agent.agent import LLMlingAgent
 
 
 @pytest.mark.asyncio
-async def test_single_agent_runner_basic(
-    basic_agent_config: AgentConfig,
-    basic_response_def: dict[str, ResponseDefinition],
-    no_tool_runtime: RuntimeConfig,
-):
-    """Test basic SingleAgentRunner functionality."""
-    async with SingleAgentRunner[str](
-        agent_config=basic_agent_config,
-        response_defs=basic_response_def,
-    ) as runner:
-        # Override the model with TestModel
-        runner.agent._pydantic_agent.model = TestModel()
+async def test_agent_pool_conversation_flow(test_model):
+    """Test conversation flow maintaining history between messages."""
+    fields = {"message": ResponseField(type="str", description="Test message")}
+    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
+    agents = {
+        "test_agent": AgentConfig(
+            name="Test Agent",
+            model=test_model,
+            result_type="BasicResult",
+        ),
+    }
+    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
-        result = await runner.run("Hello!")
-        assert isinstance(result.data, str)
-        assert result.data  # should not be empty
+    async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
+        # Get agent directly for conversation
+        agent: LLMlingAgent[Any, str] = await pool.get_agent("test_agent")
 
+        # Run multiple prompts in sequence
+        history = None
+        responses = []
 
-@pytest.mark.asyncio
-async def test_single_agent_runner_conversation(
-    basic_agent_config: AgentConfig,
-    basic_response_def: dict[str, ResponseDefinition],
-):
-    """Test conversation flow with SingleAgentRunner."""
-    async with SingleAgentRunner[str](
-        agent_config=basic_agent_config,
-        response_defs=basic_response_def,
-    ) as runner:
-        # Override with TestModel that returns specific responses
-        runner.agent._pydantic_agent.model = TestModel(custom_result_text="Test response")
+        for prompt in ["Hello!", "How are you?"]:
+            result = await agent.run(prompt, message_history=history)
+            responses.append(result)
+            history = result.new_messages()
 
-        results = await runner.run_conversation(["Hello!", "How are you?"])
-        assert len(results) == 2  # noqa: PLR2004
-        assert all(r.data == "Test response" for r in results)
+        assert len(responses) == 2  # noqa: PLR2004
+        assert all(str(r.data) == "Test response" for r in responses)
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_single_agent(
-    basic_agent_config: AgentConfig,
-    basic_response_def: dict[str, ResponseDefinition],
-):
-    """Test orchestrator with single agent."""
-    agents = {"test_agent": basic_agent_config}
-    agent_def = AgentsManifest(responses=basic_response_def, agents=agents)
+async def test_agent_pool_validation():
+    """Test AgentPool validation and error handling."""
+    fields = {"message": ResponseField(type="str", description="Test message")}
+    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
+    agents = {
+        "test_agent": AgentConfig(
+            name="Test Agent",
+            model="openai:gpt-4o-mini",
+            result_type="BasicResult",
+        ),
+    }
+    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
-    config = AgentRunConfig(agent_names=["test_agent"], prompts=["Hello!"])
+    # Test initialization with non-existent agent
+    with pytest.raises(ValueError, match="Unknown agents"):
+        AgentPool(agent_def, agents_to_load=["nonexistent"])
 
-    orchestrator: AgentOrchestrator[Any] = AgentOrchestrator(agent_def, run_config=config)
-    results = await orchestrator.run()
-
-    # For single agent, results should be a list of RunResults
-    assert isinstance(results, list)
-    assert len(results) == 1
-    assert isinstance(results[0].data, str)
-
-
-@pytest.mark.asyncio
-async def test_orchestrator_multiple_agents(
-    basic_agent_config: AgentConfig,
-    basic_response_def: dict[str, ResponseDefinition],
-    test_model: TestModel,
-):
-    """Test orchestrator with multiple agents."""
-    test_config = basic_agent_config.model_copy(update={"model": test_model})
-    agents = {"agent1": test_config, "agent2": test_config}
-    agent_def = AgentsManifest(responses=basic_response_def, agents=agents)
-
-    config = AgentRunConfig(agent_names=["agent1", "agent2"], prompts=["Hello!"])
-
-    orchestrator: AgentOrchestrator[Any] = AgentOrchestrator(agent_def, run_config=config)
-    results = await orchestrator.run()
-
-    assert isinstance(results, dict)
-    assert len(results) == 2  # noqa: PLR2004
-    assert all(
-        isinstance(r[0].data, str) and r[0].data == "Test response"
-        for r in results.values()
-    )
+    # Test getting non-existent agent
+    async with AgentPool(agent_def) as pool:
+        with pytest.raises(KeyError, match="not in initialized set"):
+            await pool.get_agent("nonexistent")
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_validation(
-    basic_agent_config: AgentConfig,
-    basic_response_def: dict[str, ResponseDefinition],
-):
-    """Test orchestrator validation."""
-    agents = {"test_agent": basic_agent_config}
-    agent_def = AgentsManifest(responses=basic_response_def, agents=agents)
+async def test_agent_pool_team_task_errors(test_model):
+    """Test error handling in team tasks."""
+    fields = {"message": ResponseField(type="str", description="Test message")}
+    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
+    agents = {
+        "test_agent": AgentConfig(
+            name="Test Agent",
+            model=test_model,
+            result_type="BasicResult",
+        ),
+    }
+    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
-    # Test no prompts first
-    config = AgentRunConfig(agent_names=["test_agent"], prompts=[])
-    orch: AgentOrchestrator[Any] = AgentOrchestrator(agent_def, config)
-    with pytest.raises(NoPromptsError):
-        orch.validate()
+    async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
+        # Test with non-existent team member
+        responses = await pool.team_task(
+            prompt="Test prompt",
+            team=["test_agent", "nonexistent"],
+        )
 
-    # Then test missing agent
-    config = AgentRunConfig(agent_names=["nonexistent"], prompts=["Hello!"])
-    orch2: AgentOrchestrator[Any] = AgentOrchestrator(agent_def, config)
-    with pytest.raises(AgentNotFoundError):
-        orch2.validate()
+        assert len(responses) == 2  # noqa: PLR2004
+        success_response = next(r for r in responses if r.agent_name == "test_agent")
+        error_response = next(r for r in responses if r.agent_name == "nonexistent")
+
+        assert success_response.success
+        assert not error_response.success
+        assert error_response.error is not None
+
+
+@pytest.mark.asyncio
+async def test_agent_pool_cleanup():
+    """Test proper cleanup of agent resources."""
+    fields = {"message": ResponseField(type="str", description="Test message")}
+    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
+    agents = {
+        "test_agent": AgentConfig(
+            name="Test Agent",
+            model="openai:gpt-4o-mini",
+            result_type="BasicResult",
+        ),
+    }
+    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
+
+    # Use context manager to ensure proper cleanup
+    async with AgentPool(agent_def) as pool:
+        # Add some agents
+        agent: LLMlingAgent[Any, str] = await pool.get_agent("test_agent")
+        assert "test_agent" in pool.agents
+
+        # Get runtime reference to check cleanup
+        runtime = agent._runtime
+        assert runtime is not None
+
+        # Test manual cleanup
+        await pool.cleanup()
+        assert not pool.agents  # Should be empty after cleanup
+        # assert runtime._client is None  # Runtime should be shut down
+
+    # Test context manager cleanup
+    assert not pool.agents  # Should still be empty after context exit
+
+
+@pytest.mark.asyncio
+async def test_agent_pool_context_cleanup():
+    """Test cleanup through context manager."""
+    fields = {"message": ResponseField(type="str", description="Test message")}
+    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
+    agents = {
+        "test_agent": AgentConfig(
+            name="Test Agent",
+            model="openai:gpt-4o-mini",
+            result_type="BasicResult",
+        ),
+    }
+    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
+
+    runtime_ref = None
+
+    async with AgentPool(agent_def) as pool:
+        agent: LLMlingAgent[Any, str] = await pool.get_agent("test_agent")
+        runtime_ref = agent._runtime
+        assert "test_agent" in pool.agents
+        assert runtime_ref is not None
+
+    # After context exit
+    assert not pool.agents
+    # assert runtime_ref._client is None  # Runtime should be shut down
