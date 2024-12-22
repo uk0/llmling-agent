@@ -48,6 +48,8 @@ JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 class LLMlingAgent[TDeps, TResult]:
     """Agent for AI-powered interaction with LLMling resources and tools.
 
+    Generically typed with: LLMLingAgent[Type of Dependencies, Type of Result]
+
     This agent integrates LLMling's resource system with PydanticAI's agent capabilities.
     It provides:
     - Access to resources through RuntimeConfig

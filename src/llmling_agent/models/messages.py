@@ -52,7 +52,11 @@ class MessageMetadata(BaseModel):
 
 
 class ChatMessage[T](BaseModel):
-    """Common message format for all UI types."""
+    """Common message format for all UI types.
+
+    Generically typed with: ChatMessage[Type of Content]
+    The type can either be str or a BaseModel subclass.
+    """
 
     content: T
     model: str | None = Field(default=None)

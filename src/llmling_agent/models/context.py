@@ -14,7 +14,10 @@ TDeps = TypeVar("TDeps", default=Any)
 
 
 class AgentContext[TDeps](BaseModel):
-    """Runtime context for agent execution."""
+    """Runtime context for agent execution.
+
+    Generically typed with AgentContext[Type of Dependencies]
+    """
 
     agent_name: str
     """Name of the current agent."""
