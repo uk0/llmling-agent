@@ -271,10 +271,18 @@
         "type": {
           "const": "agent",
           "default": "agent",
+          "description": "Type discriminator for agent targets.",
           "title": "Type",
           "type": "string"
         },
+        "wait_for_completion": {
+          "default": true,
+          "description": "Whether to wait for the result before continuing.\n\nIf True, message processing will wait for the target to complete.\nIf False, message will be forwarded asynchronously.",
+          "title": "Wait For Completion",
+          "type": "boolean"
+        },
         "name": {
+          "description": "Name of the agent to forward messages to.",
           "title": "Name",
           "type": "string"
         }
