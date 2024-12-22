@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any, Literal, TypedDict
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import TypeVar
 
 
@@ -39,16 +39,34 @@ class MessageMetadata(BaseModel):
     """Metadata for chat messages."""
 
     timestamp: datetime = Field(default_factory=datetime.now)
+    """When the message was created."""
+
     model: str | None = Field(default=None)
+    """Name of the model used to generate this message."""
+
     token_usage: TokenUsage | None = Field(default=None)
+    """Token usage statistics if available."""
+
     cost: float | None = Field(default=None)
+    """Cost in USD for generating this message."""
+
     tool: str | None = Field(default=None)
-    # Add web UI specific fields
+    """Name of tool if this message represents a tool interaction."""
+
+    # Web UI specific fields
     avatar: str | None = Field(default=None)
+    """URL or path to avatar image for UI display."""
+
     name: str | None = Field(default=None)
+    """Display name for the message sender in UI."""
+
     tool_args: dict[str, Any] | None = None
+    """Arguments passed to tool for UI display."""
+
     tool_result: Any | None = None
-    model_config = {"frozen": True}
+    """Result returned by tool for UI display."""
+
+    model_config = ConfigDict(frozen=True)
 
 
 class ChatMessage[T](BaseModel):
@@ -59,14 +77,27 @@ class ChatMessage[T](BaseModel):
     """
 
     content: T
-    model: str | None = Field(default=None)
-    role: Literal["user", "assistant", "system"]
-    metadata: MessageMetadata = Field(default_factory=MessageMetadata)
-    timestamp: datetime = Field(default_factory=datetime.now)
-    token_usage: TokenUsage | None = Field(default=None)
-    message_id: str = Field(default_factory=lambda: str(uuid4()))
+    """Message content, typed as T (either str or BaseModel)."""
 
-    model_config = {"frozen": True}
+    model: str | None = Field(default=None)
+    """Name of the model that generated this message."""
+
+    role: Literal["user", "assistant", "system"]
+    """Role of the message sender (user/assistant/system)."""
+
+    metadata: MessageMetadata = Field(default_factory=MessageMetadata)
+    """Additional metadata about the message (timing, costs, tool usage, etc)."""
+
+    timestamp: datetime = Field(default_factory=datetime.now)
+    """When this message was created."""
+
+    token_usage: TokenUsage | None = Field(default=None)
+    """Token usage for this specific message if available."""
+
+    message_id: str = Field(default_factory=lambda: str(uuid4()))
+    """Unique identifier for this message."""
+
+    model_config = ConfigDict(frozen=True)
 
     def _get_content_str(self) -> str:
         """Get string representation of content."""
