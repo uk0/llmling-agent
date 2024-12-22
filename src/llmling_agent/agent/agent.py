@@ -11,6 +11,7 @@ from uuid import uuid4
 from llmling.config.runtime import RuntimeConfig
 from psygnal import Signal
 from pydantic_ai import Agent as PydanticAgent
+from pydantic_ai.models import infer_model
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
@@ -63,6 +64,7 @@ class LLMlingAgent[TDeps, TResult]:
     message_sent = Signal(ChatMessage[TResult])
     message_exchanged = Signal(ChatMessage[TResult | str])
     tool_used = Signal(ToolCallInfo)  # Now we emit the whole info object
+    model_changed = Signal(object)  # Model | None
 
     # `outbox` defined in __init__
     outbox = Signal(object, ChatMessage[Any])
@@ -416,6 +418,11 @@ class LLMlingAgent[TDeps, TResult]:
             # Clear all tools
             if self._context:
                 self._context.current_prompt = prompt
+            if model:
+                # perhaps also check for old model == new model?
+                if isinstance(model, str):
+                    model = infer_model(model)
+                self.model_changed.emit(model)
             # Register currently enabled tools
             self._update_tools()
 
@@ -466,6 +473,12 @@ class LLMlingAgent[TDeps, TResult]:
             raise
         else:
             return result
+        finally:
+            if model:
+                # Restore original model in signal
+                old = self._pydantic_agent.model
+                model_obj = infer_model(old) if isinstance(old, str) else old
+                self.model_changed.emit(model_obj)
 
     async def run_stream(
         self,
@@ -587,6 +600,22 @@ class LLMlingAgent[TDeps, TResult]:
         task = loop.create_task(self.run(str(message.content), deps=source))  # type: ignore[arg-type]
         self._pending_tasks.add(task)
         task.add_done_callback(self._pending_tasks.discard)
+
+    def set_model(self, model: models.Model | models.KnownModelName | None):
+        """Set the model for this agent.
+
+        Args:
+            model: New model to use (name or instance)
+
+        Emits:
+            model_changed signal with the new model
+        """
+        old_name = self.model_name
+        if isinstance(model, str):
+            model = infer_model(model)
+        self._pydantic_agent.model = model
+        self.model_changed.emit(model)
+        logger.debug("Changed model from %s to %s", old_name, self.model_name)
 
     def result_validator(self, *args: Any, **kwargs: Any) -> Any:
         """Register a result validator.

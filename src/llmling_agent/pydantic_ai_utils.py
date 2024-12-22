@@ -6,7 +6,7 @@ from datetime import datetime
 import json
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import messages as _messages
+from pydantic_ai import messages as _messages, models
 from pydantic_ai.messages import (
     ArgsDict,
     ModelMessage,
@@ -256,3 +256,19 @@ def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: 
         case _:
             msg = f"Unsupported message type: {type(message)}"
             raise ValueError(msg)
+
+
+def models_equal(
+    self, a: str | models.Model | None, b: str | models.Model | None
+) -> bool:
+    """Compare models by their string representation."""
+    match (a, b):
+        case (None, None):
+            return True
+        case (None, _) | (_, None):
+            return False
+        case _:
+            # Compare string representations (using model.name() for Model objects)
+            name_a = a if isinstance(a, str | None) else a.name()
+            name_b = b if isinstance(b, str | None) else b.name()
+            return name_a == name_b
