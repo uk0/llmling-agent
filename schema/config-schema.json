@@ -162,6 +162,16 @@
           "description": "Max retries for result validation",
           "title": "Result Retries"
         },
+        "end_strategy": {
+          "default": "early",
+          "description": "The strategy for handling multiple tool calls when a final result is found",
+          "enum": [
+            "early",
+            "exhaustive"
+          ],
+          "title": "End Strategy",
+          "type": "string"
+        },
         "avatar": {
           "anyOf": [
             {
@@ -190,6 +200,12 @@
           },
           "title": "User Prompts",
           "type": "array"
+        },
+        "include_role_prompts": {
+          "default": true,
+          "description": "Whether to include default prompts based on the agent's role.",
+          "title": "Include Role Prompts",
+          "type": "boolean"
         },
         "model_settings": {
           "description": "Additional settings to pass to the model",
@@ -762,6 +778,12 @@
     "FileEnvironment": {
       "description": "File-based environment configuration.\n\nLoads environment settings from external YAML files, supporting:\n- Reusable environment configurations\n- Separation of concerns\n- Environment sharing between agents\n- Version control of environment settings",
       "properties": {
+        "type": {
+          "const": "file",
+          "default": "file",
+          "title": "Type",
+          "type": "string"
+        },
         "config_file_path": {
           "anyOf": [
             {
@@ -773,12 +795,6 @@
           ],
           "default": null,
           "title": "Config File Path"
-        },
-        "type": {
-          "const": "file",
-          "default": "file",
-          "title": "Type",
-          "type": "string"
         },
         "uri": {
           "description": "Path to environment file",
@@ -993,6 +1009,12 @@
     "InlineEnvironment": {
       "description": "Direct environment configuration without external files.\n\nAllows embedding complete environment settings directly in the agent\nconfiguration instead of referencing external files. Useful for:\n- Self-contained configurations\n- Testing and development\n- Simple agent setups",
       "properties": {
+        "type": {
+          "const": "inline",
+          "default": "inline",
+          "title": "Type",
+          "type": "string"
+        },
         "config_file_path": {
           "anyOf": [
             {
@@ -1004,12 +1026,6 @@
           ],
           "default": null,
           "title": "Config File Path"
-        },
-        "type": {
-          "const": "inline",
-          "default": "inline",
-          "title": "Type",
-          "type": "string"
         },
         "uri": {
           "anyOf": [
@@ -1628,59 +1644,18 @@
           "type": "string"
         },
         "models": {
-          "description": "\"List of models to use\".",
+          "description": "List of models to use.",
           "items": {
-            "enum": [
-              "openai:gpt-4o",
-              "openai:gpt-4o-mini",
-              "openai:gpt-4-turbo",
-              "openai:gpt-4",
-              "openai:o1-preview",
-              "openai:o1-mini",
-              "openai:gpt-3.5-turbo",
-              "groq:llama-3.1-70b-versatile",
-              "groq:llama3-groq-70b-8192-tool-use-preview",
-              "groq:llama3-groq-8b-8192-tool-use-preview",
-              "groq:llama-3.1-70b-specdec",
-              "groq:llama-3.1-8b-instant",
-              "groq:llama-3.2-1b-preview",
-              "groq:llama-3.2-3b-preview",
-              "groq:llama-3.2-11b-vision-preview",
-              "groq:llama-3.2-90b-vision-preview",
-              "groq:llama3-70b-8192",
-              "groq:llama3-8b-8192",
-              "groq:mixtral-8x7b-32768",
-              "groq:gemma2-9b-it",
-              "groq:gemma-7b-it",
-              "gemini-1.5-flash",
-              "gemini-1.5-pro",
-              "vertexai:gemini-1.5-flash",
-              "vertexai:gemini-1.5-pro",
-              "ollama:codellama",
-              "ollama:gemma",
-              "ollama:gemma2",
-              "ollama:llama3",
-              "ollama:llama3.1",
-              "ollama:llama3.2",
-              "ollama:llama3.2-vision",
-              "ollama:llama3.3",
-              "ollama:mistral",
-              "ollama:mistral-nemo",
-              "ollama:mixtral",
-              "ollama:phi3",
-              "ollama:qwq",
-              "ollama:qwen",
-              "ollama:qwen2",
-              "ollama:qwen2.5",
-              "ollama:starcoder2",
-              "test"
-            ],
             "type": "string"
           },
+          "minItems": 1,
           "title": "Models",
           "type": "array"
         }
       },
+      "required": [
+        "models"
+      ],
       "title": "RandomMultiModel",
       "type": "object"
     },
@@ -1888,7 +1863,9 @@
             "openai:gpt-4",
             "openai:o1-preview",
             "openai:o1-mini",
+            "openai:o1",
             "openai:gpt-3.5-turbo",
+            "groq:llama-3.3-70b-versatile",
             "groq:llama-3.1-70b-versatile",
             "groq:llama3-groq-70b-8192-tool-use-preview",
             "groq:llama3-groq-8b-8192-tool-use-preview",
@@ -1905,8 +1882,13 @@
             "groq:gemma-7b-it",
             "gemini-1.5-flash",
             "gemini-1.5-pro",
+            "gemini-2.0-flash-exp",
             "vertexai:gemini-1.5-flash",
             "vertexai:gemini-1.5-pro",
+            "mistral:mistral-small-latest",
+            "mistral:mistral-large-latest",
+            "mistral:codestral-latest",
+            "mistral:mistral-moderation-latest",
             "ollama:codellama",
             "ollama:gemma",
             "ollama:gemma2",
@@ -1924,6 +1906,9 @@
             "ollama:qwen2",
             "ollama:qwen2.5",
             "ollama:starcoder2",
+            "claude-3-5-haiku-latest",
+            "claude-3-5-sonnet-latest",
+            "claude-3-opus-latest",
             "test"
           ],
           "title": "Identifier",
