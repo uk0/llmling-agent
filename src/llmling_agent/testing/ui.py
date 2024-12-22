@@ -58,7 +58,7 @@ class DummyUI(UserInterface):
         response = self.message_responses.get(
             message.content, f"Test response to: {message.content}"
         )
-        chat_message = ChatMessage(content=response, role="assistant")
+        chat_message: ChatMessage[str] = ChatMessage(content=response, role="assistant")
         if stream:
 
             async def message_stream() -> AsyncIterator[ChatMessage]:

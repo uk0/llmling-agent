@@ -36,7 +36,7 @@ class CallbackOutputWriter(OutputWriter):
     async def print(self, message: str) -> None:
         """Send message through callback."""
         logger.debug("CallbackOutputWriter printing: %s", message)
-        chat_message = ChatMessage(content=message, role="system")
+        chat_message: ChatMessage[str] = ChatMessage(content=message, role="system")
         await self._callback(chat_message)
 
 
