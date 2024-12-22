@@ -14,7 +14,7 @@ from watchfiles.filters import DefaultFilter
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncGenerator, AsyncIterator
 
     from watchfiles.main import FileChange
 
@@ -112,7 +112,7 @@ class EventSource(ABC):
         """Close connection to event source."""
 
     @abstractmethod
-    def events(self) -> AsyncIterator[EventData]:
+    def events(self) -> AsyncGenerator[EventData, None]:
         """Get event iterator.
 
         Returns:
@@ -167,7 +167,7 @@ class FileSystemEventSource(EventSource):
         self._watch = None
         self._stop_event = None
 
-    async def events(self) -> AsyncIterator[EventData]:
+    async def events(self) -> AsyncGenerator[EventData, None]:
         """Get file system events."""
         watch = self._watch
         if not watch:
