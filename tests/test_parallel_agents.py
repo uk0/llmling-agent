@@ -10,6 +10,9 @@ from llmling_agent.models import AgentConfig, AgentsManifest
 from llmling_agent.responses import InlineResponseDefinition, ResponseField
 
 
+MODEL = "openai:gpt-4o-mini"
+
+
 @pytest.mark.asyncio
 async def test_parallel_agent_execution(test_model):
     """Test multiple agents executing the same prompts in parallel.
@@ -112,13 +115,8 @@ async def test_agent_pool_with_environment_override(test_model):
     # Basic agent setup
     fields = {"message": ResponseField(type="str", description="Test message")}
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    agents = {
-        "test_agent": AgentConfig(
-            name="Test Agent",
-            model=test_model,
-            result_type="BasicResult",
-        ),
-    }
+    cfg = AgentConfig(name="Test Agent", model=test_model, result_type="BasicResult")
+    agents = {"test_agent": cfg}
     agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
     # Create a test environment configuration
@@ -144,13 +142,8 @@ async def test_agent_pool_model_override(test_model):
     """Test AgentPool with model override."""
     fields = {"message": ResponseField(type="str", description="Test message")}
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    agents = {
-        "test_agent": AgentConfig(
-            name="Test Agent",
-            model="openai:gpt-4o-mini",  # Use a valid model identifier
-            result_type="BasicResult",
-        ),
-    }
+    cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
+    agents = {"test_agent": cfg}
     agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
     async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:

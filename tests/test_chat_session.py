@@ -20,7 +20,7 @@ from llmling_agent.chat_session import (
     ChatSessionError,
     ChatSessionManager,
 )
-from llmling_agent.models.messages import ChatMessage, TokenAndCostResult
+from llmling_agent.models.messages import ChatMessage, TokenAndCostResult, TokenUsage
 
 
 if TYPE_CHECKING:
@@ -66,9 +66,8 @@ async def test_send_message_normal(chat_session: AgentChatSession):
     mock_result.data = TEST_RESPONSE
 
     # Mock the token cost calculation
-    mock_token_result = TokenAndCostResult(
-        token_usage={"total": 10, "prompt": 5, "completion": 5}, cost_usd=0.0001
-    )
+    usage = TokenUsage(total=10, prompt=5, completion=5)
+    mock_token_result = TokenAndCostResult(token_usage=usage, cost_usd=0.0001)
     with patch(
         "llmling_agent.chat_session.base.extract_usage",
         AsyncMock(return_value=mock_token_result),
@@ -268,9 +267,8 @@ async def test_long_conversation(chat_session: AgentChatSession):
         mock_result.usage.return_value = MagicMock(total_tokens=10)
 
         # Create current exchange
-        user_message = ModelRequest(
-            parts=[UserPromptPart(content=f"Message {i}", timestamp=ANY)]
-        )
+        part = UserPromptPart(content=f"Message {i}", timestamp=ANY)
+        user_message = ModelRequest(parts=[part])
         assistant_message = ModelResponse(parts=[TextPart(content=f"Response {i}")])
 
         # Update history for next iteration

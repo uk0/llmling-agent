@@ -264,11 +264,7 @@ class AgentPool:
                 name,
                 model_override=config.model,
             )
-            agent_results = []
-            for prompt in config.prompts:
-                result = await agent.run(prompt)
-                agent_results.append(result)
-            results[name] = agent_results
+            results[name] = [await agent.run(prompt) for prompt in config.prompts]
         return results
 
     async def _run_parallel(

@@ -14,19 +14,16 @@ from llmling_agent.responses import InlineResponseDefinition, ResponseField
 if TYPE_CHECKING:
     from llmling_agent.agent.agent import LLMlingAgent
 
+MODEL = "openai:gpt-4o-mini"
+
 
 @pytest.mark.asyncio
 async def test_agent_pool_conversation_flow(test_model):
     """Test conversation flow maintaining history between messages."""
     fields = {"message": ResponseField(type="str", description="Test message")}
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    agents = {
-        "test_agent": AgentConfig(
-            name="Test Agent",
-            model=test_model,
-            result_type="BasicResult",
-        ),
-    }
+    cfg = AgentConfig(name="Test Agent", model=test_model, result_type="BasicResult")
+    agents = {"test_agent": cfg}
     agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
     async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
@@ -51,13 +48,8 @@ async def test_agent_pool_validation():
     """Test AgentPool validation and error handling."""
     fields = {"message": ResponseField(type="str", description="Test message")}
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    agents = {
-        "test_agent": AgentConfig(
-            name="Test Agent",
-            model="openai:gpt-4o-mini",
-            result_type="BasicResult",
-        ),
-    }
+    cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
+    agents = {"test_agent": cfg}
     agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
     # Test initialization with non-existent agent
@@ -75,13 +67,8 @@ async def test_agent_pool_team_task_errors(test_model):
     """Test error handling in team tasks."""
     fields = {"message": ResponseField(type="str", description="Test message")}
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    agents = {
-        "test_agent": AgentConfig(
-            name="Test Agent",
-            model=test_model,
-            result_type="BasicResult",
-        ),
-    }
+    cfg = AgentConfig(name="Test Agent", model=test_model, result_type="BasicResult")
+    agents = {"test_agent": cfg}
     agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
     async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
@@ -105,13 +92,8 @@ async def test_agent_pool_cleanup():
     """Test proper cleanup of agent resources."""
     fields = {"message": ResponseField(type="str", description="Test message")}
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    agents = {
-        "test_agent": AgentConfig(
-            name="Test Agent",
-            model="openai:gpt-4o-mini",
-            result_type="BasicResult",
-        ),
-    }
+    cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
+    agents = {"test_agent": cfg}
     agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
     # Use context manager to ensure proper cleanup
@@ -138,13 +120,8 @@ async def test_agent_pool_context_cleanup():
     """Test cleanup through context manager."""
     fields = {"message": ResponseField(type="str", description="Test message")}
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    agents = {
-        "test_agent": AgentConfig(
-            name="Test Agent",
-            model="openai:gpt-4o-mini",
-            result_type="BasicResult",
-        ),
-    }
+    cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
+    agents = {"test_agent": cfg}
     agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
     runtime_ref = None
