@@ -41,8 +41,8 @@ class ExecutionConfig:
     """Optional model override"""
 
 
-class TeamResponse(BaseModel):
-    """Response from a team of agents."""
+class AgentResponse(BaseModel):
+    """Response from a single agent of a team."""
 
     agent_name: str
     """Name of the responding agent"""
@@ -259,7 +259,7 @@ class AgentPool:
         team: Sequence[str],
         *,
         mode: Literal["parallel", "sequential"] = "parallel",
-    ) -> list[TeamResponse]:
+    ) -> list[AgentResponse]:
         """Execute a task with a team of agents.
 
         Args:
@@ -271,15 +271,15 @@ class AgentPool:
             List of responses from team members
         """
 
-        async def run_agent(name: str) -> TeamResponse:
+        async def run_agent(name: str) -> AgentResponse:
             try:
                 agent: LLMlingAgent[Any, str] = await self.get_agent(name)
                 result = await agent.run(prompt)
                 response = str(result.data)
-                return TeamResponse(agent_name=name, response=response, success=True)
+                return AgentResponse(agent_name=name, response=response, success=True)
             except Exception as e:
                 logger.exception("Agent %s failed", name)
-                return TeamResponse(
+                return AgentResponse(
                     agent_name=name, response="", success=False, error=str(e)
                 )
 
