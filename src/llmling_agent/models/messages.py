@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal, TypedDict
+from uuid import uuid4
 
 from pydantic import BaseModel, Field
 from typing_extensions import TypeVar
@@ -59,6 +60,7 @@ class ChatMessage[T](BaseModel):
     metadata: MessageMetadata = Field(default_factory=MessageMetadata)
     timestamp: datetime = Field(default_factory=datetime.now)
     token_usage: TokenUsage | None = Field(default=None)
+    message_id: str = Field(default_factory=lambda: str(uuid4()))
 
     model_config = {"frozen": True}
 

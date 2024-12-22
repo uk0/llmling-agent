@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Callable, Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
 from psygnal import Signal
@@ -439,18 +440,22 @@ class LLMlingAgent[TDeps, TResult]:
                 if self.model_name
                 else None
             )
+            message_id = str(uuid4())
 
             # Create and emit assistant message
+            meta = MessageMetadata(
+                model=self.model_name,
+                token_usage=cost.token_usage if cost else None,
+                cost=cost.cost_usd if cost else None,
+            )
             assistant_msg: ChatMessage[TResult] = ChatMessage[TResult](
                 content=result.data,
                 role="assistant",
-                metadata=MessageMetadata(
-                    model=self.model_name,
-                    token_usage=cost.token_usage if cost else None,
-                    cost=cost.cost_usd if cost else None,
-                ),
+                message_id=message_id,
+                metadata=meta,
             )
             for call in get_tool_calls(self._pydantic_agent.last_run_messages or []):
+                call.message_id = message_id
                 self.tool_used.emit(call)
             self.message_sent.emit(assistant_msg)
         except Exception:

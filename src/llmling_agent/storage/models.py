@@ -14,6 +14,7 @@ from llmling_agent.pydantic_ai_utils import TokenUsage  # noqa: TC001
 
 
 if TYPE_CHECKING:
+    from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.messages import TokenAndCostResult
 
 
@@ -87,6 +88,40 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
                 model=model,
             )
             session.add(msg)
+            session.commit()
+
+
+class ToolCall(SQLModel, table=True):  # type: ignore[call-arg]
+    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
+    conversation_id: str = Field(index=True)
+    message_id: str = Field(index=True)  # Link to triggering message
+    timestamp: datetime = Field(sa_column=Column(DateTime), default_factory=datetime.now)
+    tool_call_id: str | None = None
+    tool_name: str
+    args: dict = Field(sa_column=Column(JSON))
+    result: str = Field(...)
+
+    @classmethod
+    def log(
+        cls,
+        conversation_id: str,
+        message_id: str,
+        tool_call: ToolCallInfo,
+    ) -> None:
+        """Log a tool call to the database."""
+        from llmling_agent.storage import engine
+
+        with Session(engine) as session:
+            call = cls(
+                conversation_id=conversation_id,
+                message_id=message_id,
+                tool_call_id=tool_call.tool_call_id,
+                timestamp=tool_call.timestamp,
+                tool_name=tool_call.tool_name,
+                args=tool_call.args,
+                result=str(tool_call.result),  # Convert result to string
+            )
+            session.add(call)
             session.commit()
 
 

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Self
 
 from llmling import Config
@@ -383,10 +384,13 @@ class AgentsManifest(ConfigModel):
         raise ValueError(msg)
 
 
-@dataclass(frozen=True)
+@dataclass
 class ToolCallInfo:
     """Information about an executed tool call."""
 
     tool_name: str
     args: dict[str, Any]
     result: Any
+    tool_call_id: str | None  # From model (e.g. OpenAI function call ID)
+    timestamp: datetime = field(default_factory=datetime.now)
+    message_id: str | None = None

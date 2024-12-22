@@ -147,8 +147,13 @@ def get_tool_calls(messages: list[ModelMessage]) -> list[ToolCallInfo]:
                 if isinstance(part.args, ArgsDict)
                 else json.loads(part.args.args_json)
             )
-            name = part.tool_name
-            info = ToolCallInfo(tool_name=name, args=args, result=next_part.content)
+            info = ToolCallInfo(
+                tool_name=part.tool_name,
+                args=args,
+                result=next_part.content,
+                tool_call_id=next_part.tool_call_id,
+                timestamp=next_part.timestamp,
+            )
             tool_calls.append(info)
     return tool_calls
 

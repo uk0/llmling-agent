@@ -12,6 +12,7 @@ from llmling_agent.storage import Conversation, Message
 
 if TYPE_CHECKING:
     from llmling_agent import LLMlingAgent
+    from llmling_agent.models.agents import ToolCallInfo
 
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ class AgentLogger:
             self.init_conversation()
             # Connect to the combined signal to capture all messages
             agent.message_exchanged.connect(self.log_message)
+            agent.tool_used.connect(self.log_tool_call)
 
     def init_conversation(self) -> None:
         """Create initial conversation record."""
@@ -60,4 +62,16 @@ class AgentLogger:
             role=message.role,
             cost_info=cost_info,
             model=message.model or message.metadata.model,
+        )
+
+    def log_tool_call(self, tool_call: ToolCallInfo) -> None:
+        """Handle tool usage signal."""
+        if not self.enable_logging:
+            return
+        from llmling_agent.storage.models import ToolCall
+
+        ToolCall.log(
+            conversation_id=self.conversation_id,
+            message_id=tool_call.message_id or "",
+            tool_call=tool_call,
         )
