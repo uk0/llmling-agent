@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from llmling_agent.models.messages import ChatMessage, TokenAndCostResult
 from llmling_agent.storage import Conversation, Message
+from llmling_agent.storage.models import ToolCall
 
 
 if TYPE_CHECKING:
@@ -33,6 +34,8 @@ class AgentLogger:
         self.agent = agent
         self.enable_logging = enable_logging
         self.conversation_id = str(uuid4())
+        self.message_history: list[ChatMessage] = []
+        self.toolcall_history: list[ToolCallInfo] = []
 
         # Initialize conversation record if enabled
         if enable_logging:
@@ -41,12 +44,29 @@ class AgentLogger:
             agent.message_exchanged.connect(self.log_message)
             agent.tool_used.connect(self.log_tool_call)
 
+    def clear_state(self):
+        """Clear agent state."""
+        self.message_history.clear()
+        self.toolcall_history.clear()
+
+    @property
+    def last_message(self) -> ChatMessage[Any] | None:
+        """Get last message in history."""
+        return self.message_history[-1] if self.message_history else None
+
+    @property
+    def last_tool_call(self) -> ToolCallInfo | None:
+        """Get last tool call in history."""
+        return self.toolcall_history[-1] if self.toolcall_history else None
+
     def init_conversation(self) -> None:
         """Create initial conversation record."""
         Conversation.log(self.conversation_id, self.agent.name)
 
     def log_message(self, message: ChatMessage) -> None:
         """Handle message from chat signal."""
+        self.message_history.append(message)
+
         if not self.enable_logging:
             return
         cost_info = (
@@ -66,9 +86,10 @@ class AgentLogger:
 
     def log_tool_call(self, tool_call: ToolCallInfo) -> None:
         """Handle tool usage signal."""
+        self.toolcall_history.append(tool_call)
+
         if not self.enable_logging:
             return
-        from llmling_agent.storage.models import ToolCall
 
         ToolCall.log(
             conversation_id=self.conversation_id,

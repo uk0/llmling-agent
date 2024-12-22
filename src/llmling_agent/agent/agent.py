@@ -570,6 +570,14 @@ class LLMlingAgent[TDeps, TResult]:
     #     # Convert any message to string for now as input
     #     await self.run(str(message.content))
 
+    def clear_history(self) -> None:
+        """Clear both internal and pydantic-ai history."""
+        self._logger.clear_state()
+        self._pydantic_agent.last_run_messages = None
+        for tool in self._pydantic_agent._function_tools.values():
+            tool.current_retry = 0
+        logger.debug("Cleared history and reset tool state")
+
     def _handle_message(
         self, source: LLMlingAgent[Any, Any], message: ChatMessage[Any]
     ) -> None:
