@@ -520,6 +520,11 @@ class LLMlingAgent[TDeps, TResult]:
         """
         return self._pydantic_agent.system_prompt(*args, **kwargs)
 
+    async def handle_message(self, message: ChatMessage[Any]) -> None:
+        """Handle a message from another agent. Can be used as signal slot."""
+        # Convert any message to string for now as input
+        await self.run(str(message.content))
+
     def result_validator(self, *args: Any, **kwargs: Any) -> Any:
         """Register a result validator.
 
