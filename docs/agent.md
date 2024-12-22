@@ -45,7 +45,7 @@ async with RuntimeConfig.open("config.yml") as runtime:
         suggestions: list[str]
 
 
-    typed_agent = LLMlingAgent[Analysis](
+    typed_agent = LLMlingAgent[Any, Analysis](
         runtime,
         result_type=Analysis,
         model="openai:gpt-4",
@@ -116,7 +116,7 @@ result = agent.run_sync("Quick question")
 Add custom tools and system prompts:
 
 ```python
-class CodeAgent(LLMlingAgent[Analysis]):
+class CodeAgent(LLMlingAgent[Any, Analysis]):
     def __init__(self, runtime: RuntimeConfig) -> None:
         super().__init__(
             runtime,
@@ -187,7 +187,7 @@ async def validate(
 The agent can handle runtime events:
 
 ```python
-class MyAgent(LLMlingAgent[str]):
+class MyAgent(LLMlingAgent[Any, str]):
     async def handle_event(self, event: Event) -> None:
         """Handle runtime events."""
         match event.type:

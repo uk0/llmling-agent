@@ -64,7 +64,7 @@ async def test_prompt_command_simple(runtime_config: Config) -> None:
             messages.append(message)
 
     async with RuntimeConfig.from_config(runtime_config) as runtime:
-        agent: LLMlingAgent[Any] = LLMlingAgent(runtime)
+        agent: LLMlingAgent[Any, Any] = LLMlingAgent(runtime)
         session = AgentChatSession(agent)
 
         store = CommandStore()
@@ -88,7 +88,7 @@ async def test_prompt_command_with_args(runtime_config: Config) -> None:
             messages.append(message)
 
     async with RuntimeConfig.from_config(runtime_config) as runtime:
-        agent: LLMlingAgent[Any] = LLMlingAgent(runtime)
+        agent: LLMlingAgent[Any, Any] = LLMlingAgent(runtime)
         session = AgentChatSession(agent)
 
         store = CommandStore()

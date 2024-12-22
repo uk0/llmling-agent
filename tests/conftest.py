@@ -60,7 +60,7 @@ def runtime() -> RuntimeConfig:
 
 
 @pytest.fixture
-async def simple_agent(runtime: RuntimeConfig) -> LLMlingAgent[str]:
+async def simple_agent(runtime: RuntimeConfig) -> LLMlingAgent[Any, str]:
     """Provide a basic text agent."""
     from llmling_agent.agent import LLMlingAgent
 
@@ -164,7 +164,7 @@ async def no_tool_runtime() -> AsyncGenerator[RuntimeConfig, None]:
 
 
 @pytest.fixture
-def test_agent(no_tool_runtime: RuntimeConfig) -> LLMlingAgent[str]:
+def test_agent(no_tool_runtime: RuntimeConfig) -> LLMlingAgent[Any, str]:
     """Create an agent with TestModel for testing."""
     return LLMlingAgent(
         runtime=no_tool_runtime,
