@@ -5,7 +5,8 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal
+import os
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling.config.runtime import RuntimeConfig
 from pydantic import BaseModel
@@ -17,7 +18,7 @@ from llmling_agent.models import AgentsManifest
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
-    import os
+    from types import TracebackType
 
     from llmling import Config
     from pydantic_ai.result import RunResult
@@ -83,6 +84,19 @@ class AgentPool:
             raise ValueError(msg)
 
         self._agents_to_load = to_load
+
+    async def __aenter__(self) -> Self:
+        """Enter async context."""
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit async context."""
+        await self.cleanup()
 
     async def clone_agent[TDeps, TResult](
         self,
@@ -196,7 +210,7 @@ class AgentPool:
     @asynccontextmanager
     async def open(
         cls,
-        config_path: str,
+        config_path: str | os.PathLike[str] | AgentsManifest,
         *,
         agents: list[str] | None = None,
     ) -> AsyncIterator[AgentPool]:
@@ -207,7 +221,11 @@ class AgentPool:
             agents: Optional list of agent names to initialize.
                    If None, all agents from manifest are loaded.
         """
-        manifest = AgentsManifest.from_file(config_path)
+        manifest = (
+            AgentsManifest.from_file(config_path)
+            if isinstance(config_path, str | os.PathLike)
+            else config_path
+        )
         pool = cls(manifest, agents_to_load=agents)
         try:
             yield pool
