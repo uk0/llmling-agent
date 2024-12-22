@@ -533,8 +533,19 @@ class LLMlingAgent[TDeps, TResult]:
 
             @asynccontextmanager
             async def wrapper():
+                message_id = str(uuid4())
                 async with stream_ctx as stream:
+                    # Monkey patch the stream method to emit chunks
+                    original_stream = stream.stream
+
+                    async def patched_stream():
+                        async for chunk in original_stream():
+                            self.chunk_streamed.emit(str(chunk))
+                            yield chunk
+
+                    stream.stream = patched_stream  # type: ignore
                     yield stream
+
                     # After completion
                     if stream.is_complete:
                         result_str = str(await stream.get_data())
@@ -546,7 +557,16 @@ class LLMlingAgent[TDeps, TResult]:
                             if self.model_name
                             else None
                         )
-                        message_id = str(uuid4())
+
+                        # Handle tool calls after completion
+                        for call in get_tool_calls(
+                            self._pydantic_agent.last_run_messages or []
+                        ):
+                            call.message_id = message_id
+                            call.context_data = (
+                                self._context.data if self._context else None
+                            )
+                            self.tool_used.emit(call)
 
                         # Create and emit assistant message
                         meta = MessageMetadata(
@@ -560,16 +580,6 @@ class LLMlingAgent[TDeps, TResult]:
                             message_id=message_id,
                             metadata=meta,
                         )
-                        # Emit tool calls
-                        for call in get_tool_calls(
-                            self._pydantic_agent.last_run_messages or []
-                        ):
-                            call.message_id = message_id
-                            call.context_data = (
-                                self._context.data if self._context else None
-                            )
-                            self.tool_used.emit(call)
-
                         self.message_sent.emit(assistant_msg)
 
                 if wait_for_chain:
