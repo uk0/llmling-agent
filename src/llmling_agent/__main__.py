@@ -5,11 +5,11 @@ from __future__ import annotations
 from llmling.cli.utils import get_command_help
 import typer as t
 
-from llmling_agent.cli.agent import add_agent_file, list_agents, set_active_file
-from llmling_agent.cli.chat import chat_command
-from llmling_agent.cli.history import history_cli
-from llmling_agent.cli.quickstart import quickstart_command
-from llmling_agent.cli.run import run_command
+from llmling_agent_cli.agent import add_agent_file, list_agents, set_active_file
+from llmling_agent_cli.chat import chat_command
+from llmling_agent_cli.history import history_cli
+from llmling_agent_cli.quickstart import quickstart_command
+from llmling_agent_cli.run import run_command
 
 
 MAIN_HELP = "🤖 LLMling Agent CLI - Run and manage LLM agents"
@@ -30,7 +30,7 @@ cli.command(name="quickstart")(quickstart_command)
 cli.add_typer(history_cli, name="history")
 
 try:
-    from llmling_agent.cli import web
+    from llmling_agent_cli import web
 
     cli.command(name="launch")(web.launch_gui)
 

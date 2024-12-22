@@ -19,10 +19,10 @@ from llmling_agent.chat_session.exceptions import format_error
 from llmling_agent.chat_session.models import SessionState
 from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.chat_session.welcome import create_welcome_messages
-from llmling_agent.cli.chat_session.completion import PromptToolkitCompleter
-from llmling_agent.cli.chat_session.history import SessionHistory
-from llmling_agent.cli.chat_session.status import render_status_bar
 from llmling_agent.ui.status import StatusBar
+from llmling_agent_cli.chat_session.completion import PromptToolkitCompleter
+from llmling_agent_cli.chat_session.history import SessionHistory
+from llmling_agent_cli.chat_session.status import render_status_bar
 
 
 if TYPE_CHECKING:

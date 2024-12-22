@@ -48,7 +48,7 @@ def quickstart_command(
 
     from llmling import Config
 
-    from llmling_agent.cli.chat_session.session import start_interactive_session
+    from llmling_agent_cli.chat_session.session import start_interactive_session
 
     cfg = Config().model_dump(mode="json")
     try:

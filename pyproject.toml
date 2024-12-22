@@ -4,7 +4,11 @@ commit_extra_args = ["-e"]
 path = "src/llmling_agent/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/llmling_agent", "src/llmling_agent_web"]
+packages = [
+    "src/llmling_agent",
+    "src/llmling_agent_web",
+    "src/llmling_agent_cli",
+]
 
 [build-system]
 requires = ["hatchling", "hatch-regex-commit"]

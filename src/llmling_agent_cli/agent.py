@@ -11,8 +11,8 @@ import typer as t
 from upath import UPath
 
 from llmling_agent import config_resources
-from llmling_agent.cli import agent_store, resolve_agent_config
 from llmling_agent.models import AgentsManifest
+from llmling_agent_cli import agent_store, resolve_agent_config
 
 
 agent_cli = t.Typer(help="Agent management commands", no_args_is_help=True)

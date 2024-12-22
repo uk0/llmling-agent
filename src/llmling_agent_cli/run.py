@@ -76,10 +76,10 @@ def run_command(
     from llmling.cli.utils import format_output
     from llmling.config.runtime import RuntimeConfig
 
-    from llmling_agent.cli import resolve_agent_config
     from llmling_agent.models import AgentsManifest
     from llmling_agent.runners.models import AgentRunConfig
     from llmling_agent.runners.orchestrator import AgentOrchestrator
+    from llmling_agent_cli import resolve_agent_config
 
     try:
         # Resolve configuration path
