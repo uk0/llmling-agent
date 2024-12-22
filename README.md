@@ -97,6 +97,7 @@ llmling-agent chat my-agent
 /show-resource config   # Examine resource content
 /enable-tool tool_name  # Enable/disable tools
 /set-model gpt-4       # Switch models mid-conversation
+# and many more!
 ```
 
 ### Safe and Configurable
@@ -185,6 +186,100 @@ async with LLMlingAgent.open_agent("agents.yml", "system_checker") as agent:
     result = await agent.run("How much memory is available?")
     print(result.data)
 ```
+
+### Agent Pool: Multi-Agent Coordination
+
+The `AgentPool` allows multiple agents to work together on tasks. Here's a practical example of parallel file downloading:
+
+```python
+# agents.yml
+agents:
+  file_getter_1:
+    name: "File Downloader 1" # Agent name (can be anything unique)
+    description: "Downloads files from URLs"
+    model: openai:gpt-4o-mini  # Language model to use, takes pydantic-ai model names
+    role: specialist # Possible roles are: assistant, specialist, overseer
+    environment: # Environment configuration (can also be external YAML file)
+      type: inline
+      config:
+        tools:
+          download_file:  # Simple httpx-based download utility
+            import_path: llmling_agent.tools.download.download_file
+            description: "Download file from URL to local path"
+    system_prompts:
+      - |
+        You are a download specialist. Just use the download_file tool
+        and report its results. No explanations needed.
+
+  file_getter_2:  # Same configuration as file_getter_1
+    ... # ... (identical config to file_getter_1, omitting for brevity)
+
+  overseer:
+    name: "Download Coordinator"
+    description: "Coordinates parallel downloads"
+    model: openai:gpt-4o-mini
+    role: overseer # Overseer has broader permissions
+    system_prompts:
+      - |
+        You coordinate downloads by delegating to file_getter_1 and file_getter_2.
+        Just delegate tasks and report results concisely. No explanations needed.
+
+```
+
+```python
+from llmling_agent.delegation import AgentPool
+
+async def main():
+    async with AgentPool.open("agents.yml") as pool:
+        # Run downloads in parallel (sequential mode also available)
+        responses = await pool.team_task(
+            "Download https://example.com/file.zip",
+            team=["file_getter_1", "file_getter_2"],
+            mode="parallel"
+        )
+
+        # Or let an overseer coordinate
+        overseer = await pool.get_agent("overseer")
+        result = await overseer.run(
+            "Download https://example.com/file.zip using both getters..."
+        )
+
+
+#### Features
+
+- **Team Tasks**: Run tasks across multiple agents either sequentially or in parallel
+- **Agent Cloning**: Create variations of agents with different configurations
+- **Resource Sharing**: Agents in a pool can share resources and tools
+- **Overseer Pattern**: Use overseer agents to coordinate specialist agents
+- **Built-in Collaboration**: Tools for delegation, brainstorming, and debates
+
+#### Configuration
+
+The pool is configured through an agents manifest (YAML):
+
+```yaml
+agents:
+  agent_1:
+    model: gpt-4
+    role: specialist
+    # ... agent-specific config
+
+  agent_2:
+    model: gpt-4
+    role: specialist
+    # ... agent-specific config
+
+  overseer:
+    model: gpt-4
+    role: overseer
+    # ... overseer config
+```
+
+Each agent can have its own:
+- Model configuration
+- Role and capabilities
+- Tools and resources
+- System prompts and behavior settings
 
 ### Message Forwarding
 
