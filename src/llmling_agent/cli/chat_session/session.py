@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from llmling_agent import LLMlingAgent
     from llmling_agent.chat_session.base import AgentChatSession
     from llmling_agent.chat_session.events import HistoryClearedEvent, SessionResetEvent
+    from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -48,6 +49,7 @@ class InteractiveSession:
     ) -> None:
         """Initialize interactive session."""
         self.agent = agent
+
         self._log_level = log_level
         self.console = Console()
         self._stream = stream
@@ -76,6 +78,7 @@ class InteractiveSession:
         self._chat_session.tool_added.connect(self._on_tool_added)
         self._chat_session.tool_removed.connect(self._on_tool_removed)
         self._chat_session.tool_changed.connect(self._on_tool_changed)
+        self._chat_session._agent.tool_used.connect(self._on_tool_call)
 
     def _on_tool_added(self, tool: ToolInfo) -> None:
         """Handle tool addition."""
@@ -86,6 +89,15 @@ class InteractiveSession:
         """Handle tool removal."""
         self.console.print(f"\nTool removed: {tool_name}")
         self.update_status_bar()
+
+    def _on_tool_call(self, tool_call: ToolCallInfo) -> None:
+        """Handle tool usage signal."""
+        logger.debug("Tool call received: %s", tool_call.tool_name)
+        self.console.print(
+            f"\n[yellow]Tool Call:[/] {tool_call.tool_name}\n"
+            f"  Args: {tool_call.args}\n"
+            f"  Result: {tool_call.result}"
+        )
 
     def _on_tool_changed(self, name: str, tool: ToolInfo) -> None:
         """Handle tool state changes."""

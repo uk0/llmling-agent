@@ -339,7 +339,7 @@ class AgentChatSession:
         cost = cost_info.cost_usd if cost_info else None
         metadata_obj = MessageMetadata(model=model_name, token_usage=usage, cost=cost)
 
-        chat_msg = ChatMessage(
+        chat_msg: ChatMessage[str] = ChatMessage(
             content=response,
             role="assistant",
             metadata=metadata_obj,
@@ -360,8 +360,7 @@ class AgentChatSession:
             model=self._model or "",  # type: ignore
         ) as stream_result:
             async for response in stream_result.stream():
-                chat_msg = ChatMessage(content=str(response), role="assistant")
-                yield chat_msg
+                yield ChatMessage[str](content=str(response), role="assistant")
 
             # Final message with token usage after stream completes
             model_name = self._model or self._agent.model_name
@@ -382,7 +381,7 @@ class AgentChatSession:
             # Update session state after stream completes
             self._state.message_count += 2  # User and assistant messages
             meta_obj = MessageMetadata(**metadata)
-            final_msg = ChatMessage(
+            final_msg: ChatMessage[str] = ChatMessage(
                 content="",  # Empty content for final status message
                 role="assistant",
                 metadata=meta_obj,
