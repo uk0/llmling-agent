@@ -148,6 +148,7 @@ class LLMlingAgent[TDeps, TResult]:
 
         self._logger = AgentLogger(self, enable_logging=enable_logging)
         self._pending_tasks: set[asyncio.Task[Any]] = set()
+        self._connected_agents: set[LLMlingAgent[Any, Any]] = set()
 
     @classmethod
     @asynccontextmanager
@@ -350,6 +351,17 @@ class LLMlingAgent[TDeps, TResult]:
         logger.debug("forwarding message from %s: %s", self.name, message.content)
         self.outbox.emit(self, message)
 
+    def pass_results_to(self, other: LLMlingAgent[Any, Any]) -> None:
+        """Forward results to another agent."""
+        self.outbox.connect(other._handle_message)
+        self._connected_agents.add(other)
+
+    def stop_passing_results_to(self, other: LLMlingAgent[Any, Any]) -> None:
+        """Stop forwarding results to another agent."""
+        if other in self._connected_agents:
+            self.outbox.disconnect(other._handle_message)
+            self._connected_agents.remove(other)
+
     @property
     def model_name(self) -> str | None:
         """Get the model name in a consistent format."""
@@ -535,18 +547,18 @@ class LLMlingAgent[TDeps, TResult]:
         """
         return self._pydantic_agent.system_prompt(*args, **kwargs)
 
-    # async def handle_message(self, message: ChatMessage[Any]) -> None:
+    # async def _handle_message(self, message: ChatMessage[Any]) -> None:
     #     """Handle a message from another agent. Can be used as signal slot."""
-    #     msg = "handle_message called on %s from %s with message %s"
+    #     msg = "_handle_message called on %s from %s with message %s"
     #     logger.debug(msg, self.name, source.name, message.content)
     #     # Convert any message to string for now as input
     #     await self.run(str(message.content))
 
-    def handle_message(
+    def _handle_message(
         self, source: LLMlingAgent[Any, Any], message: ChatMessage[Any]
     ) -> None:
         """Handle a message forwarded from another agent."""
-        msg = "handle_message called on %s from %s with message %s"
+        msg = "_handle_message called on %s from %s with message %s"
         logger.debug(msg, self.name, source.name, message.content)
         # await self.run(str(message.content), deps=source)
         loop = asyncio.get_event_loop()

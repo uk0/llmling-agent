@@ -186,6 +186,32 @@ async with LLMlingAgent.open_agent("agents.yml", "system_checker") as agent:
     print(result.data)
 ```
 
+### Message Forwarding
+
+LLMling Agent supports message forwarding between agents, allowing creation of agent chains and networks. When an agent processes a message, it can forward it to other agents for further processing:
+
+```python
+# Create two agents
+async with LLMlingAgent.open_agent("agents.yml", "analyzer") as agent_a, \
+          LLMlingAgent.open_agent("agents.yml", "reviewer") as agent_b:
+
+    # Let agent_a pass its results to agent_b
+    agent_a.pass_results_to(agent_b)
+
+    # Start the chain - agent_b will process agent_a's output
+    await agent_a.run("Analyze this code")
+    await agent_b.complete_tasks()  # Wait for agent_b to finish
+    agent_a.stop_passing_results_to(agent_b)
+```
+
+Each agent in the chain can:
+1. Process the incoming message
+2. Access the source agent as a dependency
+3. Forward its own response to other agents
+
+This enables simple creation of agent chains.
+
+
 ### Conversation History and Analytics
 
 LLMling Agent provides built-in conversation tracking and analysis:

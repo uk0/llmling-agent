@@ -16,10 +16,11 @@ if TYPE_CHECKING:
 async def test_message_chain(test_agent: LLMlingAgent[Any, str], no_tool_runtime) -> None:
     """Test that messages flow through a chain of connected agents."""
     # Create second agent
+    model = TestModel(custom_result_text="Response from B")
     agent_b: LLMlingAgent[Any, str] = LLMlingAgent(
         runtime=no_tool_runtime,
         name="agent-b",
-        model=TestModel(custom_result_text="Response from B"),
+        model=model,
     )
 
     # Track all forwarded messages
@@ -33,7 +34,7 @@ async def test_message_chain(test_agent: LLMlingAgent[Any, str], no_tool_runtime
     agent_b.outbox.connect(collect)
 
     # Connect the chain
-    test_agent.outbox.connect(agent_b.handle_message)
+    test_agent.pass_results_to(agent_b)
 
     # When test_agent sends a message
     await test_agent.run("Start message")
