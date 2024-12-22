@@ -17,7 +17,9 @@ from llmling_agent.models import AgentsManifest
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
+    import os
 
+    from llmling import Config
     from pydantic_ai.result import RunResult
 
 
@@ -151,8 +153,23 @@ class AgentPool:
         deps_type: type[TDeps] | None = None,
         result_type: type[TResult] | None = None,
         model_override: str | None = None,
+        environment_override: str | os.PathLike[str] | Config | None = None,
     ) -> LLMlingAgent[TDeps, TResult]:
-        """Get or create a typed agent."""
+        """Get or create a typed agent.
+
+        Args:
+            name: Name of agent to get/create
+            deps_type: Optional dependency type for agent context
+            result_type: Optional result type for responses
+            model_override: Optional model override
+            environment_override: Optional environment override (path or Config)
+
+        Returns:
+            Configured agent instance
+
+        Raises:
+            KeyError: If agent name not found or not in initialized set
+        """
         if name in self.agents:
             return self.agents[name]
         if name not in self._agents_to_load:
@@ -162,7 +179,7 @@ class AgentPool:
         config = self.manifest.agents[name]
 
         # Create runtime from agent's config
-        cfg = config.get_config()
+        cfg = environment_override or config.get_config()
         async with RuntimeConfig.open(cfg) as runtime:
             new_agent: LLMlingAgent[TDeps, TResult] = LLMlingAgent(
                 runtime=runtime,
@@ -173,7 +190,7 @@ class AgentPool:
             )
             self.agents[name] = new_agent
 
-        return self.agents[name]
+        return new_agent
 
     @classmethod
     @asynccontextmanager
@@ -259,6 +276,8 @@ class AgentPool:
         team: Sequence[str],
         *,
         mode: Literal["parallel", "sequential"] = "parallel",
+        model_override: str | None = None,
+        environment_override: str | None = None,
     ) -> list[AgentResponse]:
         """Execute a task with a team of agents.
 
@@ -266,6 +285,8 @@ class AgentPool:
             prompt: Task to execute
             team: List of agent names to collaborate
             mode: Whether to run agents in parallel or sequence
+            model_override: Optional model override for all agents
+            environment_override: Optional environment override for all agents
 
         Returns:
             List of responses from team members
@@ -273,7 +294,11 @@ class AgentPool:
 
         async def run_agent(name: str) -> AgentResponse:
             try:
-                agent: LLMlingAgent[Any, str] = await self.get_agent(name)
+                agent: LLMlingAgent[Any, str] = await self.get_agent(
+                    name,
+                    model_override=model_override,
+                    environment_override=environment_override,
+                )
                 result = await agent.run(prompt)
                 response = str(result.data)
                 return AgentResponse(agent_name=name, response=response, success=True)
