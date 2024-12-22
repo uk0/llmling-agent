@@ -239,7 +239,7 @@ async def main():
         )
 
         # Or let an overseer coordinate
-        overseer = await pool.get_agent("overseer")
+        overseer = pool.get_agent("overseer")
         result = await overseer.run(
             "Download https://example.com/file.zip using both getters..."
         )

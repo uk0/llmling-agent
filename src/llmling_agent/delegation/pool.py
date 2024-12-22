@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import os
 from typing import TYPE_CHECKING, Any, Literal, Self
 
+from llmling import Config
 from llmling.config.runtime import RuntimeConfig
 from pydantic import BaseModel
 
@@ -21,7 +22,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
 
-    from llmling import Config
     from pydantic_ai.result import RunResult
 
     from llmling_agent.models.agents import AgentConfig
@@ -74,19 +74,34 @@ class AgentPool:
         manifest: AgentsManifest,
         *,
         agents_to_load: list[str] | None = None,
+        connect_signals: bool = True,
     ):
-        """Initialize agent pool."""
-        self.agents: dict[str, LLMlingAgent[Any, Any]] = {}
-        self.manifest = manifest
+        """Initialize agent pool with immediate agent creation.
 
-        # Initialize requested agents
-        available = set(manifest.agents)
-        to_load = set(agents_to_load) if agents_to_load else available
-        if invalid := (to_load - available):
+        Args:
+            manifest: Agent configuration manifest
+            agents_to_load: Optional list of agent names to initialize
+                          If None, all agents from manifest are loaded
+            connect_signals: Whether to set up forwarding connections
+        """
+        self.manifest = manifest
+        self.agents: dict[str, LLMlingAgent[Any, Any]] = {}
+
+        # Validate requested agents exist
+        to_load = set(agents_to_load) if agents_to_load else set(manifest.agents)
+        if invalid := (to_load - set(manifest.agents)):
             msg = f"Unknown agents: {', '.join(invalid)}"
             raise ValueError(msg)
 
-        self._agents_to_load = to_load
+        # Create requested agents immediately
+        for name in to_load:
+            config = manifest.agents[name]
+            agent = self._create_agent(name, config)
+            self.agents[name] = agent
+
+        # Set up forwarding connections
+        if connect_signals:
+            self._connect_signals()
 
     def _connect_signals(self) -> None:
         """Set up forwarding connections between agents."""
@@ -162,7 +177,7 @@ class AgentPool:
                 msg = f"Agent {agent} not found"
                 raise KeyError(msg)
             config = self.manifest.agents[agent]
-            original_agent: LLMlingAgent[TDeps, TResult] = await self.get_agent(agent)
+            original_agent: LLMlingAgent[TDeps, TResult] = self.get_agent(agent)
         else:
             config = agent._context.config  # type: ignore
             original_agent = agent
@@ -197,51 +212,46 @@ class AgentPool:
 
         return new_agent
 
-    async def get_agent[TDeps, TResult](
+    def get_agent(
         self,
         name: str,
         *,
-        deps_type: type[TDeps] | None = None,
-        result_type: type[TResult] | None = None,
         model_override: str | None = None,
         environment_override: str | os.PathLike[str] | Config | None = None,
-    ) -> LLMlingAgent[TDeps, TResult]:
-        """Get or create a typed agent.
+    ) -> LLMlingAgent:
+        """Get an agent by name with optional runtime modifications.
 
         Args:
-            name: Name of agent to get/create
-            deps_type: Optional dependency type for agent context
-            result_type: Optional result type for responses
-            model_override: Optional model override
-            environment_override: Optional environment override (path or Config)
+            name: Name of agent to get
+            model_override: Optional model to use
+            environment_override: Optional environment to use
 
         Returns:
-            Configured agent instance
+            Requested agent instance
 
         Raises:
-            KeyError: If agent name not found or not in initialized set
+            KeyError: If agent name not found
         """
-        if name in self.agents:
-            return self.agents[name]
-        if name not in self._agents_to_load:
-            msg = f"Agent {name} not in initialized set"
+        if name not in self.agents:
+            msg = f"Agent {name} not found"
             raise KeyError(msg)
 
-        config = self.manifest.agents[name]
+        agent = self.agents[name]
 
-        # Create runtime from agent's config
-        cfg = environment_override or config.get_config()
-        async with RuntimeConfig.open(cfg) as runtime:
-            new_agent: LLMlingAgent[TDeps, TResult] = LLMlingAgent(
-                runtime=runtime,
-                result_type=result_type or None,
-                model=model_override or config.model,  # type: ignore
-                system_prompt=config.system_prompts,
-                name=name,
+        # Apply any overrides to the existing agent
+        if model_override:
+            agent.set_model(model_override)  # type: ignore
+
+        if environment_override:
+            # Create new runtime with override
+            cfg = (
+                environment_override
+                if isinstance(environment_override, Config)
+                else Config.from_file(environment_override)
             )
-            self.agents[name] = new_agent
+            agent._runtime = RuntimeConfig.from_config(cfg)
 
-        return new_agent
+        return agent
 
     @classmethod
     @asynccontextmanager
@@ -250,20 +260,28 @@ class AgentPool:
         config_path: str | os.PathLike[str] | AgentsManifest,
         *,
         agents: list[str] | None = None,
+        connect_signals: bool = True,
     ) -> AsyncIterator[AgentPool]:
         """Open an agent pool from configuration.
 
         Args:
-            config_path: Path to agent configuration file
-            agents: Optional list of agent names to initialize.
-                   If None, all agents from manifest are loaded.
+            config_path: Path to agent configuration file or manifest
+            agents: Optional list of agent names to initialize
+            connect_signals: Whether to set up forwarding connections
+
+        Yields:
+            Configured agent pool
         """
         manifest = (
             AgentsManifest.from_file(config_path)
             if isinstance(config_path, str | os.PathLike)
             else config_path
         )
-        pool = cls(manifest, agents_to_load=agents)
+        pool = cls(
+            manifest,
+            agents_to_load=agents,
+            connect_signals=connect_signals,
+        )
         try:
             yield pool
         finally:
@@ -297,7 +315,7 @@ class AgentPool:
         """Run agents sequentially."""
         results = {}
         for name in config.agent_names:
-            agent: LLMlingAgent[Any, Any] = await self.get_agent(
+            agent: LLMlingAgent[Any, Any] = self.get_agent(
                 name,
                 model_override=config.model,
             )
@@ -311,7 +329,7 @@ class AgentPool:
         """Run agents in parallel."""
 
         async def run_agent(name: str) -> list[RunResult[Any]]:
-            agent: LLMlingAgent[Any, Any] = await self.get_agent(
+            agent: LLMlingAgent[Any, Any] = self.get_agent(
                 name,
                 model_override=config.model,
             )
@@ -345,7 +363,7 @@ class AgentPool:
 
         async def run_agent(name: str) -> AgentResponse:
             try:
-                agent: LLMlingAgent[Any, str] = await self.get_agent(
+                agent: LLMlingAgent[Any, str] = self.get_agent(
                     name,
                     model_override=model_override,
                     environment_override=environment_override,
@@ -413,7 +431,7 @@ class AgentPool:
 
 async def main():
     async with AgentPool.open("agents.yml") as pool:
-        overseer: LLMlingAgent[Any, str] = await pool.get_agent("overseer")
+        overseer: LLMlingAgent[Any, str] = pool.get_agent("overseer")
         from llmling_agent.delegation.tools import register_delegation_tools
 
         # Register all delegation tools

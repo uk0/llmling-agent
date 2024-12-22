@@ -155,7 +155,7 @@ def run_command(
 
                 if len(agent_names) == 1:
                     # Single agent execution
-                    agent: LLMlingAgent[Any, Any] = await pool.get_agent(
+                    agent: LLMlingAgent[Any, Any] = pool.get_agent(
                         agent_names[0], model_override=model
                     )
                     results = []

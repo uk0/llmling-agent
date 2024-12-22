@@ -46,7 +46,7 @@ async def main():
         print(f"\nParallel was {sequential_time / parallel_time:.1f}x faster")
 
         # Or let the overseer handle it
-        overseer: LLMlingAgent[Any, str] = await pool.get_agent("overseer")
+        overseer: LLMlingAgent[Any, str] = pool.get_agent("overseer")
         register_delegation_tools(overseer, pool)
 
         result = await overseer.run(OVERSEER_PROMPT)
