@@ -242,9 +242,47 @@
           "default": "assistant",
           "description": "Role name (built-in or custom) determining agent's capabilities.",
           "title": "Role"
+        },
+        "forward_to": {
+          "description": "Targets to forward results to.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "agent": "#/$defs/AgentTarget"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/AgentTarget"
+              }
+            ]
+          },
+          "title": "Forward To",
+          "type": "array"
         }
       },
       "title": "AgentConfig",
+      "type": "object"
+    },
+    "AgentTarget": {
+      "description": "Forward messages to another agent.",
+      "properties": {
+        "type": {
+          "const": "agent",
+          "default": "agent",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "AgentTarget",
       "type": "object"
     },
     "CLIResource": {
