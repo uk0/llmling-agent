@@ -11,13 +11,14 @@ from llmling_agent.delegation.tools import register_delegation_tools
 if TYPE_CHECKING:
     from llmling_agent.agent.agent import LLMlingAgent
 
+MANIFEST_PATH = "src/llmling_agent_examples/download_agents.yml"
 
-file_url = "http://speedtest.tele2.net/10MB.zip"  # Usually reliable
+FILE_URL = "http://speedtest.tele2.net/10MB.zip"  # Usually reliable
 # or
-# file_url = "http://speedtest.ftp.otenet.gr/files/test100k.db"  # Another option
+# FILE_URL = "http://speedtest.ftp.otenet.gr/files/test100k.db"  # Another option
 # or for a really small test
-# file_url = "http://example.com/"  # Just to test the download mechanism
-# file_url = "https://speed.hetzner.de/100MB.bin"
+# FILE_URL = "http://example.com/"  # Just to test the download mechanism
+# FILE_URL = "https://speed.hetzner.de/100MB.bin"
 
 
 class DownloadRequest(BaseModel):
@@ -33,13 +34,13 @@ class DownloadResult(BaseModel):
 
 
 async def main():
-    async with AgentPool.open("src/llmling_agent/test.yml") as pool:
+    async with AgentPool.open(MANIFEST_PATH) as pool:
         # Sequential download
         print("Sequential downloads:")
         start_time = time.time()
 
         responses = await pool.team_task(
-            f"Download this file: {file_url}",
+            f"Download this file: {FILE_URL}",
             team=["file_getter_1", "file_getter_2"],
             mode="sequential",  # One after another
         )
@@ -52,7 +53,7 @@ async def main():
         start_time = time.time()
 
         responses = await pool.team_task(
-            f"Download this file: {file_url}",
+            f"Download this file: {FILE_URL}",
             team=["file_getter_1", "file_getter_2"],
             mode="parallel",  # Both at the same time
         )
@@ -68,7 +69,7 @@ async def main():
 
         result = await overseer.run(f"""
             Please coordinate downloading this file twice:
-            URL: {file_url}
+            URL: {FILE_URL}
 
             1. Delegate to file_getter_1 and file_getter_2
             2. Have them work in parallel
