@@ -48,7 +48,7 @@ dependencies = [
     "sqlmodel>=0.0.22",
     "typer>=0.15.1",
     "psygnal>=0.11.1",
-    "tokonomics>=0.1.0",
+    "tokonomics>=0.1.2",
     "slashed>=0.1.0",
 ]
 

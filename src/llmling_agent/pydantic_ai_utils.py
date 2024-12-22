@@ -72,10 +72,14 @@ async def extract_usage(
     )
     logger.debug("Token usage: %s", token_usage)
 
-    cost = await tokonomics.calculate_token_cost(model, token_usage)
+    cost = await tokonomics.calculate_token_cost(
+        model,
+        usage.request_tokens,
+        usage.response_tokens,
+    )
     if cost is not None:
-        logger.debug("Calculated cost: $%.6f", cost)
-        return TokenAndCostResult(token_usage=token_usage, cost_usd=cost)
+        logger.debug("Calculated cost: $%.6f", cost.total_cost)
+        return TokenAndCostResult(token_usage=token_usage, cost_usd=cost.total_cost)
 
     logger.debug("Failed to calculate USD cost")
     return None
