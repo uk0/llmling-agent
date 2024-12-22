@@ -217,12 +217,11 @@ class UIState:
             await self.handler.select_agent(agent_name, model)
 
             # Get the agent from the runner
-            if not self.handler.state.current_runner:
-                msg = f"Failed to initialize runner for {agent_name}"
+            if not self.handler.state.pool:
+                msg = f"Failed to initialize pool for {agent_name}"
                 raise ValueError(msg)  # noqa: TRY301
 
-            agent = self.handler.state.current_runner.agent
-
+            agent = self.handler.state.pool.get_agent(agent_name)
             # Create new session
             manager = self._session_manager
             self._current_session = await manager.create_session(agent=agent, model=model)

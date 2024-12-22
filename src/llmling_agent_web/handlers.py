@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from llmling_agent.log import get_logger
-from llmling_agent.runners.single import NotInitializedError
 from llmling_agent_web.state import AgentState
 
 
@@ -88,6 +87,7 @@ class AgentHandler:
             agents = list(self._state.agent_def.agents)
             msg = f"Loaded {len(agents)} agents from {file_path}"
             logger.info(msg)
+
         except Exception as e:
             error = f"Error loading file: {e}"
             logger.exception(error)
@@ -107,12 +107,13 @@ class AgentHandler:
 
         try:
             await self.state.select_agent(agent_name, model)
-            return f"Agent {agent_name} ready", []  # noqa: TRY300
         except Exception:
             if self._state:
                 await self._state.cleanup()
             self._state = None
             raise
+        else:
+            return f"Agent {agent_name} ready", []
 
     async def send_message(
         self,
@@ -123,12 +124,13 @@ class AgentHandler:
         if not message.strip():
             return "", chat_history, "Message is empty"
 
-        if not self.state.current_runner:
+        if not self.state.pool:
             return message, chat_history, "No agent selected"
 
         try:
-            # Get agent response using the runner
-            result = await self.state.current_runner.run(message)
+            # Get agent from pool and send message
+            agent = next(iter(self.state.pool.agents.values()))
+            result = await agent.run(message)
             response = str(result.data)
 
             # Update history with new messages
@@ -139,15 +141,11 @@ class AgentHandler:
             ])
 
             # Store updated history
-            agent_name = self.state.current_runner.agent_config.name or "default"
-            # Convert to list[list[str]] for storage
+            agent_name = agent.name
             self.state.history[agent_name] = [
                 [msg["content"] for msg in pair]
                 for pair in zip(new_history[::2], new_history[1::2])
             ]
-        except NotInitializedError as e:
-            logger.exception("Agent not properly initialized")
-            return message, chat_history, str(e)
         except Exception as e:
             error = f"Error getting response: {e}"
             logger.exception(error)
