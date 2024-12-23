@@ -143,15 +143,22 @@ class InteractiveSession:
             self.console.print("\nAssistant:", style="bold blue")
 
             if self._stream:
-                # Existing streaming code
+                # Print chunks without storing/reprocessing history
+                buffer = ""
                 async for chunk in await self._chat_session.send_message(
                     content,
                     stream=True,
                     output=writer,
                 ):
                     if chunk.content:
-                        self.console.print(Markdown(chunk.content))
+                        # Accumulate content and print only new parts
+                        new_content = chunk.content
+                        if new_content != buffer:
+                            diff = new_content[len(buffer) :]
+                            self.console.print(diff, end="")
+                            buffer = new_content
                     self._state.update_tokens(chunk)
+                self.console.print()  # Final newline
             else:
                 # Non-streaming mode
                 result = await self._chat_session.send_message(content, output=writer)
