@@ -46,6 +46,7 @@ class InteractiveSession:
         log_level: int = logging.WARNING,
         show_log_in_chat: bool = False,
         stream: bool = False,
+        render_markdown_on_stream: bool = False,
     ):
         """Initialize interactive session."""
         self.agent = agent
@@ -53,6 +54,7 @@ class InteractiveSession:
         self._log_level = log_level
         self.console = Console()
         self._stream = stream
+        self._render_markdown_on_stream = render_markdown_on_stream
         self._output_writer = DefaultOutputWriter()
         # Internal state
         self._session_manager = ChatSessionManager()
@@ -155,7 +157,10 @@ class InteractiveSession:
                         new_content = chunk.content
                         if new_content != buffer:
                             diff = new_content[len(buffer) :]
-                            self.console.print(diff, end="")
+                            if self._render_markdown_on_stream:
+                                self.console.print(Markdown(diff), end="")
+                            else:
+                                self.console.print(diff, end="")
                             buffer = new_content
                     self._state.update_tokens(chunk)
                 self.console.print()  # Final newline
