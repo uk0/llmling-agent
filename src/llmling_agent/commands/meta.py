@@ -28,18 +28,8 @@ async def meta_command(
     goal = args[0]
     max_length = int(kwargs.get("max_length", 0)) or None
     chain = kwargs.get("chain", "").lower() == "true"  # Default: False
-
-    # Get the requested style
-    categories = {
-        "role": kwargs.get("role"),
-        "style": kwargs.get("style"),
-        "format": kwargs.get("format"),
-        "tone": kwargs.get("tone"),
-        "pattern": kwargs.get("pattern"),
-        "audience": kwargs.get("audience"),
-        "purpose": kwargs.get("purpose"),
-    }
-
+    styles = ["role", "style", "format", "tone", "pattern", "audiene", "purpose"]
+    categories = {style: kwargs.get(style) for style in styles}
     # Filter out None values
     categories = {k: v for k, v in categories.items() if v is not None}
 
@@ -70,22 +60,14 @@ async def meta_command(
         else:
             # Combined application (single LLM call)
             styles = list(categories.values())
-
             # Get the combiner prompt
             combiner = library.get_meta_prompt("internal.combine")
-
+            labels = [f"Style '{name}':\n{p.system}" for name, p in zip(styles, prompts)]
             # Create new template with combined system prompts
-            combined_system = (
-                combiner.system
-                + "\n\nAvailable Styles:\n"
-                + "\n\n".join(
-                    f"Style '{name}':\n{p.system}" for name, p in zip(styles, prompts)
-                )
-            )
-
+            sys_prompt = combiner.system + "\n\nAvailable Styles:\n" + "\n\n".join(labels)
             combined = PromptTemplate(
                 description="Combined styles",
-                system=combined_system,
+                system=sys_prompt,
                 template=combiner.template,
                 variables=combiner.variables,
             )
