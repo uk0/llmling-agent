@@ -6,12 +6,9 @@ import shutil
 
 from llmling.cli.constants import output_format_opt, verbose_opt
 from llmling.cli.utils import format_output
-from promptantic import ModelGenerator
 import typer as t
 from upath import UPath
 
-from llmling_agent import config_resources
-from llmling_agent.models import AgentsManifest
 from llmling_agent_cli import agent_store, resolve_agent_config
 
 
@@ -40,10 +37,16 @@ def init_agent_config(
     """
     # Create config
     if interactive:
+        from promptantic import ModelGenerator
+
+        from llmling_agent.models import AgentsManifest
+
         generator = ModelGenerator()
         manifest = generator.populate(AgentsManifest)
         manifest.save(output)
     else:
+        from llmling_agent import config_resources
+
         shutil.copy2(config_resources.AGENTS_TEMPLATE, output)
 
     # Add and set as active

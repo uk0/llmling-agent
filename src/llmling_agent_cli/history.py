@@ -19,53 +19,26 @@ from llmling_agent.history.formatters import format_output
 
 help_text = "Conversation history management"
 history_cli = t.Typer(name="history", help=help_text, no_args_is_help=True)
+AGENT_NAME_HELP = "Agent name (shows all if not provided)"
+SINCE_HELP = "Show conversations since (YYYY-MM-DD or YYYY-MM-DD HH:MM)"
+PERIOD_HELP = "Show conversations from last period (1h, 2d, 1w, 1m)"
+COMPACT_HELP = "Show only first/last message of conversations"
+TOKEN_HELP = "Include token usage statistics"
 
 
 @history_cli.command(name="show")
 def show_history(
-    agent_name: str | None = t.Argument(
-        None,
-        help="Agent name (shows all if not provided)",
-    ),
+    agent_name: str | None = t.Argument(None, help=AGENT_NAME_HELP),
     # Time-based filtering
-    since: datetime | None = t.Option(  # noqa: B008
-        None,
-        "--since",
-        "-s",
-        help="Show conversations since (YYYY-MM-DD or YYYY-MM-DD HH:MM)",
-    ),
-    period: str | None = t.Option(
-        None,
-        "--period",
-        "-p",
-        help="Show conversations from last period (1h, 2d, 1w, 1m)",
-    ),
+    since: datetime | None = t.Option(None, "--since", "-s", help=SINCE_HELP),  # noqa: B008
+    period: str | None = t.Option(None, "--period", "-p", help=PERIOD_HELP),
     # Content filtering
-    query: str | None = t.Option(
-        None,
-        "--query",
-        "-q",
-        help="Search in message content",
-    ),
-    model: str | None = t.Option(
-        None,
-        "--model",
-        "-m",
-        help="Filter by model used",
-    ),
+    query: str | None = t.Option(None, "--query", "-q", help="Search in message content"),
+    model: str | None = t.Option(None, "--model", "-m", help="Filter by model used"),
     # Output control
     limit: int = t.Option(10, "--limit", "-n", help="Number of conversations"),
-    compact: bool = t.Option(
-        False,
-        "--compact",
-        help="Show only first/last message of conversations",
-    ),
-    tokens: bool = t.Option(
-        False,
-        "--tokens",
-        "-t",
-        help="Include token usage statistics",
-    ),
+    compact: bool = t.Option(False, "--compact", help=COMPACT_HELP),
+    tokens: bool = t.Option(False, "--tokens", "-t", help=TOKEN_HELP),
     output_format: str = output_format_opt,
 ):
     """Show conversation history with filtering options.
@@ -104,21 +77,12 @@ def show_history(
 
 @history_cli.command(name="stats")
 def show_stats(
-    agent_name: str | None = t.Argument(
-        None,
-        help="Agent name (shows all if not provided)",
-    ),
+    agent_name: str | None = t.Argument(None, help=AGENT_NAME_HELP),
     period: str = t.Option(
-        "1d",
-        "--period",
-        "-p",
-        help="Time period (1h, 1d, 1w, 1m, 1y)",
+        "1d", "--period", "-p", help="Time period (1h, 1d, 1w, 1m, 1y)"
     ),
     group_by: str = t.Option(
-        "agent",
-        "--group-by",
-        "-g",
-        help="Group by: agent, model, hour, day",
+        "agent", "--group-by", "-g", help="Group by: agent, model, hour, day"
     ),
     output_format: str = output_format_opt,
 ):
@@ -144,16 +108,10 @@ def show_stats(
 @history_cli.command(name="reset")
 def reset_history(
     confirm: bool = t.Option(
-        False,
-        "--confirm",
-        "-y",
-        help="Confirm deletion without prompting",
+        False, "--confirm", "-y", help="Confirm deletion without prompting"
     ),
     agent_name: str | None = t.Option(
-        None,
-        "--agent",
-        "-a",
-        help="Only delete history for specific agent",
+        None, "--agent", "-a", help="Only delete history for specific agent"
     ),
 ):
     """Reset (clear) conversation history.

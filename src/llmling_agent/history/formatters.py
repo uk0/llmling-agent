@@ -163,16 +163,13 @@ def format_stats(
     Returns:
         Formatted statistics ready for display
     """
-    return {
-        "period": period,
-        "group_by": group_by,
-        "entries": [
-            {
-                "name": key,
-                "messages": data["messages"],
-                "total_tokens": data["total_tokens"],
-                "models": sorted(data["models"]),
-            }
-            for key, data in stats.items()
-        ],
-    }
+    entries = [
+        {
+            "name": key,
+            "messages": data["messages"],
+            "total_tokens": data["total_tokens"],
+            "models": sorted(data["models"]),
+        }
+        for key, data in stats.items()
+    ]
+    return {"period": period, "group_by": group_by, "entries": entries}

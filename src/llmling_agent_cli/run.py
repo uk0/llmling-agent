@@ -17,15 +17,9 @@ if TYPE_CHECKING:
 
 def run_command(
     agent_name: str = t.Argument(help="Agent name(s) to run (can be comma-separated)"),
-    prompts: list[str] = t.Argument(  # noqa: B008
-        None,
-        help="Additional prompts to send",
-    ),
+    prompts: list[str] = t.Argument(None, help="Additional prompts to send"),  # noqa: B008
     config_path: str = t.Option(
-        None,
-        "-c",
-        "--config",
-        help="Override agent configuration path",
+        None, "-c", "--config", help="Override agent configuration path"
     ),
     include_prompt: list[str] = t.Option(  # noqa: B008
         None,
@@ -39,12 +33,7 @@ def run_command(
         "-e",
         help="Override agent's environment",
     ),
-    model: str = t.Option(
-        None,
-        "--model",
-        "-m",
-        help="Override agent's model",
-    ),
+    model: str = t.Option(None, "--model", "-m", help="Override agent's model"),
     output_format: str = t.Option(
         "text",
         "-o",

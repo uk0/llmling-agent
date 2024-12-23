@@ -9,7 +9,6 @@ from typing import Any
 from llmling.core.log import get_logger
 import typer as t
 
-from llmling_agent import LLMlingAgent
 from llmling_agent_cli import resolve_agent_config
 
 
@@ -40,6 +39,7 @@ def chat_command(
     By default, uses non-streaming mode for better support of structured responses
     and debugging. Use --stream to enable streaming mode for real-time responses.
     """
+    from llmling_agent import LLMlingAgent
     from llmling_agent_cli.chat_session.session import start_interactive_session
 
     level = getattr(logging, log_level.upper())

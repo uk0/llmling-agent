@@ -208,7 +208,7 @@ class InteractiveSession:
             )
             self._setup_prompt()
             assert self._prompt
-            self._prompt.completer = completer  # Update the prompt's completer
+            self._prompt.completer = completer
             # Register event handler AFTER session creation
 
             await self._show_welcome()

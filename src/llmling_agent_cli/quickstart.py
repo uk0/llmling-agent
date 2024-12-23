@@ -8,21 +8,15 @@ import logging
 import pathlib
 from typing import Any
 
-from llmling.core.log import get_logger
 import typer as t
 
-from llmling_agent import LLMlingAgent
 
-
-logger = get_logger(__name__)
+MODEL_HELP = "Model to use (e.g. openai:gpt-4o-mini, gpt-4)"
 
 
 # @cli.command(name="quickstart")
 def quickstart_command(
-    model: str = t.Argument(
-        "openai:gpt-4o-mini",
-        help="Model to use (e.g. openai:gpt-4o-mini, gpt-4)",
-    ),
+    model: str = t.Argument("openai:gpt-4o-mini", help=MODEL_HELP),
     log_level: str = t.Option(
         "WARNING",
         "--log-level",
@@ -40,6 +34,8 @@ def quickstart_command(
     from tempfile import NamedTemporaryFile
 
     import yaml
+
+    from llmling_agent import LLMlingAgent
 
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)
