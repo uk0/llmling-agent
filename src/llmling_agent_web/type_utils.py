@@ -30,16 +30,18 @@ def validate_chat_message(msg: Any) -> GradioChatMessage:
     Raises:
         ValueError: If message format is invalid
     """
-    if not isinstance(msg, dict):
-        msg = f"Chat message must be a dictionary, got {type(msg)}"
-        raise ValueError(msg)  # noqa: TRY004
-
-    if "content" not in msg or "role" not in msg:
-        error = "Chat message must have 'content' and 'role' fields"
-        raise ValueError(error)
-
-    if msg["role"] not in ("user", "assistant", "system"):
-        error = f"Invalid role: {msg['role']}"
-        raise ValueError(error)
-
-    return msg  # type: ignore
+    match msg:
+        case {"content": str(), "role": ("user" | "assistant" | "system")}:
+            return msg
+        case {"content": str(), "role": invalid_role}:
+            error = f"Invalid role: {invalid_role}"
+            raise ValueError(error)
+        case {"content": _, "role": _}:
+            error = "Content and role must be strings"
+            raise ValueError(error)
+        case dict():
+            error = "Chat message must have 'content' and 'role' fields"
+            raise ValueError(error)
+        case _:
+            error = f"Chat message must be a dictionary, got {type(msg)}"
+            raise ValueError(error)
