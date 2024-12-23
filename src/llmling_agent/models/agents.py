@@ -19,6 +19,7 @@ import yamling
 from llmling_agent.config.capabilities import BUILTIN_ROLES, Capabilities, RoleName
 from llmling_agent.environment import AgentEnvironment  # noqa: TC001
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
+from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 from llmling_agent.responses import ResponseDefinition  # noqa: TC001
 from llmling_agent.responses.models import InlineResponseDefinition
@@ -97,6 +98,9 @@ class AgentConfig(BaseModel):
 
     role: RoleName = "assistant"
     """Role name (built-in or custom) determining agent's capabilities."""
+
+    triggers: list[EventConfig] = Field(default_factory=list)
+    """Event sources that activate this agent"""
 
     forward_to: list[ForwardingTarget] = Field(default_factory=list)
     """Targets to forward results to."""

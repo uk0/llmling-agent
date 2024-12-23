@@ -54,10 +54,11 @@ class LLMlingAgent[TDeps, TResult]:
     This agent integrates LLMling's resource system with PydanticAI's agent capabilities.
     It provides:
     - Access to resources through RuntimeConfig
-    - Structured output support
     - Tool registration for resource operations
     - System prompt customization
+    - Signals
     - Message history management
+    - Database logging
     """
 
     message_received = Signal(ChatMessage[str])  # Always string
