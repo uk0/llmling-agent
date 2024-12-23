@@ -14,6 +14,27 @@ if TYPE_CHECKING:
     from llmling_agent.chat_session.base import AgentChatSession
 
 
+META_HELP = """\
+Generate a prompt using different styles and formats.
+
+Categories:
+  --role     : Role-based styles (reviewer, teacher, etc.)
+  --style    : Writing styles (formal, concise, etc.)
+  --format   : Output formats (markdown, bullet_points, etc.)
+  --tone     : Tone modifiers (professional, casual, etc.)
+  --pattern  : Structure patterns (problem_solution, etc.)
+
+Options:
+  --chain    : Apply multiple styles sequentially
+  --max-length: Maximum length constraint
+
+Examples:
+  /meta 'Review code' --role reviewer --style concise
+  /meta 'Explain API' --style pirate --format markdown
+  /meta 'Review code' --role reviewer --style pirate --chain true
+"""
+
+
 async def meta_command(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
@@ -59,10 +80,12 @@ async def meta_command(
             result = current_prompt
         else:
             # Combined application (single LLM call)
-            styles = list(categories.values())
             # Get the combiner prompt
             combiner = library.get_meta_prompt("internal.combine")
-            labels = [f"Style '{name}':\n{p.system}" for name, p in zip(styles, prompts)]
+            labels = [
+                f"Style '{name}':\n{p.system}"
+                for name, p in zip(categories.values(), prompts)
+            ]
             # Create new template with combined system prompts
             sys_prompt = combiner.system + "\n\nAvailable Styles:\n" + "\n\n".join(labels)
             combined = PromptTemplate(
@@ -95,21 +118,6 @@ meta_cmd = Command(
         "<goal> [--role <name>] [--style <name>] [--format <name>] "
         "[--tone <name>] [--pattern <name>] [--max-length <n>] [--chain]"
     ),
-    help_text=(
-        "Generate a prompt using different styles and formats.\n\n"
-        "Categories:\n"
-        "  --role     : Role-based styles (reviewer, teacher, etc.)\n"
-        "  --style    : Writing styles (formal, concise, etc.)\n"
-        "  --format   : Output formats (markdown, bullet_points, etc.)\n"
-        "  --tone     : Tone modifiers (professional, casual, etc.)\n"
-        "  --pattern  : Structure patterns (problem_solution, etc.)\n\n"
-        "Options:\n"
-        "  --chain    : Apply multiple styles sequentially\n"
-        "  --max-length: Maximum length constraint\n\n"
-        "Examples:\n"
-        "  /meta 'Review code' --role reviewer --style concise\n"
-        "  /meta 'Explain API' --style pirate --format markdown\n"
-        "  /meta 'Review code' --role reviewer --style pirate --chain true"
-    ),
+    help_text=META_HELP,
     category="prompts",
 )

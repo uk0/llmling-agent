@@ -7,15 +7,6 @@ from datetime import datetime
 from llmling.cli.constants import output_format_opt
 import typer as t
 
-from llmling_agent.history import (
-    StatsFilters,
-    format_stats,
-    get_conversation_stats,
-    get_filtered_conversations,
-    parse_time_period,
-)
-from llmling_agent.history.formatters import format_output
-
 
 help_text = "Conversation history management"
 history_cli = t.Typer(name="history", help=help_text, no_args_is_help=True)
@@ -62,6 +53,11 @@ def show_history(
         # Compact view of recent conversations
         llmling-agent history show --period 1d --compact
     """
+    from llmling_agent.history import (
+        get_filtered_conversations,
+    )
+    from llmling_agent.history.formatters import format_output
+
     results = get_filtered_conversations(
         agent_name=agent_name,
         period=period,
@@ -98,6 +94,14 @@ def show_stats(
         # Show model usage for last week
         llmling-agent history stats --period 1w --group-by model
     """
+    from llmling_agent.history import (
+        StatsFilters,
+        format_stats,
+        get_conversation_stats,
+        parse_time_period,
+    )
+    from llmling_agent.history.formatters import format_output
+
     cutoff = datetime.now() - parse_time_period(period)
     filters = StatsFilters(cutoff=cutoff, group_by=group_by, agent_name=agent_name)  # type: ignore
     stats = get_conversation_stats(filters)

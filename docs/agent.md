@@ -170,17 +170,6 @@ async def get_prompt(ctx: RunContext[AgentContext]) -> str:
     resources = await ctx.deps.list_resource_names()
     return f"Available resources: {', '.join(resources)}"
 
-# Register result validator
-@agent.result_validator
-async def validate(
-    ctx: RunContext[AgentContext],
-    result: str
-) -> str:
-    """Validate result before returning."""
-    if len(result) < 10:
-        raise ModelRetry("Response too short")
-    return result
-```
 
 ## Event Handling
 

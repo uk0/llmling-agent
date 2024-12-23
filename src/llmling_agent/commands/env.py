@@ -16,6 +16,28 @@ if TYPE_CHECKING:
     from llmling_agent.chat_session.base import AgentChatSession
 
 
+SET_ENV_HELP = """\
+Change the environment configuration file for the current session.
+
+The environment file defines:
+- Available tools
+- Resource configurations
+- Other runtime settings
+
+Example: /set-env configs/new_env.yml
+
+Note: This will reload the runtime configuration and update available tools.
+"""
+
+EDIT_ENV_HELP = """\
+Open the agent's environment configuration file in the default editor.
+This allows you to modify:
+- Available tools
+- Resources
+- Other environment settings
+"""
+
+
 async def set_env(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
@@ -107,15 +129,7 @@ set_env_cmd = Command(
     description="Change the environment configuration file",
     execute_func=set_env,
     usage="<path>",
-    help_text=(
-        "Change the environment configuration file for the current session.\n\n"
-        "The environment file defines:\n"
-        "- Available tools\n"
-        "- Resource configurations\n"
-        "- Other runtime settings\n\n"
-        "Example: /set-env configs/new_env.yml\n\n"
-        "Note: This will reload the runtime configuration and update available tools."
-    ),
+    help_text=SET_ENV_HELP,
     category="environment",
     completer=PathCompleter(file_patterns=["*.yml", "*.yaml"]),
 )
@@ -124,13 +138,7 @@ edit_env_cmd = Command(
     name="open-env-file",
     description="Open the agent's environment configuration",
     execute_func=edit_env,
-    help_text=(
-        "Open the agent's environment configuration file in the default editor.\n"
-        "This allows you to modify:\n"
-        "- Available tools\n"
-        "- Resources\n"
-        "- Other environment settings"
-    ),
+    help_text=EDIT_ENV_HELP,
     category="environment",
     completer=PathCompleter(file_patterns=["*.yml", "*.yaml"]),
 )

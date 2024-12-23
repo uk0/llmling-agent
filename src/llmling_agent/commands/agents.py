@@ -27,6 +27,21 @@ Shows:
 Fields that have been overridden at runtime are marked with comments.
 """
 
+LIST_AGENTS_HELP = """\
+Show all agents defined in the current configuration.
+Displays:
+- Agent name
+- Model used (if specified)
+- Description (if available)
+"""
+
+SWITCH_AGENT_HELP = """\
+Switch the current chat session to a different agent.
+Use /list-agents to see available agents.
+
+Example: /switch-agent url_opener
+"""
+
 
 def create_annotated_dump(
     config: dict[str, Any], overrides: dict[str, Any], *, indent: int = 2
@@ -167,13 +182,7 @@ list_agents_cmd = Command(
     name="list-agents",
     description="List available agents",
     execute_func=list_agents,
-    help_text=(
-        "Show all agents defined in the current configuration.\n"
-        "Displays:\n"
-        "- Agent name\n"
-        "- Model used (if specified)\n"
-        "- Description (if available)"
-    ),
+    help_text=LIST_AGENTS_HELP,
     category="agents",
 )
 
@@ -182,10 +191,6 @@ switch_agent_cmd = Command(
     description="Switch to a different agent",
     execute_func=switch_agent,
     usage="<name>",
-    help_text=(
-        "Switch the current chat session to a different agent.\n"
-        "Use /list-agents to see available agents.\n\n"
-        "Example: /switch-agent url_opener"
-    ),
+    help_text=SWITCH_AGENT_HELP,
     category="agents",
 )

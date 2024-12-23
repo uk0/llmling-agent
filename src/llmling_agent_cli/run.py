@@ -28,17 +28,11 @@ def run_command(
         help="Include named prompt from environment configuration",
     ),
     environment: str = t.Option(
-        None,
-        "--environment",
-        "-e",
-        help="Override agent's environment",
+        None, "--environment", "-e", help="Override agent's environment"
     ),
     model: str = t.Option(None, "--model", "-m", help="Override agent's model"),
     output_format: str = t.Option(
-        "text",
-        "-o",
-        "--output-format",
-        help="Output format (text/json/yaml)",
+        "text", "-o", "--output-format", help="Output format (text/json/yaml)"
     ),
     verbose: bool = verbose_opt,
 ):

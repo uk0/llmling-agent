@@ -9,6 +9,19 @@ if TYPE_CHECKING:
     from llmling_agent.chat_session.base import AgentChatSession
 
 
+RESET_HELP = """\
+Reset the entire session state:
+- Clears chat history
+- Restores default tool settings
+- Resets any session-specific configurations
+"""
+
+CLEAR_HELP = """\
+Clear the current chat session history.
+This removes all previous messages but keeps tools and settings.
+"""
+
+
 async def clear_command(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
@@ -31,10 +44,7 @@ clear_cmd = Command(
     name="clear",
     description="Clear chat history",
     execute_func=clear_command,
-    help_text=(
-        "Clear the current chat session history.\n"
-        "This removes all previous messages but keeps tools and settings."
-    ),
+    help_text=CLEAR_HELP,
     category="session",
 )
 
@@ -42,11 +52,6 @@ reset_cmd = Command(
     name="reset",
     description="Reset session state",
     execute_func=reset_command,
-    help_text=(
-        "Reset the entire session state:\n"
-        "- Clears chat history\n"
-        "- Restores default tool settings\n"
-        "- Resets any session-specific configurations"
-    ),
+    help_text=RESET_HELP,
     category="session",
 )
