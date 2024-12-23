@@ -11,7 +11,7 @@ from llmling_agent.functional import (
 from llmling_agent.delegation.pool import AgentPool
 from dotenv import load_dotenv
 
-__version__ = "0.12.2"
+__version__ = "0.12.3"
 
 load_dotenv()
 
