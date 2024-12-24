@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from llmling_agent import LLMlingAgent
     from llmling_agent.chat_session.base import AgentChatSession
     from llmling_agent.chat_session.events import HistoryClearedEvent, SessionResetEvent
+    from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.tools.base import ToolInfo
 
@@ -40,12 +41,24 @@ class InteractiveSession:
         self,
         agent: LLMlingAgent[Any, str],
         *,
+        pool: AgentPool | None = None,
+        wait_chain: bool = True,
         log_level: int = logging.WARNING,
         show_log_in_chat: bool = False,
         stream: bool = False,
         render_markdown: bool = False,
     ):
-        """Initialize interactive session."""
+        """Initialize interactive session.
+
+        Args:
+            agent: The LLMling agent to use
+            pool: Optional agent pool for multi-agent interactions
+            wait_chain: Whether to wait for chain completion
+            log_level: Logging level to use
+            show_log_in_chat: Whether to show logs in chat
+            stream: Whether to use streaming mode
+            render_markdown: Whether to render markdown in responses
+        """
         self.agent = agent
         self._stream = stream
         self._render_markdown = render_markdown
@@ -58,6 +71,8 @@ class InteractiveSession:
         self._session_manager = ChatSessionManager()
         self._chat_session: AgentChatSession | None = None
         self._prompt: PromptSession | None = None
+        self._pool = pool
+        self._wait_chain = wait_chain
 
         # Setup logging
         self._log_handler = None
@@ -177,6 +192,12 @@ class InteractiveSession:
                     )
                     self.formatter.print_message_content(content_to_print)
                     self.formatter.print_message_end(result.metadata)
+            if (
+                self._chat_session
+                and self._chat_session.wait_chain
+                and self._chat_session.has_chain()
+            ):
+                self.console.print("[dim]Waiting for chain responses...[/]")
 
         except (httpx.ReadError, GeneratorExit):
             self.formatter.print_connection_error()
@@ -188,7 +209,11 @@ class InteractiveSession:
     async def start(self):
         """Start interactive session."""
         try:
-            self._chat_session = await self._session_manager.create_session(self.agent)
+            self._chat_session = await self._session_manager.create_session(
+                self.agent,
+                pool=self._pool,
+                wait_chain=self._wait_chain,
+            )
             self._connect_signals()
             self._setup_prompt()
 
@@ -220,6 +245,8 @@ class InteractiveSession:
 
     async def _cleanup(self):
         """Clean up resources."""
+        if self._chat_session:
+            await self._chat_session.cleanup()
         if self._log_handler:
             logging.getLogger("llmling_agent").removeHandler(self._log_handler)
             logging.getLogger("llmling").removeHandler(self._log_handler)
@@ -229,12 +256,16 @@ class InteractiveSession:
 async def start_interactive_session(
     agent: LLMlingAgent[str, str],
     *,
+    pool: AgentPool | None = None,
+    wait_chain: bool = True,
     log_level: int = logging.WARNING,
     stream: bool = False,
 ):
     """Start an interactive chat session."""
     session = InteractiveSession(
         agent,
+        pool=pool,
+        wait_chain=wait_chain,
         log_level=log_level,
         stream=stream,
     )

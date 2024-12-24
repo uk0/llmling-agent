@@ -4,15 +4,41 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from slashed import Command, CommandContext
+from llmling import Config
+from slashed import Command, CommandContext, CommandError
 import yaml
 
 from llmling_agent.agent import LLMlingAgent
+from llmling_agent.environment.models import InlineEnvironment
+from llmling_agent.models.agents import AgentConfig
 
 
 if TYPE_CHECKING:
     from llmling_agent.chat_session.base import AgentChatSession
 
+
+CREATE_AGENT_HELP = """\
+Create a new agent in the current session.
+
+Creates a temporary agent that inherits the current agent's model.
+The new agent will exist only for this session.
+
+Options:
+  --system-prompt "prompt"   System instructions for the agent (required)
+  --model model_name        Override model (default: same as current agent)
+  --role role_name         Agent role (assistant/specialist/overseer)
+  --description "text"     Optional description of the agent
+
+Examples:
+  # Create poet using same model as current agent
+  /create-agent poet --system-prompt "Create poems from any text"
+
+  # Create analyzer with different model
+  /create-agent analyzer --system-prompt "Analyze in detail" --model gpt-4
+
+  # Create specialized helper
+  /create-agent helper --system-prompt "Debug code" --role specialist
+"""
 
 SHOW_AGENT_HELP_TEXT = """\
 Display the complete configuration of the current agent as YAML.
@@ -77,6 +103,53 @@ def create_annotated_dump(
             lines.append(line)
 
     return "\n".join(lines)
+
+
+async def create_agent_command(
+    ctx: CommandContext[AgentChatSession],
+    args: list[str],
+    kwargs: dict[str, str],
+):
+    """Create a new agent in the current session."""
+    if not args:
+        await ctx.output.print("Usage: /create-agent <name> --system-prompt 'prompt'")
+        return
+
+    name = args[0]
+    system_prompt = kwargs.get("system-prompt")
+    if not system_prompt:
+        await ctx.output.print("Error: --system-prompt is required")
+        return
+
+    try:
+        if not ctx.data.pool:
+            msg = "No agent pool available"
+            raise CommandError(msg)
+
+        # Copy current agent's configuration with modifications
+        current_agent = ctx.data._agent
+        model = kwargs.get("model") or current_agent.model_name
+
+        config = AgentConfig(
+            name=name,
+            model=model,
+            system_prompts=[system_prompt],
+            role=kwargs.get("role", "assistant"),
+            description=kwargs.get("description"),
+            environment=InlineEnvironment(config=Config()),
+        )
+
+        _agent = ctx.data.pool.create_agent(name, config, temporary=True)
+
+        if kwargs.get("model"):
+            msg = f"Created agent '{name}' with model {model}"
+        else:
+            msg = f"Created agent '{name}' (using current model: {model})"
+        await ctx.output.print(f"{msg}\nUse /connect {name} to forward messages")
+
+    except ValueError as e:
+        msg = f"Failed to create agent: {e}"
+        raise CommandError(msg) from e
 
 
 async def show_agent(
@@ -167,6 +240,15 @@ async def switch_agent(ctx: CommandContext, args: list[str], kwargs: dict[str, s
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Failed to switch agent: {e}")
 
+
+create_agent_cmd = Command(
+    name="create-agent",
+    description="Create a new agent in the current session",
+    execute_func=create_agent_command,
+    usage="<name> --system-prompt 'prompt' [--model name] [--role name]",
+    help_text=CREATE_AGENT_HELP,
+    category="agents",
+)
 
 show_agent_cmd = Command(
     name="show-agent",

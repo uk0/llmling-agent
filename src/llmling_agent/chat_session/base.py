@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 
     from llmling_agent import LLMlingAgent
     from llmling_agent.chat_session.output import OutputWriter
+    from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.snippets import Snippet
     from llmling_agent.tools.manager import ToolManager
 
@@ -69,6 +70,8 @@ class AgentChatSession:
         self,
         agent: LLMlingAgent[Any, str],
         *,
+        pool: AgentPool | None = None,
+        wait_chain: bool = True,
         session_id: UUID | str | None = None,
         model_override: str | None = None,
     ):
@@ -76,6 +79,8 @@ class AgentChatSession:
 
         Args:
             agent: The LLMling agent to use
+            pool: Optional agent pool for multi-agent interactions
+            wait_chain: Whether to wait for chain completion
             session_id: Optional session ID (generated if not provided)
             model_override: Optional model override for this session
         """
@@ -88,8 +93,10 @@ class AgentChatSession:
             case None:
                 self.id = uuid4()
         self._agent = agent
+        self._pool = pool
+        self._wait_chain = wait_chain
         # forward ToolManager signals to ours
-
+        self._tool_states = self._agent.tools.list_tools()
         self._agent.tools.events.added.connect(self.tool_added.emit)
         self._agent.tools.events.removed.connect(self.tool_removed.emit)
         self._agent.tools.events.changed.connect(self.tool_changed.emit)
@@ -103,6 +110,73 @@ class AgentChatSession:
         self._command_store = CommandStore()
         self.start_time = datetime.now()
         self._state = SessionState(current_model=self._model)
+
+    @property
+    def pool(self) -> AgentPool | None:
+        """Get the agent pool if available."""
+        return self._pool
+
+    @property
+    def wait_chain(self) -> bool:
+        """Whether to wait for chain completion."""
+        return self._wait_chain
+
+    @wait_chain.setter
+    def wait_chain(self, value: bool):
+        """Set chain waiting behavior."""
+        if not isinstance(value, bool):
+            msg = f"wait_chain must be bool, got {type(value)}"
+            raise TypeError(msg)
+        self._wait_chain = value
+
+    async def connect_to(self, target: str, wait: bool | None = None) -> None:
+        """Connect to another agent.
+
+        Args:
+            target: Name of target agent
+            wait: Override session's wait_chain setting
+
+        Raises:
+            ValueError: If target agent not found or pool not available
+        """
+        if not self._pool:
+            msg = "No agent pool available"
+            raise ValueError(msg)
+
+        try:
+            target_agent = self._pool.get_agent(target)
+        except KeyError as e:
+            msg = f"Target agent not found: {target}"
+            raise ValueError(msg) from e
+
+        self._agent.pass_results_to(target_agent)
+
+        if wait is not None:
+            self._wait_chain = wait
+
+    async def disconnect_from(self, target: str) -> None:
+        """Disconnect from a target agent."""
+        if not self._pool:
+            msg = "No agent pool available"
+            raise ValueError(msg)
+
+        target_agent = self._pool.get_agent(target)
+        self._agent.stop_passing_results_to(target_agent)
+
+    async def disconnect_all(self) -> None:
+        """Disconnect from all agents."""
+        if self._agent._connected_agents:
+            connected = list(self._agent._connected_agents)
+            for target in connected:
+                self._agent.stop_passing_results_to(target)
+
+    def get_connections(self) -> list[tuple[str, bool]]:
+        """Get current connections.
+
+        Returns:
+            List of (agent_name, waits_for_completion) tuples
+        """
+        return [(agent.name, self._wait_chain) for agent in self._agent._connected_agents]
 
     def _ensure_initialized(self):
         """Check if session is initialized."""
@@ -124,7 +198,6 @@ class AgentChatSession:
             self._commands = []
 
         # Initialize tool states
-        self._tool_states = self._agent.tools.list_tools()
 
         # Initialize command system
         self._command_store.register_builtin_commands()
@@ -136,6 +209,11 @@ class AgentChatSession:
         logger.debug(
             "Initialized chat session %s for agent %s", self.id, self._agent.name
         )
+
+    async def cleanup(self):
+        """Clean up session resources."""
+        if self._pool:
+            await self.disconnect_all()
 
     def add_snippet(self, content: str, source: str) -> Snippet:
         """Add content to be included in next prompt."""
@@ -351,6 +429,9 @@ class AgentChatSession:
             token_usage=metadata_obj.token_usage,
         )
         self._state.update_tokens(chat_msg)
+        # Add chain waiting if enabled
+        if self._wait_chain and self._pool:
+            await self._agent.wait_for_chain()
 
         return chat_msg
 
@@ -393,6 +474,11 @@ class AgentChatSession:
                 token_usage=meta_obj.token_usage,
             )
             self._state.update_tokens(final_msg)
+
+            # Add chain waiting if enabled
+            if self._wait_chain and self._pool:
+                await self._agent.wait_for_chain()
+
             yield final_msg
 
     def configure_tools(
@@ -422,6 +508,14 @@ class AgentChatSession:
 
         logger.debug("Updated tool states for session %s: %s", self.id, results)
         return results
+
+    def has_chain(self) -> bool:
+        """Check if agent has any connections."""
+        return bool(self._agent._connected_agents)
+
+    def is_processing_chain(self) -> bool:
+        """Check if chain is currently processing."""
+        return any(a._pending_tasks for a in self._agent._connected_agents)
 
     def get_tool_states(self) -> dict[str, bool]:
         """Get current tool states."""

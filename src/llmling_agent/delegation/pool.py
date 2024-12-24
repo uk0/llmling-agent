@@ -96,8 +96,7 @@ class AgentPool:
         # Create requested agents immediately
         for name in to_load:
             config = manifest.agents[name]
-            agent = self._create_agent(name, config)
-            self.agents[name] = agent
+            _agent = self.create_agent(name, config)
 
         # Set up forwarding connections
         if connect_signals:
@@ -130,12 +129,31 @@ class AgentPool:
         """Exit async context."""
         await self.cleanup()
 
-    def _create_agent(
+    def create_agent(
         self,
         name: str,
         config: AgentConfig,
+        *,
+        temporary: bool = True,
     ) -> LLMlingAgent[Any, Any]:
-        """Create an agent from configuration."""
+        """Create and register a new agent in the pool.
+
+        Args:
+            name: Name for the new agent
+            config: Agent configuration
+            temporary: If True, agent is only registered in runtime pool,
+                      not in manifest (default: True)
+
+        Returns:
+            Created agent instance
+
+        Raises:
+            ValueError: If agent with this name already exists
+        """
+        if name in self.agents:
+            msg = f"Agent {name} already exists"
+            raise ValueError(msg)
+
         # Create runtime from agent's config
         cfg = config.get_config()
         runtime = RuntimeConfig.from_config(cfg)
@@ -148,6 +166,14 @@ class AgentPool:
             system_prompt=config.system_prompts,
             name=name,
         )
+
+        # Register in runtime pool
+        self.agents[name] = agent
+
+        # Only register in manifest if not temporary
+        if not temporary:
+            self.manifest.agents[name] = config
+
         return agent
 
     async def clone_agent[TDeps, TResult](

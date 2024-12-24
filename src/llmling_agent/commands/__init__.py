@@ -3,9 +3,16 @@
 from slashed import BaseCommand
 
 from llmling_agent.commands.agents import (
+    create_agent_cmd,
     list_agents_cmd,
     show_agent_cmd,
     switch_agent_cmd,
+)
+from llmling_agent.commands.connections import (
+    connect_cmd,
+    disconnect_cmd,
+    connections_cmd,
+    disconnect_all_cmd,
 )
 from llmling_agent.commands.env import edit_env_cmd, set_env_cmd
 from llmling_agent.commands.meta import meta_cmd
@@ -36,8 +43,13 @@ def get_commands() -> list[BaseCommand]:
     return [
         list_prompts_cmd,
         prompt_cmd,
+        create_agent_cmd,
         switch_agent_cmd,
         list_agents_cmd,
+        connect_cmd,
+        disconnect_cmd,
+        connections_cmd,
+        disconnect_all_cmd,
         clear_cmd,
         reset_cmd,
         copy_clipboard_cmd,

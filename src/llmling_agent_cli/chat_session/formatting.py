@@ -123,6 +123,10 @@ class MessageFormatter:
         """Print exit message."""
         self.console.print("\nGoodbye!")
 
+    def print_chain_status(self, agent_names: list[str], status: str):
+        """Print chain processing status."""
+        self.console.print(f"\n[dim]Chain ({', '.join(agent_names)}): {status}[/]")
+
     def _get_sender_name(self, message: ChatMessage) -> str:
         """Get display name for message sender."""
         match message.role:
