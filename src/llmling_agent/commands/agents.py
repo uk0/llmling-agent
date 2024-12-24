@@ -116,10 +116,8 @@ async def show_agent(
     ]
 
     if overrides:
-        sections.extend([
-            "",
-            "[dim]Note: Fields marked with '# Override' show runtime overrides[/]",
-        ])
+        msg = "[dim]Note: Fields marked with '# Override' show runtime overrides[/]"
+        sections.extend(["", msg])
 
     await ctx.output.print("\n".join(sections))
 

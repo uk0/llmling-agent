@@ -14,21 +14,17 @@ from llmling_agent_cli import agent_store, resolve_agent_config
 
 agent_cli = t.Typer(help="Agent management commands", no_args_is_help=True)
 
+NAME_HELP = "Name for the configuration (defaults to filename)"
+
+INTERACTIVE_CMD = "--interactive/--no-interactive"
+INTERACTIVE_HELP = "Use interactive configuration wizard"
+
 
 @agent_cli.command("init")
 def init_agent_config(
     output: str = t.Argument(help="Path to write agent configuration file"),
-    name: str | None = t.Option(
-        None,
-        "--name",
-        "-n",
-        help="Name for the configuration (defaults to filename)",
-    ),
-    interactive: bool = t.Option(
-        False,
-        "--interactive/--no-interactive",
-        help="Use interactive configuration wizard",
-    ),
+    name: str | None = t.Option(None, "--name", "-n", help=NAME_HELP),
+    interactive: bool = t.Option(False, INTERACTIVE_CMD, help=INTERACTIVE_HELP),
 ):
     """Initialize a new agent configuration file.
 

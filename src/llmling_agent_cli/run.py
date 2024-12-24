@@ -14,6 +14,9 @@ import typer as t
 if TYPE_CHECKING:
     from llmling_agent.agent.agent import LLMlingAgent
 
+PROMPT_HELP = "Include named prompt from environment configuration"
+OUTPUT_HELP = "Output format (text/json/yaml)"
+
 
 def run_command(
     agent_name: str = t.Argument(help="Agent name(s) to run (can be comma-separated)"),
@@ -25,15 +28,13 @@ def run_command(
         None,
         "--include-prompt",
         "-p",
-        help="Include named prompt from environment configuration",
+        help=PROMPT_HELP,
     ),
     environment: str = t.Option(
         None, "--environment", "-e", help="Override agent's environment"
     ),
     model: str = t.Option(None, "--model", "-m", help="Override agent's model"),
-    output_format: str = t.Option(
-        "text", "-o", "--output-format", help="Output format (text/json/yaml)"
-    ),
+    output_format: str = t.Option("text", "-o", "--output-format", help=OUTPUT_HELP),
     verbose: bool = verbose_opt,
 ):
     """Run agent with prompts.

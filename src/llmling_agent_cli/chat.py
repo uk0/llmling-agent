@@ -14,18 +14,17 @@ from llmling_agent_cli import resolve_agent_config
 
 logger = get_logger(__name__)
 
+CONFIG_HELP = "Override agent config path"
+
+STREAM_CMD = "--stream/--no-stream"
+STREAM_HELP = "Enable streaming mode (default: off)"
+
 
 def chat_command(
     agent_name: str = t.Argument(help="Name of agent to chat with"),
-    config: str | None = t.Option(
-        None, "--config", "-c", help="Override agent config path"
-    ),
+    config: str | None = t.Option(None, "--config", "-c", help=CONFIG_HELP),
     model: str | None = t.Option(None, "--model", "-m", help="Override agent's model"),
-    stream: bool = t.Option(
-        True,
-        "--stream/--no-stream",
-        help="Enable streaming mode (default: off)",
-    ),
+    stream: bool = t.Option(True, STREAM_CMD, help=STREAM_HELP),
     log_level: str = t.Option(
         "WARNING",
         "--log-level",
