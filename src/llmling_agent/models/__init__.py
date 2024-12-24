@@ -10,6 +10,7 @@ from llmling_agent.models.messages import (
 from llmling_agent.models.prompts import SystemPrompt
 from llmling_agent.models.resources import ResourceInfo
 from llmling_agent.models.context import AgentContext
+from llmling_agent.models.snippets import Snippet
 
 __all__ = [
     "AgentConfig",
@@ -18,6 +19,7 @@ __all__ = [
     "ChatMessage",
     "MessageMetadata",
     "ResourceInfo",
+    "Snippet",
     "SystemPrompt",
     "TokenAndCostResult",
     "TokenUsage",
