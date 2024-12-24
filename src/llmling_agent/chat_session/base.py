@@ -207,7 +207,7 @@ class AgentChatSession:
 
         self._initialized = True
         logger.debug(
-            "Initialized chat session %s for agent %s", self.id, self._agent.name
+            "Initialized chat session %r for agent %r", self.id, self._agent.name
         )
 
     async def cleanup(self):

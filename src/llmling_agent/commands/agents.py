@@ -137,6 +137,7 @@ async def create_agent_command(
             role=kwargs.get("role", "assistant"),
             description=kwargs.get("description"),
             environment=InlineEnvironment(config=Config()),
+            # config_file_path=current_agent._context.config.config_file_path,
         )
 
         _agent = ctx.data.pool.create_agent(name, config, temporary=True)

@@ -164,7 +164,7 @@ def reset_history(
 
         # Ask for confirmation if needed
         if not confirm:
-            agent_str = f" for agent '{agent_name}'" if agent_name else ""
+            agent_str = f" for agent {agent_name!r}" if agent_name else ""
             msg = (
                 f"This will delete {conv_count} conversations and {msg_count} messages"
                 f"{agent_str}.\nAre you sure? [y/N] "
