@@ -94,7 +94,7 @@ async def read_command(
 
         # Create and add snippet
         snippet = Snippet(source=str(path), content=content)
-        ctx.data.add_snippet(snippet)
+        ctx.data.snippets.add(snippet)
         await ctx.output.print(f"Added content from {path} to next message as context.")
 
     except Exception as e:

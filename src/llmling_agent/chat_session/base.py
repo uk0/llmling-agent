@@ -25,6 +25,7 @@ from llmling_agent.chat_session.events import (
 )
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
+from llmling_agent.chat_session.snippets import SnippetManager
 from llmling_agent.commands import get_commands
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
@@ -41,7 +42,6 @@ if TYPE_CHECKING:
 
     from llmling_agent import LLMlingAgent
     from llmling_agent.chat_session.output import OutputWriter
-    from llmling_agent.models import Snippet
     from llmling_agent.tools.manager import ToolManager
 
 
@@ -98,7 +98,7 @@ class AgentChatSession:
         self._commands: list[str] = []
         self._history_file = HISTORY_DIR / f"{agent.name}.history"
         self._initialized = False  # Track initialization state
-        self._pending_snippets: list[Snippet] = []
+        self.snippets = SnippetManager()
 
         # Initialize basic structures
         self._command_store = CommandStore()
@@ -137,18 +137,6 @@ class AgentChatSession:
         logger.debug(
             "Initialized chat session %s for agent %s", self.id, self._agent.name
         )
-
-    def add_snippet(self, snippet: Snippet):
-        """Add snippet to be prepended to next message."""
-        self._pending_snippets.append(snippet)
-
-    def clear_snippets(self):
-        """Clear any pending snippets."""
-        self._pending_snippets.clear()
-
-    def get_pending_snippets(self) -> list[Snippet]:
-        """Get current pending snippets (read-only)."""
-        return list(self._pending_snippets)
 
     def _load_commands(self):
         """Load command history from file."""
@@ -300,10 +288,9 @@ class AgentChatSession:
                 output=output,
                 metadata=metadata,
             )
-        if self._pending_snippets:
-            snippets_text = "\n".join(s.format() for s in self._pending_snippets)
-            content = f"{snippets_text}\n{content}"
-            self._pending_snippets.clear()
+        if formatted := self.snippets.format_all():
+            content = f"{formatted}\n{content}"
+            self.snippets.clear()
         try:
             # Update tool states in pydantic agent before call
             self._agent._pydantic_agent._function_tools.clear()
