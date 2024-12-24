@@ -19,10 +19,11 @@ from llmling_agent.chat_session.exceptions import format_error
 from llmling_agent.chat_session.models import SessionState
 from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.chat_session.welcome import create_welcome_messages
+from llmling_agent.models.messages import ChatMessage
 from llmling_agent.ui.status import StatusBar
 from llmling_agent_cli.chat_session.completion import PromptToolkitCompleter
+from llmling_agent_cli.chat_session.formatting import MessageFormatter
 from llmling_agent_cli.chat_session.history import SessionHistory
-from llmling_agent_cli.chat_session.status import render_status_bar
 
 
 if TYPE_CHECKING:
@@ -53,6 +54,8 @@ class InteractiveSession:
 
         self._log_level = log_level
         self.console = Console()
+        self.formatter = MessageFormatter(self.console)
+
         self._stream = stream
         self._render_markdown_on_stream = render_markdown_on_stream
         self._output_writer = DefaultOutputWriter()
@@ -134,45 +137,65 @@ class InteractiveSession:
                 try:
                     result = await self._chat_session.send_message(content, output=writer)
                     if result.content:
-                        self.console.print(result.content)
+                        self.formatter.print_message_start(result)
+                        self.formatter.print_message_content(result.content)
+                        self.formatter.print_message_end(result.metadata)
                 except ExitCommandError as e:
                     # Handle clean exit
                     self.console.print("\nGoodbye!")
                     raise EOFError from e
                 return
 
-            # Handle normal message with or without streaming
-            self.console.print("\nAssistant:", style="bold blue")
+            # Show user message
+            user_msg: ChatMessage[str] = ChatMessage(content=content, role="user")
+            self.formatter.print_message_start(user_msg)
+            self.formatter.print_message_content(content)
+            self.formatter.print_message_end(None)  # No metadata for user messages
 
             if self._stream:
                 # Print chunks without storing/reprocessing history
                 buffer = ""
+                first_chunk = True
                 async for chunk in await self._chat_session.send_message(
                     content,
                     stream=True,
                     output=writer,
                 ):
                     if chunk.content:
-                        # Accumulate content and print only new parts
+                        # Print header before first chunk
+                        if first_chunk:
+                            self.formatter.print_message_start(chunk)
+                            first_chunk = False
+
+                        # Print new content
                         new_content = chunk.content
                         if new_content != buffer:
                             diff = new_content[len(buffer) :]
-                            if self._render_markdown_on_stream:
-                                self.console.print(Markdown(diff), end="")
-                            else:
-                                self.console.print(diff, end="")
+                            self.formatter.print_message_content(diff, end="")
                             buffer = new_content
-                    self._state.update_tokens(chunk)
-                self.console.print()  # Final newline
+
+                        self._state.update_tokens(chunk)
+
+                # End message after all chunks
+                self.console.print()  # New line
+                self.formatter.print_message_end(chunk.metadata)
             else:
                 # Non-streaming mode
                 result = await self._chat_session.send_message(content, output=writer)
                 if result.content:
-                    self.console.print(Markdown(result.content))
+                    self.formatter.print_message_start(result)
+                    content_to_print = (
+                        Markdown(result.content)
+                        if self._render_markdown_on_stream
+                        else result.content
+                    )
+                    self.formatter.print_message_content(content_to_print)
+                    self.formatter.print_message_end(result.metadata)
                 self._state.update_tokens(result)
 
             # Update message count after complete response
             self._state.message_count += 2
+
         except (httpx.ReadError, GeneratorExit):
             self.console.print("\nConnection interrupted.")
         except EOFError:
@@ -187,8 +210,8 @@ class InteractiveSession:
 
     def update_status_bar(self):
         """Update and render status bar."""
-        self.status_bar.update(self._state)
-        render_status_bar(self.status_bar, self.console)
+        # self.status_bar.update(self._state)
+        # render_status_bar(self.status_bar, self.console)
 
     @property
     def session(self) -> AgentChatSession:
