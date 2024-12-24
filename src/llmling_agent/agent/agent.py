@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Sequence  # noqa: TC003
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
+import time
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -439,6 +440,8 @@ class LLMlingAgent[TDeps, TResult]:
 
             with capture_run_messages() as messages:
                 # Run through pydantic-ai's public interface
+                start_time = time.perf_counter()
+
                 result = await self._pydantic_agent.run(
                     prompt,
                     deps=self._context,
@@ -469,6 +472,7 @@ class LLMlingAgent[TDeps, TResult]:
                 model=self.model_name,
                 token_usage=cost.token_usage if cost else None,
                 cost=cost.cost_usd if cost else None,
+                response_time=time.perf_counter() - start_time,
             )
             assistant_msg: ChatMessage[TResult] = ChatMessage[TResult](
                 content=result.data,
@@ -529,6 +533,7 @@ class LLMlingAgent[TDeps, TResult]:
             # Emit user message
             user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
             self.message_received.emit(user_msg)
+            start_time = time.perf_counter()
 
             stream_ctx = self._pydantic_agent.run_stream(
                 prompt,
@@ -588,6 +593,7 @@ class LLMlingAgent[TDeps, TResult]:
                             model=self.model_name,
                             token_usage=cost.token_usage if cost else None,
                             cost=cost.cost_usd if cost else None,
+                            response_time=time.perf_counter() - start_time,
                         )
                         assistant_msg: ChatMessage[TResult] = ChatMessage[TResult](
                             content=await stream.get_data(),

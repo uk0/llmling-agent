@@ -66,6 +66,9 @@ class MessageMetadata(BaseModel):
     tool_result: Any | None = None
     """Result returned by tool for UI display."""
 
+    response_time: float | None = Field(default=None)
+    """Time it took the LLM to respond."""
+
     model_config = ConfigDict(frozen=True)
 
 
