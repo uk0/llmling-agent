@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import traceback
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -15,12 +14,9 @@ from slashed import ExitCommandError
 from slashed.log import SessionLogHandler
 
 from llmling_agent.chat_session import ChatSessionManager
-from llmling_agent.chat_session.exceptions import format_error
-from llmling_agent.chat_session.models import SessionState
 from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.models.messages import ChatMessage
-from llmling_agent.ui.status import StatusBar
 from llmling_agent_cli.chat_session.completion import PromptToolkitCompleter
 from llmling_agent_cli.chat_session.formatting import MessageFormatter
 from llmling_agent_cli.chat_session.history import SessionHistory
@@ -47,28 +43,26 @@ class InteractiveSession:
         log_level: int = logging.WARNING,
         show_log_in_chat: bool = False,
         stream: bool = False,
-        render_markdown_on_stream: bool = False,
+        render_markdown: bool = False,
     ):
         """Initialize interactive session."""
         self.agent = agent
+        self._stream = stream
+        self._render_markdown = render_markdown
 
-        self._log_level = log_level
+        # Setup console and formatting
         self.console = Console()
         self.formatter = MessageFormatter(self.console)
 
-        self._stream = stream
-        self._render_markdown_on_stream = render_markdown_on_stream
-        self._output_writer = DefaultOutputWriter()
-        # Internal state
+        # Setup session management
         self._session_manager = ChatSessionManager()
         self._chat_session: AgentChatSession | None = None
-        self._state = SessionState()
-        self.status_bar = StatusBar()
         self._prompt: PromptSession | None = None
+
         # Setup logging
         self._log_handler = None
         if show_log_in_chat:
-            self._log_handler = SessionLogHandler(self._output_writer)
+            self._log_handler = SessionLogHandler(DefaultOutputWriter())
             self._log_handler.setLevel(log_level)
             logging.getLogger("llmling_agent").addHandler(self._log_handler)
             logging.getLogger("llmling").addHandler(self._log_handler)
@@ -76,8 +70,6 @@ class InteractiveSession:
     def _connect_signals(self):
         """Connect to chat session signals."""
         assert self._chat_session is not None
-
-        # Connect to signals with bound methods
         self._chat_session.history_cleared.connect(self._on_history_cleared)
         self._chat_session.session_reset.connect(self._on_session_reset)
         self._chat_session.tool_added.connect(self._on_tool_added)
@@ -88,27 +80,20 @@ class InteractiveSession:
     def _on_tool_added(self, tool: ToolInfo):
         """Handle tool addition."""
         self.console.print(f"\nTool added: {tool.name}")
-        self.update_status_bar()
 
     def _on_tool_removed(self, tool_name: str):
         """Handle tool removal."""
         self.console.print(f"\nTool removed: {tool_name}")
-        self.update_status_bar()
 
     def _on_tool_call(self, tool_call: ToolCallInfo):
         """Handle tool usage signal."""
         logger.debug("Tool call received: %s", tool_call.tool_name)
-        self.console.print(
-            f"\n[yellow]Tool Call:[/] {tool_call.tool_name}\n"
-            f"  Args: {tool_call.args}\n"
-            f"  Result: {tool_call.result}"
-        )
+        self.formatter.print_tool_call(tool_call)
 
     def _on_tool_changed(self, name: str, tool: ToolInfo):
         """Handle tool state changes."""
         state = "enabled" if tool.enabled else "disabled"
         self.console.print(f"\nTool '{name}' {state}")
-        self.update_status_bar()
 
     def _on_history_cleared(self, event: HistoryClearedEvent):
         """Handle history cleared event."""
@@ -120,15 +105,23 @@ class InteractiveSession:
 
     def _setup_prompt(self):
         """Setup prompt toolkit session."""
-        auto = AutoSuggestFromHistory()
-        history = SessionHistory(self.session)
+        assert self._chat_session is not None
 
-        self._prompt = PromptSession[str]("You: ", history=history, auto_suggest=auto)
+        history = SessionHistory(self._chat_session)
+        completer = PromptToolkitCompleter(self._chat_session._command_store._commands)
+
+        self._prompt = PromptSession[str](
+            "You: ",
+            history=history,
+            auto_suggest=AutoSuggestFromHistory(),
+            completer=completer,
+        )
 
     async def _handle_input(self, content: str):
         """Handle user input."""
         if not content.strip():
             return
+
         writer = DefaultOutputWriter()
         try:
             assert self._chat_session is not None
@@ -140,20 +133,18 @@ class InteractiveSession:
                         self.formatter.print_message_start(result)
                         self.formatter.print_message_content(result.content)
                         self.formatter.print_message_end(result.metadata)
-                except ExitCommandError as e:
-                    # Handle clean exit
-                    self.console.print("\nGoodbye!")
-                    raise EOFError from e
+                except ExitCommandError:
+                    self.formatter.print_exit()
+                    raise EOFError  # noqa: B904
                 return
 
             # Show user message
             user_msg: ChatMessage[str] = ChatMessage(content=content, role="user")
             self.formatter.print_message_start(user_msg)
             self.formatter.print_message_content(content)
-            self.formatter.print_message_end(None)  # No metadata for user messages
+            self.formatter.print_message_end(None)
 
             if self._stream:
-                # Print chunks without storing/reprocessing history
                 buffer = ""
                 first_chunk = True
                 async for chunk in await self._chat_session.send_message(
@@ -162,22 +153,17 @@ class InteractiveSession:
                     output=writer,
                 ):
                     if chunk.content:
-                        # Print header before first chunk
                         if first_chunk:
                             self.formatter.print_message_start(chunk)
                             first_chunk = False
 
-                        # Print new content
                         new_content = chunk.content
                         if new_content != buffer:
                             diff = new_content[len(buffer) :]
                             self.formatter.print_message_content(diff, end="")
                             buffer = new_content
 
-                        self._state.update_tokens(chunk)
-
-                # End message after all chunks
-                self.console.print()  # New line
+                self.console.print()  # New line after streaming
                 self.formatter.print_message_end(chunk.metadata)
             else:
                 # Non-streaming mode
@@ -186,58 +172,36 @@ class InteractiveSession:
                     self.formatter.print_message_start(result)
                     content_to_print = (
                         Markdown(result.content)
-                        if self._render_markdown_on_stream
+                        if self._render_markdown
                         else result.content
                     )
                     self.formatter.print_message_content(content_to_print)
                     self.formatter.print_message_end(result.metadata)
-                self._state.update_tokens(result)
-
-            # Update message count after complete response
-            self._state.message_count += 2
 
         except (httpx.ReadError, GeneratorExit):
-            self.console.print("\nConnection interrupted.")
+            self.formatter.print_connection_error()
         except EOFError:
             raise
         except Exception as e:  # noqa: BLE001
-            error_msg = format_error(e)
-            self.console.print(f"\n[red bold]Error:[/] {error_msg}")
-            md = Markdown(f"```python\n{traceback.format_exc()}\n```")
-            self.console.print("\n[dim]Debug traceback:[/]", md)
-        finally:
-            self.update_status_bar()
-
-    def update_status_bar(self):
-        """Update and render status bar."""
-        # self.status_bar.update(self._state)
-        # render_status_bar(self.status_bar, self.console)
-
-    @property
-    def session(self) -> AgentChatSession:
-        """Get the current chat session."""
-        assert self._chat_session is not None
-        return self._chat_session
+            self.formatter.print_error(e, show_traceback=True)
 
     async def start(self):
         """Start interactive session."""
         try:
             self._chat_session = await self._session_manager.create_session(self.agent)
-            self._state.current_model = self._chat_session._model
             self._connect_signals()
-
-            completer = PromptToolkitCompleter(
-                self._chat_session._command_store._commands
-            )
             self._setup_prompt()
-            assert self._prompt
-            self._prompt.completer = completer
-            # Register event handler AFTER session creation
 
-            await self._show_welcome()
+            # Show welcome message
+            welcome_info = create_welcome_messages(
+                self._chat_session, streaming=self._stream, rich_format=True
+            )
+            self.formatter.print_welcome(welcome_info)
 
+            # Main interaction loop
             while True:
                 try:
+                    assert self._prompt
                     if user_input := await self._prompt.prompt_async():
                         await self._handle_input(user_input)
                 except KeyboardInterrupt:
@@ -246,58 +210,19 @@ class InteractiveSession:
                 except EOFError:
                     break
                 except Exception as e:  # noqa: BLE001
-                    error_msg = format_error(e)
-                    self.console.print(f"\n[red bold]Error:[/] {error_msg}")
-                    md = Markdown(f"```python\n{traceback.format_exc()}\n```")
-                    self.console.print("\n[dim]Debug traceback:[/]", md)
+                    self.formatter.print_error(e, show_traceback=True)
                     continue
 
         except Exception as e:  # noqa: BLE001
-            self.console.print(f"\n[red bold]Fatal Error:[/] {format_error(e)}")
-            md = Markdown(f"```python\n{traceback.format_exc()}\n```")
-            self.console.print("\n[dim]Debug traceback:[/]", md)
+            self.formatter.print_error(e, show_traceback=True)
         finally:
             await self._cleanup()
-            await self._show_summary()
-
-    async def _show_welcome(self):
-        """Show welcome message."""
-        assert self._chat_session is not None, (
-            "Chat session must be initialized before showing welcome"
-        )
-
-        welcome_info = create_welcome_messages(self._chat_session, streaming=self._stream)
-        for _, lines in welcome_info.all_sections():
-            for line in lines:
-                self.console.print(line)
-        # Show initial status
-        self.update_status_bar()
 
     async def _cleanup(self):
         """Clean up resources."""
-        # Remove log handler
         if self._log_handler:
             logging.getLogger("llmling_agent").removeHandler(self._log_handler)
             logging.getLogger("llmling").removeHandler(self._log_handler)
-
-        if self._chat_session:
-            # Any cleanup needed for chat session
-            pass
-
-    async def _show_summary(self):
-        """Show session summary."""
-        if self._state.message_count > 0:
-            self.console.print("\nSession Summary:")
-            self.console.print(f"Messages: {self._state.message_count}")
-            token_info = (
-                f"Total tokens: {self._state.total_tokens:,} "
-                f"(Prompt: {self._state.prompt_tokens:,}, "
-                f"Completion: {self._state.completion_tokens:,})"
-            )
-            self.console.print(token_info)
-            if self._state.total_cost > 0:
-                cost_info = f"Total cost: ${self._state.total_cost:.6f}"
-                self.console.print(cost_info)
 
 
 # Helper function for CLI
@@ -308,5 +233,9 @@ async def start_interactive_session(
     stream: bool = False,
 ):
     """Start an interactive chat session."""
-    session = InteractiveSession(agent, log_level=log_level, stream=stream)
+    session = InteractiveSession(
+        agent,
+        log_level=log_level,
+        stream=stream,
+    )
     await session.start()
