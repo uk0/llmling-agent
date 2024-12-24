@@ -42,11 +42,9 @@ class FileTarget(ForwardTarget):
     """Save messages to a file."""
 
     type: Literal["file"] = Field("file", init=False)
+
     path: str
     """Path to output file. Supports variables: {date}, {time}, {agent}"""
-
-    append: bool = False
-    """Whether to append to existing file."""
 
     def resolve_path(self, context: dict[str, str]) -> UPath:
         """Resolve path template with context variables."""
@@ -66,11 +64,7 @@ async def write_output(target: FileTarget, content: str, context: dict[str, str]
     """Write content to file target."""
     path = target.resolve_path(context)
     path.parent.mkdir(parents=True, exist_ok=True)
-
-    if target.append:
-        path.write_text(str(content) + "\n", append=True)
-    else:
-        path.write_text(str(content))
+    path.write_text(str(content))
 
 
 # Example usage in LLMlingAgent._handle_message:

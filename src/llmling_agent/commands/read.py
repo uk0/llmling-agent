@@ -63,12 +63,12 @@ async def read_command(
         # Handle URLs by downloading first
         if str(path).startswith(("http://", "https://")):
             await ctx.output.print(f"Downloading {path}...")
-            content = path.read_bytes()
+            bytes_content = path.read_bytes()
 
             # Create temp file in system temp directory
             temp_dir = UPath(tempfile.gettempdir())
             temp_path = temp_dir / f"llmling_{path.name}"
-            temp_path.write_bytes(content)
+            temp_path.write_bytes(bytes_content)
             path = temp_path
 
         # Convert content if requested
