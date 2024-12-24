@@ -55,7 +55,7 @@ class DelegationTools:
             raise PermissionError(msg)
 
         logger.info("Delegating to %s: %s", agent_name, prompt)
-        specialist: LLMlingAgent[Any, str] = await self.pool.get_agent(agent_name)
+        specialist: LLMlingAgent[Any, str] = self.pool.get_agent(agent_name)
         result = await specialist.run(prompt)
         return str(result.data)
 
@@ -162,7 +162,7 @@ class DelegationTools:
             )
 
             for agent_name in team:
-                specialist: LLMlingAgent[Any, str] = await self.pool.get_agent(agent_name)
+                specialist: LLMlingAgent[Any, str] = self.pool.get_agent(agent_name)
                 result = await specialist.run(round_prompt)
                 discussion.append(f"{agent_name}: {result.data}")
 
@@ -194,7 +194,7 @@ class DelegationTools:
             msg = "This agent cannot delegate tasks"
             raise PermissionError(msg)
 
-        critic: LLMlingAgent[Any, str] = await self.pool.get_agent(critic_name)
+        critic: LLMlingAgent[Any, str] = self.pool.get_agent(critic_name)
         current_version = content
         improvements: list[str] = []
 

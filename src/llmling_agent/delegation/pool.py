@@ -384,37 +384,6 @@ class AgentPool:
         # Sequential execution
         return [await run_agent(name) for name in team]
 
-    async def brainstorm(
-        self,
-        prompt: str,
-        team: Sequence[str],
-        *,
-        rounds: int = 3,
-    ) -> list[str]:
-        """Collaborative brainstorming session.
-
-        Args:
-            prompt: Topic to brainstorm
-            team: List of participating agents
-            rounds: Number of brainstorming rounds
-
-        Returns:
-            List of ideas generated
-        """
-        ideas: list[str] = []
-
-        for round_num in range(rounds):
-            round_prompt = (
-                f"Round {round_num + 1}/{rounds}. Previous ideas:\n"
-                f"{'. '.join(ideas)}\n\n"
-                f"Original task: {prompt}\n"
-                "Please build on these ideas or add new ones."
-            )
-
-            responses = await self.team_task(round_prompt, team)
-            ideas = [resp.response for resp in responses if resp.success]
-        return ideas
-
     def list_agents(self) -> list[str]:
         """List available agent names."""
         return list(self.manifest.agents)
