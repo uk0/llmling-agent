@@ -137,7 +137,12 @@ def find_last_assistant_message(messages: Sequence[ModelMessage]) -> str | None:
 def get_tool_calls(
     messages: list[ModelMessage], context_data: Any | None = None
 ) -> list[ToolCallInfo]:
-    """Extract tool call information from message history."""
+    """Extract tool call information from messages.
+
+    Args:
+        messages: Messages from captured run
+        context_data: Optional context data to attach to tool calls
+    """
     logger.debug("Checking %d messages for tool calls", len(messages))
     tool_calls: list[ToolCallInfo] = []
 
