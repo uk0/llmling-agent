@@ -9,7 +9,6 @@ from slashed import Command, CommandContext, CommandError
 from upath import UPath
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.snippets import Snippet
 
 
 if TYPE_CHECKING:
@@ -93,8 +92,7 @@ async def read_command(
                 raise CommandError(msg)  # noqa: B904
 
         # Create and add snippet
-        snippet = Snippet(source=str(path), content=content)
-        ctx.data.snippets.add(snippet)
+        ctx.data.add_snippet(content, source=str(path))
         await ctx.output.print(f"Added content from {path} to next message as context.")
 
     except Exception as e:

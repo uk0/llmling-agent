@@ -13,6 +13,7 @@ from llmling_agent import LLMlingAgent
 from llmling_agent.chat_session import AgentChatSession
 from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.commands.prompts import prompt_cmd
+from llmling_agent.models.snippets import Snippet
 
 
 @pytest.fixture
@@ -58,7 +59,6 @@ async def test_prompt_command_simple(runtime_config: Config):
     """Test executing a simple prompt without arguments."""
     messages = []
 
-    # Create output writer to capture output
     class TestOutput(DefaultOutputWriter):
         async def print(self, message: str):
             messages.append(message)
@@ -73,9 +73,16 @@ async def test_prompt_command_simple(runtime_config: Config):
         # Execute prompt command
         await prompt_cmd.execute(ctx=context, args=["greet"])
 
-    # Verify output
-    assert len(messages) == 1
-    assert "Hello World" in messages[0]
+        # Verify snippet was added
+        assert len(agent.snippets.get_all()) == 1
+        snippet = agent.snippets.get_all()[0]
+        assert isinstance(snippet, Snippet)
+        assert snippet.source == "prompt:greet"
+        assert "Hello World" in snippet.content
+
+        # Verify user feedback
+        assert len(messages) == 1
+        assert "Added prompt 'greet' to next message" in messages[0]
 
 
 @pytest.mark.asyncio
@@ -98,10 +105,17 @@ async def test_prompt_command_with_args(runtime_config: Config):
         kwargs = {"data": "test.txt"}
         await prompt_cmd.execute(ctx=context, args=["analyze"], kwargs=kwargs)
 
-    # Verify output
-    assert len(messages) == 2  # noqa: PLR2004
-    assert "Analyzing test.txt" in messages[0]
-    assert "Please check test.txt" in messages[1]
+        # Verify snippet was added
+        assert len(agent.snippets.get_all()) == 1
+        snippet = agent.snippets.get_all()[0]
+        assert isinstance(snippet, Snippet)
+        assert snippet.source == "prompt:analyze"
+        assert "Analyzing test.txt" in snippet.content
+        assert "Please check test.txt" in snippet.content
+
+        # Verify user feedback
+        assert len(messages) == 1
+        assert "Added prompt 'analyze' to next message" in messages[0]
 
 
 if __name__ == "__main__":

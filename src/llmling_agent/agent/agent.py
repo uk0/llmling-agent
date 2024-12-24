@@ -14,6 +14,7 @@ from pydantic_ai import Agent as PydanticAgent, capture_run_messages
 from pydantic_ai.models import infer_model
 from typing_extensions import TypeVar
 
+from llmling_agent.agent.snippets import SnippetManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
@@ -162,6 +163,7 @@ class LLMlingAgent[TDeps, TResult]:
 
         self._logger = AgentLogger(self, enable_logging=enable_logging)
         self._events = EventManager(self, enable_events=True)
+        self.snippets = SnippetManager()
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._connected_agents: set[LLMlingAgent[Any, Any]] = set()
         self._last_messages: list[ModelMessage] = []
@@ -433,6 +435,7 @@ class LLMlingAgent[TDeps, TResult]:
             self._update_tools()
 
             logger.debug("agent run prompt=%s", prompt)
+            message_id = str(uuid4())
 
             with capture_run_messages() as messages:
                 # Run through pydantic-ai's public interface
@@ -442,38 +445,37 @@ class LLMlingAgent[TDeps, TResult]:
                     message_history=message_history,
                     model=model,
                 )
-
-                # Emit user message
-                user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
-                self.message_received.emit(user_msg)
-
-                # Get cost info for assistant response
-                result_str = str(result.data)
-                usage = result.usage()
-                cost = (
-                    await extract_usage(usage, self.model_name, prompt, result_str)
-                    if self.model_name
-                    else None
-                )
-                message_id = str(uuid4())
-
-                # Create and emit assistant message
-                meta = MessageMetadata(
-                    model=self.model_name,
-                    token_usage=cost.token_usage if cost else None,
-                    cost=cost.cost_usd if cost else None,
-                )
-                assistant_msg: ChatMessage[TResult] = ChatMessage[TResult](
-                    content=result.data,
-                    role="assistant",
-                    message_id=message_id,
-                    metadata=meta,
-                )
                 for call in get_tool_calls(messages):
                     call.message_id = message_id
                     call.context_data = self._context.data if self._context else None
                     self.tool_used.emit(call)
                 self._last_messages = list(messages)
+
+            # Emit user message
+            user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
+            self.message_received.emit(user_msg)
+
+            # Get cost info for assistant response
+            result_str = str(result.data)
+            usage = result.usage()
+            cost = (
+                await extract_usage(usage, self.model_name, prompt, result_str)
+                if self.model_name
+                else None
+            )
+
+            # Create and emit assistant message
+            meta = MessageMetadata(
+                model=self.model_name,
+                token_usage=cost.token_usage if cost else None,
+                cost=cost.cost_usd if cost else None,
+            )
+            assistant_msg: ChatMessage[TResult] = ChatMessage[TResult](
+                content=result.data,
+                role="assistant",
+                message_id=message_id,
+                metadata=meta,
+            )
             self.message_sent.emit(assistant_msg)
 
         except Exception:
@@ -518,7 +520,7 @@ class LLMlingAgent[TDeps, TResult]:
                     print(message)
             ```
         """
-        wait_for_chain = False
+        wait_for_chain = False  # TODO
         if deps is not None:
             self._context.data = deps
         try:
@@ -538,32 +540,42 @@ class LLMlingAgent[TDeps, TResult]:
             @asynccontextmanager
             async def wrapper():
                 message_id = str(uuid4())
-                with capture_run_messages() as messages:
-                    async with stream_ctx as stream:
-                        # Monkey patch the stream method to emit chunks
-                        original_stream = stream.stream
+                async with stream_ctx as stream:
+                    # Monkey patch the stream method to emit chunks
+                    original_stream = stream.stream
 
-                        async def patched_stream():
-                            async for chunk in original_stream():
-                                self.chunk_streamed.emit(str(chunk))
-                                yield chunk
+                    async def patched_stream():
+                        async for chunk in original_stream():
+                            self.chunk_streamed.emit(str(chunk))
+                            yield chunk
 
-                        stream.stream = patched_stream  # type: ignore
-                        yield stream
+                    stream.stream = patched_stream  # type: ignore
+                    yield stream
 
-                        # After completion
-                        if stream.is_complete:
-                            result_str = str(await stream.get_data())
-                            usage = stream.usage()
-                            cost = (
-                                await extract_usage(
-                                    usage, self.model_name, prompt, result_str
-                                )
-                                if self.model_name
-                                else None
+                    # After completion
+                    if stream.is_complete:
+                        result_str = str(await stream.get_data())
+                        usage = stream.usage()
+                        cost = (
+                            await extract_usage(
+                                usage, self.model_name, prompt, result_str
                             )
+                            if self.model_name
+                            else None
+                        )
 
-                            # Handle tool calls after completion
+                        # Capture messages only during completion
+                        with capture_run_messages() as messages:
+                            # Re-run to capture tool calls
+                            await self._pydantic_agent.run(
+                                prompt,
+                                deps=self._context,
+                                message_history=message_history,
+                                model=model,
+                            )
+                            self._last_messages = list(messages)
+
+                            # Handle tool calls inside context
                             for call in get_tool_calls(messages):
                                 call.message_id = message_id
                                 call.context_data = (
@@ -571,23 +583,22 @@ class LLMlingAgent[TDeps, TResult]:
                                 )
                                 self.tool_used.emit(call)
 
-                            # Create and emit assistant message
-                            meta = MessageMetadata(
-                                model=self.model_name,
-                                token_usage=cost.token_usage if cost else None,
-                                cost=cost.cost_usd if cost else None,
-                            )
-                            assistant_msg: ChatMessage[TResult] = ChatMessage[TResult](
-                                content=await stream.get_data(),
-                                role="assistant",
-                                message_id=message_id,
-                                metadata=meta,
-                            )
-                            # Store history
-                            self._last_messages = list(messages)
-                self.message_sent.emit(assistant_msg)
-                if wait_for_chain:
-                    await self.wait_for_chain()
+                        # Create and emit assistant message outside context
+                        meta = MessageMetadata(
+                            model=self.model_name,
+                            token_usage=cost.token_usage if cost else None,
+                            cost=cost.cost_usd if cost else None,
+                        )
+                        assistant_msg: ChatMessage[TResult] = ChatMessage[TResult](
+                            content=await stream.get_data(),
+                            role="assistant",
+                            message_id=message_id,
+                            metadata=meta,
+                        )
+                        self.message_sent.emit(assistant_msg)
+
+                    if wait_for_chain:
+                        await self.wait_for_chain()
 
             return wrapper()
 

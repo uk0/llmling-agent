@@ -52,10 +52,9 @@ async def prompt_command(
     name = args[0]
     try:
         messages = await ctx.data._agent.runtime.render_prompt(name, kwargs)
-        # Convert prompt messages to chat format and send to agent
-        for msg in messages:
-            # TODO: Handle sending multiple messages to agent
-            await ctx.output.print(msg.get_text_content())
+        content = "\n".join(msg.get_text_content() for msg in messages)
+        ctx.data._agent.snippets.add_snippet(content, source=f"prompt:{name}")
+        await ctx.output.print(f"Added prompt {name!r} to next message as context.")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Error executing prompt: {e}")
 

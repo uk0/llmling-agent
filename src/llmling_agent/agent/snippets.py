@@ -13,6 +13,11 @@ class SnippetManager:
         """Add a snippet to be included in next message."""
         self._pending_snippets.append(snippet)
 
+    def add_snippet(self, content: str, source: str) -> Snippet:
+        snippet = Snippet(content=content, source=source)
+        self.add(snippet)
+        return snippet
+
     def clear(self):
         """Clear all pending snippets."""
         self._pending_snippets.clear()
