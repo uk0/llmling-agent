@@ -12,6 +12,8 @@ from uuid import uuid4
 from llmling.config.runtime import RuntimeConfig
 from psygnal import Signal
 from pydantic_ai import Agent as PydanticAgent, capture_run_messages
+from pydantic_ai.agent import models
+from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import infer_model
 from typing_extensions import TypeVar
 
@@ -34,7 +36,7 @@ if TYPE_CHECKING:
     import os
 
     from llmling.tools import LLMCallableTool
-    from pydantic_ai.agent import EndStrategy, models
+    from pydantic_ai.agent import EndStrategy
     from pydantic_ai.messages import ModelMessage
     from pydantic_ai.result import RunResult, StreamedRunResult
 
@@ -544,62 +546,81 @@ class LLMlingAgent[TDeps, TResult]:
             )
 
             @asynccontextmanager
-            async def wrapper():
+            async def wrapper() -> AsyncIterator[
+                StreamedRunResult[AgentContext[TDeps], TResult]
+            ]:
                 message_id = str(uuid4())
 
                 async with stream_ctx as stream:
-                    # Only capture messages during the actual streaming
-                    with capture_run_messages() as messages:
-                        original_stream = stream.stream
+                    # Pass through the StreamedRunResult but hook into its stream method
+                    original_stream = stream.stream
 
-                        async def patched_stream():
+                    async def patched_stream():
+                        with capture_run_messages() as messages:
                             async for chunk in original_stream():
                                 self.chunk_streamed.emit(str(chunk))
                                 yield chunk
 
-                        stream.stream = patched_stream  # type: ignore
-                        yield stream
+                            if stream.is_complete:
+                                if isinstance(
+                                    stream._stream_response,
+                                    models.StreamStructuredResponse,
+                                ):
+                                    # Get final structured message and validate it
+                                    model_response = stream._stream_response.get(
+                                        final=True
+                                    )
+                                    if not isinstance(model_response, ModelResponse):
+                                        msg = "Expected ModelResponse"
+                                        raise TypeError(msg)  # noqa: TRY301
+                                    result = await stream.validate_structured_result(
+                                        model_response
+                                    )
+                                else:
+                                    # Get final text result
+                                    text_chunks = stream._stream_response.get(final=True)
+                                    if not isinstance(text_chunks, list | tuple):
+                                        text_chunks = [text_chunks]
+                                    text = "".join(str(chunk) for chunk in text_chunks)
+                                    result = await stream._validate_text_result(text)
 
-                    # After completion, use the stream's data
-                    if stream.is_complete:
-                        result = await stream.get_data()
-                        result_str = str(result)
-                        usage = stream.usage()
-                        cost = (
-                            await extract_usage(
-                                usage, self.model_name, prompt, result_str
-                            )
-                            if self.model_name
-                            else None
-                        )
+                                usage = stream.usage()
+                                cost = (
+                                    await extract_usage(
+                                        usage, self.model_name, prompt, str(result)
+                                    )
+                                    if self.model_name
+                                    else None
+                                )
 
-                        # Handle captured tool calls
-                        self._last_messages = list(messages)
-                        for call in get_tool_calls(messages):
-                            call.message_id = message_id
-                            call.context_data = (
-                                self._context.data if self._context else None
-                            )
-                            self.tool_used.emit(call)
+                                # Handle captured tool calls
+                                self._last_messages = list(messages)
+                                for call in get_tool_calls(messages):
+                                    call.message_id = message_id
+                                    call.context_data = (
+                                        self._context.data if self._context else None
+                                    )
+                                    self.tool_used.emit(call)
 
-                        # Create and emit assistant message
-                        meta = MessageMetadata(
-                            model=self.model_name,
-                            token_usage=cost.token_usage if cost else None,
-                            cost=cost.cost_usd if cost else None,
-                            response_time=time.perf_counter() - start_time,
-                            name=self.name,
-                        )
-                        assistant_msg: ChatMessage[TResult] = ChatMessage(  # type: ignore[assignment]
-                            content=result,
-                            role="assistant",
-                            message_id=message_id,
-                            metadata=meta,
-                        )
-                        self.message_sent.emit(assistant_msg)
+                                # Create and emit assistant message with proper result
+                                meta = MessageMetadata(
+                                    model=self.model_name,
+                                    token_usage=cost.token_usage if cost else None,
+                                    cost=cost.cost_usd if cost else None,
+                                    response_time=time.perf_counter() - start_time,
+                                    name=self.name,
+                                )
+                                assistant_msg: ChatMessage[TResult] = ChatMessage(  # type: ignore[assignment]
+                                    content=result,  # Use the validated result
+                                    role="assistant",
+                                    message_id=message_id,
+                                    metadata=meta,
+                                )
+                                self.message_sent.emit(assistant_msg)
 
-                        # if wait_for_chain:
-                        #     await self.wait_for_chain()
+                    # Replace stream method
+                    stream.stream = patched_stream  # type: ignore
+                    yield stream
 
             return wrapper()
 
