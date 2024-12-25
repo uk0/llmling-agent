@@ -443,7 +443,7 @@ class AgentChatSession:
         content: str,
     ) -> AsyncIterator[ChatMessage]:
         """Send message and stream responses."""
-        async with await self._agent.run_stream(
+        async with self._agent.run_stream(
             content,
             message_history=self._history,
             model=self._model or "",  # type: ignore

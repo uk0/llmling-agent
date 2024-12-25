@@ -70,7 +70,7 @@ def chat_command(
             async with AgentPool.open(
                 config_path,
                 agents=agents_to_load,
-                connect_signals=False,  # We'll handle connections manually
+                connect_agents=False,  # We'll handle connections manually
             ) as pool:
                 # Get main agent
                 agent: LLMlingAgent[Any, str] = pool.get_agent(

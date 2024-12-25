@@ -7,7 +7,6 @@ import traceback
 from typing import TYPE_CHECKING, Any
 
 from llmling.cli.constants import verbose_opt
-from pydantic import ValidationError
 import typer as t
 
 
@@ -62,10 +61,8 @@ def run_command(
         llmling-agent run myagent -m gpt-4 "Complex analysis"
     """
     from llmling.cli.utils import format_output
-    from llmling.config.runtime import RuntimeConfig
 
     from llmling_agent.delegation import AgentPool
-    from llmling_agent.models import AgentsManifest
     from llmling_agent_cli import resolve_agent_config
 
     try:
@@ -76,57 +73,8 @@ def run_command(
             msg = str(e)
             raise t.BadParameter(msg) from e
 
-        # Load and validate agent definition
-        try:
-            agent_def = AgentsManifest.from_file(config_path)
-        except ValidationError as e:
-            t.echo("Agent configuration validation failed:", err=True)
-            for error in e.errors():
-                location = " -> ".join(str(loc) for loc in error["loc"])
-                t.echo(f"  {location}: {error['msg']}", err=True)
-            raise t.Exit(1) from e
-
         # Parse agent names
         agent_names = [name.strip() for name in agent_name.split(",")]
-
-        # Check agents exist
-        missing = [name for name in agent_names if name not in agent_def.agents]
-        if missing:
-            msg = f"Agent(s) not found: {', '.join(missing)}"
-            raise t.BadParameter(msg)  # noqa: TRY301
-
-        final_prompts: list[str] = []
-
-        # 1. First, add ALL prompts from agent configs (always included)
-        for name in agent_names:
-            config = agent_def.agents[name]
-            if config.user_prompts:
-                final_prompts.extend(config.user_prompts)
-
-        # 2. Add RuntimeConfig prompts if specified
-        if include_prompt:
-
-            async def get_env_prompts():
-                async with RuntimeConfig.open(config_path) as runtime:
-                    for prompt_name in include_prompt:
-                        try:
-                            messages = await runtime.render_prompt(prompt_name)
-                            final_prompts.extend(
-                                msg.get_text_content() for msg in messages
-                            )
-                        except Exception as e:
-                            msg = f"Failed to load prompt {prompt_name}: {e}"
-                            raise t.BadParameter(msg) from e
-
-            asyncio.run(get_env_prompts())
-
-        # 3. Add additional prompts provided as arguments
-        if prompts:
-            final_prompts.extend(prompts)
-
-        if not final_prompts:
-            msg = "No prompts available (neither in config nor provided)"
-            raise t.BadParameter(msg)  # noqa: TRY301
 
         async def run():
             async with AgentPool.open(config_path, agents=agent_names) as pool:
@@ -140,19 +88,18 @@ def run_command(
                 if len(agent_names) == 1:
                     # Single agent execution
                     agent: LLMlingAgent[Any, Any] = pool.get_agent(
-                        agent_names[0], model_override=model
+                        agent_names[0],
+                        model_override=model,
                     )
-                    results = []
-                    for prompt in final_prompts:
+                    for prompt in prompts:
                         result = await agent.run(prompt)
                         if isinstance(result.data, str):
                             print(result.data)
                         else:
                             format_output(result.data, output_format)
-                        results.append(result)
                 else:
                     # Team task execution
-                    for prompt in final_prompts:
+                    for prompt in prompts:
                         responses = await pool.team_task(
                             prompt,
                             agent_names,
@@ -163,6 +110,7 @@ def run_command(
                         formatted = {r.agent_name: r.response for r in responses}
                         format_output(formatted, output_format)
 
+        # Run the async code in the sync command
         asyncio.run(run())
 
     except t.Exit:

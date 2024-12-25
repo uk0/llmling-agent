@@ -73,7 +73,7 @@ class AgentState:
             self.pool = AgentPool(
                 self.agent_def,
                 agents_to_load=[agent_name],
-                connect_signals=True,
+                connect_agents=True,
             )
 
             # Apply model override if specified

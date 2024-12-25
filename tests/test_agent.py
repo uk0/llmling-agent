@@ -56,7 +56,7 @@ async def test_agent_message_history(test_agent: LLMlingAgent[Any, str]):
 async def test_agent_streaming(test_agent: LLMlingAgent[Any, str]):
     """Test agent streaming response."""
     stream_ctx = test_agent.run_stream(SIMPLE_PROMPT)
-    async with await stream_ctx as stream:
+    async with stream_ctx as stream:
         collected = [str(message) async for message in stream.stream()]
         assert "".join(collected) == TEST_RESPONSE
 
@@ -70,7 +70,7 @@ async def test_agent_streaming_with_history(test_agent: LLMlingAgent[Any, str]):
     ]
 
     stream_ctx = test_agent.run_stream(SIMPLE_PROMPT, message_history=history)
-    async with await stream_ctx as stream:
+    async with stream_ctx as stream:
         collected = [str(msg) async for msg in stream.stream()]
         result = "".join(collected)
         assert result == TEST_RESPONSE

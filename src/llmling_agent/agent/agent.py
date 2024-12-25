@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Sequence  # noqa: TC003
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from contextlib import asynccontextmanager
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 from llmling.config.runtime import RuntimeConfig
 from psygnal import Signal
 from pydantic_ai import Agent as PydanticAgent, capture_run_messages
-from pydantic_ai.agent import models
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import infer_model
 from typing_extensions import TypeVar
@@ -36,7 +35,7 @@ if TYPE_CHECKING:
     import os
 
     from llmling.tools import LLMCallableTool
-    from pydantic_ai.agent import EndStrategy
+    from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.messages import ModelMessage
     from pydantic_ai.result import RunResult, StreamedRunResult
 
@@ -370,7 +369,13 @@ class LLMlingAgent[TDeps, TResult]:
 
     def _forward_message(self, message: ChatMessage[Any]):
         """Forward sent messages."""
-        logger.debug("forwarding message from %s: %s", self.name, message.content)
+        logger.debug(
+            "forwarding message from %s: %s (type: %s) to %d connected agents",
+            self.name,
+            repr(message.content),
+            type(message.content),
+            len(self._connected_agents),
+        )
         self.outbox.emit(self, message)
 
     def pass_results_to(self, other: LLMlingAgent[Any, Any]):
@@ -460,7 +465,7 @@ class LLMlingAgent[TDeps, TResult]:
             # Emit user message
             user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
             self.message_received.emit(user_msg)
-
+            logger.debug("Agent run result: %r", result.data)
             # Get cost info for assistant response
             result_str = str(result.data)
             usage = result.usage()
@@ -499,6 +504,7 @@ class LLMlingAgent[TDeps, TResult]:
                 model_obj = infer_model(old) if isinstance(old, str) else old
                 self.model_changed.emit(model_obj)
 
+    @asynccontextmanager
     async def run_stream(
         self,
         prompt: str,
@@ -506,28 +512,8 @@ class LLMlingAgent[TDeps, TResult]:
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-        # wait_for_chain: bool = True,
-    ) -> AbstractAsyncContextManager[StreamedRunResult[AgentContext[TDeps], TResult]]:
-        """Run agent with prompt and get streaming response.
-
-        Args:
-            prompt: User query or instruction
-            deps: Optional dependencies for the agent
-            message_history: Optional previous messages for context
-            model: Optional model override
-
-        Returns:
-            Async context manager for streaming the response
-
-        Example:
-            ```python
-            stream_ctx = agent.run_stream("Hello!")
-            async with await stream_ctx as result:
-                async for message in result.stream():
-                    print(message)
-            ```
-        """
-        # wait_for_chain = False  # TODO
+    ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], TResult]]:
+        """Run agent with prompt and get streaming response."""
         if deps is not None:
             self._context.data = deps
         try:
@@ -538,91 +524,80 @@ class LLMlingAgent[TDeps, TResult]:
             self.message_received.emit(user_msg)
             start_time = time.perf_counter()
 
-            stream_ctx = self._pydantic_agent.run_stream(
-                prompt,
-                message_history=message_history,
-                model=model,
-                deps=self._context,
-            )
-
-            @asynccontextmanager
-            async def wrapper() -> AsyncIterator[
-                StreamedRunResult[AgentContext[TDeps], TResult]
-            ]:
-                message_id = str(uuid4())
-
-                async with stream_ctx as stream:
-                    # Pass through the StreamedRunResult but hook into its stream method
+            # Capture all messages from the entire operation
+            with capture_run_messages() as messages:
+                async with self._pydantic_agent.run_stream(
+                    prompt,
+                    message_history=message_history,
+                    model=model,
+                    deps=self._context,
+                ) as stream:
                     original_stream = stream.stream
 
-                    async def patched_stream():
-                        with capture_run_messages() as messages:
-                            async for chunk in original_stream():
-                                self.chunk_streamed.emit(str(chunk))
-                                yield chunk
+                    async def wrapped_stream(*args, **kwargs):
+                        async for chunk in original_stream(*args, **kwargs):
+                            self.chunk_streamed.emit(str(chunk))
+                            yield chunk
 
-                            if stream.is_complete:
-                                if isinstance(
-                                    stream._stream_response,
-                                    models.StreamStructuredResponse,
-                                ):
-                                    # Get final structured message and validate it
-                                    model_response = stream._stream_response.get(
-                                        final=True
-                                    )
-                                    if not isinstance(model_response, ModelResponse):
-                                        msg = "Expected ModelResponse"
-                                        raise TypeError(msg)  # noqa: TRY301
-                                    result = await stream.validate_structured_result(
-                                        model_response
-                                    )
-                                else:
-                                    # Get final text result
-                                    text_chunks = stream._stream_response.get(final=True)
-                                    if not isinstance(text_chunks, list | tuple):
-                                        text_chunks = [text_chunks]
-                                    text = "".join(str(chunk) for chunk in text_chunks)
-                                    result = await stream._validate_text_result(text)
+                        if stream.is_complete:
+                            message_id = str(uuid4())
+                            # Get complete result from the final chunks
+                            if stream.is_structured:
+                                message = stream._stream_response.get(final=True)
+                                if not isinstance(message, ModelResponse):
+                                    msg = "Expected ModelResponse for structured output"
+                                    raise TypeError(msg)  # noqa: TRY301
+                                result = await stream.validate_structured_result(message)
+                            else:
+                                # For text response, get() returns list[str]
+                                chunks: list[str] = stream._stream_response.get(
+                                    final=True
+                                )  # type: ignore
+                                text = "".join(chunks)
+                                result = await stream._validate_text_result(text)
 
-                                usage = stream.usage()
-                                cost = (
-                                    await extract_usage(
-                                        usage, self.model_name, prompt, str(result)
-                                    )
-                                    if self.model_name
-                                    else None
+                            usage = stream.usage()
+                            cost = (
+                                await extract_usage(
+                                    usage, self.model_name, prompt, str(result)
                                 )
+                                if self.model_name
+                                else None
+                            )
 
-                                # Handle captured tool calls
-                                self._last_messages = list(messages)
-                                for call in get_tool_calls(messages):
-                                    call.message_id = message_id
-                                    call.context_data = (
-                                        self._context.data if self._context else None
-                                    )
-                                    self.tool_used.emit(call)
-
-                                # Create and emit assistant message with proper result
-                                meta = MessageMetadata(
-                                    model=self.model_name,
-                                    token_usage=cost.token_usage if cost else None,
-                                    cost=cost.cost_usd if cost else None,
-                                    response_time=time.perf_counter() - start_time,
-                                    name=self.name,
+                            # Handle captured tool calls
+                            self._last_messages = list(messages)
+                            for call in get_tool_calls(messages):
+                                call.message_id = message_id
+                                call.context_data = (
+                                    self._context.data if self._context else None
                                 )
-                                assistant_msg: ChatMessage[TResult] = ChatMessage(  # type: ignore[assignment]
-                                    content=result,  # Use the validated result
-                                    role="assistant",
-                                    message_id=message_id,
-                                    metadata=meta,
-                                )
-                                self.message_sent.emit(assistant_msg)
+                                self.tool_used.emit(call)
 
-                    # Replace stream method
-                    stream.stream = patched_stream  # type: ignore
+                            # Create and emit assistant message
+                            meta = MessageMetadata(
+                                model=self.model_name,
+                                token_usage={
+                                    "total": usage.total_tokens or 0,
+                                    "prompt": usage.request_tokens or 0,
+                                    "completion": usage.response_tokens or 0,
+                                }
+                                if usage
+                                else None,
+                                cost=cost.cost_usd if cost else None,
+                                response_time=time.perf_counter() - start_time,
+                                name=self.name,
+                            )
+                            assistant_msg = ChatMessage[TResult](
+                                content=cast(TResult, result),
+                                role="assistant",
+                                message_id=message_id,
+                                metadata=meta,
+                            )
+                            self.message_sent.emit(assistant_msg)
+
+                    stream.stream = wrapped_stream
                     yield stream
-
-            return wrapper()
 
         except Exception:
             logger.exception("Agent stream failed")

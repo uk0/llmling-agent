@@ -140,7 +140,7 @@ async def create_agent_command(
             # config_file_path=current_agent._context.config.config_file_path,
         )
 
-        _agent = ctx.data.pool.create_agent(name, config, temporary=True)
+        _agent = await ctx.data.pool.create_agent(name, config, temporary=True)
 
         if kwargs.get("model"):
             msg = f"Created agent '{name}' with model {model}"

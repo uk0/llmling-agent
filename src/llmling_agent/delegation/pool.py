@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from llmling_agent import LLMlingAgent
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentsManifest
+from llmling_agent.models.context import AgentContext
 from llmling_agent.models.forward_targets import AgentTarget
 
 
@@ -74,7 +75,7 @@ class AgentPool:
         manifest: AgentsManifest,
         *,
         agents_to_load: list[str] | None = None,
-        connect_signals: bool = True,
+        connect_agents: bool = True,
     ):
         """Initialize agent pool with immediate agent creation.
 
@@ -82,7 +83,7 @@ class AgentPool:
             manifest: Agent configuration manifest
             agents_to_load: Optional list of agent names to initialize
                           If None, all agents from manifest are loaded
-            connect_signals: Whether to set up forwarding connections
+            connect_agents: Whether to set up forwarding connections
         """
         self.manifest = manifest
         self.agents: dict[str, LLMlingAgent[Any, Any]] = {}
@@ -93,14 +94,62 @@ class AgentPool:
             msg = f"Unknown agents: {', '.join(invalid)}"
             raise ValueError(msg)
 
-        # Create requested agents immediately
+        # Create requested agents immediately using sync initialization
         for name in to_load:
             config = manifest.agents[name]
-            _agent = self.create_agent(name, config)
+            # Create runtime without async context
+            cfg = config.get_config()
+            runtime = RuntimeConfig.from_config(cfg)
+            runtime._register_default_components()  # Manual initialization
+
+            # Create context with config path and capabilities
+            context: AgentContext[Any] = AgentContext(
+                agent_name=name,
+                capabilities=self.manifest.get_capabilities(config.role),
+                definition=self.manifest,
+                config=config,
+            )
+
+            # Create agent with runtime and context
+            agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+                runtime=runtime,
+                context=context,
+                result_type=None,  # type: ignore[arg-type]
+                model=config.model,  # type: ignore[arg-type]
+                system_prompt=config.system_prompts,
+                name=name,
+            )
+
+            self.agents[name] = agent
 
         # Set up forwarding connections
-        if connect_signals:
+        if connect_agents:  # renamed usage
             self._connect_signals()
+
+    # async def initialize(self) -> None:
+    #     """Initialize all agents asynchronously."""
+    #     # Create requested agents
+    #     for name in self.to_load:
+    #         config = self.manifest.agents[name]
+    #         await self.create_agent(name, config, temporary=False)
+
+    #     # Set up forwarding connections
+    #     if self._connect_signals:
+    #         self._setup_connections()
+
+    def _setup_connections(self) -> None:
+        """Set up forwarding connections between agents."""
+        for name, config in self.manifest.agents.items():
+            if name not in self.agents:
+                continue
+            agent = self.agents[name]
+            for target in config.forward_to:
+                if isinstance(target, AgentTarget):
+                    if target.name not in self.agents:
+                        msg = f"Forward target {target.name} not loaded for {name}"
+                        raise ValueError(msg)
+                    target_agent = self.agents[target.name]
+                    agent.pass_results_to(target_agent)
 
     def _connect_signals(self) -> None:
         """Set up forwarding connections between agents."""
@@ -129,52 +178,45 @@ class AgentPool:
         """Exit async context."""
         await self.cleanup()
 
-    def create_agent(
+    async def create_agent(
         self,
         name: str,
         config: AgentConfig,
         *,
         temporary: bool = True,
     ) -> LLMlingAgent[Any, Any]:
-        """Create and register a new agent in the pool.
-
-        Args:
-            name: Name for the new agent
-            config: Agent configuration
-            temporary: If True, agent is only registered in runtime pool,
-                      not in manifest (default: True)
-
-        Returns:
-            Created agent instance
-
-        Raises:
-            ValueError: If agent with this name already exists
-        """
+        """Create and register a new agent in the pool."""
         if name in self.agents:
             msg = f"Agent {name} already exists"
             raise ValueError(msg)
 
-        # Create runtime from agent's config
+        # Create runtime from agent's config with proper initialization
         cfg = config.get_config()
-        runtime = RuntimeConfig.from_config(cfg)
+        async with RuntimeConfig.open(cfg) as runtime:
+            # Create context with config path and capabilities
+            context: AgentContext[Any] = AgentContext(
+                agent_name=name,
+                capabilities=self.manifest.get_capabilities(config.role),
+                definition=self.manifest,
+                config=config,
+            )
 
-        # Create agent with runtime
-        agent: LLMlingAgent[Any, Any] = LLMlingAgent(
-            runtime=runtime,
-            result_type=None,  # type: ignore[arg-type]
-            model=config.model,  # type: ignore[arg-type]
-            system_prompt=config.system_prompts,
-            name=name,
-        )
+            # Create agent with runtime and context
+            agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+                runtime=runtime,
+                context=context,
+                result_type=None,  # type: ignore[arg-type]
+                model=config.model,  # type: ignore[arg-type]
+                system_prompt=config.system_prompts,
+                name=name,
+            )
 
-        # Register in runtime pool
-        self.agents[name] = agent
+            # Register
+            self.agents[name] = agent
+            if not temporary:
+                self.manifest.agents[name] = config
 
-        # Only register in manifest if not temporary
-        if not temporary:
-            self.manifest.agents[name] = config
-
-        return agent
+            return agent
 
     async def clone_agent[TDeps, TResult](
         self,
@@ -286,14 +328,14 @@ class AgentPool:
         config_path: str | os.PathLike[str] | AgentsManifest,
         *,
         agents: list[str] | None = None,
-        connect_signals: bool = True,
+        connect_agents: bool = True,
     ) -> AsyncIterator[AgentPool]:
         """Open an agent pool from configuration.
 
         Args:
             config_path: Path to agent configuration file or manifest
             agents: Optional list of agent names to initialize
-            connect_signals: Whether to set up forwarding connections
+            connect_agents: Whether to set up forwarding connections
 
         Yields:
             Configured agent pool
@@ -306,7 +348,7 @@ class AgentPool:
         pool = cls(
             manifest,
             agents_to_load=agents,
-            connect_signals=connect_signals,
+            connect_agents=connect_agents,  # renamed argument
         )
         try:
             yield pool

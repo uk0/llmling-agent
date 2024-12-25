@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import AbstractAsyncContextManager
 from typing import TYPE_CHECKING, Any
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, create_autospec, patch
 
 from pydantic_ai.messages import (
     ModelRequest,
@@ -93,6 +94,7 @@ async def test_send_message_normal(chat_session: AgentChatSession):
 async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession):
     """Test streaming message responses with token information."""
     chunks = ["Hel", "lo, ", "human!"]
+
     stream_result = AsyncMock(spec=StreamedRunResult)
 
     async def mock_stream() -> AsyncIterator[str]:
@@ -100,22 +102,27 @@ async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession
             yield chunk
 
     stream_result.stream = mock_stream
+    stream_result.is_complete = True
+
     mock_usage = MagicMock()
     mock_usage.total_tokens = 10
     mock_usage.request_tokens = 5
     mock_usage.response_tokens = 5
     stream_result.usage = MagicMock(return_value=mock_usage)
+
     # Mock the token cost calculation
     mock_token_result = TokenAndCostResult(
         token_usage={"total": 10, "prompt": 5, "completion": 5}, cost_usd=0.0001
     )
+
     with patch(
         "llmling_agent.chat_session.base.extract_usage",
         AsyncMock(return_value=mock_token_result),
     ):
-        context_mock = AsyncMock()
-        context_mock.__aenter__.return_value = stream_result
-        chat_session._agent.run_stream = AsyncMock(return_value=context_mock)  # type: ignore
+        # Create a proper async context manager mock
+        context_manager = create_autospec(AbstractAsyncContextManager)
+        context_manager.return_value.__aenter__.return_value = stream_result
+        chat_session._agent.run_stream = context_manager  # type: ignore
 
         response_stream = await chat_session.send_message(TEST_MESSAGE, stream=True)
         messages = [msg async for msg in response_stream]
@@ -183,17 +190,18 @@ async def test_send_message_streaming(chat_session: AgentChatSession):
             yield chunk
 
     stream_result.stream = mock_stream
+    stream_result.is_complete = True
 
-    # Create a MagicMock for cost instead of AsyncMock
     mock_usage = MagicMock()
     mock_usage.total_tokens = None
     mock_usage.request_tokens = None
     mock_usage.response_tokens = None
     stream_result.usage = MagicMock(return_value=mock_usage)
 
-    context_mock = AsyncMock()
-    context_mock.__aenter__.return_value = stream_result
-    chat_session._agent.run_stream = AsyncMock(return_value=context_mock)  # type: ignore
+    # Create a proper async context manager mock
+    context_manager = create_autospec(AbstractAsyncContextManager)
+    context_manager.return_value.__aenter__.return_value = stream_result
+    chat_session._agent.run_stream = context_manager  # type: ignore
 
     response_stream = await chat_session.send_message(TEST_MESSAGE, stream=True)
 

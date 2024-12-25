@@ -91,6 +91,34 @@ class InteractiveSession:
         self._chat_session.tool_removed.connect(self._on_tool_removed)
         self._chat_session.tool_changed.connect(self._on_tool_changed)
         self._chat_session._agent.tool_used.connect(self._on_tool_call)
+        self._chat_session.agent_connected.connect(self._on_agent_connected)
+        if self._chat_session.pool:
+            for agent in self._chat_session.pool.agents.values():
+                agent.message_sent.connect(self._on_message)
+                agent.tool_used.connect(self._on_tool_call)
+
+    def _on_agent_connected(self, agent: LLMlingAgent[Any, Any]):
+        """Handle newly connected agent."""
+        agent.message_sent.connect(self._on_message)
+        agent.tool_used.connect(self._on_tool_call)
+
+    def _on_message(self, message: ChatMessage):
+        """Handle messages from any agent."""
+        logger.debug(
+            "Received message in UI from agent %s: %s",
+            message.metadata.name if message.metadata else "unknown",
+            message.content[:50] + "...",
+        )
+        # Format with agent name if it's not the main agent
+        assert self._chat_session
+        if (
+            message.metadata
+            and message.metadata.name
+            and message.metadata.name != self._chat_session._agent.name
+        ):
+            self.formatter.print_message_start(message)
+            self.formatter.print_message_content(message.content)
+            self.formatter.print_message_end(message.metadata)
 
     def _on_tool_added(self, tool: ToolInfo):
         """Handle tool addition."""

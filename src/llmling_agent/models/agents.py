@@ -165,9 +165,12 @@ class AgentConfig(BaseModel):
                 # Backward compatibility: treat as file path
                 resolved = self._resolve_environment_path(path, self.config_file_path)
                 return Config.from_file(resolved)
-            case {"type": "file", "uri": uri} | FileEnvironment(uri=uri):
-                # Handle file environment
-                return Config.from_file(uri)
+            case {"type": "file", "uri": uri} | FileEnvironment(uri=uri) as env:
+                # Handle file environment - resolve relative to config
+                resolved = (
+                    env.get_file_path() if isinstance(env, FileEnvironment) else uri
+                )
+                return Config.from_file(resolved)
             case {"type": "inline", "config": config} | InlineEnvironment(config=config):
                 # Handle inline environment
                 return config
