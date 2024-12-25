@@ -557,3 +557,89 @@ def run_agent_pipeline_sync(
 
     fn = run_agent_pipeline(agent_name=agent_name, prompt=prompt, config=config, **kwargs)
     return asyncio.run(fn)
+
+
+async def get_structured[T](
+    prompt: str,
+    response_type: type[T],
+    model: models.Model | models.KnownModelName,
+    *,
+    system_prompt: str | None = None,
+    max_retries: int = 3,
+    error_handler: Callable[[Exception], T | None] | None = None,
+) -> T:
+    """Get structured output from LLM using function calling.
+
+    This function creates a temporary agent that uses the class constructor
+    as a tool to generate structured output. It handles:
+    - Type conversion from Python types to JSON schema
+    - Constructor parameter validation
+    - Error handling with optional recovery
+
+    Args:
+        prompt: The prompt to send to the LLM
+        response_type: The type to create (class with typed constructor)
+        model: model to use
+        system_prompt: Optional system instructions
+        max_retries: Max attempts for parsing (default: 3)
+        error_handler: Optional error handler for recovery
+
+    Returns:
+        Instance of response_type
+
+    Example:
+        ```python
+        class TaskResult:
+            '''Analysis result for a task.'''
+            def __init__(
+                self,
+                success: bool,
+                message: str,
+                due_date: datetime | None = None
+            ):
+                self.success = success
+                self.message = message
+                self.due_date = due_date
+
+        result = await get_structured(
+            "Analyze task: Deploy monitoring",
+            TaskResult,
+            system_prompt="You analyze task success"
+        )
+        print(f"Success: {result.success}")
+        ```
+
+    Raises:
+        TypeError: If response_type is not a valid type
+        ValueError: If constructor schema cannot be created
+        Exception: If LLM call fails and no error_handler recovers
+    """
+    # Create constructor tool
+    from py2openai import create_constructor_schema
+
+    schema = create_constructor_schema(response_type).model_dump_openai()["function"]
+
+    async def construct(**kwargs: Any) -> T:
+        """Construct instance from LLM-provided arguments."""
+        return response_type(**kwargs)
+
+    async with LLMlingAgent[Any, T].open(
+        result_type=response_type,
+        model=model,
+        system_prompt=system_prompt or [],
+        name="structured",
+        retries=max_retries,
+    ) as agent:
+        # Register constructor as only tool
+        tool = agent._pydantic_agent.tool_plain(construct)
+        tool.__name__ = schema["name"]
+        tool.__doc__ = schema["description"]
+
+        try:
+            result = await agent.run(prompt)
+        except Exception as e:
+            if error_handler and (result := error_handler(e)):
+                return result
+            raise
+        else:
+            return result.data
