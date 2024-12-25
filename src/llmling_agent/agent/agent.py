@@ -9,6 +9,7 @@ import time
 from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
+from llmling import Config
 from llmling.config.runtime import RuntimeConfig
 from psygnal import Signal
 from pydantic_ai import Agent as PydanticAgent, capture_run_messages
@@ -175,7 +176,7 @@ class LLMlingAgent[TDeps, TResult]:
     @asynccontextmanager
     async def open(
         cls,
-        config_path: str | os.PathLike[str],
+        config_path: str | os.PathLike[str] | Config | None = None,
         result_type: type[TResult] | None = None,
         *,
         model: models.Model | models.KnownModelName | None = None,
@@ -194,7 +195,8 @@ class LLMlingAgent[TDeps, TResult]:
         This is a convenience method that combines RuntimeConfig.open with agent creation.
 
         Args:
-            config_path: Path to the runtime configuration file
+            config_path: Path to the runtime configuration file or a Config instance
+                         (defaults to Config())
             result_type: Optional type for structured responses
             model: The default model to use (defaults to GPT-4)
             system_prompt: Static system prompts to use for this agent
@@ -218,6 +220,8 @@ class LLMlingAgent[TDeps, TResult]:
                 print(result.data)
             ```
         """
+        if config_path is None:
+            config_path = Config()
         async with RuntimeConfig.open(config_path) as runtime:
             agent = cls(
                 runtime=runtime,
