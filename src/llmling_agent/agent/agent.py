@@ -525,7 +525,7 @@ class LLMlingAgent[TDeps, TResult]:
                     print(message)
             ```
         """
-        wait_for_chain = False  # TODO
+        # wait_for_chain = False  # TODO
         if deps is not None:
             self._context.data = deps
         try:
@@ -546,21 +546,24 @@ class LLMlingAgent[TDeps, TResult]:
             @asynccontextmanager
             async def wrapper():
                 message_id = str(uuid4())
+
                 async with stream_ctx as stream:
-                    # Monkey patch the stream method to emit chunks
-                    original_stream = stream.stream
+                    # Only capture messages during the actual streaming
+                    with capture_run_messages() as messages:
+                        original_stream = stream.stream
 
-                    async def patched_stream():
-                        async for chunk in original_stream():
-                            self.chunk_streamed.emit(str(chunk))
-                            yield chunk
+                        async def patched_stream():
+                            async for chunk in original_stream():
+                                self.chunk_streamed.emit(str(chunk))
+                                yield chunk
 
-                    stream.stream = patched_stream  # type: ignore
-                    yield stream
+                        stream.stream = patched_stream  # type: ignore
+                        yield stream
 
-                    # After completion
+                    # After completion, use the stream's data
                     if stream.is_complete:
-                        result_str = str(await stream.get_data())
+                        result = await stream.get_data()
+                        result_str = str(result)
                         usage = stream.usage()
                         cost = (
                             await extract_usage(
@@ -570,42 +573,33 @@ class LLMlingAgent[TDeps, TResult]:
                             else None
                         )
 
-                        # Capture messages only during completion
-                        with capture_run_messages() as messages:
-                            # Re-run to capture tool calls
-                            await self._pydantic_agent.run(
-                                prompt,
-                                deps=self._context,
-                                message_history=message_history,
-                                model=model,
+                        # Handle captured tool calls
+                        self._last_messages = list(messages)
+                        for call in get_tool_calls(messages):
+                            call.message_id = message_id
+                            call.context_data = (
+                                self._context.data if self._context else None
                             )
-                            self._last_messages = list(messages)
+                            self.tool_used.emit(call)
 
-                            # Handle tool calls inside context
-                            for call in get_tool_calls(messages):
-                                call.message_id = message_id
-                                call.context_data = (
-                                    self._context.data if self._context else None
-                                )
-                                self.tool_used.emit(call)
-
-                        # Create and emit assistant message outside context
+                        # Create and emit assistant message
                         meta = MessageMetadata(
                             model=self.model_name,
                             token_usage=cost.token_usage if cost else None,
                             cost=cost.cost_usd if cost else None,
                             response_time=time.perf_counter() - start_time,
+                            name=self.name,
                         )
-                        assistant_msg: ChatMessage[TResult] = ChatMessage[TResult](
-                            content=await stream.get_data(),
+                        assistant_msg: ChatMessage[TResult] = ChatMessage(  # type: ignore[assignment]
+                            content=result,
                             role="assistant",
                             message_id=message_id,
                             metadata=meta,
                         )
                         self.message_sent.emit(assistant_msg)
 
-                    if wait_for_chain:
-                        await self.wait_for_chain()
+                        # if wait_for_chain:
+                        #     await self.wait_for_chain()
 
             return wrapper()
 
