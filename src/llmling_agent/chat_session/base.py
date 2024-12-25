@@ -19,6 +19,7 @@ from slashed import (
 from sqlalchemy import desc
 from sqlmodel import Session, select
 
+from llmling_agent import LLMlingAgent
 from llmling_agent.chat_session.events import (
     HistoryClearedEvent,
     SessionResetEvent,
@@ -39,7 +40,6 @@ if TYPE_CHECKING:
 
     from pydantic_ai import messages
 
-    from llmling_agent import LLMlingAgent
     from llmling_agent.chat_session.output import OutputWriter
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.snippets import Snippet
@@ -65,6 +65,7 @@ class AgentChatSession:
     tool_added = Signal(ToolInfo)
     tool_removed = Signal(str)  # tool_name
     tool_changed = Signal(str, ToolInfo)  # name, new_info
+    agent_connected = Signal(LLMlingAgent)
 
     def __init__(
         self,
@@ -139,6 +140,7 @@ class AgentChatSession:
         Raises:
             ValueError: If target agent not found or pool not available
         """
+        logger.debug("Connecting to %s (wait=%s)", target, wait)
         if not self._pool:
             msg = "No agent pool available"
             raise ValueError(msg)
@@ -150,6 +152,7 @@ class AgentChatSession:
             raise ValueError(msg) from e
 
         self._agent.pass_results_to(target_agent)
+        self.agent_connected.emit(target_agent)
 
         if wait is not None:
             self._wait_chain = wait
