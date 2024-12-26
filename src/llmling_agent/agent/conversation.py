@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from llmling.prompts import BasePrompt, PromptMessage, StaticPrompt
 
 from llmling_agent.log import get_logger
+from llmling_agent.pydantic_ai_utils import convert_model_message
 
 
 if TYPE_CHECKING:
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
     from pydantic_ai.messages import ModelMessage
 
     from llmling_agent.agent.agent import LLMlingAgent
+    from llmling_agent.models.messages import ChatMessage
 
 logger = get_logger(__name__)
 
@@ -51,6 +53,7 @@ class ConversationManager:
         self._agent = agent._pydantic_agent
         self._initial_prompts: list[BasePrompt] = []
         self._current_history: list[ModelMessage] | None = None
+        self._last_messages: list[ModelMessage] = []
 
         # Add initial prompts
         if initial_prompts is not None:
@@ -140,3 +143,9 @@ class ConversationManager:
         """Clear conversation history and prompts."""
         self._initial_prompts.clear()
         self._current_history = None
+        self._last_messages = []
+
+    @property
+    def last_run_messages(self) -> list[ChatMessage]:
+        """Get messages from the last run converted to our format."""
+        return [convert_model_message(msg) for msg in self._last_messages]

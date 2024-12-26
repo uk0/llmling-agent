@@ -24,7 +24,6 @@ from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
 from llmling_agent.pydantic_ai_utils import (
-    convert_model_message,
     extract_usage,
     get_tool_calls,
 )
@@ -181,7 +180,6 @@ class LLMlingAgent[TDeps, TResult]:
 
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._connected_agents: set[LLMlingAgent[Any, Any]] = set()
-        self._last_messages: list[ModelMessage] = []
 
     @classmethod
     @asynccontextmanager
@@ -477,7 +475,7 @@ class LLMlingAgent[TDeps, TResult]:
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
                 self.tool_used.emit(call)
-            self._last_messages = list(messages)
+            self.conversation._last_messages = list(messages)
             if not message_history:
                 self.conversation.set_history(result.all_messages())
             # Emit user message
@@ -587,7 +585,7 @@ class LLMlingAgent[TDeps, TResult]:
 
                         # Handle captured tool calls
                         messages = stream.new_messages()
-                        self._last_messages = list(messages)
+                        self.conversation._last_messages = list(messages)
                         for call in get_tool_calls(messages):
                             call.message_id = message_id
                             call.context_data = (
@@ -697,7 +695,7 @@ class LLMlingAgent[TDeps, TResult]:
     def clear_history(self):
         """Clear both internal and pydantic-ai history."""
         self._logger.clear_state()
-        self._last_messages.clear()
+        self.conversation.clear()
         for tool in self._pydantic_agent._function_tools.values():
             tool.current_retry = 0
         logger.debug("Cleared history and reset tool state")
@@ -743,11 +741,6 @@ class LLMlingAgent[TDeps, TResult]:
             ```
         """
         return self._pydantic_agent.result_validator(*args, **kwargs)
-
-    @property
-    def last_run_messages(self) -> list[ChatMessage]:
-        """Get messages from the last run converted to our format."""
-        return [convert_model_message(msg) for msg in self._last_messages]
 
     @property
     def runtime(self) -> RuntimeConfig:
