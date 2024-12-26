@@ -29,6 +29,20 @@ class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
         sa_column=Column(DateTime, default=datetime.now), default_factory=datetime.now
     )
 
+    @classmethod
+    def log(
+        cls,
+        agent_name: str,
+        session_id: str,
+        command: str,
+    ):
+        from llmling_agent.storage import engine
+
+        with Session(engine) as session:
+            history = cls(session_id=session_id, agent_name=agent_name, command=command)
+            session.add(history)
+            session.commit()
+
 
 class MessageLog(BaseModel):
     """Raw message log entry."""
