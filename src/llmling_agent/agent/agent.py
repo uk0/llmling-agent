@@ -17,6 +17,7 @@ from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import infer_model
 from typing_extensions import TypeVar
 
+from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.agent.snippets import SnippetManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
@@ -168,6 +169,16 @@ class LLMlingAgent[TDeps, TResult]:
         self._logger = AgentLogger(self, enable_logging=enable_logging)
         self._events = EventManager(self, enable_events=True)
         self.snippets = SnippetManager()
+        config_prompts = context.config.system_prompts if context else []
+        all_prompts = list(config_prompts)
+        if isinstance(system_prompt, str):
+            all_prompts.append(system_prompt)
+        else:
+            all_prompts.extend(system_prompt)
+
+        # Initialize ConversationManager with all prompts
+        self.conversation = ConversationManager(self, initial_prompts=all_prompts)
+
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._connected_agents: set[LLMlingAgent[Any, Any]] = set()
         self._last_messages: list[ModelMessage] = []
@@ -453,11 +464,15 @@ class LLMlingAgent[TDeps, TResult]:
             with capture_run_messages() as messages:
                 # Run through pydantic-ai's public interface
                 start_time = time.perf_counter()
-
+                msg_history = (
+                    message_history
+                    if message_history
+                    else self.conversation.get_history()
+                )
                 result = await self._pydantic_agent.run(
                     prompt,
                     deps=self._context,
-                    message_history=message_history,
+                    message_history=msg_history,
                     model=model,
                 )
                 for call in get_tool_calls(messages):
@@ -465,7 +480,8 @@ class LLMlingAgent[TDeps, TResult]:
                     call.context_data = self._context.data if self._context else None
                     self.tool_used.emit(call)
                 self._last_messages = list(messages)
-
+                if not message_history:
+                    self.conversation.set_history(result.all_messages())
             # Emit user message
             user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
             self.message_received.emit(user_msg)
@@ -527,12 +543,15 @@ class LLMlingAgent[TDeps, TResult]:
             user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
             self.message_received.emit(user_msg)
             start_time = time.perf_counter()
+            msg_history = (
+                message_history if message_history else self.conversation.get_history()
+            )
 
             # Capture all messages from the entire operation
             with capture_run_messages() as messages:
                 async with self._pydantic_agent.run_stream(
                     prompt,
-                    message_history=message_history,
+                    message_history=msg_history,
                     model=model,
                     deps=self._context,
                 ) as stream:
@@ -545,6 +564,8 @@ class LLMlingAgent[TDeps, TResult]:
 
                         if stream.is_complete:
                             message_id = str(uuid4())
+                            if not message_history:
+                                self.conversation.set_history(stream.all_messages())
                             # Get complete result from the final chunks
                             if stream.is_structured:
                                 message = stream._stream_response.get(final=True)
