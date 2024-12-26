@@ -105,7 +105,7 @@ class AgentChatSession:
         self._initialized = False  # Track initialization state
 
         # Initialize basic structures
-        self._command_store = CommandStore()
+        self.commands = CommandStore()
         self.start_time = datetime.now()
         self._state = SessionState(current_model=self._model)
 
@@ -192,9 +192,9 @@ class AgentChatSession:
         # Load command history
         self._load_commands()
         # Initialize command system
-        self._command_store.register_builtin_commands()
+        self.commands.register_builtin_commands()
         for cmd in get_commands():
-            self._command_store.register_command(cmd)
+            self.commands.register_command(cmd)
 
         self._initialized = True
         msg = "Initialized chat session %r for agent %r"
@@ -266,7 +266,7 @@ class AgentChatSession:
 
     def register_command(self, command: BaseCommand):
         """Register additional command."""
-        self._command_store.register_command(command)
+        self.commands.register_command(command)
 
     async def handle_command(
         self,
@@ -283,12 +283,8 @@ class AgentChatSession:
         """
         self._ensure_initialized()
         meta = metadata or {}
-        ctx = self._command_store.create_context(
-            self,
-            output_writer=output,
-            metadata=meta,
-        )
-        await self._command_store.execute_command(command_str, ctx)
+        ctx = self.commands.create_context(self, output_writer=output, metadata=meta)
+        await self.commands.execute_command(command_str, ctx)
 
     async def send_slash_command(
         self,

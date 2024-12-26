@@ -154,7 +154,7 @@ class InteractiveSession:
         assert self._chat_session is not None
 
         history = SessionHistory(self._chat_session)
-        completer = PromptToolkitCompleter(self._chat_session._command_store._commands)
+        completer = PromptToolkitCompleter(self._chat_session.commands._commands)
 
         self._prompt = PromptSession[str](
             "You: ",
