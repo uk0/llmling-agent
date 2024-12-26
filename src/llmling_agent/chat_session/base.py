@@ -277,7 +277,7 @@ class AgentChatSession:
         *,
         output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
-    ) -> ChatMessage:
+    ) -> ChatMessage[str]:
         writer = output or DefaultOutputWriter()
         try:
             await self.handle_command(content[1:], output=writer, metadata=metadata)
@@ -296,7 +296,7 @@ class AgentChatSession:
         stream: Literal[False] = False,
         output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
-    ) -> ChatMessage: ...
+    ) -> ChatMessage[str]: ...
 
     @overload
     async def send_message(
@@ -306,7 +306,7 @@ class AgentChatSession:
         stream: Literal[True],
         output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
-    ) -> AsyncIterator[ChatMessage]: ...
+    ) -> AsyncIterator[ChatMessage[str]]: ...
 
     async def send_message(
         self,
@@ -315,7 +315,7 @@ class AgentChatSession:
         stream: bool = False,
         output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
-    ) -> ChatMessage | AsyncIterator[ChatMessage]:
+    ) -> ChatMessage[str] | AsyncIterator[ChatMessage[str]]:
         """Send a message and get response(s)."""
         self._ensure_initialized()
         if not content.strip():
@@ -345,7 +345,7 @@ class AgentChatSession:
             msg = f"Error processing message: {e}"
             raise ChatSessionConfigError(msg) from e
 
-    async def _send_normal(self, content: str) -> ChatMessage:
+    async def _send_normal(self, content: str) -> ChatMessage[str]:
         """Send message and get single response."""
         model_override = self._model if self._model and self._model.strip() else None
 
@@ -397,7 +397,7 @@ class AgentChatSession:
     async def _stream_message(
         self,
         content: str,
-    ) -> AsyncIterator[ChatMessage]:
+    ) -> AsyncIterator[ChatMessage[str]]:
         """Send message and stream responses."""
         async with self._agent.run_stream(
             content,
