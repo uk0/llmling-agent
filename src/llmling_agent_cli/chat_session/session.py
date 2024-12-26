@@ -90,12 +90,15 @@ class InteractiveSession:
         self._chat_session.tool_added.connect(self._on_tool_added)
         self._chat_session.tool_removed.connect(self._on_tool_removed)
         self._chat_session.tool_changed.connect(self._on_tool_changed)
-        self._chat_session._agent.tool_used.connect(self._on_tool_call)
         self._chat_session.agent_connected.connect(self._on_agent_connected)
         if self._chat_session.pool:
+            # Connect to all agents in pool (including main agent)
             for agent in self._chat_session.pool.agents.values():
                 agent.message_sent.connect(self._on_message)
                 agent.tool_used.connect(self._on_tool_call)
+        else:
+            # Only if no pool, connect directly to main agent
+            self._chat_session._agent.tool_used.connect(self._on_tool_call)
 
     def _on_agent_connected(self, agent: LLMlingAgent[Any, Any]):
         """Handle newly connected agent."""

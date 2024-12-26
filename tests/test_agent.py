@@ -116,10 +116,8 @@ async def test_agent_model_override(no_tool_runtime: RuntimeConfig):
     assert result1.data == default_response
 
     # Run with overridden model
-    result2 = await agent.run(
-        SIMPLE_PROMPT,
-        model=TestModel(custom_result_text=override_response),
-    )
+    model2 = TestModel(custom_result_text=override_response)
+    result2 = await agent.run(SIMPLE_PROMPT, model=model2)
     assert result2.data == override_response
 
 
