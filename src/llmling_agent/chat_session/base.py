@@ -427,21 +427,15 @@ class AgentChatSession:
                 yield ChatMessage[str](content=str(response), role="assistant")
 
             # Final message with token usage after stream completes
-            model_name = self._model or self._agent.model_name
-            cost_info = (
-                await extract_usage(stream_result.usage(), model_name, content, response)
-                if model_name
-                else None
-            )
-            metadata = {}
-            if cost_info:
-                metadata.update({
-                    "token_usage": cost_info.token_usage,
-                    "cost_usd": cost_info.cost_usd,
-                })
-            if model_name:
+            metadata: dict[str, Any] = {}
+            if model_name := self._model or self._agent.model_name:
                 metadata["model"] = model_name
-
+                usage = stream_result.usage()
+                if cost_info := await extract_usage(usage, model_name, content, response):
+                    metadata.update({
+                        "token_usage": cost_info.token_usage,
+                        "cost_usd": cost_info.cost_usd,
+                    })
             # Update session state after stream completes
             self._state.message_count += 2  # User and assistant messages
             meta_obj = MessageMetadata(**metadata)
