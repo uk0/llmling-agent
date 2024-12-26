@@ -12,7 +12,7 @@ from uuid import uuid4
 from llmling import Config
 from llmling.config.runtime import RuntimeConfig
 from psygnal import Signal
-from pydantic_ai import Agent as PydanticAgent, capture_run_messages
+from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import infer_model
 from typing_extensions import TypeVar
@@ -461,27 +461,25 @@ class LLMlingAgent[TDeps, TResult]:
             logger.debug("agent run prompt=%s", prompt)
             message_id = str(uuid4())
 
-            with capture_run_messages() as messages:
-                # Run through pydantic-ai's public interface
-                start_time = time.perf_counter()
-                msg_history = (
-                    message_history
-                    if message_history
-                    else self.conversation.get_history()
-                )
-                result = await self._pydantic_agent.run(
-                    prompt,
-                    deps=self._context,
-                    message_history=msg_history,
-                    model=model,
-                )
-                for call in get_tool_calls(messages):
-                    call.message_id = message_id
-                    call.context_data = self._context.data if self._context else None
-                    self.tool_used.emit(call)
-                self._last_messages = list(messages)
-                if not message_history:
-                    self.conversation.set_history(result.all_messages())
+            # Run through pydantic-ai's public interface
+            start_time = time.perf_counter()
+            msg_history = (
+                message_history if message_history else self.conversation.get_history()
+            )
+            result = await self._pydantic_agent.run(
+                prompt,
+                deps=self._context,
+                message_history=msg_history,
+                model=model,
+            )
+            messages = result.new_messages()
+            for call in get_tool_calls(messages):
+                call.message_id = message_id
+                call.context_data = self._context.data if self._context else None
+                self.tool_used.emit(call)
+            self._last_messages = list(messages)
+            if not message_history:
+                self.conversation.set_history(result.all_messages())
             # Emit user message
             user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
             self.message_received.emit(user_msg)
@@ -548,81 +546,79 @@ class LLMlingAgent[TDeps, TResult]:
             )
 
             # Capture all messages from the entire operation
-            with capture_run_messages() as messages:
-                async with self._pydantic_agent.run_stream(
-                    prompt,
-                    message_history=msg_history,
-                    model=model,
-                    deps=self._context,
-                ) as stream:
-                    original_stream = stream.stream
+            async with self._pydantic_agent.run_stream(
+                prompt,
+                message_history=msg_history,
+                model=model,
+                deps=self._context,
+            ) as stream:
+                original_stream = stream.stream
 
-                    async def wrapped_stream(*args, **kwargs):
-                        async for chunk in original_stream(*args, **kwargs):
-                            self.chunk_streamed.emit(str(chunk))
-                            yield chunk
+                async def wrapped_stream(*args, **kwargs):
+                    async for chunk in original_stream(*args, **kwargs):
+                        self.chunk_streamed.emit(str(chunk))
+                        yield chunk
 
-                        if stream.is_complete:
-                            message_id = str(uuid4())
-                            if not message_history:
-                                self.conversation.set_history(stream.all_messages())
-                            # Get complete result from the final chunks
-                            if stream.is_structured:
-                                message = stream._stream_response.get(final=True)
-                                if not isinstance(message, ModelResponse):
-                                    msg = "Expected ModelResponse for structured output"
-                                    raise TypeError(msg)  # noqa: TRY301
-                                result = await stream.validate_structured_result(message)
-                            else:
-                                # For text response, get() returns list[str]
-                                chunks: list[str] = stream._stream_response.get(
-                                    final=True
-                                )  # type: ignore
-                                text = "".join(chunks)
-                                result = await stream._validate_text_result(text)
+                    if stream.is_complete:
+                        message_id = str(uuid4())
+                        if not message_history:
+                            self.conversation.set_history(stream.all_messages())
+                        # Get complete result from the final chunks
+                        if stream.is_structured:
+                            message = stream._stream_response.get(final=True)
+                            if not isinstance(message, ModelResponse):
+                                msg = "Expected ModelResponse for structured output"
+                                raise TypeError(msg)  # noqa: TRY301
+                            result = await stream.validate_structured_result(message)
+                        else:
+                            # For text response, get() returns list[str]
+                            chunks: list[str] = stream._stream_response.get(final=True)  # type: ignore
+                            text = "".join(chunks)
+                            result = await stream._validate_text_result(text)
 
-                            usage = stream.usage()
-                            cost = (
-                                await extract_usage(
-                                    usage, self.model_name, prompt, str(result)
-                                )
-                                if self.model_name
-                                else None
+                        usage = stream.usage()
+                        cost = (
+                            await extract_usage(
+                                usage, self.model_name, prompt, str(result)
                             )
+                            if self.model_name
+                            else None
+                        )
 
-                            # Handle captured tool calls
-                            self._last_messages = list(messages)
-                            for call in get_tool_calls(messages):
-                                call.message_id = message_id
-                                call.context_data = (
-                                    self._context.data if self._context else None
-                                )
-                                self.tool_used.emit(call)
-
-                            # Create and emit assistant message
-                            meta = MessageMetadata(
-                                model=self.model_name,
-                                token_usage={
-                                    "total": usage.total_tokens or 0,
-                                    "prompt": usage.request_tokens or 0,
-                                    "completion": usage.response_tokens or 0,
-                                }
-                                if usage
-                                else None,
-                                cost=cost.cost_usd if cost else None,
-                                response_time=time.perf_counter() - start_time,
-                                name=self.name,
+                        # Handle captured tool calls
+                        messages = stream.new_messages()
+                        self._last_messages = list(messages)
+                        for call in get_tool_calls(messages):
+                            call.message_id = message_id
+                            call.context_data = (
+                                self._context.data if self._context else None
                             )
-                            assistant_msg = ChatMessage[TResult](
-                                content=cast(TResult, result),
-                                role="assistant",
-                                message_id=message_id,
-                                metadata=meta,
-                            )
-                            self.message_sent.emit(assistant_msg)
+                            self.tool_used.emit(call)
 
-                    stream.stream = wrapped_stream
-                    yield stream
+                        # Create and emit assistant message
+                        meta = MessageMetadata(
+                            model=self.model_name,
+                            token_usage={
+                                "total": usage.total_tokens or 0,
+                                "prompt": usage.request_tokens or 0,
+                                "completion": usage.response_tokens or 0,
+                            }
+                            if usage
+                            else None,
+                            cost=cost.cost_usd if cost else None,
+                            response_time=time.perf_counter() - start_time,
+                            name=self.name,
+                        )
+                        assistant_msg = ChatMessage[TResult](
+                            content=cast(TResult, result),
+                            role="assistant",
+                            message_id=message_id,
+                            metadata=meta,
+                        )
+                        self.message_sent.emit(assistant_msg)
+
+                stream.stream = wrapped_stream
+                yield stream
 
         except Exception:
             logger.exception("Agent stream failed")

@@ -49,7 +49,7 @@ async def test_agent_message_history(test_agent: LLMlingAgent[Any, str]):
     result = await test_agent.run(SIMPLE_PROMPT, message_history=history)
     assert result.data == TEST_RESPONSE
     assert test_agent.last_run_messages
-    assert len(test_agent.last_run_messages) >= len(history) + 2
+    assert len(test_agent.last_run_messages) == 2  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
