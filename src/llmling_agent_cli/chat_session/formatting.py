@@ -31,7 +31,7 @@ class MessageFormatter:
     def __init__(self, console: Console | None = None):
         self.console = console or Console()
 
-    def print_message_start(self, message: ChatMessage) -> None:
+    def print_message_start(self, message: ChatMessage):
         """Print message header."""
         self.console.print()
         sender = self._get_sender_name(message)
@@ -39,11 +39,11 @@ class MessageFormatter:
         style = self._get_style(message.role)
         self.console.print(line, style=style)
 
-    def print_message_content(self, content: str | Markdown, end: str = "") -> None:
+    def print_message_content(self, content: str | Markdown, end: str = ""):
         """Print message content."""
         self.console.print(content, end=end, soft_wrap=True)
 
-    def print_message_end(self, metadata: MessageMetadata | None = None) -> None:
+    def print_message_end(self, metadata: MessageMetadata | None = None):
         """Print message footer with stats."""
         self.console.print()
         if metadata and (
@@ -64,7 +64,7 @@ class MessageFormatter:
 
         self.console.print("─" * self.LINE_WIDTH)
 
-    def print_error(self, error: Exception, show_traceback: bool = False) -> None:
+    def print_error(self, error: Exception, show_traceback: bool = False):
         """Print error message with optional traceback."""
         error_msg = format_error(error)
         self.console.print(f"\n[red bold]Error:[/] {error_msg}")
@@ -80,7 +80,7 @@ class MessageFormatter:
                 )
             )
 
-    def print_tool_call(self, tool_call: ToolCallInfo) -> None:
+    def print_tool_call(self, tool_call: ToolCallInfo):
         """Print tool call information."""
         self.console.print()
         self.console.print("Tool Call:", style=self.TOOL_STYLE)
@@ -88,7 +88,7 @@ class MessageFormatter:
         self.console.print(f"  Args: {tool_call.args}")
         self.console.print(f"  Result: {tool_call.result}")
 
-    def print_welcome(self, welcome_info: WelcomeInfo) -> None:
+    def print_welcome(self, welcome_info: WelcomeInfo):
         """Print welcome message sections.
 
         Args:
@@ -102,7 +102,7 @@ class MessageFormatter:
 
     def print_session_summary(
         self, messages: int, tokens: dict[str, int], cost: float, duration: str
-    ) -> None:
+    ):
         """Print end of session summary."""
         self.console.print("\nSession Summary:")
         self.console.print(f"Messages: {messages}")
@@ -115,11 +115,11 @@ class MessageFormatter:
         self.console.print(f"Total cost: ${cost:.6f}")
         self.console.print(f"Duration: {duration}")
 
-    def print_connection_error(self) -> None:
+    def print_connection_error(self):
         """Print connection error message."""
         self.console.print("\nConnection interrupted.", style=self.ERROR_STYLE)
 
-    def print_exit(self) -> None:
+    def print_exit(self):
         """Print exit message."""
         self.console.print("\nGoodbye!")
 

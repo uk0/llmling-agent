@@ -62,7 +62,7 @@ class FileTarget(ForwardTarget):
 ForwardingTarget = Annotated[AgentTarget | FileTarget, Field(discriminator="type")]
 
 
-async def write_output(target: FileTarget, content: str, context: dict[str, str]) -> None:
+async def write_output(target: FileTarget, content: str, context: dict[str, str]):
     """Write content to file target."""
     path = target.resolve_path(context)
     path.parent.mkdir(parents=True, exist_ok=True)

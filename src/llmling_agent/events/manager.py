@@ -63,7 +63,7 @@ class EventManager:
                 msg = f"Unknown event source type: {config.type}"
                 raise ValueError(msg)
 
-    async def add_source(self, config: EventConfig) -> None:
+    async def add_source(self, config: EventConfig):
         """Add and start a new event source.
 
         Args:
@@ -102,7 +102,7 @@ class EventManager:
             logger.exception(msg)
             raise RuntimeError(msg) from e
 
-    async def remove_source(self, name: str) -> None:
+    async def remove_source(self, name: str):
         """Stop and remove an event source.
 
         Args:
@@ -112,7 +112,7 @@ class EventManager:
             await source.disconnect()
             logger.debug("Removed event source: %s", name)
 
-    async def _process_events(self, source: EventSource) -> None:
+    async def _process_events(self, source: EventSource):
         """Process events from a source.
 
         Args:
@@ -133,7 +133,7 @@ class EventManager:
         except Exception:
             logger.exception("Error processing events")
 
-    async def _handle_event(self, event: EventData) -> None:
+    async def _handle_event(self, event: EventData):
         """Handle a single event.
 
         This is a placeholder - in the actual implementation this would
@@ -145,7 +145,7 @@ class EventManager:
         prompt = event.to_prompt()
         await self.agent.run(prompt)
 
-    async def cleanup(self) -> None:
+    async def cleanup(self):
         """Clean up all event sources and tasks."""
         self.enabled = False
 
@@ -164,6 +164,6 @@ class EventManager:
         """Allow using manager as async context manager."""
         return self
 
-    async def __aexit__(self, *exc: object) -> None:
+    async def __aexit__(self, *exc: object):
         """Clean up when exiting context."""
         await self.cleanup()

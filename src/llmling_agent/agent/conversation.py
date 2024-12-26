@@ -108,7 +108,7 @@ class ConversationManager:
             self._agent._system_prompts = original_system_prompts
             self._current_history = original_history
 
-    def add_prompt(self, prompt: PromptInput) -> None:
+    def add_prompt(self, prompt: PromptInput):
         """Add a system prompt.
 
         Args:
@@ -135,11 +135,11 @@ class ConversationManager:
         """Get current conversation history."""
         return self._current_history
 
-    def set_history(self, history: list[ModelMessage]) -> None:
+    def set_history(self, history: list[ModelMessage]):
         """Update conversation history after run."""
         self._current_history = history
 
-    def clear(self) -> None:
+    def clear(self):
         """Clear conversation history and prompts."""
         self._initial_prompts.clear()
         self._current_history = None

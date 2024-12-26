@@ -126,7 +126,7 @@ class AgentPool:
         if connect_agents:  # renamed usage
             self._connect_signals()
 
-    # async def initialize(self) -> None:
+    # async def initialize(self):
     #     """Initialize all agents asynchronously."""
     #     # Create requested agents
     #     for name in self.to_load:
@@ -137,7 +137,7 @@ class AgentPool:
     #     if self._connect_signals:
     #         self._setup_connections()
 
-    def _setup_connections(self) -> None:
+    def _setup_connections(self):
         """Set up forwarding connections between agents."""
         for name, config in self.manifest.agents.items():
             if name not in self.agents:
@@ -151,7 +151,7 @@ class AgentPool:
                     target_agent = self.agents[target.name]
                     agent.pass_results_to(target_agent)
 
-    def _connect_signals(self) -> None:
+    def _connect_signals(self):
         """Set up forwarding connections between agents."""
         for name, config in self.manifest.agents.items():
             if name not in self.agents:
@@ -174,7 +174,7 @@ class AgentPool:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Exit async context."""
         await self.cleanup()
 

@@ -123,7 +123,7 @@ class AgentChatSession:
             raise TypeError(msg)
         self._wait_chain = value
 
-    async def connect_to(self, target: str, wait: bool | None = None) -> None:
+    async def connect_to(self, target: str, wait: bool | None = None):
         """Connect to another agent.
 
         Args:
@@ -150,7 +150,7 @@ class AgentChatSession:
         if wait is not None:
             self._wait_chain = wait
 
-    async def disconnect_from(self, target: str) -> None:
+    async def disconnect_from(self, target: str):
         """Disconnect from a target agent."""
         if not self._pool:
             msg = "No agent pool available"
@@ -159,7 +159,7 @@ class AgentChatSession:
         target_agent = self._pool.get_agent(target)
         self._agent.stop_passing_results_to(target_agent)
 
-    async def disconnect_all(self) -> None:
+    async def disconnect_all(self):
         """Disconnect from all agents."""
         if self._agent._connected_agents:
             connected = list(self._agent._connected_agents)

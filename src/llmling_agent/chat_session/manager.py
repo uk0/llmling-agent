@@ -79,7 +79,7 @@ class ChatSessionManager:
             msg = f"Session {session_id} not found"
             raise ChatSessionNotFoundError(msg) from e
 
-    async def end_session(self, session_id: UUID) -> None:
+    async def end_session(self, session_id: UUID):
         """End and cleanup a session.
 
         Args:
@@ -92,7 +92,7 @@ class ChatSessionManager:
         if pool := self._pools.pop(session_id, None):
             await pool.cleanup()
 
-    async def cleanup(self) -> None:
+    async def cleanup(self):
         """Clean up all sessions and pools."""
         # Make copies since we'll modify during iteration
         sessions = list(self._sessions.keys())
@@ -117,6 +117,6 @@ class ChatSessionManager:
         """Enter async context."""
         return self
 
-    async def __aexit__(self, *exc: object) -> None:
+    async def __aexit__(self, *exc: object):
         """Exit async context, cleaning up all sessions."""
         await self.cleanup()

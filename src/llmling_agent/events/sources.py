@@ -104,11 +104,11 @@ class EventSource(ABC):
     """Base class for event sources."""
 
     @abstractmethod
-    async def connect(self) -> None:
+    async def connect(self):
         """Initialize connection to event source."""
 
     @abstractmethod
-    async def disconnect(self) -> None:
+    async def disconnect(self):
         """Close connection to event source."""
 
     @abstractmethod
@@ -136,7 +136,7 @@ class FileSystemEventSource(EventSource):
         self._watch: AsyncIterator[set[FileChange]] | None = None
         self._stop_event: Event | None = None
 
-    async def connect(self) -> None:
+    async def connect(self):
         """Set up watchfiles watcher."""
         if not self.config.paths:
             msg = "No paths specified to watch"
@@ -160,7 +160,7 @@ class FileSystemEventSource(EventSource):
             recursive=self.config.recursive,
         )
 
-    async def disconnect(self) -> None:
+    async def disconnect(self):
         """Stop watchfiles watcher."""
         if self._stop_event:
             self._stop_event.set()
