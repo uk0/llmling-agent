@@ -190,25 +190,15 @@ class AgentChatSession:
             return
 
         # Load command history
-        try:
-            if self._history_file.exists():
-                self._commands = self._history_file.read_text().splitlines()
-        except Exception:
-            logger.exception("Failed to load command history")
-            self._commands = []
-
-        # Initialize tool states
-
+        self._load_commands()
         # Initialize command system
         self._command_store.register_builtin_commands()
         for cmd in get_commands():
             self._command_store.register_command(cmd)
-        # Any other async initialization...
 
         self._initialized = True
-        logger.debug(
-            "Initialized chat session %r for agent %r", self.id, self._agent.name
-        )
+        msg = "Initialized chat session %r for agent %r"
+        logger.debug(msg, self.id, self._agent.name)
 
     async def cleanup(self):
         """Clean up session resources."""
