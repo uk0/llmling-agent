@@ -685,13 +685,6 @@ class LLMlingAgent[TDeps, TResult]:
         """
         return self._pydantic_agent.system_prompt(*args, **kwargs)
 
-    # async def _handle_message(self, message: ChatMessage[Any]):
-    #     """Handle a message from another agent. Can be used as signal slot."""
-    #     msg = "_handle_message called on %s from %s with message %s"
-    #     logger.debug(msg, self.name, source.name, message.content)
-    #     # Convert any message to string for now as input
-    #     await self.run(str(message.content))
-
     def clear_history(self):
         """Clear both internal and pydantic-ai history."""
         self._logger.clear_state()
