@@ -125,10 +125,8 @@ async def list_connections(
     # Use session's get_connections() for info
     for agent_name, waits in ctx.data.get_connections():
         assert ctx.data.pool
-        _branch = tree.add(
-            f"{format_agent_name(ctx.data.pool.get_agent(agent_name))} "
-            f"({'waiting' if waits else 'async'})"
-        )
+        name = format_agent_name(ctx.data.pool.get_agent(agent_name))
+        _branch = tree.add(f"{name} ({'waiting' if waits else 'async'})")
 
     # Create string representation
     from rich.console import Console
