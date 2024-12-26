@@ -45,7 +45,6 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 HISTORY_DIR = pathlib.Path(user_data_dir("llmling", "llmling")) / "cli_history"
-HISTORY_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class AgentChatSession:
@@ -100,12 +99,9 @@ class AgentChatSession:
         self._agent.tools.events.changed.connect(self.tool_changed.emit)
         self._model = model_override or agent.model_name
         self._history: list[messages.ModelMessage] = []
-        self._commands: list[str] = []
-        self._history_file = HISTORY_DIR / f"{agent.name}.history"
         self._initialized = False  # Track initialization state
-
-        # Initialize basic structures
-        self.commands = CommandStore()
+        file_path = HISTORY_DIR / f"{agent.name}.history"
+        self.commands = CommandStore(history_file=file_path)
         self.start_time = datetime.now()
         self._state = SessionState(current_model=self._model)
 
@@ -190,9 +186,7 @@ class AgentChatSession:
             return
 
         # Load command history
-        self._load_commands()
-        # Initialize command system
-        self.commands.register_builtin_commands()
+        await self.commands.initialize()
         for cmd in get_commands():
             self.commands.register_command(cmd)
 
@@ -208,15 +202,6 @@ class AgentChatSession:
     def add_snippet(self, content: str, source: str) -> Snippet:
         """Add content to be included in next prompt."""
         return self._agent.snippets.add_snippet(content, source=source)
-
-    def _load_commands(self):
-        """Load command history from file."""
-        try:
-            if self._history_file.exists():
-                self._commands = self._history_file.read_text().splitlines()
-        except Exception:
-            logger.exception("Failed to load command history")
-            self._commands = []
 
     def add_command(self, command: str):
         """Add command to history."""
