@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, DateTime
-from sqlmodel import JSON, Field, Session, SQLModel
+from sqlmodel import JSON, Field, Session, SQLModel, select
 
 from llmling_agent.pydantic_ai_utils import TokenUsage  # noqa: TC001
 
@@ -42,6 +42,32 @@ class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
             history = cls(session_id=session_id, agent_name=agent_name, command=command)
             session.add(history)
             session.commit()
+
+    @classmethod
+    def get_commands(
+        cls,
+        agent_name: str,
+        session_id: str,
+        limit: int | None = None,
+        current_session_only: bool = False,
+    ) -> list[str]:
+        """Get command history ordered by newest first."""
+        from sqlalchemy import desc
+
+        from llmling_agent.storage import engine
+
+        with Session(engine) as session:
+            query = select(cls)
+            if current_session_only:
+                query = query.where(cls.session_id == str(session_id))
+            else:
+                query = query.where(cls.agent_name == agent_name)
+
+            # Use the column reference from the model class
+            query = query.order_by(desc(cls.timestamp))  # type: ignore
+            if limit:
+                query = query.limit(limit)
+            return [h.command for h in session.exec(query)]
 
 
 class MessageLog(BaseModel):

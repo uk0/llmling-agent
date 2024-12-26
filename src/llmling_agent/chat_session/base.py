@@ -16,8 +16,6 @@ from slashed import (
     DefaultOutputWriter,
     ExitCommandError,
 )
-from sqlalchemy import desc
-from sqlmodel import Session, select
 
 from llmling_agent import LLMlingAgent
 from llmling_agent.chat_session.events import (
@@ -30,7 +28,6 @@ from llmling_agent.commands import get_commands
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
 from llmling_agent.pydantic_ai_utils import extract_usage
-from llmling_agent.storage import engine
 from llmling_agent.storage.models import CommandHistory
 from llmling_agent.tools.base import ToolInfo
 
@@ -241,18 +238,12 @@ class AgentChatSession:
         self, limit: int | None = None, current_session_only: bool = False
     ) -> list[str]:
         """Get command history ordered by newest first."""
-        with Session(engine) as session:
-            query = select(CommandHistory)
-            if current_session_only:
-                query = query.where(CommandHistory.session_id == str(self.id))
-            else:
-                query = query.where(CommandHistory.agent_name == self._agent.name)
-
-            # Use the column reference from the model class
-            query = query.order_by(desc(CommandHistory.timestamp))  # type: ignore
-            if limit:
-                query = query.limit(limit)
-            return [h.command for h in session.exec(query)]
+        return CommandHistory.get_commands(
+            agent_name=self._agent.name,
+            session_id=str(self.id),
+            limit=limit,
+            current_session_only=current_session_only,
+        )
 
     @property
     def metadata(self) -> ChatSessionMetadata:
