@@ -39,7 +39,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.chat_session.output import OutputWriter
     from llmling_agent.delegation.pool import AgentPool
-    from llmling_agent.models.snippets import Snippet
     from llmling_agent.tools.manager import ToolManager
 
 
@@ -198,10 +197,6 @@ class AgentChatSession:
         """Clean up session resources."""
         if self._pool:
             await self.disconnect_all()
-
-    def add_snippet(self, content: str, source: str) -> Snippet:
-        """Add content to be included in next prompt."""
-        return self._agent.snippets.add_snippet(content, source=source)
 
     def add_command(self, command: str):
         """Add command to history."""

@@ -137,7 +137,7 @@ class ConversationManager:
 
         return result
 
-    def get_history(self) -> list[ModelMessage] | None:
+    def get_history(self) -> list[ModelMessage]:
         """Get current conversation history."""
         return self._current_history
 

@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import tempfile
 from typing import TYPE_CHECKING
 
 from slashed import Command, CommandContext, CommandError
-from upath import UPath
 
 from llmling_agent.log import get_logger
 
@@ -53,50 +51,18 @@ async def read_command(
         kwargs: Command options
     """
     if not args:
-        await ctx.output.print("Usage: /read <path_or_url> [--convert-to-md]")
+        await ctx.output.print("Usage: /read <path> [--convert-to-md]")
         return
 
-    path = UPath(args[0])
+    path = args[0]
     convert_to_md = kwargs.get("convert_to_md", "").lower() in ("true", "1", "yes")
 
     try:
-        # Handle URLs by downloading first
-        if str(path).startswith(("http://", "https://")):
-            await ctx.output.print(f"Downloading {path}...")
-            bytes_content = path.read_bytes()
-
-            # Create temp file in system temp directory
-            temp_dir = UPath(tempfile.gettempdir())
-            temp_path = temp_dir / f"llmling_{path.name}"
-            temp_path.write_bytes(bytes_content)
-            path = temp_path
-
-        # Convert content if requested
-        if convert_to_md:
-            try:
-                from markitdown import MarkItDown
-
-                await ctx.output.print(f"Converting {path} to markdown...")
-                md = MarkItDown()
-                result = md.convert(str(path))
-                content = result.text_content
-            except Exception as e:
-                msg = f"Failed to convert {path}: {e}"
-                raise CommandError(msg) from e
-        else:
-            # Read raw content
-            try:
-                content = path.read_text()
-            except UnicodeDecodeError:
-                msg = f"Unable to read {path} as text. Try --convert-to-md for binaries."
-                raise CommandError(msg)  # noqa: B904
-
-        # Create and add snippet
-        ctx.data.add_snippet(content, source=str(path))
+        agent = ctx.data._agent
+        await agent.conversation.add_context_from_path(path, convert_to_md=convert_to_md)
         await ctx.output.print(f"Added content from {path} to next message as context.")
-
     except Exception as e:
-        msg = f"Error reading {path}: {e}"
+        msg = f"Unexpected error reading {path}: {e}"
         logger.exception(msg)
         raise CommandError(msg) from e
 

@@ -51,9 +51,7 @@ async def prompt_command(
 
     name = args[0]
     try:
-        messages = await ctx.data._agent.runtime.render_prompt(name, kwargs)
-        content = "\n".join(msg.get_text_content() for msg in messages)
-        ctx.data._agent.snippets.add_snippet(content, source=f"prompt:{name}")
+        await ctx.data._agent.conversation.add_context_from_prompt(name, arguments=kwargs)
         await ctx.output.print(f"Added prompt {name!r} to next message as context.")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Error executing prompt: {e}")

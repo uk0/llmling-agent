@@ -13,7 +13,6 @@ from llmling_agent import LLMlingAgent
 from llmling_agent.chat_session import AgentChatSession
 from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.commands.prompts import prompt_cmd
-from llmling_agent.models.snippets import Snippet
 
 
 @pytest.fixture
@@ -73,12 +72,12 @@ async def test_prompt_command_simple(runtime_config: Config):
         # Execute prompt command
         await prompt_cmd.execute(ctx=context, args=["greet"])
 
-        # Verify snippet was added
-        assert len(agent.snippets.get_all()) == 1
-        snippet = agent.snippets.get_all()[0]
-        assert isinstance(snippet, Snippet)
-        assert snippet.source == "prompt:greet"
-        assert "Hello World" in snippet.content
+        # Verify message was added to conversation history
+        history = agent.conversation.get_history()
+        assert len(history) == 1
+        message = history[0]
+        assert "prompt:greet" in str(message)
+        assert "Hello World" in str(message)
 
         # Verify user feedback
         assert len(messages) == 1
@@ -105,13 +104,15 @@ async def test_prompt_command_with_args(runtime_config: Config):
         kwargs = {"data": "test.txt"}
         await prompt_cmd.execute(ctx=context, args=["analyze"], kwargs=kwargs)
 
-        # Verify snippet was added
-        assert len(agent.snippets.get_all()) == 1
-        snippet = agent.snippets.get_all()[0]
-        assert isinstance(snippet, Snippet)
-        assert snippet.source == "prompt:analyze"
-        assert "Analyzing test.txt" in snippet.content
-        assert "Please check test.txt" in snippet.content
+        # Verify message was added to conversation history
+        history = agent.conversation.get_history()
+        assert len(history) == 1
+
+        # Get content from each part
+        content = str(history[0])
+        assert "prompt:analyze" in content
+        assert "Analyzing test.txt" in content
+        assert "Please check test.txt" in content
 
         # Verify user feedback
         assert len(messages) == 1

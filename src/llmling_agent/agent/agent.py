@@ -18,7 +18,6 @@ from pydantic_ai.models import infer_model
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.conversation import ConversationManager
-from llmling_agent.agent.snippets import SnippetManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
@@ -167,7 +166,6 @@ class LLMlingAgent[TDeps, TResult]:
 
         self._logger = AgentLogger(self, enable_logging=enable_logging)
         self._events = EventManager(self, enable_events=True)
-        self.snippets = SnippetManager()
         config_prompts = context.config.system_prompts if context else []
         all_prompts = list(config_prompts)
         if isinstance(system_prompt, str):
