@@ -199,6 +199,7 @@ class LLMlingAgent[TDeps, TResult]:
         result_type: type[TResult] | None = None,
         *,
         model: models.Model | models.KnownModelName | None = None,
+        session_id: str | UUID | None = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
         retries: int = 1,
@@ -218,6 +219,7 @@ class LLMlingAgent[TDeps, TResult]:
                          (defaults to Config())
             result_type: Optional type for structured responses
             model: The default model to use (defaults to GPT-4)
+            session_id: Optional id to recover a conversation
             system_prompt: Static system prompts to use for this agent
             name: Name of the agent for logging
             retries: Default number of retries for failed operations
@@ -246,6 +248,7 @@ class LLMlingAgent[TDeps, TResult]:
                 runtime=runtime,
                 result_type=result_type,
                 model=model,
+                session_id=session_id,
                 system_prompt=system_prompt,
                 name=name,
                 retries=retries,
@@ -271,6 +274,7 @@ class LLMlingAgent[TDeps, TResult]:
         *,
         # Model configuration
         model: str | models.Model | models.KnownModelName | None = None,
+        session_id: str | UUID | None = None,
         result_type: type[TResult] | None = None,
         model_settings: dict[str, Any] | None = None,
         # Tool configuration
@@ -292,10 +296,11 @@ class LLMlingAgent[TDeps, TResult]:
             config: Path to agent configuration file or AgentsManifest instance
             agent_name: Name of the agent to load
 
-            # Model Configuration
+            # Basic Configuration
             model: Optional model override
             result_type: Optional type for structured responses
             model_settings: Additional model-specific settings
+            session_id: Optional id to recover a conversation
 
             # Tool Configuration
             tools: Additional tools to register (import paths or callables)
@@ -376,6 +381,7 @@ class LLMlingAgent[TDeps, TResult]:
                 result_type=result_type,
                 model=actual_model,  # type: ignore[arg-type]
                 retries=retries,
+                session_id=session_id,
                 result_tool_name=result_tool_name,
                 result_tool_description=result_tool_description,
                 result_retries=result_retries,
