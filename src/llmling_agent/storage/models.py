@@ -14,6 +14,8 @@ from llmling_agent.pydantic_ai_utils import TokenUsage  # noqa: TC001
 
 
 if TYPE_CHECKING:
+    from pydantic_ai.messages import ModelMessage
+
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.messages import TokenAndCostResult
 
@@ -129,6 +131,74 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
             )
             session.add(msg)
             session.commit()
+
+    @classmethod
+    def to_pydantic_ai_messages(
+        cls,
+        conversation_id: str,
+        *,
+        since: datetime | None = None,
+        until: datetime | None = None,
+        roles: set[Literal["user", "assistant", "system"]] | None = None,
+        limit: int | None = None,
+    ) -> list[ModelMessage]:
+        """Convert database messages to pydantic-ai messages.
+
+        Args:
+            conversation_id: ID of conversation to load
+            since: Only include messages after this time
+            until: Only include messages before this time
+            roles: Only include messages with these roles
+            limit: Maximum number of messages to return
+
+        Returns:
+            List of pydantic-ai ModelMessages in chronological order
+        """
+        from pydantic_ai.messages import (
+            ModelRequest,
+            ModelResponse,
+            SystemPromptPart,
+            TextPart,
+            UserPromptPart,
+        )
+
+        from llmling_agent.storage import engine
+
+        query = (
+            select(cls)
+            .where(cls.conversation_id == conversation_id)
+            .order_by(cls.timestamp)  # type: ignore
+        )
+
+        if since:
+            query = query.where(cls.timestamp >= since)
+        if until:
+            query = query.where(cls.timestamp <= until)
+        if roles:
+            query = query.where(cls.role.in_(roles))  # type: ignore
+        if limit:
+            query = query.limit(limit)
+
+        with Session(engine) as session:
+            messages = session.exec(query).all()
+
+            result = []
+            for msg in messages:
+                match msg.role:
+                    case "user":
+                        result.append(
+                            ModelRequest(parts=[UserPromptPart(content=msg.content)])
+                        )
+                    case "assistant":
+                        result.append(
+                            ModelResponse(parts=[TextPart(content=msg.content)])
+                        )
+                    case "system":
+                        result.append(
+                            ModelRequest(parts=[SystemPromptPart(content=msg.content)])
+                        )
+
+            return result
 
 
 class ToolCall(SQLModel, table=True):  # type: ignore[call-arg]
