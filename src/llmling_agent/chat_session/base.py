@@ -155,13 +155,6 @@ class AgentChatSession:
         target_agent = self._pool.get_agent(target)
         self._agent.stop_passing_results_to(target_agent)
 
-    async def disconnect_all(self):
-        """Disconnect from all agents."""
-        if self._agent._connected_agents:
-            connected = list(self._agent._connected_agents)
-            for target in connected:
-                self._agent.stop_passing_results_to(target)
-
     def get_connections(self) -> list[tuple[str, bool]]:
         """Get current connections.
 
@@ -193,7 +186,7 @@ class AgentChatSession:
     async def cleanup(self):
         """Clean up session resources."""
         if self._pool:
-            await self.disconnect_all()
+            await self._agent.disconnect_all()
 
     def add_command(self, command: str):
         """Add command to history."""
@@ -386,10 +379,7 @@ class AgentChatSession:
 
         return chat_msg
 
-    async def _stream_message(
-        self,
-        content: str,
-    ) -> AsyncIterator[ChatMessage[str]]:
+    async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage[str]]:
         """Send message and stream responses."""
         async with self._agent.run_stream(
             content,
@@ -426,10 +416,7 @@ class AgentChatSession:
 
             yield final_msg
 
-    def configure_tools(
-        self,
-        updates: dict[str, bool],
-    ) -> dict[str, str]:
+    def configure_tools(self, updates: dict[str, bool]) -> dict[str, str]:
         """Update tool configuration.
 
         Args:

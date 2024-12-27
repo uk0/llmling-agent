@@ -105,7 +105,7 @@ async def disconnect_all_command(
         await ctx.output.print("No active connections")
         return
 
-    await ctx.data.disconnect_all()
+    await ctx.data._agent.disconnect_all()
     await ctx.output.print("Disconnected from all agents")
 
 

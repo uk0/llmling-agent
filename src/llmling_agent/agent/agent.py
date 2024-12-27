@@ -389,6 +389,12 @@ class LLMlingAgent[TDeps, TResult]:
         )
         self.outbox.emit(self, message)
 
+    async def disconnect_all(self):
+        """Disconnect from all agents."""
+        if self._connected_agents:
+            for target in list(self._connected_agents):
+                self.stop_passing_results_to(target)
+
     def pass_results_to(self, other: LLMlingAgent[Any, Any]):
         """Forward results to another agent."""
         self.outbox.connect(other._handle_message)
