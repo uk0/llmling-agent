@@ -101,9 +101,8 @@ async def show_resource(
 ):
     """Show details or content of a resource."""
     if not args:
-        await ctx.output.print(
-            "Usage: /show-resource <name> [--param1 value1] [--param2 value2]"
-        )
+        msg = "Usage: /show-resource <name> [--param1 value1] [--param2 value2]"
+        await ctx.output.print(msg)
         return
 
     name = args[0]
@@ -146,9 +145,8 @@ async def add_resource_command(
     to the resource loader.
     """
     if not args:
-        await ctx.output.print(
-            "Usage: /add-resource <name> [param1=value1] [param2=value2]"
-        )
+        msg = "Usage: /add-resource <name> [param1=value1] [param2=value2]"
+        await ctx.output.print(msg)
         return
 
     name = args[0]

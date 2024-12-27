@@ -18,10 +18,7 @@ from slashed import (
 )
 
 from llmling_agent import LLMlingAgent
-from llmling_agent.chat_session.events import (
-    HistoryClearedEvent,
-    SessionResetEvent,
-)
+from llmling_agent.chat_session.events import HistoryClearedEvent, SessionResetEvent
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
 from llmling_agent.commands import get_commands
