@@ -57,6 +57,9 @@ class AgentConfig(BaseModel):
     environment: str | AgentEnvironment | None = None
     """Environment configuration (path or object)"""
 
+    session_id: str | None = None
+    """Opetional id of a session to load."""
+
     result_type: str | ResponseDefinition | None = None
     """Name of the response definition to use"""
 
@@ -238,6 +241,7 @@ class AgentConfig(BaseModel):
             "system_prompt": self.system_prompts,
             "retries": self.retries,
             "result_tool_name": self.result_tool_name,
+            "session_id": self.session_id,
             "result_tool_description": self.result_tool_description,
             "result_retries": self.result_retries,
             "end_strategy": self.end_strategy,
