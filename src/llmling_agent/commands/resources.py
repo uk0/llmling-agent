@@ -4,12 +4,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from slashed import Command, CommandContext
+from slashed import Command, CommandContext, CommandError
+
+from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
     from llmling_agent.chat_session.base import AgentChatSession
 
+
+logger = get_logger(__name__)
 
 LIST_RESOURCES_HELP = """\
 Display all resources available to the agent.
@@ -52,6 +56,16 @@ Examples:
 
 Note: Some resources might require parameters to be viewed.
 """
+
+ADD_RESOURCE_HELP = """\
+Add content from a resource to the next message.
+
+Parameters are passed to the resource loader if supported.
+
+Examples:
+/add-resource config.yml
+/add-resource template --date today
+/add-resource api_data --key value"""
 
 
 async def list_resources(
@@ -121,6 +135,32 @@ async def show_resource(
         await ctx.output.print(f"Error accessing resource: {e}")
 
 
+async def add_resource_command(
+    ctx: CommandContext[AgentChatSession],
+    args: list[str],
+    kwargs: dict[str, str],
+):
+    """Add resource content as context for the next message.
+
+    The first argument is the resource name, remaining kwargs are passed
+    to the resource loader.
+    """
+    if not args:
+        await ctx.output.print(
+            "Usage: /add-resource <name> [param1=value1] [param2=value2]"
+        )
+        return
+
+    name = args[0]
+    try:
+        await ctx.data._agent.conversation.add_context_from_resource(name, **kwargs)
+        await ctx.output.print(f"Added resource '{name}' to next message as context.")
+    except Exception as e:
+        msg = f"Error loading resource: {e}"
+        logger.exception(msg)
+        raise CommandError(msg) from e
+
+
 list_resources_cmd = Command(
     name="list-resources",
     description="List available resources",
@@ -135,5 +175,15 @@ show_resource_cmd = Command(
     execute_func=show_resource,
     usage="<name> [--param1 value1] [--param2 value2]",
     help_text=SHOW_RESOURCES_HELP,
+    category="resources",
+)
+
+
+add_resource_cmd = Command(
+    name="add-resource",
+    description="Add resource content as context",
+    execute_func=add_resource_command,
+    usage="<name> [param1=value1] [param2=value2]",
+    help_text=ADD_RESOURCE_HELP,
     category="resources",
 )

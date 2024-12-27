@@ -21,6 +21,7 @@ from llmling_agent.commands.prompts import list_prompts_cmd, prompt_cmd
 from llmling_agent.commands.resources import (
     list_resources_cmd,
     show_resource_cmd,
+    add_resource_cmd,
 )
 from llmling_agent.commands.session import clear_cmd, reset_cmd
 from llmling_agent.commands.read import read_cmd
@@ -60,6 +61,7 @@ def get_commands() -> list[BaseCommand]:
         disable_tool_cmd,
         register_tool_cmd,
         set_model_cmd,
+        add_resource_cmd,
         list_resources_cmd,
         show_resource_cmd,
         edit_agent_file_cmd,
