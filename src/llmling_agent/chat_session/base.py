@@ -94,7 +94,6 @@ class AgentChatSession:
         self._agent.tools.events.removed.connect(self.tool_removed.emit)
         self._agent.tools.events.changed.connect(self.tool_changed.emit)
         self._model = model_override or agent.model_name
-        self._history: list[messages.ModelMessage] = []
         self._initialized = False  # Track initialization state
         file_path = HISTORY_DIR / f"{agent.name}.history"
         self.commands = CommandStore(history_file=file_path)
@@ -217,14 +216,14 @@ class AgentChatSession:
 
     async def clear(self):
         """Clear chat history."""
-        self._history = []
+        self._agent.conversation.clear()
         event = HistoryClearedEvent(session_id=str(self.id))
         self.history_cleared.emit(event)
 
     async def reset(self):
         """Reset session state."""
         old_tools = self._tool_states.copy()
-        self._history = []
+        self._agent.conversation.clear()
         self._tool_states = self._agent.tools.list_tools()
 
         event = SessionResetEvent(
@@ -334,14 +333,7 @@ class AgentChatSession:
         """Send message and get single response."""
         model_override = self._model if self._model and self._model.strip() else None
 
-        result = await self._agent.run(
-            content,
-            message_history=self._history,
-            model=model_override,  # type: ignore
-        )
-
-        # Update history with new messages
-        self._history = result.new_messages()
+        result = await self._agent.run(content, model=model_override)  # type: ignore
 
         model_name = model_override or self._agent.model_name
         response = str(result.data)
@@ -383,7 +375,6 @@ class AgentChatSession:
         """Send message and stream responses."""
         async with self._agent.run_stream(
             content,
-            message_history=self._history,
             model=self._model or "",  # type: ignore
         ) as stream_result:
             async for response in stream_result.stream():
@@ -461,7 +452,7 @@ class AgentChatSession:
     @property
     def history(self) -> list[messages.ModelMessage]:
         """Get conversation history."""
-        return list(self._history)
+        return self._agent.conversation._current_history
 
     def get_status(self) -> SessionState:
         """Get current session status."""

@@ -133,53 +133,6 @@ async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession
 
 
 @pytest.mark.asyncio
-async def test_send_message_with_history(chat_session: AgentChatSession):
-    """Test sending a message with existing conversation history."""
-    # First message
-    mock_result1 = AsyncMock(spec=RunResult)
-    mock_result1.data = "First response"
-    mock_result1.usage.return_value = MagicMock(total_tokens=10)
-
-    # Set up first message history
-    user = UserPromptPart(content=TEST_MESSAGE)
-    text = TextPart(content="First response")
-    first_history = [ModelRequest(parts=[user]), ModelResponse(parts=[text])]
-    mock_result1.new_messages.return_value = first_history
-    chat_session._agent.run = AsyncMock(return_value=mock_result1)  # type: ignore
-
-    # Send first message
-    response1 = await chat_session.send_message(TEST_MESSAGE)
-    assert isinstance(response1, ChatMessage)
-    assert response1.content == "First response"
-
-    # Second message setup
-    mock_result2 = AsyncMock(spec=RunResult)
-    mock_result2.data = "Second response"
-    mock_result2.usage.return_value = MagicMock(total_tokens=15)
-
-    # Set up second message history
-    second_history = [
-        *first_history,
-        ModelRequest(parts=[UserPromptPart(content="Second message")]),
-        ModelResponse(parts=[TextPart(content="Second response")]),
-    ]
-    mock_result2.new_messages.return_value = second_history
-    chat_session._agent.run = AsyncMock(return_value=mock_result2)  # type: ignore
-
-    # Send second message
-    response2 = await chat_session.send_message("Second message")
-    assert isinstance(response2, ChatMessage)
-    assert response2.content == "Second response"
-
-    # Verify history was passed correctly
-    chat_session._agent.run.assert_awaited_with(
-        "Second message",
-        message_history=first_history,
-        model=DEFAULT_MODEL,
-    )
-
-
-@pytest.mark.asyncio
 async def test_send_message_streaming(chat_session: AgentChatSession):
     """Test streaming message responses."""
     chunks = ["Hel", "lo, ", "human!"]
