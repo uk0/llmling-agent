@@ -22,6 +22,7 @@ from llmling_agent.models.forward_targets import AgentTarget
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
+    from uuid import UUID
 
     from pydantic_ai.result import RunResult
 
@@ -285,6 +286,7 @@ class AgentPool:
         name: str,
         *,
         model_override: str | None = None,
+        session_id: str | UUID | None = None,
         environment_override: str | os.PathLike[str] | Config | None = None,
     ) -> LLMlingAgent:
         """Get an agent by name with optional runtime modifications.
@@ -292,6 +294,7 @@ class AgentPool:
         Args:
             name: Name of agent to get
             model_override: Optional model to use
+            session_id: Optional session id to recover conversation
             environment_override: Optional environment to use
 
         Returns:
@@ -305,7 +308,11 @@ class AgentPool:
             raise KeyError(msg)
 
         agent = self.agents[name]
+        if session_id:
+            # load_history_from_database is async, so workaround
+            from llmling_agent.agent.conversation import ConversationManager
 
+            agent.conversation = ConversationManager(agent, session_id=session_id)
         # Apply any overrides to the existing agent
         if model_override:
             agent.set_model(model_override)  # type: ignore

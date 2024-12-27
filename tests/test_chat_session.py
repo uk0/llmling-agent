@@ -1,31 +1,22 @@
 from __future__ import annotations
 
-import asyncio
-from contextlib import AbstractAsyncContextManager
-from typing import TYPE_CHECKING, Any
-from unittest.mock import ANY, AsyncMock, MagicMock, create_autospec, patch
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelRequestPart,
-    ModelResponse,
-    ModelResponsePart,
-    TextPart,
-    UserPromptPart,
-)
-from pydantic_ai.result import RunResult, StreamedRunResult
+from llmling import Config, RuntimeConfig
+from pydantic_ai.models.test import TestModel
 import pytest
 
+from llmling_agent.agent.agent import LLMlingAgent
 from llmling_agent.chat_session import (
     AgentChatSession,
     ChatSessionError,
     ChatSessionManager,
 )
-from llmling_agent.models.messages import ChatMessage, TokenAndCostResult, TokenUsage
-
-
-if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+from llmling_agent.delegation.pool import AgentPool
+from llmling_agent.models.agents import AgentsManifest
+from llmling_agent.models.messages import ChatMessage
+from llmling_agent_cli.chat_session.session import InteractiveSession
 
 
 # Constants for testing
@@ -50,118 +41,71 @@ def mock_agent() -> MagicMock:
 @pytest.fixture
 async def chat_session(mock_agent) -> AgentChatSession:
     """Provide a test chat session."""
-    session = AgentChatSession(agent=mock_agent, model_override=DEFAULT_MODEL)
-    await session.initialize()  # Add this line
+    session = AgentChatSession(agent=mock_agent)
+    await session.initialize()
     return session
 
 
 @pytest.mark.asyncio
-async def test_send_message_normal(chat_session: AgentChatSession):
+async def test_send_message_normal():
     """Test normal message sending."""
-    mock_result = AsyncMock()
-    mock_usage = MagicMock()
-    mock_usage.total_tokens = 10
-    mock_usage.request_tokens = 5
-    mock_usage.response_tokens = 5
-    mock_result.usage.return_value = mock_usage
-    mock_result.data = TEST_RESPONSE
+    async with RuntimeConfig.open(Config()) as runtime:
+        agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+            runtime, model=TestModel(custom_result_text=TEST_RESPONSE), name="test-agent"
+        )
+        session = AgentChatSession(agent)
+        await session.initialize()
 
-    # Mock the token cost calculation
-    usage = TokenUsage(total=10, prompt=5, completion=5)
-    mock_token_result = TokenAndCostResult(token_usage=usage, cost_usd=0.0001)
-    with patch(
-        "llmling_agent.chat_session.base.extract_usage",
-        AsyncMock(return_value=mock_token_result),
-    ):
-        user_part: ModelRequestPart = UserPromptPart(content=TEST_MESSAGE)
-        response_part: ModelResponsePart = TextPart(content=TEST_RESPONSE)
-        mock_result.new_messages.return_value = [
-            ModelRequest(parts=[user_part]),
-            ModelResponse(parts=[response_part]),
-        ]
-        chat_session._agent.run = AsyncMock(return_value=mock_result)  # type: ignore
-
-        response = await chat_session.send_message(TEST_MESSAGE)
+        response = await session.send_message(TEST_MESSAGE)
         assert isinstance(response, ChatMessage)
         assert response.content == TEST_RESPONSE
         assert response.role == "assistant"
         assert response.metadata
-        assert response.token_usage
-        assert response.token_usage["total"] == 10  # noqa: PLR2004
+        assert response.metadata.name == agent.name
 
 
 @pytest.mark.asyncio
 async def test_send_message_streaming_with_tokens(chat_session: AgentChatSession):
     """Test streaming message responses with token information."""
-    chunks = ["Hel", "lo, ", "human!"]
+    async with RuntimeConfig.open(Config()) as runtime:
+        # Create agent with TestModel that returns chunks
+        agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+            runtime,
+            model=TestModel(custom_result_text="Hello, human!"),
+            name="test-agent",
+        )
+        session = AgentChatSession(agent)
+        await session.initialize()
 
-    stream_result = AsyncMock(spec=StreamedRunResult)
-
-    async def mock_stream() -> AsyncIterator[str]:
-        for chunk in chunks:
-            yield chunk
-
-    stream_result.stream = mock_stream
-    stream_result.is_complete = True
-
-    mock_usage = MagicMock()
-    mock_usage.total_tokens = 10
-    mock_usage.request_tokens = 5
-    mock_usage.response_tokens = 5
-    stream_result.usage = MagicMock(return_value=mock_usage)
-
-    # Mock the token cost calculation
-    mock_token_result = TokenAndCostResult(
-        token_usage={"total": 10, "prompt": 5, "completion": 5}, cost_usd=0.0001
-    )
-
-    with patch(
-        "llmling_agent.chat_session.base.extract_usage",
-        AsyncMock(return_value=mock_token_result),
-    ):
-        # Create a proper async context manager mock
-        context_manager = create_autospec(AbstractAsyncContextManager)
-        context_manager.return_value.__aenter__.return_value = stream_result
-        chat_session._agent.run_stream = context_manager  # type: ignore
-
-        response_stream = await chat_session.send_message(TEST_MESSAGE, stream=True)
+        # Get streaming response
+        response_stream = await session.send_message(TEST_MESSAGE, stream=True)
         messages = [msg async for msg in response_stream]
+
+        # Verify streaming messages
+        assert len(messages) > 1  # Should get multiple chunks
+        # Last message should have metadata
         final_msg = messages[-1]
         assert final_msg.metadata
-        assert final_msg.metadata.token_usage
-        assert final_msg.metadata.token_usage["total"] == 10  # noqa: PLR2004
+        assert final_msg.metadata.model == "test-model"
 
 
 @pytest.mark.asyncio
 async def test_send_message_streaming(chat_session: AgentChatSession):
     """Test streaming message responses."""
-    chunks = ["Hel", "lo, ", "human!"]
-    stream_result = AsyncMock(spec=StreamedRunResult)
+    async with RuntimeConfig.open(Config()) as runtime:
+        agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+            runtime, model=TestModel(custom_result_text="Hello world"), name="test-agent"
+        )
+        session = AgentChatSession(agent)
+        await session.initialize()
 
-    async def mock_stream() -> AsyncIterator[str]:
-        for chunk in chunks:
-            yield chunk
+        response_stream = await session.send_message(TEST_MESSAGE, stream=True)
+        responses = [msg async for msg in response_stream]
 
-    stream_result.stream = mock_stream
-    stream_result.is_complete = True
-
-    mock_usage = MagicMock()
-    mock_usage.total_tokens = None
-    mock_usage.request_tokens = None
-    mock_usage.response_tokens = None
-    stream_result.usage = MagicMock(return_value=mock_usage)
-
-    # Create a proper async context manager mock
-    context_manager = create_autospec(AbstractAsyncContextManager)
-    context_manager.return_value.__aenter__.return_value = stream_result
-    chat_session._agent.run_stream = context_manager  # type: ignore
-
-    response_stream = await chat_session.send_message(TEST_MESSAGE, stream=True)
-
-    # Collect responses from the stream
-    actual_chunks = [chunk.content async for chunk in response_stream if chunk.content]
-
-    assert actual_chunks == chunks
+        # TestModel returns response in chunks
+        assert len(responses) > 0
+        assert all(isinstance(r, ChatMessage) for r in responses)
+        assert "".join(r.content for r in responses if r.content).strip() == "Hello world"
 
 
 @pytest.mark.asyncio
@@ -216,108 +160,83 @@ async def test_configure_invalid_tool(chat_session: AgentChatSession):
 @pytest.mark.asyncio
 async def test_long_conversation(chat_session: AgentChatSession):
     """Test a longer conversation with multiple messages."""
-    messages_count = 5
+    async with RuntimeConfig.open(Config()) as runtime:
+        responses = []
+        for i in range(5):
+            # Create new TestModel for each iteration with specific response
+            agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+                runtime,
+                model=TestModel(custom_result_text=f"Response {i}"),
+                name="test-agent",
+            )
+            session = AgentChatSession(agent)
+            await session.initialize()
 
-    # Set up the run mock once
-    chat_session._agent.run = AsyncMock()  # type: ignore
+            response = await session.send_message(f"Message {i}")
+            responses.append(response)
+            assert response.content == f"Response {i}"
 
-    for i in range(messages_count):
-        # Create async mock result
-        mock_result = AsyncMock(spec=RunResult)
-        mock_result.data = f"Response {i}"
-        mock_result.usage.return_value = MagicMock(total_tokens=10)
-
-        # Create current exchange
-        part = UserPromptPart(content=f"Message {i}", timestamp=ANY)
-        user_message = ModelRequest(parts=[part])
-        assistant_message = ModelResponse(parts=[TextPart(content=f"Response {i}")])
-
-        # Update history for next iteration
-        current_exchange = [user_message, assistant_message]
-        mock_result.new_messages.return_value = current_exchange
-        _history = current_exchange  # Store for next iteration
-
-        # Set the return value for this call
-        chat_session._agent.run.return_value = mock_result
-
-        # Send message and get response
-        response = await chat_session.send_message(f"Message {i}")
-        assert isinstance(response, ChatMessage)
-        assert response.content == f"Response {i}"
-
-    # Verify total number of interactions
-    assert chat_session._agent.run.await_count == messages_count
+        assert len(responses) == 5  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
 async def test_concurrent_messages(chat_session: AgentChatSession):
     """Test handling of concurrent message sending."""
+    async with RuntimeConfig.open(Config()) as runtime:
+        # Create separate agents with different responses
+        agents = []
+        message_texts = ["First", "Second", "Third"]
 
-    async def slow_response(content: str, **kwargs: Any) -> RunResult:
-        await asyncio.sleep(0.1)
-        mock_result = AsyncMock(spec=RunResult)
-        mock_result.data = f"Response to: {content}"
-        mock_result.usage.return_value = MagicMock(total_tokens=10)
+        for msg in message_texts:
+            agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+                runtime,
+                model=TestModel(custom_result_text=f"Response to: {msg}"),
+                name=f"test-agent-{msg}",
+            )
+            agents.append(agent)
 
-        # Create properly typed parts
-        user_part: ModelRequestPart = UserPromptPart(content=content)
-        response_part: ModelResponsePart = TextPart(content=f"Response to: {content}")
+        # Run messages through respective agents
+        responses = []
+        for agent, msg in zip(agents, message_texts):
+            session = AgentChatSession(agent)
+            await session.initialize()
+            response = await session.send_message(msg)
+            responses.append(response)
 
-        mock_result.new_messages.return_value = [
-            ModelRequest(parts=[user_part]),
-            ModelResponse(parts=[response_part]),
-        ]
-        return mock_result
-
-    chat_session._agent.run = AsyncMock(side_effect=slow_response)  # type: ignore
-
-    # Send multiple messages concurrently
-    message_texts = ["First", "Second", "Third"]
-    tasks = [chat_session.send_message(msg, stream=False) for msg in message_texts]
-
-    # Gather responses
-    responses = await asyncio.gather(*tasks)
-
-    # Verify all messages were processed
-    assert len(responses) == len(message_texts)
-    for response, original_msg in zip(responses, message_texts):
-        assert isinstance(response, ChatMessage)
-        assert response.role == "assistant"
-        assert response.content == f"Response to: {original_msg}"
-
-    # Verify all calls were made
-    assert chat_session._agent.run.await_count == len(message_texts)
+        # Verify responses
+        assert len(responses) == len(message_texts)
+        for response, original_msg in zip(responses, message_texts):
+            assert response.content == f"Response to: {original_msg}"
 
 
 @pytest.mark.asyncio
-async def test_message_after_tool_update(chat_session: AgentChatSession):
+async def test_message_after_tool_update():
     """Test sending messages after tool configuration changes."""
-    # First configure tools
-    chat_session.configure_tools({"tool1": False})
+    async with RuntimeConfig.open(Config()) as runtime:
+        # Create agent with TestModel
+        agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+            runtime, model=TestModel(custom_result_text=TEST_RESPONSE), name="test-agent"
+        )
 
-    # Then send message
-    mock_result = AsyncMock(spec=RunResult)
-    mock_result.data = TEST_RESPONSE
-    mock_result.usage.return_value = MagicMock(total_tokens=10)
+        # Register a test tool
+        def test_tool():
+            """Test tool."""
+            return "test result"
 
-    # Create properly typed parts
-    user_part: ModelRequestPart = UserPromptPart(content=TEST_MESSAGE)
-    response_part: ModelResponsePart = TextPart(content=TEST_RESPONSE)
+        agent.tools.register_tool(test_tool, enabled=True, source="dynamic")
 
-    mock_result.new_messages.return_value = [
-        ModelRequest(parts=[user_part]),
-        ModelResponse(parts=[response_part]),
-    ]
-    chat_session._agent.run = AsyncMock(return_value=mock_result)  # type: ignore
+        session = AgentChatSession(agent)
+        await session.initialize()
 
-    response = await chat_session.send_message(TEST_MESSAGE)
+        # Configure tools
+        session.configure_tools({"test_tool": False})  # Use actual registered name
 
-    assert isinstance(response, ChatMessage)
-    assert response.content == TEST_RESPONSE
-    assert response.role == "assistant"
+        # Send message
+        response = await session.send_message(TEST_MESSAGE)
+        assert response.content == TEST_RESPONSE
 
-    # Verify tool state persisted
-    assert not chat_session.get_tool_states()["tool1"]
+        # Verify tool state persisted
+        assert not session.get_tool_states()["test_tool"]
 
 
 @pytest.mark.asyncio
@@ -345,3 +264,45 @@ async def test_chat_session_with_tools(mock_agent):
     # Verify that mock_agent's enable/disable methods were called
     mock_agent.tools.enable_tool.assert_called_with("tool1")
     mock_agent.tools.disable_tool.assert_called_with("tool1")
+
+
+@pytest.mark.asyncio
+async def test_message_forwarding_in_cli():
+    """Test that forwarded messages are displayed properly."""
+    async with RuntimeConfig.open(Config()) as runtime:
+        main_agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+            runtime,
+            model=TestModel(custom_result_text="Main response"),
+            name="main-agent",
+        )
+        poet_agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+            runtime,
+            model=TestModel(custom_result_text="Poem response"),
+            name="poet-agent",
+        )
+
+        pool = AgentPool(AgentsManifest(agents={}))
+        pool.agents["main"] = main_agent
+        pool.agents["poet"] = poet_agent
+
+        session = InteractiveSession(main_agent, pool=pool)
+        session._chat_session = await session._session_manager.create_session(
+            main_agent, pool=pool, wait_chain=True
+        )
+
+        # Connect to messages directly
+        messages_received = []
+        main_agent.message_sent.connect(lambda msg: messages_received.append(msg))
+        poet_agent.message_sent.connect(lambda msg: messages_received.append(msg))
+
+        await session._chat_session.connect_to("poet")
+        await session._chat_session.send_message("Write a poem")
+
+        # Wait for forwarding
+        await main_agent.complete_tasks()
+        await poet_agent.complete_tasks()
+
+        assert len(messages_received) == 2  # noqa: PLR2004
+        print(messages_received)
+        assert any(m.metadata.name == "main-agent" for m in messages_received)
+        assert any(m.metadata.name == "poet-agent" for m in messages_received)

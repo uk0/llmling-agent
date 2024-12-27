@@ -66,7 +66,6 @@ class AgentChatSession:
         pool: AgentPool | None = None,
         wait_chain: bool = True,
         session_id: UUID | str | None = None,
-        model_override: str | None = None,
     ):
         """Initialize chat session.
 
@@ -75,16 +74,9 @@ class AgentChatSession:
             pool: Optional agent pool for multi-agent interactions
             wait_chain: Whether to wait for chain completion
             session_id: Optional session ID (generated if not provided)
-            model_override: Optional model override for this session
         """
         # Basic setup that doesn't need async
-        match session_id:
-            case str():
-                self.id = UUID(session_id)
-            case UUID():
-                self.id = session_id
-            case None:
-                self.id = uuid4()
+        self.id = str(session_id) if session_id is not None else str(uuid4())
         self._agent = agent
         self._pool = pool
         self._wait_chain = wait_chain
@@ -93,12 +85,11 @@ class AgentChatSession:
         self._agent.tools.events.added.connect(self.tool_added.emit)
         self._agent.tools.events.removed.connect(self.tool_removed.emit)
         self._agent.tools.events.changed.connect(self.tool_changed.emit)
-        self._model = model_override or agent.model_name
         self._initialized = False  # Track initialization state
         file_path = HISTORY_DIR / f"{agent.name}.history"
         self.commands = CommandStore(history_file=file_path)
         self.start_time = datetime.now()
-        self._state = SessionState(current_model=self._model)
+        self._state = SessionState(current_model=self._agent.model_name)
 
     @property
     def pool(self) -> AgentPool | None:
@@ -210,7 +201,7 @@ class AgentChatSession:
         return ChatSessionMetadata(
             session_id=self.id,
             agent_name=self._agent.name,
-            model=self._model,
+            model=self._agent.model_name,
             tool_states=self._tool_states,
         )
 
@@ -331,15 +322,12 @@ class AgentChatSession:
 
     async def _send_normal(self, content: str) -> ChatMessage[str]:
         """Send message and get single response."""
-        model_override = self._model if self._model and self._model.strip() else None
-
-        result = await self._agent.run(content, model=model_override)  # type: ignore
-
-        model_name = model_override or self._agent.model_name
+        result = await self._agent.run(content)  # type: ignore
+        model = self._agent.model_name
         response = str(result.data)
         cost_info = (
-            await extract_usage(result.usage(), model_name, content, response)
-            if model_name
+            await extract_usage(result.usage(), model, content, response)
+            if model
             else None
         )
 
@@ -349,14 +337,19 @@ class AgentChatSession:
                 "token_usage": cost_info.token_usage,
                 "cost_usd": cost_info.cost_usd,
             })
-        if model_name:
-            metadata["model"] = model_name
+        if model:
+            metadata["model"] = model
 
         # Update session state before returning
         self._state.message_count += 2  # User and assistant messages
         usage = cost_info.token_usage if cost_info else None
         cost = cost_info.cost_usd if cost_info else None
-        metadata_obj = MessageMetadata(model=model_name, token_usage=usage, cost=cost)
+        metadata_obj = MessageMetadata(
+            model=self._agent.model_name,
+            token_usage=usage,
+            cost=cost,
+            name=self._agent.name,
+        )
 
         chat_msg: ChatMessage[str] = ChatMessage(
             content=response,
@@ -373,16 +366,13 @@ class AgentChatSession:
 
     async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage[str]]:
         """Send message and stream responses."""
-        async with self._agent.run_stream(
-            content,
-            model=self._model or "",  # type: ignore
-        ) as stream_result:
+        async with self._agent.run_stream(content) as stream_result:
             async for response in stream_result.stream():
                 yield ChatMessage[str](content=str(response), role="assistant")
 
             # Final message with token usage after stream completes
-            metadata: dict[str, Any] = {}
-            if model_name := self._model or self._agent.model_name:
+            metadata: dict[str, Any] = {"name": self._agent.name}
+            if model_name := self._agent.model_name:
                 metadata["model"] = model_name
                 usage = stream_result.usage()
                 if cost_info := await extract_usage(usage, model_name, content, response):

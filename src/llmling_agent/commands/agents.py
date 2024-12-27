@@ -69,42 +69,6 @@ Example: /switch-agent url_opener
 """
 
 
-def create_annotated_dump(
-    config: dict[str, Any], overrides: dict[str, Any], *, indent: int = 2
-) -> str:
-    """Create YAML dump with override annotations.
-
-    Args:
-        config: Configuration dictionary
-        overrides: Dictionary of overridden values
-        indent: Indentation level (default: 2)
-
-    Returns:
-        YAML string with override comments
-    """
-    lines = []
-    base_yaml = yaml.dump(
-        config,
-        sort_keys=False,
-        indent=indent,
-        default_flow_style=False,
-        allow_unicode=True,
-    )
-
-    for line in base_yaml.splitlines():
-        # Check if this line contains an overridden field
-        for key in overrides:
-            if line.startswith(f"{key}:"):
-                # Add comment indicating original value
-                original = config.get(key, "not set")
-                lines.append(f"{line}  # Override (was: {original})")
-                break
-        else:
-            lines.append(line)
-
-    return "\n".join(lines)
-
-
 async def create_agent_command(
     ctx: CommandContext[AgentChatSession],
     args: list[str],
@@ -164,23 +128,17 @@ async def show_agent(
     # Get the agent's config with current overrides
     config = ctx.data._agent._context.config
 
-    # Track overrides
-    overrides = {}
-
-    # Check model override
-    if ctx.data._model:
-        overrides["model"] = ctx.data._model
-
     # Get base config as dict
     config_dict = config.model_dump(exclude_none=True)
 
-    # Apply overrides
-    if overrides:
-        config_dict.update(overrides)
-
     # Format as annotated YAML
-    yaml_config = create_annotated_dump(config_dict, overrides)
-
+    yaml_config = yaml.dump(
+        config_dict,
+        sort_keys=False,
+        indent=2,
+        default_flow_style=False,
+        allow_unicode=True,
+    )
     # Add header and format for display
     sections = [
         "\n[bold]Current Agent Configuration:[/]",
@@ -188,10 +146,6 @@ async def show_agent(
         yaml_config,
         "```",
     ]
-
-    if overrides:
-        msg = "[dim]Note: Fields marked with '# Override' show runtime overrides[/]"
-        sections.extend(["", msg])
 
     await ctx.output.print("\n".join(sections))
 

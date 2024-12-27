@@ -7,7 +7,7 @@ from collections.abc import Callable, Sequence  # noqa: TC003
 from contextlib import asynccontextmanager
 import time
 from typing import TYPE_CHECKING, Any, cast
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from llmling import Config
 from llmling.config.runtime import RuntimeConfig
@@ -22,10 +22,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
-from llmling_agent.pydantic_ai_utils import (
-    extract_usage,
-    get_tool_calls,
-)
+from llmling_agent.pydantic_ai_utils import extract_usage, get_tool_calls
 from llmling_agent.responses import InlineResponseDefinition, resolve_response_type
 from llmling_agent.tools.manager import ToolManager
 
@@ -79,6 +76,7 @@ class LLMlingAgent[TDeps, TResult]:
         context: AgentContext[TDeps] | None = None,
         result_type: type[TResult] | None = None,
         *,
+        session_id: str | UUID | None = None,
         model: models.Model | models.KnownModelName | None = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
@@ -99,6 +97,7 @@ class LLMlingAgent[TDeps, TResult]:
             runtime: Runtime configuration providing access to resources/tools
             context: Agent context with capabilities and configuration
             result_type: Optional type for structured responses
+            session_id: Optional id to recover a conversation
             model: The default model to use (defaults to GPT-4)
             system_prompt: Static system prompts to use for this agent
             name: Name of the agent for logging
@@ -157,9 +156,9 @@ class LLMlingAgent[TDeps, TResult]:
             defer_model_check=defer_model_check,
             **kwargs,
         )
-        self._name = name
+        self.name = name
         msg = "Initialized %s (model=%s, result_type=%s)"
-        logger.debug(msg, self._name, model, result_type or "str")
+        logger.debug(msg, self.name, model, result_type or "str")
 
         from llmling_agent.agent import AgentLogger
         from llmling_agent.events import EventManager
@@ -174,10 +173,23 @@ class LLMlingAgent[TDeps, TResult]:
             all_prompts.extend(system_prompt)
 
         # Initialize ConversationManager with all prompts
-        self.conversation = ConversationManager(self, initial_prompts=all_prompts)
+        self.conversation = ConversationManager(
+            self,
+            initial_prompts=all_prompts,
+            session_id=session_id,
+        )
 
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._connected_agents: set[LLMlingAgent[Any, Any]] = set()
+
+    @property
+    def name(self) -> str:
+        """Get agent name."""
+        return self._pydantic_agent.name or "llmling-agent"
+
+    @name.setter
+    def name(self, value: str | None):
+        self._pydantic_agent.name = value
 
     @classmethod
     @asynccontextmanager
@@ -482,7 +494,7 @@ class LLMlingAgent[TDeps, TResult]:
             self.conversation._last_messages = list(messages)
             if not message_history:
                 self.conversation.set_history(result.all_messages())
-            # Emit user message
+            # Emit user messages
             user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
             self.message_received.emit(user_msg)
             logger.debug("Agent run result: %r", result.data)
@@ -675,21 +687,6 @@ class LLMlingAgent[TDeps, TResult]:
                 seen.add(agent.name)
                 await agent.wait_for_chain(seen)
 
-    def system_prompt(self, *args: Any, **kwargs: Any) -> Any:
-        """Register a dynamic system prompt.
-
-        System prompts can access runtime through RunContext[AgentContext].
-
-        Example:
-            ```python
-            @agent.system_prompt
-            async def get_prompt(ctx: RunContext[AgentContext]) -> str:
-                resources = await ctx.deps.list_resource_names()
-                return f"Available resources: {', '.join(resources)}"
-            ```
-        """
-        return self._pydantic_agent.system_prompt(*args, **kwargs)
-
     def clear_history(self):
         """Clear both internal and pydantic-ai history."""
         self._logger.clear_state()
@@ -744,11 +741,6 @@ class LLMlingAgent[TDeps, TResult]:
     def runtime(self) -> RuntimeConfig:
         """Get the runtime configuration."""
         return self._runtime
-
-    @property
-    def name(self) -> str:
-        """Get agent name."""
-        return self._name
 
     @property
     def tools(self) -> ToolManager:

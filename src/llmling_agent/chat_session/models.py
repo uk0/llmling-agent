@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING
-from uuid import UUID  # noqa: TC003
 
 from pydantic import BaseModel, Field
 
@@ -22,7 +21,7 @@ logger = get_logger(__name__)
 class ChatSessionMetadata(BaseModel):
     """Configuration and state of an agent chat session."""
 
-    session_id: UUID
+    session_id: str
     agent_name: str
     model: str | None = None
     tool_states: dict[str, bool]

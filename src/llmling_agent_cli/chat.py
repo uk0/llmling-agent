@@ -26,6 +26,7 @@ FORWARD_HELP = "Forward responses to these agents"
 
 def chat_command(
     agent_name: str = t.Argument(help="Name of agent to chat with"),
+    session_id: str | None = t.Option(None, "--session-id", "-s", help="Session id"),
     config: str | None = t.Option(None, "--config", "-c", help=CONFIG_HELP),
     model: str | None = t.Option(None, "--model", "-m", help="Override agent's model"),
     stream: bool = t.Option(True, STREAM_CMD, help=STREAM_HELP),
@@ -76,6 +77,7 @@ def chat_command(
                 agent: LLMlingAgent[Any, str] = pool.get_agent(
                     agent_name,
                     model_override=model,
+                    session_id=session_id,
                 )
 
                 # Set up forwarding if requested

@@ -64,7 +64,7 @@ def create_welcome_messages(
     if agent._context and agent._context.config.description:
         agent_info.append(fmt(agent._context.config.description, "dim"))
 
-    model = session._model or agent.model_name or "default"
+    model = agent.model_name or "default"
     mode = "streaming" if streaming else "non-streaming"
     config_info = [f"{fmt('Model:', 'bold')} {model}", f"{fmt('Mode:', 'bold')} {mode}"]
 

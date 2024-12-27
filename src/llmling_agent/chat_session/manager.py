@@ -9,8 +9,6 @@ from llmling_agent.chat_session.exceptions import ChatSessionNotFoundError
 
 
 if TYPE_CHECKING:
-    from uuid import UUID
-
     from llmling_agent import LLMlingAgent
     from llmling_agent.delegation.pool import AgentPool
 
@@ -27,8 +25,8 @@ class ChatSessionManager:
     """
 
     def __init__(self):
-        self._sessions: dict[UUID, AgentChatSession] = {}
-        self._pools: dict[UUID, AgentPool] = {}  # Track pools per session
+        self._sessions: dict[str, AgentChatSession] = {}
+        self._pools: dict[str, AgentPool] = {}  # Track pools per session
 
     async def create_session(
         self,
@@ -36,7 +34,6 @@ class ChatSessionManager:
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,
-        model_override: str | None = None,
     ) -> AgentChatSession:
         """Create and register a new session.
 
@@ -44,7 +41,6 @@ class ChatSessionManager:
             agent: The agent to create a session for
             pool: Optional agent pool for multi-agent interactions
             wait_chain: Whether to wait for chain completion
-            model_override: Optional model override
 
         Returns:
             New chat session instance
@@ -53,7 +49,6 @@ class ChatSessionManager:
             agent,
             pool=pool,
             wait_chain=wait_chain,
-            model_override=model_override,
         )
         await session.initialize()
         self._sessions[session.id] = session
@@ -61,7 +56,7 @@ class ChatSessionManager:
             self._pools[session.id] = pool
         return session
 
-    def get_session(self, session_id: UUID) -> AgentChatSession:
+    def get_session(self, session_id: str) -> AgentChatSession:
         """Get an existing session.
 
         Args:
@@ -79,7 +74,7 @@ class ChatSessionManager:
             msg = f"Session {session_id} not found"
             raise ChatSessionNotFoundError(msg) from e
 
-    async def end_session(self, session_id: UUID):
+    async def end_session(self, session_id: str):
         """End and cleanup a session.
 
         Args:
@@ -102,7 +97,7 @@ class ChatSessionManager:
         self._sessions.clear()
         self._pools.clear()
 
-    def get_pool(self, session_id: UUID) -> AgentPool | None:
+    def get_pool(self, session_id: str) -> AgentPool | None:
         """Get the agent pool associated with a session.
 
         Args:
