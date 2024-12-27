@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import tempfile
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling.prompts import BasePrompt, PromptMessage, StaticPrompt
+from pydantic_ai.messages import ModelRequest, UserPromptPart
+from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.pydantic_ai_utils import convert_model_message
@@ -13,6 +16,7 @@ from llmling_agent.pydantic_ai_utils import convert_model_message
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
+    import os
 
     from pydantic_ai.messages import ModelMessage
 
@@ -50,9 +54,9 @@ class ConversationManager:
             agent: instance to manage
             initial_prompts: Initial system prompts that start each conversation
         """
-        self._agent = agent._pydantic_agent
+        self._agent = agent
         self._initial_prompts: list[BasePrompt] = []
-        self._current_history: list[ModelMessage] | None = None
+        self._current_history: list[ModelMessage] = []
         self._last_messages: list[ModelMessage] = []
 
         # Add initial prompts
@@ -79,7 +83,9 @@ class ConversationManager:
         """Start temporary conversation with different system prompts."""
         # Store original state
         original_prompts = list(self._initial_prompts)
-        original_system_prompts = self._agent._system_prompts  # Store pydantic-ai prompts
+        original_system_prompts = (
+            self._agent._pydantic_agent._system_prompts
+        )  # Store pydantic-ai prompts
         original_history = self._current_history
 
         try:
@@ -97,15 +103,15 @@ class ConversationManager:
 
                 # Update pydantic-ai's system prompts
                 formatted_prompts = await self.get_all_prompts()
-                self._agent._system_prompts = tuple(formatted_prompts)
+                self._agent._pydantic_agent._system_prompts = tuple(formatted_prompts)
 
             # Force new conversation
-            self._current_history = None
+            self._current_history = []
             yield
         finally:
             # Restore complete original state
             self._initial_prompts = original_prompts
-            self._agent._system_prompts = original_system_prompts
+            self._agent._pydantic_agent._system_prompts = original_system_prompts
             self._current_history = original_history
 
     def add_prompt(self, prompt: PromptInput):
@@ -142,10 +148,141 @@ class ConversationManager:
     def clear(self):
         """Clear conversation history and prompts."""
         self._initial_prompts.clear()
-        self._current_history = None
+        self._current_history = []
         self._last_messages = []
 
     @property
     def last_run_messages(self) -> list[ChatMessage]:
         """Get messages from the last run converted to our format."""
         return [convert_model_message(msg) for msg in self._last_messages]
+
+    async def add_context_message(
+        self,
+        content: str,
+        source: str | None = None,
+        **metadata: Any,
+    ):
+        """Add a context message.
+
+        Args:
+            content: Text content to add
+            source: Description of content source
+            **metadata: Additional metadata to include with the message
+        """
+        meta_str = ""
+        if metadata:
+            meta_str = "\n".join(f"{k}: {v}" for k, v in metadata.items())
+            meta_str = f"\nMetadata:\n{meta_str}\n"
+
+        header = f"Content from {source}:" if source else "Additional context:"
+        formatted = f"{header}{meta_str}\n{content}\n"
+        message = ModelRequest(parts=[UserPromptPart(content=formatted)])
+        self._current_history.append(message)
+
+    async def add_context_from_path(
+        self,
+        path: str | os.PathLike[str],
+        *,
+        convert_to_md: bool = False,
+        **metadata: Any,
+    ):
+        """Add file or URL content as context message.
+
+        Args:
+            path: Any UPath-supported path
+            convert_to_md: Whether to convert content to markdown
+            **metadata: Additional metadata to include with the message
+
+        Raises:
+            ValueError: If content cannot be loaded or converted
+        """
+        upath = UPath(path)
+
+        if convert_to_md:
+            try:
+                from markitdown import MarkItDown
+
+                md = MarkItDown()
+
+                # Direct handling for local paths and http(s) URLs
+                if upath.protocol in ("", "file", "http", "https"):
+                    result = md.convert(upath.path)
+                else:
+                    with tempfile.NamedTemporaryFile(suffix=upath.suffix) as tmp:
+                        tmp.write(upath.read_bytes())
+                        tmp.flush()
+                        result = md.convert(tmp.name)
+
+                content = result.text_content
+                source = f"markdown:{upath.name}"
+
+            except Exception as e:
+                msg = f"Failed to convert {path} to markdown: {e}"
+                raise ValueError(msg) from e
+        else:
+            try:
+                content = upath.read_text()
+                source = f"{upath.protocol}:{upath.name}"
+            except Exception as e:
+                msg = f"Failed to read {path}: {e}"
+                raise ValueError(msg) from e
+
+        await self.add_context_message(content, source=source, **metadata)
+
+    async def add_context_from_resource(
+        self,
+        resource_name: str,
+        **params: Any,
+    ):
+        """Add content from runtime resource as context message.
+
+        Args:
+            resource_name: Name of the resource to load
+            **params: Parameters to pass to resource loader
+
+        Raises:
+            RuntimeError: If no runtime is available
+            ValueError: If resource loading fails
+        """
+        if not self._agent.runtime:
+            msg = "No runtime available to load resources"
+            raise RuntimeError(msg)
+
+        content = await self._agent.runtime.load_resource(resource_name, **params)
+        await self.add_context_message(str(content), source=f"resource:{resource_name}")
+
+    async def add_context_from_prompt(
+        self,
+        prompt_name: str,
+        arguments: dict[str, Any] | None = None,
+        **metadata: Any,
+    ):
+        """Add rendered prompt content as context message.
+
+        Args:
+            prompt_name: Name of the prompt to render
+            arguments: Optional arguments for prompt formatting
+            **metadata: Additional metadata to include with the message
+
+        Raises:
+            RuntimeError: If no runtime is available
+            ValueError: If prompt loading or rendering fails
+        """
+        if not self._agent.runtime:
+            msg = "No runtime available to load prompts"
+            raise RuntimeError(msg)
+
+        messages = await self._agent.runtime.render_prompt(prompt_name, arguments)
+        content = "\n\n".join(msg.get_text_content() for msg in messages)
+
+        await self.add_context_message(
+            content,
+            source=f"prompt:{prompt_name}",
+            prompt_args=arguments,
+            **metadata,
+        )
+
+
+if __name__ == "__main__":
+    path = UPath("http://tmp/test.txt")
+    print(str(path.path))
