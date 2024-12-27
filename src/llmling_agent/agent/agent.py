@@ -500,6 +500,7 @@ class LLMlingAgent[TDeps, TResult]:
                 model=self.model_name,
                 token_usage=cost.token_usage if cost else None,
                 cost=cost.cost_usd if cost else None,
+                name=self.name,
                 response_time=time.perf_counter() - start_time,
             )
             assistant_msg: ChatMessage[TResult] = ChatMessage[TResult](
