@@ -12,6 +12,7 @@ from pydantic_ai.messages import ModelRequest, UserPromptPart
 from upath import UPath
 
 from llmling_agent.log import get_logger
+from llmling_agent.models.messages import ChatMessage, MessageMetadata
 from llmling_agent.pydantic_ai_utils import convert_model_message
 
 
@@ -23,7 +24,6 @@ if TYPE_CHECKING:
     from pydantic_ai.messages import ModelMessage
 
     from llmling_agent.agent.agent import LLMlingAgent
-    from llmling_agent.models.messages import ChatMessage
 
 logger = get_logger(__name__)
 
@@ -79,13 +79,15 @@ class ConversationManager:
                 [initial_prompts] if isinstance(initial_prompts, str) else initial_prompts
             )
             for prompt in prompts_list:
-                self._initial_prompts.append(
-                    StaticPrompt(
-                        name="Initial system prompt",
-                        description="Initial system prompt",
-                        messages=[PromptMessage(role="system", content=prompt)],
-                    )
+                obj = StaticPrompt(
+                    name="Initial system prompt",
+                    description="Initial system prompt",
+                    messages=[PromptMessage(role="system", content=prompt)],
                 )
+                self._initial_prompts.append(obj)
+
+    def __repr__(self) -> str:
+        return f"ConversationManager(id={self.id!r})"
 
     async def load_history_from_database(
         self,
@@ -232,6 +234,15 @@ class ConversationManager:
         formatted = f"{header}{meta_str}\n{content}\n"
         message = ModelRequest(parts=[UserPromptPart(content=formatted)])
         self._current_history.append(message)
+        # Emit as user message - will trigger logging through existing flow
+        chat_message: ChatMessage[str] = ChatMessage(
+            content=formatted,
+            role="user",
+            metadata=MessageMetadata(
+                name=self._agent.name, model=self._agent.model_name, **metadata
+            ),
+        )
+        self._agent.message_received.emit(chat_message)
 
     async def add_context_from_path(
         self,
@@ -250,7 +261,7 @@ class ConversationManager:
         Raises:
             ValueError: If content cannot be loaded or converted
         """
-        upath = UPath(path)
+        path_obj = UPath(path)
 
         if convert_to_md:
             try:
@@ -259,26 +270,26 @@ class ConversationManager:
                 md = MarkItDown()
 
                 # Direct handling for local paths and http(s) URLs
-                if upath.protocol in ("", "file", "http", "https"):
-                    result = md.convert(upath.path)
+                if path_obj.protocol in ("", "file", "http", "https"):
+                    result = md.convert(path_obj.path)
                 else:
-                    with tempfile.NamedTemporaryFile(suffix=upath.suffix) as tmp:
-                        tmp.write(upath.read_bytes())
+                    with tempfile.NamedTemporaryFile(suffix=path_obj.suffix) as tmp:
+                        tmp.write(path_obj.read_bytes())
                         tmp.flush()
                         result = md.convert(tmp.name)
 
                 content = result.text_content
-                source = f"markdown:{upath.name}"
+                source = f"markdown:{path_obj.name}"
 
             except Exception as e:
-                msg = f"Failed to convert {path} to markdown: {e}"
+                msg = f"Failed to convert {path_obj} to markdown: {e}"
                 raise ValueError(msg) from e
         else:
             try:
-                content = upath.read_text()
-                source = f"{upath.protocol}:{upath.name}"
+                content = path_obj.read_text()
+                source = f"{path_obj.protocol}:{path_obj.name}"
             except Exception as e:
-                msg = f"Failed to read {path}: {e}"
+                msg = f"Failed to read {path_obj}: {e}"
                 raise ValueError(msg) from e
 
         await self.add_context_message(content, source=source, **metadata)
@@ -338,5 +349,14 @@ class ConversationManager:
 
 
 if __name__ == "__main__":
-    path = UPath("http://tmp/test.txt")
-    print(str(path.path))
+    from llmling_agent import LLMlingAgent
+
+    async def main():
+        async with LLMlingAgent[Any, Any].open() as agent:
+            convo = ConversationManager(agent, session_id="test")
+            await convo.add_context_from_path("E:/mcp_zed.yml")
+            print(convo._current_history)
+
+    import asyncio
+
+    asyncio.run(main())

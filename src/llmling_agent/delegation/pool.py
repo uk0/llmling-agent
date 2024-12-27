@@ -312,7 +312,9 @@ class AgentPool:
             # load_history_from_database is async, so workaround
             from llmling_agent.agent.conversation import ConversationManager
 
-            agent.conversation = ConversationManager(agent, session_id=session_id)
+            agent.conversation: ConversationManager = ConversationManager(
+                agent, session_id=session_id
+            )
         # Apply any overrides to the existing agent
         if model_override:
             agent.set_model(model_override)  # type: ignore
