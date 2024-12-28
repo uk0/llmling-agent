@@ -12,12 +12,12 @@ from rich.console import Console
 from rich.markdown import Markdown
 from slashed import ExitCommandError
 from slashed.log import SessionLogHandler
+from slashed.prompt_toolkit_completion import PromptToolkitCompleter
 
 from llmling_agent.chat_session import ChatSessionManager
 from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.models.messages import ChatMessage
-from llmling_agent_cli.chat_session.completion import PromptToolkitCompleter
 from llmling_agent_cli.chat_session.formatting import MessageFormatter
 from llmling_agent_cli.chat_session.history import SessionHistory
 
@@ -154,7 +154,9 @@ class InteractiveSession:
         assert self._chat_session is not None
 
         history = SessionHistory(self._chat_session)
-        self._completer = PromptToolkitCompleter(self._chat_session.commands._commands)
+        store = self._chat_session.commands
+        ctx = store.create_context(self._chat_session)
+        self._completer = PromptToolkitCompleter(store._commands, ctx)
 
         self._prompt = PromptSession[str](
             "You: ",
