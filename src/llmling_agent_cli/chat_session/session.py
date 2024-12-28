@@ -73,7 +73,7 @@ class InteractiveSession:
         self._prompt: PromptSession | None = None
         self._pool = pool
         self._wait_chain = wait_chain
-
+        self._completer: PromptToolkitCompleter | None = None
         # Setup logging
         self._log_handler = None
         if show_log_in_chat:
@@ -154,13 +154,13 @@ class InteractiveSession:
         assert self._chat_session is not None
 
         history = SessionHistory(self._chat_session)
-        completer = PromptToolkitCompleter(self._chat_session.commands._commands)
+        self._completer = PromptToolkitCompleter(self._chat_session.commands._commands)
 
         self._prompt = PromptSession[str](
             "You: ",
             history=history,
             auto_suggest=AutoSuggestFromHistory(),
-            completer=completer,
+            completer=self._completer,
         )
 
     async def _handle_input(self, content: str):
