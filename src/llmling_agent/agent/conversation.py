@@ -57,6 +57,8 @@ class ConversationManager:
         agent: LLMlingAgent[Any, Any],
         session_id: str | UUID | None = None,
         initial_prompts: str | Sequence[str] | None = None,
+        *,
+        context_sources: Sequence[ContextSource | str] = (),
     ):
         """Initialize conversation manager.
 
@@ -64,6 +66,7 @@ class ConversationManager:
             agent: instance to manage
             session_id: Optional session ID to load and continue conversation
             initial_prompts: Initial system prompts that start each conversation
+            context_sources: Optional paths to load as context
         """
         self._agent = agent
         self._initial_prompts: list[BasePrompt] = []
@@ -93,39 +96,36 @@ class ConversationManager:
                     messages=[PromptMessage(role="system", content=prompt)],
                 )
                 self._initial_prompts.append(obj)
+        # Add context loading tasks to agent
+        for source in context_sources:
+            task = asyncio.create_task(self.load_context_source(source))
+            self._agent._pending_tasks.add(task)
+            task.add_done_callback(self._agent._pending_tasks.discard)
 
     def __repr__(self) -> str:
         return f"ConversationManager(id={self.id!r})"
 
-    async def load_context_sources(
-        self,
-        sources: Sequence[ContextSource],
-    ) -> None:
-        """Load context from configured sources.
-
-        This uses the existing add_context_* methods to load content.
-        Errors are logged but don't stop loading other sources.
-        """
-        for source in sources:
-            try:
-                match source:
-                    case FileContextSource():
-                        await self.add_context_from_path(
-                            source.path,
-                            convert_to_md=source.convert_to_md,
-                            **source.metadata,
-                        )
-                    case ResourceContextSource():
-                        await self.add_context_from_resource(
-                            source.name,
-                            **source.arguments | source.metadata,  # merge dicts
-                        )
-                    case PromptContextSource():
-                        await self.add_context_from_prompt(
-                            source.name, source.arguments, **source.metadata
-                        )
-            except Exception:
-                logger.exception("Failed to load context from %s", source.type)
+    async def load_context_source(self, source: ContextSource | str) -> None:
+        """Load context from a single source."""
+        try:
+            match source:
+                case str():
+                    await self.add_context_from_path(source)
+                case FileContextSource():
+                    await self.add_context_from_path(
+                        source.path, convert_to_md=source.convert_to_md, **source.metadata
+                    )
+                case ResourceContextSource():
+                    await self.add_context_from_resource(
+                        source.name, **source.arguments | source.metadata
+                    )
+                case PromptContextSource():
+                    await self.add_context_from_prompt(
+                        source.name, source.arguments, **source.metadata
+                    )
+        except Exception:
+            msg = "Failed to load context from %s"
+            logger.exception(msg, "file" if isinstance(source, str) else source.type)
 
     async def load_history_from_database(
         self,
