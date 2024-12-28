@@ -17,7 +17,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.test import TestModel
 import pytest
-import yaml
+import yamling
 
 from llmling_agent.agent import LLMlingAgent
 
@@ -186,7 +186,7 @@ async def test_agent_context_manager(tmp_path: Path):
 
     # Write config to temporary file
     config_path = tmp_path / "test_config.yml"
-    config_path.write_text(yaml.dump(config))
+    config_path.write_text(yamling.dump_yaml(config))
     model = TestModel(custom_result_text=TEST_RESPONSE)
 
     async with LLMlingAgent[Any, str].open(

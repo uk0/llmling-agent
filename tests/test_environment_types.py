@@ -8,7 +8,7 @@ from typing import Any
 from llmling import Config
 from pydantic import ValidationError
 import pytest
-import yaml
+import yamling
 
 from llmling_agent.environment import FileEnvironment, InlineEnvironment
 
@@ -37,7 +37,7 @@ def test_file_environment_path_resolution(tmp_path: pathlib.Path):
     # Create valid YAML content
     caps = {"load_resource": False, "get_resources": False}
     env_content = {"global_settings": {"llm_capabilities": caps}}
-    env_file.write_text(yaml.dump(env_content))
+    env_file.write_text(yamling.dump_yaml(env_content))
 
     # Test relative path resolution
     path = str(config_dir / "agent.yml")

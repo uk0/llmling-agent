@@ -33,7 +33,7 @@ def quickstart_command(
     """Start an ephemeral chat session with minimal setup."""
     from tempfile import NamedTemporaryFile
 
-    import yaml
+    import yamling
 
     from llmling_agent import LLMlingAgent
 
@@ -50,7 +50,7 @@ def quickstart_command(
     try:
         # Create temporary runtime config
         with NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp_env:
-            yaml.dump(cfg, tmp_env)
+            yamling.dump_yaml(cfg, stream=tmp_env)
             env_path = tmp_env.name
 
         # Minimal agent config
@@ -69,7 +69,7 @@ def quickstart_command(
         with NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp_agent:
             # Update environment path to actual path
             minimal_agent_config["agents"]["quickstart"]["environment"] = env_path
-            yaml.dump(minimal_agent_config, tmp_agent)
+            yamling.dump_yaml(minimal_agent_config, stream=tmp_agent)
             agent_path = tmp_agent.name
 
         async def run_chat():

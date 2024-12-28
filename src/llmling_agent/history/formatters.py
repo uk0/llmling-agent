@@ -84,9 +84,9 @@ def format_output(
         case "json":
             return json.dumps(data, indent=2)
         case "yaml":
-            import yaml
+            import yamling
 
-            return yaml.safe_dump(data)
+            return yamling.dump_yaml(data)
         case "text":
             console = Console(record=True)
             if is_conversation_data(data):

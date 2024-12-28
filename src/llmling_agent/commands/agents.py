@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from llmling import Config
 from slashed import Command, CommandContext, CommandError
-import yaml
+import yamling
 
 from llmling_agent.agent import LLMlingAgent
 from llmling_agent.environment.models import InlineEnvironment
@@ -132,7 +132,7 @@ async def show_agent(
     config_dict = config.model_dump(exclude_none=True)
 
     # Format as annotated YAML
-    yaml_config = yaml.dump(
+    yaml_config = yamling.dump_yaml(
         config_dict,
         sort_keys=False,
         indent=2,
