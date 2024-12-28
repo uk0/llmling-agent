@@ -1,4 +1,4 @@
-"""Models for system and user prompts."""
+"""Models for resource information."""
 
 from __future__ import annotations
 
