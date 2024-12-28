@@ -118,7 +118,7 @@ class AgentConfig(BaseModel):
     config_file_path: str | None = None
     """Config file path for resolving environment."""
 
-    role: RoleName = "assistant"
+    role: RoleName = "basic"
     """Role name (built-in or custom) determining agent's capabilities."""
 
     triggers: list[EventConfig] = Field(default_factory=list)

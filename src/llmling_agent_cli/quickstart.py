@@ -59,7 +59,6 @@ def quickstart_command(
                 "quickstart": {
                     "name": "quickstart",
                     "model": model,
-                    "role": "assistant",
                     "environment": env_path,  # Will point to our runtime config
                 }
             }

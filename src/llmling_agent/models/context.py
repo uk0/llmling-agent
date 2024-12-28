@@ -65,5 +65,5 @@ class AgentContext[TDeps](BaseModel):
         """
         caps = capabilities or Capabilities()
         defn = AgentsManifest(agents={})
-        cfg = AgentConfig(name=name, role="assistant")
+        cfg = AgentConfig(name=name)
         return cls(agent_name=name, capabilities=caps, definition=defn, config=cfg)
