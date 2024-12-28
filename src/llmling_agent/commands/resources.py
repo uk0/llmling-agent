@@ -5,7 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from slashed import Command, CommandContext, CommandError
+from slashed.completers import CallbackCompleter
 
+from llmling_agent.commands.completers import get_resource_names
 from llmling_agent.log import get_logger
 
 
@@ -174,6 +176,7 @@ show_resource_cmd = Command(
     usage="<name> [--param1 value1] [--param2 value2]",
     help_text=SHOW_RESOURCES_HELP,
     category="resources",
+    completer=CallbackCompleter(get_resource_names),
 )
 
 
@@ -184,4 +187,5 @@ add_resource_cmd = Command(
     usage="<name> [param1=value1] [param2=value2]",
     help_text=ADD_RESOURCE_HELP,
     category="resources",
+    completer=CallbackCompleter(get_resource_names),
 )

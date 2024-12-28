@@ -5,7 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from slashed import Command, CommandContext, CommandError
+from slashed.completers import CallbackCompleter
 
+from llmling_agent.commands.completers import get_available_agents
 from llmling_agent.log import get_logger
 
 
@@ -173,6 +175,7 @@ remove_worker_cmd = Command(
     usage="<worker_name>",
     help_text=REMOVE_WORKER_HELP,
     category="tools",
+    completer=CallbackCompleter(get_available_agents),
 )
 
 
@@ -183,4 +186,5 @@ add_worker_cmd = Command(
     usage="<agent_name> [--reset-history false] [--share-history] [--share-context]",
     help_text=ADD_WORKER_HELP,
     category="tools",
+    completer=CallbackCompleter(get_available_agents),
 )

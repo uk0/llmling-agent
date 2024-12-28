@@ -328,6 +328,7 @@ enable_tool_cmd = Command(
     usage="<name>",
     help_text=ENABLE_TOOL_HELP,
     category="tools",
+    completer=CallbackCompleter(get_tool_names),
 )
 
 disable_tool_cmd = Command(
@@ -337,4 +338,5 @@ disable_tool_cmd = Command(
     usage="<name>",
     help_text=DISABLE_TOOL_HELP,
     category="tools",
+    completer=CallbackCompleter(get_tool_names),
 )

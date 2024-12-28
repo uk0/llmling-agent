@@ -5,6 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from slashed import Command, CommandContext
+from slashed.completers import CallbackCompleter
+
+from llmling_agent.commands.completers import get_model_names
 
 
 if TYPE_CHECKING:
@@ -52,4 +55,5 @@ set_model_cmd = Command(
     usage="<model>",
     help_text=SET_MODEL_HELP,
     category="model",
+    completer=CallbackCompleter(get_model_names),
 )

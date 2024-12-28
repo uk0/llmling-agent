@@ -6,7 +6,9 @@ from typing import TYPE_CHECKING, Any
 
 from rich.tree import Tree
 from slashed import Command, CommandContext, CommandError
+from slashed.completers import CallbackCompleter
 
+from llmling_agent.commands.completers import get_available_agents
 from llmling_agent.log import get_logger
 
 
@@ -147,6 +149,7 @@ connect_cmd = Command(
     usage="<agent_name> [--no-wait]",
     help_text=CONNECT_HELP,
     category="agents",
+    completer=CallbackCompleter(get_available_agents),
 )
 
 disconnect_cmd = Command(
@@ -156,6 +159,7 @@ disconnect_cmd = Command(
     usage="<agent_name>",
     help_text=DISCONNECT_HELP,
     category="agents",
+    completer=CallbackCompleter(get_available_agents),
 )
 
 disconnect_all_cmd = Command(

@@ -5,6 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from slashed import Command, CommandContext
+from slashed.completers import CallbackCompleter
+
+from llmling_agent.commands.completers import get_prompt_names
 
 
 if TYPE_CHECKING:
@@ -75,4 +78,5 @@ prompt_cmd = Command(
     usage="<name> [arg1=value1] [arg2=value2]",
     help_text=EXECUTE_PROMPT_HELP,
     category="prompts",
+    completer=CallbackCompleter(get_prompt_names),
 )

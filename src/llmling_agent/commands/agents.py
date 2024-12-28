@@ -6,9 +6,11 @@ from typing import TYPE_CHECKING, Any
 
 from llmling import Config
 from slashed import Command, CommandContext, CommandError
+from slashed.completers import CallbackCompleter
 import yamling
 
 from llmling_agent.agent import LLMlingAgent
+from llmling_agent.commands.completers import get_available_agents
 from llmling_agent.environment.models import InlineEnvironment
 from llmling_agent.models.agents import AgentConfig
 
@@ -228,4 +230,5 @@ switch_agent_cmd = Command(
     usage="<name>",
     help_text=SWITCH_AGENT_HELP,
     category="agents",
+    completer=CallbackCompleter(get_available_agents),
 )

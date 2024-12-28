@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from slashed import Command, CommandContext, CommandError
+from slashed.completers import PathCompleter
 
 from llmling_agent.log import get_logger
 
@@ -74,4 +75,5 @@ read_cmd = Command(
     usage="<path_or_url> [--convert-to-md]",
     help_text=READ_HELP,
     category="content",
+    completer=PathCompleter(),
 )
