@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import TYPE_CHECKING, get_args
 
 from pydantic_ai.models import KnownModelName
+from slashed import CompletionItem, CompletionProvider
+
+from llmling_agent.prompts import DEFAULT_PROMPTS, PromptLibrary
 
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from slashed import CompletionContext
 
     from llmling_agent.chat_session.base import AgentChatSession
@@ -70,3 +76,67 @@ def get_model_names(ctx: CompletionContext[AgentChatSession]) -> list[str]:
             all_models.append(model)
 
     return all_models
+
+
+@lru_cache(maxsize=1)
+def _load_prompt_library() -> PromptLibrary | None:
+    """Load and cache the prompt library."""
+    try:
+        return PromptLibrary.from_file(DEFAULT_PROMPTS)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+class MetaCompleter(CompletionProvider):
+    """Smart completer for meta-prompts."""
+
+    def get_completions(
+        self, ctx: CompletionContext[AgentChatSession]
+    ) -> Iterator[CompletionItem]:
+        """Complete meta command arguments."""
+        current = ctx.current_word
+        args = ctx.command_args
+
+        # If completing a new argument that starts with --
+        if current.startswith("--"):
+            # Get categories that haven't been used yet
+            used_categories = {
+                arg[2:].split("=")[0] for arg in args if arg.startswith("--")
+            }
+            library = _load_prompt_library()
+            if not library:
+                return
+
+            # Suggest unused categories
+            categories = {
+                name.split(".")[0] for name in library.meta_prompts if "." in name
+            }
+            for category in categories - used_categories:
+                if category.startswith(current[2:]):
+                    yield CompletionItem(
+                        text=f"--{category}",
+                        metadata="Meta prompt category",
+                        kind="argument",  # type: ignore
+                    )
+
+        # If completing a value after a category
+        for arg in args:
+            if arg.startswith("--") and "=" not in arg:
+                category = arg[2:]  # Remove --
+                library = _load_prompt_library()
+                if not library:
+                    return
+
+                # Get styles for this category
+                styles = [
+                    name.split(".")[1]
+                    for name in library.meta_prompts
+                    if name.startswith(f"{category}.")
+                ]
+                for style in styles:
+                    if style.startswith(current):
+                        yield CompletionItem(
+                            text=style,
+                            metadata=f"{category} style",
+                            kind="value",  # type: ignore
+                        )
