@@ -177,13 +177,7 @@ class AgentConfig(BaseModel):
         """Render system prompts with context."""
         if not context:
             # Default context
-            context = {
-                "name": self.name,
-                "id": 1,  # Default ID
-                "role": self.role,
-                "model": self.model,
-            }
-
+            context = {"name": self.name, "id": 1, "role": self.role, "model": self.model}
         return [
             render_prompt(prompt, {"agent": context}) for prompt in self.system_prompts
         ]
@@ -193,7 +187,7 @@ class AgentConfig(BaseModel):
         match self.environment:
             case None:
                 # Create minimal config
-                caps = LLMCapabilitiesConfig(load_resource=False, get_resources=False)
+                caps = LLMCapabilitiesConfig()
                 global_settings = GlobalSettings(llm_capabilities=caps)
                 return Config(global_settings=global_settings)
             case str() as path:

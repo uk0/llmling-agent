@@ -61,7 +61,7 @@ class AgentContext[TDeps](BaseModel):
             name: Name of the agent
             capabilities: Optional custom capabilities (defaults to minimal access)
         """
-        caps = capabilities or Capabilities(history_access="none", stats_access="none")
-        defn = AgentsManifest(responses={}, agents={}, roles={})
+        caps = capabilities or Capabilities()
+        defn = AgentsManifest(agents={})
         cfg = AgentConfig(name=name, role="assistant")
         return cls(agent_name=name, capabilities=caps, definition=defn, config=cfg)
