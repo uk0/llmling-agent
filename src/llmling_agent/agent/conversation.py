@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from contextlib import asynccontextmanager
 import tempfile
 from typing import TYPE_CHECKING, Any, Literal
@@ -62,6 +63,7 @@ class ConversationManager:
         self._initial_prompts: list[BasePrompt] = []
         self._current_history: list[ModelMessage] = []
         self._last_messages: list[ModelMessage] = []
+        self._pending_messages: deque[ModelRequest] = deque()
         if session_id is not None:
             from llmling_agent.storage.models import Message
 
@@ -193,9 +195,29 @@ class ConversationManager:
 
         return result
 
-    def get_history(self) -> list[ModelMessage]:
-        """Get current conversation history."""
+    def get_history(self, include_pending: bool = True) -> list[ModelMessage]:
+        """Get current conversation history.
+
+        Args:
+            include_pending: Whether to include pending messages in the history.
+                             If True, pending messages are moved to main history.
+
+        Returns:
+            List of messages in chronological order
+        """
+        if include_pending and self._pending_messages:
+            self._current_history.extend(self._pending_messages)
+            self._pending_messages.clear()
+
         return self._current_history
+
+    def get_pending_messages(self) -> list[ModelMessage]:
+        """Get messages that will be included in next interaction."""
+        return list(self._pending_messages)
+
+    def clear_pending(self):
+        """Clear pending messages without adding them to history."""
+        self._pending_messages.clear()
 
     def set_history(self, history: list[ModelMessage]):
         """Update conversation history after run."""
@@ -233,15 +255,11 @@ class ConversationManager:
         header = f"Content from {source}:" if source else "Additional context:"
         formatted = f"{header}{meta_str}\n{content}\n"
         message = ModelRequest(parts=[UserPromptPart(content=formatted)])
-        self._current_history.append(message)
+        self._pending_messages.append(message)
         # Emit as user message - will trigger logging through existing flow
-        chat_message: ChatMessage[str] = ChatMessage(
-            content=formatted,
-            role="user",
-            metadata=MessageMetadata(
-                name=self._agent.name, model=self._agent.model_name, **metadata
-            ),
-        )
+        model = self._agent.model_name
+        meta = MessageMetadata(name=self._agent.name, model=model, **metadata)
+        chat_message = ChatMessage[str](content=formatted, role="user", metadata=meta)
         self._agent.message_received.emit(chat_message)
 
     async def add_context_from_path(
