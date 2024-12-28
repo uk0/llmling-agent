@@ -16,7 +16,12 @@ from pydantic_ai.models.test import TestModel
 from upath.core import UPath
 import yamling
 
-from llmling_agent.config.capabilities import BUILTIN_ROLES, Capabilities, RoleName
+from llmling_agent.config import (
+    Capabilities,
+    RoleName,
+    get_available_roles,
+    get_role_capabilities,
+)
 from llmling_agent.environment import AgentEnvironment  # noqa: TC001
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
@@ -420,8 +425,8 @@ class AgentsManifest(ConfigModel):
         """
         if role_name in self.roles:
             return self.roles[role_name]
-        if isinstance(role_name, str) and role_name in BUILTIN_ROLES:
-            return BUILTIN_ROLES[role_name]  # type: ignore[index]
+        if isinstance(role_name, str) and role_name in get_available_roles():
+            return get_role_capabilities(role_name)  # type: ignore[index]
         msg = f"Unknown role: {role_name}"
         raise ValueError(msg)
 
