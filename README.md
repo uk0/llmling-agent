@@ -204,7 +204,7 @@ agents:
       config:
         tools:
           download_file:  # Simple httpx-based download utility
-            import_path: llmling_agent.tools.download.download_file
+            import_path: llmling_agent_tools.download_file
             description: "Download file from URL to local path"
     system_prompts:
       - |

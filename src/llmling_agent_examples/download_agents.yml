@@ -12,7 +12,7 @@ agents:
   #           content: "http://speedtest.tele2.net/10MB.zip"
   #       tools:
   #         download_file:
-  #           callable: llmling_agent.tools.download.download_file
+  #           callable: llmling_agent_tools.download_file
   #           description: "Download file from URL to target path"
   #         get_download_url:
   #           callable: llmling_agent.tools.download.get_download_url
@@ -43,7 +43,7 @@ agents:
       config:
         tools:
           download_file:
-            import_path: llmling_agent.tools.download.download_file
+            import_path: llmling_agent_tools.download_file
             description: "Download file from URL to local path"
   file_getter_2:
     name: "File Downloader 2"
@@ -61,7 +61,7 @@ agents:
       config:
         tools:
           download_file:
-            import_path: llmling_agent.tools.download.download_file
+            import_path: llmling_agent_tools.download_file
             description: "Download file from URL to local path"
 
   overseer:
