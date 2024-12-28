@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from prompt_toolkit.completion import Completer, Completion
-from slashed import CompletionContext
+from slashed import CommandContext, CompletionContext
 
 
 if TYPE_CHECKING:
@@ -14,12 +14,25 @@ if TYPE_CHECKING:
     from prompt_toolkit.document import Document
     from slashed import BaseCommand
 
+T = TypeVar("T")
 
-class PromptToolkitCompleter(Completer):
+
+class PromptToolkitCompleter[T](Completer):
     """Adapts our completion system to prompt-toolkit."""
 
-    def __init__(self, commands: dict[str, BaseCommand]):
+    def __init__(
+        self,
+        commands: dict[str, BaseCommand],
+        command_context: CommandContext[T] | None = None,
+    ) -> None:
+        """Initialize completer.
+
+        Args:
+            commands: Command dictionary
+            command_context: Optional context for completions
+        """
         self._commands = commands
+        self._command_context = command_context
 
     def get_completions(
         self,
@@ -28,6 +41,12 @@ class PromptToolkitCompleter(Completer):
     ) -> Iterator[Completion]:
         """Get completions for the current context."""
         word_before_cursor = document.get_word_before_cursor()
+
+        # Create completion context with command context
+        completion_context = CompletionContext[T](
+            document,
+            command_context=self._command_context,
+        )
 
         # Command completion
         if document.text.startswith("/"):
@@ -46,5 +65,5 @@ class PromptToolkitCompleter(Completer):
             cmd_name = document.text.split()[0][1:]  # remove slash
             command = self._commands.get(cmd_name)
             if command and (completer := command.get_completer()):
-                for item in completer.get_completions(CompletionContext(document)):
+                for item in completer.get_completions(completion_context):
                     yield item.to_prompt_toolkit(-len(word_before_cursor))
