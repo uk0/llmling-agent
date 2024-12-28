@@ -87,7 +87,9 @@ async def extract_usage(
     return None
 
 
-def format_response(response: str | _messages.ModelRequestPart) -> str:  # noqa: PLR0911
+def format_response(  # noqa: PLR0911
+    response: str | _messages.ModelRequestPart | _messages.ModelResponsePart,
+) -> str:
     """Format any kind of response in a readable way.
 
     Args:
