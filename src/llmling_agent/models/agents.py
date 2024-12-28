@@ -30,6 +30,20 @@ if TYPE_CHECKING:
     import os
 
 
+class WorkerConfig(BaseModel):
+    """Configuration for a worker agent."""
+
+    name: str
+    reset_history_on_run: bool = True
+    pass_message_history: bool = False
+    share_context: bool = False
+
+    @classmethod
+    def from_str(cls, name: str) -> WorkerConfig:
+        """Create config from simple string form."""
+        return cls(name=name)
+
+
 class AgentConfig(BaseModel):
     """Configuration for a single agent in the system.
 
@@ -108,12 +122,30 @@ class AgentConfig(BaseModel):
     forward_to: list[ForwardingTarget] = Field(default_factory=list)
     """Targets to forward results to."""
 
+    workers: list[WorkerConfig] = Field(default_factory=list)
+    """Worker agents which will be available as tools."""
+
     model_config = ConfigDict(
         frozen=True,
         arbitrary_types_allowed=True,
         extra="forbid",
         use_attribute_docstrings=True,
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_workers(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Convert string workers to WorkerConfig."""
+        if workers := data.get("workers"):
+            data["workers"] = [
+                WorkerConfig.from_str(w)
+                if isinstance(w, str)
+                else w
+                if isinstance(w, WorkerConfig)  # Keep existing WorkerConfig
+                else WorkerConfig(**w)  # Convert dict to WorkerConfig
+                for w in workers
+            ]
+        return data
 
     @model_validator(mode="before")
     @classmethod
@@ -237,6 +269,7 @@ class AgentConfig(BaseModel):
         # Include only the fields that LLMlingAgent expects
         dct = {
             "name": self.name,
+            "description": self.description,
             "model": self.model,
             "system_prompt": self.system_prompts,
             "retries": self.retries,

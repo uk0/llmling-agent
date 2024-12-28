@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
+import inspect
 import json
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import messages as _messages, models
+from pydantic_ai import Agent, messages as _messages, models
 from pydantic_ai.messages import (
     ArgsDict,
     ModelMessage,
@@ -34,8 +35,9 @@ from llmling_agent.models.messages import (
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
+    from llmling.tools import LLMCallableTool
     from pydantic_ai.result import Usage
 
 
@@ -261,6 +263,27 @@ def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: 
         case _:
             msg = f"Unsupported message type: {type(message)}"
             raise ValueError(msg)
+
+
+def register_tool(agent: Agent[Any, Any], tool: LLMCallableTool) -> None:
+    """Register a tool with pydantic-ai agent using appropriate method.
+
+    Args:
+        agent: pydantic-ai agent to register with
+        tool: Tool to register
+    """
+
+    def needs_context(func: Callable[..., Any]) -> bool:
+        sig = inspect.signature(func)
+        return any(
+            "RunContext" in str(param.annotation) for param in sig.parameters.values()
+        )
+
+    assert tool._original_callable
+    if needs_context(tool._original_callable):
+        agent.tool(tool._original_callable)
+    else:
+        agent.tool_plain(tool._original_callable)
 
 
 def models_equal(

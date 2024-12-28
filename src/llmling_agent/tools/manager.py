@@ -16,6 +16,7 @@ from llmling_agent.tools.base import ToolInfo
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
+    from llmling_agent.agent.agent import LLMlingAgent
     from llmling_agent.config.capabilities import Capabilities
 
 
@@ -225,3 +226,32 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         # Register the tool
         self.register(tool_info.name, tool_info)
         return tool_info
+
+    def register_worker(
+        self,
+        worker: LLMlingAgent[Any, Any],
+        *,
+        name: str | None = None,
+        reset_history_on_run: bool = True,
+        pass_message_history: bool = False,
+        share_context: bool = False,
+        parent: LLMlingAgent[Any, Any] | None = None,
+    ) -> ToolInfo:
+        """Register an agent as a worker tool.
+
+        Args:
+            worker: Agent to register as worker
+            name: Optional name override for the worker tool
+            reset_history_on_run: Whether to clear history before each run
+            pass_message_history: Whether to pass parent's message history
+            share_context: Whether to pass parent's context/deps
+            parent: Optional parent agent for history/context sharing
+        """
+        tool = worker.to_agent_tool(
+            parent=parent,
+            name=name,
+            reset_history_on_run=reset_history_on_run,
+            pass_message_history=pass_message_history,
+            share_context=share_context,
+        )
+        return self.register_tool(tool, source="agent", metadata={"agent": worker.name})

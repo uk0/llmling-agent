@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from py2openai import OpenAIFunctionTool  # noqa: TC002
@@ -79,7 +79,7 @@ class ToolInfo:
     requires_capability: str | None = None
     """Optional capability required to use this tool"""
 
-    metadata: dict[str, str] | None = None
+    metadata: dict[str, str] = field(default_factory=dict)
     """Additional tool metadata"""
 
     @property

@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai.result import RunResult
 
-    from llmling_agent.models.agents import AgentConfig
+    from llmling_agent.models.agents import AgentConfig, WorkerConfig
 
 
 logger = get_logger(__name__)
@@ -120,8 +120,12 @@ class AgentPool:
                 system_prompt=config.system_prompts,
                 name=name,
             )
-
             self.agents[name] = agent
+
+        # Then set up worker relationships
+        for name, config in manifest.agents.items():
+            if name in self.agents and config.workers:
+                self.setup_agent_workers(self.agents[name], config.workers)
 
         # Set up forwarding connections
         if connect_agents:  # renamed usage
@@ -191,7 +195,7 @@ class AgentPool:
             msg = f"Agent {name} already exists"
             raise ValueError(msg)
 
-        # Create runtime from agent's config with proper initialization
+        # Create runtime from agent's config
         cfg = config.get_config()
         async with RuntimeConfig.open(cfg) as runtime:
             # Create context with config path and capabilities
@@ -211,6 +215,10 @@ class AgentPool:
                 system_prompt=config.system_prompts,
                 name=name,
             )
+
+            # Set up workers if defined
+            if config.workers:
+                self.setup_agent_workers(agent, config.workers)
 
             # Register
             self.agents[name] = agent
@@ -281,6 +289,24 @@ class AgentPool:
 
         return new_agent
 
+    def setup_agent_workers(
+        self, agent: LLMlingAgent[Any, Any], workers: list[WorkerConfig]
+    ) -> None:
+        """Set up workers for an agent from configuration."""
+        for worker_config in workers:
+            try:
+                worker = self.get_agent(worker_config.name)
+                agent.register_worker(
+                    worker,
+                    name=worker_config.name,
+                    reset_history_on_run=worker_config.reset_history_on_run,
+                    pass_message_history=worker_config.pass_message_history,
+                    share_context=worker_config.share_context,
+                )
+            except KeyError as e:
+                msg = f"Worker agent {worker_config.name!r} not found"
+                raise ValueError(msg) from e
+
     def get_agent(
         self,
         name: str,
@@ -312,9 +338,8 @@ class AgentPool:
             # load_history_from_database is async, so workaround
             from llmling_agent.agent.conversation import ConversationManager
 
-            agent.conversation: ConversationManager = ConversationManager(
-                agent, session_id=session_id
-            )
+            # TODO: setting up conversation should probably happen before using pool
+            agent.conversation = ConversationManager(agent, session_id=session_id)  # type: ignore
         # Apply any overrides to the existing agent
         if model_override:
             agent.set_model(model_override)  # type: ignore

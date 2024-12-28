@@ -11,8 +11,9 @@ from uuid import UUID, uuid4
 
 from llmling import Config
 from llmling.config.runtime import RuntimeConfig
+from llmling.tools import LLMCallableTool, ToolError
 from psygnal import Signal
-from pydantic_ai import Agent as PydanticAgent
+from pydantic_ai import Agent as PydanticAgent, RunContext
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import infer_model
 from typing_extensions import TypeVar
@@ -22,7 +23,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
-from llmling_agent.pydantic_ai_utils import extract_usage, get_tool_calls
+from llmling_agent.pydantic_ai_utils import extract_usage, get_tool_calls, register_tool
 from llmling_agent.responses import InlineResponseDefinition, resolve_response_type
 from llmling_agent.tools.manager import ToolManager
 
@@ -31,10 +32,11 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     import os
 
-    from llmling.tools import LLMCallableTool
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.messages import ModelMessage
     from pydantic_ai.result import RunResult, StreamedRunResult
+
+    from llmling_agent.tools.base import ToolInfo
 
 
 logger = get_logger(__name__)
@@ -80,6 +82,7 @@ class LLMlingAgent[TDeps, TResult]:
         model: models.Model | models.KnownModelName | None = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
+        description: str | None = None,
         tools: Sequence[LLMCallableTool] = (),
         retries: int = 1,
         result_tool_name: str = "final_result",
@@ -101,6 +104,7 @@ class LLMlingAgent[TDeps, TResult]:
             model: The default model to use (defaults to GPT-4)
             system_prompt: Static system prompts to use for this agent
             name: Name of the agent for logging
+            description: Description of the Agent ("what it can do")
             tools: List of tools to register with the agent
             retries: Default number of retries for failed operations
             result_tool_name: Name of the tool used for final result
@@ -157,6 +161,7 @@ class LLMlingAgent[TDeps, TResult]:
             **kwargs,
         )
         self.name = name
+        self.description = description
         msg = "Initialized %s (model=%s, result_type=%s)"
         logger.debug(msg, self.name, model, result_type or "str")
 
@@ -437,8 +442,7 @@ class LLMlingAgent[TDeps, TResult]:
         """Update pydantic-ai tools."""
         self._pydantic_agent._function_tools.clear()
         for tool in self.tools.get_tools(state="enabled"):
-            assert tool._original_callable
-            self._pydantic_agent.tool_plain(tool._original_callable)
+            register_tool(self._pydantic_agent, tool)
 
     async def run(
         self,
@@ -542,6 +546,58 @@ class LLMlingAgent[TDeps, TResult]:
                 old = self._pydantic_agent.model
                 model_obj = infer_model(old) if isinstance(old, str) else old
                 self.model_changed.emit(model_obj)
+
+    def to_agent_tool(
+        self,
+        *,
+        name: str | None = None,
+        reset_history_on_run: bool = True,
+        pass_message_history: bool = False,
+        share_context: bool = False,
+        parent: LLMlingAgent[Any, Any] | None = None,
+    ) -> LLMCallableTool:
+        """Create a tool from this agent.
+
+        Args:
+            name: Optional tool name override
+            reset_history_on_run: Clear agent's history before each run
+            pass_message_history: Pass parent's message history to agent
+            share_context: Whether to pass parent's context/deps
+            parent: Optional parent agent for history/context sharing
+        """
+        tool_name = f"ask_{self.name}"
+
+        async def wrapped_tool(ctx: RunContext[AgentContext], prompt: str) -> str:
+            if pass_message_history and not parent:
+                msg = "Parent agent required for message history sharing"
+                raise ToolError(msg)
+
+            if reset_history_on_run:
+                self.conversation.clear()
+
+            history = (
+                parent.conversation.get_history()
+                if pass_message_history and parent
+                else None
+            )
+            deps = ctx.deps.data if share_context else None
+
+            result = await self.run(prompt, message_history=history, deps=deps)
+            return str(result.data)
+
+        normalized_name = self.name.replace("_", " ").title()
+        docstring = f"Get expert answer from specialized agent: {normalized_name}"
+        if self.description:
+            docstring = f"{docstring}\n\n{self.description}"
+
+        wrapped_tool.__doc__ = docstring
+        wrapped_tool.__name__ = tool_name
+
+        return LLMCallableTool.from_callable(
+            wrapped_tool,
+            name_override=tool_name,
+            description_override=docstring,
+        )
 
     @asynccontextmanager
     async def run_stream(
@@ -710,6 +766,25 @@ class LLMlingAgent[TDeps, TResult]:
         task = loop.create_task(self.run(str(message.content), deps=source))  # type: ignore[arg-type]
         self._pending_tasks.add(task)
         task.add_done_callback(self._pending_tasks.discard)
+
+    def register_worker(
+        self,
+        worker: LLMlingAgent[Any, Any],
+        *,
+        name: str | None = None,
+        reset_history_on_run: bool = True,
+        pass_message_history: bool = False,
+        share_context: bool = False,
+    ) -> ToolInfo:
+        """Register another agent as a worker tool."""
+        return self.tools.register_worker(
+            worker,
+            name=name,
+            reset_history_on_run=reset_history_on_run,
+            pass_message_history=pass_message_history,
+            share_context=share_context,
+            parent=self if (pass_message_history or share_context) else None,
+        )
 
     def set_model(self, model: models.Model | models.KnownModelName | None):
         """Set the model for this agent.
