@@ -94,6 +94,19 @@
           "description": "Environment configuration (path or object)",
           "title": "Environment"
         },
+        "session_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Opetional id of a session to load.",
+          "title": "Session Id"
+        },
         "result_type": {
           "anyOf": [
             {
@@ -243,22 +256,56 @@
           "description": "Role name (built-in or custom) determining agent's capabilities.",
           "title": "Role"
         },
+        "triggers": {
+          "description": "Event sources that activate this agent",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "files": "#/$defs/FileWatchConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              }
+            ]
+          },
+          "title": "Triggers",
+          "type": "array"
+        },
         "forward_to": {
           "description": "Targets to forward results to.",
           "items": {
             "discriminator": {
               "mapping": {
-                "agent": "#/$defs/AgentTarget"
+                "agent": "#/$defs/AgentTarget",
+                "file": "#/$defs/FileTarget"
               },
               "propertyName": "type"
             },
             "oneOf": [
               {
                 "$ref": "#/$defs/AgentTarget"
+              },
+              {
+                "$ref": "#/$defs/FileTarget"
               }
             ]
           },
           "title": "Forward To",
+          "type": "array"
+        },
+        "workers": {
+          "description": "Worker agents which will be available as tools.",
+          "items": {
+            "$ref": "#/$defs/WorkerConfig"
+          },
+          "title": "Workers",
           "type": "array"
         }
       },
@@ -282,7 +329,7 @@
           "type": "boolean"
         },
         "name": {
-          "description": "Name of the agent to forward messages to.",
+          "description": "Name of target agent.",
           "title": "Name",
           "type": "string"
         }
@@ -536,7 +583,7 @@
       "type": "object"
     },
     "Config": {
-      "additionalProperties": false,
+      "additionalProperties": true,
       "description": "Root configuration model.",
       "properties": {
         "version": {
@@ -933,6 +980,106 @@
         "path"
       ],
       "title": "FilePrompt",
+      "type": "object"
+    },
+    "FileTarget": {
+      "description": "Save messages to a file.",
+      "properties": {
+        "type": {
+          "const": "file",
+          "default": "file",
+          "title": "Type",
+          "type": "string"
+        },
+        "wait_for_completion": {
+          "default": true,
+          "description": "Whether to wait for the result before continuing.\n\nIf True, message processing will wait for the target to complete.\nIf False, message will be forwarded asynchronously.",
+          "title": "Wait For Completion",
+          "type": "boolean"
+        },
+        "path": {
+          "description": "Path to output file. Supports variables: {date}, {time}, {agent}",
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "FileTarget",
+      "type": "object"
+    },
+    "FileWatchConfig": {
+      "description": "File watching event source.",
+      "properties": {
+        "type": {
+          "const": "files",
+          "default": "files",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "extensions": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extensions"
+        },
+        "ignore_paths": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ignore Paths"
+        },
+        "recursive": {
+          "default": true,
+          "title": "Recursive",
+          "type": "boolean"
+        },
+        "debounce": {
+          "default": 1600,
+          "title": "Debounce",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "paths"
+      ],
+      "title": "FileWatchConfig",
       "type": "object"
     },
     "GlobalSettings": {
@@ -2250,6 +2397,82 @@
         }
       },
       "title": "WatchConfig",
+      "type": "object"
+    },
+    "WebhookConfig": {
+      "description": "Webhook event source.",
+      "properties": {
+        "type": {
+          "const": "webhook",
+          "default": "webhook",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "port": {
+          "title": "Port",
+          "type": "integer"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "secret": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Secret"
+        }
+      },
+      "required": [
+        "name",
+        "port",
+        "path"
+      ],
+      "title": "WebhookConfig",
+      "type": "object"
+    },
+    "WorkerConfig": {
+      "description": "Configuration for a worker agent.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "reset_history_on_run": {
+          "default": true,
+          "title": "Reset History On Run",
+          "type": "boolean"
+        },
+        "pass_message_history": {
+          "default": false,
+          "title": "Pass Message History",
+          "type": "boolean"
+        },
+        "share_context": {
+          "default": false,
+          "title": "Share Context",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "WorkerConfig",
       "type": "object"
     },
     "_TestModelWrapper": {
