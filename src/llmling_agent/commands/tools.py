@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Any
 
 from llmling.tools import LLMCallableTool
 from llmling.utils.importing import import_callable
-from slashed import Command, CommandContext, CommandError
+from slashed import Command, CommandContext, CommandError, CompletionContext
+from slashed.completers import CallbackCompleter
 
 from llmling_agent.log import get_logger
 
@@ -279,6 +280,11 @@ async def write_tool(
         raise CommandError(msg) from e
 
 
+def get_tool_names(ctx: CompletionContext[AgentChatSession]) -> list[str]:
+    assert ctx.command_context
+    return list(ctx.command_context.data._agent.tools.keys())
+
+
 write_tool_cmd = Command(
     name="write-tool",
     description="Write and register new tools interactively",
@@ -312,6 +318,7 @@ tool_info_cmd = Command(
     usage="<name>",
     help_text=TOOL_INFO_HELP,
     category="tools",
+    completer=CallbackCompleter(get_tool_names),
 )
 
 enable_tool_cmd = Command(
