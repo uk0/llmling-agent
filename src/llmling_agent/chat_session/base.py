@@ -351,7 +351,7 @@ class AgentChatSession:
             name=self._agent.name,
         )
 
-        chat_msg: ChatMessage[str] = ChatMessage(
+        chat_msg = ChatMessage[str](
             content=response,
             role="assistant",
             metadata=metadata_obj,
@@ -383,7 +383,7 @@ class AgentChatSession:
             # Update session state after stream completes
             self._state.message_count += 2  # User and assistant messages
             meta_obj = MessageMetadata(**metadata)
-            final_msg: ChatMessage[str] = ChatMessage(
+            final_msg = ChatMessage[str](
                 content="",  # Empty content for final status message
                 role="assistant",
                 metadata=meta_obj,

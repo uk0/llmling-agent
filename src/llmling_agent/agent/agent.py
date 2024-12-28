@@ -505,7 +505,7 @@ class LLMlingAgent[TDeps, TResult]:
             if not message_history:
                 self.conversation.set_history(result.all_messages())
             # Emit user messages
-            user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
+            user_msg = ChatMessage[str](content=prompt, role="user")
             self.message_received.emit(user_msg)
             logger.debug("Agent run result: %r", result.data)
             # Get cost info for assistant response
@@ -525,7 +525,7 @@ class LLMlingAgent[TDeps, TResult]:
                 name=self.name,
                 response_time=time.perf_counter() - start_time,
             )
-            assistant_msg: ChatMessage[TResult] = ChatMessage[TResult](
+            assistant_msg = ChatMessage[TResult](
                 content=result.data,
                 role="assistant",
                 message_id=message_id,
@@ -615,7 +615,7 @@ class LLMlingAgent[TDeps, TResult]:
             self._update_tools()
 
             # Emit user message
-            user_msg: ChatMessage[str] = ChatMessage(content=prompt, role="user")
+            user_msg = ChatMessage[str](content=prompt, role="user")
             self.message_received.emit(user_msg)
             start_time = time.perf_counter()
             msg_history = (

@@ -105,7 +105,7 @@ async def test_agent_model_override(no_tool_runtime: RuntimeConfig):
     default_response = "default response"
     override_response = "override response"
 
-    agent: LLMlingAgent[Any, str] = LLMlingAgent(
+    agent = LLMlingAgent[Any, str](
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=default_response),
@@ -131,7 +131,7 @@ async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig):
 
     tools = [LLMCallableTool.from_callable(test_tool)]
 
-    agent: LLMlingAgent[Any, str] = LLMlingAgent(
+    agent = LLMlingAgent[Any, str](
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE, call_tools=["test_tool"]),
@@ -215,7 +215,7 @@ async def test_agent_context_manager(tmp_path: Path):
 async def test_agent_logging(no_tool_runtime: RuntimeConfig):
     """Test agent logging functionality."""
     # Test with logging enabled
-    agent1: LLMlingAgent[Any, str] = LLMlingAgent(
+    agent1 = LLMlingAgent[Any, str](
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE),
@@ -225,7 +225,7 @@ async def test_agent_logging(no_tool_runtime: RuntimeConfig):
     assert result1.data == TEST_RESPONSE
 
     # Test with logging disabled
-    agent2: LLMlingAgent[Any, str] = LLMlingAgent(
+    agent2 = LLMlingAgent[Any, str](
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE),

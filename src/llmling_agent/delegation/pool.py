@@ -112,7 +112,7 @@ class AgentPool:
             )
 
             # Create agent with runtime and context
-            agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+            agent = LLMlingAgent[Any, Any](
                 runtime=runtime,
                 context=context,
                 result_type=None,  # type: ignore[arg-type]
@@ -207,7 +207,7 @@ class AgentPool:
             )
 
             # Create agent with runtime and context
-            agent: LLMlingAgent[Any, Any] = LLMlingAgent(
+            agent = LLMlingAgent[Any, Any](
                 runtime=runtime,
                 context=context,
                 result_type=None,  # type: ignore[arg-type]
