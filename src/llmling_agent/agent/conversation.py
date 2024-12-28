@@ -14,6 +14,12 @@ from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
+from llmling_agent.models.sources import (
+    ContextSource,
+    FileContextSource,
+    PromptContextSource,
+    ResourceContextSource,
+)
 from llmling_agent.pydantic_ai_utils import convert_model_message, format_response
 
 
@@ -90,6 +96,36 @@ class ConversationManager:
 
     def __repr__(self) -> str:
         return f"ConversationManager(id={self.id!r})"
+
+    async def load_context_sources(
+        self,
+        sources: Sequence[ContextSource],
+    ) -> None:
+        """Load context from configured sources.
+
+        This uses the existing add_context_* methods to load content.
+        Errors are logged but don't stop loading other sources.
+        """
+        for source in sources:
+            try:
+                match source:
+                    case FileContextSource():
+                        await self.add_context_from_path(
+                            source.path,
+                            convert_to_md=source.convert_to_md,
+                            **source.metadata,
+                        )
+                    case ResourceContextSource():
+                        await self.add_context_from_resource(
+                            source.name,
+                            **source.arguments | source.metadata,  # merge dicts
+                        )
+                    case PromptContextSource():
+                        await self.add_context_from_prompt(
+                            source.name, source.arguments, **source.metadata
+                        )
+            except Exception:
+                logger.exception("Failed to load context from %s", source.type)
 
     async def load_history_from_database(
         self,
