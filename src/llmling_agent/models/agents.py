@@ -66,6 +66,9 @@ class AgentConfig(BaseModel):
     name: str | None = None
     """Name of the agent"""
 
+    inherits: str | None = None
+    """Name of agent config to inherit from"""
+
     description: str | None = None
     """Optional description of the agent's purpose"""
 
@@ -368,6 +371,55 @@ class AgentsManifest(ConfigModel):
 
         self.agents[actual_name] = config
         return actual_name
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_inheritance(cls, data: dict) -> dict:
+        """Resolve agent inheritance chains."""
+        agents = data.get("agents", {})
+        resolved: dict[str, dict] = {}
+        seen: set[str] = set()
+
+        def resolve_agent(name: str) -> dict:
+            if name in resolved:
+                return resolved[name]
+
+            if name in seen:
+                msg = f"Circular inheritance detected: {name}"
+                raise ValueError(msg)
+
+            seen.add(name)
+            config = (
+                agents[name].model_copy()
+                if hasattr(agents[name], "model_copy")
+                else agents[name].copy()
+            )
+            inherit = (
+                config.get("inherits") if isinstance(config, dict) else config.inherits
+            )
+            if inherit:
+                if inherit not in agents:
+                    msg = f"Parent agent {inherit} not found"
+                    raise ValueError(msg)
+
+                # Get resolved parent config
+                parent = resolve_agent(inherit)
+                # Merge parent with child (child overrides parent)
+                merged = parent.copy()
+                merged.update(config)
+                config = merged
+
+            seen.remove(name)
+            resolved[name] = config
+            return config
+
+        # Resolve all agents
+        for name in agents:
+            resolved[name] = resolve_agent(name)
+
+        # Update agents with resolved configs
+        data["agents"] = resolved
+        return data
 
     @model_validator(mode="after")
     def validate_response_types(self) -> AgentsManifest:
