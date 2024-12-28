@@ -365,7 +365,7 @@ class LLMlingAgent[TDeps, TResult]:
         capabilities = agent_def.get_capabilities(agent_config.role)
 
         # Create context
-        context: AgentContext[TDeps] = AgentContext(
+        context = AgentContext[TDeps](
             agent_name=agent_name,
             capabilities=capabilities,
             definition=agent_def,
@@ -839,7 +839,7 @@ if __name__ == "__main__":
 
     async def main():
         async with RuntimeConfig.open(config_resources.OPEN_BROWSER) as r:
-            agent: LLMlingAgent = LLMlingAgent(r, model="openai:gpt-4o-mini")
+            agent = LLMlingAgent[Any, Any](r, model="openai:gpt-4o-mini")
             result = await agent.run(sys_prompt)
             print(result.data)
 

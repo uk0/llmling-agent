@@ -17,7 +17,7 @@ async def test_message_chain(test_agent: LLMlingAgent[Any, str], no_tool_runtime
     """Test that messages flow through a chain of connected agents."""
     # Create second agent
     model = TestModel(custom_result_text="Response from B")
-    agent_b: LLMlingAgent[Any, str] = LLMlingAgent(
+    agent_b = LLMlingAgent[Any, str](
         runtime=no_tool_runtime,
         name="agent-b",
         model=model,

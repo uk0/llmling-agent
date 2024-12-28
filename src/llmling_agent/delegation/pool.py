@@ -104,7 +104,7 @@ class AgentPool:
             runtime._register_default_components()  # Manual initialization
 
             # Create context with config path and capabilities
-            context: AgentContext[Any] = AgentContext(
+            context = AgentContext[Any](
                 agent_name=name,
                 capabilities=self.manifest.get_capabilities(config.role),
                 definition=self.manifest,
@@ -199,7 +199,7 @@ class AgentPool:
         cfg = config.get_config()
         async with RuntimeConfig.open(cfg) as runtime:
             # Create context with config path and capabilities
-            context: AgentContext[Any] = AgentContext(
+            context = AgentContext[Any](
                 agent_name=name,
                 capabilities=self.manifest.get_capabilities(config.role),
                 definition=self.manifest,
