@@ -56,6 +56,7 @@ dependencies = [
     "tokonomics>=0.1.2",
     "slashed>=0.1.0",
     "watchfiles>=1.0.3",
+    "tiktoken>=0.8.0",
 ]
 
 [project.scripts]

@@ -14,7 +14,7 @@ from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, MessageMetadata
-from llmling_agent.pydantic_ai_utils import convert_model_message
+from llmling_agent.pydantic_ai_utils import convert_model_message, format_response
 
 
 if TYPE_CHECKING:
@@ -364,6 +364,34 @@ class ConversationManager:
             prompt_args=arguments,
             **metadata,
         )
+
+    def get_history_tokens(self) -> int:
+        """Get token count for current history."""
+        import tiktoken
+
+        encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
+
+        total = 0
+        for msg in self._current_history:
+            for part in msg.parts:
+                content = format_response(part)
+                total += len(encoding.encode(content))
+
+        return total
+
+    def get_pending_tokens(self) -> int:
+        """Get token count for pending messages."""
+        import tiktoken
+
+        encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
+
+        total = 0
+        for msg in self._pending_messages:
+            for part in msg.parts:
+                content = format_response(part)
+                total += len(encoding.encode(content))
+
+        return total
 
 
 if __name__ == "__main__":
