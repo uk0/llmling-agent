@@ -104,7 +104,7 @@ async def tool_info(
 ):
     """Show detailed information about a tool."""
     if not args:
-        await ctx.output.print("Usage: /tool-info <name>")
+        await ctx.output.print("Usage: /show-tool <name>")
         return
 
     tool_name = args[0]
