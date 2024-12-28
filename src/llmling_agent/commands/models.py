@@ -40,8 +40,6 @@ async def set_model(
     try:
         # Create new session with model override
         ctx.data._agent.set_model(model)  # type: ignore
-        # Update session's model override
-        ctx.data._model = model
         await ctx.output.print(f"Model changed to: {model}")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Failed to change model: {e}")
