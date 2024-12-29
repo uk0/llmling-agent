@@ -31,7 +31,7 @@ from llmling_agent.commands.tools import (
     list_tools_cmd,
     register_tool_cmd,
     tool_info_cmd,
-    write_tool_cmd,
+    # write_tool_cmd,
 )
 from llmling_agent.commands.workers import (
     add_worker_cmd,
@@ -72,7 +72,7 @@ def get_commands() -> list[BaseCommand]:
         edit_agent_file_cmd,
         set_env_cmd,
         show_agent_cmd,
-        write_tool_cmd,
+        # write_tool_cmd,
         add_worker_cmd,
         remove_worker_cmd,
         list_workers_cmd,
