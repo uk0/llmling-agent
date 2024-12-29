@@ -2,20 +2,25 @@
 
 from __future__ import annotations
 
-from typing import Any
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
 
 from llmling import RuntimeConfig  # noqa: TC002
-from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import TypeVar
 
 from llmling_agent.config.capabilities import Capabilities
 from llmling_agent.models import AgentConfig, AgentsManifest
 
 
+if TYPE_CHECKING:
+    from llmling_agent.delegation.pool import AgentPool
+
+
 TDeps = TypeVar("TDeps", default=Any)
 
 
-class AgentContext[TDeps](BaseModel):
+@dataclass
+class AgentContext[TDeps]:
     """Runtime context for agent execution.
 
     Generically typed with AgentContext[Type of Dependencies]
@@ -36,7 +41,7 @@ class AgentContext[TDeps](BaseModel):
     current_prompt: str | None = None
     """Current prompt text for the agent."""
 
-    model_settings: dict[str, Any] = Field(default_factory=dict)
+    model_settings: dict[str, Any] = field(default_factory=dict)
     """Model-specific settings."""
 
     data: TDeps | None = None
@@ -45,7 +50,8 @@ class AgentContext[TDeps](BaseModel):
     runtime: RuntimeConfig | None = None
     """Reference to the runtime configuration."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, use_attribute_docstrings=True)
+    pool: AgentPool | None = None
+    """Pool the agent is part of."""
 
     def get_capabilities(self) -> Capabilities:
         """Get the current agent's capabilities."""

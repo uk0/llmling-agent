@@ -14,9 +14,6 @@ from pydantic import BaseModel
 
 from llmling_agent import LLMlingAgent
 from llmling_agent.log import get_logger
-from llmling_agent.models import AgentsManifest
-from llmling_agent.models.context import AgentContext
-from llmling_agent.models.forward_targets import AgentTarget
 
 
 if TYPE_CHECKING:
@@ -26,7 +23,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai.result import RunResult
 
-    from llmling_agent.models.agents import AgentConfig, WorkerConfig
+    from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
 
 
 logger = get_logger(__name__)
@@ -86,6 +83,8 @@ class AgentPool:
                           If None, all agents from manifest are loaded
             connect_agents: Whether to set up forwarding connections
         """
+        from llmling_agent.models.context import AgentContext
+
         self.manifest = manifest
         self.agents: dict[str, LLMlingAgent[Any, Any]] = {}
 
@@ -144,6 +143,8 @@ class AgentPool:
 
     def _setup_connections(self):
         """Set up forwarding connections between agents."""
+        from llmling_agent.models.forward_targets import AgentTarget
+
         for name, config in self.manifest.agents.items():
             if name not in self.agents:
                 continue
@@ -158,6 +159,8 @@ class AgentPool:
 
     def _connect_signals(self):
         """Set up forwarding connections between agents."""
+        from llmling_agent.models.forward_targets import AgentTarget
+
         for name, config in self.manifest.agents.items():
             if name not in self.agents:
                 continue
@@ -191,6 +194,8 @@ class AgentPool:
         temporary: bool = True,
     ) -> LLMlingAgent[Any, Any]:
         """Create and register a new agent in the pool."""
+        from llmling_agent.models.context import AgentContext
+
         if name in self.agents:
             msg = f"Agent {name} already exists"
             raise ValueError(msg)
@@ -374,6 +379,8 @@ class AgentPool:
         Yields:
             Configured agent pool
         """
+        from llmling_agent.models import AgentsManifest
+
         manifest = (
             AgentsManifest.from_file(config_path)
             if isinstance(config_path, str | os.PathLike)
@@ -502,20 +509,8 @@ class AgentPool:
 
 async def main():
     async with AgentPool.open("agents.yml") as pool:
-        overseer: LLMlingAgent[Any, str] = pool.get_agent("overseer")
-        from llmling_agent.delegation.tools import register_delegation_tools
-
-        # Register all delegation tools
-        register_delegation_tools(overseer, pool)
-
-        # Now the overseer can use any delegation tool
-        result = await overseer.run("""
-            Please coordinate a team analysis:
-            1. Use brainstorm with the development team
-            2. Have the critic review the ideas
-            3. Start a debate about the best approach
-        """)
-        print(result)
+        agent: LLMlingAgent[Any, str] = pool.get_agent("overseer")
+        print(agent)
 
 
 if __name__ == "__main__":
