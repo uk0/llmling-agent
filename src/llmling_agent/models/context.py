@@ -8,12 +8,11 @@ from typing import TYPE_CHECKING, Any
 from llmling import RuntimeConfig  # noqa: TC002
 from typing_extensions import TypeVar
 
-from llmling_agent.config.capabilities import Capabilities
-from llmling_agent.models import AgentConfig, AgentsManifest
-
 
 if TYPE_CHECKING:
+    from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
+    from llmling_agent.models.agents import AgentConfig, AgentsManifest
 
 
 TDeps = TypeVar("TDeps", default=Any)
@@ -69,6 +68,9 @@ class AgentContext[TDeps]:
             name: Name of the agent
             capabilities: Optional custom capabilities (defaults to minimal access)
         """
+        from llmling_agent.config.capabilities import Capabilities
+        from llmling_agent.models import AgentConfig, AgentsManifest
+
         caps = capabilities or Capabilities()
         defn = AgentsManifest(agents={})
         cfg = AgentConfig(name=name)

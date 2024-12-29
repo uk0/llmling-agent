@@ -120,7 +120,6 @@ class LLMlingAgent[TDeps, TResult]:
         self._runtime = runtime
         self._context = context or AgentContext[TDeps].create_default(name)
         self._context.runtime = runtime
-
         self.message_received.connect(self.message_exchanged.emit)
         self.message_sent.connect(self.message_exchanged.emit)
         # self.outbox = Signal(LLMlingAgent[Any, Any], ChatMessage[Any])
@@ -145,6 +144,11 @@ class LLMlingAgent[TDeps, TResult]:
             case _:
                 msg = f"Invalid result_type: {type(result_type)}"
                 raise TypeError(msg)
+
+        # Register capability-based tools
+        if self._context and self._context.capabilities:
+            self._context.capabilities.register_delegation_tools(self)
+
         # Initialize agent with all tools
         self._pydantic_agent = PydanticAgent(
             model=model,

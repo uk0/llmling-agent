@@ -108,6 +108,7 @@ class AgentPool:
                 capabilities=self.manifest.get_capabilities(config.role),
                 definition=self.manifest,
                 config=config,
+                pool=self,
             )
 
             # Create agent with runtime and context
@@ -209,6 +210,7 @@ class AgentPool:
                 capabilities=self.manifest.get_capabilities(config.role),
                 definition=self.manifest,
                 config=config,
+                pool=self,
             )
 
             # Create agent with runtime and context
@@ -339,6 +341,8 @@ class AgentPool:
             raise KeyError(msg)
 
         agent = self.agents[name]
+        if agent._context and agent._context.pool is not self:
+            agent._context.pool = self
         if session_id:
             # load_history_from_database is async, so workaround
             from llmling_agent.agent.conversation import ConversationManager

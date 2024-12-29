@@ -2,7 +2,6 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.delegation import AgentPool
-from llmling_agent.delegation.tools import register_delegation_tools
 
 
 if TYPE_CHECKING:
@@ -47,7 +46,6 @@ async def main():
 
         # Or let the overseer handle it
         overseer: LLMlingAgent[Any, Any] = pool.get_agent("overseer")
-        register_delegation_tools(overseer, pool)
 
         result = await overseer.run(OVERSEER_PROMPT)
         print("\nOverseer's report:")
