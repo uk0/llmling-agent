@@ -38,9 +38,6 @@ class TokenAndCostResult:
 class MessageMetadata(BaseModel):
     """Metadata for chat messages."""
 
-    timestamp: datetime = Field(default_factory=datetime.now)
-    """When the message was created."""
-
     tool: str | None = Field(default=None)
     """Name of tool if this message represents a tool interaction."""
 
