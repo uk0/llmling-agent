@@ -20,7 +20,10 @@ class MessageData(TypedDict):
     content: str
     timestamp: str
     model: str | None
+    name: str | None
     token_usage: TokenUsage | None
+    cost: float | None
+    response_time: float | None
 
 
 class ConversationData(TypedDict):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from sqlalchemy import desc
 from sqlmodel import Session, select
@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from sqlmodel.sql.expression import SelectOfScalar
+
+    from llmling_agent.models.messages import TokenUsage
 
 
 def build_conversation_query(filters: QueryFilters) -> SelectOfScalar[Conversation]:
@@ -114,7 +116,7 @@ def get_filtered_conversations(
 
 def get_stats_data(
     filters: StatsFilters,
-) -> list[tuple[str | None, str | None, datetime, dict[str, Any] | None]]:
+) -> list[tuple[str | None, str | None, datetime, TokenUsage | None]]:
     """Get raw statistics data."""
     with Session(engine) as session:
         query = (
@@ -122,7 +124,9 @@ def get_stats_data(
                 Message.model,
                 Conversation.agent_name,
                 Message.timestamp,
-                Message.token_usage,
+                Message.total_tokens.label("total"),  # type: ignore
+                Message.prompt_tokens.label("prompt"),  # type: ignore
+                Message.completion_tokens.label("completion"),  # type: ignore
             )
             .join(Conversation, Message.conversation_id == Conversation.id)  # type: ignore[arg-type]
             .where(Message.timestamp > filters.cutoff)
@@ -137,7 +141,13 @@ def get_stats_data(
                 str(model) if model else None,
                 str(agent) if agent else None,
                 timestamp,
-                dict(token_usage) if token_usage else None,
+                {
+                    "total": total or 0,
+                    "prompt": prompt or 0,
+                    "completion": completion or 0,
+                }
+                if (total or prompt or completion)
+                else None,
             )
-            for model, agent, timestamp, token_usage in results
+            for model, agent, timestamp, total, prompt, completion in results
         ]

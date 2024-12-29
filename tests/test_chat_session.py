@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from llmling import Config, RuntimeConfig
 from llmling.tools import ToolError
 from pydantic_ai.models.test import TestModel
@@ -21,7 +23,7 @@ TEST_MESSAGE = "Hello, agent!"
 async def test_basic_message_response():
     """Test basic message-response flow with metadata."""
     async with RuntimeConfig.open(Config()) as runtime:
-        agent = LLMlingAgent(
+        agent = LLMlingAgent[Any, Any](
             runtime,
             model=TestModel(custom_result_text="Test response"),
             name="test-agent",
@@ -31,20 +33,22 @@ async def test_basic_message_response():
 
         response = await session.send_message(TEST_MESSAGE)
 
-        # Verify response content and metadata
+        # Verify response content and direct fields
         assert isinstance(response, ChatMessage)
         assert response.content == "Test response"
         assert response.role == "assistant"
-        assert response.metadata
-        assert response.metadata.name == "test-agent"
-        assert response.metadata.model == "test-model"
+        assert response.name == "test-agent"
+        assert response.model == "test-model"
+        # Verify cost info and timing
+        assert response.cost_info is not None
+        assert response.response_time is not None
 
 
 @pytest.mark.asyncio
 async def test_streaming_response():
     """Test streaming responses with chunks and metadata."""
     async with RuntimeConfig.open(Config()) as runtime:
-        agent = LLMlingAgent(
+        agent = LLMlingAgent[Any, Any](
             runtime, model=TestModel(custom_result_text="Hello world"), name="test-agent"
         )
         session = AgentChatSession(agent)
@@ -59,9 +63,9 @@ async def test_streaming_response():
         assert all(isinstance(msg, ChatMessage) for msg in messages)
         # Check final message
         final_msg = messages[-1]
-        assert final_msg.metadata
-        assert final_msg.metadata.model == "test-model"
-        assert final_msg.metadata.name == "test-agent"
+        assert final_msg.name == "test-agent"
+        assert final_msg.model == "test-model"
+        assert final_msg.cost_info is not None  # Should have cost info in final message
         # Combined content should match original
         content = "".join(msg.content for msg in messages if msg.content).strip()
         assert content == "Hello world"
@@ -71,7 +75,7 @@ async def test_streaming_response():
 async def test_tool_management():
     """Test tool registration, enabling/disabling, and usage."""
     async with RuntimeConfig.open(Config()) as runtime:
-        agent = LLMlingAgent(
+        agent = LLMlingAgent[Any, Any](
             runtime, model=TestModel(custom_result_text="Tool test"), name="test-agent"
         )
 
@@ -104,12 +108,12 @@ async def test_agent_forwarding():
     """Test message forwarding between agents."""
     async with RuntimeConfig.open(Config()) as runtime:
         # Create agents with different responses
-        main_agent = LLMlingAgent(
+        main_agent = LLMlingAgent[Any, Any](
             runtime,
             model=TestModel(custom_result_text="Main response"),
             name="main-agent",
         )
-        helper_agent = LLMlingAgent(
+        helper_agent = LLMlingAgent[Any, Any](
             runtime,
             model=TestModel(custom_result_text="Helper response"),
             name="helper-agent",
@@ -137,17 +141,20 @@ async def test_agent_forwarding():
 
         # Verify both agents responded
         assert len(messages) == 2  # noqa: PLR2004
-        assert any(m.metadata.name == "main-agent" for m in messages)
-        assert any(m.metadata.name == "helper-agent" for m in messages)
+        assert any(m.name == "main-agent" for m in messages)
+        assert any(m.name == "helper-agent" for m in messages)
         assert any(m.content == "Main response" for m in messages)
         assert any(m.content == "Helper response" for m in messages)
+        # Verify metrics are present
+        assert all(m.cost_info is not None for m in messages)
+        assert all(m.response_time is not None for m in messages)
 
 
 @pytest.mark.asyncio
 async def test_error_handling():
     """Test error handling scenarios."""
     async with RuntimeConfig.open(Config()) as runtime:
-        agent = LLMlingAgent(
+        agent = LLMlingAgent[Any, Any](
             runtime, model=TestModel(custom_result_text="Test"), name="test-agent"
         )
         session = AgentChatSession(agent)

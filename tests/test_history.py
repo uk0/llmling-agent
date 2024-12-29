@@ -53,27 +53,39 @@ def sample_data(cleanup_database: None):
                 conversation_id="conv1",
                 timestamp=BASE_TIME - timedelta(hours=1),  # 11:00
                 role="user",
+                name="user",
                 content="Hello",
                 model="gpt-4",
-                token_usage={"total": 10, "prompt": 5, "completion": 5},
+                total_tokens=10,
+                prompt_tokens=5,
+                completion_tokens=5,
+                cost=0.001,
             ),
             Message(
                 id="msg2",
                 conversation_id="conv1",
                 timestamp=BASE_TIME - timedelta(hours=1),  # 11:00
                 role="assistant",
+                name="test_agent",
                 content="Hi there!",
                 model="gpt-4",
-                token_usage={"total": 20, "prompt": 10, "completion": 10},
+                total_tokens=20,
+                prompt_tokens=10,
+                completion_tokens=10,
+                cost=0.002,
             ),
             Message(
                 id="msg3",
                 conversation_id="conv2",
                 timestamp=BASE_TIME - timedelta(hours=2),  # 10:00
                 role="user",
+                name="user",
                 content="Testing",
                 model="gpt-3.5-turbo",
-                token_usage={"total": 15, "prompt": 7, "completion": 8},
+                total_tokens=15,
+                prompt_tokens=7,
+                completion_tokens=8,
+                cost=0.0015,
             ),
         ]
         for msg in messages:
@@ -123,7 +135,7 @@ def test_get_stats_data(sample_data: None):
     assert isinstance(model, str | None)
     assert isinstance(agent, str | None)
     assert isinstance(timestamp, datetime)
-    assert isinstance(usage, dict | None)
+    assert usage is None or all(k in usage for k in ("total", "prompt", "completion"))
 
 
 def test_complex_filtering(sample_data: None):

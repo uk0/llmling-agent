@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import pathlib
+import time
 from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
 
@@ -23,7 +24,7 @@ from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
 from llmling_agent.commands import get_commands
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage, MessageMetadata
+from llmling_agent.models.messages import ChatMessage
 from llmling_agent.pydantic_ai_utils import extract_usage
 from llmling_agent.storage.models import CommandHistory
 from llmling_agent.tools.base import ToolInfo
@@ -325,70 +326,75 @@ class AgentChatSession:
         result = await self._agent.run(content)  # type: ignore
         model = self._agent.model_name
         response = str(result.data)
+        start_time = time.perf_counter()
+        # Collect all metrics from the run
+        usage = result.usage()
         cost_info = (
-            await extract_usage(result.usage(), model, content, response)
-            if model
+            await extract_usage(usage, model, content, response)
+            if model and usage
             else None
         )
 
-        metadata = {}
-        if cost_info:
-            metadata.update({
-                "token_usage": cost_info.token_usage,
-                "cost_usd": cost_info.cost_usd,
-            })
-        if model:
-            metadata["model"] = model
-
-        # Update session state before returning
+        # Update session state first
         self._state.message_count += 2  # User and assistant messages
-        usage = cost_info.token_usage if cost_info else None
-        cost = cost_info.cost_usd if cost_info else None
-        metadata_obj = MessageMetadata(
-            model=self._agent.model_name,
-            token_usage=usage,
-            cost=cost,
-            name=self._agent.name,
-        )
 
-        chat_msg = ChatMessage[str](
+        # Create complete assistant message with all metrics
+        chat_message = ChatMessage[str](
             content=response,
             role="assistant",
-            metadata=metadata_obj,
-            token_usage=metadata_obj.token_usage,
+            name=self._agent.name,
+            message_id=str(uuid4()),
+            model=model,
+            cost_info=cost_info,
+            response_time=time.perf_counter() - start_time,  # Add response time
         )
-        self._state.update_tokens(chat_msg)
+
+        # Also update session state with metrics
+        if cost_info:
+            self._state.update_tokens(chat_message)
+            self._state.total_cost = float(cost_info.total_cost)
+        self._state.last_response_time = chat_message.response_time
+
+        # self._agent.message_sent.emit(chat_message)
+
         # Add chain waiting if enabled
         if self._wait_chain and self._pool:
             await self._agent.wait_for_chain()
 
-        return chat_msg
+        return chat_message
 
     async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage[str]]:
         """Send message and stream responses."""
         async with self._agent.run_stream(content) as stream_result:
+            # Stream intermediate chunks
             async for response in stream_result.stream():
                 yield ChatMessage[str](content=str(response), role="assistant")
 
-            # Final message with token usage after stream completes
-            metadata: dict[str, Any] = {"name": self._agent.name}
-            if model_name := self._agent.model_name:
-                metadata["model"] = model_name
-                usage = stream_result.usage()
-                if cost_info := await extract_usage(usage, model_name, content, response):
-                    metadata.update({
-                        "token_usage": cost_info.token_usage,
-                        "cost_usd": cost_info.cost_usd,
-                    })
-            # Update session state after stream completes
-            self._state.message_count += 2  # User and assistant messages
-            meta_obj = MessageMetadata(**metadata)
+            # Final message with complete metrics after stream completes
+            message_id = str(uuid4())
+            start_time = time.perf_counter()
+
+            # Get usage info if available
+            usage = stream_result.usage()
+            cost_info = (
+                await extract_usage(usage, self._agent.model_name, content, response)
+                if usage and self._agent.model_name
+                else None
+            )
+
+            # Create final status message with all metrics
             final_msg = ChatMessage[str](
                 content="",  # Empty content for final status message
                 role="assistant",
-                metadata=meta_obj,
-                token_usage=meta_obj.token_usage,
+                name=self._agent.name,
+                model=self._agent.model_name,
+                message_id=message_id,
+                cost_info=cost_info,
+                response_time=time.perf_counter() - start_time,
             )
+
+            # Update session state
+            self._state.message_count += 2  # User and assistant messages
             self._state.update_tokens(final_msg)
 
             # Add chain waiting if enabled

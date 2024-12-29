@@ -6,7 +6,6 @@ import logging
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from llmling_agent.models.messages import ChatMessage, TokenAndCostResult
 from llmling_agent.storage import Conversation, Message
 from llmling_agent.storage.models import ToolCall
 
@@ -14,6 +13,7 @@ from llmling_agent.storage.models import ToolCall
 if TYPE_CHECKING:
     from llmling_agent import LLMlingAgent
     from llmling_agent.models.agents import ToolCallInfo
+    from llmling_agent.models.messages import ChatMessage
 
 
 logger = logging.getLogger(__name__)
@@ -67,19 +67,15 @@ class AgentLogger:
 
         if not self.enable_logging:
             return
-        cost_info = (
-            TokenAndCostResult(
-                token_usage=message.token_usage, cost_usd=message.metadata.cost
-            )
-            if message.token_usage and message.metadata.cost is not None
-            else None
-        )
+
         Message.log(
             conversation_id=self.conversation_id,
             content=str(message.content),
             role=message.role,
-            cost_info=cost_info,
-            model=message.model or message.metadata.model,
+            name=message.name,
+            cost_info=message.cost_info,
+            model=message.model,
+            response_time=message.response_time,
         )
 
     def log_tool_call(self, tool_call: ToolCallInfo):

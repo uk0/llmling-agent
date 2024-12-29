@@ -293,9 +293,14 @@ class ConversationManager:
         message = ModelRequest(parts=[UserPromptPart(content=formatted)])
         self._pending_messages.append(message)
         # Emit as user message - will trigger logging through existing flow
-        model = self._agent.model_name
-        meta = MessageMetadata(name="user", model=model, **metadata)
-        chat_message = ChatMessage[str](content=formatted, role="user", metadata=meta)
+
+        chat_message = ChatMessage[str](
+            content=formatted,
+            role="user",
+            name="user",
+            model=self._agent.model_name,
+            metadata=MessageMetadata(**metadata),
+        )
         self._agent.message_received.emit(chat_message)
 
     async def add_context_from_path(

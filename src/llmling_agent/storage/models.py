@@ -10,8 +10,6 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, DateTime
 from sqlmodel import JSON, Field, Session, SQLModel, select
 
-from llmling_agent.pydantic_ai_utils import TokenUsage  # noqa: TC001
-
 
 if TYPE_CHECKING:
     from pydantic_ai.messages import ModelMessage
@@ -103,10 +101,20 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     conversation_id: str = Field(index=True)
     timestamp: datetime = Field(sa_column=Column(DateTime), default_factory=datetime.now)
     role: str
+    name: str | None = Field(default=None, index=True)
     content: str
-    token_usage: TokenUsage | None = Field(None, sa_column=Column(JSON))
-    cost: float | None = Field(default=None)
     model: str | None = Field(default=None)
+
+    # Token usage as separate fields
+    total_tokens: int | None = Field(default=None, index=True)
+    prompt_tokens: int | None = Field(default=None)
+    completion_tokens: int | None = Field(default=None)
+
+    # Cost info
+    cost: float | None = Field(default=None, index=True)
+
+    # Performance metrics
+    response_time: float | None = Field(default=None)
 
     @classmethod
     def log(
@@ -114,20 +122,28 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         conversation_id: str,
         content: str,
         role: Literal["user", "assistant", "system"],
-        *,
+        name: str | None = None,
         cost_info: TokenAndCostResult | None = None,
         model: str | None = None,
+        response_time: float | None = None,
     ):
+        """Log a message with complete information."""
         from llmling_agent.storage import engine
 
         with Session(engine) as session:
             msg = cls(
                 conversation_id=conversation_id,
                 role=role,
+                name=name,
                 content=content,
-                token_usage=cost_info.token_usage if cost_info else None,
-                cost=cost_info.cost_usd if cost_info else None,
                 model=model,
+                response_time=response_time,
+                total_tokens=cost_info.token_usage["total"] if cost_info else None,
+                prompt_tokens=cost_info.token_usage["prompt"] if cost_info else None,
+                completion_tokens=cost_info.token_usage["completion"]
+                if cost_info
+                else None,
+                cost=cost_info.total_cost if cost_info else None,
             )
             session.add(msg)
             session.commit()

@@ -511,25 +511,22 @@ class LLMlingAgent[TDeps, TResult]:
             # Get cost info for assistant response
             result_str = str(result.data)
             usage = result.usage()
-            cost = (
+            cost_info = (
                 await extract_usage(usage, self.model_name, prompt, result_str)
                 if self.model_name
                 else None
             )
 
             # Create and emit assistant message
-            meta = MessageMetadata(
-                model=self.model_name,
-                token_usage=cost.token_usage if cost else None,
-                cost=cost.cost_usd if cost else None,
-                name=self.name,
-                response_time=time.perf_counter() - start_time,
-            )
             assistant_msg = ChatMessage[TResult](
                 content=result.data,
                 role="assistant",
+                name=self.name,
+                model=self.model_name,
                 message_id=message_id,
-                metadata=meta,
+                cost_info=cost_info,
+                response_time=time.perf_counter() - start_time,
+                metadata=MessageMetadata(tool=None),
             )
             self.message_sent.emit(assistant_msg)
 
@@ -656,7 +653,7 @@ class LLMlingAgent[TDeps, TResult]:
                             )
 
                         usage = stream.usage()
-                        cost = (
+                        cost_info = (
                             await extract_usage(
                                 usage, self.model_name, prompt, str(result)
                             )
@@ -675,24 +672,15 @@ class LLMlingAgent[TDeps, TResult]:
                             self.tool_used.emit(call)
 
                         # Create and emit assistant message
-                        meta = MessageMetadata(
-                            model=self.model_name,
-                            token_usage={
-                                "total": usage.total_tokens or 0,
-                                "prompt": usage.request_tokens or 0,
-                                "completion": usage.response_tokens or 0,
-                            }
-                            if usage
-                            else None,
-                            cost=cost.cost_usd if cost else None,
-                            response_time=time.perf_counter() - start_time,
-                            name=self.name,
-                        )
                         assistant_msg = ChatMessage[TResult](
                             content=cast(TResult, result),
                             role="assistant",
+                            name=self.name,
+                            model=self.model_name,
                             message_id=message_id,
-                            metadata=meta,
+                            cost_info=cost_info,
+                            response_time=time.perf_counter() - start_time,
+                            metadata=MessageMetadata(tool=None),
                         )
                         self.message_sent.emit(assistant_msg)
 

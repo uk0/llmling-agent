@@ -31,7 +31,7 @@ class TokenAndCostResult:
 
     token_usage: TokenUsage
     """Token counts for prompt and completion"""
-    cost_usd: float
+    total_cost: float
     """Total cost in USD"""
 
 
@@ -41,15 +41,6 @@ class MessageMetadata(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     """When the message was created."""
 
-    model: str | None = Field(default=None)
-    """Name of the model used to generate this message."""
-
-    token_usage: TokenUsage | None = Field(default=None)
-    """Token usage statistics if available."""
-
-    cost: float | None = Field(default=None)
-    """Cost in USD for generating this message."""
-
     tool: str | None = Field(default=None)
     """Name of tool if this message represents a tool interaction."""
 
@@ -57,17 +48,11 @@ class MessageMetadata(BaseModel):
     avatar: str | None = Field(default=None)
     """URL or path to avatar image for UI display."""
 
-    name: str | None = Field(default=None)
-    """Display name for the message sender in UI."""
-
     tool_args: dict[str, Any] | None = None
     """Arguments passed to tool for UI display."""
 
     tool_result: Any | None = None
     """Result returned by tool for UI display."""
-
-    response_time: float | None = Field(default=None)
-    """Time it took the LLM to respond."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -94,12 +79,17 @@ class ChatMessage[T](BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     """When this message was created."""
 
-    token_usage: TokenUsage | None = Field(default=None)
-    """Token usage for this specific message if available."""
+    cost_info: TokenAndCostResult | None = Field(default=None)
+    """Token usage and costs for this specific message if available."""
 
     message_id: str = Field(default_factory=lambda: str(uuid4()))
     """Unique identifier for this message."""
 
+    response_time: float | None = Field(default=None)
+    """Time it took the LLM to respond."""
+
+    name: str | None = Field(default=None)
+    """Display name for the message sender in UI."""
     model_config = ConfigDict(frozen=True)
 
     def _get_content_str(self) -> str:

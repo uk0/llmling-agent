@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from llmling_agent.history.models import ConversationData, MessageData
+    from llmling_agent.models.messages import TokenUsage
     from llmling_agent.storage import Conversation, Message
 
 
@@ -29,12 +30,28 @@ def is_conversation_data(data: Any) -> TypeGuard[ConversationData]:
 
 def format_message(msg: Message) -> MessageData:
     """Format a message for display."""
+    # Construct token usage if any token counts exist
+    token_usage: TokenUsage | None = None
+    if (
+        msg.total_tokens is not None
+        or msg.prompt_tokens is not None
+        or msg.completion_tokens is not None
+    ):
+        token_usage = {
+            "total": msg.total_tokens or 0,
+            "prompt": msg.prompt_tokens or 0,
+            "completion": msg.completion_tokens or 0,
+        }
+
     return {
         "role": msg.role,
         "content": msg.content,
         "timestamp": msg.timestamp.isoformat(),
         "model": msg.model,
-        "token_usage": msg.token_usage,
+        "name": msg.name,  # Add name field
+        "token_usage": token_usage,
+        "cost": msg.cost,  # Add cost field
+        "response_time": msg.response_time,  # Add response time
     }
 
 

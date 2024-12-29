@@ -11,10 +11,11 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from llmling_agent.history.models import GroupBy, StatsFilters
+    from llmling_agent.models.messages import TokenUsage
 
 
 def aggregate_stats(
-    rows: Sequence[tuple[str | None, str | None, datetime, dict | None]],
+    rows: Sequence[tuple[str | None, str | None, datetime, TokenUsage | None]],
     group_by: GroupBy,
 ) -> dict[str, dict[str, Any]]:
     """Aggregate statistics data by specified grouping.

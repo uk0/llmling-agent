@@ -109,19 +109,15 @@ class InteractiveSession:
         """Handle messages from any agent."""
         logger.debug(
             "Received message in UI from agent %s: %s",
-            message.metadata.name if message.metadata else "unknown",
+            message.name or "unknown",
             message.content[:50] + "...",
         )
         # Format with agent name if it's not the main agent
         assert self._chat_session
-        if (
-            message.metadata
-            and message.metadata.name
-            and message.metadata.name != self._chat_session._agent.name
-        ):
+        if message.name and message.name != self._chat_session._agent.name:
             self.formatter.print_message_start(message)
             self.formatter.print_message_content(message.content)
-            self.formatter.print_message_end(message.metadata)
+            self.formatter.print_message_end(message)
 
     def _on_tool_added(self, tool: ToolInfo):
         """Handle tool addition."""
@@ -182,7 +178,7 @@ class InteractiveSession:
                     if result.content:
                         self.formatter.print_message_start(result)
                         self.formatter.print_message_content(result.content)
-                        self.formatter.print_message_end(result.metadata)
+                        self.formatter.print_message_end(result)
                 except ExitCommandError:
                     self.formatter.print_exit()
                     raise EOFError  # noqa: B904
@@ -192,7 +188,7 @@ class InteractiveSession:
             user_msg: ChatMessage[str] = ChatMessage(content=content, role="user")
             self.formatter.print_message_start(user_msg)
             self.formatter.print_message_content(content)
-            self.formatter.print_message_end(None)
+            self.formatter.print_message_end(user_msg)
 
             if self._stream:
                 buffer = ""
@@ -214,7 +210,7 @@ class InteractiveSession:
                             buffer = new_content
 
                 self.console.print()  # New line after streaming
-                self.formatter.print_message_end(chunk.metadata)
+                self.formatter.print_message_end(chunk)
             else:
                 # Non-streaming mode
                 result = await self._chat_session.send_message(content, output=writer)
@@ -226,7 +222,7 @@ class InteractiveSession:
                         else result.content
                     )
                     self.formatter.print_message_content(content_to_print)
-                    self.formatter.print_message_end(result.metadata)
+                    self.formatter.print_message_end(result)
             if (
                 self._chat_session
                 and self._chat_session.wait_chain

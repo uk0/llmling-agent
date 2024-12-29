@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
@@ -40,19 +40,23 @@ class SessionState:
     total_cost: float = 0.0
     start_time: datetime = field(default_factory=datetime.now)
     last_command: str | None = None
+    last_response_time: float | None = None
 
-    def update_tokens(self, message: ChatMessage):
-        """Update token counts and costs from message metadata."""
-        if not message.metadata:
-            return
-        if token_usage := message.metadata.token_usage:
+    def update_tokens(self, message: ChatMessage[Any]):
+        """Update token counts and costs from message."""
+        if cost_info := message.cost_info:
+            # Update token counts from cost_info
+            token_usage = cost_info.token_usage
             self.total_tokens = token_usage["total"]
             self.prompt_tokens = token_usage["prompt"]
             self.completion_tokens = token_usage["completion"]
-
-        if cost := message.metadata.cost:
-            self.total_cost = float(cost)
+            # Update cost
+            self.total_cost = float(cost_info.total_cost)
             logger.debug("Updated session cost to: $%.6f", self.total_cost)
+
+        # Update response time if available
+        if message.response_time is not None:
+            self.response_time = message.response_time
 
     @property
     def duration(self) -> str:

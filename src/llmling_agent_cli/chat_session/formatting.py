@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.chat_session.welcome import WelcomeInfo
     from llmling_agent.models.agents import ToolCallInfo
-    from llmling_agent.models.messages import ChatMessage, MessageMetadata
+    from llmling_agent.models.messages import ChatMessage
 
 
 class MessageFormatter:
@@ -43,24 +43,38 @@ class MessageFormatter:
         """Print message content."""
         self.console.print(content, end=end, soft_wrap=True)
 
-    def print_message_end(self, metadata: MessageMetadata | None = None):
+    def print_message_end(self, message: ChatMessage | None = None):
         """Print message footer with stats."""
         self.console.print()
-        if metadata and (
-            metadata.model or metadata.token_usage or metadata.cost is not None
-        ):
-            parts = []
-            if metadata.model:
-                parts.append(f"Model: {metadata.model}")
-            if metadata.token_usage:
-                parts.append(f"Tokens: {metadata.token_usage['total']:,}")
-                cost = metadata.cost or 0.0
-                parts.append(f"Cost: ${cost:.4f}")
-            if metadata.response_time:
-                parts.append(f"Time: {metadata.response_time:.2f}s")
 
-            stats_line = " • ".join(parts)
-            self.console.print(stats_line, style=self.STATS_STYLE)
+        if message:  # Only show stats if we have a message
+            # Collect stats parts
+            parts = []
+
+            # Model info
+            if message.model:
+                parts.append(f"Model: {message.model}")
+
+            # Token and cost info from cost_info
+            if message.cost_info:
+                token_usage = message.cost_info.token_usage
+                parts.append(f"Tokens: {token_usage['total']:,}")
+                parts.append(f"Cost: ${message.cost_info.total_cost:.4f}")
+
+            # Response time
+            if message.response_time:
+                parts.append(f"Time: {message.response_time:.2f}s")
+
+            # Tool information from metadata
+            if message.metadata and message.metadata.tool:
+                tool_info = f"Tool: {message.metadata.tool}"
+                if message.metadata.tool_args:
+                    tool_info += f" (args: {message.metadata.tool_args})"
+                parts.append(tool_info)
+
+            if parts:
+                stats_line = " • ".join(parts)
+                self.console.print(stats_line, style=self.STATS_STYLE)
 
         self.console.print("─" * self.LINE_WIDTH)
 
@@ -89,11 +103,7 @@ class MessageFormatter:
         self.console.print(f"  Result: {tool_call.result}")
 
     def print_welcome(self, welcome_info: WelcomeInfo):
-        """Print welcome message sections.
-
-        Args:
-            welcome_info: Welcome information from create_welcome_messages()
-        """
+        """Print welcome message sections."""
         for title, lines in welcome_info.all_sections():
             if title:  # Skip empty section titles
                 self.console.print(f"\n[bold]{title}[/]")
@@ -133,7 +143,7 @@ class MessageFormatter:
             case "user":
                 return "You"
             case "assistant":
-                return message.metadata.name or "Assistant"
+                return message.name or "Assistant"
             case "system":
                 return "System"
             case _:

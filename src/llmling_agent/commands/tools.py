@@ -210,12 +210,11 @@ async def register_tool(
         )
 
         # Register with ToolManager
-        meta = {"import_path": import_path, "registered_via": "register-tool"}
         tool_info = ctx.context._agent.tools.register_tool(
             llm_tool,
             enabled=True,
             source="dynamic",
-            metadata=meta,
+            metadata={"import_path": import_path, "registered_via": "register-tool"},
         )
 
         # Show the registered tool info

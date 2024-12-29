@@ -79,12 +79,9 @@ async def extract_usage(
         usage.request_tokens,
         usage.response_tokens,
     )
-    if cost is not None:
-        logger.debug("Calculated cost: $%.6f", cost.total_cost)
-        return TokenAndCostResult(token_usage=token_usage, cost_usd=cost.total_cost)
-
-    logger.debug("Failed to calculate USD cost")
-    return None
+    return TokenAndCostResult(
+        token_usage=token_usage, total_cost=cost.total_cost if cost else 0.0
+    )
 
 
 def format_response(  # noqa: PLR0911
