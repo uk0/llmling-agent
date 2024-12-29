@@ -237,6 +237,7 @@ def launch_app(
     server_name: str = "127.0.0.1",
     server_port: int | None = None,
     block: bool = True,
+    **kwargs: Any,
 ) -> tuple[App, str, str]:
     """Launch the LLMling web interface.
 
@@ -252,6 +253,7 @@ def launch_app(
         server_name: Server hostname (default: "127.0.0.1")
         server_port: Optional server port number
         block: Whether to block the thread. Set to False when using programmatically.
+        kwargs: Additional keyword arguments to pass to `launch`
     """
     import asyncio
     import platform
@@ -268,6 +270,7 @@ def launch_app(
         server_name=server_name,
         server_port=server_port,
         prevent_thread_lock=not block,
+        **kwargs,
     )
 
 
