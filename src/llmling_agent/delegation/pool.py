@@ -480,7 +480,7 @@ class AgentPool:
                     else self.get_agent(agent_ref)
                 )
                 if model_override:
-                    agent.set_model(model_override)
+                    agent.set_model(model_override)  # type: ignore
                 if environment_override:
                     cfg = (
                         environment_override
