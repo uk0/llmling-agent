@@ -69,7 +69,7 @@ async def connect_command(
     wait = kwargs.get("wait", "true").lower() != "false"
 
     try:
-        await ctx.data.connect_to(target, wait)
+        await ctx.context.connect_to(target, wait)
         msg = f"Now forwarding messages to {target}"
         msg += " (waiting for responses)" if wait else " (async)"
         await ctx.output.print(msg)
@@ -90,7 +90,7 @@ async def disconnect_command(
 
     target = args[0]
     try:
-        await ctx.data.disconnect_from(target)
+        await ctx.context.disconnect_from(target)
         await ctx.output.print(f"Stopped forwarding messages to {target}")
     except Exception as e:
         msg = f"Failed to disconnect from {target}: {e}"
@@ -103,11 +103,11 @@ async def disconnect_all_command(
     kwargs: dict[str, str],
 ):
     """Disconnect from all agents."""
-    if not ctx.data.has_chain():
+    if not ctx.context.has_chain():
         await ctx.output.print("No active connections")
         return
 
-    await ctx.data._agent.disconnect_all()
+    await ctx.context._agent.disconnect_all()
     await ctx.output.print("Disconnected from all agents")
 
 
@@ -117,17 +117,17 @@ async def list_connections(
     kwargs: dict[str, str],
 ):
     """List current connections."""
-    if not ctx.data.has_chain():
+    if not ctx.context.has_chain():
         await ctx.output.print("No active connections")
         return
 
     # Create tree visualization
-    tree = Tree(format_agent_name(ctx.data._agent, current=True))
+    tree = Tree(format_agent_name(ctx.context._agent, current=True))
 
     # Use session's get_connections() for info
-    for agent_name, waits in ctx.data.get_connections():
-        assert ctx.data.pool
-        name = format_agent_name(ctx.data.pool.get_agent(agent_name))
+    for agent_name, waits in ctx.context.get_connections():
+        assert ctx.context.pool
+        name = format_agent_name(ctx.context.pool.get_agent(agent_name))
         _branch = tree.add(f"{name} ({'waiting' if waits else 'async'})")
 
     # Create string representation

@@ -73,7 +73,7 @@ async def meta_command(
         if chain:
             # Sequential application (multiple LLM calls)
             current_prompt = goal
-            model = ctx.data._agent.model_name
+            model = ctx.context._agent.model_name
             for prompt in prompts:
                 current_prompt = await prompt.apply(
                     current_prompt, model=model, max_length=max_length
@@ -101,7 +101,7 @@ async def meta_command(
             result = await combined.apply(
                 goal=goal,
                 styles=", ".join(style_names),
-                model=ctx.data._agent.model_name,
+                model=ctx.context._agent.model_name,
                 max_length=max_length,
             )
         await ctx.output.print("\nGenerated Prompt:\n" + result)

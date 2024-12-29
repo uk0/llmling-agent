@@ -21,29 +21,25 @@ if TYPE_CHECKING:
 
 def get_tool_names(ctx: CompletionContext[AgentChatSession]) -> list[str]:
     """Get available tool names."""
-    assert ctx.command_context
-    return list(ctx.command_context.data._agent.tools.keys())
+    return list(ctx.command_context.context._agent.tools.keys())
 
 
 def get_available_agents(ctx: CompletionContext[AgentChatSession]) -> list[str]:
     """Get available agent names."""
-    assert ctx.command_context
-    if not ctx.command_context.data.pool:
+    if not ctx.command_context.context.pool:
         return []
-    return ctx.command_context.data.pool.list_agents()
+    return ctx.command_context.context.pool.list_agents()
 
 
 def get_resource_names(ctx: CompletionContext[AgentChatSession]) -> list[str]:
     """Get available resource names."""
-    assert ctx.command_context
-    resources = ctx.command_context.data._agent.runtime.get_resources()
+    resources = ctx.command_context.context._agent.runtime.get_resources()
     return [r.name or "" for r in resources]
 
 
 def get_prompt_names(ctx: CompletionContext[AgentChatSession]) -> list[str]:
     """Get available prompt names."""
-    assert ctx.command_context
-    prompts = ctx.command_context.data._agent.runtime.get_prompts()
+    prompts = ctx.command_context.context._agent.runtime.get_prompts()
     return [p.name or "" for p in prompts]
 
 
@@ -57,8 +53,7 @@ def get_model_names(ctx: CompletionContext[AgentChatSession]) -> list[str]:
     # Get models directly from the Literal type
     known_models = list(get_args(KnownModelName))
 
-    assert ctx.command_context
-    agent = ctx.command_context.data._agent
+    agent = ctx.command_context.context._agent
     if not agent._context or not agent._context.definition:
         return known_models
 

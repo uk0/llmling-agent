@@ -12,9 +12,10 @@ from rich.console import Console
 from rich.markdown import Markdown
 from slashed import ExitCommandError
 from slashed.log import SessionLogHandler
-from slashed.prompt_toolkit_completion import PromptToolkitCompleter
+from slashed.prompt_toolkit_completer import PromptToolkitCompleter
 
 from llmling_agent.chat_session import ChatSessionManager
+from llmling_agent.chat_session.base import AgentChatSession
 from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.models.messages import ChatMessage
@@ -24,7 +25,6 @@ from llmling_agent_cli.chat_session.history import SessionHistory
 
 if TYPE_CHECKING:
     from llmling_agent import LLMlingAgent
-    from llmling_agent.chat_session.base import AgentChatSession
     from llmling_agent.chat_session.events import HistoryClearedEvent, SessionResetEvent
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import ToolCallInfo
@@ -151,12 +151,14 @@ class InteractiveSession:
 
     def _setup_prompt(self):
         """Setup prompt toolkit session."""
-        assert self._chat_session is not None
+        session = self._chat_session
+        assert session is not None
 
-        history = SessionHistory(self._chat_session)
-        store = self._chat_session.commands
-        ctx = store.create_context(self._chat_session)
-        self._completer = PromptToolkitCompleter(store._commands, ctx)
+        history = SessionHistory(session)
+        self._completer = PromptToolkitCompleter[AgentChatSession](
+            session.commands,
+            session,
+        )
 
         self._prompt = PromptSession[str](
             "You: ",

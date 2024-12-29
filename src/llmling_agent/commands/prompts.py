@@ -33,7 +33,7 @@ async def list_prompts(
     kwargs: dict[str, str],
 ):
     """List available prompts."""
-    prompts = ctx.data._agent.runtime.get_prompts()
+    prompts = ctx.context._agent.runtime.get_prompts()
     await ctx.output.print("\nAvailable prompts:")
     for prompt in prompts:
         await ctx.output.print(f"  {prompt.name:<20} - {prompt.description}")
@@ -54,7 +54,9 @@ async def prompt_command(
 
     name = args[0]
     try:
-        await ctx.data._agent.conversation.add_context_from_prompt(name, arguments=kwargs)
+        await ctx.context._agent.conversation.add_context_from_prompt(
+            name, arguments=kwargs
+        )
         await ctx.output.print(f"Added prompt {name!r} to next message as context.")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Error executing prompt: {e}")

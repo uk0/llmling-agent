@@ -59,7 +59,7 @@ async def read_command(
     convert_to_md = kwargs.get("convert_to_md", "").lower() in ("true", "1", "yes")
 
     try:
-        agent = ctx.data._agent
+        agent = ctx.context._agent
         await agent.conversation.add_context_from_path(path, convert_to_md=convert_to_md)
         await ctx.output.print(f"Added content from {path} to next message as context.")
     except Exception as e:

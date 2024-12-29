@@ -55,7 +55,7 @@ async def set_env(
 
     try:
         # Get current agent configuration
-        agent = ctx.data._agent
+        agent = ctx.context._agent
         if not agent._context or not agent._context.config:
             msg = "No agent context available"
             raise CommandError(msg)  # noqa: TRY301
@@ -72,9 +72,9 @@ async def set_env(
             new_agent = kls(runtime=new_runtime, context=agent._context, **kw_args)
 
             # Update session's agent
-            ctx.data._agent = new_agent
+            ctx.context._agent = new_agent
             # Reset session state but keep history
-            ctx.data._tool_states = new_agent.tools.list_tools()
+            ctx.context._tool_states = new_agent.tools.list_tools()
 
             await ctx.output.print(
                 f"Environment changed to: {env_path}\n"
@@ -92,11 +92,11 @@ async def edit_env(
     kwargs: dict[str, str],
 ):
     """Open agent's environment file in default application."""
-    if not ctx.data._agent._context:
+    if not ctx.context._agent._context:
         msg = "No agent context available"
         raise CommandError(msg)
 
-    config = ctx.data._agent._context.config
+    config = ctx.context._agent._context.config
     match config.environment:
         case FileEnvironment(uri=uri):
             # For file environments, open in browser

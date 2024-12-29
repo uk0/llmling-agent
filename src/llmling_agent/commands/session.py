@@ -28,7 +28,7 @@ async def clear_command(
     kwargs: dict[str, str],
 ):
     """Clear chat history."""
-    await ctx.data.clear()
+    await ctx.context.clear()
 
 
 async def reset_command(
@@ -37,7 +37,7 @@ async def reset_command(
     kwargs: dict[str, str],
 ):
     """Reset session state."""
-    await ctx.data.reset()
+    await ctx.context.reset()
 
 
 clear_cmd = Command(

@@ -88,12 +88,12 @@ async def create_agent_command(
         return
 
     try:
-        if not ctx.data.pool:
+        if not ctx.context.pool:
             msg = "No agent pool available"
             raise CommandError(msg)
 
         # Copy current agent's configuration with modifications
-        current_agent = ctx.data._agent
+        current_agent = ctx.context._agent
         model = kwargs.get("model") or current_agent.model_name
 
         config = AgentConfig(
@@ -106,7 +106,7 @@ async def create_agent_command(
             # config_file_path=current_agent._context.config.config_file_path,
         )
 
-        _agent = await ctx.data.pool.create_agent(name, config, temporary=True)
+        _agent = await ctx.context.pool.create_agent(name, config, temporary=True)
 
         if kwargs.get("model"):
             msg = f"Created agent '{name}' with model {model}"
@@ -123,12 +123,12 @@ async def show_agent(
     ctx: CommandContext[AgentChatSession], args: list[str], kwargs: dict[str, str]
 ):
     """Show current agent's configuration."""
-    if not ctx.data._agent._context:
+    if not ctx.context._agent._context:
         await ctx.output.print("No agent context available")
         return
 
     # Get the agent's config with current overrides
-    config = ctx.data._agent._context.config
+    config = ctx.context._agent._context.config
 
     # Get base config as dict
     config_dict = config.model_dump(exclude_none=True)
@@ -155,7 +155,7 @@ async def show_agent(
 async def list_agents(ctx: CommandContext, args: list[str], kwargs: dict[str, str]):
     """List all available agents."""
     # Get agent definition through context
-    definition = ctx.data._agent._context.definition
+    definition = ctx.context._agent._context.definition
 
     await ctx.output.print("\nAvailable agents:")
     for name, agent in definition.agents.items():
@@ -180,7 +180,7 @@ async def switch_agent(ctx: CommandContext, args: list[str], kwargs: dict[str, s
         return
 
     name = args[0]
-    definition = ctx.data._agent._context.definition
+    definition = ctx.context._agent._context.definition
 
     if name not in definition.agents:
         await ctx.output.print(f"Unknown agent: {name}")
@@ -189,10 +189,10 @@ async def switch_agent(ctx: CommandContext, args: list[str], kwargs: dict[str, s
     try:
         async with LLMlingAgent[Any, str].open_agent(definition, name) as new_agent:
             # Update session's agent
-            ctx.data._agent = new_agent
+            ctx.context._agent = new_agent
             # Reset session state
-            ctx.data._history = []
-            ctx.data._tool_states = new_agent.tools.list_tools()
+            ctx.context._history = []
+            ctx.context._tool_states = new_agent.tools.list_tools()
             await ctx.output.print(f"Switched to agent: {name}")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Failed to switch agent: {e}")

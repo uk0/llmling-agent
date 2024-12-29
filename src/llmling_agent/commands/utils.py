@@ -48,11 +48,11 @@ async def copy_clipboard(
         msg = "pyperclip package required for clipboard operations"
         raise CommandError(msg) from e
 
-    if not ctx.data.history:
+    if not ctx.context.history:
         await ctx.output.print("No messages to copy")
         return
 
-    if content := find_last_assistant_message(ctx.data.history):
+    if content := find_last_assistant_message(ctx.context.history):
         try:
             pyperclip.copy(content)
             await ctx.output.print("Last assistant message copied to clipboard")
@@ -69,11 +69,11 @@ async def edit_agent_file(
     kwargs: dict[str, str],
 ):
     """Open agent's configuration file in default application."""
-    if not ctx.data._agent._context:
+    if not ctx.context._agent._context:
         msg = "No agent context available"
         raise CommandError(msg)
 
-    config = ctx.data._agent._context.config
+    config = ctx.context._agent._context.config
     if not config.config_file_path:
         msg = "No configuration file path available"
         raise CommandError(msg)

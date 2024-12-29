@@ -64,12 +64,12 @@ async def add_worker_command(
 
     worker_name = args[0]
     try:
-        if not ctx.data.pool:
+        if not ctx.context.pool:
             msg = "No agent pool available"
             raise CommandError(msg)  # noqa: TRY301
 
         # Get worker agent from pool
-        worker = ctx.data.pool.get_agent(worker_name)
+        worker = ctx.context.pool.get_agent(worker_name)
 
         # Parse boolean flags with defaults
         reset_history = kwargs.get("reset_history", "true").lower() != "false"
@@ -77,12 +77,12 @@ async def add_worker_command(
         share_context = kwargs.get("share_context", "false").lower() == "true"
 
         # Register worker
-        tool_info = ctx.data._agent.tools.register_worker(
+        tool_info = ctx.context._agent.tools.register_worker(
             worker,
             reset_history_on_run=reset_history,
             pass_message_history=share_history,
             share_context=share_context,
-            parent=ctx.data._agent,
+            parent=ctx.context._agent,
         )
 
         await ctx.output.print(
@@ -112,18 +112,18 @@ async def remove_worker_command(
     tool_name = f"ask_{worker_name}"  # Match the naming in to_agent_tool
 
     try:
-        if tool_name not in ctx.data._agent.tools:
+        if tool_name not in ctx.context._agent.tools:
             msg = f"No worker tool found for agent: {worker_name}"
             raise CommandError(msg)  # noqa: TRY301
 
         # Check if it's actually a worker tool
-        tool_info = ctx.data._agent.tools[tool_name]
+        tool_info = ctx.context._agent.tools[tool_name]
         if tool_info.source != "agent":
             msg = f"{tool_name} is not a worker tool"
             raise CommandError(msg)  # noqa: TRY301
 
         # Remove the tool
-        del ctx.data._agent.tools[tool_name]
+        del ctx.context._agent.tools[tool_name]
         await ctx.output.print(f"Removed worker tool: {tool_name}")
 
     except Exception as e:
@@ -139,7 +139,7 @@ async def list_workers_command(
     """List all worker tools."""
     # Filter tools by source="agent"
     worker_tools = [
-        info for info in ctx.data._agent.tools.values() if info.source == "agent"
+        info for info in ctx.context._agent.tools.values() if info.source == "agent"
     ]
 
     if not worker_tools:

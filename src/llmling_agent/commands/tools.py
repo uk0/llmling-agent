@@ -88,7 +88,7 @@ async def list_tools(
     kwargs: dict[str, str],
 ):
     """List all available tools."""
-    agent = ctx.data._agent
+    agent = ctx.context._agent
     # Format output using ToolInfo formatting
     sections = ["# Available Tools\n"]
     for tool_info in agent.tools.values():
@@ -109,7 +109,7 @@ async def tool_info(
         return
 
     tool_name = args[0]
-    agent = ctx.data._agent
+    agent = ctx.context._agent
 
     try:
         tool_info = agent.tools[tool_name]
@@ -156,9 +156,9 @@ async def toggle_tool(
     name = args[0]
     try:
         if enable:
-            ctx.data._agent.tools.enable_tool(name)
+            ctx.context._agent.tools.enable_tool(name)
         else:
-            ctx.data._agent.tools.disable_tool(name)
+            ctx.context._agent.tools.disable_tool(name)
         action = "enabled" if enable else "disabled"
         await ctx.output.print(f"Tool '{name}' {action}")
     except ValueError as e:
@@ -211,7 +211,7 @@ async def register_tool(
 
         # Register with ToolManager
         meta = {"import_path": import_path, "registered_via": "register-tool"}
-        tool_info = ctx.data._agent.tools.register_tool(
+        tool_info = ctx.context._agent.tools.register_tool(
             llm_tool,
             enabled=True,
             source="dynamic",
@@ -269,7 +269,7 @@ async def write_tool(
 
         # Register all tools with ctx parameter added
         for func in tools:
-            tool_info = ctx.data._agent.tools.register_tool(
+            tool_info = ctx.context._agent.tools.register_tool(
                 func, source="dynamic", metadata={"created_by": "write-tool"}
             )
             await ctx.output.print(f"Tool '{tool_info.name}' registered!")
@@ -281,8 +281,7 @@ async def write_tool(
 
 
 def get_tool_names(ctx: CompletionContext[AgentChatSession]) -> list[str]:
-    assert ctx.command_context
-    return list(ctx.command_context.data._agent.tools.keys())
+    return list(ctx.command_context.context._agent.tools.keys())
 
 
 write_tool_cmd = Command(

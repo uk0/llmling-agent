@@ -77,7 +77,7 @@ async def list_resources(
 ):
     """List available resources."""
     try:
-        resources = ctx.data._agent.runtime.get_resources()
+        resources = ctx.context._agent.runtime.get_resources()
 
         sections = ["# Available Resources\n"]
         for resource in resources:
@@ -110,7 +110,7 @@ async def show_resource(
     name = args[0]
     try:
         # First get resource info
-        resources = ctx.data._agent.runtime.get_resources()
+        resources = ctx.context._agent.runtime.get_resources()
         resource_info = next((r for r in resources if r.name == name), None)
         if not resource_info:
             await ctx.output.print(f"Resource '{name}' not found")
@@ -126,7 +126,7 @@ async def show_resource(
 
         # Try to load content with provided parameters
         try:
-            content = await ctx.data._agent.runtime.load_resource(name, **kwargs)
+            content = await ctx.context._agent.runtime.load_resource(name, **kwargs)
             sections.extend(["\n# Content:", "```", str(content), "```"])
         except Exception as e:  # noqa: BLE001
             sections.append(f"\nFailed to load content: {e}")
@@ -153,7 +153,7 @@ async def add_resource_command(
 
     name = args[0]
     try:
-        await ctx.data._agent.conversation.add_context_from_resource(name, **kwargs)
+        await ctx.context._agent.conversation.add_context_from_resource(name, **kwargs)
         await ctx.output.print(f"Added resource '{name}' to next message as context.")
     except Exception as e:
         msg = f"Error loading resource: {e}"
