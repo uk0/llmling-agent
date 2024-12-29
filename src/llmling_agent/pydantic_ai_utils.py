@@ -24,12 +24,7 @@ import tokonomics
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.messages import (
-    ChatMessage,
-    MessageMetadata,
-    TokenAndCostResult,
-    TokenUsage,
-)
+from llmling_agent.models.messages import ChatMessage, TokenAndCostResult, TokenUsage
 
 
 logger = get_logger(__name__)
@@ -162,16 +157,15 @@ def get_tool_calls(
                     pending_calls[part.tool_call_id] = (part.tool_name, args)
             elif isinstance(part, ToolReturnPart) and part.tool_call_id in pending_calls:
                 tool_name, args = pending_calls[part.tool_call_id]
-                tool_calls.append(
-                    ToolCallInfo(
-                        tool_name=tool_name,
-                        args=args,
-                        result=part.content,
-                        tool_call_id=part.tool_call_id,
-                        timestamp=part.timestamp,
-                        context_data=context_data,
-                    )
+                info = ToolCallInfo(
+                    tool_name=tool_name,
+                    args=args,
+                    result=part.content,
+                    tool_call_id=part.tool_call_id,
+                    timestamp=part.timestamp,
+                    context_data=context_data,
                 )
+                tool_calls.append(info)
 
     logger.debug("Found %d tool calls", len(tool_calls))
     return tool_calls
@@ -214,12 +208,19 @@ def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: 
             args = (
                 message.args.args_dict
                 if isinstance(message.args, ArgsDict)
-                else message.args.args_json
+                else json.loads(message.args.args_json)
             )
             return ChatMessage(
                 content=f"Tool call: {message.tool_name}\nArgs: {args}",
                 role="assistant",
-                metadata=MessageMetadata(tool=message.tool_name),
+                tool_calls=[
+                    ToolCallInfo(
+                        tool_name=message.tool_name,
+                        args=args,
+                        result=None,  # Not available yet
+                        tool_call_id=message.tool_call_id,
+                    )
+                ],
                 timestamp=datetime.now(),
             )
 
@@ -227,7 +228,15 @@ def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: 
             return ChatMessage(
                 content=f"Tool {message.tool_name} returned: {message.content}",
                 role="assistant",
-                metadata=MessageMetadata(tool=message.tool_name),
+                tool_calls=[
+                    ToolCallInfo(
+                        tool_name=message.tool_name,
+                        args={},  # No args in return part
+                        result=message.content,
+                        tool_call_id=message.tool_call_id,
+                        timestamp=message.timestamp,
+                    )
+                ],
                 timestamp=datetime.now(),
             )
 

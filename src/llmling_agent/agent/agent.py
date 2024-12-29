@@ -22,7 +22,7 @@ from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.messages import ChatMessage, MessageMetadata
+from llmling_agent.models.messages import ChatMessage
 from llmling_agent.pydantic_ai_utils import extract_usage, get_tool_calls, register_tool
 from llmling_agent.responses import InlineResponseDefinition, resolve_response_type
 from llmling_agent.tools.manager import ToolManager
@@ -526,7 +526,6 @@ class LLMlingAgent[TDeps, TResult]:
                 message_id=message_id,
                 cost_info=cost_info,
                 response_time=time.perf_counter() - start_time,
-                metadata=MessageMetadata(tool=None),
             )
             self.message_sent.emit(assistant_msg)
 
@@ -680,7 +679,6 @@ class LLMlingAgent[TDeps, TResult]:
                             message_id=message_id,
                             cost_info=cost_info,
                             response_time=time.perf_counter() - start_time,
-                            metadata=MessageMetadata(tool=None),
                         )
                         self.message_sent.emit(assistant_msg)
 

@@ -13,7 +13,7 @@ from pydantic_ai.messages import ModelRequest, UserPromptPart
 from upath import UPath
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage, MessageMetadata
+from llmling_agent.models.messages import ChatMessage
 from llmling_agent.models.sources import (
     ContextSource,
     FileContextSource,
@@ -299,7 +299,7 @@ class ConversationManager:
             role="user",
             name="user",
             model=self._agent.model_name,
-            metadata=MessageMetadata(**metadata),
+            metadata=metadata,
         )
         self._agent.message_received.emit(chat_message)
 

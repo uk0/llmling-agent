@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal, TypedDict
+from typing import Literal, TypedDict
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import TypeVar
+
+from llmling_agent.common_types import JsonObject  # noqa: TC001
+from llmling_agent.models.agents import ToolCallInfo  # noqa: TC001
 
 
 T = TypeVar("T", str, BaseModel, default=str)
@@ -35,25 +38,6 @@ class TokenAndCostResult:
     """Total cost in USD"""
 
 
-class MessageMetadata(BaseModel):
-    """Metadata for chat messages."""
-
-    tool: str | None = Field(default=None)
-    """Name of tool if this message represents a tool interaction."""
-
-    # Web UI specific fields
-    avatar: str | None = Field(default=None)
-    """URL or path to avatar image for UI display."""
-
-    tool_args: dict[str, Any] | None = None
-    """Arguments passed to tool for UI display."""
-
-    tool_result: Any | None = None
-    """Result returned by tool for UI display."""
-
-    model_config = ConfigDict(frozen=True)
-
-
 class ChatMessage[T](BaseModel):
     """Common message format for all UI types.
 
@@ -70,8 +54,8 @@ class ChatMessage[T](BaseModel):
     role: Literal["user", "assistant", "system"]
     """Role of the message sender (user/assistant/system)."""
 
-    metadata: MessageMetadata = Field(default_factory=MessageMetadata)
-    """Additional metadata about the message (timing, costs, tool usage, etc)."""
+    metadata: JsonObject = Field(default_factory=dict)
+    """Additional metadata about the message."""
 
     timestamp: datetime = Field(default_factory=datetime.now)
     """When this message was created."""
@@ -85,9 +69,13 @@ class ChatMessage[T](BaseModel):
     response_time: float | None = Field(default=None)
     """Time it took the LLM to respond."""
 
+    tool_calls: list[ToolCallInfo] = Field(default_factory=list)
+    """List of tool calls made during message generation."""
+
     name: str | None = Field(default=None)
     """Display name for the message sender in UI."""
-    model_config = ConfigDict(frozen=True)
+
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
     def _get_content_str(self) -> str:
         """Get string representation of content."""
