@@ -696,7 +696,7 @@ class LLMlingAgent[TDeps, TResult]:
                         )
                         self.message_sent.emit(assistant_msg)
 
-                stream.stream = wrapped_stream
+                stream.stream = wrapped_stream  # type: ignore
                 yield stream
 
         except Exception:
