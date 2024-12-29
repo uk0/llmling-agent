@@ -455,7 +455,7 @@ class AgentPool:
     async def team_task(
         self,
         prompt: str,
-        team: Sequence[str],
+        team: Sequence[str | LLMlingAgent[Any, Any]],
         *,
         mode: Literal["parallel", "sequential"] = "parallel",
         model_override: str | None = None,
@@ -465,37 +465,53 @@ class AgentPool:
 
         Args:
             prompt: Task to execute
-            team: List of agent names to collaborate
+            team: List of agents or agent names
             mode: Whether to run agents in parallel or sequence
             model_override: Optional model override for all agents
             environment_override: Optional environment override for all agents
-
-        Returns:
-            List of responses from team members
         """
 
-        async def run_agent(name: str) -> AgentResponse:
+        async def run_agent(agent_ref: str | LLMlingAgent[Any, Any]) -> AgentResponse:
             try:
-                agent: LLMlingAgent[Any, str] = self.get_agent(
-                    name,
-                    model_override=model_override,
-                    environment_override=environment_override,
+                # Use agent directly if instance provided, otherwise look up by name
+                agent = (
+                    agent_ref
+                    if isinstance(agent_ref, LLMlingAgent)
+                    else self.get_agent(agent_ref)
                 )
+                if model_override:
+                    agent.set_model(model_override)
+                if environment_override:
+                    cfg = (
+                        environment_override
+                        if isinstance(environment_override, Config)
+                        else Config.from_file(environment_override)
+                    )
+                    agent._runtime = RuntimeConfig.from_config(cfg)
                 result = await agent.run(prompt)
-                response = str(result.data)
-                return AgentResponse(agent_name=name, response=response, success=True)
-            except Exception as e:
-                logger.exception("Agent %s failed", name)
                 return AgentResponse(
-                    agent_name=name, response="", success=False, error=str(e)
+                    agent_name=agent.name, response=str(result.data), success=True
+                )
+            except Exception as e:
+                logger.exception(
+                    "Agent %s failed",
+                    agent_ref if isinstance(agent_ref, str) else agent_ref.name,
+                )
+                return AgentResponse(
+                    agent_name=agent_ref
+                    if isinstance(agent_ref, str)
+                    else agent_ref.name,
+                    response="",
+                    success=False,
+                    error=str(e),
                 )
 
         if mode == "parallel":
-            tasks = [run_agent(name) for name in team]
+            tasks = [run_agent(ref) for ref in team]
             return list(await asyncio.gather(*tasks))
 
         # Sequential execution
-        return [await run_agent(name) for name in team]
+        return [await run_agent(ref) for ref in team]
 
     def list_agents(self) -> list[str]:
         """List available agent names."""
