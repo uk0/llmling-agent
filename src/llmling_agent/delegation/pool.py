@@ -390,11 +390,7 @@ class AgentPool:
             if isinstance(config_path, str | os.PathLike)
             else config_path
         )
-        pool = cls(
-            manifest,
-            agents_to_load=agents,
-            connect_agents=connect_agents,  # renamed argument
-        )
+        pool = cls(manifest, agents_to_load=agents, connect_agents=connect_agents)
         try:
             yield pool
         finally:

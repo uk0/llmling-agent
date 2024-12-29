@@ -19,6 +19,13 @@ if TYPE_CHECKING:
     from watchfiles.main import FileChange
 
 
+CHANGE_TO_TYPE: dict[Change, Literal["added", "modified", "deleted"]] = {
+    Change.added: "added",
+    Change.modified: "modified",
+    Change.deleted: "deleted",
+}
+
+
 @dataclass(frozen=True)
 class EventData:
     """Base class for event data."""
@@ -174,17 +181,9 @@ class FileSystemEventSource(EventSource):
             msg = "Source not connected"
             raise RuntimeError(msg)
 
-        change_to_type: dict[Change, Literal["added", "modified", "deleted"]] = {
-            Change.added: "added",
-            Change.modified: "modified",
-            Change.deleted: "deleted",
-        }
-
         async for changes in watch:
             for change, path in changes:
-                if change in change_to_type:
-                    yield FileEvent.create(
-                        source=self.config.name,
-                        path=str(path),
-                        type=change_to_type[change],
-                    )
+                if change not in CHANGE_TO_TYPE:
+                    continue
+                typ = CHANGE_TO_TYPE[change]
+                yield FileEvent.create(source=self.config.name, path=str(path), type=typ)
