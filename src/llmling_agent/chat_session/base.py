@@ -170,7 +170,8 @@ class AgentChatSession:
         """Add command to history."""
         if not command.strip():
             return
-        CommandHistory.log(self._agent.name, str(self.id), command)
+        id_ = str(self.id)
+        CommandHistory.log(agent_name=self._agent.name, session_id=id_, command=command)
 
     def get_commands(
         self, limit: int | None = None, current_session_only: bool = False

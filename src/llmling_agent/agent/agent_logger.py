@@ -59,7 +59,7 @@ class AgentLogger:
 
     def init_conversation(self):
         """Create initial conversation record."""
-        Conversation.log(self.conversation_id, self.agent.name)
+        Conversation.log(conversation_id=self.conversation_id, name=self.agent.name)
 
     def log_message(self, message: ChatMessage):
         """Handle message from chat signal."""

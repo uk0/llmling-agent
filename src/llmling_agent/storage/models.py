@@ -32,6 +32,7 @@ class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
     @classmethod
     def log(
         cls,
+        *,
         agent_name: str,
         session_id: str,
         command: str,
@@ -48,6 +49,7 @@ class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
         cls,
         agent_name: str,
         session_id: str,
+        *,
         limit: int | None = None,
         current_session_only: bool = False,
     ) -> list[str]:
@@ -152,6 +154,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     @classmethod
     def log(
         cls,
+        *,
         conversation_id: str,
         content: str,
         role: Literal["user", "assistant", "system"],
@@ -267,6 +270,7 @@ class ToolCall(SQLModel, table=True):  # type: ignore[call-arg]
     @classmethod
     def log(
         cls,
+        *,
         conversation_id: str,
         message_id: str,
         tool_call: ToolCallInfo,
@@ -300,7 +304,12 @@ class Conversation(SQLModel, table=True):  # type: ignore[call-arg]
     total_cost: float = Field(default=0.0)
 
     @classmethod
-    def log(cls, conversation_id: str, name: str):
+    def log(
+        cls,
+        *,
+        conversation_id: str,
+        name: str,
+    ):
         from llmling_agent.storage import engine
 
         with Session(engine) as session:
