@@ -186,7 +186,7 @@ class UIState:
 
             # Update available files and load agents
             files = [str(UPath(p)) for _, p in store.list_configs()]
-            data = yamling.load_yaml_file(str(file_path))
+            data = yamling.load_yaml_file(str(file_path), verify_type=dict)
             agents = list(data.get("agents", {}).keys())
             msg = f"Loaded {len(agents)} agents from {file_path.name}"
             logs = self.get_debug_logs()
@@ -224,7 +224,7 @@ class UIState:
             agent = self.handler.state.pool.get_agent(agent_name)
             # Create new session
             manager = self._session_manager
-            self._current_session = await manager.create_session(agent=agent, model=model)
+            self._current_session = await manager.create_session(agent=agent)
             self._connect_signals()
 
             # Get tool states for UI
@@ -333,9 +333,7 @@ class UIState:
                 messages.append({
                     "content": str(chat_msg.content),
                     "role": "assistant",
-                    "metadata": chat_msg.metadata.model_dump()
-                    if chat_msg.metadata
-                    else {},
+                    "metadata": chat_msg.metadata,
                 })
 
                 yield UIUpdate(chat_history=messages, status="Receiving response...")
