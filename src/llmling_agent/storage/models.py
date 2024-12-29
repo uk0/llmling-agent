@@ -104,8 +104,9 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     name: str | None = Field(default=None, index=True)
     content: str
     model: str | None = Field(default=None)
-
-    # Token usage as separate fields
+    model_name: str | None = Field(default=None, index=True)  # e.g., "gpt-4"
+    model_provider: str | None = Field(default=None, index=True)  # e.g., "openai"
+    # Token usage
     total_tokens: int | None = Field(default=None, index=True)
     prompt_tokens: int | None = Field(default=None)
     completion_tokens: int | None = Field(default=None)
@@ -115,6 +116,38 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
 
     # Performance metrics
     response_time: float | None = Field(default=None)
+
+    @staticmethod
+    def _parse_model_info(model: str | None) -> tuple[str | None, str | None]:
+        """Parse model string into provider and name.
+
+        Args:
+            model: Full model string (e.g., "openai:gpt-4", "anthropic/claude-2")
+
+        Returns:
+            Tuple of (provider, name)
+        """
+        if not model:
+            return None, None
+
+        # Try splitting by ':' or '/'
+        parts = model.split(":") if ":" in model else model.split("/")
+
+        if len(parts) == 2:  # noqa: PLR2004
+            provider, name = parts
+            return provider.lower(), name
+
+        # No provider specified, try to infer
+        name = parts[0]
+        if name.startswith(("gpt-", "text-", "dall-e")):
+            return "openai", name
+        if name.startswith("claude"):
+            return "anthropic", name
+        if name.startswith(("llama", "mistral")):
+            return "meta", name
+        # Add more provider inference rules as needed
+
+        return None, name
 
     @classmethod
     def log(
@@ -130,13 +163,17 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         """Log a message with complete information."""
         from llmling_agent.storage import engine
 
+        provider, model_name = cls._parse_model_info(model)
+
         with Session(engine) as session:
             msg = cls(
                 conversation_id=conversation_id,
                 role=role,
                 name=name,
                 content=content,
-                model=model,
+                model=model,  # Keep original for backwards compatibility
+                model_provider=provider,
+                model_name=model_name,
                 response_time=response_time,
                 total_tokens=cost_info.token_usage["total"] if cost_info else None,
                 prompt_tokens=cost_info.token_usage["prompt"] if cost_info else None,
