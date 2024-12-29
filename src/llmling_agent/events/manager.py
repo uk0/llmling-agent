@@ -88,10 +88,8 @@ class EventManager:
             self._sources[config.name] = source
 
             # Start processing events
-            task = asyncio.create_task(
-                self._process_events(source),
-                name=f"event_processor_{config.name}",
-            )
+            name = f"event_processor_{config.name}"
+            task = asyncio.create_task(self._process_events(source), name=name)
             self._tasks.add(task)
             task.add_done_callback(self._tasks.discard)
 

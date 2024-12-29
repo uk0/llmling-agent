@@ -41,10 +41,9 @@ type PromptInput = str | BasePrompt
 def _to_base_prompt(prompt: PromptInput) -> BasePrompt:
     """Convert input to BasePrompt instance."""
     if isinstance(prompt, str):
+        msg = PromptMessage(role="system", content=prompt)
         return StaticPrompt(
-            name="System prompt",
-            description="System prompt",
-            messages=[PromptMessage(role="system", content=prompt)],
+            name="System prompt", description="System prompt", messages=[msg]
         )
     return prompt
 
@@ -411,28 +410,22 @@ class ConversationManager:
         import tiktoken
 
         encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
-
-        total = 0
-        for msg in self._current_history:
-            for part in msg.parts:
-                content = format_response(part)
-                total += len(encoding.encode(content))
-
-        return total
+        return sum(
+            len(encoding.encode(format_response(part)))
+            for msg in self._current_history
+            for part in msg.parts
+        )
 
     def get_pending_tokens(self) -> int:
         """Get token count for pending messages."""
         import tiktoken
 
         encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
-
-        total = 0
-        for msg in self._pending_messages:
-            for part in msg.parts:
-                content = format_response(part)
-                total += len(encoding.encode(content))
-
-        return total
+        return sum(
+            len(encoding.encode(format_response(part)))
+            for msg in self._pending_messages
+            for part in msg.parts
+        )
 
 
 if __name__ == "__main__":
