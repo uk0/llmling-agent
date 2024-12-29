@@ -98,8 +98,10 @@ async def get_structured[T](
         try:
             result = await agent.run(prompt)
         except Exception as e:
-            if error_handler and (result := error_handler(e)):
-                return result
+            if error_handler:
+                result = error_handler(e)
+                if result is not None:
+                    return result
             raise
         else:
             return result.data

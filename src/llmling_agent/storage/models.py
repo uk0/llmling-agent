@@ -182,7 +182,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         with Session(engine) as session:
             messages = session.exec(query).all()
 
-            result = []
+            result: list[ModelMessage] = []
             for msg in messages:
                 match msg.role:
                     case "user":

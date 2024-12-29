@@ -651,7 +651,9 @@ class LLMlingAgent[TDeps, TResult]:
                             # For text response, get() returns list[str]
                             chunks: list[str] = stream._stream_response.get(final=True)  # type: ignore
                             text = "".join(chunks)
-                            result = await stream._validate_text_result(text)
+                            result = cast(
+                                TResult, await stream._validate_text_result(text)
+                            )
 
                         usage = stream.usage()
                         cost = (
