@@ -17,6 +17,19 @@
           "description": "Name of the agent",
           "title": "Name"
         },
+        "inherits": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of agent config to inherit from",
+          "title": "Inherits"
+        },
         "description": {
           "anyOf": [
             {
@@ -214,6 +227,32 @@
           "title": "User Prompts",
           "type": "array"
         },
+        "context_sources": {
+          "description": "Initial context sources to load",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "file": "#/$defs/FileContextSource",
+                "prompt": "#/$defs/PromptContextSource",
+                "resource": "#/$defs/ResourceContextSource"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileContextSource"
+              },
+              {
+                "$ref": "#/$defs/ResourceContextSource"
+              },
+              {
+                "$ref": "#/$defs/PromptContextSource"
+              }
+            ]
+          },
+          "title": "Context Sources",
+          "type": "array"
+        },
         "include_role_prompts": {
           "default": true,
           "description": "Whether to include default prompts based on the agent's role.",
@@ -242,6 +281,7 @@
           "anyOf": [
             {
               "enum": [
+                "basic",
                 "overseer",
                 "specialist",
                 "assistant"
@@ -252,7 +292,7 @@
               "type": "string"
             }
           ],
-          "default": "assistant",
+          "default": "basic",
           "description": "Role name (built-in or custom) determining agent's capabilities.",
           "title": "Role"
         },
@@ -866,6 +906,38 @@
         "module"
       ],
       "title": "EntryPointToolsetConfig",
+      "type": "object"
+    },
+    "FileContextSource": {
+      "description": "Load context from a file.",
+      "properties": {
+        "type": {
+          "const": "file",
+          "default": "file",
+          "title": "Type",
+          "type": "string"
+        },
+        "convert_to_md": {
+          "default": false,
+          "title": "Convert To Md",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Metadata",
+          "type": "object"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "FileContextSource",
       "type": "object"
     },
     "FileEnvironment": {
@@ -1724,6 +1796,42 @@
       "title": "ProcessorConfig",
       "type": "object"
     },
+    "PromptContextSource": {
+      "description": "Load context from a prompt.",
+      "properties": {
+        "type": {
+          "const": "prompt",
+          "default": "prompt",
+          "title": "Type",
+          "type": "string"
+        },
+        "convert_to_md": {
+          "default": false,
+          "title": "Convert To Md",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Metadata",
+          "type": "object"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "arguments": {
+          "title": "Arguments",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "PromptContextSource",
+      "type": "object"
+    },
     "PromptMessage": {
       "description": "A message in a prompt template.",
       "properties": {
@@ -1850,6 +1958,42 @@
         "models"
       ],
       "title": "RandomMultiModel",
+      "type": "object"
+    },
+    "ResourceContextSource": {
+      "description": "Load context from a resource.",
+      "properties": {
+        "type": {
+          "const": "resource",
+          "default": "resource",
+          "title": "Type",
+          "type": "string"
+        },
+        "convert_to_md": {
+          "default": false,
+          "title": "Convert To Md",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Metadata",
+          "type": "object"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "arguments": {
+          "title": "Arguments",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ResourceContextSource",
       "type": "object"
     },
     "ResponseField": {
