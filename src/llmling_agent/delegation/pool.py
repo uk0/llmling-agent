@@ -283,7 +283,7 @@ class AgentPool:
         new_agent = LLMlingAgent[TDeps, TResult](
             runtime=original_agent._runtime,
             context=original_agent._context,
-            result_type=original_agent._pydantic_agent._result_type,  # type: ignore
+            result_type=original_agent.actual_type,
             model=new_config.model,  # type: ignore
             system_prompt=new_config.system_prompts,
             name=new_name or f"{config.name}_copy_{len(self.agents)}",
