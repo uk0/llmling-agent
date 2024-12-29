@@ -80,7 +80,7 @@ class AgentChatSession:
         self.id = str(session_id) if session_id is not None else str(uuid4())
         self._agent = agent
         self._pool = pool
-        self._wait_chain = wait_chain
+        self.wait_chain = wait_chain
         # forward ToolManager signals to ours
         self._tool_states = self._agent.tools.list_tools()
         self._agent.tools.events.added.connect(self.tool_added.emit)
@@ -96,19 +96,6 @@ class AgentChatSession:
     def pool(self) -> AgentPool | None:
         """Get the agent pool if available."""
         return self._pool
-
-    @property
-    def wait_chain(self) -> bool:
-        """Whether to wait for chain completion."""
-        return self._wait_chain
-
-    @wait_chain.setter
-    def wait_chain(self, value: bool):
-        """Set chain waiting behavior."""
-        if not isinstance(value, bool):
-            msg = f"wait_chain must be bool, got {type(value)}"
-            raise TypeError(msg)
-        self._wait_chain = value
 
     async def connect_to(self, target: str, wait: bool | None = None):
         """Connect to another agent.
@@ -135,7 +122,7 @@ class AgentChatSession:
         self.agent_connected.emit(target_agent)
 
         if wait is not None:
-            self._wait_chain = wait
+            self.wait_chain = wait
 
     async def disconnect_from(self, target: str):
         """Disconnect from a target agent."""
@@ -152,7 +139,7 @@ class AgentChatSession:
         Returns:
             List of (agent_name, waits_for_completion) tuples
         """
-        return [(agent.name, self._wait_chain) for agent in self._agent._connected_agents]
+        return [(agent.name, self.wait_chain) for agent in self._agent._connected_agents]
 
     def _ensure_initialized(self):
         """Check if session is initialized."""
@@ -358,7 +345,7 @@ class AgentChatSession:
         # self._agent.message_sent.emit(chat_message)
 
         # Add chain waiting if enabled
-        if self._wait_chain and self._pool:
+        if self.wait_chain and self._pool:
             await self._agent.wait_for_chain()
 
         return chat_message
@@ -398,7 +385,7 @@ class AgentChatSession:
             self._state.update_tokens(final_msg)
 
             # Add chain waiting if enabled
-            if self._wait_chain and self._pool:
+            if self.wait_chain and self._pool:
                 await self._agent.wait_for_chain()
 
             yield final_msg
