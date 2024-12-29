@@ -238,12 +238,14 @@ def register_delegation_tools(agent: LLMlingAgent[Any, Any], pool: AgentPool):
     """
     tools = DelegationTools(pool)
 
-    for func in [
+    delegation_functions: list[Callable[..., Any]] = [
         tools.delegate_to,
         tools.list_available_agents,
         tools.brainstorm,
         tools.debate,
-    ]:
+    ]
+
+    for func in delegation_functions:
         agent.tools.register_tool(
             func, enabled=True, source="dynamic", metadata={"type": "delegation"}
         )
