@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Self
 
@@ -487,8 +486,7 @@ class AgentsManifest(ConfigModel):
         raise ValueError(msg)
 
 
-@dataclass
-class ToolCallInfo:
+class ToolCallInfo(BaseModel):
     """Information about an executed tool call."""
 
     tool_name: str
@@ -503,7 +501,7 @@ class ToolCallInfo:
     tool_call_id: str | None
     """ID provided by the model (e.g. OpenAI function call ID)."""
 
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = Field(default_factory=datetime.now)
     """When the tool was called."""
 
     message_id: str | None = None
@@ -511,3 +509,11 @@ class ToolCallInfo:
 
     context_data: Any | None = None
     """Optional context data that was passed to the agent's run() method."""
+
+    error: str | None = Field(default=None)
+    """Error message if the tool call failed."""
+
+    timing: float | None = Field(default=None)
+    """Time taken for this specific tool call in seconds."""
+
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
