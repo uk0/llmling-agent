@@ -5,17 +5,12 @@ import tempfile
 import time
 from typing import TYPE_CHECKING, Any
 
-import yamling
-
 from llmling_agent.delegation import AgentPool
 
 
 if TYPE_CHECKING:
     from llmling_agent.agent import LLMlingAgent
 
-FILE_URL = "http://speedtest.tele2.net/10MB.zip"
-
-# Agent configuration
 AGENT_CONFIG = """\
 agents:
   file_getter_1:
@@ -44,10 +39,10 @@ agents:
         2. Report the EXACT download results from the agents including speeds and sizes
 """
 
-PROMPT = f"Download this file using both agent tools available to you: {FILE_URL}"
+PROMPT = "Download this file using both agent tools available to you: http://speedtest.tele2.net/10MB.zip"
 
 
-async def run_with_config(config_path: str):
+async def run(config_path: str):
     async with AgentPool.open(config_path) as pool:
         # Get the boss agent
         boss: LLMlingAgent[Any, Any] = pool.get_agent("overseer")
@@ -69,12 +64,10 @@ async def run_with_config(config_path: str):
 
 
 async def main():
-    # Keep tempfile alive until we're done with the pool
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp:
-        yaml_config = yamling.load_yaml(AGENT_CONFIG)
-        yamling.dump_yaml(yaml_config, stream=tmp)
+        tmp.write(AGENT_CONFIG)
         tmp.flush()
-        await run_with_config(tmp.name)
+        await run(tmp.name)
 
 
 if __name__ == "__main__":
