@@ -66,11 +66,14 @@ class MessageFormatter:
                 parts.append(f"Time: {message.response_time:.2f}s")
 
             # Tool information from metadata
-            if message.metadata and message.metadata.tool:
-                tool_info = f"Tool: {message.metadata.tool}"
-                if message.metadata.tool_args:
-                    tool_info += f" (args: {message.metadata.tool_args})"
-                parts.append(tool_info)
+            if message.tool_calls:
+                tool_infos = []
+                for call in message.tool_calls:
+                    tool_info = f"Tool: {call.tool_name}"
+                    if call.args:
+                        tool_info += f" (args: {call.args})"
+                    tool_infos.append(tool_info)
+                parts.extend(tool_infos)
 
             if parts:
                 stats_line = " • ".join(parts)
