@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 from typing import TYPE_CHECKING
 import webbrowser
 
@@ -100,4 +101,5 @@ copy_clipboard_cmd = Command(
     execute_func=copy_clipboard,
     help_text=COPY_CB_HELP,
     category="utils",
+    condition=lambda: importlib.util.find_spec("pyperclip") is not None,
 )
