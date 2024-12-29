@@ -18,8 +18,4 @@ def aggregate_token_usage(messages: Sequence[Message]) -> TokenUsage:
     prompt = sum(msg.prompt_tokens or 0 for msg in messages)
     completion = sum(msg.completion_tokens or 0 for msg in messages)
 
-    return {
-        "total": total,
-        "prompt": prompt,
-        "completion": completion,
-    }
+    return {"total": total, "prompt": prompt, "completion": completion}
