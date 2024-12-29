@@ -118,8 +118,7 @@ class EventManager:
         """
         try:
             # Get the async iterator from the coroutine
-            event_iterator = await source.events()
-            async for event in event_iterator:
+            async for event in source.events():
                 if not self.enabled:
                     break
                 await self._handle_event(event)
