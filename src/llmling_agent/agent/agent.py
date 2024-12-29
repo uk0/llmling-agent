@@ -133,14 +133,14 @@ class LLMlingAgent[TDeps, TResult]:
         self._tool_manager.setup_history_tools(self._context.capabilities)
 
         # Resolve result type
-        actual_type: type[TResult]
+        self.actual_type: type[TResult]
         match result_type:
             case str():
-                actual_type = resolve_response_type(result_type, context)  # type: ignore[assignment]
+                self.actual_type = resolve_response_type(result_type, context)  # type: ignore[assignment]
             case InlineResponseDefinition():
-                actual_type = resolve_response_type(result_type, None)  # type: ignore[assignment]
+                self.actual_type = resolve_response_type(result_type, None)  # type: ignore[assignment]
             case None | type():
-                actual_type = result_type or str  # type: ignore[assignment]
+                self.actual_type = result_type or str  # type: ignore[assignment]
             case _:
                 msg = f"Invalid result_type: {type(result_type)}"
                 raise TypeError(msg)
@@ -152,7 +152,7 @@ class LLMlingAgent[TDeps, TResult]:
         # Initialize agent with all tools
         self._pydantic_agent = PydanticAgent(
             model=model,
-            result_type=actual_type,
+            result_type=self.actual_type,
             system_prompt=system_prompt,
             deps_type=AgentContext,
             tools=[],  # tools get added for each call explicitely
