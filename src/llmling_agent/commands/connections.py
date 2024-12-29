@@ -177,10 +177,3 @@ connections_cmd = Command(
     help_text=LIST_CONNECTIONS_HELP,
     category="agents",
 )
-
-__all__ = [
-    "connect_cmd",
-    "connections_cmd",
-    "disconnect_all_cmd",
-    "disconnect_cmd",
-]

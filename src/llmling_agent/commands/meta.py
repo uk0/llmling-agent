@@ -83,10 +83,8 @@ async def meta_command(
             # Combined application (single LLM call)
             # Get the combiner prompt
             combiner = library.get_meta_prompt("internal.combine")
-            labels = [
-                f"Style '{name}':\n{p.system}"
-                for name, p in zip(categories.values(), prompts)
-            ]
+            zipped = zip(categories.values(), prompts)
+            labels = [f"Style '{name}':\n{p.system}" for name, p in zipped]
             # Create new template with combined system prompts
             sys_prompt = combiner.system + "\n\nAvailable Styles:\n" + "\n\n".join(labels)
             combined = PromptTemplate(

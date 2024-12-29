@@ -58,11 +58,8 @@ def get_model_names(ctx: CompletionContext[AgentChatSession]) -> list[str]:
         return known_models
 
     # Add any additional models from the current configuration
-    config_models = {
-        str(a.model)
-        for a in agent._context.definition.agents.values()
-        if a.model is not None
-    }
+    agents = agent._context.definition.agents
+    config_models = {str(a.model) for a in agents.values() if a.model is not None}
 
     # Combine both sources, keeping order (known models first)
     all_models = known_models[:]
