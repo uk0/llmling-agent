@@ -10,6 +10,9 @@ from typing import Any
 
 import typer as t
 
+from llmling_agent.chat_session.output import DefaultOutputWriter
+from llmling_agent.log import set_handler_level
+
 
 MODEL_HELP = "Model to use (e.g. openai:gpt-4o-mini, gpt-4)"
 
@@ -39,8 +42,6 @@ def quickstart_command(
 
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)
-    logging.getLogger("llmling_agent").setLevel(level)
-    logging.getLogger("llmling").setLevel(level)
 
     from llmling import Config
 
@@ -77,9 +78,17 @@ def quickstart_command(
                 agent_path,
                 "quickstart",
             ) as agent:
-                await start_interactive_session(agent, log_level=level, stream=stream)
+                await start_interactive_session(agent, stream=stream)
 
-        asyncio.run(run_chat())
+        show_logs = False
+        output = DefaultOutputWriter() if show_logs else None
+
+        with set_handler_level(
+            level,
+            ["llmling_agent", "llmling"],
+            session_handler=output,
+        ):
+            asyncio.run(run_chat())
 
     except KeyboardInterrupt:
         print("\nChat session ended.")

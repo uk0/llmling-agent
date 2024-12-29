@@ -11,7 +11,6 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from rich.console import Console
 from rich.markdown import Markdown
 from slashed import ExitCommandError
-from slashed.log import SessionLogHandler
 from slashed.prompt_toolkit_completer import PromptToolkitCompleter
 
 from llmling_agent.chat_session import ChatSessionManager
@@ -43,7 +42,6 @@ class InteractiveSession:
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,
-        log_level: int = logging.WARNING,
         show_log_in_chat: bool = False,
         stream: bool = False,
         render_markdown: bool = False,
@@ -54,7 +52,6 @@ class InteractiveSession:
             agent: The LLMling agent to use
             pool: Optional agent pool for multi-agent interactions
             wait_chain: Whether to wait for chain completion
-            log_level: Logging level to use
             show_log_in_chat: Whether to show logs in chat
             stream: Whether to use streaming mode
             render_markdown: Whether to render markdown in responses
@@ -74,13 +71,6 @@ class InteractiveSession:
         self._pool = pool
         self._wait_chain = wait_chain
         self._completer: PromptToolkitCompleter | None = None
-        # Setup logging
-        self._log_handler = None
-        if show_log_in_chat:
-            self._log_handler = SessionLogHandler(DefaultOutputWriter())
-            self._log_handler.setLevel(log_level)
-            logging.getLogger("llmling_agent").addHandler(self._log_handler)
-            logging.getLogger("llmling").addHandler(self._log_handler)
 
     def _connect_signals(self):
         """Connect to chat session signals."""
@@ -278,9 +268,6 @@ class InteractiveSession:
         """Clean up resources."""
         if self._chat_session:
             await self._chat_session.cleanup()
-        if self._log_handler:
-            logging.getLogger("llmling_agent").removeHandler(self._log_handler)
-            logging.getLogger("llmling").removeHandler(self._log_handler)
 
 
 # Helper function for CLI
@@ -289,7 +276,6 @@ async def start_interactive_session(
     *,
     pool: AgentPool | None = None,
     wait_chain: bool = True,
-    log_level: int = logging.WARNING,
     stream: bool = False,
 ):
     """Start an interactive chat session."""
@@ -297,7 +283,6 @@ async def start_interactive_session(
         agent,
         pool=pool,
         wait_chain=wait_chain,
-        log_level=log_level,
         stream=stream,
     )
     await session.start()

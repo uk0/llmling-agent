@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Any
 from llmling.core.log import get_logger
 import typer as t
 
+from llmling_agent.chat_session.output import DefaultOutputWriter
+from llmling_agent.log import set_handler_level
 from llmling_agent_cli import resolve_agent_config
 
 
@@ -51,8 +53,6 @@ def chat_command(
 
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)
-    logging.getLogger("llmling_agent").setLevel(level)
-    logging.getLogger("llmling").setLevel(level)
 
     try:
         # Resolve configuration
@@ -89,12 +89,19 @@ def chat_command(
                 await start_interactive_session(
                     agent,
                     pool=pool,
-                    log_level=level,
                     stream=stream,
                     wait_chain=wait_chain,
                 )
 
-        asyncio.run(run_chat())
+        show_logs = False
+        output = DefaultOutputWriter() if show_logs else None
+
+        with set_handler_level(
+            level,
+            ["llmling_agent", "llmling"],
+            session_handler=output,
+        ):
+            asyncio.run(run_chat())
 
     except t.Exit:
         raise
