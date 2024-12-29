@@ -66,7 +66,7 @@ async def test_prompt_command_simple(runtime_config: Config):
         agent = LLMlingAgent[Any, str](runtime)
         session = AgentChatSession(agent)
 
-        store = CommandStore()
+        store = CommandStore(enable_system_commands=True)
         context = store.create_context(session, output_writer=TestOutput())
 
         # Execute prompt command
@@ -97,7 +97,7 @@ async def test_prompt_command_with_args(runtime_config: Config):
         agent = LLMlingAgent[Any, Any](runtime)
         session = AgentChatSession(agent)
 
-        store = CommandStore()
+        store = CommandStore(enable_system_commands=True)
         context = store.create_context(session, output_writer=TestOutput())
 
         # Execute prompt command with arguments

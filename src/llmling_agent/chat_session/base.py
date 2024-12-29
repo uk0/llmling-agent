@@ -87,7 +87,7 @@ class AgentChatSession:
         self._agent.tools.events.changed.connect(self.tool_changed.emit)
         self._initialized = False  # Track initialization state
         file_path = HISTORY_DIR / f"{agent.name}.history"
-        self.commands = CommandStore(history_file=file_path)
+        self.commands = CommandStore(history_file=file_path, enable_system_commands=True)
         self.start_time = datetime.now()
         self._state = SessionState(current_model=self._agent.model_name)
 
