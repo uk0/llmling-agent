@@ -516,4 +516,4 @@ class ToolCallInfo(BaseModel):
     timing: float | None = Field(default=None)
     """Time taken for this specific tool call in seconds."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(use_attribute_docstrings=True)

@@ -238,5 +238,12 @@ def register_delegation_tools(agent: LLMlingAgent[Any, Any], pool: AgentPool):
     """
     tools = DelegationTools(pool)
 
-    for func in tools.tools:
-        agent._pydantic_agent.tool(func)  # Register as context tool
+    for func in [
+        tools.delegate_to,
+        tools.list_available_agents,
+        tools.brainstorm,
+        tools.debate,
+    ]:
+        agent.tools.register_tool(
+            func, enabled=True, source="dynamic", metadata={"type": "delegation"}
+        )
