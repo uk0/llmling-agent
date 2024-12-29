@@ -117,6 +117,9 @@ def reset_history(
     agent_name: str | None = t.Option(
         None, "--agent", "-a", help="Only delete history for specific agent"
     ),
+    hard: bool = t.Option(
+        False, "--hard", help="Drop and recreate tables (for schema changes)"
+    ),
 ):
     """Reset (clear) conversation history.
 
@@ -129,12 +132,15 @@ def reset_history(
 
         # Clear history for specific agent
         llmling-agent history reset --agent myagent
+
+        # Drop and recreate tables (for schema changes)
+        llmling-agent history reset --hard --confirm
     """
     from sqlalchemy import text
     from sqlmodel import Session, select
 
-    from llmling_agent.storage import engine
-    from llmling_agent.storage.models import Conversation, Message
+    from llmling_agent.storage import engine, init_database
+    from llmling_agent.storage.models import Conversation, Message, SQLModel
     from llmling_agent.storage.queries import (
         DELETE_AGENT_CONVERSATIONS,
         DELETE_AGENT_MESSAGES,
@@ -142,6 +148,28 @@ def reset_history(
         DELETE_ALL_MESSAGES,
     )
 
+    if hard:
+        if agent_name:
+            print("--hard flag cannot be used with --agent")
+            raise t.Exit(1)
+
+        if not confirm:
+            msg = "This will DROP ALL TABLES and recreate them. Are you sure? [y/N] "
+            if input(msg).lower() != "y":
+                print("Operation cancelled.")
+                return
+
+        # Drop all tables and recreate them
+        with Session(engine) as session:
+            SQLModel.metadata.drop_all(engine)
+            session.commit()
+
+        print("Tables dropped. Recreating schema...")
+        init_database()
+        print("Database schema reset complete.")
+        return
+
+    # Regular deletion logic continues...
     with Session(engine) as session:
         # Get count before deletion
         if agent_name:
