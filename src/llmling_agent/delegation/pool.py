@@ -105,7 +105,7 @@ class AgentPool:
             # Create context with config path and capabilities
             context = AgentContext[Any](
                 agent_name=name,
-                capabilities=self.manifest.get_capabilities(config.role),
+                capabilities=config.capabilities,
                 definition=self.manifest,
                 config=config,
                 pool=self,
@@ -207,7 +207,7 @@ class AgentPool:
             # Create context with config path and capabilities
             context = AgentContext[Any](
                 agent_name=name,
-                capabilities=self.manifest.get_capabilities(config.role),
+                capabilities=config.capabilities,
                 definition=self.manifest,
                 config=config,
                 pool=self,

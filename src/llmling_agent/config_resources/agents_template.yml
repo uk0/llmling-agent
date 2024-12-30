@@ -3,7 +3,6 @@ agents:
   simple_agent:
     description: "Basic agent with minimal configuration"
     model: openai:gpt-4o-mini
-    role: assistant
     environment:
       type: inline
       config:

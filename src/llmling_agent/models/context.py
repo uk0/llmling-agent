@@ -52,10 +52,6 @@ class AgentContext[TDeps]:
     pool: AgentPool | None = None
     """Pool the agent is part of."""
 
-    def get_capabilities(self) -> Capabilities:
-        """Get the current agent's capabilities."""
-        return self.capabilities
-
     @classmethod
     def create_default(
         cls,

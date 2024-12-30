@@ -11,7 +11,6 @@ Create a simple agent that opens websites in your browser:
 agents:
   url_opener:
     model: openai:gpt-4o-mini
-    role: assistant
     environment: env_web.yml
     system_prompts:
       - |
@@ -101,7 +100,6 @@ Create an agent that interacts with the file system:
 agents:
   file_manager:
     model: openai:gpt-4
-    role: specialist  # Higher privileges for file operations
     environment: env_files.yml
     system_prompts:
       - "You help users manage their files and directories."

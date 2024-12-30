@@ -203,13 +203,6 @@ async def run_agent_pipeline(  # noqa: PLR0911
                     msg = f"Invalid environment type: {type(environment)}"
                     raise TypeError(msg)  # noqa: TRY301
 
-        # Update capabilities if provided
-        if capabilities and agent_config.role in agent_def.roles:
-            current = agent_def.roles[agent_config.role].model_dump()
-            current.update(capabilities)
-            role = agent_def.roles[agent_config.role]
-            agent_def.roles[agent_config.role] = role.model_copy(update=current)
-
         # Create agent with all settings
         async with LLMlingAgent[Any, T].open_agent(
             agent_def,

@@ -15,12 +15,7 @@ from pydantic_ai.models.test import TestModel
 from upath.core import UPath
 import yamling
 
-from llmling_agent.config import (
-    Capabilities,
-    RoleName,
-    get_available_roles,
-    get_role_capabilities,
-)
+from llmling_agent.config import Capabilities
 from llmling_agent.environment import AgentEnvironment  # noqa: TC001
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
@@ -79,6 +74,9 @@ class AgentConfig(BaseModel):
     environment: str | AgentEnvironment | None = None
     """Environment configuration (path or object)"""
 
+    capabilities: Capabilities = Field(default_factory=Capabilities)
+    """Current agent's capabilities."""
+
     session_id: str | None = None
     """Opetional id of a session to load."""
 
@@ -123,9 +121,6 @@ class AgentConfig(BaseModel):
 
     config_file_path: str | None = None
     """Config file path for resolving environment."""
-
-    role: RoleName = "basic"
-    """Role name (built-in or custom) determining agent's capabilities."""
 
     triggers: list[EventConfig] = Field(default_factory=list)
     """Event sources that activate this agent"""
@@ -188,7 +183,7 @@ class AgentConfig(BaseModel):
         """Render system prompts with context."""
         if not context:
             # Default context
-            context = {"name": self.name, "id": 1, "role": self.role, "model": self.model}
+            context = {"name": self.name, "id": 1, "model": self.model}
         return [
             render_prompt(prompt, {"agent": context}) for prompt in self.system_prompts
         ]
@@ -311,9 +306,6 @@ class AgentsManifest(ConfigModel):
 
     agents: dict[str, AgentConfig]
     """Mapping of agent IDs to their configurations"""
-
-    roles: dict[str, Capabilities] = Field(default_factory=dict)
-    """Custom role definitions"""
 
     model_config = ConfigDict(
         use_attribute_docstrings=True,
@@ -465,25 +457,6 @@ class AgentsManifest(ConfigModel):
         except Exception as exc:
             msg = f"Failed to load agent config from {path}"
             raise ValueError(msg) from exc
-
-    def get_capabilities(self, role_name: RoleName) -> Capabilities:
-        """Get capabilities for a role name.
-
-        Args:
-            role_name: Either a built-in role or custom role name
-
-        Returns:
-            Capability configuration for the role
-
-        Raises:
-            ValueError: If role doesn't exist
-        """
-        if role_name in self.roles:
-            return self.roles[role_name]
-        if isinstance(role_name, str) and role_name in get_available_roles():
-            return get_role_capabilities(role_name)  # type: ignore[index]
-        msg = f"Unknown role: {role_name}"
-        raise ValueError(msg)
 
 
 class ToolCallInfo(BaseModel):

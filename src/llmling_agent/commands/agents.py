@@ -100,7 +100,6 @@ async def create_agent_command(
             name=name,
             model=model,
             system_prompts=[system_prompt],
-            role=kwargs.get("role", "basic"),
             description=kwargs.get("description"),
             environment=InlineEnvironment(config=Config()),
             # config_file_path=current_agent._context.config.config_file_path,

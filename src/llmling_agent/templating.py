@@ -14,7 +14,6 @@ def render_prompt(
     Available variables:
         agent.name: Name of the agent
         agent.id: Number of the clone (for cloned agents)
-        agent.role: Role of the agent
         agent.model: Model name
     """
     env = Environment(autoescape=True, keep_trailing_newline=True)

@@ -365,13 +365,10 @@ class LLMlingAgent[TDeps, TResult]:
         if not actual_model:
             msg = "Model must be specified either in config or as override"
             raise ValueError(msg)
-
-        capabilities = agent_def.get_capabilities(agent_config.role)
-
         # Create context
         context = AgentContext[TDeps](
             agent_name=agent_name,
-            capabilities=capabilities,
+            capabilities=agent_config.capabilities,
             definition=agent_def,
             config=agent_config,
             model_settings=model_settings or {},

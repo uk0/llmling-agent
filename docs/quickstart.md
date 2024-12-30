@@ -74,7 +74,6 @@ Here's a minimal example:
 agents:
   system_checker:
     model: openai:gpt-4o-mini
-    role: assistant
     environment: env_system.yml  # Reference to environment file
     system_prompts:
       - "You help users check their system status."
@@ -111,7 +110,6 @@ agents:
   simple_agent:
     description: "Basic agent with minimal configuration"
     model: openai:gpt-4o-mini
-    role: assistant
     environment:  # Inline environment configuration
       type: inline
       config:

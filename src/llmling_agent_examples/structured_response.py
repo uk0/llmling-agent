@@ -18,7 +18,6 @@ AGENT_CONFIG = """
 agents:
     summarizer:
         model: openai:gpt-4o-mini
-        role: assistant
         system_prompts:
             - Summarize text in a structured way.
 """

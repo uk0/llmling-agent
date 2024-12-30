@@ -31,7 +31,6 @@ agents:
     name: "Download Coordinator"
     description: "Coordinates parallel downloads"
     model: openai:gpt-4o-mini
-    role: overseer
     system_prompts:
       - |
         You coordinate file downloads using available agents. Your job is to:

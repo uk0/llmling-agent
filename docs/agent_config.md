@@ -11,7 +11,6 @@ agents:
   web_assistant:                   # Name of the agent
     description: "Helps with web tasks"  # Optional description
     model: openai:gpt-4           # Model to use
-    role: assistant               # Role defining capabilities
 
     # Environment configuration (file reference or inline)
     environment:

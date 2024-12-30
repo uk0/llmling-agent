@@ -120,7 +120,6 @@ Agents are defined in YAML configuration files. The environment (tools and resou
 agents:
   system_checker:
     model: openai:gpt-4o-mini
-    role: assistant
     environment: env_system.yml  # Reference to environment file
     system_prompts:
       - "You help users check their system status."
@@ -142,7 +141,6 @@ tools:
 agents:
   system_checker:
     model: openai:gpt-4o-mini
-    role: assistant
     environment:  # Inline environment configuration
       type: inline
       config:
@@ -198,7 +196,6 @@ agents:
     name: "File Downloader 1" # Agent name (can be anything unique)
     description: "Downloads files from URLs"
     model: openai:gpt-4o-mini  # Language model to use, takes pydantic-ai model names
-    role: specialist # Possible roles are: assistant, specialist, overseer
     environment: # Environment configuration (can also be external YAML file)
       type: inline
       config:
@@ -218,7 +215,6 @@ agents:
     name: "Download Coordinator"
     description: "Coordinates parallel downloads"
     model: openai:gpt-4o-mini
-    role: overseer # Overseer has broader permissions
     system_prompts:
       - |
         You coordinate downloads by delegating to file_getter_1 and file_getter_2.
@@ -238,8 +234,8 @@ async def main():
             mode="parallel"
         )
 
-        # Or let an overseer coordinate
-        overseer = pool.get_agent("overseer")
+        # Or let a coordinator orchestrate
+        coordinator = pool.get_agent("coordinator")
         result = await overseer.run(
             "Download https://example.com/file.zip using both getters..."
         )
@@ -260,18 +256,15 @@ The pool is configured through an agents manifest (YAML):
 ```yaml
 agents:
   agent_1:
-    model: gpt-4
-    role: specialist
+    model: openai:gpt-4
     # ... agent-specific config
 
   agent_2:
-    model: gpt-4
-    role: specialist
+    model: openai:gpt-4
     # ... agent-specific config
 
   overseer:
-    model: gpt-4
-    role: overseer
+    model: openai:gpt-4
     # ... overseer config
 ```
 
