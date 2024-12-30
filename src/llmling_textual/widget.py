@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from slashed.log import get_logger
 from textual.containers import ScrollableContainer
-from textual.reactive import reactive
 from textual.widgets import Static
 
 
@@ -13,10 +13,11 @@ if TYPE_CHECKING:
     from llmling_agent.models.messages import ChatMessage
 
 
+logger = get_logger(__name__)
+
+
 class MessageWidget(Static):
     """Individual message in the chat."""
-
-    content = reactive("")
 
     DEFAULT_CSS = """
     MessageWidget {
@@ -54,20 +55,28 @@ class MessageWidget(Static):
 
     def __init__(self, message: ChatMessage) -> None:
         super().__init__()
+        logger.debug("Creating MessageWidget for %s: %r", message.role, message.content)
         self.message = message
         self.add_class(message.role)
         self.border_title = self.message.name or self.message.role.title()
 
     def compose(self) -> ComposeResult:
         """Create message layout."""
+        logger.debug("Composing MessageWidget")
         if self.message.model:
             yield Static(f"using {self.message.model}", classes="model")
-        yield Static("", id="message_content", classes="content")
+        # Initialize with empty content for assistant, actual content for others
+        initial_content = "" if self.message.role == "assistant" else self.message.content
+        yield Static(initial_content, id="message_content", classes="content")
 
-    def watch_content(self, new_content: str) -> None:
-        """React to content changes."""
+    def update_content(self, new_content: str) -> None:
+        """Update message content."""
+        logger.debug("Updating content to: %r", new_content)
         if content_widget := self.query_one("#message_content", Static):
             content_widget.update(new_content)
+            logger.debug("Content widget updated successfully")
+        else:
+            logger.warning("No content widget found!")
 
 
 class ChatView(ScrollableContainer):
@@ -88,6 +97,7 @@ class ChatView(ScrollableContainer):
 
     async def add_message(self, message: ChatMessage) -> MessageWidget:
         """Add a new message to the chat."""
+        logger.debug("Adding message: %r", message.content)
         widget = MessageWidget(message)
         await self.mount(widget)
         widget.scroll_visible()
@@ -95,11 +105,8 @@ class ChatView(ScrollableContainer):
         return widget
 
     def update_stream(self, content: str) -> None:
-        """Update content of current streaming message.
-
-        Args:
-            content: New content to display
-        """
+        """Update content of current streaming message."""
         if self._current_message:
-            self._current_message.content = content
+            logger.debug("Updating stream: %r", content)
+            self._current_message.update_content(content)
             self._current_message.scroll_visible()
