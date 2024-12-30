@@ -213,13 +213,6 @@ class InteractiveSession:
                     )
                     self.formatter.print_message_content(content_to_print)
                     self.formatter.print_message_end(result)
-            if (
-                self._chat_session
-                and self._chat_session.wait_chain
-                and self._chat_session.has_chain()
-            ):
-                self.console.print("[dim]Waiting for chain responses...[/]")
-
         except (httpx.ReadError, GeneratorExit):
             self.formatter.print_connection_error()
         except EOFError:

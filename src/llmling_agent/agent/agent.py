@@ -23,7 +23,12 @@ from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage
-from llmling_agent.pydantic_ai_utils import extract_usage, get_tool_calls, register_tool
+from llmling_agent.pydantic_ai_utils import (
+    extract_usage,
+    format_response,
+    get_tool_calls,
+    register_tool,
+)
 from llmling_agent.responses import InlineResponseDefinition, resolve_response_type
 from llmling_agent.tools.manager import ToolManager
 
@@ -615,11 +620,7 @@ class LLMlingAgent[TDeps, TResult]:
             user_msg = ChatMessage[str](content=prompt, role="user")
             self.message_received.emit(user_msg)
             start_time = time.perf_counter()
-            msg_history = (
-                message_history if message_history else self.conversation.get_history()
-            )
-
-            # Capture all messages from the entire operation
+            msg_history = message_history or self.conversation.get_history()
             async with self._pydantic_agent.run_stream(
                 prompt,
                 message_history=msg_history,
@@ -637,30 +638,12 @@ class LLMlingAgent[TDeps, TResult]:
                         message_id = str(uuid4())
                         if not message_history:
                             self.conversation.set_history(stream.all_messages())
-                        # Get complete result from the final chunks
+                        # TODO: need to properly deal with structured
                         if stream.is_structured:
                             message = stream._stream_response.get(final=True)
                             if not isinstance(message, ModelResponse):
                                 msg = "Expected ModelResponse for structured output"
                                 raise TypeError(msg)  # noqa: TRY301
-                            result = await stream.validate_structured_result(message)
-                        else:
-                            # For text response, get() returns list[str]
-                            chunks: list[str] = stream._stream_response.get(final=True)  # type: ignore
-                            text = "".join(chunks)
-                            result = cast(
-                                TResult, await stream._validate_text_result(text)
-                            )
-
-                        usage = stream.usage()
-                        cost_info = (
-                            await extract_usage(
-                                usage, self.model_name, prompt, str(result)
-                            )
-                            if self.model_name
-                            else None
-                        )
-
                         # Handle captured tool calls
                         messages = stream.new_messages()
                         self.conversation._last_messages = list(messages)
@@ -670,10 +653,23 @@ class LLMlingAgent[TDeps, TResult]:
                                 self._context.data if self._context else None
                             )
                             self.tool_used.emit(call)
+                        # Get all model responses and format their parts
+                        content = "\n".join(
+                            format_response(part)
+                            for msg in messages
+                            if isinstance(msg, ModelResponse)
+                            for part in msg.parts
+                        )
+                        usage = stream.usage()
+                        cost_info = (
+                            await extract_usage(usage, self.model_name, prompt, content)
+                            if self.model_name
+                            else None
+                        )
 
                         # Create and emit assistant message
                         assistant_msg = ChatMessage[TResult](
-                            content=cast(TResult, result),
+                            content=cast(TResult, content),
                             role="assistant",
                             name=self.name,
                             model=self.model_name,
