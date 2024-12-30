@@ -66,6 +66,9 @@ llmling-agent = "llmling_agent.__main__:cli"
 ui = ["gradio>=5.8.0"]
 clipboard = ["pyperclip>=1.8.0"]
 markdown = ["markitdown"]
+textual = [
+    "textual>=1.0.0",
+]
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
