@@ -101,6 +101,9 @@ class ConversationManager:
             self._agent._pending_tasks.add(task)
             task.add_done_callback(self._agent._pending_tasks.discard)
 
+    def __bool__(self) -> bool:
+        return bool(self._pending_messages) or bool(self._current_history)
+
     def __repr__(self) -> str:
         return f"ConversationManager(id={self.id!r})"
 
