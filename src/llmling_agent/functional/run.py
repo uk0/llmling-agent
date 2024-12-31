@@ -14,7 +14,7 @@ from typing import (
     runtime_checkable,
 )
 
-from llmling import Config
+from llmling import Config, LLMCallableTool
 
 from llmling_agent import LLMlingAgent
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
@@ -36,6 +36,7 @@ T = TypeVar("T")
 
 OutputFormat = Literal["text", "json", "yaml", "raw"]
 ErrorHandling = Literal["raise", "return", "ignore"]
+type ToolType = str | Callable[..., Any] | LLMCallableTool
 
 
 @runtime_checkable
@@ -65,7 +66,7 @@ async def run_agent_pipeline(
     retries: int | None = None,
     capabilities: dict[str, bool] | None = None,
     tool_choice: bool | str | list[str] = True,
-    tools: list[str | Callable[..., Any]] | None = None,
+    tools: list[ToolType] | None = None,
     model_settings: dict[str, Any] | None = None,
 ) -> T: ...
 
@@ -85,7 +86,7 @@ async def run_agent_pipeline(
     retries: int | None = None,
     capabilities: dict[str, bool] | None = None,
     tool_choice: bool | str | list[str] = True,
-    tools: list[str | Callable[..., Any]] | None = None,
+    tools: list[ToolType] | None = None,
     model_settings: dict[str, Any] | None = None,
 ) -> str: ...
 
@@ -105,7 +106,7 @@ async def run_agent_pipeline(
     retries: int | None = None,
     capabilities: dict[str, bool] | None = None,
     tool_choice: bool | str | list[str] = True,
-    tools: list[str | Callable[..., Any]] | None = None,
+    tools: list[ToolType] | None = None,
     model_settings: dict[str, Any] | None = None,
 ) -> AsyncIterator[str]: ...
 
@@ -124,7 +125,7 @@ async def run_agent_pipeline(  # noqa: PLR0911
     retries: int | None = None,
     capabilities: dict[str, bool] | None = None,
     tool_choice: bool | str | list[str] = True,
-    tools: list[str | Callable[..., Any]] | None = None,
+    tools: list[ToolType] | None = None,
     model_settings: dict[str, Any] | None = None,
 ) -> T | str | AsyncIterator[str]:
     """Execute complete agent pipeline.
