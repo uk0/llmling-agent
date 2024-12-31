@@ -343,11 +343,7 @@ class AgentPool:
         if agent._context and agent._context.pool is not self:
             agent._context.pool = self
         if session_id:
-            # load_history_from_database is async, so workaround
-            from llmling_agent.agent.conversation import ConversationManager
-
-            # TODO: setting up conversation should probably happen before using pool
-            agent.conversation = ConversationManager(agent, session_id=session_id)  # type: ignore
+            agent.conversation.load_history_from_database(session_id=session_id)
         # Apply any overrides to the existing agent
         if model_override:
             agent.set_model(model_override)  # type: ignore
