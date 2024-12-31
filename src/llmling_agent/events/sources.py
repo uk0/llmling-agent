@@ -58,33 +58,94 @@ class EventSourceConfig(BaseModel):
     """Base configuration for event sources."""
 
     type: str = Field(init=False)
-    name: str
-    enabled: bool = True
+    """Discriminator field for event source types."""
 
-    model_config = ConfigDict(frozen=True)
+    name: str
+    """Unique identifier for this event source."""
+
+    enabled: bool = True
+    """Whether this event source is active."""
+
+    # extra_knowledge: Knowledge | None = None
+    """Additional context to load when this trigger activates."""
+
+    model_config = ConfigDict(
+        frozen=True,
+        use_attribute_docstrings=True,
+    )
 
 
 class FileWatchConfig(EventSourceConfig):
-    """File watching event source."""
+    """File watching event source.
 
-    type: Literal["files"] = Field("files", init=False)
+    Monitors file system changes and triggers agent actions when:
+    - Files are created
+    - Files are modified
+    - Files are deleted
+    """
+
+    type: Literal["file"] = Field("file", init=False)
+    """Type discriminator for file watch sources."""
+
     paths: list[str]
+    """Paths or patterns to watch for changes."""
+
     extensions: list[str] | None = None
+    """File extensions to monitor (e.g. ['.py', '.md'])."""
+
     ignore_paths: list[str] | None = None
+    """Paths or patterns to ignore."""
+
     recursive: bool = True
+    """Whether to watch subdirectories."""
+
     debounce: int = 1600
+    """Minimum time (ms) between trigger events."""
 
 
 class WebhookConfig(EventSourceConfig):
-    """Webhook event source."""
+    """Webhook event source.
+
+    Listens for HTTP requests and triggers agent actions when:
+    - POST requests are received at the configured endpoint
+    - Request content matches any defined filters
+    """
 
     type: Literal["webhook"] = Field("webhook", init=False)
+    """Type discriminator for webhook sources."""
+
     port: int
+    """Port to listen on."""
+
     path: str
+    """URL path to handle requests."""
+
     secret: str | None = None
+    """Optional secret for request validation."""
 
 
-EventConfig = Annotated[FileWatchConfig | WebhookConfig, Field(discriminator="type")]
+class ManualTriggerConfig(EventSourceConfig):
+    """Manual trigger configuration.
+
+    Defines actions that can be triggered directly by users through CLI for example.
+
+    Unlike other triggers, these don't activate automatically but provide
+    a way to define reusable agent interactions.
+    """
+
+    type: Literal["manual"] = Field("manual", init=False)
+    """Type discriminator for manual triggers."""
+
+    prompt: str
+    """Prompt to send to the agent when triggered."""
+
+    description: str | None = None
+    """Human-readable description of what this trigger does."""
+
+
+EventConfig = Annotated[
+    FileWatchConfig | WebhookConfig | ManualTriggerConfig, Field(discriminator="type")
+]
 
 
 class ExtensionFilter:
