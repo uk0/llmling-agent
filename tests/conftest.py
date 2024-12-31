@@ -9,9 +9,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 import yamling
 
-from llmling_agent import config_resources
-from llmling_agent.agent import LLMlingAgent
-from llmling_agent.models import AgentConfig
+from llmling_agent import AgentConfig, LLMlingAgent, config_resources
 from llmling_agent.responses import InlineResponseDefinition, ResponseField
 from llmling_agent.testing.ui import DummyUI
 

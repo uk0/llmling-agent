@@ -8,11 +8,13 @@ from llmling import Config, RuntimeConfig, ToolError
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent import LLMlingAgent
-from llmling_agent.chat_session import AgentPoolView
-from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.models.agents import AgentsManifest
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent import (
+    AgentPool,
+    AgentPoolView,
+    AgentsManifest,
+    ChatMessage,
+    LLMlingAgent,
+)
 
 
 TEST_MESSAGE = "Hello, agent!"

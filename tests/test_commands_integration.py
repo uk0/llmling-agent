@@ -8,8 +8,7 @@ from llmling import Config, PromptMessage, PromptParameter, RuntimeConfig, Stati
 import pytest
 from slashed import CommandStore, DefaultOutputWriter
 
-from llmling_agent import LLMlingAgent
-from llmling_agent.chat_session import AgentPoolView
+from llmling_agent import AgentPoolView, LLMlingAgent
 from llmling_agent.commands.prompts import prompt_cmd
 
 
