@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from llmling import RuntimeConfig  # noqa: TC002
 from typing_extensions import TypeVar
@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig, AgentsManifest
+    from llmling_agent.tools.base import ToolInfo
 
 
 TDeps = TypeVar("TDeps", default=Any)
@@ -52,6 +53,9 @@ class AgentContext[TDeps]:
     pool: AgentPool | None = None
     """Pool the agent is part of."""
 
+    confirmation_handler: ConfirmationHandler | None = None
+    """Optional confirmation handler for tool execution."""
+
     @classmethod
     def create_default(
         cls,
@@ -71,3 +75,13 @@ class AgentContext[TDeps]:
         defn = AgentsManifest[Any, Any](agents={})
         cfg = AgentConfig(name=name)
         return cls(agent_name=name, capabilities=caps, definition=defn, config=cfg)
+
+
+class ConfirmationHandler(Protocol):
+    async def confirm_tool(
+        self,
+        tool: ToolInfo,
+        args: dict[str, Any],
+    ) -> bool:
+        """Request confirmation for tool execution."""
+        ...
