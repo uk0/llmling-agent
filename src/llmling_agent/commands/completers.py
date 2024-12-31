@@ -88,47 +88,29 @@ class MetaCompleter(CompletionProvider):
         """Complete meta command arguments."""
         current = ctx.current_word
         args = ctx.command_args
-
+        lib = _load_prompt_library()
+        if not lib:
+            return
+        prompts = lib.meta_prompts
         # If completing a new argument that starts with --
         if current.startswith("--"):
             # Get categories that haven't been used yet
-            used_categories = {
-                arg[2:].split("=")[0] for arg in args if arg.startswith("--")
-            }
-            library = _load_prompt_library()
-            if not library:
-                return
-
+            used_cats = {arg[2:].split("=")[0] for arg in args if arg.startswith("--")}
             # Suggest unused categories
-            categories = {
-                name.split(".")[0] for name in library.meta_prompts if "." in name
-            }
-            for category in categories - used_categories:
+            cats = {name.split(".")[0] for name in prompts if "." in name}
+            for category in cats - used_cats:
                 if category.startswith(current[2:]):
-                    yield CompletionItem(
-                        text=f"--{category}",
-                        metadata="Meta prompt category",
-                        kind="argument",  # type: ignore
-                    )
-
+                    meta = "Meta prompt category"
+                    text = f"--{category}"
+                    yield CompletionItem(text=text, metadata=meta, kind="argument")  # type: ignore
         # If completing a value after a category
         for arg in args:
-            if arg.startswith("--") and "=" not in arg:
-                category = arg[2:]  # Remove --
-                library = _load_prompt_library()
-                if not library:
-                    return
-
-                # Get styles for this category
-                styles = [
-                    name.split(".")[1]
-                    for name in library.meta_prompts
-                    if name.startswith(f"{category}.")
-                ]
-                for style in styles:
-                    if style.startswith(current):
-                        yield CompletionItem(
-                            text=style,
-                            metadata=f"{category} style",
-                            kind="value",  # type: ignore
-                        )
+            if not (arg.startswith("--") and "=" not in arg):
+                continue
+            category = arg[2:]  # Remove --
+            # Get styles for this category
+            styles = [n.split(".")[1] for n in prompts if n.startswith(f"{category}.")]
+            for style in styles:
+                if style.startswith(current):
+                    meta = f"{category} style"
+                    yield CompletionItem(text=style, metadata=meta, kind="value")  # type: ignore
