@@ -81,7 +81,7 @@ async def _handle_message(
             case AgentTarget():
                 # Create task for agent forwarding
                 loop = asyncio.get_event_loop()
-                task = loop.create_task(self.run(str(message.content)))
+                task = loop.create_task(self.run(str(message.content), deps=source))
                 self._pending_tasks.add(task)
                 task.add_done_callback(self._pending_tasks.discard)
 
