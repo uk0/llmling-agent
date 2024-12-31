@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from llmling_agent.agent.agent import LLMlingAgent
+    from llmling_agent.common_types import ToolType
     from llmling_agent.config.capabilities import Capabilities
 
 
@@ -36,10 +37,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
     def __init__(
         self,
-        tools: Sequence[
-            ToolInfo | LLMCallableTool | Callable[..., Any] | dict[str, Any] | str
-        ]
-        | None = None,
+        tools: Sequence[ToolInfo | ToolType | dict[str, Any]] | None = None,
         tool_choice: bool | str | list[str] = True,
     ):
         """Initialize tool manager.
@@ -70,9 +68,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         """Error class for tool operations."""
         return ToolError
 
-    def _validate_item(
-        self, item: ToolInfo | LLMCallableTool | dict[str, Any] | str | Callable[..., Any]
-    ) -> ToolInfo:
+    def _validate_item(self, item: ToolInfo | ToolType | dict[str, Any]) -> ToolInfo:
         """Validate and convert items before registration."""
         match item:
             case ToolInfo():

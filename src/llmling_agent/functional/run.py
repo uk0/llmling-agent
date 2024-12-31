@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,7 +14,7 @@ from typing import (
     runtime_checkable,
 )
 
-from llmling import Config, LLMCallableTool
+from llmling import Config
 
 from llmling_agent import LLMlingAgent
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai.agent import models
 
+    from llmling_agent.common_types import ToolType
     from llmling_agent.environment import AgentEnvironment
 
 logger = get_logger(__name__)
@@ -36,7 +37,6 @@ T = TypeVar("T")
 
 OutputFormat = Literal["text", "json", "yaml", "raw"]
 ErrorHandling = Literal["raise", "return", "ignore"]
-type ToolType = str | Callable[..., Any] | LLMCallableTool
 
 
 @runtime_checkable
@@ -309,7 +309,7 @@ async def run_with_model(
     stream: Literal[False] = False,
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
-    tools: list[str | Callable[..., Any]] | None = None,
+    tools: list[ToolType] | None = None,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> str: ...
@@ -326,7 +326,7 @@ async def run_with_model(
     stream: Literal[False] = False,
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
-    tools: list[str | Callable[..., Any]] | None = None,
+    tools: list[ToolType] | None = None,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> T: ...
@@ -343,7 +343,7 @@ async def run_with_model(
     output_format: OutputFormat = "text",
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
-    tools: list[str | Callable[..., Any]] | None = None,
+    tools: list[ToolType] | None = None,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> AsyncIterator[str]: ...
@@ -359,7 +359,7 @@ async def run_with_model(
     stream: bool = False,
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
-    tools: list[str | Callable[..., Any]] | None = None,
+    tools: list[ToolType] | None = None,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> T | str | AsyncIterator[str]:
@@ -476,7 +476,7 @@ def run_with_model_sync(
     output_format: Literal["text", "json", "yaml"] = "text",
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
-    tools: list[str | Callable[..., Any]] | None = None,
+    tools: list[ToolType] | None = None,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> str: ...
@@ -492,7 +492,7 @@ def run_with_model_sync(
     output_format: Literal["raw"] = "raw",
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
-    tools: list[str | Callable[..., Any]] | None = None,
+    tools: list[ToolType] | None = None,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> T: ...
@@ -507,7 +507,7 @@ def run_with_model_sync(
     output_format: OutputFormat = "text",
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
-    tools: list[str | Callable[..., Any]] | None = None,
+    tools: list[ToolType] | None = None,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
 ) -> T | str:

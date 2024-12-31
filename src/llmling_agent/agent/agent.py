@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from pydantic_ai.messages import ModelMessage
     from pydantic_ai.result import RunResult, StreamedRunResult, Usage
 
+    from llmling_agent.common_types import ToolType
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -84,7 +85,7 @@ class LLMlingAgent[TDeps, TResult]:
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
         description: str | None = None,
-        tools: Sequence[LLMCallableTool | str | Callable[..., Any]] | None = None,
+        tools: Sequence[ToolType] | None = None,
         retries: int = 1,
         result_tool_name: str = "final_result",
         result_tool_description: str | None = None,
@@ -288,7 +289,7 @@ class LLMlingAgent[TDeps, TResult]:
         result_type: type[TResult] | None = None,
         model_settings: dict[str, Any] | None = None,
         # Tool configuration
-        tools: list[str | Callable[..., Any] | LLMCallableTool] | None = None,
+        tools: list[ToolType] | None = None,
         tool_choice: bool | str | list[str] = True,
         end_strategy: EndStrategy = "early",
         # Execution settings
