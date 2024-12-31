@@ -315,3 +315,83 @@ llmling-agent history stats  # Basic stats
 llmling-agent history stats --group-by model  # Model usage
 llmling-agent history stats --group-by day    # Daily breakdown
 ```
+
+This diagram shows the main components of the LLMling Agent framework:
+
+```mermaid
+classDiagram
+    %% Core relationships
+    BaseEnvironment <|-- FileEnvironment
+    BaseEnvironment <|-- InlineEnvironment
+    AgentsManifest --* AgentConfig : contains
+    AgentsManifest --> AgentPool : creates
+    AgentConfig --> BaseEnvironment : uses
+    AgentPool --* LLMlingAgent : manages
+    FileEnvironment --> Config : loads
+    InlineEnvironment --* Config : contains
+    Config --> RuntimeConfig : initialized as
+    LLMlingAgent --> RuntimeConfig : uses
+
+    %% LLMling Core components
+    class Config ["[LLMling Core] Config"] {
+        +tools: dict
+        +resources: dict
+        +prompts: dict
+        +global_settings: GlobalSettings
+        +from_file()
+    }
+
+    class RuntimeConfig ["[LLMling Core] RuntimeConfig"] {
+        +config: Config
+        +tools: dict[str, LLMCallableTool]
+        +resources: dict[str, Resource]
+        +register_tool()
+        +load_resource()
+    }
+
+    class AgentsManifest {
+        +responses: dict[str, ResponseDefinition]
+        +agents: dict[str, AgentConfig]
+        +create_pool()
+        +open_agent()
+    }
+
+    class AgentConfig {
+        +name: str
+        +model: str | Model
+        +environment: AgentEnvironment
+        +capabilities: Capabilities
+        +system_prompts: list[str]
+        +get_config(): Config
+    }
+
+    class BaseEnvironment {
+        <<abstract>>
+        +type: str
+        +config_file_path: str|None
+        +get_display_name()
+        +get_file_path()
+    }
+
+    class FileEnvironment {
+        +type: "file"
+        +uri: str
+    }
+
+    class InlineEnvironment {
+        +type: "inline"
+        +config: Config
+    }
+
+    class AgentPool {
+        +manifest: AgentsManifest
+        +agents: dict[str, LLMlingAgent]
+    }
+
+    class LLMlingAgent {
+        +runtime: RuntimeConfig
+        +context: AgentContext
+        +tools: ToolManager
+        +conversation: ConversationManager
+    }
+```
