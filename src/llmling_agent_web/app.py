@@ -10,6 +10,7 @@ from gradio.themes import Base, Default, Glass, Monochrome, Soft
 from llmling import ConfigStore
 from upath import UPath
 
+from llmling_agent.log import set_handler_level
 from llmling_agent_web.ui_state import UIState
 
 
@@ -213,15 +214,6 @@ class AgentUI:
         return app
 
 
-def setup_logging():
-    """Set up logging configuration."""
-    fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    logging.basicConfig(level=logging.INFO, force=True, format=fmt)
-    logging.getLogger("gradio").setLevel(logging.INFO)
-    logging.getLogger("llmling_agent").setLevel(logging.DEBUG)
-    logging.getLogger("llmling").setLevel(logging.DEBUG)
-
-
 def create_app(theme: str = "soft") -> gr.Blocks:
     """Create the Gradio interface."""
     ui = AgentUI(theme=theme)
@@ -258,18 +250,18 @@ def launch_app(
 
     if platform.system() == "Windows":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-    setup_logging()
-    logger.info("Starting web interface")
-    app = create_app(theme=theme)
-    app.queue()
-    return app.launch(
-        share=share,
-        server_name=server_name,
-        server_port=server_port,
-        prevent_thread_lock=not block,
-        **kwargs,
-    )
+    lib_names = ["llmling_agent", "llmling", "gradio"]
+    with set_handler_level(logging.INFO, logger_names=lib_names):
+        logger.info("Starting web interface")
+        app = create_app(theme=theme)
+        app.queue()
+        return app.launch(
+            share=share,
+            server_name=server_name,
+            server_port=server_port,
+            prevent_thread_lock=not block,
+            **kwargs,
+        )
 
 
 if __name__ == "__main__":
