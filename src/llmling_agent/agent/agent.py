@@ -84,7 +84,7 @@ class LLMlingAgent[TDeps, TResult]:
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
         description: str | None = None,
-        tools: Sequence[LLMCallableTool] = (),
+        tools: Sequence[LLMCallableTool | str | Callable[..., Any]] | None = None,
         retries: int = 1,
         result_tool_name: str = "final_result",
         result_tool_description: str | None = None,
@@ -127,7 +127,7 @@ class LLMlingAgent[TDeps, TResult]:
         self.message_sent.connect(self._forward_message)
 
         # Initialize tool manager
-        all_tools = list(tools)
+        all_tools = list(tools or [])
         all_tools.extend(runtime.tools.values())  # Add runtime tools directly
         logger.debug("Runtime tools: %s", list(runtime.tools.keys()))
         self._tool_manager = ToolManager(tools=all_tools, tool_choice=tool_choice)
@@ -288,7 +288,7 @@ class LLMlingAgent[TDeps, TResult]:
         result_type: type[TResult] | None = None,
         model_settings: dict[str, Any] | None = None,
         # Tool configuration
-        tools: list[str | Callable[..., Any]] | None = None,
+        tools: list[str | Callable[..., Any] | LLMCallableTool] | None = None,
         tool_choice: bool | str | list[str] = True,
         end_strategy: EndStrategy = "early",
         # Execution settings
@@ -378,10 +378,6 @@ class LLMlingAgent[TDeps, TResult]:
         # Set up runtime
         cfg = agent_config.get_config()
         async with RuntimeConfig.open(cfg) as runtime:
-            if tools:
-                for tool in tools:
-                    await runtime.register_tool(tool)
-
             agent = cls(
                 runtime=runtime,
                 context=context,
@@ -394,6 +390,7 @@ class LLMlingAgent[TDeps, TResult]:
                 result_retries=result_retries,
                 end_strategy=end_strategy,
                 tool_choice=tool_choice,
+                tools=tools,
                 system_prompt=system_prompt or [],
                 enable_logging=enable_logging,
             )
