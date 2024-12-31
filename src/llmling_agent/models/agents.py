@@ -489,4 +489,7 @@ class ToolCallInfo(BaseModel):
     timing: float | None = None
     """Time taken for this specific tool call in seconds."""
 
+    agent_tool_name: str | None = None
+    """If this tool is agent-based, the name of that agent."""
+
     model_config = ConfigDict(use_attribute_docstrings=True)
