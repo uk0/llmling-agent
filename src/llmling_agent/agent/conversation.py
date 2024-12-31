@@ -26,11 +26,11 @@ from llmling_agent.pydantic_ai_utils import convert_model_message, format_respon
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from datetime import datetime
-    import os
 
     from pydantic_ai.messages import ModelMessage
 
     from llmling_agent.agent.agent import LLMlingAgent
+    from llmling_agent.common_types import StrPath
 
 logger = get_logger(__name__)
 
@@ -312,7 +312,7 @@ class ConversationManager:
 
     async def add_context_from_path(
         self,
-        path: str | os.PathLike[str],
+        path: StrPath,
         *,
         convert_to_md: bool = False,
         **metadata: Any,

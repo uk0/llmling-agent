@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import os
 from typing import Any
 
 from llmling import LLMCallableTool
@@ -13,3 +14,5 @@ type JsonObject = dict[str, JsonValue]
 type JsonArray = list[JsonValue]
 
 type ToolType = str | Callable[..., Any] | LLMCallableTool
+
+type StrPath = str | os.PathLike[str]

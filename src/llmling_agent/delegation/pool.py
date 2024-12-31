@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
-import os
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling import Config, RuntimeConfig
@@ -19,6 +18,7 @@ if TYPE_CHECKING:
     from types import TracebackType
     from uuid import UUID
 
+    from llmling_agent.common_types import StrPath
     from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
 
 
@@ -299,7 +299,7 @@ class AgentPool:
         *,
         model_override: str | None = None,
         session_id: str | UUID | None = None,
-        environment_override: str | os.PathLike[str] | Config | None = None,
+        environment_override: StrPath | Config | None = None,
     ) -> LLMlingAgent:
         """Get an agent by name with optional runtime modifications.
 
@@ -343,7 +343,7 @@ class AgentPool:
     @asynccontextmanager
     async def open(
         cls,
-        config_path: str | os.PathLike[str] | AgentsManifest,
+        config_path: StrPath | AgentsManifest,
         *,
         agents: list[str] | None = None,
         connect_agents: bool = True,
@@ -361,9 +361,9 @@ class AgentPool:
         from llmling_agent.models import AgentsManifest
 
         manifest = (
-            AgentsManifest.from_file(config_path)
-            if isinstance(config_path, str | os.PathLike)
-            else config_path
+            config_path
+            if isinstance(config_path, AgentsManifest)
+            else AgentsManifest.from_file(config_path)
         )
         pool = cls(manifest, agents_to_load=agents, connect_agents=connect_agents)
         try:
@@ -378,7 +378,7 @@ class AgentPool:
         *,
         mode: Literal["parallel", "sequential"] = "parallel",
         model_override: str | None = None,
-        environment_override: str | os.PathLike[str] | Config | None = None,
+        environment_override: StrPath | Config | None = None,
     ) -> list[AgentResponse]:
         """Execute a task with a team of agents.
 

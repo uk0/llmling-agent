@@ -9,7 +9,7 @@ import yamling
 
 
 if TYPE_CHECKING:
-    import os
+    from llmling_agent.common_types import StrPath
 
 
 class PromptTemplate(BaseModel):
@@ -58,7 +58,7 @@ class PromptLibrary(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     @classmethod
-    def from_file(cls, path: str | os.PathLike[str]) -> PromptLibrary:
+    def from_file(cls, path: StrPath) -> PromptLibrary:
         """Load prompts from YAML file.
 
         Args:

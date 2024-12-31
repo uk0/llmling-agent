@@ -29,13 +29,12 @@ from llmling_agent.tools.manager import ToolManager
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-    import os
 
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.messages import ModelMessage
     from pydantic_ai.result import RunResult, StreamedRunResult, Usage
 
-    from llmling_agent.common_types import ToolType
+    from llmling_agent.common_types import StrPath, ToolType
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -206,7 +205,7 @@ class LLMlingAgent[TDeps, TResult]:
     @asynccontextmanager
     async def open(
         cls,
-        config_path: str | os.PathLike[str] | Config | None = None,
+        config_path: StrPath | Config | None = None,
         result_type: type[TResult] | None = None,
         *,
         model: models.Model | models.KnownModelName | None = None,
@@ -280,7 +279,7 @@ class LLMlingAgent[TDeps, TResult]:
     @asynccontextmanager
     async def open_agent(
         cls,
-        config: str | os.PathLike[str] | AgentsManifest,
+        config: StrPath | AgentsManifest,
         agent_name: str,
         *,
         # Model configuration

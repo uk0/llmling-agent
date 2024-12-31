@@ -32,10 +32,10 @@ from llmling_agent.templating import render_prompt
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-    import os
     from uuid import UUID
 
     from llmling_agent import AgentPool, LLMlingAgent
+    from llmling_agent.common_types import StrPath
 
 
 TDeps = TypeVar("TDeps", default=Any)
@@ -446,7 +446,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         return self
 
     @classmethod
-    def from_file(cls, path: str | os.PathLike[str]) -> Self:
+    def from_file(cls, path: StrPath) -> Self:
         """Load agent configuration from YAML file.
 
         Args:
