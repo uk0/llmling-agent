@@ -321,16 +321,17 @@ This diagram shows the main components of the LLMling Agent framework:
 ```mermaid
 classDiagram
     %% Core relationships
-    BaseEnvironment <|-- FileEnvironment
-    BaseEnvironment <|-- InlineEnvironment
     AgentsManifest --* AgentConfig : contains
     AgentsManifest --> AgentPool : creates
-    AgentConfig --> BaseEnvironment : uses
     AgentPool --* LLMlingAgent : manages
     FileEnvironment --> Config : loads
     InlineEnvironment --* Config : contains
     Config --> RuntimeConfig : initialized as
     LLMlingAgent --> RuntimeConfig : uses
+    AgentConfig --> FileEnvironment : uses
+    AgentConfig --> InlineEnvironment : uses
+    LLMlingAgent --* ToolManager : uses
+    LLMlingAgent --* ConversationManager : uses
 
     class Config ["[LLMling Core] Config"] {
         Base configuration format defining tools, resources, and settings
@@ -373,16 +374,6 @@ classDiagram
         +get_config(): Config
     }
 
-    class BaseEnvironment {
-        Abstract base for environment configurations
-        <<abstract>>
-        +
-        +type: str
-        +config_file_path: str|None
-        +get_display_name()
-        +get_file_path()
-    }
-
     class FileEnvironment {
         Environment loaded from external YAML file
         +
@@ -402,14 +393,37 @@ classDiagram
         +
         +manifest: AgentsManifest
         +agents: dict[str, LLMlingAgent]
+        +team_task()
+        +open()
     }
 
     class LLMlingAgent {
         Main agent class handling LLM interactions and tool usage
         +
         +runtime: RuntimeConfig
-        +context: AgentContext
         +tools: ToolManager
         +conversation: ConversationManager
+        +run()
+        +run_stream()
+        +open()
+    }
+
+    class ToolManager {
+        Manages tool registration, enabling/disabling and access
+        +
+        +register_tool()
+        +enable_tool()
+        +disable_tool()
+        +get_tools()
+        +list_tools()
+    }
+
+    class ConversationManager {
+        Manages conversation state and system prompts
+        +
+        +get_history()
+        +clear()
+        +add_context_from_path()
+        +add_context_from_resource()
     }
 ```
