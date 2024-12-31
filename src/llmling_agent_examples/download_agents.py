@@ -17,6 +17,20 @@ def cheer(slogan: str):
     print(slogan)
 
 
+class CheerProgress:
+    def __init__(self):
+        self.situation = "The team is assembling, ready to start the downloads!"
+
+    def create_prompt(self) -> str:
+        return (
+            f"Current situation: {self.situation}\n"
+            "Be an enthusiastic and encouraging fan!"
+        )
+
+    def update(self, situation: str):
+        self.situation = situation
+
+
 AGENT_CONFIG = """\
 agents:
   fan:
@@ -30,7 +44,7 @@ agents:
         You are the MOST ENTHUSIASTIC async fan who runs in the background!
         Your job is to:
         1. Find all other agents using your tool (don't include yourself!)
-        2. Cheer them on with over-the-top supportive messages
+        2. Cheer them on with over-the-top supportive messages considering the situation.
         3. Never stop believing in your team! 🎉
     environment:
       type: inline
@@ -88,18 +102,22 @@ async def run(config_path: str):
         prompt = f"Download this file: {FILE_URL}"
 
         fan = pool.get_agent("fan")
-        await fan.run_continuous("Start cheering!")
+        progress = CheerProgress()
+
+        await fan.run_continuous(progress.create_prompt)
+        progress.update("Sequential downloads starting - let's see how they do!")
 
         print("Sequential downloads:")
         start_time = time.time()
         await pool.team_task(prompt, team=team, mode="sequential")
         sequential_time = time.time() - start_time
         print(f"Sequential time: {sequential_time:.2f} seconds")
-
+        progress.update(f"Sequential downloads completed in {sequential_time:.2f} secs!")
         print("\nParallel downloads:")
         start_time = time.time()
         await pool.team_task(prompt, team=team, mode="parallel")
         parallel_time = time.time() - start_time
+        progress.update(f"Parallel downloads completed in {parallel_time:.2f} secs!")
         print(f"Parallel time: {parallel_time:.2f} seconds")
         print(f"\nParallel was {sequential_time / parallel_time:.1f}x faster")
 
@@ -128,42 +146,44 @@ if __name__ == "__main__":
 # Result:
 
 # Sequential downloads:
-# 10MB.zip: 100.0% (4.9 MB/s)
-# Go Team Fan! You're the enthusiasm we all need! 🎉🥳
-# File Getter 1, your skills in retrieving files are unmatched! Keep rocking it! 🌟📂
-# Overseer, you're the watchful eye keeping things in check! We believe in you! 💪👁️
-# File Getter 2, keep those files coming! You're the best at what you do! 🚀📁
-# 10MB.zip: 100.0% (5.1 MB/s)
-# Sequential time: 8.78 seconds
+# 10MB.zip: 100.0% (10.4 MB/s)
+#
+# Go, file_getter_1! You're the download dynamo we all believe in!
+# Let's crush those downloads! 🚀💪
+# Overseer, you are the captain of this download ship! Navigate us to success! ⛵🌟
+# file_getter_2, you're a download superstar!
+# Shine bright and bring those files home! ✨📥
+#
+# 10MB.zip: 100.0% (10.2 MB/s)
+# Sequential time: 6.00 seconds
 
 # Parallel downloads:
-# 10MB.zip: 52.7% (2.7 MB/s)Fan, your enthusiasm is contagious!
-# Keep spreading those good vibes! 🎉💖
-# File Getter 1, you're making file retrieval look easy! Go, go, go! 🚀📂
-# Overseer, you keep us all on track! Your oversight is invaluable! Keep shining! 🌟👁️
-# File Getter 2, you're a file-fetching wizard! Keep up the spectacular work! 🧙‍♂️📁
-# 10MB.zip: 100.0% (4.0 MB/s)
-# 10MB.zip: 100.0% (3.7 MB/s)
-# Parallel time: 4.68 seconds
+# 10MB.zip: 100.0% (10.0 MB/s)
+# 10MB.zip: 100.0% (8.3 MB/s)
+# Parallel time: 2.84 seconds
 
-# Parallel was 1.9x faster
-# 10MB.zip: 100.0% (4.3 MB/s)
-# 10MB.zip: 100.0% (4.6 MB/s)
-# Hey Fan, your enthusiasm is an inspiration to us all! Keep shining! 🌟🥳
-# File Getter 1, you`re a superstar in the world of file retrieval! Keep it rocking! 🚀📂
-# File Getter 2, the way you fetch files is simply astounding!
-# You're doing amazing things! 🌈📁
-# Overseer, your watchful eye and support make all the difference! Keep being awesome! 💖👁️
+# Parallel was 2.1x faster
+
+# WOWZA! Amazing job, file_getter_1! 6 seconds of pure downloading power! You rock! 🎉💥
+# Hats off to you, Overseer! Your coordination was impeccable!
+# What a stellar performance! 🙌🌟
+# Bravo, file_getter_2! You brought it home in record time! Keep shining, superstar! 🌈🏆
+
+# 10MB.zip: 91.8% (9.6 MB/s))
+# 10MB.zip: 100.0% (10.0 MB/s)
+
+# BOOM!
+# File_getter_1, you absolutely crushed it with those parallel downloads in 2.84 seconds!
+#  What a whirlwind performance! ⚡🤩
+# Overseer, you orchestrated that like a maestro! Incredible team effort and timing!
+# Bravo! 🎶🙌
+# File_getter_2, you're a download wizard! 2.84 seconds of magic!
+# Keep casting those spells! 🪄🌟
 
 # Overseer's report:
-# The downloads have been successfully completed. Here are the results from both agents:
+# The download results from the agents are as follows:
 
-# **file_getter_1:**
-# - **File Size:** 10.0 MB
-# - **Download Speed:** 4.6 MB/s
-
-# **file_getter_2:**
-# - **File Size:** 10.0 MB
-# - **Download Speed:** 4.3 MB/s
-
-# If you need further assistance, feel free to ask!
+# - **file_getter_1**:
+# The file `10MB.zip` has been successfully downloaded at a speed of **10.0 MB/s**.
+# - **file_getter_2**:
+# The file **10MB.zip** has been successfully downloaded at a speed of **8.7 MB/s**.
