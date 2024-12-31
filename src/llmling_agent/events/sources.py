@@ -19,7 +19,9 @@ if TYPE_CHECKING:
     from watchfiles.main import FileChange
 
 
-CHANGE_TO_TYPE: dict[Change, Literal["added", "modified", "deleted"]] = {
+ChangeType = Literal["added", "modified", "deleted"]
+
+CHANGE_TO_TYPE: dict[Change, ChangeType] = {
     Change.added: "added",
     Change.modified: "modified",
     Change.deleted: "deleted",
@@ -48,7 +50,7 @@ class FileEvent(EventData):
     """File system event."""
 
     path: str
-    type: Literal["added", "modified", "deleted"]
+    type: ChangeType
 
     def to_prompt(self) -> str:
         return f"File {self.type}: {self.path}"

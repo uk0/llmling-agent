@@ -16,6 +16,9 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import LLMlingAgent
 
 
+AccessLevel = Literal["none", "own", "all"]
+
+
 def create_delegate_tool() -> LLMCallableTool:
     async def delegate_to(
         ctx: RunContext[AgentContext],
@@ -63,7 +66,7 @@ class Capabilities(EventedModel):
     can_observe_agents: bool = False
     """Whether the agent can monitor other agents' activities."""
 
-    history_access: Literal["none", "own", "all"] = "none"
+    history_access: AccessLevel = "none"
     """Level of access to conversation history.
 
     Levels:
@@ -72,7 +75,7 @@ class Capabilities(EventedModel):
     - all: Can access all agents' conversations
     """
 
-    stats_access: Literal["none", "own", "all"] = "none"
+    stats_access: AccessLevel = "none"
     """Level of access to usage statistics.
 
     Levels:

@@ -151,7 +151,11 @@ async def show_agent(
     await ctx.output.print("\n".join(sections))
 
 
-async def list_agents(ctx: CommandContext, args: list[str], kwargs: dict[str, str]):
+async def list_agents(
+    ctx: CommandContext[AgentPoolView],
+    args: list[str],
+    kwargs: dict[str, str],
+):
     """List all available agents."""
     # Get agent definition through context
     definition = ctx.context._agent._context.definition
@@ -172,7 +176,11 @@ async def list_agents(ctx: CommandContext, args: list[str], kwargs: dict[str, st
         )
 
 
-async def switch_agent(ctx: CommandContext, args: list[str], kwargs: dict[str, str]):
+async def switch_agent(
+    ctx: CommandContext[AgentPoolView],
+    args: list[str],
+    kwargs: dict[str, str],
+):
     """Switch to a different agent."""
     if not args:
         await ctx.output.print("Usage: /switch-agent <name>")
@@ -189,8 +197,6 @@ async def switch_agent(ctx: CommandContext, args: list[str], kwargs: dict[str, s
         async with LLMlingAgent[Any, str].open_agent(definition, name) as new_agent:
             # Update session's agent
             ctx.context._agent = new_agent
-            # Reset session state
-            ctx.context._history = []
             await ctx.output.print(f"Switched to agent: {name}")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Failed to switch agent: {e}")
