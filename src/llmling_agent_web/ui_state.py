@@ -9,11 +9,12 @@ from typing import TYPE_CHECKING, Any
 import gradio as gr
 from llmling.config.store import ConfigStore
 from pydantic import BaseModel, model_validator
+from slashed.output import CallbackOutputWriter
 from upath import UPath
 import yamling
 
 from llmling_agent.chat_session import AgentChatSession, ChatSessionManager
-from llmling_agent.chat_session.output import CallbackOutputWriter
+from llmling_agent.chat_session.models import ChatMessage
 from llmling_agent.log import LogCapturer
 from llmling_agent_web.handlers import AgentHandler
 from llmling_agent_web.type_utils import ChatHistory, validate_chat_message
@@ -22,11 +23,6 @@ from llmling_agent_web.type_utils import ChatHistory, validate_chat_message
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from llmling_agent.chat_session.events import (
-        HistoryClearedEvent,
-        SessionResetEvent,
-    )
-    from llmling_agent.chat_session.models import ChatMessage
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -126,11 +122,11 @@ class UIState:
             await asyncio.gather(*self._pending_tasks, return_exceptions=True)
             self._pending_tasks.clear()
 
-    async def _on_history_cleared(self, event: HistoryClearedEvent):
+    async def _on_history_cleared(self, event: AgentChatSession.HistoryCleared):
         """Handle history cleared event."""
         await self.send_message(message="", history=[], agent_name=None, model=None)
 
-    async def _on_session_reset(self, event: SessionResetEvent):
+    async def _on_session_reset(self, event: AgentChatSession.SessionReset):
         """Handle session reset event."""
         # Clear chat and update tool states
         _update = await self.send_message(
@@ -273,14 +269,15 @@ class UIState:
             # Collect command outputs
             command_outputs: list[str] = []
 
-            async def add_message(msg: ChatMessage):
+            async def message_callback(content: str) -> None:
                 if message.startswith("/"):
-                    command_outputs.append(msg.content)
+                    command_outputs.append(content)
                 else:
-                    messages.append({"content": msg.content, "role": msg.role})
+                    chat_msg = ChatMessage[str](content=content, role="system")
+                    messages.append({"content": chat_msg.content, "role": chat_msg.role})
 
-            # Send message through chat session
-            writer = CallbackOutputWriter(add_message)
+            # Use slashed's CallbackOutputWriter
+            writer = CallbackOutputWriter(message_callback)
             result = await self._current_session.send_message(message, output=writer)
 
             # For non-command messages, add the regular response

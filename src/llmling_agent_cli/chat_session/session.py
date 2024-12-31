@@ -23,7 +23,6 @@ from llmling_agent_cli.chat_session.history import SessionHistory
 
 if TYPE_CHECKING:
     from llmling_agent import LLMlingAgent
-    from llmling_agent.chat_session.events import HistoryClearedEvent, SessionResetEvent
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.tools.base import ToolInfo
@@ -126,11 +125,11 @@ class InteractiveSession:
         state = "enabled" if tool.enabled else "disabled"
         self.console.print(f"\nTool '{name}' {state}")
 
-    def _on_history_cleared(self, event: HistoryClearedEvent):
+    def _on_history_cleared(self, event: AgentChatSession.HistoryCleared):
         """Handle history cleared event."""
         self.console.print("\nChat history cleared")
 
-    def _on_session_reset(self, event: SessionResetEvent):
+    def _on_session_reset(self, event: AgentChatSession.SessionReset):
         """Handle session reset event."""
         self.console.print("\nSession reset. Tools restored to default state.")
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import datetime
 import pathlib
 import time
@@ -19,7 +20,6 @@ from slashed import (
 )
 
 from llmling_agent import LLMlingAgent
-from llmling_agent.chat_session.events import HistoryClearedEvent, SessionResetEvent
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
 from llmling_agent.commands import get_commands
@@ -53,8 +53,24 @@ class AgentChatSession:
     3. Tracks session state and metadata
     """
 
-    history_cleared = Signal(HistoryClearedEvent)
-    session_reset = Signal(SessionResetEvent)
+    @dataclass(frozen=True)
+    class HistoryCleared:
+        """Emitted when chat history is cleared."""
+
+        session_id: str
+        timestamp: datetime = field(default_factory=datetime.now)
+
+    @dataclass(frozen=True)
+    class SessionReset:
+        """Emitted when session is reset."""
+
+        session_id: str
+        previous_tools: dict[str, bool]
+        new_tools: dict[str, bool]
+        timestamp: datetime = field(default_factory=datetime.now)
+
+    history_cleared = Signal(HistoryCleared)
+    session_reset = Signal(SessionReset)
     tool_added = Signal(ToolInfo)
     tool_removed = Signal(str)  # tool_name
     tool_changed = Signal(str, ToolInfo)  # name, new_info
@@ -197,7 +213,7 @@ class AgentChatSession:
     async def clear(self):
         """Clear chat history."""
         self._agent.conversation.clear()
-        event = HistoryClearedEvent(session_id=str(self.id))
+        event = AgentChatSession.HistoryCleared(session_id=str(self.id))
         self.history_cleared.emit(event)
 
     async def reset(self):
@@ -206,7 +222,7 @@ class AgentChatSession:
         self._agent.conversation.clear()
         self._tool_states = self._agent.tools.list_tools()
 
-        event = SessionResetEvent(
+        event = AgentChatSession.SessionReset(
             session_id=str(self.id),
             previous_tools=old_tools,
             new_tools=self._tool_states,
