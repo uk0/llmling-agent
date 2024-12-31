@@ -416,7 +416,10 @@ class LLMlingAgent[TDeps, TResult]:
             type(message.content),
             len(self._connected_agents),
         )
-        self.outbox.emit(self, message)
+        forwarded_msg = message.model_copy(
+            update={"forwarded_from": [*message.forwarded_from, self.name]}
+        )
+        self.outbox.emit(self, forwarded_msg)
 
     async def disconnect_all(self):
         """Disconnect from all agents."""

@@ -75,6 +75,9 @@ class ChatMessage[T](BaseModel):
     name: str | None = None
     """Display name for the message sender in UI."""
 
+    forwarded_from: list[str] = Field(default_factory=list)
+    """List of agent names (the chain) that forwarded this message to the sender."""
+
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
     def _get_content_str(self) -> str:

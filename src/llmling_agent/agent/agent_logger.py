@@ -76,6 +76,7 @@ class AgentLogger:
             cost_info=message.cost_info,
             model=message.model,
             response_time=message.response_time,
+            forwarded_from=message.forwarded_from,
         )
 
     def log_tool_call(self, tool_call: ToolCallInfo):

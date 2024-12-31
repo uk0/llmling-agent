@@ -108,6 +108,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     model: str | None = None
     model_name: str | None = Field(default=None, index=True)  # e.g., "gpt-4"
     model_provider: str | None = Field(default=None, index=True)  # e.g., "openai"
+    forwarded_from: list[str] | None = Field(default=None, sa_column=Column(JSON))
     # Token usage
     total_tokens: int | None = Field(default=None, index=True)
     prompt_tokens: int | None = None
@@ -162,6 +163,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         cost_info: TokenAndCostResult | None = None,
         model: str | None = None,
         response_time: float | None = None,
+        forwarded_from: list[str] | None = None,
     ):
         """Log a message with complete information."""
         from llmling_agent.storage import engine
@@ -184,6 +186,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
                 if cost_info
                 else None,
                 cost=cost_info.total_cost if cost_info else None,
+                forwarded_from=forwarded_from,
             )
             session.add(msg)
             session.commit()
