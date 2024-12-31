@@ -417,11 +417,11 @@ class AgentPool:
                     )
                     agent._runtime = RuntimeConfig.from_config(cfg)
                 result = await agent.run(prompt)
-                return AgentResponse(agent_name=agent.name, response=str(result.data))
+                return AgentResponse(agent_name=agent.name, response=result.data)
             except Exception as e:
                 name = agent_ref if isinstance(agent_ref, str) else agent_ref.name
                 logger.exception("Agent %s failed", name)
-                return AgentResponse(agent_name=name, response="", error=str(e))
+                return AgentResponse(agent_name=name, response=None, error=str(e))
 
         if mode == "parallel":
             tasks = [run_agent(ref) for ref in team]
