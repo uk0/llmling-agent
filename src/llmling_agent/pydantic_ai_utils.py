@@ -139,37 +139,37 @@ def get_tool_calls(
         messages: Messages from captured run
         context_data: Optional context data to attach to tool calls
     """
-    logger.debug("Checking %d messages for tool calls", len(messages))
-    tool_calls: list[ToolCallInfo] = []
+    parts = [part for message in messages for part in message.parts]
+    call_parts = {
+        part.tool_call_id: part
+        for part in parts
+        if isinstance(part, ToolCallPart) and part.tool_call_id
+    }
+    return [
+        parts_to_tool_call_info(call_parts[part.tool_call_id], part, context_data)
+        for part in parts
+        if isinstance(part, ToolReturnPart) and part.tool_call_id in call_parts
+    ]
 
-    # First collect all tool calls
-    pending_calls: dict[str, tuple[str, dict[str, Any]]] = {}  # id -> (name, args)
 
-    for msg in messages:
-        for part in msg.parts:
-            match part:
-                case ToolCallPart():
-                    args = (
-                        part.args.args_dict
-                        if isinstance(part.args, ArgsDict)
-                        else json.loads(part.args.args_json)
-                    )
-                    if part.tool_call_id:
-                        pending_calls[part.tool_call_id] = (part.tool_name, args)
-                case ToolReturnPart() if part.tool_call_id in pending_calls:
-                    tool_name, args = pending_calls[part.tool_call_id]
-                    info = ToolCallInfo(
-                        tool_name=tool_name,
-                        args=args,
-                        result=part.content,
-                        tool_call_id=part.tool_call_id,
-                        timestamp=part.timestamp,
-                        context_data=context_data,
-                    )
-                    tool_calls.append(info)
+def parts_to_tool_call_info(
+    call_part: ToolCallPart, return_part: ToolReturnPart, context_data: Any | None = None
+) -> ToolCallInfo:
+    """Convert matching tool call and return parts into a ToolCallInfo."""
+    args = (
+        call_part.args.args_dict
+        if isinstance(call_part.args, ArgsDict)
+        else json.loads(call_part.args.args_json)
+    )
 
-    logger.debug("Found %d tool calls", len(tool_calls))
-    return tool_calls
+    return ToolCallInfo(
+        tool_name=call_part.tool_name,
+        args=args,
+        result=return_part.content,
+        tool_call_id=call_part.tool_call_id,
+        timestamp=return_part.timestamp,
+        context_data=context_data,
+    )
 
 
 def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: PLR0911
