@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling import Config, RuntimeConfig
 from pydantic import BaseModel
+from typing_extensions import TypeVar
 
 from llmling_agent import LLMlingAgent
 from llmling_agent.log import get_logger
@@ -25,20 +26,28 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class AgentResponse(BaseModel):
-    """Response from a single agent of a team."""
+TResult = TypeVar("TResult", default=Any)
+
+
+class AgentResponse[TResult](BaseModel):
+    """Result from an agent's execution."""
 
     agent_name: str
-    """Name of the responding agent"""
+    """Name of the agent that produced this result"""
 
-    response: str
-    """Agent's response"""
+    response: TResult
+    """The actual response, typed according to the agent's result type"""
 
-    success: bool
-    """Whether the agent completed successfully"""
+    timing: float | None = None
+    """Time taken by this agent in seconds"""
 
     error: str | None = None
     """Error message if agent failed"""
+
+    @property
+    def success(self) -> bool:
+        """Whether the agent completed successfully."""
+        return self.error is None
 
 
 class AgentPool:
@@ -408,22 +417,11 @@ class AgentPool:
                     )
                     agent._runtime = RuntimeConfig.from_config(cfg)
                 result = await agent.run(prompt)
-                return AgentResponse(
-                    agent_name=agent.name, response=str(result.data), success=True
-                )
+                return AgentResponse(agent_name=agent.name, response=str(result.data))
             except Exception as e:
-                logger.exception(
-                    "Agent %s failed",
-                    agent_ref if isinstance(agent_ref, str) else agent_ref.name,
-                )
-                return AgentResponse(
-                    agent_name=agent_ref
-                    if isinstance(agent_ref, str)
-                    else agent_ref.name,
-                    response="",
-                    success=False,
-                    error=str(e),
-                )
+                name = agent_ref if isinstance(agent_ref, str) else agent_ref.name
+                logger.exception("Agent %s failed", name)
+                return AgentResponse(agent_name=name, response="", error=str(e))
 
         if mode == "parallel":
             tasks = [run_agent(ref) for ref in team]
