@@ -146,26 +146,27 @@ def get_tool_calls(
     pending_calls: dict[str, tuple[str, dict[str, Any]]] = {}  # id -> (name, args)
 
     for msg in messages:
-        for part in getattr(msg, "parts", []):
-            if isinstance(part, ToolCallPart):
-                args = (
-                    part.args.args_dict
-                    if isinstance(part.args, ArgsDict)
-                    else json.loads(part.args.args_json)
-                )
-                if part.tool_call_id:
-                    pending_calls[part.tool_call_id] = (part.tool_name, args)
-            elif isinstance(part, ToolReturnPart) and part.tool_call_id in pending_calls:
-                tool_name, args = pending_calls[part.tool_call_id]
-                info = ToolCallInfo(
-                    tool_name=tool_name,
-                    args=args,
-                    result=part.content,
-                    tool_call_id=part.tool_call_id,
-                    timestamp=part.timestamp,
-                    context_data=context_data,
-                )
-                tool_calls.append(info)
+        for part in msg.parts:
+            match part:
+                case ToolCallPart():
+                    args = (
+                        part.args.args_dict
+                        if isinstance(part.args, ArgsDict)
+                        else json.loads(part.args.args_json)
+                    )
+                    if part.tool_call_id:
+                        pending_calls[part.tool_call_id] = (part.tool_name, args)
+                case ToolReturnPart() if part.tool_call_id in pending_calls:
+                    tool_name, args = pending_calls[part.tool_call_id]
+                    info = ToolCallInfo(
+                        tool_name=tool_name,
+                        args=args,
+                        result=part.content,
+                        tool_call_id=part.tool_call_id,
+                        timestamp=part.timestamp,
+                        context_data=context_data,
+                    )
+                    tool_calls.append(info)
 
     logger.debug("Found %d tool calls", len(tool_calls))
     return tool_calls
