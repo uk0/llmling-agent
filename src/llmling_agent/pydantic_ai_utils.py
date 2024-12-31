@@ -11,7 +11,9 @@ from pydantic_ai.messages import (
     ArgsDict,
     ModelMessage,
     ModelRequest,
+    ModelRequestPart,
     ModelResponse,
+    ModelResponsePart,
     RetryPromptPart,
     SystemPromptPart,
     TextPart,
@@ -171,8 +173,12 @@ def parts_to_tool_call_info(
     )
 
 
-def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: PLR0911
+def convert_model_message(
+    message: ModelMessage | ModelRequestPart | ModelResponsePart,
+) -> ChatMessage:
     """Convert a pydantic-ai message to our ChatMessage format.
+
+    Also supports converting parts of a message (with limitations then of course)
 
     Args:
         message: Message to convert (ModelMessage or its parts)
@@ -185,17 +191,28 @@ def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: 
     """
     match message:
         case ModelRequest():
-            # Use first part's content
-            part = message.parts[0]
-            role = "user" if isinstance(part, UserPromptPart) else "system"
-            return ChatMessage(content=str(part.content), role=role)
+            # Collect content from all parts
+            content_parts = []
+            role = "system"
+            for part in message.parts:
+                match part:
+                    case UserPromptPart():
+                        content_parts.append(str(part.content))
+                        role = "user"
+                    case SystemPromptPart():
+                        content_parts.append(str(part.content))
+            return ChatMessage(content="\n".join(content_parts), role=role)
 
         case ModelResponse():
-            # Convert first part (shouldn't have multiple typically)
-            return convert_model_message(message.parts[0])
+            # Collect content and tool calls from all parts
+            tool_calls = get_tool_calls([message], None)
+            parts = [format_response(p) for p in message.parts if isinstance(p, TextPart)]
+            content = "\n".join(parts)
+            return ChatMessage(content=content, role="assistant", tool_calls=tool_calls)
 
-        case TextPart():
-            return ChatMessage(content=message.content, role="assistant")
+        case TextPart() | UserPromptPart() | SystemPromptPart() as part:
+            role = "assistant" if isinstance(part, TextPart) else "user"
+            return ChatMessage(content=format_response(part), role=role)
 
         case ToolCallPart():
             args = (
@@ -232,12 +249,6 @@ def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: 
                 )
             )
             return ChatMessage(content=f"Retry needed: {error_content}", role="assistant")
-
-        case SystemPromptPart():
-            return ChatMessage(content=message.content, role="system")
-
-        case UserPromptPart():
-            return ChatMessage(content=message.content, role="user")
 
         case _:
             msg = f"Unsupported message type: {type(message)}"
