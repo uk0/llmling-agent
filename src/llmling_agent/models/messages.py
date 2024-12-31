@@ -48,7 +48,7 @@ class ChatMessage[T](BaseModel):
     content: T
     """Message content, typed as T (either str or BaseModel)."""
 
-    model: str | None = Field(default=None)
+    model: str | None = None
     """Name of the model that generated this message."""
 
     role: Literal["user", "assistant", "system"]
@@ -60,19 +60,19 @@ class ChatMessage[T](BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     """When this message was created."""
 
-    cost_info: TokenAndCostResult | None = Field(default=None)
+    cost_info: TokenAndCostResult | None = None
     """Token usage and costs for this specific message if available."""
 
     message_id: str = Field(default_factory=lambda: str(uuid4()))
     """Unique identifier for this message."""
 
-    response_time: float | None = Field(default=None)
+    response_time: float | None = None
     """Time it took the LLM to respond."""
 
     tool_calls: list[ToolCallInfo] = Field(default_factory=list)
     """List of tool calls made during message generation."""
 
-    name: str | None = Field(default=None)
+    name: str | None = None
     """Display name for the message sender in UI."""
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)

@@ -483,10 +483,10 @@ class ToolCallInfo(BaseModel):
     context_data: Any | None = None
     """Optional context data that was passed to the agent's run() method."""
 
-    error: str | None = Field(default=None)
+    error: str | None = None
     """Error message if the tool call failed."""
 
-    timing: float | None = Field(default=None)
+    timing: float | None = None
     """Time taken for this specific tool call in seconds."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)

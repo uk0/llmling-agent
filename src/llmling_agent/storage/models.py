@@ -105,19 +105,19 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     role: str
     name: str | None = Field(default=None, index=True)
     content: str
-    model: str | None = Field(default=None)
+    model: str | None = None
     model_name: str | None = Field(default=None, index=True)  # e.g., "gpt-4"
     model_provider: str | None = Field(default=None, index=True)  # e.g., "openai"
     # Token usage
     total_tokens: int | None = Field(default=None, index=True)
-    prompt_tokens: int | None = Field(default=None)
-    completion_tokens: int | None = Field(default=None)
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
 
     # Cost info
     cost: float | None = Field(default=None, index=True)
 
     # Performance metrics
-    response_time: float | None = Field(default=None)
+    response_time: float | None = None
 
     @staticmethod
     def _parse_model_info(model: str | None) -> tuple[str | None, str | None]:
