@@ -129,9 +129,9 @@ class ConversationManager:
             msg = "Failed to load context from %s"
             logger.exception(msg, "file" if isinstance(source, str) else source.type)
 
-    async def load_history_from_database(
+    def load_history_from_database(
         self,
-        session_id: str | None = None,
+        session_id: str | UUID | None = None,
         *,
         since: datetime | None = None,
         until: datetime | None = None,
@@ -149,7 +149,7 @@ class ConversationManager:
 
         Example:
             # Load last hour of user/assistant messages
-            await conversation.load_history_from_database(
+            conversation.load_history_from_database(
                 "conv-123",
                 since=datetime.now() - timedelta(hours=1),
                 roles={"user", "assistant"}
@@ -157,6 +157,11 @@ class ConversationManager:
         """
         from llmling_agent.storage.models import Message
 
+        match session_id:
+            case None:
+                session_id = self.id
+            case UUID():
+                session_id = str(session_id)
         conversation_id = session_id if session_id is not None else self.id
         messages = Message.to_pydantic_ai_messages(
             conversation_id,
