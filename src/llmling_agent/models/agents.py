@@ -200,9 +200,7 @@ class AgentConfig(BaseModel):
         if not context:
             # Default context
             context = {"name": self.name, "id": 1, "model": self.model}
-        return [
-            render_prompt(prompt, {"agent": context}) for prompt in self.system_prompts
-        ]
+        return [render_prompt(p, {"agent": context}) for p in self.system_prompts]
 
     def get_config(self) -> Config:
         """Get configuration for this agent."""
@@ -216,12 +214,13 @@ class AgentConfig(BaseModel):
                 # Backward compatibility: treat as file path
                 resolved = self._resolve_environment_path(path, self.config_file_path)
                 return Config.from_file(resolved)
-            case {"type": "file", "uri": uri} | FileEnvironment(uri=uri) as env:
-                # Handle file environment - resolve relative to config
-                resolved = (
-                    env.get_file_path() if isinstance(env, FileEnvironment) else uri
-                )
+            case FileEnvironment(uri=uri) as env:
+                # Handle FileEnvironment instance
+                resolved = env.get_file_path()
                 return Config.from_file(resolved)
+            case {"type": "file", "uri": uri}:
+                # Handle raw dict matching file environment structure
+                return Config.from_file(uri)
             case {"type": "inline", "config": config} | InlineEnvironment(config=config):
                 # Handle inline environment
                 return config
