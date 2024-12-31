@@ -772,6 +772,19 @@ class LLMlingAgent[TDeps, TResult]:
         task = loop.create_task(self.run(str(message.content), deps=source))  # type: ignore[arg-type]
         self._pending_tasks.add(task)
         task.add_done_callback(self._pending_tasks.discard)
+        # for target in self._context.config.forward_to:
+        #     match target:
+        #         case AgentTarget():
+        #             # Create task for agent forwarding
+        #             loop = asyncio.get_event_loop()
+        #             task = loop.create_task(self.run(str(message.content), deps=source))
+        #             self._pending_tasks.add(task)
+        #             task.add_done_callback(self._pending_tasks.discard)
+
+        #         case FileTarget():
+        #             path = target.resolve_path({"agent": self.name})
+        #             path.parent.mkdir(parents=True, exist_ok=True)
+        #             path.write_text(str(message.content))
 
     def register_worker(
         self,

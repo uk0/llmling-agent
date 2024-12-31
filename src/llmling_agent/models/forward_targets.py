@@ -2,17 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from upath import UPath
-
-
-if TYPE_CHECKING:
-    from llmling_agent.agent.agent import LLMlingAgent
-    from llmling_agent.models.messages import ChatMessage
 
 
 class ForwardTarget(BaseModel):
@@ -60,30 +54,3 @@ class FileTarget(ForwardTarget):
 
 
 ForwardingTarget = Annotated[AgentTarget | FileTarget, Field(discriminator="type")]
-
-
-async def write_output(target: FileTarget, content: str, context: dict[str, str]):
-    """Write content to file target."""
-    path = target.resolve_path(context)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(str(content))
-
-
-# Example usage in LLMlingAgent._handle_message:
-async def _handle_message(
-    self, source: LLMlingAgent[Any, Any], message: ChatMessage[Any]
-):
-    """Handle a message forwarded from another agent."""
-    context = {"agent": self.name}
-
-    for target in self._context.config.forward_to:
-        match target:
-            case AgentTarget():
-                # Create task for agent forwarding
-                loop = asyncio.get_event_loop()
-                task = loop.create_task(self.run(str(message.content), deps=source))
-                self._pending_tasks.add(task)
-                task.add_done_callback(self._pending_tasks.discard)
-
-            case FileTarget():
-                await write_output(target, str(message.content), context)
