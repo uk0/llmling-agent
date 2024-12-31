@@ -49,9 +49,8 @@ async def test_basic_message_response():
 async def test_streaming_response():
     """Test streaming responses with chunks and metadata."""
     async with RuntimeConfig.open(Config()) as runtime:
-        agent = LLMlingAgent[Any, Any](
-            runtime, model=TestModel(custom_result_text="Hello world"), name="test-agent"
-        )
+        model = TestModel(custom_result_text="Hello world")
+        agent = LLMlingAgent[Any, Any](runtime, model=model, name="test-agent")
         session = AgentPoolView(agent)
         await session.initialize()
 
@@ -77,17 +76,10 @@ async def test_agent_forwarding():
     """Test message forwarding between agents."""
     async with RuntimeConfig.open(Config()) as runtime:
         # Create agents with different responses
-        main_agent = LLMlingAgent[Any, Any](
-            runtime,
-            model=TestModel(custom_result_text="Main response"),
-            name="main-agent",
-        )
-        helper_agent = LLMlingAgent[Any, Any](
-            runtime,
-            model=TestModel(custom_result_text="Helper response"),
-            name="helper-agent",
-        )
-
+        model = TestModel(custom_result_text="Main response")
+        main_agent = LLMlingAgent[Any, Any](runtime, model=model, name="main-agent")
+        model = TestModel(custom_result_text="Helper response")
+        helper_agent = LLMlingAgent[Any, Any](runtime, model=model, name="helper-agent")
         # Set up pool and forwarding
         pool = AgentPool(AgentsManifest(agents={}))
         pool.agents["main"] = main_agent
