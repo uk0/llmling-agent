@@ -8,8 +8,7 @@ from dataclasses import dataclass
 import os
 from typing import TYPE_CHECKING, Any, Literal, Self
 
-from llmling import Config
-from llmling.config.runtime import RuntimeConfig
+from llmling import Config, RuntimeConfig
 from pydantic import BaseModel
 
 from llmling_agent import LLMlingAgent

@@ -5,9 +5,7 @@ from __future__ import annotations
 from dataclasses import fields
 from typing import TYPE_CHECKING, Any, Literal
 
-from llmling.core.baseregistry import BaseRegistry
-from llmling.tools import LLMCallableTool
-from llmling.tools.exceptions import ToolError
+from llmling import BaseRegistry, LLMCallableTool, ToolError
 
 from llmling_agent.log import get_logger
 from llmling_agent.tools.base import ToolInfo

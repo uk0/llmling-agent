@@ -8,7 +8,7 @@ import tempfile
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID, uuid4
 
-from llmling.prompts import BasePrompt, PromptMessage, StaticPrompt
+from llmling import BasePrompt, PromptMessage, StaticPrompt
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 from upath import UPath
 

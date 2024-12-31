@@ -7,7 +7,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import gradio as gr
-from llmling.config.store import ConfigStore
+from llmling import ConfigStore
 from pydantic import BaseModel, model_validator
 from slashed.output import CallbackOutputWriter
 from upath import UPath

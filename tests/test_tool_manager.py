@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from llmling.tools import LLMCallableTool
+from llmling import LLMCallableTool
 import pytest
 
 from llmling_agent.tools import ToolError, ToolManager

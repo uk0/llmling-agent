@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import webbrowser
 
-from llmling.config.runtime import RuntimeConfig
+from llmling import RuntimeConfig
 from slashed import Command, CommandContext, CommandError, PathCompleter
 from upath import UPath
 

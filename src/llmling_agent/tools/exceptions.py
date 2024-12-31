@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from llmling.core.exceptions import LLMLingError
+from llmling import LLMLingError
 
 
 class ToolError(LLMLingError):

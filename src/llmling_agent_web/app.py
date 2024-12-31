@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import gradio as gr
 from gradio.themes import Base, Default, Glass, Monochrome, Soft
-from llmling.config.store import ConfigStore
+from llmling import ConfigStore
 from upath import UPath
 
 from llmling_agent_web.ui_state import UIState

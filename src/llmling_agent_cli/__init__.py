@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from llmling.config.store import ConfigStore
+from llmling import ConfigStore
 
 
 agent_store = ConfigStore("agents.json")

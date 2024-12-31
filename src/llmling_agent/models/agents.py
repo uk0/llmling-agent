@@ -5,9 +5,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Self
 
-from llmling import Config
-from llmling.config.models import ConfigModel, GlobalSettings, LLMCapabilitiesConfig
-from llmling.config.store import ConfigStore
+from llmling import (
+    Config,
+    ConfigModel,
+    ConfigStore,
+    GlobalSettings,
+    LLMCapabilitiesConfig,
+)
 from llmling_models.model_types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_ai.agent import EndStrategy  # noqa: TC002

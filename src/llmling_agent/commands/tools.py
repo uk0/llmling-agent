@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from llmling.tools import LLMCallableTool
+from llmling import LLMCallableTool
 from llmling.utils.importing import import_callable
 from slashed import Command, CommandContext, CommandError, CompletionContext
 from slashed.completers import CallbackCompleter

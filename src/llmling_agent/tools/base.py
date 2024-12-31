@@ -11,7 +11,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from llmling.tools import LLMCallableTool
+    from llmling import LLMCallableTool
     from py2openai.typedefs import ToolParameters
     from pydantic_ai import RunContext
 

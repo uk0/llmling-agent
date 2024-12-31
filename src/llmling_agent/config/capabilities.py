@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
 
-from llmling.tools import LLMCallableTool, ToolError
+from llmling import LLMCallableTool, ToolError
 from psygnal import EventedModel
 from pydantic import ConfigDict
 from pydantic_ai import RunContext  # noqa: TC002
