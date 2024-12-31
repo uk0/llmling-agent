@@ -16,7 +16,7 @@ from llmling_agent.models.agents import AgentConfig
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.base import AgentPoolView
 
 
 CREATE_AGENT_HELP = """\
@@ -72,7 +72,7 @@ Example: /switch-agent url_opener
 
 
 async def create_agent_command(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -119,7 +119,7 @@ async def create_agent_command(
 
 
 async def show_agent(
-    ctx: CommandContext[AgentChatSession], args: list[str], kwargs: dict[str, str]
+    ctx: CommandContext[AgentPoolView], args: list[str], kwargs: dict[str, str]
 ):
     """Show current agent's configuration."""
     if not ctx.context._agent._context:

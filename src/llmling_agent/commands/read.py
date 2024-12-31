@@ -11,7 +11,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.base import AgentPoolView
 
 
 logger = get_logger(__name__)
@@ -40,7 +40,7 @@ Examples:
 
 
 async def read_command(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):

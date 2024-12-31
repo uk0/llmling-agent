@@ -14,7 +14,7 @@ from slashed import DefaultOutputWriter, ExitCommandError
 from slashed.prompt_toolkit_completer import PromptToolkitCompleter
 
 from llmling_agent.chat_session import ChatSessionManager
-from llmling_agent.chat_session.base import AgentChatSession
+from llmling_agent.chat_session.base import AgentPoolView
 from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent_cli.chat_session.formatting import MessageFormatter
@@ -64,7 +64,7 @@ class InteractiveSession:
 
         # Setup session management
         self._session_manager = ChatSessionManager()
-        self._chat_session: AgentChatSession | None = None
+        self._chat_session: AgentPoolView | None = None
         self._prompt: PromptSession | None = None
         self._pool = pool
         self._wait_chain = wait_chain
@@ -125,11 +125,11 @@ class InteractiveSession:
         state = "enabled" if tool.enabled else "disabled"
         self.console.print(f"\nTool '{name}' {state}")
 
-    def _on_history_cleared(self, event: AgentChatSession.HistoryCleared):
+    def _on_history_cleared(self, event: AgentPoolView.HistoryCleared):
         """Handle history cleared event."""
         self.console.print("\nChat history cleared")
 
-    def _on_session_reset(self, event: AgentChatSession.SessionReset):
+    def _on_session_reset(self, event: AgentPoolView.SessionReset):
         """Handle session reset event."""
         self.console.print("\nSession reset. Tools restored to default state.")
 
@@ -139,7 +139,7 @@ class InteractiveSession:
         assert session is not None
 
         history = SessionHistory(session)
-        self._completer = PromptToolkitCompleter[AgentChatSession](
+        self._completer = PromptToolkitCompleter[AgentPoolView](
             session.commands,
             session,
         )

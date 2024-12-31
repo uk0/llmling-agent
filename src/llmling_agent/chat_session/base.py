@@ -44,13 +44,18 @@ logger = get_logger(__name__)
 HISTORY_DIR = pathlib.Path(user_data_dir("llmling", "llmling")) / "cli_history"
 
 
-class AgentChatSession:
-    """Manages an interactive chat session with an agent.
+class AgentPoolView:
+    """User's view and control point for interacting with an agent in a pool.
 
-    This class:
-    1. Manages agent configuration (tools, model)
-    2. Handles conversation flow
-    3. Tracks session state and metadata
+    This class provides a focused way to interact with one primary agent that is part
+    of a larger agent pool. Through this view, users can:
+    1. Interact with the primary agent directly
+    2. Manage connections to other agents in the pool
+    3. Control tool availability and settings
+    4. Handle commands and responses
+
+    Think of it as looking at the agent pool through the lens of one specific agent,
+    while still being able to utilize the pool's collaborative capabilities.
     """
 
     @dataclass(frozen=True)
@@ -213,7 +218,7 @@ class AgentChatSession:
     async def clear(self):
         """Clear chat history."""
         self._agent.conversation.clear()
-        event = AgentChatSession.HistoryCleared(session_id=str(self.id))
+        event = AgentPoolView.HistoryCleared(session_id=str(self.id))
         self.history_cleared.emit(event)
 
     async def reset(self):
@@ -222,7 +227,7 @@ class AgentChatSession:
         self._agent.conversation.clear()
         self._tool_states = self._agent.tools.list_tools()
 
-        event = AgentChatSession.SessionReset(
+        event = AgentPoolView.SessionReset(
             session_id=str(self.id),
             previous_tools=old_tools,
             new_tools=self._tool_states,

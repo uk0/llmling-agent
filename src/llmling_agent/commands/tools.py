@@ -13,7 +13,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.base import AgentPoolView
 
 
 logger = get_logger(__name__)
@@ -83,7 +83,7 @@ Tools are grouped by source (runtime/agent/builtin).
 
 
 async def list_tools(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -99,7 +99,7 @@ async def list_tools(
 
 
 async def tool_info(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -141,7 +141,7 @@ async def tool_info(
 
 
 async def toggle_tool(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
     *,
@@ -167,7 +167,7 @@ async def toggle_tool(
 
 
 async def enable_tool(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -176,7 +176,7 @@ async def enable_tool(
 
 
 async def disable_tool(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -185,7 +185,7 @@ async def disable_tool(
 
 
 async def register_tool(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -227,7 +227,7 @@ async def register_tool(
 
 
 async def write_tool(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -279,7 +279,7 @@ async def write_tool(
         raise CommandError(msg) from e
 
 
-def get_tool_names(ctx: CompletionContext[AgentChatSession]) -> list[str]:
+def get_tool_names(ctx: CompletionContext[AgentPoolView]) -> list[str]:
     return list(ctx.command_context.context._agent.tools.keys())
 
 

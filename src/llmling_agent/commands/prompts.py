@@ -11,7 +11,7 @@ from llmling_agent.commands.completers import get_prompt_names
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.base import AgentPoolView
 
 EXECUTE_PROMPT_HELP = """\
 Execute a named prompt with optional arguments.
@@ -28,7 +28,7 @@ Examples:
 
 
 async def list_prompts(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -40,7 +40,7 @@ async def list_prompts(
 
 
 async def prompt_command(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):

@@ -13,7 +13,7 @@ from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.base import AgentPoolView
 
 
 SET_ENV_HELP = """\
@@ -39,7 +39,7 @@ This allows you to modify:
 
 
 async def set_env(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -87,7 +87,7 @@ async def set_env(
 
 
 async def edit_env(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):

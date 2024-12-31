@@ -8,13 +8,13 @@ from prompt_toolkit.history import History
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.base import AgentPoolView
 
 
 class SessionHistory(History):
     """Simple history implementation using session storage."""
 
-    def __init__(self, session: AgentChatSession):
+    def __init__(self, session: AgentPoolView):
         super().__init__()
         self.session = session
 

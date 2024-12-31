@@ -13,7 +13,7 @@ from slashed.output import CallbackOutputWriter
 from upath import UPath
 import yamling
 
-from llmling_agent.chat_session import AgentChatSession, ChatSessionManager
+from llmling_agent.chat_session import AgentPoolView, ChatSessionManager
 from llmling_agent.chat_session.models import ChatMessage
 from llmling_agent.log import LogCapturer
 from llmling_agent_web.handlers import AgentHandler
@@ -83,7 +83,7 @@ class UIState:
         self.debug_mode = False
         self.handler: AgentHandler | None = None
         self._session_manager = ChatSessionManager()
-        self._current_session: AgentChatSession | None = None
+        self._current_session: AgentPoolView | None = None
         self._pending_tasks: set[asyncio.Task[Any]] = set()
 
     def _connect_signals(self):
@@ -122,11 +122,11 @@ class UIState:
             await asyncio.gather(*self._pending_tasks, return_exceptions=True)
             self._pending_tasks.clear()
 
-    async def _on_history_cleared(self, event: AgentChatSession.HistoryCleared):
+    async def _on_history_cleared(self, event: AgentPoolView.HistoryCleared):
         """Handle history cleared event."""
         await self.send_message(message="", history=[], agent_name=None, model=None)
 
-    async def _on_session_reset(self, event: AgentChatSession.SessionReset):
+    async def _on_session_reset(self, event: AgentPoolView.SessionReset):
         """Handle session reset event."""
         # Clear chat and update tool states
         _update = await self.send_message(

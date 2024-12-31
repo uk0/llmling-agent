@@ -11,7 +11,7 @@ from llmling_agent.pydantic_ai_utils import find_last_assistant_message
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.base import AgentPoolView
 
 
 logger = get_logger(__name__)
@@ -38,7 +38,7 @@ COPY_CB_HELP = """\
 
 
 async def copy_clipboard(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -65,7 +65,7 @@ async def copy_clipboard(
 
 
 async def edit_agent_file(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):

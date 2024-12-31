@@ -10,7 +10,7 @@ import pytest
 from slashed import CommandStore, DefaultOutputWriter
 
 from llmling_agent import LLMlingAgent
-from llmling_agent.chat_session import AgentChatSession
+from llmling_agent.chat_session import AgentPoolView
 from llmling_agent.commands.prompts import prompt_cmd
 
 
@@ -63,7 +63,7 @@ async def test_prompt_command_simple(runtime_config: Config):
 
     async with RuntimeConfig.from_config(runtime_config) as runtime:
         agent = LLMlingAgent[Any, str](runtime)
-        session = AgentChatSession(agent)
+        session = AgentPoolView(agent)
 
         store = CommandStore(enable_system_commands=True)
         context = store.create_context(session, output_writer=TestOutput())
@@ -94,7 +94,7 @@ async def test_prompt_command_with_args(runtime_config: Config):
 
     async with RuntimeConfig.from_config(runtime_config) as runtime:
         agent = LLMlingAgent[Any, Any](runtime)
-        session = AgentChatSession(agent)
+        session = AgentPoolView(agent)
 
         store = CommandStore(enable_system_commands=True)
         context = store.create_context(session, output_writer=TestOutput())

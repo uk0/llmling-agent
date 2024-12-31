@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.base import AgentPoolView
 
 
 @dataclass
@@ -34,7 +34,7 @@ class WelcomeInfo:
 
 
 def create_welcome_messages(
-    session: AgentChatSession,
+    session: AgentPoolView,
     *,
     streaming: bool = False,
     rich_format: bool = True,

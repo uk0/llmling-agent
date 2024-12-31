@@ -11,7 +11,7 @@ from llmling_agent.commands.completers import get_model_names
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.base import AgentPoolView
 
 
 SET_MODEL_HELP = """\
@@ -30,7 +30,7 @@ Note: Available models depend on your configuration and API access.
 
 
 async def set_model(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):

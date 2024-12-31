@@ -12,7 +12,7 @@ from llmling_agent.prompts.models import PromptTemplate
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.base import AgentPoolView
 
 
 META_HELP = """\
@@ -37,7 +37,7 @@ Examples:
 
 
 async def meta_command(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):

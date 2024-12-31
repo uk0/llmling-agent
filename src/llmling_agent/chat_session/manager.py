@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Self
 
-from llmling_agent.chat_session.base import AgentChatSession
+from llmling_agent.chat_session.base import AgentPoolView
 from llmling_agent.chat_session.exceptions import ChatSessionNotFoundError
 
 
@@ -25,7 +25,7 @@ class ChatSessionManager:
     """
 
     def __init__(self):
-        self._sessions: dict[str, AgentChatSession] = {}
+        self._sessions: dict[str, AgentPoolView] = {}
         self._pools: dict[str, AgentPool] = {}  # Track pools per session
 
     async def create_session(
@@ -34,7 +34,7 @@ class ChatSessionManager:
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,
-    ) -> AgentChatSession:
+    ) -> AgentPoolView:
         """Create and register a new session.
 
         Args:
@@ -45,7 +45,7 @@ class ChatSessionManager:
         Returns:
             New chat session instance
         """
-        session = AgentChatSession(
+        session = AgentPoolView(
             agent,
             pool=pool,
             wait_chain=wait_chain,
@@ -56,7 +56,7 @@ class ChatSessionManager:
             self._pools[session.id] = pool
         return session
 
-    def get_session(self, session_id: str) -> AgentChatSession:
+    def get_session(self, session_id: str) -> AgentPoolView:
         """Get an existing session.
 
         Args:

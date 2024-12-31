@@ -10,7 +10,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import LLMlingAgent
-from llmling_agent.chat_session import AgentChatSession
+from llmling_agent.chat_session import AgentPoolView
 from llmling_agent.delegation.pool import AgentPool
 from llmling_agent.models.agents import AgentsManifest
 from llmling_agent.models.messages import ChatMessage
@@ -28,7 +28,7 @@ async def test_basic_message_response():
             model=TestModel(custom_result_text="Test response"),
             name="test-agent",
         )
-        session = AgentChatSession(agent)
+        session = AgentPoolView(agent)
         await session.initialize()
 
         response = await session.send_message(TEST_MESSAGE)
@@ -51,7 +51,7 @@ async def test_streaming_response():
         agent = LLMlingAgent[Any, Any](
             runtime, model=TestModel(custom_result_text="Hello world"), name="test-agent"
         )
-        session = AgentChatSession(agent)
+        session = AgentPoolView(agent)
         await session.initialize()
 
         # Get streaming response
@@ -89,7 +89,7 @@ async def test_tool_management():
         agent.tools.register_tool(tool1, enabled=True, source="dynamic")
         agent.tools.register_tool(tool2, enabled=True, source="dynamic")
 
-        session = AgentChatSession(agent)
+        session = AgentPoolView(agent)
         await session.initialize()
 
         # Test tool configuration
@@ -125,7 +125,7 @@ async def test_agent_forwarding():
         pool.agents["helper"] = helper_agent
 
         # Create session and connect agents
-        session = AgentChatSession(main_agent, pool=pool)
+        session = AgentPoolView(main_agent, pool=pool)
         await session.initialize()
         await session.connect_to("helper")
 
@@ -157,7 +157,7 @@ async def test_error_handling():
         agent = LLMlingAgent[Any, Any](
             runtime, model=TestModel(custom_result_text="Test"), name="test-agent"
         )
-        session = AgentChatSession(agent)
+        session = AgentPoolView(agent)
         await session.initialize()
 
         # Test empty message

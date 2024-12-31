@@ -6,7 +6,7 @@ from slashed import Command, CommandContext
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.base import AgentPoolView
 
 
 RESET_HELP = """\
@@ -23,7 +23,7 @@ This removes all previous messages but keeps tools and settings.
 
 
 async def clear_command(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -32,7 +32,7 @@ async def clear_command(
 
 
 async def reset_command(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):

@@ -14,7 +14,7 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from llmling_agent import LLMlingAgent
-    from llmling_agent.chat_session.base import AgentChatSession
+    from llmling_agent.chat_session.base import AgentPoolView
 
 
 logger = get_logger(__name__)
@@ -56,7 +56,7 @@ def format_agent_name(agent: LLMlingAgent[Any, Any], current: bool = False) -> s
 
 
 async def connect_command(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -79,7 +79,7 @@ async def connect_command(
 
 
 async def disconnect_command(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -98,7 +98,7 @@ async def disconnect_command(
 
 
 async def disconnect_all_command(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -112,7 +112,7 @@ async def disconnect_all_command(
 
 
 async def list_connections(
-    ctx: CommandContext[AgentChatSession],
+    ctx: CommandContext[AgentPoolView],
     args: list[str],
     kwargs: dict[str, str],
 ):
