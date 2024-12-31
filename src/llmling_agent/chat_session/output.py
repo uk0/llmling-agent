@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import sys
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
+
+from slashed import OutputWriter
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
@@ -13,14 +15,6 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
-
-
-class OutputWriter(Protocol):
-    """Interface for command output."""
-
-    async def print(self, message: str):
-        """Write a message to output."""
-        ...
 
 
 class CallbackOutputWriter(OutputWriter):

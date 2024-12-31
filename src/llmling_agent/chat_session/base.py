@@ -34,8 +34,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from pydantic_ai import messages
+    from slashed import OutputWriter
 
-    from llmling_agent.chat_session.output import OutputWriter
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.tools.manager import ToolManager
 
