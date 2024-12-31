@@ -298,7 +298,7 @@ class AgentPool:
 
     def setup_agent_workers(
         self, agent: LLMlingAgent[Any, Any], workers: list[WorkerConfig]
-    ) -> None:
+    ):
         """Set up workers for an agent from configuration."""
         for worker_config in workers:
             try:

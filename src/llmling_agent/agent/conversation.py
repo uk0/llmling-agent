@@ -107,7 +107,7 @@ class ConversationManager:
     def __repr__(self) -> str:
         return f"ConversationManager(id={self.id!r})"
 
-    async def load_context_source(self, source: ContextSource | str) -> None:
+    async def load_context_source(self, source: ContextSource | str):
         """Load context from a single source."""
         try:
             match source:
@@ -137,7 +137,7 @@ class ConversationManager:
         until: datetime | None = None,
         roles: set[Literal["user", "assistant", "system"]] | None = None,
         limit: int | None = None,
-    ) -> None:
+    ):
         """Load and set conversation history from database.
 
         Args:

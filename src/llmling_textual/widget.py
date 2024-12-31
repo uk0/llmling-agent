@@ -53,7 +53,7 @@ class MessageWidget(Static):
     }
     """
 
-    def __init__(self, message: ChatMessage) -> None:
+    def __init__(self, message: ChatMessage):
         super().__init__()
         logger.debug("Creating MessageWidget for %s: %r", message.role, message.content)
         self.message = message
@@ -69,7 +69,7 @@ class MessageWidget(Static):
         initial_content = "" if self.message.role == "assistant" else self.message.content
         yield Static(initial_content, id="message_content", classes="content")
 
-    def update_content(self, new_content: str) -> None:
+    def update_content(self, new_content: str):
         """Update message content."""
         logger.debug("Updating content to: %r", new_content)
         if content_widget := self.query_one("#message_content", Static):
@@ -91,7 +91,7 @@ class ChatView(ScrollableContainer):
     }
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         self._current_message: MessageWidget | None = None
 
@@ -104,7 +104,7 @@ class ChatView(ScrollableContainer):
         self._current_message = widget
         return widget
 
-    def update_stream(self, content: str) -> None:
+    def update_stream(self, content: str):
         """Update content of current streaming message."""
         if self._current_message:
             logger.debug("Updating stream: %r", content)

@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class ChatApp(App):
     """Chat application with command support."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         self._pending_tasks: set[asyncio.Task[None]] = set()
         self._agent: LLMlingAgent[Any, str] | None = None
@@ -37,7 +37,7 @@ class ChatApp(App):
             status_id="status-area",
         )
 
-    async def on_mount(self) -> None:
+    async def on_mount(self):
         """Initialize agent when app starts."""
         path = "src/llmling_agent/config_resources/agents.yml"
         self._agent_cm = LLMlingAgent.open_agent(path, "url_opener")
@@ -48,7 +48,7 @@ class ChatApp(App):
         for command in get_commands():
             command_input.store.register_command(command)
 
-    async def on_unmount(self) -> None:
+    async def on_unmount(self):
         """Clean up tasks and agent."""
         for task in self._pending_tasks:
             task.cancel()
@@ -58,12 +58,12 @@ class ChatApp(App):
         if self._agent_cm is not None:
             await self._agent_cm.__aexit__(None, None, None)
 
-    def _create_task(self, coro: Any) -> None:
+    def _create_task(self, coro: Any):
         """Create and track a task."""
         task = asyncio.create_task(coro)
         logger.debug("Created task: %s", task.get_name())
 
-        def _done_callback(t: asyncio.Task[None]) -> None:
+        def _done_callback(t: asyncio.Task[None]):
             logger.debug("Task completed: %s", t.get_name())
             self._pending_tasks.discard(t)
             if t.exception():
@@ -73,12 +73,12 @@ class ChatApp(App):
         self._pending_tasks.add(task)
 
     @on(CommandInput.InputSubmitted)
-    async def handle_submit(self, event: CommandInput.InputSubmitted) -> None:
+    async def handle_submit(self, event: CommandInput.InputSubmitted):
         """Handle regular input submission."""
         logger.info("Got input: %s", event.text)
         self._create_task(self.handle_chat_message(event.text))
 
-    async def handle_chat_message(self, text: str) -> None:
+    async def handle_chat_message(self, text: str):
         """Process normal chat messages."""
         if not self._agent:
             logger.error("No agent available!")

@@ -59,7 +59,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             t = self._validate_item(tool)
             self.register(t.name, t)
 
-    def reset_states(self) -> None:
+    def reset_states(self):
         """Reset all tools to their default enabled states."""
         for info in self.values():
             info.enabled = True

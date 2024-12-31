@@ -32,7 +32,7 @@ class ModelViewer(Static):
         value_style: StyleType | None = None,
         type_style: StyleType = "dim",
         description_style: StyleType = "italic blue",
-    ) -> None:
+    ):
         """Initialize the model viewer.
 
         Args:
@@ -54,7 +54,7 @@ class ModelViewer(Static):
         self.description_style = description_style
         self._update_content()
 
-    def _update_content(self) -> None:
+    def _update_content(self):
         """Update the displayed content."""
         table = Table(show_header=False, pad_edge=False, show_edge=True)
 

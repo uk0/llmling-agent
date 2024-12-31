@@ -81,7 +81,7 @@ class Capabilities(EventedModel):
     - all: Can view all agents' statistics
     """
 
-    def register_delegation_tools(self, agent: LLMlingAgent[Any, Any]) -> None:
+    def register_delegation_tools(self, agent: LLMlingAgent[Any, Any]):
         """Register delegation tools if enabled."""
         if self.can_delegate_tasks:
             tool = create_delegate_tool()

@@ -267,7 +267,7 @@ class UIState:
             # Collect command outputs
             command_outputs: list[str] = []
 
-            async def message_callback(content: str) -> None:
+            async def message_callback(content: str):
                 if message.startswith("/"):
                     command_outputs.append(content)
                 else:
