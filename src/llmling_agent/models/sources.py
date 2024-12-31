@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ContextSourceConfig(BaseModel):
@@ -52,3 +52,39 @@ ContextSource = Annotated[
     FileContextSource | ResourceContextSource | PromptContextSource,
     Field(discriminator="type"),
 ]
+
+
+class Knowledge(BaseModel):
+    """Collection of context sources for an agent."""
+
+    paths: list[str | FileContextSource] = Field(default_factory=list)
+    """Files or paths to load as context."""
+
+    resources: list[str | ResourceContextSource] = Field(default_factory=list)
+    """Resources to load as context."""
+
+    prompts: list[str | PromptContextSource] = Field(default_factory=list)
+    """Prompts to load as context."""
+
+    convert_paths_to_markdown: bool = False
+    """Whether to convert file contents to markdown by default."""
+
+    @model_validator(mode="after")
+    def convert_simple_configs(self) -> Self:
+        """Convert simple string inputs to full source configs."""
+        self.paths = [
+            (
+                FileContextSource(path=p, convert_to_md=self.convert_paths_to_markdown)
+                if isinstance(p, str)
+                else p
+            )
+            for p in self.paths
+        ]
+        self.resources = [
+            ResourceContextSource(name=r) if isinstance(r, str) else r
+            for r in self.resources
+        ]
+        self.prompts = [
+            PromptContextSource(name=p) if isinstance(p, str) else p for p in self.prompts
+        ]
+        return self
