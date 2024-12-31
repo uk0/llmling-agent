@@ -10,7 +10,6 @@ from gradio.themes import Base, Default, Glass, Monochrome, Soft
 from llmling.config.store import ConfigStore
 from upath import UPath
 
-from llmling_agent.chat_session import ChatSessionManager
 from llmling_agent_web.ui_state import UIState
 
 
@@ -46,7 +45,6 @@ class AgentUI:
         self.available_files = [str(UPath(path)) for _, path in store.list_configs()]
         self.state = UIState()
         self.initial_status = "Please select a configuration file"
-        self._session_manager = ChatSessionManager()
         self.theme = THEMES.get(theme.lower(), Soft())
 
     def create_ui(self) -> gr.Blocks:

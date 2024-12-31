@@ -13,7 +13,7 @@ from slashed.output import CallbackOutputWriter
 from upath import UPath
 import yamling
 
-from llmling_agent.chat_session import AgentPoolView, ChatSessionManager
+from llmling_agent.chat_session import AgentPoolView
 from llmling_agent.chat_session.models import ChatMessage
 from llmling_agent.log import LogCapturer
 from llmling_agent_web.handlers import AgentHandler
@@ -82,7 +82,6 @@ class UIState:
         self.log_capturer = LogCapturer()
         self.debug_mode = False
         self.handler: AgentHandler | None = None
-        self._session_manager = ChatSessionManager()
         self._current_session: AgentPoolView | None = None
         self._pending_tasks: set[asyncio.Task[Any]] = set()
 
@@ -219,8 +218,7 @@ class UIState:
 
             agent = self.handler.state.pool.get_agent(agent_name)
             # Create new session
-            manager = self._session_manager
-            self._current_session = await manager.create_session(agent=agent)
+            self._current_session = await AgentPoolView.create(agent=agent)
             self._connect_signals()
 
             # Get tool states for UI

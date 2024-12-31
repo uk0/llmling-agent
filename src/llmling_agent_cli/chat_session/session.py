@@ -13,7 +13,6 @@ from rich.markdown import Markdown
 from slashed import DefaultOutputWriter, ExitCommandError
 from slashed.prompt_toolkit_completer import PromptToolkitCompleter
 
-from llmling_agent.chat_session import ChatSessionManager
 from llmling_agent.chat_session.base import AgentPoolView
 from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.models.messages import ChatMessage
@@ -63,7 +62,6 @@ class InteractiveSession:
         self.formatter = MessageFormatter(self.console)
 
         # Setup session management
-        self._session_manager = ChatSessionManager()
         self._chat_session: AgentPoolView | None = None
         self._prompt: PromptSession | None = None
         self._pool = pool
@@ -221,7 +219,7 @@ class InteractiveSession:
     async def start(self):
         """Start interactive session."""
         try:
-            self._chat_session = await self._session_manager.create_session(
+            self._chat_session = await AgentPoolView.create(
                 self.agent,
                 pool=self._pool,
                 wait_chain=self._wait_chain,

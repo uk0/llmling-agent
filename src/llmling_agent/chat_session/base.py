@@ -112,6 +112,30 @@ class AgentPoolView:
         self.start_time = datetime.now()
         self._state = SessionState(current_model=self._agent.model_name)
 
+    @classmethod
+    async def create(
+        cls,
+        agent: LLMlingAgent[Any, str],
+        *,
+        pool: AgentPool | None = None,
+        wait_chain: bool = True,
+        session_id: UUID | str | None = None,
+    ) -> AgentPoolView:
+        """Create and initialize a new agent pool view.
+
+        Args:
+            agent: The primary agent to interact with
+            pool: Optional agent pool for multi-agent interactions
+            wait_chain: Whether to wait for chain completion
+            session_id: Optional ID to recover a previous state
+
+        Returns:
+            Initialized AgentPoolView
+        """
+        view = cls(agent, pool=pool, wait_chain=wait_chain, session_id=session_id)
+        await view.initialize()
+        return view
+
     @property
     def pool(self) -> AgentPool | None:
         """Get the agent pool if available."""
