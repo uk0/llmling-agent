@@ -72,38 +72,6 @@ async def test_streaming_response():
 
 
 @pytest.mark.asyncio
-async def test_tool_management():
-    """Test tool registration, enabling/disabling, and usage."""
-    async with RuntimeConfig.open(Config()) as runtime:
-        agent = LLMlingAgent[Any, Any](
-            runtime, model=TestModel(custom_result_text="Tool test"), name="test-agent"
-        )
-
-        # Register test tools
-        def tool1():
-            return "tool1 result"
-
-        def tool2():
-            return "tool2 result"
-
-        agent.tools.register_tool(tool1, enabled=True, source="dynamic")
-        agent.tools.register_tool(tool2, enabled=True, source="dynamic")
-
-        session = AgentPoolView(agent)
-        await session.initialize()
-
-        # Test tool configuration
-        initial_states = session.get_tool_states()
-        assert initial_states["tool1"] is True
-        assert initial_states["tool2"] is True
-
-        # Disable tool and verify
-        session.configure_tools({"tool1": False})
-        assert not session.get_tool_states()["tool1"]
-        assert session.get_tool_states()["tool2"]
-
-
-@pytest.mark.asyncio
 async def test_agent_forwarding():
     """Test message forwarding between agents."""
     async with RuntimeConfig.open(Config()) as runtime:

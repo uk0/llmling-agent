@@ -91,30 +91,29 @@ from llmling_agent import LLMlingAgent
 
 # Basic usage
 async with LLMlingAgent.open_agent("agents.yml", "my-agent") as agent:
+
+    # Basic query
     result = await agent.run("What's the system status?")
     print(result.data)
 
-# Streaming responses
-async with LLMlingAgent.open_agent("agents.yml", "my-agent") as agent:
+    # Streaming responses
     async with await agent.run_stream("Long analysis...") as stream:
         async for chunk in stream:
             print(chunk.content, end="", flush=True)
 
-# Chat session management
-from llmling_agent.chat_session import ChatSessionManager
+    # Managing tools
+    agent.tools.enable_tool("search")  # Enable specific tool
+    agent.tools.disable_tool("edit")   # Disable specific tool
+    print(agent.tools.list_tools())    # See all tools and their states
 
-manager = ChatSessionManager()
-session = await manager.create_session(agent)
+    # Working with conversation history
+    history = agent.conversation.get_history()  # Get current history
+    agent.conversation.clear()  # Clear history
 
-# Configure tools
-session.configure_tools({
-    "read_file": True,
-    "delete_file": False
-})
+    # Add context for next message
+    await agent.conversation.add_context_from_file("data.txt")
+    await agent.conversation.add_context_from_resource("api_docs")
 
-# Send messages
-response = await session.send_message("Analyze this file")
-print(response.content)
 ```
 
 For more details, see:

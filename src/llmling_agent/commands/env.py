@@ -73,8 +73,6 @@ async def set_env(
 
             # Update session's agent
             ctx.context._agent = new_agent
-            # Reset session state but keep history
-            ctx.context._tool_states = new_agent.tools.list_tools()
 
             await ctx.output.print(
                 f"Environment changed to: {env_path}\n"

@@ -103,7 +103,6 @@ class AgentPoolView:
         self._pool = pool
         self.wait_chain = wait_chain
         # forward ToolManager signals to ours
-        self._tool_states = self._agent.tools.list_tools()
         self._agent.tools.events.added.connect(self.tool_added.emit)
         self._agent.tools.events.removed.connect(self.tool_removed.emit)
         self._agent.tools.events.changed.connect(self.tool_changed.emit)
@@ -212,7 +211,7 @@ class AgentPoolView:
             session_id=self.id,
             agent_name=self._agent.name,
             model=self._agent.model_name,
-            tool_states=self._tool_states,
+            tool_states=self.tools.list_tools(),
         )
 
     async def clear(self):
@@ -223,14 +222,15 @@ class AgentPoolView:
 
     async def reset(self):
         """Reset session state."""
-        old_tools = self._tool_states.copy()
+        old_tools = self.tools.list_tools()
         self._agent.conversation.clear()
-        self._tool_states = self._agent.tools.list_tools()
+        self.tools.reset_states()
+        new_tools = self.tools.list_tools()
 
-        event = AgentPoolView.SessionReset(
+        event = self.SessionReset(
             session_id=str(self.id),
             previous_tools=old_tools,
-            new_tools=self._tool_states,
+            new_tools=new_tools,
         )
         self.session_reset.emit(event)
 
@@ -425,12 +425,11 @@ class AgentPoolView:
         for tool, enabled in updates.items():
             try:
                 if enabled:
-                    self._agent.tools.enable_tool(tool)
+                    self.tools.enable_tool(tool)
                     results[tool] = "enabled"
                 else:
-                    self._agent.tools.disable_tool(tool)
+                    self.tools.disable_tool(tool)
                     results[tool] = "disabled"
-                self._tool_states[tool] = enabled
             except ValueError as e:
                 results[tool] = f"error: {e}"
 
@@ -444,10 +443,6 @@ class AgentPoolView:
     def is_processing_chain(self) -> bool:
         """Check if chain is currently processing."""
         return any(a._pending_tasks for a in self._agent._connected_agents)
-
-    def get_tool_states(self) -> dict[str, bool]:
-        """Get current tool states."""
-        return self._agent.tools.list_tools()
 
     @property
     def tools(self) -> ToolManager:
