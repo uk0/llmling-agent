@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-import inspect
 from typing import TYPE_CHECKING, Any
 
 from llmling import RuntimeConfig  # noqa: TC002
@@ -11,7 +10,6 @@ from typing_extensions import TypeVar
 
 
 if TYPE_CHECKING:
-    from llmling_agent.common_types import PromptFunction
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig, AgentsManifest
@@ -53,14 +51,6 @@ class AgentContext[TDeps]:
 
     pool: AgentPool | None = None
     """Pool the agent is part of."""
-
-    @staticmethod
-    def is_arg_in_function(func: PromptFunction) -> bool:
-        """Check if a function has AgentContext argument."""
-        sig = inspect.signature(func)
-        return any(
-            "AgentContext" in str(param.annotation) for param in sig.parameters.values()
-        )
 
     @classmethod
     def create_default(

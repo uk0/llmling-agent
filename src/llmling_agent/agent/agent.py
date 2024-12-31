@@ -45,6 +45,13 @@ TDeps = TypeVar("TDeps", default=Any)
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
 
+def has_argument_type(func: Callable[..., Any], arg_type: str | type) -> bool:
+    """Checks whether any argument of func is of type arg_type."""
+    sig = inspect.signature(func)
+    arg_str = arg_type if isinstance(arg_type, str) else arg_type.__name__
+    return any(arg_str in str(param.annotation) for param in sig.parameters.values())
+
+
 class LLMlingAgent[TDeps, TResult]:
     """Agent for AI-powered interaction with LLMling resources and tools.
 
@@ -447,15 +454,9 @@ class LLMlingAgent[TDeps, TResult]:
         agent = self._pydantic_agent
         agent._function_tools.clear()
 
-        def needs_context(func: Callable[..., Any]) -> bool:
-            sig = inspect.signature(func)
-            return any(
-                "RunContext" in str(param.annotation) for param in sig.parameters.values()
-            )
-
         for tool in self.tools.get_tools(state="enabled"):
             assert tool._original_callable
-            if needs_context(tool._original_callable):
+            if has_argument_type(tool._original_callable, "RunContext"):
                 agent.tool(tool._original_callable)
             else:
                 agent.tool_plain(tool._original_callable)
@@ -789,8 +790,8 @@ class LLMlingAgent[TDeps, TResult]:
                     match prompt:
                         case str():
                             current_prompt = prompt
-                        case _ if callable(prompt) and AgentContext.is_arg_in_function(
-                            prompt
+                        case _ if callable(prompt) and has_argument_type(
+                            prompt, AgentContext
                         ):
                             current_prompt = prompt(self._context, **kwargs)
                         case _ if callable(prompt):
