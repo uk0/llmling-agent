@@ -7,11 +7,10 @@ from typing import Any
 from llmling import Config, RuntimeConfig
 from llmling.prompts.models import PromptMessage, PromptParameter, StaticPrompt
 import pytest
-from slashed import CommandStore
+from slashed import CommandStore, DefaultOutputWriter
 
 from llmling_agent import LLMlingAgent
 from llmling_agent.chat_session import AgentChatSession
-from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.commands.prompts import prompt_cmd
 
 

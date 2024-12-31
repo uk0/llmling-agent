@@ -10,12 +10,11 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from rich.console import Console
 from rich.markdown import Markdown
-from slashed import ExitCommandError
+from slashed import DefaultOutputWriter, ExitCommandError
 from slashed.prompt_toolkit_completer import PromptToolkitCompleter
 
 from llmling_agent.chat_session import ChatSessionManager
 from llmling_agent.chat_session.base import AgentChatSession
-from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.chat_session.welcome import create_welcome_messages
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent_cli.chat_session.formatting import MessageFormatter

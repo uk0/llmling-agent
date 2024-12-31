@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING
 
 from slashed import OutputWriter
@@ -32,26 +31,3 @@ class CallbackOutputWriter(OutputWriter):
         logger.debug("CallbackOutputWriter printing: %s", message)
         chat_message: ChatMessage[str] = ChatMessage(content=message, role="system")
         await self._callback(chat_message)
-
-
-class DefaultOutputWriter(OutputWriter):
-    """Default output implementation using rich if available."""
-
-    def __init__(self):
-        """Initialize output writer."""
-        try:
-            from rich.console import Console
-
-            self._console: Console | None = Console()
-        except ImportError:
-            self._console = None
-
-    async def print(self, message: str):
-        """Write message to output.
-
-        Uses rich.Console if available, else regular print().
-        """
-        if self._console is not None:
-            self._console.print(message)
-        else:
-            print(message, file=sys.stdout)

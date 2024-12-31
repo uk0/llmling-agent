@@ -8,9 +8,9 @@ import logging
 import pathlib
 from tempfile import NamedTemporaryFile
 
+from slashed import DefaultOutputWriter
 import typer as t
 
-from llmling_agent.chat_session.output import DefaultOutputWriter
 from llmling_agent.delegation import AgentPool
 from llmling_agent.log import set_handler_level
 from llmling_agent_cli.chat_session.session import start_interactive_session
