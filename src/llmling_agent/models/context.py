@@ -68,6 +68,6 @@ class AgentContext[TDeps]:
         from llmling_agent.models import AgentConfig, AgentsManifest
 
         caps = capabilities or Capabilities()
-        defn = AgentsManifest(agents={})
+        defn = AgentsManifest[Any, Any](agents={})
         cfg = AgentConfig(name=name)
         return cls(agent_name=name, capabilities=caps, definition=defn, config=cfg)

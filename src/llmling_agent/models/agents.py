@@ -17,6 +17,7 @@ from llmling_models.model_types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_ai.agent import EndStrategy  # noqa: TC002
 from pydantic_ai.models.test import TestModel
+from typing_extensions import TypeVar
 from upath.core import UPath
 import yamling
 
@@ -42,6 +43,10 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from llmling_agent import AgentPool, LLMlingAgent
+
+
+TDeps = TypeVar("TDeps", default=Any)
+TResult = TypeVar("TResult", default=Any)
 
 
 class WorkerConfig(BaseModel):
@@ -305,7 +310,8 @@ class AgentConfig(BaseModel):
         return dct
 
 
-class AgentsManifest(ConfigModel):
+# TODO: python 3.13: set defaults here
+class AgentsManifest[TDeps, TResult](ConfigModel):
     """Complete agent configuration manifest defining all available agents.
 
     This is the root configuration that:
@@ -512,43 +518,31 @@ class AgentsManifest(ConfigModel):
 
         return pool
 
-    @classmethod
     @asynccontextmanager
     async def open_agent(
-        cls,
-        config_path: str | os.PathLike[str] | AgentsManifest,
+        self,
         agent_name: str,
         *,
         model: str | None = None,
         session_id: str | UUID | None = None,
-    ) -> AsyncIterator[LLMlingAgent[Any, Any]]:
+    ) -> AsyncIterator[LLMlingAgent[TDeps, TResult]]:
         """Open and configure a specific agent from configuration.
 
         Creates the agent in the context of a single-agent pool.
 
         Args:
-            config_path: Path to agent configuration file or AgentsManifest instance
             agent_name: Name of the agent to load
             model: Optional model override
             session_id: Optional ID to recover a previous state
 
         Example:
-            async with AgentsManifest.open_agent("agents.yml", "my-agent") as agent:
+            manifest = AgentsManifest[Any, str].from_file("agents.yml")
+            async with manifest.open_agent("my-agent") as agent:
                 result = await agent.run("Hello!")
         """
-        # First create pool with just this agent
-        manifest = (
-            config_path
-            if isinstance(config_path, AgentsManifest)
-            else cls.from_file(config_path)
-        )
-
-        pool = await manifest.create_pool(
-            agents_to_load=[agent_name], connect_agents=False
-        )
+        pool = await self.create_pool(agents_to_load=[agent_name], connect_agents=False)
 
         try:
-            # Get the agent from pool (will have pool context)
             agent = pool.get_agent(
                 agent_name, model_override=model, session_id=session_id
             )

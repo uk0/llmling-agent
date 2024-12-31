@@ -24,7 +24,8 @@ agents:
 
 
 async def example_structured_response():
-    manifest = AgentsManifest.model_validate(yamling.load_yaml(AGENT_CONFIG))
+    # for manifests with uniform agents, the manifest itself can be typed.
+    manifest = AgentsManifest[Any, Any].model_validate(yamling.load_yaml(AGENT_CONFIG))
     async with LLMlingAgent[Any, SummaryResult].open_agent(
         manifest, "summarizer", result_type=SummaryResult
     ) as agent:
