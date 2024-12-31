@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 import os
 from typing import TYPE_CHECKING, Any, Literal, Self
 
@@ -20,29 +19,10 @@ if TYPE_CHECKING:
     from types import TracebackType
     from uuid import UUID
 
-    from pydantic_ai.result import RunResult
-
     from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
 
 
 logger = get_logger(__name__)
-
-
-@dataclass
-class ExecutionConfig:
-    """Configuration for running agents."""
-
-    agent_names: list[str]
-    """Names of agents to run"""
-
-    prompts: list[str]
-    """List of prompts to send to the agent(s)"""
-
-    mode: Literal["sequential", "parallel"] = "sequential"
-    """Execution mode for multiple agents"""
-
-    model: str | None = None
-    """Optional model override"""
 
 
 class AgentResponse(BaseModel):
@@ -390,58 +370,6 @@ class AgentPool:
             yield pool
         finally:
             await pool.cleanup()
-
-    async def run(
-        self,
-        config: ExecutionConfig,
-    ) -> dict[str, list[RunResult[Any]]]:
-        """Run agents according to configuration.
-
-        Args:
-            config: Execution configuration
-
-        Returns:
-            Dictionary mapping agent names to their results
-        """
-        match config.mode:
-            case "sequential":
-                return await self._run_sequential(config)
-            case "parallel":
-                return await self._run_parallel(config)
-            case _:
-                msg = f"Invalid execution mode: {config.mode}"
-                raise ValueError(msg)
-
-    async def _run_sequential(
-        self,
-        config: ExecutionConfig,
-    ) -> dict[str, list[RunResult[Any]]]:
-        """Run agents sequentially."""
-        results = {}
-        for name in config.agent_names:
-            agent: LLMlingAgent[Any, Any] = self.get_agent(
-                name,
-                model_override=config.model,
-            )
-            results[name] = [await agent.run(prompt) for prompt in config.prompts]
-        return results
-
-    async def _run_parallel(
-        self,
-        config: ExecutionConfig,
-    ) -> dict[str, list[RunResult[Any]]]:
-        """Run agents in parallel."""
-
-        async def run_agent(name: str) -> list[RunResult[Any]]:
-            agent: LLMlingAgent[Any, Any] = self.get_agent(
-                name,
-                model_override=config.model,
-            )
-            return [await agent.run(p) for p in config.prompts]
-
-        tasks = [run_agent(name) for name in config.agent_names]
-        results = await asyncio.gather(*tasks)
-        return dict(zip(config.agent_names, results))
 
     async def team_task(
         self,
