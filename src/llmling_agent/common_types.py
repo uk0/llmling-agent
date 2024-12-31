@@ -16,5 +16,6 @@ type JsonArray = list[JsonValue]
 type ToolType = str | Callable[..., Any] | LLMCallableTool
 
 type StrPath = str | os.PathLike[str]
+type PromptFunction = Callable[..., str]
 
 EnvironmentType = Literal["file", "inline"]
