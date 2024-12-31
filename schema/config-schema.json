@@ -286,7 +286,8 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "files": "#/$defs/FileWatchConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "manual": "#/$defs/ManualTriggerConfig",
                 "webhook": "#/$defs/WebhookConfig"
               },
               "propertyName": "type"
@@ -297,11 +298,26 @@
               },
               {
                 "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/ManualTriggerConfig"
               }
             ]
           },
           "title": "Triggers",
           "type": "array"
+        },
+        "knowledge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Knowledge"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Knowledge sources for this agent."
         },
         "forward_to": {
           "description": "Targets to forward results to.",
@@ -1067,24 +1083,28 @@
       "type": "object"
     },
     "FileWatchConfig": {
-      "description": "File watching event source.",
+      "description": "File watching event source.\n\nMonitors file system changes and triggers agent actions when:\n- Files are created\n- Files are modified\n- Files are deleted",
       "properties": {
         "type": {
-          "const": "files",
-          "default": "files",
+          "const": "file",
+          "default": "file",
+          "description": "Type discriminator for file watch sources.",
           "title": "Type",
           "type": "string"
         },
         "name": {
+          "description": "Unique identifier for this event source.",
           "title": "Name",
           "type": "string"
         },
         "enabled": {
           "default": true,
+          "description": "Whether this event source is active.",
           "title": "Enabled",
           "type": "boolean"
         },
         "paths": {
+          "description": "Paths or patterns to watch for changes.",
           "items": {
             "type": "string"
           },
@@ -1104,6 +1124,7 @@
             }
           ],
           "default": null,
+          "description": "File extensions to monitor (e.g. ['.py', '.md']).",
           "title": "Extensions"
         },
         "ignore_paths": {
@@ -1119,15 +1140,18 @@
             }
           ],
           "default": null,
+          "description": "Paths or patterns to ignore.",
           "title": "Ignore Paths"
         },
         "recursive": {
           "default": true,
+          "description": "Whether to watch subdirectories.",
           "title": "Recursive",
           "type": "boolean"
         },
         "debounce": {
           "default": 1600,
+          "description": "Minimum time (ms) between trigger events.",
           "title": "Debounce",
           "type": "integer"
         }
@@ -1476,6 +1500,60 @@
       "title": "Jinja2Config",
       "type": "object"
     },
+    "Knowledge": {
+      "description": "Collection of context sources for an agent.",
+      "properties": {
+        "paths": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/FileContextSource"
+              }
+            ]
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "resources": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/ResourceContextSource"
+              }
+            ]
+          },
+          "title": "Resources",
+          "type": "array"
+        },
+        "prompts": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/PromptContextSource"
+              }
+            ]
+          },
+          "title": "Prompts",
+          "type": "array"
+        },
+        "convert_paths_to_markdown": {
+          "default": false,
+          "title": "Convert Paths To Markdown",
+          "type": "boolean"
+        }
+      },
+      "title": "Knowledge",
+      "type": "object"
+    },
     "LLMCapabilitiesConfig": {
       "additionalProperties": false,
       "description": "Configuration for LLM system capabilities.",
@@ -1518,6 +1596,53 @@
         }
       },
       "title": "LLMCapabilitiesConfig",
+      "type": "object"
+    },
+    "ManualTriggerConfig": {
+      "description": "Manual trigger configuration.\n\nDefines actions that can be triggered directly by users through CLI for example.\n\nUnlike other triggers, these don't activate automatically but provide\na way to define reusable agent interactions.",
+      "properties": {
+        "type": {
+          "const": "manual",
+          "default": "manual",
+          "description": "Type discriminator for manual triggers.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "description": "Unique identifier for this event source.",
+          "title": "Name",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this event source is active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "prompt": {
+          "description": "Prompt to send to the agent when triggered.",
+          "title": "Prompt",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Human-readable description of what this trigger does.",
+          "title": "Description"
+        }
+      },
+      "required": [
+        "name",
+        "prompt"
+      ],
+      "title": "ManualTriggerConfig",
       "type": "object"
     },
     "MessageContent": {
@@ -2529,28 +2654,33 @@
       "type": "object"
     },
     "WebhookConfig": {
-      "description": "Webhook event source.",
+      "description": "Webhook event source.\n\nListens for HTTP requests and triggers agent actions when:\n- POST requests are received at the configured endpoint\n- Request content matches any defined filters",
       "properties": {
         "type": {
           "const": "webhook",
           "default": "webhook",
+          "description": "Type discriminator for webhook sources.",
           "title": "Type",
           "type": "string"
         },
         "name": {
+          "description": "Unique identifier for this event source.",
           "title": "Name",
           "type": "string"
         },
         "enabled": {
           "default": true,
+          "description": "Whether this event source is active.",
           "title": "Enabled",
           "type": "boolean"
         },
         "port": {
+          "description": "Port to listen on.",
           "title": "Port",
           "type": "integer"
         },
         "path": {
+          "description": "URL path to handle requests.",
           "title": "Path",
           "type": "string"
         },
@@ -2564,6 +2694,7 @@
             }
           ],
           "default": null,
+          "description": "Optional secret for request validation.",
           "title": "Secret"
         }
       },
