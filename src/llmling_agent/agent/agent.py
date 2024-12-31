@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.messages import ModelMessage
-    from pydantic_ai.result import RunResult, StreamedRunResult
+    from pydantic_ai.result import RunResult, StreamedRunResult, Usage
 
     from llmling_agent.tools.base import ToolInfo
 
@@ -458,6 +458,7 @@ class LLMlingAgent[TDeps, TResult]:
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
         # wait_for_chain: bool = True,
+        usage: Usage | None = None,
     ) -> RunResult[TResult]:
         """Run agent with prompt and get response.
 
@@ -466,6 +467,8 @@ class LLMlingAgent[TDeps, TResult]:
             deps: Optional dependencies for the agent
             message_history: Optional previous messages for context
             model: Optional model override
+            usage:  Optional usage to start with,
+                    useful for resuming a conversation or agents used in tools
 
         Returns:
             Result containing response and run information
@@ -501,6 +504,7 @@ class LLMlingAgent[TDeps, TResult]:
                 deps=self._context,
                 message_history=msg_history,
                 model=model,
+                usage=usage,
             )
             messages = result.new_messages()
             for call in get_tool_calls(messages):
@@ -609,8 +613,24 @@ class LLMlingAgent[TDeps, TResult]:
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
+        usage: Usage | None = None,
     ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], TResult]]:
-        """Run agent with prompt and get streaming response."""
+        """Run agent with prompt and get a streaming response.
+
+        Args:
+            prompt: User query or instruction
+            deps: Optional dependencies for the agent
+            message_history: Optional previous messages for context
+            model: Optional model override
+            usage:  Optional usage to start with,
+                    useful for resuming a conversation or agents used in tools
+
+        Returns:
+            A streaming result to iterate over.
+
+        Raises:
+            UnexpectedModelBehavior: If the model fails or behaves unexpectedly
+        """
         if deps is not None:
             self._context.data = deps
         try:
@@ -626,6 +646,7 @@ class LLMlingAgent[TDeps, TResult]:
                 message_history=msg_history,
                 model=model,
                 deps=self._context,
+                usage=usage,
             ) as stream:
                 original_stream = stream.stream
 
