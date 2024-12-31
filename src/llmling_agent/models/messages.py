@@ -14,7 +14,7 @@ from llmling_agent.common_types import JsonObject  # noqa: TC001
 from llmling_agent.models.agents import ToolCallInfo  # noqa: TC001
 
 
-T = TypeVar("T", str, BaseModel, default=str)
+TContent = TypeVar("TContent", str, BaseModel, default=str)
 
 
 class TokenUsage(TypedDict):
@@ -38,14 +38,14 @@ class TokenAndCostResult:
     """Total cost in USD"""
 
 
-class ChatMessage[T](BaseModel):
+class ChatMessage[TContent](BaseModel):
     """Common message format for all UI types.
 
     Generically typed with: ChatMessage[Type of Content]
     The type can either be str or a BaseModel subclass.
     """
 
-    content: T
+    content: TContent
     """Message content, typed as T (either str or BaseModel)."""
 
     model: str | None = None

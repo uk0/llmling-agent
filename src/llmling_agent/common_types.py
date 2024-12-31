@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import os
-from typing import Any
+from typing import Any, Literal
 
 from llmling import LLMCallableTool
 
@@ -16,3 +16,5 @@ type JsonArray = list[JsonValue]
 type ToolType = str | Callable[..., Any] | LLMCallableTool
 
 type StrPath = str | os.PathLike[str]
+
+EnvironmentType = Literal["file", "inline"]

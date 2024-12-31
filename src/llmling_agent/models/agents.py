@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
 TDeps = TypeVar("TDeps", default=Any)
 TResult = TypeVar("TResult", default=Any)
-T = TypeVar("T")
+TResultOverride = TypeVar("TResultOverride")
 
 
 class WorkerConfig(BaseModel):
@@ -523,24 +523,24 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
     ) -> AsyncIterator[LLMlingAgent[TDeps, TResult]]: ...
 
     @overload
-    async def open_agent[T](
+    async def open_agent(
         self,
         agent_name: str,
         *,
-        return_type: type[T],
+        return_type: type[TResultOverride],
         model: str | None = None,
         session_id: str | UUID | None = None,
-    ) -> AsyncIterator[LLMlingAgent[TDeps, T]]: ...
+    ) -> AsyncIterator[LLMlingAgent[TDeps, TResultOverride]]: ...
 
     @asynccontextmanager
-    async def open_agent[T](
+    async def open_agent(
         self,
         agent_name: str,
         *,
-        return_type: type[T] | None = None,
+        return_type: type[TResultOverride] | None = None,
         model: str | None = None,
         session_id: str | UUID | None = None,
-    ) -> AsyncIterator[LLMlingAgent[TDeps, TResult | T]]:
+    ) -> AsyncIterator[LLMlingAgent[TDeps, TResult | TResultOverride]]:
         """Open and configure a specific agent from configuration.
 
         Creates the agent in the context of a single-agent pool.
@@ -562,7 +562,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         # Create empty pool just for context
         pool = AgentPool(manifest=self, agents_to_load=[], connect_agents=False)
         try:
-            async with LLMlingAgent[TDeps, TResult | T].open_agent(
+            async with LLMlingAgent[TDeps, TResult | TResultOverride].open_agent(
                 self,
                 agent_name,
                 model=model,
