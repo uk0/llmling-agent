@@ -36,7 +36,10 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
     def __init__(
         self,
-        tools: Sequence[ToolInfo | LLMCallableTool | dict[str, Any]] = (),
+        tools: Sequence[
+            ToolInfo | LLMCallableTool | Callable[..., Any] | dict[str, Any] | str
+        ]
+        | None = None,
         tool_choice: bool | str | list[str] = True,
     ):
         """Initialize tool manager.
@@ -53,7 +56,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         self.tool_choice = tool_choice
 
         # Register initial tools
-        for tool in tools:
+        for tool in tools or []:
             t = self._validate_item(tool)
             self.register(t.name, t)
 
@@ -68,13 +71,16 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         return ToolError
 
     def _validate_item(
-        self, item: ToolInfo | LLMCallableTool | dict[str, Any]
+        self, item: ToolInfo | LLMCallableTool | dict[str, Any] | str | Callable[..., Any]
     ) -> ToolInfo:
         """Validate and convert items before registration."""
         match item:
             case ToolInfo():
                 return item
             case LLMCallableTool():
+                return ToolInfo(callable=item)
+            case str():
+                item = LLMCallableTool.from_callable(item)
                 return ToolInfo(callable=item)
             case _ if callable(item):
                 tool = LLMCallableTool.from_callable(item)
