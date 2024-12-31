@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Sequence  # noqa: TC003
 from contextlib import asynccontextmanager
 import inspect
 import time
@@ -28,13 +27,13 @@ from llmling_agent.tools.manager import ToolManager
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Callable, Sequence
 
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.messages import ModelMessage
     from pydantic_ai.result import RunResult, StreamedRunResult, Usage
 
-    from llmling_agent.common_types import StrPath, ToolType
+    from llmling_agent.common_types import PromptFunction, StrPath, ToolType
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -42,7 +41,6 @@ logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=Any)
-
 
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
@@ -190,6 +188,7 @@ class LLMlingAgent[TDeps, TResult]:
         )
 
         self._pending_tasks: set[asyncio.Task[Any]] = set()
+        self._background_task: asyncio.Task[Any] | None = None
         self._connected_agents: set[LLMlingAgent[Any, Any]] = set()
 
     @property
@@ -763,6 +762,69 @@ class LLMlingAgent[TDeps, TResult]:
             if agent.name not in seen:
                 seen.add(agent.name)
                 await agent.wait_for_chain(seen)
+
+    async def run_continuous(
+        self,
+        prompt: str | PromptFunction,
+        *,
+        max_count: int | None = None,
+        interval: float = 1.0,
+        block: bool = True,
+        **kwargs: Any,
+    ) -> RunResult[TResult] | None:
+        """Run agent continuously with prompt or dynamic prompt function.
+
+        Args:
+            prompt: Static prompt or function that generates prompts
+            max_count: Maximum number of runs (None = infinite)
+            interval: Seconds between runs
+            block: Whether to block until completion
+            **kwargs: Arguments passed to run()
+        """
+
+        async def _continuous():
+            count = 0
+            while max_count is None or count < max_count:
+                try:
+                    match prompt:
+                        case str():
+                            current_prompt = prompt
+                        case _ if callable(prompt) and AgentContext.is_arg_in_function(
+                            prompt
+                        ):
+                            current_prompt = prompt(self._context, **kwargs)
+                        case _ if callable(prompt):
+                            current_prompt = prompt(self._context.data)
+                    await self.run(current_prompt, **kwargs)
+                    count += 1
+                    await asyncio.sleep(interval)
+                except asyncio.CancelledError:
+                    break
+                except Exception:
+                    logger.exception("Background run failed")
+                    await asyncio.sleep(interval)
+
+        # Cancel any existing background task
+        await self.stop()
+        task = asyncio.create_task(_continuous(), name=f"background_{self.name}")
+
+        if block:
+            try:
+                await task  # Wait for completion if max_count set
+                return None
+            finally:
+                if not task.done():
+                    task.cancel()
+        else:
+            self._background_task = task
+            return None
+
+    async def stop(self):
+        """Stop continuous execution if running."""
+        if self._background_task and not self._background_task.done():
+            self._background_task.cancel()
+            await self._background_task
+            self._background_task = None
 
     def clear_history(self):
         """Clear both internal and pydantic-ai history."""
