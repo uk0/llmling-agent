@@ -62,6 +62,9 @@ class LLMlingAgent[TDeps, TResult]:
     - Database logging
     """
 
+    # this fixes weird mypy issue
+    conversation: ConversationManager
+
     message_received = Signal(ChatMessage[str])  # Always string
     message_sent = Signal(ChatMessage[TResult])
     message_exchanged = Signal(ChatMessage[TResult | str])
@@ -519,7 +522,7 @@ class LLMlingAgent[TDeps, TResult]:
             )
             logger.debug("Agent run result: %r", result.data)
             messages = result.new_messages()
-            for call in get_tool_calls(messages):
+            for call in get_tool_calls(messages, dict(self.tools._items)):
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
                 self.tool_used.emit(call)
@@ -680,7 +683,7 @@ class LLMlingAgent[TDeps, TResult]:
                         # Handle captured tool calls
                         messages = stream.new_messages()
                         self.conversation._last_messages = list(messages)
-                        for call in get_tool_calls(messages):
+                        for call in get_tool_calls(messages, dict(self.tools._items)):
                             call.message_id = message_id
                             call.context_data = (
                                 self._context.data if self._context else None

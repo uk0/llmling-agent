@@ -34,6 +34,8 @@ if TYPE_CHECKING:
 
     from pydantic_ai.result import Usage
 
+    from llmling_agent.tools.base import ToolInfo
+
 
 async def extract_usage(
     usage: Usage,
@@ -130,14 +132,18 @@ def find_last_assistant_message(messages: Sequence[ModelMessage]) -> str | None:
 
 
 def get_tool_calls(
-    messages: list[ModelMessage], context_data: Any | None = None
+    messages: list[ModelMessage],
+    tools: dict[str, ToolInfo] | None = None,
+    context_data: Any | None = None,
 ) -> list[ToolCallInfo]:
     """Extract tool call information from messages.
 
     Args:
         messages: Messages from captured run
+        tools: Original ToolInfo set to enrich ToolCallInfos with additional info
         context_data: Optional context data to attach to tool calls
     """
+    tools = tools or {}
     parts = [part for message in messages for part in message.parts]
     call_parts = {
         part.tool_call_id: part
@@ -145,14 +151,19 @@ def get_tool_calls(
         if isinstance(part, ToolCallPart) and part.tool_call_id
     }
     return [
-        parts_to_tool_call_info(call_parts[part.tool_call_id], part, context_data)
+        parts_to_tool_call_info(
+            call_parts[part.tool_call_id], part, tools.get(part.tool_name), context_data
+        )
         for part in parts
         if isinstance(part, ToolReturnPart) and part.tool_call_id in call_parts
     ]
 
 
 def parts_to_tool_call_info(
-    call_part: ToolCallPart, return_part: ToolReturnPart, context_data: Any | None = None
+    call_part: ToolCallPart,
+    return_part: ToolReturnPart,
+    tool_info: ToolInfo | None,
+    context_data: Any | None = None,
 ) -> ToolCallInfo:
     """Convert matching tool call and return parts into a ToolCallInfo."""
     args = (
@@ -168,11 +179,13 @@ def parts_to_tool_call_info(
         tool_call_id=call_part.tool_call_id,
         timestamp=return_part.timestamp,
         context_data=context_data,
+        agent_tool_name=tool_info.agent_name if tool_info else None,
     )
 
 
 def convert_model_message(
     message: ModelMessage | ModelRequestPart | ModelResponsePart,
+    tools: dict[str, ToolInfo] | None = None,
 ) -> ChatMessage:
     """Convert a pydantic-ai message to our ChatMessage format.
 
@@ -180,6 +193,7 @@ def convert_model_message(
 
     Args:
         message: Message to convert (ModelMessage or its parts)
+        tools: Original ToolInfo set to enrich ToolCallInfos with additional info
 
     Returns:
         Converted ChatMessage
@@ -203,7 +217,7 @@ def convert_model_message(
 
         case ModelResponse():
             # Collect content and tool calls from all parts
-            tool_calls = get_tool_calls([message], None)
+            tool_calls = get_tool_calls([message], tools, None)
             parts = [format_response(p) for p in message.parts if isinstance(p, TextPart)]
             content = "\n".join(parts)
             return ChatMessage(content=content, role="assistant", tool_calls=tool_calls)

@@ -79,6 +79,9 @@ class ToolInfo:
     requires_capability: str | None = None
     """Optional capability required to use this tool"""
 
+    agent_name: str | None = None
+    """The agent name as an identifier for agent-as-a-tool."""
+
     metadata: dict[str, str] = field(default_factory=dict)
     """Additional tool metadata"""
 

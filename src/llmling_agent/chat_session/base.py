@@ -19,14 +19,13 @@ from slashed import (
     ExitCommandError,
 )
 
-from llmling_agent import LLMlingAgent
+from llmling_agent.agent import LLMlingAgent
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
 from llmling_agent.commands import get_commands
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.pydantic_ai_utils import extract_usage
-from llmling_agent.storage.models import CommandHistory
 from llmling_agent.tools.base import ToolInfo
 
 
@@ -214,6 +213,8 @@ class AgentPoolView:
         """Add command to history."""
         if not command.strip():
             return
+        from llmling_agent.storage.models import CommandHistory
+
         id_ = str(self.id)
         CommandHistory.log(agent_name=self._agent.name, session_id=id_, command=command)
 
@@ -221,6 +222,8 @@ class AgentPoolView:
         self, limit: int | None = None, current_session_only: bool = False
     ) -> list[str]:
         """Get command history ordered by newest first."""
+        from llmling_agent.storage.models import CommandHistory
+
         return CommandHistory.get_commands(
             agent_name=self._agent.name,
             session_id=str(self.id),
