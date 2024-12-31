@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Self
 
@@ -20,18 +21,27 @@ from upath.core import UPath
 import yamling
 
 from llmling_agent.config import Capabilities
-from llmling_agent.environment import AgentEnvironment  # noqa: TC001
-from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
+from llmling_agent.environment import (
+    AgentEnvironment,
+    FileEnvironment,
+    InlineEnvironment,
+)
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
-from llmling_agent.models.sources import ContextSource  # noqa: TC001
-from llmling_agent.responses import ResponseDefinition  # noqa: TC001
-from llmling_agent.responses.models import InlineResponseDefinition
+from llmling_agent.models.sources import ContextSource, Knowledge  # noqa: TC001
+from llmling_agent.responses import (
+    InlineResponseDefinition,
+    ResponseDefinition,
+)
 from llmling_agent.templating import render_prompt
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
     import os
+    from uuid import UUID
+
+    from llmling_agent import AgentPool, LLMlingAgent
 
 
 class WorkerConfig(BaseModel):
@@ -128,6 +138,9 @@ class AgentConfig(BaseModel):
 
     triggers: list[EventConfig] = Field(default_factory=list)
     """Event sources that activate this agent"""
+
+    knowledge: Knowledge | None = None
+    """Knowledge sources for this agent."""
 
     forward_to: list[ForwardingTarget] = Field(default_factory=list)
     """Targets to forward results to."""
@@ -461,6 +474,87 @@ class AgentsManifest(ConfigModel):
         except Exception as exc:
             msg = f"Failed to load agent config from {path}"
             raise ValueError(msg) from exc
+
+    async def create_pool(
+        self,
+        *,
+        agents_to_load: list[str] | None = None,
+        connect_agents: bool = True,
+        session_id: str | UUID | None = None,
+    ) -> AgentPool:
+        """Create an agent pool from this manifest.
+
+        Args:
+            agents_to_load: Optional list of agents to initialize
+            connect_agents: Whether to set up forwarding connections
+            session_id: Optional session ID for conversation recovery
+
+        Returns:
+            Configured agent pool
+        """
+        from llmling_agent.delegation import AgentPool
+
+        pool = AgentPool(
+            manifest=self,
+            agents_to_load=agents_to_load,
+            connect_agents=connect_agents,
+        )
+
+        # Initialize agents with knowledge
+        for name, agent in pool.agents.items():
+            if (config := self.agents.get(name)) and config.knowledge:
+                for source in (
+                    config.knowledge.paths
+                    + config.knowledge.resources
+                    + config.knowledge.prompts
+                ):
+                    await agent.conversation.load_context_source(source)  # type: ignore
+
+        return pool
+
+    @classmethod
+    @asynccontextmanager
+    async def open_agent(
+        cls,
+        config_path: str | os.PathLike[str] | AgentsManifest,
+        agent_name: str,
+        *,
+        model: str | None = None,
+        session_id: str | UUID | None = None,
+    ) -> AsyncIterator[LLMlingAgent[Any, Any]]:
+        """Open and configure a specific agent from configuration.
+
+        Creates the agent in the context of a single-agent pool.
+
+        Args:
+            config_path: Path to agent configuration file or AgentsManifest instance
+            agent_name: Name of the agent to load
+            model: Optional model override
+            session_id: Optional ID to recover a previous state
+
+        Example:
+            async with AgentsManifest.open_agent("agents.yml", "my-agent") as agent:
+                result = await agent.run("Hello!")
+        """
+        # First create pool with just this agent
+        manifest = (
+            config_path
+            if isinstance(config_path, AgentsManifest)
+            else cls.from_file(config_path)
+        )
+
+        pool = await manifest.create_pool(
+            agents_to_load=[agent_name], connect_agents=False
+        )
+
+        try:
+            # Get the agent from pool (will have pool context)
+            agent = pool.get_agent(
+                agent_name, model_override=model, session_id=session_id
+            )
+            yield agent
+        finally:
+            await pool.cleanup()
 
 
 class ToolCallInfo(BaseModel):
