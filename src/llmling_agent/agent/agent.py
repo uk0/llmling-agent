@@ -67,10 +67,9 @@ class LLMlingAgent[TDeps, TResult]:
     message_received = Signal(ChatMessage[str])  # Always string
     message_sent = Signal(ChatMessage[TResult])
     message_exchanged = Signal(ChatMessage[TResult | str])
-    tool_used = Signal(ToolCallInfo)  # Now we emit the whole info object
+    tool_used = Signal(ToolCallInfo)
     model_changed = Signal(object)  # Model | None
     chunk_streamed = Signal(str)
-    # `outbox` defined in __init__
     outbox = Signal(object, ChatMessage[Any])
 
     def __init__(
@@ -520,6 +519,7 @@ class LLMlingAgent[TDeps, TResult]:
                 model=model,
                 usage=usage,
             )
+            logger.debug("Agent run result: %r", result.data)
             messages = result.new_messages()
             for call in get_tool_calls(messages):
                 call.message_id = message_id
@@ -528,15 +528,15 @@ class LLMlingAgent[TDeps, TResult]:
             self.conversation._last_messages = list(messages)
             if not message_history:
                 self.conversation.set_history(result.all_messages())
-            # Emit user messages
-            user_msg = ChatMessage[str](content=prompt, role="user")
-            self.message_received.emit(user_msg)
-            logger.debug("Agent run result: %r", result.data)
+
+            # Emit user message
+            _user_msg = ChatMessage[str](content=prompt, role="user")
+            self.message_received.emit(_user_msg)
+
             # Get cost info for assistant response
-            result_str = str(result.data)
             usage = result.usage()
             cost_info = (
-                await extract_usage(usage, self.model_name, prompt, result_str)
+                await extract_usage(usage, self.model_name, prompt, str(result.data))
                 if self.model_name
                 else None
             )
@@ -651,8 +651,8 @@ class LLMlingAgent[TDeps, TResult]:
             self._update_tools()
 
             # Emit user message
-            user_msg = ChatMessage[str](content=prompt, role="user")
-            self.message_received.emit(user_msg)
+            _user_msg = ChatMessage[str](content=prompt, role="user")
+            self.message_received.emit(_user_msg)
             start_time = time.perf_counter()
             msg_history = message_history or self.conversation.get_history()
             async with self._pydantic_agent.run_stream(
@@ -689,12 +689,9 @@ class LLMlingAgent[TDeps, TResult]:
                             )
                             self.tool_used.emit(call)
                         # Get all model responses and format their parts
-                        content = "\n".join(
-                            format_response(part)
-                            for msg in messages
-                            if isinstance(msg, ModelResponse)
-                            for part in msg.parts
-                        )
+                        responses = [m for m in messages if isinstance(m, ModelResponse)]
+                        parts = [p for msg in responses for p in msg.parts]
+                        content = "\n".join(format_response(p) for p in parts)
                         usage = stream.usage()
                         cost_info = (
                             await extract_usage(usage, self.model_name, prompt, content)
