@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import inspect
 import json
 from typing import TYPE_CHECKING, Any
@@ -188,22 +187,15 @@ def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: 
         case ModelRequest():
             # Use first part's content
             part = message.parts[0]
-            return ChatMessage(
-                content=str(part.content),
-                role="user" if isinstance(part, UserPromptPart) else "system",
-                timestamp=datetime.now(),
-            )
+            role = "user" if isinstance(part, UserPromptPart) else "system"
+            return ChatMessage(content=str(part.content), role=role)
 
         case ModelResponse():
             # Convert first part (shouldn't have multiple typically)
             return convert_model_message(message.parts[0])
 
         case TextPart():
-            return ChatMessage(
-                content=message.content,
-                role="assistant",
-                timestamp=datetime.now(),
-            )
+            return ChatMessage(content=message.content, role="assistant")
 
         case ToolCallPart():
             args = (
@@ -211,35 +203,25 @@ def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: 
                 if isinstance(message.args, ArgsDict)
                 else json.loads(message.args.args_json)
             )
-            return ChatMessage(
-                content=f"Tool call: {message.tool_name}\nArgs: {args}",
-                role="assistant",
-                tool_calls=[
-                    ToolCallInfo(
-                        tool_name=message.tool_name,
-                        args=args,
-                        result=None,  # Not available yet
-                        tool_call_id=message.tool_call_id,
-                    )
-                ],
-                timestamp=datetime.now(),
+            info = ToolCallInfo(
+                tool_name=message.tool_name,
+                args=args,
+                result=None,  # Not available yet
+                tool_call_id=message.tool_call_id,
             )
+            content = f"Tool call: {message.tool_name}\nArgs: {args}"
+            return ChatMessage(content=content, role="assistant", tool_calls=[info])
 
         case ToolReturnPart():
-            return ChatMessage(
-                content=f"Tool {message.tool_name} returned: {message.content}",
-                role="assistant",
-                tool_calls=[
-                    ToolCallInfo(
-                        tool_name=message.tool_name,
-                        args={},  # No args in return part
-                        result=message.content,
-                        tool_call_id=message.tool_call_id,
-                        timestamp=message.timestamp,
-                    )
-                ],
-                timestamp=datetime.now(),
+            info = ToolCallInfo(
+                tool_name=message.tool_name,
+                args={},  # No args in return part
+                result=message.content,
+                tool_call_id=message.tool_call_id,
+                timestamp=message.timestamp,
             )
+            content = f"Tool {message.tool_name} returned: {message.content}"
+            return ChatMessage(content=content, role="assistant", tool_calls=[info])
 
         case RetryPromptPart():
             error_content = (
@@ -249,25 +231,13 @@ def convert_model_message(message: ModelMessage | Any) -> ChatMessage:  # noqa: 
                     f"- {error['loc']}: {error['msg']}" for error in message.content
                 )
             )
-            return ChatMessage(
-                content=f"Retry needed: {error_content}",
-                role="assistant",
-                timestamp=datetime.now(),
-            )
+            return ChatMessage(content=f"Retry needed: {error_content}", role="assistant")
 
         case SystemPromptPart():
-            return ChatMessage(
-                content=message.content,
-                role="system",
-                timestamp=datetime.now(),
-            )
+            return ChatMessage(content=message.content, role="system")
 
         case UserPromptPart():
-            return ChatMessage(
-                content=message.content,
-                role="user",
-                timestamp=datetime.now(),
-            )
+            return ChatMessage(content=message.content, role="user")
 
         case _:
             msg = f"Unsupported message type: {type(message)}"
