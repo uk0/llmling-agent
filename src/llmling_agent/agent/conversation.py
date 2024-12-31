@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from pydantic_ai.messages import ModelMessage
 
     from llmling_agent.agent.agent import LLMlingAgent
-    from llmling_agent.common_types import StrPath
+    from llmling_agent.common_types import MessageRole, StrPath
 
 logger = get_logger(__name__)
 
@@ -135,7 +135,7 @@ class ConversationManager:
         *,
         since: datetime | None = None,
         until: datetime | None = None,
-        roles: set[Literal["user", "assistant", "system"]] | None = None,
+        roles: set[MessageRole] | None = None,
         limit: int | None = None,
     ):
         """Load and set conversation history from database.

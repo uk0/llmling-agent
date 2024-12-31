@@ -6,7 +6,7 @@ import base64
 import json
 import os
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai.messages import (
     ModelMessage,
@@ -15,6 +15,10 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from upath import UPath
+
+
+if TYPE_CHECKING:
+    from llmling_agent.common_types import MessageRole
 
 
 # Type definitions
@@ -29,7 +33,7 @@ def to_base64(data: bytes) -> str:
 
 def create_message(
     contents: list[tuple[ContentType, ContentSource]] | str,
-    role: Literal["user", "system"] = "user",
+    role: MessageRole = "user",
 ) -> ModelMessage:
     """Create a message from content pairs.
 

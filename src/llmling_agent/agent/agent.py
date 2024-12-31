@@ -770,7 +770,7 @@ class LLMlingAgent[TDeps, TResult]:
         *,
         max_count: int | None = None,
         interval: float = 1.0,
-        block: bool = True,
+        block: bool = False,
         **kwargs: Any,
     ) -> RunResult[TResult] | None:
         """Run agent continuously with prompt or dynamic prompt function.
@@ -790,12 +790,21 @@ class LLMlingAgent[TDeps, TResult]:
                     match prompt:
                         case str():
                             current_prompt = prompt
+                        case _ if inspect.ismethod(prompt) and has_argument_type(
+                            prompt, AgentContext
+                        ):
+                            current_prompt = prompt(self._context)
+                        case _ if inspect.ismethod(prompt):
+                            current_prompt = prompt()
                         case _ if callable(prompt) and has_argument_type(
                             prompt, AgentContext
                         ):
                             current_prompt = prompt(self._context, **kwargs)
                         case _ if callable(prompt):
                             current_prompt = prompt(self._context.data)
+                        case _:
+                            msg = f"Invalid prompt type: {type(prompt)}"
+                            raise TypeError(msg)  # noqa: TRY301
                     await self.run(current_prompt, **kwargs)
                     count += 1
                     await asyncio.sleep(interval)

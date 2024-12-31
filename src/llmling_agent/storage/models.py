@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
@@ -14,6 +14,7 @@ from sqlmodel import JSON, Field, Session, SQLModel, select
 if TYPE_CHECKING:
     from pydantic_ai.messages import ModelMessage
 
+    from llmling_agent.common_types import MessageRole
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.messages import TokenAndCostResult
 
@@ -158,7 +159,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         *,
         conversation_id: str,
         content: str,
-        role: Literal["user", "assistant", "system"],
+        role: MessageRole,
         name: str | None = None,
         cost_info: TokenAndCostResult | None = None,
         model: str | None = None,
@@ -198,7 +199,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         *,
         since: datetime | None = None,
         until: datetime | None = None,
-        roles: set[Literal["user", "assistant", "system"]] | None = None,
+        roles: set[MessageRole] | None = None,
         limit: int | None = None,
     ) -> list[ModelMessage]:
         """Convert database messages to pydantic-ai messages.

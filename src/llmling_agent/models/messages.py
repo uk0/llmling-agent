@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, TypedDict
+from typing import TypedDict
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import TypeVar
 
-from llmling_agent.common_types import JsonObject  # noqa: TC001
+from llmling_agent.common_types import JsonObject, MessageRole  # noqa: TC001
 from llmling_agent.models.agents import ToolCallInfo  # noqa: TC001
 
 
@@ -51,7 +51,7 @@ class ChatMessage[TContent](BaseModel):
     model: str | None = None
     """Name of the model that generated this message."""
 
-    role: Literal["user", "assistant", "system"]
+    role: MessageRole
     """Role of the message sender (user/assistant/system)."""
 
     metadata: JsonObject = Field(default_factory=dict)

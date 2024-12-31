@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+
+
+if TYPE_CHECKING:
+    from llmling_agent.common_types import MessageRole
 
 
 class GradioChatMessage(TypedDict):
     """Single chat message format for Gradio chatbot."""
 
     content: str
-    role: Literal["user", "assistant", "system"]
+    role: MessageRole
     name: NotRequired[str]
     avatar: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]

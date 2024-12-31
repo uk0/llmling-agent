@@ -18,4 +18,5 @@ type ToolType = str | Callable[..., Any] | LLMCallableTool
 type StrPath = str | os.PathLike[str]
 type PromptFunction = Callable[..., str]
 
+MessageRole = Literal["user", "assistant", "system"]
 EnvironmentType = Literal["file", "inline"]
