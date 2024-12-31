@@ -107,6 +107,10 @@
           "description": "Environment configuration (path or object)",
           "title": "Environment"
         },
+        "capabilities": {
+          "$ref": "#/$defs/Capabilities",
+          "description": "Current agent's capabilities."
+        },
         "session_id": {
           "anyOf": [
             {
@@ -276,25 +280,6 @@
           "default": null,
           "description": "Config file path for resolving environment.",
           "title": "Config File Path"
-        },
-        "role": {
-          "anyOf": [
-            {
-              "enum": [
-                "basic",
-                "overseer",
-                "specialist",
-                "assistant"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "string"
-            }
-          ],
-          "default": "basic",
-          "description": "Role name (built-in or custom) determining agent's capabilities.",
-          "title": "Role"
         },
         "triggers": {
           "description": "Event sources that activate this agent",
@@ -2671,14 +2656,6 @@
       },
       "description": "Mapping of agent IDs to their configurations",
       "title": "Agents",
-      "type": "object"
-    },
-    "roles": {
-      "additionalProperties": {
-        "$ref": "#/$defs/Capabilities"
-      },
-      "description": "Custom role definitions",
-      "title": "Roles",
       "type": "object"
     }
   },
