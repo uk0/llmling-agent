@@ -71,21 +71,13 @@ class AgentState:
             await self.cleanup()
 
             # Create new pool with just this agent
-            self.pool = AgentPool(
-                self.agent_def,
-                agents_to_load=[agent_name],
-                connect_agents=True,
-            )
-
-            # Apply model override if specified
-            if model:
+            self.pool = AgentPool(self.agent_def, agents_to_load=[agent_name])
+            if model:  # Apply model override if specified
                 agent = self.pool.get_agent(agent_name)
                 agent.set_model(model)  # type: ignore
-
             # Initialize history for this agent if needed
             if agent_name not in self.history:
                 self.history[agent_name] = []
-
         except Exception as e:
             error_msg = f"Failed to initialize agent: {e}"
             raise ValueError(error_msg) from e
