@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from llmling import (
     Config,
@@ -47,6 +47,7 @@ if TYPE_CHECKING:
 
 TDeps = TypeVar("TDeps", default=Any)
 TResult = TypeVar("TResult", default=Any)
+T = TypeVar("T")
 
 
 class WorkerConfig(BaseModel):
@@ -518,20 +519,42 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
 
         return pool
 
-    @asynccontextmanager
+    @overload
     async def open_agent(
         self,
         agent_name: str,
         *,
+        return_type: None = None,
         model: str | None = None,
         session_id: str | UUID | None = None,
-    ) -> AsyncIterator[LLMlingAgent[TDeps, TResult]]:
+    ) -> AsyncIterator[LLMlingAgent[TDeps, TResult]]: ...
+
+    @overload
+    async def open_agent[T](
+        self,
+        agent_name: str,
+        *,
+        return_type: type[T],
+        model: str | None = None,
+        session_id: str | UUID | None = None,
+    ) -> AsyncIterator[LLMlingAgent[TDeps, T]]: ...
+
+    @asynccontextmanager
+    async def open_agent[T](
+        self,
+        agent_name: str,
+        *,
+        return_type: type[T] | None = None,
+        model: str | None = None,
+        session_id: str | UUID | None = None,
+    ) -> AsyncIterator[LLMlingAgent[TDeps, TResult | T]]:
         """Open and configure a specific agent from configuration.
 
         Creates the agent in the context of a single-agent pool.
 
         Args:
             agent_name: Name of the agent to load
+            return_type: Optional type override for agent's return type
             model: Optional model override
             session_id: Optional ID to recover a previous state
 
@@ -540,13 +563,23 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
             async with manifest.open_agent("my-agent") as agent:
                 result = await agent.run("Hello!")
         """
-        pool = await self.create_pool(agents_to_load=[agent_name], connect_agents=False)
+        from llmling_agent import LLMlingAgent
+        from llmling_agent.delegation import AgentPool
 
+        # Create empty pool just for context
+        pool = AgentPool(manifest=self, agents_to_load=[], connect_agents=False)
         try:
-            agent = pool.get_agent(
-                agent_name, model_override=model, session_id=session_id
-            )
-            yield agent
+            async with LLMlingAgent[TDeps, TResult | T].open_agent(
+                self,
+                agent_name,
+                model=model,
+                session_id=session_id,
+                result_type=return_type,
+            ) as agent:
+                if agent._context:
+                    agent._context.pool = pool
+                pool.agents[agent_name] = agent
+                yield agent
         finally:
             await pool.cleanup()
 
