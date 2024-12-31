@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from llmling import Config, RuntimeConfig
-from llmling.tools import ToolError
+from llmling import Config, RuntimeConfig, ToolError
 from pydantic_ai.models.test import TestModel
 import pytest
 

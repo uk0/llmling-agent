@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from llmling import Config, RuntimeConfig
-from llmling.prompts.models import PromptMessage, PromptParameter, StaticPrompt
+from llmling import Config, PromptMessage, PromptParameter, RuntimeConfig, StaticPrompt
 import pytest
 from slashed import CommandStore, DefaultOutputWriter
 

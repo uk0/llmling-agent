@@ -24,7 +24,7 @@ Create and use an agent:
 
 ```python
 from llmling import RuntimeConfig
-from llmling.agents import LLMlingAgent
+from llmling_agent import LLMlingAgent
 from pydantic import BaseModel
 
 

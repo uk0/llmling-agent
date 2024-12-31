@@ -5,8 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from llmling.config.runtime import RuntimeConfig  # noqa: TC002
-from llmling.tools import LLMCallableTool
+from llmling import LLMCallableTool, RuntimeConfig
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,

@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from llmling import Config
-from llmling.config.models import GlobalSettings, LLMCapabilitiesConfig
-from llmling.config.runtime import RuntimeConfig
+from llmling import Config, GlobalSettings, LLMCapabilitiesConfig, RuntimeConfig
 from pydantic_ai.models.test import TestModel
 import pytest
 import yamling
