@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Sequence  # noqa: TC003
 from contextlib import asynccontextmanager
+import inspect
 import time
 from typing import TYPE_CHECKING, Any, cast
 from uuid import UUID, uuid4
@@ -23,12 +24,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage
-from llmling_agent.pydantic_ai_utils import (
-    extract_usage,
-    format_response,
-    get_tool_calls,
-    register_tool,
-)
+from llmling_agent.pydantic_ai_utils import extract_usage, format_response, get_tool_calls
 from llmling_agent.responses import InlineResponseDefinition, resolve_response_type
 from llmling_agent.tools.manager import ToolManager
 
@@ -448,10 +444,25 @@ class LLMlingAgent[TDeps, TResult]:
                 return self._pydantic_agent.model.name()
 
     def _update_tools(self):
-        """Update pydantic-ai tools."""
-        self._pydantic_agent._function_tools.clear()
+        """Update pydantic-ai-agent tools. Used internally before any run calls.
+
+        This basically represents a sync of ToolManager -> PydanticAIAgent tools
+        """
+        agent = self._pydantic_agent
+        agent._function_tools.clear()
+
+        def needs_context(func: Callable[..., Any]) -> bool:
+            sig = inspect.signature(func)
+            return any(
+                "RunContext" in str(param.annotation) for param in sig.parameters.values()
+            )
+
         for tool in self.tools.get_tools(state="enabled"):
-            register_tool(self._pydantic_agent, tool)
+            assert tool._original_callable
+            if needs_context(tool._original_callable):
+                agent.tool(tool._original_callable)
+            else:
+                agent.tool_plain(tool._original_callable)
 
     async def run(
         self,
