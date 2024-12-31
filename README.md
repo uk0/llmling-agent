@@ -348,6 +348,7 @@ classDiagram
         +config: Config
         +tools: dict[str, LLMCallableTool]
         +resources: dict[str, Resource]
+        +prompts: dict[str, BasePrompt]
         +register_tool()
         +load_resource()
     }
