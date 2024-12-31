@@ -332,8 +332,9 @@ classDiagram
     Config --> RuntimeConfig : initialized as
     LLMlingAgent --> RuntimeConfig : uses
 
-    %% LLMling Core components
     class Config ["[LLMling Core] Config"] {
+        Base configuration format defining tools, resources, and settings
+        +
         +tools: dict
         +resources: dict
         +prompts: dict
@@ -342,6 +343,8 @@ classDiagram
     }
 
     class RuntimeConfig ["[LLMling Core] RuntimeConfig"] {
+        Runtime state of a config with instantiated components
+        +
         +config: Config
         +tools: dict[str, LLMCallableTool]
         +resources: dict[str, Resource]
@@ -350,6 +353,8 @@ classDiagram
     }
 
     class AgentsManifest {
+        Complete agent configuration manifest defining all available agents
+        +
         +responses: dict[str, ResponseDefinition]
         +agents: dict[str, AgentConfig]
         +create_pool()
@@ -357,6 +362,8 @@ classDiagram
     }
 
     class AgentConfig {
+        Configuration for a single agent including model, environment and capabilities
+        +
         +name: str
         +model: str | Model
         +environment: AgentEnvironment
@@ -366,7 +373,9 @@ classDiagram
     }
 
     class BaseEnvironment {
+        Abstract base for environment configurations
         <<abstract>>
+        +
         +type: str
         +config_file_path: str|None
         +get_display_name()
@@ -374,21 +383,29 @@ classDiagram
     }
 
     class FileEnvironment {
+        Environment loaded from external YAML file
+        +
         +type: "file"
         +uri: str
     }
 
     class InlineEnvironment {
+        Direct environment configuration without external files
+        +
         +type: "inline"
         +config: Config
     }
 
     class AgentPool {
+        Manager for multiple initialized agents
+        +
         +manifest: AgentsManifest
         +agents: dict[str, LLMlingAgent]
     }
 
     class LLMlingAgent {
+        Main agent class handling LLM interactions and tool usage
+        +
         +runtime: RuntimeConfig
         +context: AgentContext
         +tools: ToolManager
