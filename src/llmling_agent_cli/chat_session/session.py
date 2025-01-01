@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, Any
 
 import httpx
+import logfire
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from rich.console import Console
@@ -25,9 +25,6 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.tools.base import ToolInfo
-
-
-logger = logging.getLogger(__name__)
 
 
 class InteractiveSession:
@@ -91,13 +88,9 @@ class InteractiveSession:
         agent.message_sent.connect(self._on_message)
         agent.tool_used.connect(self._on_tool_call)
 
+    @logfire.instrument("Received message in UI from agent {message.name}")
     def _on_message(self, message: ChatMessage):
         """Handle messages from any agent."""
-        logger.debug(
-            "Received message in UI from agent %s: %s",
-            message.name or "unknown",
-            message.content[:50] + "...",
-        )
         # Format with agent name if it's not the main agent
         assert self._chat_session
         if message.name and message.name != self._chat_session._agent.name:
@@ -113,9 +106,9 @@ class InteractiveSession:
         """Handle tool removal."""
         self.console.print(f"\nTool removed: {tool_name}")
 
+    @logfire.instrument("Received tool call in UI from agent {tool_call.agent_name}")
     def _on_tool_call(self, tool_call: ToolCallInfo):
         """Handle tool usage signal."""
-        logger.debug("Tool call received: %s", tool_call.tool_name)
         self.formatter.print_tool_call(tool_call)
 
     def _on_tool_changed(self, name: str, tool: ToolInfo):
