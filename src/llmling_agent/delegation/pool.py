@@ -379,13 +379,9 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
         if model_override:
             agent.set_model(model_override)  # type: ignore
 
-        if environment_override:
+        if env := environment_override:
             # Create new runtime with override
-            cfg = (
-                environment_override
-                if isinstance(environment_override, Config)
-                else Config.from_file(environment_override)
-            )
+            cfg = env if isinstance(env, Config) else Config.from_file(env)
             agent._runtime = RuntimeConfig.from_config(cfg)
 
         return agent
