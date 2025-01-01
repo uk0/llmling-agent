@@ -57,6 +57,7 @@ dependencies = [
     "slashed>=0.1.0",
     "watchfiles>=1.0.3",
     "tiktoken>=0.8.0",
+    "fieldz>=0.1.0",
 ]
 
 [project.scripts]
