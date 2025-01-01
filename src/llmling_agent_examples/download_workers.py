@@ -21,11 +21,10 @@ agents:
       - "You have ONE job: use the download_file tool to download files."
     environment:
       type: inline
-      config:
-        tools:
-          download_file:
-            import_path: llmling_agent_tools.download_file
-            description: "Download file from URL to local path"
+      tools:
+        download_file:
+          import_path: llmling_agent_tools.download_file
+          description: "Download file from URL to local path"
 
   overseer:
     name: "Download Coordinator"

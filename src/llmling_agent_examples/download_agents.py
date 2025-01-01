@@ -48,11 +48,10 @@ agents:
         3. Never stop believing in your team! 🎉
     environment:
       type: inline
-      config:
-        tools:
-          show_love:
-            import_path: llmling_agent_examples.download_agents.cheer
-            description: "Share your enthusiasm and support for the agents!"
+      tools:
+        show_love:
+          import_path: llmling_agent_examples.download_agents.cheer
+          description: "Share your enthusiasm and support for the agents!"
   file_getter_1:
     name: "Mr. File Downloader"
     description: "Downloads files from URLs"
@@ -61,10 +60,9 @@ agents:
       - "You have ONE job: use the download_file tool to download files."
     environment:
       type: inline
-      config:
-        tools:
-          download_file:
-            import_path: llmling_agent_tools.download_file
+      tools:
+        download_file:
+          import_path: llmling_agent_tools.download_file
 
 # file_getter_2 will get created programatically, see below
 

@@ -2,9 +2,8 @@
 
 from llmling_agent.environment.models import (
     AgentEnvironment,
-    BaseEnvironment,
     FileEnvironment,
     InlineEnvironment,
 )
 
-__all__ = ["AgentEnvironment", "BaseEnvironment", "FileEnvironment", "InlineEnvironment"]
+__all__ = ["AgentEnvironment", "FileEnvironment", "InlineEnvironment"]

@@ -192,13 +192,14 @@ async def run_agent_pipeline(  # noqa: PLR0911
                     # Path to environment file
                     update: dict[str, Any] = {"environment": environment}
                     agent_config = agent_config.model_copy(update=update)
-                case Config():
-                    # Direct runtime config
-                    update = {"environment": InlineEnvironment(config=environment)}
-                    agent_config = agent_config.model_copy(update=update)
                 case FileEnvironment() | InlineEnvironment():
                     # Complete environment definition
                     update = {"environment": environment}
+                    agent_config = agent_config.model_copy(update=update)
+                # Config inherits from FileEnvironment, so order matters
+                case Config():
+                    # Direct runtime config
+                    update = {"environment": InlineEnvironment.from_config(environment)}
                     agent_config = agent_config.model_copy(update=update)
                 case _:
                     msg = f"Invalid environment type: {type(environment)}"
@@ -426,7 +427,7 @@ async def run_with_model(
             sys_prompts = []
 
     agent_environment = (
-        InlineEnvironment(config=environment)
+        InlineEnvironment.from_config(environment)
         if isinstance(environment, Config)
         else environment
     )

@@ -221,8 +221,9 @@ class AgentConfig(BaseModel):
             case {"type": "file", "uri": uri}:
                 # Handle raw dict matching file environment structure
                 return Config.from_file(uri)
-            case {"type": "inline", "config": config} | InlineEnvironment(config=config):
-                # Handle inline environment
+            case {"type": "inline", "config": config}:
+                return config
+            case InlineEnvironment() as config:
                 return config
             case _:
                 msg = f"Invalid environment configuration: {self.environment}"

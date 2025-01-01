@@ -143,14 +143,13 @@ agents:
     model: openai:gpt-4o-mini
     environment:  # Inline environment configuration
       type: inline
-      config:
-        tools:
-          get_system_info:
-            import_path: platform.platform
-            description: "Get system platform information"
-          get_memory:
-            import_path: psutil.virtual_memory
-            description: "Get memory usage information"
+      tools:
+        get_system_info:
+          import_path: platform.platform
+          description: "Get system platform information"
+        get_memory:
+          import_path: psutil.virtual_memory
+          description: "Get memory usage information"
     system_prompts:
       - "You help users check their system status."
 ```
@@ -198,11 +197,10 @@ agents:
     model: openai:gpt-4o-mini  # Language model to use, takes pydantic-ai model names
     environment: # Environment configuration (can also be external YAML file)
       type: inline
-      config:
-        tools:
-          download_file:  # Simple httpx-based download utility
-            import_path: llmling_agent_tools.download_file
-            description: "Download file from URL to local path"
+      tools:
+        download_file:  # Simple httpx-based download utility
+        import_path: llmling_agent_tools.download_file
+        description: "Download file from URL to local path"
     system_prompts:
       - |
         You are a download specialist. Just use the download_file tool
@@ -385,7 +383,9 @@ classDiagram
         Direct environment configuration without external files
         +
         +type: "inline"
-        +config: Config
+        +tools: ...
+        +resources: ...
+        +prompts: ...
     }
 
     class AgentPool {

@@ -60,17 +60,16 @@ agents:
     model: openai:gpt-4
     environment:  # LLMling Config structure
       type: inline
-      config:
-        tools:
-          open_browser:
-            import_path: webbrowser.open
-            description: "Open URL in default browser"
-        resources:
-          bookmarks:
-            type: text
-            content: |
-              Python: https://python.org
-              Docs: https://docs.python.org
+      tools:
+        open_browser:
+          import_path: webbrowser.open
+          description: "Open URL in default browser"
+      resources:
+        bookmarks:
+          type: text
+          content: |
+            Python: https://python.org
+            Docs: https://docs.python.org
     system_prompts:
       - "You are a helpful web assistant."
 ```

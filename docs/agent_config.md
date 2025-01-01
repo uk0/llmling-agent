@@ -15,15 +15,14 @@ agents:
     # Environment configuration (file reference or inline)
     environment:
       type: inline               # Can be 'inline' or 'file'
-      config:                    # LLMling environment structure
-        tools:
-          open_browser:
-            import_path: webbrowser.open
-            description: "Opens URLs in browser"
-        resources:
-          bookmarks:
-            type: text
-            content: "Python: https://python.org"
+      tools:
+        open_browser:
+          import_path: webbrowser.open
+          description: "Opens URLs in browser"
+      resources:
+        bookmarks:
+          type: text
+          content: "Python: https://python.org"
 
     # Alternative environment reference
     # environment: env_file.yml
@@ -156,22 +155,21 @@ agents:
   web_assistant:
     environment:
       type: inline
-      config:
-        tools:
-          open_browser:
-            import_path: webbrowser.open
-            description: "Open URL in browser"
-          get_user:
-            import_path: getpass.getuser
-            description: "Get current system username"
+      tools:
+        open_browser:
+          import_path: webbrowser.open
+          description: "Open URL in browser"
+        get_user:
+          import_path: getpass.getuser
+          description: "Get current system username"
 
-        resources:
-          bookmarks:
-            type: text
-            content: |
-              Python Website: https://python.org
-              Documentation: https://docs.python.org
-            description: "Common Python URLs"
+      resources:
+        bookmarks:
+          type: text
+          content: |
+            Python Website: https://python.org
+            Documentation: https://docs.python.org
+          description: "Common Python URLs"
 ```
 
 ### Model Settings

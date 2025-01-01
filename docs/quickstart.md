@@ -112,15 +112,14 @@ agents:
     model: openai:gpt-4o-mini
     environment:  # Inline environment configuration
       type: inline
-      config:
-        tools:
-          open_webpage:
-            import_path: webbrowser.open
-            description: "Open URL in browser"
-        resources:
-          help_text:
-            type: text
-            content: "Basic help text for the agent"
+      tools:
+        open_webpage:
+          import_path: webbrowser.open
+          description: "Open URL in browser"
+      resources:
+        help_text:
+          type: text
+          content: "Basic help text for the agent"
     system_prompts:
       - "You are a helpful assistant."
 ```

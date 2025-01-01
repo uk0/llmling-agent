@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from llmling import Config
 from slashed import Command, CommandContext, CommandError
 from slashed.completers import CallbackCompleter
 import yamling
@@ -101,7 +100,7 @@ async def create_agent_command(
             model=model,
             system_prompts=[system_prompt],
             description=kwargs.get("description"),
-            environment=InlineEnvironment(config=Config()),
+            environment=InlineEnvironment(),
             # config_file_path=current_agent._context.config.config_file_path,
         )
 

@@ -60,13 +60,13 @@ def test_file_environment_validation():
 
 def test_inline_environment_basic(sample_config: Config):
     """Test basic inline environment creation."""
-    env = InlineEnvironment(uri="default-tools", config=sample_config)
+    env = InlineEnvironment.from_config(sample_config, uri="default-tools")
     assert env.type == "inline"
     assert env.uri == "default-tools"
     assert env.get_display_name() == "Inline: default-tools"
 
     # Test without URI
-    env = InlineEnvironment(config=sample_config)
+    env = InlineEnvironment.from_config(sample_config)
     assert env.get_display_name() == "Inline configuration"
 
 
@@ -105,11 +105,11 @@ def test_environment_display_names():
     file_env = FileEnvironment(uri="config.yml")
     assert file_env.get_display_name() == "File: config.yml"
     cfg = Config()
-    inline_env = InlineEnvironment(config=cfg, uri="custom-env")
+    inline_env = InlineEnvironment.from_config(cfg, uri="custom-env")
     assert inline_env.get_display_name() == "Inline: custom-env"
 
     # Without URI
-    inline_env = InlineEnvironment(config=Config())
+    inline_env = InlineEnvironment()
     assert inline_env.get_display_name() == "Inline configuration"
 
 
@@ -122,7 +122,6 @@ def test_environment_serialization(sample_config: Config):
     assert data["uri"] == "config.yml"
 
     # Inline environment
-    inline_env = InlineEnvironment(config=sample_config)
+    inline_env = InlineEnvironment.from_config(sample_config)
     data = inline_env.model_dump()
     assert data["type"] == "inline"
-    assert "config" in data

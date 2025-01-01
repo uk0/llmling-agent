@@ -104,7 +104,7 @@ async def edit_env(
             except Exception as e:
                 msg = f"Failed to open environment file: {e}"
                 raise CommandError(msg) from e
-        case InlineEnvironment(config=cfg):
+        case InlineEnvironment() as cfg:
             # For inline environments, display the configuration
             await ctx.output.print("Inline environment configuration:")
             yaml_config = cfg.model_dump_yaml()
