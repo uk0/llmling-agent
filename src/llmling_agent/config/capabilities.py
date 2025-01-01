@@ -84,6 +84,25 @@ class Capabilities(EventedModel):
     - all: Can view all agents' statistics
     """
 
+    def has_capability(self, capability: str) -> bool:
+        """Check if a specific capability is enabled.
+
+        Args:
+            capability: Name of capability to check.
+                      Can be a boolean capability (e.g., "can_delegate_tasks")
+                      or an access level (e.g., "history_access")
+
+        Returns:
+            True if capability is enabled
+        """
+        match capability:
+            case str() if hasattr(self, capability):
+                value = getattr(self, capability)
+                return bool(value) if isinstance(value, bool) else value != "none"
+            case _:
+                msg = f"Unknown capability: {capability}"
+                raise ValueError(msg)
+
     def register_delegation_tools(self, agent: LLMlingAgent[Any, Any]):
         """Register delegation tools if enabled."""
         if self.can_delegate_tasks:
