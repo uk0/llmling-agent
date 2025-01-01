@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import deque
 from contextlib import asynccontextmanager
 import tempfile
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
 
 from llmling import BasePrompt, PromptMessage, StaticPrompt
@@ -106,6 +106,28 @@ class ConversationManager:
 
     def __repr__(self) -> str:
         return f"ConversationManager(id={self.id!r})"
+
+    @overload
+    def __getitem__(self, key: int) -> ChatMessage[Any]: ...
+
+    @overload
+    def __getitem__(self, key: slice) -> list[ChatMessage[Any]]: ...
+
+    def __getitem__(self, key: int | slice) -> ChatMessage[Any] | list[ChatMessage[Any]]:
+        """Access conversation history directly.
+
+        Args:
+            key: Integer index or slice
+
+        Returns:
+            Single message for integer index, list of messages for slice
+
+        Raises:
+            IndexError: If index out of range
+        """
+        if isinstance(key, int):
+            return convert_model_message(self._current_history[key])
+        return [convert_model_message(msg) for msg in self._current_history[key]]
 
     async def load_context_source(self, source: ContextSource | str):
         """Load context from a single source."""
