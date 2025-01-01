@@ -6,7 +6,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Literal, Self
 
-from llmling import Config, RuntimeConfig
+from llmling import BaseRegistry, Config, RuntimeConfig
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
     from uuid import UUID
+
+    from psygnal.containers import EventedDict
 
     from llmling_agent.common_types import StrPath
     from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
@@ -51,7 +53,7 @@ class AgentResponse[TResult](BaseModel):
         return self.error is None
 
 
-class AgentPool:
+class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
     """Pool of initialized agents.
 
     Each agent maintains its own runtime environment based on its configuration.
@@ -74,11 +76,12 @@ class AgentPool:
             connect_agents: Whether to set up forwarding connections
             confirmation_handler: Handler callback for tool / step confirmations.
         """
+        super().__init__()
         from llmling_agent.models.context import AgentContext
 
         self.manifest = manifest
-        self.agents: dict[str, LLMlingAgent[Any, Any]] = {}
         self._confirmation_handler = confirmation_handler
+
         # Validate requested agents exist
         to_load = set(agents_to_load) if agents_to_load else set(manifest.agents)
         if invalid := (to_load - set(manifest.agents)):
@@ -111,15 +114,15 @@ class AgentPool:
                 system_prompt=config.system_prompts,
                 name=name,
             )
-            self.agents[name] = agent
+            self.register(name, agent)
 
         # Then set up worker relationships
         for name, config in manifest.agents.items():
-            if name in self.agents and config.workers:
-                self.setup_agent_workers(self.agents[name], config.workers)
+            if name in self and config.workers:
+                self.setup_agent_workers(self[name], config.workers)
 
         # Set up forwarding connections
-        if connect_agents:  # renamed usage
+        if connect_agents:
             self._connect_signals()
 
     # async def initialize(self):
@@ -132,6 +135,42 @@ class AgentPool:
     #     # Set up forwarding connections
     #     if self._connect_signals:
     #         self._setup_connections()
+
+    @property
+    def agents(self) -> EventedDict[str, LLMlingAgent[Any, Any]]:
+        """Get agents dict (backward compatibility)."""
+        return self._items
+
+    @property
+    def _error_class(self) -> type[Exception]:
+        """Error class for agent operations."""
+        return Exception
+
+    def _validate_item(
+        self, item: LLMlingAgent[Any, Any] | Any
+    ) -> LLMlingAgent[Any, Any]:
+        """Validate and convert items before registration.
+
+        Args:
+            item: Item to validate
+
+        Returns:
+            Validated LLMlingAgent
+
+        Raises:
+            LLMlingError: If item is not a valid agent
+        """
+        if not isinstance(item, LLMlingAgent):
+            msg = f"Item must be LLMlingAgent, got {type(item)}"
+            raise self._error_class(msg)
+        return item
+
+    async def cleanup(self):
+        """Clean up all agents."""
+        for agent in self.values():
+            if agent._runtime:
+                await agent._runtime.shutdown()
+        self.clear()
 
     def _setup_connections(self):
         """Set up forwarding connections between agents."""
@@ -436,15 +475,6 @@ class AgentPool:
     def list_agents(self) -> list[str]:
         """List available agent names."""
         return list(self.manifest.agents)
-
-    async def cleanup(self):
-        """Clean up pool resources."""
-        # Clean up each agent's runtime
-        for agent in self.agents.values():
-            if agent._runtime:
-                await agent._runtime.shutdown()
-        # Clear the agents dictionary
-        self.agents.clear()
 
 
 async def main():

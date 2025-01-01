@@ -80,10 +80,11 @@ async def test_agent_forwarding():
         main_agent = LLMlingAgent[Any, Any](runtime, model=model, name="main-agent")
         model = TestModel(custom_result_text="Helper response")
         helper_agent = LLMlingAgent[Any, Any](runtime, model=model, name="helper-agent")
-        # Set up pool and forwarding
+
+        # Set up pool and register agents
         pool = AgentPool(AgentsManifest(agents={}))
-        pool.agents["main"] = main_agent
-        pool.agents["helper"] = helper_agent
+        pool.register("main", main_agent)  # Use register instead of direct assignment
+        pool.register("helper", helper_agent)
 
         # Create session and connect agents
         session = AgentPoolView(main_agent, pool=pool)
