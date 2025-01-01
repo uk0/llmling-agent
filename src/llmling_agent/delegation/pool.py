@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import StrPath
     from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
+    from llmling_agent.models.context import ConfirmationHandler
 
 
 logger = get_logger(__name__)
@@ -62,6 +63,7 @@ class AgentPool:
         *,
         agents_to_load: list[str] | None = None,
         connect_agents: bool = True,
+        confirmation_handler: ConfirmationHandler | None = None,
     ):
         """Initialize agent pool with immediate agent creation.
 
@@ -70,12 +72,13 @@ class AgentPool:
             agents_to_load: Optional list of agent names to initialize
                           If None, all agents from manifest are loaded
             connect_agents: Whether to set up forwarding connections
+            confirmation_handler: Handler callback for tool / step confirmations.
         """
         from llmling_agent.models.context import AgentContext
 
         self.manifest = manifest
         self.agents: dict[str, LLMlingAgent[Any, Any]] = {}
-
+        self._confirmation_handler = confirmation_handler
         # Validate requested agents exist
         to_load = set(agents_to_load) if agents_to_load else set(manifest.agents)
         if invalid := (to_load - set(manifest.agents)):
