@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
-import inspect
 import time
 from typing import TYPE_CHECKING, Any, cast
 from uuid import UUID, uuid4
@@ -24,10 +23,11 @@ from llmling_agent.models.messages import ChatMessage
 from llmling_agent.pydantic_ai_utils import extract_usage, format_response, get_tool_calls
 from llmling_agent.responses import InlineResponseDefinition, resolve_response_type
 from llmling_agent.tools.manager import ToolManager
+from llmling_agent.utils.inspection import call_with_context, has_argument_type
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Callable, Sequence
+    from collections.abc import AsyncIterator, Sequence
 
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.messages import ModelMessage
@@ -43,13 +43,6 @@ TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=Any)
 
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
-
-
-def has_argument_type(func: Callable[..., Any], arg_type: str | type) -> bool:
-    """Checks whether any argument of func is of type arg_type."""
-    sig = inspect.signature(func)
-    arg_str = arg_type if isinstance(arg_type, str) else arg_type.__name__
-    return any(arg_str in str(param.annotation) for param in sig.parameters.values())
 
 
 class LLMlingAgent[TDeps, TResult]:
@@ -787,24 +780,12 @@ class LLMlingAgent[TDeps, TResult]:
             count = 0
             while max_count is None or count < max_count:
                 try:
-                    match prompt:
-                        case str():
-                            current_prompt = prompt
-                        case _ if inspect.ismethod(prompt) and has_argument_type(
-                            prompt, AgentContext
-                        ):
-                            current_prompt = prompt(self._context)
-                        case _ if inspect.ismethod(prompt):
-                            current_prompt = prompt()
-                        case _ if callable(prompt) and has_argument_type(
-                            prompt, AgentContext
-                        ):
-                            current_prompt = prompt(self._context, **kwargs)
-                        case _ if callable(prompt):
-                            current_prompt = prompt(self._context.data)
-                        case _:
-                            msg = f"Invalid prompt type: {type(prompt)}"
-                            raise TypeError(msg)  # noqa: TRY301
+                    current_prompt = (
+                        prompt
+                        if isinstance(prompt, str)
+                        else call_with_context(prompt, self._context, **kwargs)
+                    )
+                    await self.run(current_prompt, **kwargs)
                     await self.run(current_prompt, **kwargs)
                     count += 1
                     await asyncio.sleep(interval)
