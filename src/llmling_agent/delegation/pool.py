@@ -6,7 +6,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Literal, Self
 
-from llmling import BaseRegistry, Config, RuntimeConfig
+from llmling import BaseRegistry, Config, LLMLingError, RuntimeConfig
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
@@ -142,9 +142,9 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
         return self._items
 
     @property
-    def _error_class(self) -> type[Exception]:
+    def _error_class(self) -> type[LLMLingError]:
         """Error class for agent operations."""
-        return Exception
+        return LLMLingError
 
     def _validate_item(
         self, item: LLMlingAgent[Any, Any] | Any
