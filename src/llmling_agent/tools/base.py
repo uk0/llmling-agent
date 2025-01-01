@@ -12,7 +12,7 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from llmling import LLMCallableTool
-    from py2openai.typedefs import ToolParameters
+    from py2openai.typedefs import Property, ToolParameters
     from pydantic_ai import RunContext
 
     from llmling_agent.models import AgentContext
@@ -114,19 +114,18 @@ class ToolInfo:
     def parameters(self) -> list[ToolParameter]:
         """Get information about tool parameters."""
         schema = self.schema["function"]
-        properties: dict[str, Any] = schema.get("properties", {})  # type: ignore
+        properties: dict[str, Property] = schema.get("properties", {})  # type: ignore
         required: list[str] = schema.get("required", [])  # type: ignore
 
-        params = []
-        for name, details in properties.items():
-            param = ToolParameter(
+        return [
+            ToolParameter(
                 name=name,
                 required=name in required,
                 type_info=details.get("type"),
                 description=details.get("description"),
             )
-            params.append(param)
-        return params
+            for name, details in properties.items()
+        ]
 
     def format_info(self, indent: str = "  ") -> str:
         """Format complete tool information."""
