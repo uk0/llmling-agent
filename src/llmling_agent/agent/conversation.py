@@ -206,9 +206,7 @@ class ConversationManager:
         """Start temporary conversation with different system prompts."""
         # Store original state
         original_prompts = list(self._initial_prompts)
-        original_system_prompts = (
-            self._agent._pydantic_agent._system_prompts
-        )  # Store pydantic-ai prompts
+        original_system_prompts = self._agent._pydantic_agent._system_prompts
         original_history = self._current_history
 
         try:
