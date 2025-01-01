@@ -19,4 +19,6 @@ type StrPath = str | os.PathLike[str]
 type PromptFunction = Callable[..., str]
 
 MessageRole = Literal["user", "assistant", "system"]
+PartType = Literal["text", "image", "audio", "video"]
+
 EnvironmentType = Literal["file", "inline"]
