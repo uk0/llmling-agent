@@ -63,9 +63,7 @@ def get_model_names(ctx: CompletionContext[AgentPoolView]) -> list[str]:
 
     # Combine both sources, keeping order (known models first)
     all_models = known_models[:]
-    for model in config_models:
-        if model not in all_models:
-            all_models.append(model)
+    all_models.extend(model for model in config_models if model not in all_models)
 
     return all_models
 

@@ -73,9 +73,8 @@ class EventManager:
             ValueError: If source already exists or is invalid
         """
         if not self.enabled:
-            logger.warning(
-                "Event processing disabled, not adding source: %s", config.name
-            )
+            msg = "Event processing disabled, not adding source: %s"
+            logger.warning(msg, config.name)
             return
 
         if config.name in self._sources:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import logfire
 from slashed.log import get_logger
 from textual.containers import ScrollableContainer
 from textual.widgets import Static
@@ -55,23 +56,21 @@ class MessageWidget(Static):
 
     def __init__(self, message: ChatMessage):
         super().__init__()
-        logger.debug("Creating MessageWidget for %s: %r", message.role, message.content)
         self.message = message
         self.add_class(message.role)
         self.border_title = self.message.name or self.message.role.title()
 
     def compose(self) -> ComposeResult:
         """Create message layout."""
-        logger.debug("Composing MessageWidget")
         if self.message.model:
             yield Static(f"using {self.message.model}", classes="model")
         # Initialize with empty content for assistant, actual content for others
         initial_content = "" if self.message.role == "assistant" else self.message.content
         yield Static(initial_content, id="message_content", classes="content")
 
+    @logfire.instrument("Updating content to {new_content}")
     def update_content(self, new_content: str):
         """Update message content."""
-        logger.debug("Updating content to: %r", new_content)
         if content_widget := self.query_one("#message_content", Static):
             content_widget.update(new_content)
             logger.debug("Content widget updated successfully")
@@ -95,9 +94,9 @@ class ChatView(ScrollableContainer):
         super().__init__()
         self._current_message: MessageWidget | None = None
 
+    @logfire.instrument("Adding message {message.content}")
     async def add_message(self, message: ChatMessage) -> MessageWidget:
         """Add a new message to the chat."""
-        logger.debug("Adding message: %r", message.content)
         widget = MessageWidget(message)
         await self.mount(widget)
         widget.scroll_visible()

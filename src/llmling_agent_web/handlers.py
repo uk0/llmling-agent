@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logfire
+
 from llmling_agent.log import get_logger
 from llmling_agent_web.state import AgentState
 
@@ -63,6 +65,7 @@ class AgentHandler:
             raise RuntimeError(msg)
         return self._state
 
+    @logfire.instrument("Loading file from path {file_path}")
     async def load_agent_file(
         self,
         file_path: str,
@@ -76,8 +79,6 @@ class AgentHandler:
             Tuple of (agent choices, status message)
         """
         try:
-            logger.debug("Loading file from path: %s", file_path)
-
             # Clean up old state if it exists
             if self._state:
                 await self._state.cleanup()

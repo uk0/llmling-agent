@@ -75,9 +75,8 @@ async def extract_usage(
         usage.request_tokens,
         usage.response_tokens,
     )
-    return TokenAndCostResult(
-        token_usage=token_usage, total_cost=cost.total_cost if cost else 0.0
-    )
+    total_cost = cost.total_cost if cost else 0.0
+    return TokenAndCostResult(token_usage=token_usage, total_cost=total_cost)
 
 
 def format_response(  # noqa: PLR0911

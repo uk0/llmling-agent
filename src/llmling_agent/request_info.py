@@ -38,10 +38,7 @@ def format_result_schema(schema: ResultSchema[Any] | None) -> str:
         type_info = params.get("type", "object")
         if "properties" in params:
             properties = params["properties"]
-            fields = [
-                f"    {field}: {info.get('type', 'any')}"
-                for field, info in properties.items()
-            ]
+            fields = [f"    {f}: {i.get('type', 'any')}" for f, i in properties.items()]
             type_info = "{\n" + "\n".join(fields) + "\n  }"
         parts.append(f"  {name}: {type_info}")
 

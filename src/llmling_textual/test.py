@@ -4,6 +4,7 @@ import asyncio
 import logging
 from typing import Any
 
+import logfire
 from slashed.textual_adapter import CommandInput
 from textual import on
 from textual.app import App, ComposeResult
@@ -72,31 +73,26 @@ class ChatApp(App):
         task.add_done_callback(_done_callback)
         self._pending_tasks.add(task)
 
+    @logfire.instrument("Got input: {event.text}")
     @on(CommandInput.InputSubmitted)
     async def handle_submit(self, event: CommandInput.InputSubmitted):
         """Handle regular input submission."""
-        logger.info("Got input: %s", event.text)
         self._create_task(self.handle_chat_message(event.text))
 
+    @logfire.instrument("Processing message: {text}")
     async def handle_chat_message(self, text: str):
         """Process normal chat messages."""
         if not self._agent:
             logger.error("No agent available!")
             return
-
-        logger.debug("Processing message: %s", text)
         chat = self.query_one(ChatView)
 
         # Add user message
         await chat.add_message(ChatMessage[str](role="user", content=text, name="User"))
 
         # Create empty assistant message, will get populated for streaming.
-        msg = ChatMessage[str](
-            role="assistant",
-            content="",
-            name="Assistant",
-            model=self._agent.model_name,
-        )
+        name = self._agent.model_name
+        msg = ChatMessage[str](role="assistant", content="", name="Assistant", model=name)
         widget = await chat.add_message(msg)
 
         try:
