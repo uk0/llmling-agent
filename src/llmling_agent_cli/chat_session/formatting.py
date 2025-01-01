@@ -87,15 +87,14 @@ class MessageFormatter:
         self.console.print(f"\n[red bold]Error:[/] {error_msg}")
         if show_traceback:
             self.console.print("\n[dim]Debug traceback:[/]")
-            self.console.print(
-                Traceback.from_exception(
-                    type(error),
-                    error,
-                    error.__traceback__,
-                    show_locals=True,
-                    width=self.LINE_WIDTH,
-                )
+            trace = Traceback.from_exception(
+                type(error),
+                error,
+                error.__traceback__,
+                show_locals=True,
+                width=self.LINE_WIDTH,
             )
+            self.console.print(trace)
 
     def print_tool_call(self, tool_call: ToolCallInfo):
         """Print tool call information."""

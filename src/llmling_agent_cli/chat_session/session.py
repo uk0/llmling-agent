@@ -268,10 +268,5 @@ async def start_interactive_session(
     stream: bool = False,
 ):
     """Start an interactive chat session."""
-    session = InteractiveSession(
-        agent,
-        pool=pool,
-        wait_chain=wait_chain,
-        stream=stream,
-    )
+    session = InteractiveSession(agent, pool=pool, wait_chain=wait_chain, stream=stream)
     await session.start()

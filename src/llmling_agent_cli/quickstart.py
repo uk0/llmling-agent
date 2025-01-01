@@ -26,21 +26,16 @@ agents:
         model: {model}
 """
 
+LOG_HELP = "Log level (DEBUG, INFO, WARNING, ERROR)"
+STREAM_HELP = "Enable streaming mode (default: off)"
+
 
 def quickstart_command(
     model: str = t.Argument("openai:gpt-4o-mini", help=MODEL_HELP),
     log_level: str = t.Option(
-        "WARNING",
-        "--log-level",
-        "-l",
-        help="Log level (DEBUG, INFO, WARNING, ERROR)",
-        case_sensitive=False,
+        "WARNING", "--log-level", "-l", help=LOG_HELP, case_sensitive=False
     ),
-    stream: bool = t.Option(
-        True,
-        "--stream/--no-stream",
-        help="Enable streaming mode (default: off)",
-    ),
+    stream: bool = t.Option(True, "--stream/--no-stream", help=STREAM_HELP),
 ):
     """Start an ephemeral chat session with minimal setup."""
     level = getattr(logging, log_level.upper())
