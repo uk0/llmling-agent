@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.chat_session.base import AgentPoolView
 
-__version__ = "0.15.1"
+__version__ = "0.16.0"
 
 load_dotenv()
 
