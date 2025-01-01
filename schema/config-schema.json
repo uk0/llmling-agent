@@ -623,136 +623,6 @@
       "title": "Capabilities",
       "type": "object"
     },
-    "Config": {
-      "additionalProperties": true,
-      "description": "Root configuration model.",
-      "properties": {
-        "version": {
-          "default": "1.0",
-          "description": "Version string for this configuration format.",
-          "title": "Version",
-          "type": "string"
-        },
-        "global_settings": {
-          "$ref": "#/$defs/GlobalSettings"
-        },
-        "context_processors": {
-          "additionalProperties": {
-            "$ref": "#/$defs/ProcessorConfig"
-          },
-          "description": "Content processors available for resource transformation.",
-          "title": "Context Processors",
-          "type": "object"
-        },
-        "resources": {
-          "additionalProperties": {
-            "discriminator": {
-              "mapping": {
-                "callable": "#/$defs/CallableResource",
-                "cli": "#/$defs/CLIResource",
-                "path": "#/$defs/PathResource",
-                "source": "#/$defs/SourceResource",
-                "text": "#/$defs/TextResource"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/PathResource"
-              },
-              {
-                "$ref": "#/$defs/TextResource"
-              },
-              {
-                "$ref": "#/$defs/CLIResource"
-              },
-              {
-                "$ref": "#/$defs/SourceResource"
-              },
-              {
-                "$ref": "#/$defs/CallableResource"
-              }
-            ]
-          },
-          "description": "Resource definitions keyed by name.",
-          "title": "Resources",
-          "type": "object"
-        },
-        "resource_groups": {
-          "additionalProperties": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "description": "Groups of resources for logical organization.",
-          "title": "Resource Groups",
-          "type": "object"
-        },
-        "tools": {
-          "additionalProperties": {
-            "$ref": "#/$defs/ToolConfig"
-          },
-          "description": "Tool definitions keyed by name.",
-          "title": "Tools",
-          "type": "object"
-        },
-        "toolsets": {
-          "additionalProperties": {
-            "discriminator": {
-              "mapping": {
-                "custom": "#/$defs/CustomToolsetConfig",
-                "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "openapi": "#/$defs/OpenAPIToolsetConfig"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/OpenAPIToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/EntryPointToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/CustomToolsetConfig"
-              }
-            ]
-          },
-          "description": "Toolset configurations for extensible tool collections.",
-          "title": "Toolsets",
-          "type": "object"
-        },
-        "prompts": {
-          "additionalProperties": {
-            "discriminator": {
-              "mapping": {
-                "file": "#/$defs/FilePrompt",
-                "function": "#/$defs/DynamicPrompt",
-                "text": "#/$defs/StaticPrompt"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/StaticPrompt"
-              },
-              {
-                "$ref": "#/$defs/DynamicPrompt"
-              },
-              {
-                "$ref": "#/$defs/FilePrompt"
-              }
-            ]
-          },
-          "description": "Prompt definitions keyed by name.",
-          "title": "Prompts",
-          "type": "object"
-        }
-      },
-      "title": "Config",
-      "type": "object"
-    },
     "CustomToolsetConfig": {
       "additionalProperties": false,
       "description": "Configuration for custom toolsets.",
@@ -950,6 +820,12 @@
           "title": "Type",
           "type": "string"
         },
+        "uri": {
+          "description": "Path to environment file",
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        },
         "config_file_path": {
           "anyOf": [
             {
@@ -961,12 +837,6 @@
           ],
           "default": null,
           "title": "Config File Path"
-        },
-        "uri": {
-          "description": "Path to environment file",
-          "minLength": 1,
-          "title": "Uri",
-          "type": "string"
         }
       },
       "required": [
@@ -1281,25 +1151,136 @@
       "type": "object"
     },
     "InlineEnvironment": {
+      "additionalProperties": true,
       "description": "Direct environment configuration without external files.\n\nAllows embedding complete environment settings directly in the agent\nconfiguration instead of referencing external files. Useful for:\n- Self-contained configurations\n- Testing and development\n- Simple agent setups",
       "properties": {
+        "version": {
+          "default": "1.0",
+          "description": "Version string for this configuration format.",
+          "title": "Version",
+          "type": "string"
+        },
+        "global_settings": {
+          "$ref": "#/$defs/GlobalSettings"
+        },
+        "context_processors": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ProcessorConfig"
+          },
+          "description": "Content processors available for resource transformation.",
+          "title": "Context Processors",
+          "type": "object"
+        },
+        "resources": {
+          "additionalProperties": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableResource",
+                "cli": "#/$defs/CLIResource",
+                "path": "#/$defs/PathResource",
+                "source": "#/$defs/SourceResource",
+                "text": "#/$defs/TextResource"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/PathResource"
+              },
+              {
+                "$ref": "#/$defs/TextResource"
+              },
+              {
+                "$ref": "#/$defs/CLIResource"
+              },
+              {
+                "$ref": "#/$defs/SourceResource"
+              },
+              {
+                "$ref": "#/$defs/CallableResource"
+              }
+            ]
+          },
+          "description": "Resource definitions keyed by name.",
+          "title": "Resources",
+          "type": "object"
+        },
+        "resource_groups": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "description": "Groups of resources for logical organization.",
+          "title": "Resource Groups",
+          "type": "object"
+        },
+        "tools": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ToolConfig"
+          },
+          "description": "Tool definitions keyed by name.",
+          "title": "Tools",
+          "type": "object"
+        },
+        "toolsets": {
+          "additionalProperties": {
+            "discriminator": {
+              "mapping": {
+                "custom": "#/$defs/CustomToolsetConfig",
+                "entry_points": "#/$defs/EntryPointToolsetConfig",
+                "openapi": "#/$defs/OpenAPIToolsetConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/OpenAPIToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/EntryPointToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CustomToolsetConfig"
+              }
+            ]
+          },
+          "description": "Toolset configurations for extensible tool collections.",
+          "title": "Toolsets",
+          "type": "object"
+        },
+        "prompts": {
+          "additionalProperties": {
+            "discriminator": {
+              "mapping": {
+                "file": "#/$defs/FilePrompt",
+                "function": "#/$defs/DynamicPrompt",
+                "text": "#/$defs/StaticPrompt"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/StaticPrompt"
+              },
+              {
+                "$ref": "#/$defs/DynamicPrompt"
+              },
+              {
+                "$ref": "#/$defs/FilePrompt"
+              }
+            ]
+          },
+          "description": "Prompt definitions keyed by name.",
+          "title": "Prompts",
+          "type": "object"
+        },
         "type": {
           "const": "inline",
           "default": "inline",
           "title": "Type",
           "type": "string"
-        },
-        "config_file_path": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Config File Path"
         },
         "uri": {
           "anyOf": [
@@ -1311,16 +1292,23 @@
             }
           ],
           "default": null,
+          "description": "Optional identifier for this configuration",
           "title": "Uri"
         },
-        "config": {
-          "$ref": "#/$defs/Config",
-          "description": "Inline configuration"
+        "config_file_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Path to agent config file for resolving relative paths",
+          "title": "Config File Path"
         }
       },
-      "required": [
-        "config"
-      ],
       "title": "InlineEnvironment",
       "type": "object"
     },
