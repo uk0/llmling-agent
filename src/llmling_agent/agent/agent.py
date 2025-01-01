@@ -17,6 +17,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
+from llmling_agent.model_utils import can_format_fields, format_instance_for_llm
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage
@@ -456,8 +457,7 @@ class LLMlingAgent[TDeps, TResult]:
 
     async def run(
         self,
-        prompt: str,
-        *,
+        *prompt: str,
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
@@ -480,13 +480,19 @@ class LLMlingAgent[TDeps, TResult]:
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
+        final_prompt = "\n\n".join(
+            format_instance_for_llm(p)
+            if not isinstance(p, str) and can_format_fields(p)
+            else str(p)
+            for p in prompt
+        )
         wait_for_chain = False  # TODO
         if deps is not None:
             self._context.data = deps
         try:
             # Clear all tools
             if self._context:
-                self._context.current_prompt = prompt
+                self._context.current_prompt = final_prompt
             if model:
                 # perhaps also check for old model == new model?
                 if isinstance(model, str):
@@ -495,7 +501,7 @@ class LLMlingAgent[TDeps, TResult]:
             # Register currently enabled tools
             self._update_tools()
 
-            logger.debug("agent run prompt=%s", prompt)
+            logger.debug("agent run prompt=%s", final_prompt)
             message_id = str(uuid4())
 
             # Run through pydantic-ai's public interface
@@ -504,7 +510,7 @@ class LLMlingAgent[TDeps, TResult]:
                 message_history if message_history else self.conversation.get_history()
             )
             result = await self._pydantic_agent.run(
-                prompt,
+                final_prompt,
                 deps=self._context,
                 message_history=msg_history,
                 model=model,
@@ -521,13 +527,15 @@ class LLMlingAgent[TDeps, TResult]:
                 self.conversation.set_history(result.all_messages())
 
             # Emit user message
-            _user_msg = ChatMessage[str](content=prompt, role="user")
+            _user_msg = ChatMessage[str](content=final_prompt, role="user")
             self.message_received.emit(_user_msg)
 
             # Get cost info for assistant response
             usage = result.usage()
             cost_info = (
-                await extract_usage(usage, self.model_name, prompt, str(result.data))
+                await extract_usage(
+                    usage, self.model_name, final_prompt, str(result.data)
+                )
                 if self.model_name
                 else None
             )
@@ -613,8 +621,7 @@ class LLMlingAgent[TDeps, TResult]:
     @asynccontextmanager
     async def run_stream(
         self,
-        prompt: str,
-        *,
+        *prompt: str,
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
@@ -636,18 +643,24 @@ class LLMlingAgent[TDeps, TResult]:
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
+        final_prompt = "\n\n".join(
+            format_instance_for_llm(p)
+            if not isinstance(p, str) and can_format_fields(p)
+            else str(p)
+            for p in prompt
+        )
         if deps is not None:
             self._context.data = deps
         try:
             self._update_tools()
 
             # Emit user message
-            _user_msg = ChatMessage[str](content=prompt, role="user")
+            _user_msg = ChatMessage[str](content=final_prompt, role="user")
             self.message_received.emit(_user_msg)
             start_time = time.perf_counter()
             msg_history = message_history or self.conversation.get_history()
             async with self._pydantic_agent.run_stream(
-                prompt,
+                final_prompt,
                 message_history=msg_history,
                 model=model,
                 deps=self._context,
@@ -684,8 +697,10 @@ class LLMlingAgent[TDeps, TResult]:
                         parts = [p for msg in responses for p in msg.parts]
                         content = "\n".join(format_response(p) for p in parts)
                         usage = stream.usage()
-                        cost_info = (
-                            await extract_usage(usage, self.model_name, prompt, content)
+                        cost = (
+                            await extract_usage(
+                                usage, self.model_name, final_prompt, content
+                            )
                             if self.model_name
                             else None
                         )
@@ -697,7 +712,7 @@ class LLMlingAgent[TDeps, TResult]:
                             name=self.name,
                             model=self.model_name,
                             message_id=message_id,
-                            cost_info=cost_info,
+                            cost_info=cost,
                             response_time=time.perf_counter() - start_time,
                         )
                         self.message_sent.emit(assistant_msg)
