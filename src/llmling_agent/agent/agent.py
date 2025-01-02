@@ -70,7 +70,7 @@ class LLMlingAgent[TDeps, TResult]:
     tool_used = Signal(ToolCallInfo)
     model_changed = Signal(object)  # Model | None
     chunk_streamed = Signal(str)
-    outbox = Signal(object, ChatMessage[Any], str)  # self, message, prompt
+    outbox = Signal(ChatMessage[Any], str)  # self, message, prompt
 
     def __init__(
         self,
@@ -408,10 +408,9 @@ class LLMlingAgent[TDeps, TResult]:
             type(message.content),
             len(self._connected_agents),
         )
-        forwarded_msg = message.model_copy(
-            update={"forwarded_from": [*message.forwarded_from, self.name]}
-        )
-        self.outbox.emit(self, forwarded_msg)
+        update = {"forwarded_from": [*message.forwarded_from, self.name]}
+        forwarded_msg = message.model_copy(update=update)
+        self.outbox.emit(forwarded_msg, None)
 
     async def disconnect_all(self):
         """Disconnect from all agents."""
@@ -839,21 +838,21 @@ class LLMlingAgent[TDeps, TResult]:
             tool.current_retry = 0
         logger.debug("Cleared history and reset tool state")
 
-    def _handle_message(
-        self,
-        source: LLMlingAgent[Any, Any],
-        message: ChatMessage[Any],
-        prompt: str | None = None,
-    ):
-        """Handle a message as well as an optional prompt forwarded from another agent."""
+    def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None):
+        """Handle a message and optional prompt forwarded from another agent."""
+        if not message.forwarded_from:
+            msg = "Message received in _handle_message without sender information"
+            raise RuntimeError(msg)
+
+        sender = message.forwarded_from[-1]
         msg = "_handle_message called on %s from %s with message %s"
-        logger.debug(msg, self.name, source.name, message.content)
-        # await self.run(str(message.content), deps=source)
+        logger.debug(msg, self.name, sender, message.content)
+
         loop = asyncio.get_event_loop()
         prompts = [str(message.content)]
         if prompt:
             prompts.append(prompt)
-        task = loop.create_task(self.run(*prompts, deps=source))  # type: ignore[arg-type]
+        task = loop.create_task(self.run(*prompts))
         self._pending_tasks.add(task)
         task.add_done_callback(self._pending_tasks.discard)
         # for target in self._context.config.forward_to:
