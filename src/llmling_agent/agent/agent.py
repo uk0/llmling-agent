@@ -597,27 +597,44 @@ class Agent[TDeps, TResult]:
         prompt: str,
         *,
         get_answer: bool = False,
+        include_history: bool = False,
+        max_tokens: int | None = None,
     ) -> ChatMessage[Any] | None:
         """Send a message to another agent.
-
-        The target agent must accept the same dependency type (TDeps) to ensure
-        type-safe communication between agents.
 
         Args:
             agent: Name of agent or agent instance to talk to
             prompt: Message to send
-            get_answer: Whether to request a response from the other agent
+            get_answer: Whether to request a response
+            include_history: Whether to send conversation history
+            max_tokens: Optional token limit for history
+
+        Example:
+            # Share context and get response
+            response = await agent1.talk_to(
+                "agent2",
+                "What do you think about our discussion?",
+                get_answer=True,
+                include_history=True,
+                max_tokens=1000
+            )
         """
         assert self._context.pool
         target = (
             agent if isinstance(agent, Agent) else self._context.pool.get_agent(agent)
         )
 
-        # Add message to target's conversation history
+        if include_history:
+            # Add formatted history as context first
+            history = await self.conversation.format_history(max_tokens=max_tokens)
+            await target.conversation.add_context_message(
+                history, source=self.name, metadata={"type": "conversation_history"}
+            )
+
+        # Add the new message
         await target.conversation.add_context_message(prompt, source=self.name)
 
         if get_answer:
-            # Target should respond back to us
             return await target.run(prompt)
 
         return None

@@ -280,3 +280,16 @@ def models_equal(
             name_a = a if isinstance(a, str | None) else a.name()
             name_b = b if isinstance(b, str | None) else b.name()
             return name_a == name_b
+
+
+def get_message_role(msg: ModelMessage) -> str:
+    """Get appropriate name for message source."""
+    match msg:
+        case ModelRequest():
+            return "User"
+        case ModelResponse():
+            return "Assistant"
+        case SystemPromptPart():
+            return "System"
+        case _:
+            return "Unknown"

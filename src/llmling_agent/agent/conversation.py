@@ -10,12 +10,16 @@ from uuid import UUID, uuid4
 
 from llmling import BasePrompt, PromptMessage, StaticPrompt
 from llmling.config.models import BaseResource
-from pydantic_ai.messages import ModelRequest, UserPromptPart
+from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserPromptPart
 from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
-from llmling_agent.pydantic_ai_utils import convert_model_message, format_response
+from llmling_agent.pydantic_ai_utils import (
+    convert_model_message,
+    format_response,
+    get_message_role,
+)
 
 
 if TYPE_CHECKING:
@@ -133,6 +137,58 @@ class ConversationManager:
     def __len__(self) -> int:
         """Get length of history."""
         return len(self._current_history)
+
+    def get_message_tokens(self, message: ModelMessage) -> int:
+        """Get token count for a single message."""
+        import tiktoken
+
+        encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
+        # Format message to text for token counting
+        content = "\n".join(format_response(part) for part in message.parts)
+        return len(encoding.encode(content))
+
+    async def format_history(
+        self,
+        *,
+        max_tokens: int | None = None,
+        include_system: bool = False,
+        format_template: str | None = None,
+    ) -> str:
+        """Format conversation history as a single context message.
+
+        Args:
+            max_tokens: Optional limit to include only last N tokens
+            include_system: Whether to include system messages
+            format_template: Optional custom format (defaults to agent/message pairs)
+
+        Returns:
+            Formatted conversation history as a single string
+        """
+        template = format_template or "Agent {agent}: {content}\n"
+        messages: list[str] = []
+        token_count = 0
+
+        history = reversed(self._current_history) if max_tokens else self._current_history
+
+        for msg in history:
+            # Check message type instead of role string
+            if not include_system and isinstance(msg, SystemPromptPart):
+                continue
+            content = "\n".join(format_response(part) for part in msg.parts)
+            formatted = template.format(agent=get_message_role(msg), content=content)
+
+            if max_tokens:
+                # Count tokens in this message
+                msg_tokens = self.get_message_tokens(msg)
+                if token_count + msg_tokens > max_tokens:
+                    break
+                token_count += msg_tokens
+                # Add to front since we're going backwards
+                messages.insert(0, formatted)
+            else:
+                messages.append(formatted)
+
+        return "\n".join(messages)
 
     async def load_context_source(self, source: Resource | str):
         """Load context from a single source."""
@@ -253,12 +309,17 @@ class ConversationManager:
 
         return result
 
-    def get_history(self, include_pending: bool = True) -> list[ModelMessage]:
+    def get_history(
+        self,
+        include_pending: bool = True,
+        roles: set[type[ModelMessage]] | None = None,
+    ) -> list[ModelMessage]:
         """Get current conversation history.
 
         Args:
             include_pending: Whether to include pending messages in the history.
                              If True, pending messages are moved to main history.
+            roles: Message roles to include
 
         Returns:
             List of messages in chronological order
@@ -267,6 +328,12 @@ class ConversationManager:
             self._current_history.extend(self._pending_messages)
             self._pending_messages.clear()
 
+        if roles:
+            return [
+                msg
+                for msg in self._current_history
+                if any(isinstance(msg, r) for r in roles)
+            ]
         return self._current_history
 
     def get_pending_messages(self) -> list[ModelMessage]:
