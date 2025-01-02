@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from pydantic_ai.result import RunResult, StreamedRunResult, Usage
 
     from llmling_agent.common_types import PromptFunction, StrPath, ToolType
+    from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -92,6 +93,7 @@ class LLMlingAgent[TDeps, TResult]:
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         enable_logging: bool = True,
+        confirmation_callback: ConfirmationCallback | None = None,
         **kwargs,
     ):
         """Initialize agent with runtime configuration.
@@ -116,9 +118,11 @@ class LLMlingAgent[TDeps, TResult]:
             defer_model_check: Whether to defer model evaluation until first run
             kwargs: Additional arguments for PydanticAI agent
             enable_logging: Whether to enable logging for the agent
+            confirmation_callback: Callback for confirmation prompts
         """
         self._runtime = runtime
         self._context = context or AgentContext[TDeps].create_default(name)
+        self._context.confirmation_callback = confirmation_callback
         self._context.runtime = runtime
         self.message_received.connect(self.message_exchanged.emit)
         self.message_sent.connect(self.message_exchanged.emit)
