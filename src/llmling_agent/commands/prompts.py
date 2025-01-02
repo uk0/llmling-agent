@@ -39,6 +39,8 @@ async def list_prompts(
         await ctx.output.print(f"  {prompt.name:<20} - {prompt.description}")
 
 
+# TODO: we need to get a clear picture about the difference between Knowledge prompts
+# and runtime prompts.
 async def prompt_command(
     ctx: CommandContext[AgentPoolView],
     args: list[str],
@@ -54,9 +56,9 @@ async def prompt_command(
 
     name = args[0]
     try:
-        await ctx.context._agent.conversation.add_context_from_prompt(
-            name, arguments=kwargs
-        )
+        prompt = ctx.context._agent.runtime.get_prompt(name)
+        # Add as context using new method
+        await ctx.context._agent.conversation.add_context_from_prompt(prompt, **kwargs)  # type: ignore
         await ctx.output.print(f"Added prompt {name!r} to next message as context.")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Error executing prompt: {e}")

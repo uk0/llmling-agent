@@ -9,17 +9,12 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
 
 from llmling import BasePrompt, PromptMessage, StaticPrompt
+from llmling.config.models import BaseResource
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
-from llmling_agent.models.sources import (
-    ContextSource,
-    FileContextSource,
-    PromptContextSource,
-    ResourceContextSource,
-)
 from llmling_agent.pydantic_ai_utils import convert_model_message, format_response
 
 
@@ -27,6 +22,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from datetime import datetime
 
+    from llmling.config.models import Resource
+    from llmling.prompts import PromptType
     from pydantic_ai.messages import ModelMessage
 
     from llmling_agent.agent.agent import LLMlingAgent
@@ -57,7 +54,7 @@ class ConversationManager:
         session_id: str | UUID | None = None,
         initial_prompts: str | Sequence[str] | None = None,
         *,
-        context_sources: Sequence[ContextSource | str] = (),
+        resources: Sequence[Resource | str] = (),
     ):
         """Initialize conversation manager.
 
@@ -65,7 +62,7 @@ class ConversationManager:
             agent: instance to manage
             session_id: Optional session ID to load and continue conversation
             initial_prompts: Initial system prompts that start each conversation
-            context_sources: Optional paths to load as context
+            resources: Optional paths to load as context
         """
         self._agent = agent
         self._initial_prompts: list[BasePrompt] = []
@@ -96,7 +93,7 @@ class ConversationManager:
                 )
                 self._initial_prompts.append(obj)
         # Add context loading tasks to agent
-        for source in context_sources:
+        for source in resources:
             task = asyncio.create_task(self.load_context_source(source))
             self._agent._pending_tasks.add(task)
             task.add_done_callback(self._agent._pending_tasks.discard)
@@ -129,24 +126,14 @@ class ConversationManager:
             return convert_model_message(self._current_history[key])
         return [convert_model_message(msg) for msg in self._current_history[key]]
 
-    async def load_context_source(self, source: ContextSource | str):
+    async def load_context_source(self, source: Resource | str):
         """Load context from a single source."""
         try:
             match source:
                 case str():
                     await self.add_context_from_path(source)
-                case FileContextSource():
-                    await self.add_context_from_path(
-                        source.path, convert_to_md=source.convert_to_md, **source.metadata
-                    )
-                case ResourceContextSource():
-                    await self.add_context_from_resource(
-                        source.name, **source.arguments | source.metadata
-                    )
-                case PromptContextSource():
-                    await self.add_context_from_prompt(
-                        source.name, source.arguments, **source.metadata
-                    )
+                case BaseResource():
+                    await self.add_context_from_resource(source)
         except Exception:
             msg = "Failed to load context from %s"
             logger.exception(msg, "file" if isinstance(source, str) else source.type)
@@ -380,58 +367,58 @@ class ConversationManager:
 
         await self.add_context_message(content, source=source, **metadata)
 
-    async def add_context_from_resource(
-        self,
-        resource_name: str,
-        **params: Any,
-    ):
-        """Add content from runtime resource as context message.
-
-        Args:
-            resource_name: Name of the resource to load
-            **params: Parameters to pass to resource loader
-
-        Raises:
-            RuntimeError: If no runtime is available
-            ValueError: If resource loading fails
-        """
+    async def add_context_from_resource(self, resource: Resource | str):
+        """Add content from a LLMling resource."""
         if not self._agent.runtime:
-            msg = "No runtime available to load resources"
+            msg = "No runtime available"
             raise RuntimeError(msg)
 
-        content = await self._agent.runtime.load_resource(resource_name, **params)
-        await self.add_context_message(str(content), source=f"resource:{resource_name}")
+        if isinstance(resource, str):
+            content = await self._agent.runtime.load_resource(resource)
+            await self.add_context_message(
+                str(content.content),
+                source=f"Resource {resource}",
+                mime_type=content.metadata.mime_type,
+                **content.metadata.extra,
+            )
+        else:
+            loader = self._agent.runtime._loader_registry.get_loader(resource)
+            async for content in loader.load(resource):
+                await self.add_context_message(
+                    str(content.content),
+                    source=f"{resource.type}:{resource.uri}",
+                    mime_type=content.metadata.mime_type,
+                    **content.metadata.extra,
+                )
 
     async def add_context_from_prompt(
         self,
-        prompt_name: str,
-        arguments: dict[str, Any] | None = None,
-        **metadata: Any,
+        prompt: PromptType,
+        metadata: dict[str, Any] | None = None,
+        **kwargs: Any,
     ):
         """Add rendered prompt content as context message.
 
         Args:
-            prompt_name: Name of the prompt to render
-            arguments: Optional arguments for prompt formatting
-            **metadata: Additional metadata to include with the message
-
-        Raises:
-            RuntimeError: If no runtime is available
-            ValueError: If prompt loading or rendering fails
+            prompt: LLMling prompt (static, dynamic, or file-based)
+            metadata: Additional metadata to include with the message
+            kwargs: Optional kwargs for prompt formatting
         """
-        if not self._agent.runtime:
-            msg = "No runtime available to load prompts"
-            raise RuntimeError(msg)
+        try:
+            # Format the prompt using LLMling's prompt system
+            messages = await prompt.format(kwargs)
+            # Extract text content from all messages
+            content = "\n\n".join(msg.get_text_content() for msg in messages)
 
-        messages = await self._agent.runtime.render_prompt(prompt_name, arguments)
-        content = "\n\n".join(msg.get_text_content() for msg in messages)
-
-        await self.add_context_message(
-            content,
-            source=f"prompt:{prompt_name}",
-            prompt_args=arguments,
-            **metadata,
-        )
+            await self.add_context_message(
+                content,
+                source=f"prompt:{prompt.name or prompt.type}",
+                prompt_args=kwargs,
+                **(metadata or {}),
+            )
+        except Exception as e:
+            msg = f"Failed to format prompt: {e}"
+            raise ValueError(msg) from e
 
     def get_history_tokens(self) -> int:
         """Get token count for current history."""
