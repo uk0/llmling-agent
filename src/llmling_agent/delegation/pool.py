@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from typing_extensions import TypeVar
 
 from llmling_agent import LLMlingAgent
+from llmling_agent.agent.taskregistry import TaskRegistry
 from llmling_agent.log import get_logger
 
 
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import StrPath
     from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationHandler
+    from llmling_agent.models.task import AgentTask
 
 
 logger = get_logger(__name__)
@@ -87,7 +89,11 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
         if invalid := (to_load - set(manifest.agents)):
             msg = f"Unknown agents: {', '.join(invalid)}"
             raise ValueError(msg)
-
+        # register tasks
+        self._tasks = TaskRegistry()
+        # Register tasks from manifest
+        for name, task in manifest.tasks.items():
+            self._tasks.register(name, task)
         # Create requested agents immediately using sync initialization
         for name in to_load:
             config = manifest.agents[name]
@@ -471,6 +477,12 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
     def list_agents(self) -> list[str]:
         """List available agent names."""
         return list(self.manifest.agents)
+
+    def get_task(self, name: str) -> AgentTask[Any]:
+        return self._tasks[name]
+
+    def register_task(self, name: str, task: AgentTask[Any]):
+        self._tasks.register(name, task)
 
 
 async def main():

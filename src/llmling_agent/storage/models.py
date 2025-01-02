@@ -385,10 +385,10 @@ class Conversation(SQLModel, table=True):  # type: ignore[call-arg]
     )
     """When the conversation started"""
 
-    total_tokens: int = Field(default=0)
+    total_tokens: int = 0
     """Total number of tokens used in this conversation"""
 
-    total_cost: float = Field(default=0.0)
+    total_cost: float = 0.0
     """Total cost of this conversation in USD"""
 
     model_config = SQLModelConfig(use_attribute_docstrings=True)

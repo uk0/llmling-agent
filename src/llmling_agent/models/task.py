@@ -36,7 +36,7 @@ class AgentTask[TResult](BaseModel):
     prompt: str
     """The task instruction/prompt."""
 
-    result_type: type[TResult] = Field(default=str)  # type: ignore
+    result_type: ImportString[type[TResult]] = str  # type: ignore
     """Expected type of the task result."""
 
     knowledge: Knowledge | None = None
@@ -58,3 +58,7 @@ class AgentTask[TResult](BaseModel):
             tool if isinstance(tool, ToolConfig) else ToolConfig(import_path=str(tool))
             for tool in self.tools
         ]
+
+
+if __name__ == "__main__":
+    t = AgentTask[str](name="Test", prompt="test")

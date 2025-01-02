@@ -25,6 +25,7 @@ from llmling_agent.config import Capabilities, Knowledge
 from llmling_agent.environment import AgentEnvironment, FileEnvironment, InlineEnvironment
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
+from llmling_agent.models.task import AgentTask  # noqa: TC001
 from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
 from llmling_agent.templating import render_prompt
 
@@ -317,17 +318,16 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
     or collaborate through the orchestrator.
     """
 
+    agents: dict[str, AgentConfig] = Field(default_factory=dict)
+    """Mapping of agent IDs to their configurations"""
+
     responses: dict[str, ResponseDefinition] = Field(default_factory=dict)
     """Mapping of response names to their definitions"""
 
-    agents: dict[str, AgentConfig]
-    """Mapping of agent IDs to their configurations"""
+    tasks: dict[str, AgentTask] = Field(default_factory=dict)
+    """Pre-defined tasks, ready to be used by agents."""
 
-    model_config = ConfigDict(
-        use_attribute_docstrings=True,
-        extra="forbid",
-        arbitrary_types_allowed=True,
-    )
+    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
     def clone_agent_config(
         self,
