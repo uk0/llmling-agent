@@ -40,7 +40,7 @@ class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
     )
     """When the command was executed"""
 
-    model_config = SQLModelConfig(use_attribute_docstrings=True)
+    model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
     @classmethod
     def log(
@@ -175,7 +175,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     response_time: float | None = None
     """Time taken to generate the response in seconds"""
 
-    model_config = SQLModelConfig(use_attribute_docstrings=True)
+    model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
     @staticmethod
     def _parse_model_info(model: str | None) -> tuple[str | None, str | None]:
@@ -344,7 +344,7 @@ class ToolCall(SQLModel, table=True):  # type: ignore[call-arg]
     result: str = Field(...)
     """Result returned by the tool"""
 
-    model_config = SQLModelConfig(use_attribute_docstrings=True)
+    model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
     @classmethod
     def log(
@@ -391,7 +391,7 @@ class Conversation(SQLModel, table=True):  # type: ignore[call-arg]
     total_cost: float = 0.0
     """Total cost of this conversation in USD"""
 
-    model_config = SQLModelConfig(use_attribute_docstrings=True)
+    model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
     @classmethod
     def log(
