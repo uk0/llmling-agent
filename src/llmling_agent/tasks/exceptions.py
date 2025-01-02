@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from llmling import LLMLingError
 
-class TaskError(Exception):
+
+class TaskError(LLMLingError):
     """General task-related exception."""
 
 
