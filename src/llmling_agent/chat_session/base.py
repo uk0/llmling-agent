@@ -345,7 +345,6 @@ class AgentPoolView:
             self._agent._pydantic_agent._function_tools.clear()
             enabled_tools = self._agent.tools.get_tools(state="enabled")
             for tool in enabled_tools:
-                assert tool.callable
                 self._agent._pydantic_agent.tool_plain(tool.callable)
 
             if stream:

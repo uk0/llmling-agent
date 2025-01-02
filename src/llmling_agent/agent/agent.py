@@ -447,7 +447,6 @@ class LLMlingAgent[TDeps, TResult]:
         agent._function_tools.clear()
 
         for tool in self.tools.get_tools(state="enabled"):
-            assert tool.callable
             if has_argument_type(tool.callable, "RunContext"):
                 agent.tool(tool.callable)
             else:
