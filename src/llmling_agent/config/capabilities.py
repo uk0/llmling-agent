@@ -196,11 +196,23 @@ class Capabilities(EventedModel):
 
     # IMPLEMENTATIONS
     @staticmethod
-    async def delegate_to(
+    async def delegate_to(  # noqa: D417
         ctx: RunContext[AgentContext],
         agent_name: str,
         prompt: str,
     ) -> str:
+        """Delegate a task. Allows to assign a task to task to a specific agent.
+
+        If an action requires you to delegate a task, this tool can be used to assign and
+        execute a task. Instructions can be passed via the prompt parameter.
+
+        Args:
+            agent_name: The agent to delegate the task to
+            prompt: Instructions for the agent to delegate.
+
+        Returns:
+            The result of the task you delegated.
+        """
         if not ctx.deps.pool:
             msg = "Agent needs to be in a pool to delegate tasks"
             raise ToolError(msg)
@@ -209,15 +221,30 @@ class Capabilities(EventedModel):
         return str(result.data)
 
     @staticmethod
-    async def list_available_agents(ctx: RunContext[AgentContext]) -> list[str]:
+    async def list_available_agents(  # noqa: D417
+        ctx: RunContext[AgentContext],
+        only_idle: bool = False,
+    ) -> list[str]:
         """List all agents available in the current pool.
 
-        Returns a list of agent names that can be used with delegate_to.
+        Args:
+            only_idle: If True, only returns agents that aren't currently busy.
+                      Use this to find agents ready for immediate tasks.
+
+        Returns:
+            List of agent names that you can use with delegate_to
         """
         if not ctx.deps.pool:
             msg = "Agent needs to be in a pool to list agents"
             raise ToolError(msg)
-        return ctx.deps.pool.list_agents()
+
+        agents = ctx.deps.pool.list_agents()
+        if only_idle:
+            # Filter out agents that have pending tasks
+            return [
+                name for name in agents if not ctx.deps.pool.get_agent(name).is_busy()
+            ]
+        return agents
 
     @staticmethod
     async def create_worker_agent(
@@ -257,7 +284,7 @@ class Capabilities(EventedModel):
     ) -> str:
         """Spawn a temporary agent for a specific task.
 
-        Creates an ephemeral agent that will execute the task and clean up automatically.
+        Creates an ephemeral agent that will execute the task and clean up automatically
         Optionally connects back to receive results.
         """
         from llmling_agent.models.agents import AgentConfig
