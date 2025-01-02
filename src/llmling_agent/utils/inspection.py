@@ -3,11 +3,11 @@ from __future__ import annotations
 import inspect
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from llmling_agent.models import AgentContext
-
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from llmling_agent.models import AgentContext
 
 
 T = TypeVar("T")
@@ -33,6 +33,8 @@ def call_with_context(
     - Functions expecting AgentContext
     - Functions expecting context data
     """
+    from llmling_agent.models import AgentContext
+
     if inspect.ismethod(func):
         if has_argument_type(func, AgentContext):
             return func(context)

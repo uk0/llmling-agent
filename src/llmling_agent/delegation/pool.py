@@ -67,7 +67,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
         *,
         agents_to_load: list[str] | None = None,
         connect_agents: bool = True,
-        confirmation_handler: ConfirmationCallback | None = None,
+        confirmation_callback: ConfirmationCallback | None = None,
     ):
         """Initialize agent pool with immediate agent creation.
 
@@ -76,13 +76,13 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
             agents_to_load: Optional list of agent names to initialize
                           If None, all agents from manifest are loaded
             connect_agents: Whether to set up forwarding connections
-            confirmation_handler: Handler callback for tool / step confirmations.
+            confirmation_callback: Handler callback for tool / step confirmations.
         """
         super().__init__()
         from llmling_agent.models.context import AgentContext
 
         self.manifest = manifest
-        self._confirmation_handler = confirmation_handler
+        self._confirmation_callback = confirmation_callback
 
         # Validate requested agents exist
         to_load = set(agents_to_load) if agents_to_load else set(manifest.agents)
@@ -109,7 +109,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
                 definition=self.manifest,
                 config=config,
                 pool=self,
-                confirmation_handler=confirmation_handler,
+                confirmation_callback=confirmation_callback,
             )
 
             # Create agent with runtime and context
@@ -379,7 +379,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
 
         agent = self.agents[name]
         agent._context.pool = self
-        agent._context.confirmation_handler = self._confirmation_handler
+        agent._context.confirmation_callback = self._confirmation_callback
         if session_id:
             agent.conversation.load_history_from_database(session_id=session_id)
         # Apply any overrides to the existing agent
@@ -401,6 +401,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
         *,
         agents: list[str] | None = None,
         connect_agents: bool = True,
+        confirmation_callback: ConfirmationCallback | None = None,
     ) -> AsyncIterator[AgentPool]:
         """Open an agent pool from configuration.
 
@@ -408,6 +409,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
             config_path: Path to agent configuration file or manifest
             agents: Optional list of agent names to initialize
             connect_agents: Whether to set up forwarding connections
+            confirmation_callback: Callback to confirm agent tool selection
 
         Yields:
             Configured agent pool
@@ -419,7 +421,12 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
             if isinstance(config_path, AgentsManifest)
             else AgentsManifest.from_file(config_path)
         )
-        pool = cls(manifest, agents_to_load=agents, connect_agents=connect_agents)
+        pool = cls(
+            manifest,
+            agents_to_load=agents,
+            connect_agents=connect_agents,
+            confirmation_callback=confirmation_callback,
+        )
         try:
             yield pool
         finally:

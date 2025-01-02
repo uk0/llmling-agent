@@ -438,18 +438,20 @@ class LLMlingAgent[TDeps, TResult]:
                 return self._pydantic_agent.model.name()
 
     def _update_tools(self):
-        """Update pydantic-ai-agent tools. Used internally before any run calls.
-
-        This basically represents a sync of ToolManager -> PydanticAIAgent tools
-        """
+        """Update pydantic-ai-agent tools."""
         agent = self._pydantic_agent
         agent._function_tools.clear()
-
-        for tool in self.tools.get_tools(state="enabled"):
-            if has_argument_type(tool.callable, "RunContext"):
-                agent.tool(tool.callable)
+        tools = [t for t in self.tools.values() if t.enabled]
+        for tool in tools:
+            wrapped = (
+                self._context.wrap_tool(tool, self._context)
+                if self._context
+                else tool.callable.callable
+            )
+            if has_argument_type(wrapped, "RunContext"):
+                agent.tool(wrapped)
             else:
-                agent.tool_plain(tool.callable)
+                agent.tool_plain(wrapped)
 
     async def run(
         self,

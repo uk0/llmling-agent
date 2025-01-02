@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from functools import wraps
 import json
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any
 
-from llmling import RuntimeConfig  # noqa: TC002
+from llmling import RuntimeConfig, ToolError
 from pydantic_ai import RunContext
 from typing_extensions import TypeVar
 
 from llmling_agent.tools.base import ToolInfo
+from llmling_agent.utils.inspection import has_argument_type
 
 
 if TYPE_CHECKING:
@@ -60,7 +61,7 @@ class AgentContext[TDeps]:
     pool: AgentPool | None = None
     """Pool the agent is part of."""
 
-    confirmation_handler: ConfirmationCallback | None = None
+    confirmation_callback: ConfirmationCallback | None = None
     """Optional confirmation handler for tool execution."""
 
     in_async_context: bool = False
@@ -96,7 +97,7 @@ class AgentContext[TDeps]:
 
     async def handle_confirmation(
         self,
-        run_ctx: RunContext[AgentContext],
+        run_ctx: RunContext[AgentContext] | AgentContext,
         tool: ToolInfo,
         args: dict[str, Any],
     ) -> bool:
@@ -106,43 +107,89 @@ class AgentContext[TDeps]:
         - No confirmation handler is set
         - Handler confirms the execution
         """
-        if not self.confirmation_handler:
+        if not self.confirmation_callback:
             return True
 
-        result = self.confirmation_handler(run_ctx, tool, args)
+        result = self.confirmation_callback(run_ctx, tool, args)
         if isinstance(result, bool):
             return result
         return await result
 
+    # TODO: make this generic. Requires ToolInfo to become generic.
+    def wrap_tool(
+        self,
+        tool: ToolInfo,
+        agent_ctx: AgentContext,  # Pass this in from _update_tools
+    ) -> Callable[..., Awaitable[Any]]:
+        """Wrap tool with confirmation handling.
+
+        Current situation is: We only get all infos for tool calls for functions with
+        RunContext. In order to migitate this, we "fallback" to the AgentContext, which
+        at least provides some information.
+        """
+        original_tool = tool.callable.callable
+
+        @wraps(original_tool)
+        async def wrapped_with_ctx(ctx: RunContext[AgentContext], *args, **kwargs):
+            if not await self.handle_confirmation(ctx, tool, kwargs):
+                msg = f"Tool execution of {tool.name} was denied"
+                raise ToolError(msg)
+            return await original_tool(ctx, *args, **kwargs)
+
+        @wraps(original_tool)
+        async def wrapped_without_ctx(*args, **kwargs):
+            if not await self.handle_confirmation(agent_ctx, tool, kwargs):
+                msg = f"Tool execution of {tool.name} was denied"
+                raise ToolError(msg)
+            return await original_tool(*args, **kwargs)
+
+        return (
+            wrapped_with_ctx
+            if has_argument_type(tool.callable.callable, "RunContext")
+            else wrapped_without_ctx
+        )
+
 
 ConfirmationCallback = Callable[
-    [RunContext[AgentContext], ToolInfo, dict[str, Any]], Awaitable[bool] | bool
+    [RunContext[AgentContext] | AgentContext, ToolInfo, dict[str, Any]],
+    Awaitable[bool] | bool,
 ]
 
 
 async def simple_confirmation(
-    ctx: RunContext[AgentContext],
+    ctx: RunContext[AgentContext] | AgentContext,
     tool: ToolInfo,
     args: dict[str, Any],
 ) -> bool:
     """Simple confirmation handler using input() in executor."""
+    # Get agent name regardless of context type
+    agent_name = ctx.deps.agent_name if isinstance(ctx, RunContext) else ctx.agent_name
+
     prompt = dedent(f"""
         Tool Execution Confirmation
         -------------------------
         Tool: {tool.name}
         Description: {tool.description or "No description"}
+        Agent: {agent_name}
 
         Arguments:
         {json.dumps(args, indent=2)}
 
-        Context:
-        - Agent: {ctx.deps.agent_name}
-        - Model: {ctx.model.name()}
-        - Prompt: "{ctx.prompt[:100]}..."
+        Additional Context:
+        """).strip()
 
-        Allow this tool execution? [y/N]: """).strip()
+    # Add run-specific info if available
+    if isinstance(ctx, RunContext):
+        prompt += dedent(f"""
+            - Model: {ctx.model.name()}
+            - Prompt: "{ctx.prompt[:100]}..."
+        """)
 
-    # Run input() in executor to avoid blocking
-    loop = asyncio.get_running_loop()
-    response = await loop.run_in_executor(None, input, prompt + "\n")
+    prompt += "\nAllow this tool execution? [y/N]: "
+
+    # # Run input() in executor to avoid blocking
+    # loop = asyncio.get_running_loop()
+    # response = await loop.run_in_executor(None, input, prompt + "\n")
+    response = input(prompt + "\n")
+
     return response.lower().startswith("y")
