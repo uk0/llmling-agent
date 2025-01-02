@@ -126,6 +126,14 @@ class ConversationManager:
             return convert_model_message(self._current_history[key])
         return [convert_model_message(msg) for msg in self._current_history[key]]
 
+    def __contains__(self, item: Any) -> bool:
+        """Check if item is in history."""
+        return item in self._current_history
+
+    def __len__(self) -> int:
+        """Get length of history."""
+        return len(self._current_history)
+
     async def load_context_source(self, source: Resource | str):
         """Load context from a single source."""
         try:
