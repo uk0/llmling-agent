@@ -447,11 +447,11 @@ class LLMlingAgent[TDeps, TResult]:
         agent._function_tools.clear()
 
         for tool in self.tools.get_tools(state="enabled"):
-            assert tool._original_callable
-            if has_argument_type(tool._original_callable, "RunContext"):
-                agent.tool(tool._original_callable)
+            assert tool.callable
+            if has_argument_type(tool.callable, "RunContext"):
+                agent.tool(tool.callable)
             else:
-                agent.tool_plain(tool._original_callable)
+                agent.tool_plain(tool.callable)
 
     async def run(
         self,
