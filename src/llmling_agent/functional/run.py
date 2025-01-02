@@ -236,34 +236,23 @@ async def run_agent_pipeline(  # noqa: PLR0911
 
                 # Return the async iterator
                 return stream_prompts()
-
             # Non-streaming mode - return final result
-            last_result = None
-            last_messages = None
-
-            for p in prompts:
-                result = await agent.run(p, message_history=last_messages)
-                last_result = result
-                last_messages = result.new_messages()
-
-            if not last_result:
-                msg = "No result produced"
-                raise RuntimeError(msg)  # noqa: TRY301
+            result = await agent.run("\n".join(prompts))
 
             # Format output based on format
             match output_format:
                 case "raw":
-                    return last_result.data  # type: ignore[return-value]
+                    return result.data  # type: ignore[return-value]
                 case "json":
-                    if hasattr(last_result.data, "model_dump_json"):
-                        return last_result.data.model_dump_json(indent=2)  # pyright: ignore
-                    return str(last_result.data)
+                    if hasattr(result.data, "model_dump_json"):
+                        return result.data.model_dump_json(indent=2)  # pyright: ignore
+                    return str(result.data)
                 case "yaml":
-                    if hasattr(last_result.data, "model_dump_yaml"):
-                        return last_result.data.model_dump_yaml()  # pyright: ignore
-                    return str(last_result.data)
+                    if hasattr(result.data, "model_dump_yaml"):
+                        return result.data.model_dump_yaml()  # pyright: ignore
+                    return str(result.data)
                 case "text" | _:
-                    return str(last_result.data)
+                    return str(result.data)
 
     except Exception as e:
         match error_handling:

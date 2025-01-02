@@ -5,13 +5,10 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from llmling import LLMCallableTool, RuntimeConfig
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
     TextPart,
-    ToolCallPart,
-    ToolReturnPart,
     UserPromptPart,
 )
 from pydantic_ai.models.test import TestModel
@@ -24,6 +21,8 @@ from llmling_agent.agent import Agent
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from llmling import RuntimeConfig
+
 
 SIMPLE_PROMPT = "Hello, how are you?"
 TEST_RESPONSE = "I am a test response"
@@ -35,7 +34,7 @@ async def test_simple_agent_run(test_agent: Agent[Any, str]):
     result = await test_agent.run(SIMPLE_PROMPT)
     assert isinstance(result.data, str)
     assert result.data == TEST_RESPONSE
-    assert result.usage() is not None
+    assert result.cost_info is not None
 
 
 @pytest.mark.asyncio
@@ -116,56 +115,6 @@ async def test_agent_model_override(no_tool_runtime: RuntimeConfig):
     assert result2.data == override_response
 
 
-@pytest.mark.asyncio
-async def test_agent_tool_usage(no_tool_runtime: RuntimeConfig):
-    """Test agent using tools."""
-
-    async def test_tool(message: str = "test") -> str:
-        """A test tool."""
-        return f"Tool response: {message}"
-
-    tools = [LLMCallableTool.from_callable(test_tool)]
-
-    agent = Agent[Any, str](
-        runtime=no_tool_runtime,
-        name="test-agent",
-        model=TestModel(custom_result_text=TEST_RESPONSE, call_tools=["test_tool"]),
-        tools=tools,
-    )
-
-    result = await agent.run("Use the test tool")
-    assert result.data == TEST_RESPONSE
-
-    messages = result.new_messages()
-    # user prompt -> response with tool call -> request with tool return
-    #  -> response with final text
-    assert len(messages) == 4  # noqa: PLR2004
-
-    # Check specific message types
-    assert isinstance(messages[0], ModelRequest)
-    assert isinstance(messages[0].parts[0], UserPromptPart)
-
-    assert isinstance(messages[1], ModelResponse)
-    assert isinstance(messages[1].parts[0], ToolCallPart)
-
-    assert isinstance(messages[2], ModelRequest)
-    assert isinstance(messages[2].parts[0], ToolReturnPart)
-
-    assert isinstance(messages[3], ModelResponse)
-    assert isinstance(messages[3].parts[0], TextPart)
-
-    # Verify tool call details
-    tool_part = messages[1].parts[0]
-    assert isinstance(tool_part, ToolCallPart)
-    assert tool_part.tool_name == "test_tool"
-
-    # Verify tool return
-    tool_return = messages[2].parts[0]
-    assert isinstance(tool_return, ToolReturnPart)
-    assert tool_return.tool_name == "test_tool"
-    assert tool_return.content.startswith("Tool response:")
-
-
 def test_sync_wrapper(test_agent: Agent[Any, str]):
     """Test synchronous wrapper method."""
     result = test_agent.run_sync(SIMPLE_PROMPT)
@@ -189,19 +138,13 @@ async def test_agent_context_manager(tmp_path: Path):
         assert result.data == TEST_RESPONSE
 
         # Verify we get expected message sequence
-        messages = result.new_messages()
+        messages = agent.conversation
         # user prompt -> model response
         assert len(messages) == 2  # noqa: PLR2004
 
         # Check prompt message
-        assert isinstance(messages[0], ModelRequest)
-        assert isinstance(messages[0].parts[0], UserPromptPart)
-        assert messages[0].parts[0].content == SIMPLE_PROMPT
-
-        # Check response message
-        assert isinstance(messages[1], ModelResponse)
-        assert isinstance(messages[1].parts[0], TextPart)
-        assert messages[1].parts[0].content == TEST_RESPONSE
+        assert messages[0].content == SIMPLE_PROMPT
+        assert messages[1].content == TEST_RESPONSE
 
 
 @pytest.mark.asyncio

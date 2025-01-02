@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.messages import ModelMessage
-    from pydantic_ai.result import RunResult, StreamedRunResult, Usage
+    from pydantic_ai.result import StreamedRunResult, Usage
 
     from llmling_agent.common_types import PromptFunction, StrPath, ToolType
     from llmling_agent.models.context import ConfirmationCallback
@@ -470,7 +470,7 @@ class Agent[TDeps, TResult]:
         model: models.Model | models.KnownModelName | None = None,
         # wait_for_chain: bool = True,
         usage: Usage | None = None,
-    ) -> RunResult[TResult]:
+    ) -> ChatMessage[TResult]:
         """Run agent with prompt and get response.
 
         Args:
@@ -565,7 +565,7 @@ class Agent[TDeps, TResult]:
         else:
             if wait_for_chain:
                 await self.wait_for_chain()
-            return result
+            return assistant_msg
         finally:
             if model:
                 # Restore original model in signal
@@ -580,7 +580,7 @@ class Agent[TDeps, TResult]:
         prompt: str,
         *,
         get_answer: Literal[True],
-    ) -> RunResult[Any]: ...
+    ) -> ChatMessage[Any]: ...
 
     @overload
     async def talk_to(
@@ -597,7 +597,7 @@ class Agent[TDeps, TResult]:
         prompt: str,
         *,
         get_answer: bool = False,
-    ) -> RunResult[Any] | None:
+    ) -> ChatMessage[Any] | None:
         """Send a message to another agent.
 
         The target agent must accept the same dependency type (TDeps) to ensure
@@ -787,7 +787,7 @@ class Agent[TDeps, TResult]:
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-    ) -> RunResult[TResult]:
+    ) -> ChatMessage[TResult]:
         """Run agent synchronously (convenience wrapper).
 
         Args:
@@ -836,7 +836,7 @@ class Agent[TDeps, TResult]:
         interval: float = 1.0,
         block: bool = False,
         **kwargs: Any,
-    ) -> RunResult[TResult] | None:
+    ) -> ChatMessage[TResult] | None:
         """Run agent continuously with prompt or dynamic prompt function.
 
         Args:

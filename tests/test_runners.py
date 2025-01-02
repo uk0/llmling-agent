@@ -37,7 +37,6 @@ async def test_agent_pool_conversation_flow(test_model):
         for prompt in ["Hello!", "How are you?"]:
             result = await agent.run(prompt, message_history=history)
             responses.append(result)
-            history = result.new_messages()
 
         assert len(responses) == 2  # noqa: PLR2004
         assert all(str(r.data) == "Test response" for r in responses)

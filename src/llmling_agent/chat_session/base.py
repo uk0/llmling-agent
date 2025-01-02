@@ -363,14 +363,6 @@ class AgentPoolView:
         response = str(result.data)
         start_time = time.perf_counter()
         # Collect all metrics from the run
-        usage = result.usage()
-        cost_info = (
-            await extract_usage(usage, model, content, response)
-            if model and usage
-            else None
-        )
-
-        # Update session state first
         self._state.message_count += 2  # User and assistant messages
 
         # Create complete assistant message with all metrics
@@ -380,14 +372,14 @@ class AgentPoolView:
             name=self._agent.name,
             message_id=str(uuid4()),
             model=model,
-            cost_info=cost_info,
+            cost_info=result.cost_info,
             response_time=time.perf_counter() - start_time,  # Add response time
         )
 
         # Also update session state with metrics
-        if cost_info:
+        if result.cost_info:
             self._state.update_tokens(chat_message)
-            self._state.total_cost = float(cost_info.total_cost)
+            self._state.total_cost = float(result.cost_info.total_cost)
         self._state.last_response_time = chat_message.response_time
 
         # self._agent.message_sent.emit(chat_message)
