@@ -101,3 +101,8 @@ class ChatMessage[TContent](BaseModel):
                 return (None, content_str)
             case "system":
                 return (None, f"System: {content_str}")
+
+    @property
+    def data(self) -> TContent:
+        """Get content as typed data. Provides compat to RunResult."""
+        return self.content
