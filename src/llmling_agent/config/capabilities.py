@@ -188,6 +188,10 @@ class Capabilities(EventedModel):
 
     @staticmethod
     async def list_available_agents(ctx: RunContext[AgentContext]) -> list[str]:
+        """List all agents available in the current pool.
+
+        Returns a list of agent names that can be used with delegate_to.
+        """
         if not ctx.deps.pool:
             msg = "Agent needs to be in a pool to list agents"
             raise ToolError(msg)
