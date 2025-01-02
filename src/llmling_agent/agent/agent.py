@@ -13,6 +13,7 @@ from psygnal import Signal
 from pydantic_ai import Agent as PydanticAgent, RunContext
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import infer_model
+from tokonomics import TokenLimits, get_model_limits
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.conversation import ConversationManager
@@ -872,6 +873,17 @@ class LLMlingAgent[TDeps, TResult]:
         #             path = target.resolve_path({"agent": self.name})
         #             path.parent.mkdir(parents=True, exist_ok=True)
         #             path.write_text(str(message.content))
+
+    async def get_token_limits(self) -> TokenLimits | None:
+        """Get token limits for the current model."""
+        if not self.model_name:
+            return None
+
+        try:
+            return await get_model_limits(self.model_name)
+        except ValueError:
+            logger.debug("Could not get token limits for model: %s", self.model_name)
+            return None
 
     def register_worker(
         self,
