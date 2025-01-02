@@ -10,6 +10,7 @@ from typing_extensions import TypeVar
 
 
 if TYPE_CHECKING:
+    from llmling_agent.agent.agent import LLMlingAgent
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig, AgentsManifest
@@ -75,6 +76,14 @@ class AgentContext[TDeps]:
         defn = AgentsManifest[Any, Any](agents={})
         cfg = AgentConfig(name=name)
         return cls(agent_name=name, capabilities=caps, definition=defn, config=cfg)
+
+    # TODO: perhaps add agent directly to context?
+    @property
+    def agent(self) -> LLMlingAgent[TDeps, Any] | None:
+        """Get the agent instance from the pool."""
+        if not self.pool or not self.agent_name:
+            return None
+        return self.pool.get_agent(self.agent_name)
 
 
 class ConfirmationHandler(Protocol):
