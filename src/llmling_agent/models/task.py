@@ -49,6 +49,9 @@ class AgentTask[TResult](BaseModel):
     tools: list[ImportString | ToolConfig] = Field(default_factory=list)
     """Tools needed for this task."""
 
+    min_context_tokens: int | None = None
+    """Minimum amount of required context size."""
+
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
     @property
