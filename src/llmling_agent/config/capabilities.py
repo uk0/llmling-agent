@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
+from uuid import uuid4
 
 from llmling import LLMCallableTool, ToolError
 from psygnal import EventedModel
@@ -19,7 +20,135 @@ if TYPE_CHECKING:
 AccessLevel = Literal["none", "own", "all"]
 
 
-def create_delegate_tool() -> LLMCallableTool:
+class Capabilities(EventedModel):
+    """Defines what operations an agent is allowed to perform."""
+
+    # Agent discovery and delegation
+    can_list_agents: bool = False
+    """Whether the agent can discover other available agents."""
+
+    can_delegate_tasks: bool = False
+    """Whether the agent can delegate tasks to other agents."""
+
+    can_observe_agents: bool = False
+    """Whether the agent can monitor other agents' activities."""
+
+    # History and statistics access
+    history_access: AccessLevel = "none"
+    """Level of access to conversation history."""
+
+    stats_access: AccessLevel = "none"
+    """Level of access to usage statistics."""
+
+    # Resource capabilities
+    can_load_resources: bool = False
+    """Whether the agent can load and access resource content."""
+
+    can_list_resources: bool = False
+    """Whether the agent can discover available resources."""
+
+    # Tool management
+    can_register_tools: bool = False
+    """Whether the agent can register importable functions as tools."""
+
+    can_register_code: bool = False
+    """Whether the agent can create new tools from provided code."""
+
+    can_install_packages: bool = False
+    """Whether the agent can install Python packages for tools."""
+
+    can_chain_tools: bool = False
+    """Whether the agent can chain multiple tool calls into one."""
+
+    # Agent creation
+    can_create_workers: bool = False
+    """Whether the agent can create worker agents (as tools)."""
+
+    can_create_delegates: bool = False
+    """Whether the agent can spawn temporary delegate agents."""
+
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+
+    def has_capability(self, capability: str) -> bool:
+        """Check if a specific capability is enabled.
+
+        Args:
+            capability: Name of capability to check.
+                      Can be a boolean capability (e.g., "can_delegate_tasks")
+                      or an access level (e.g., "history_access")
+        """
+        match capability:
+            case str() if hasattr(self, capability):
+                value = getattr(self, capability)
+                return bool(value) if isinstance(value, bool) else value != "none"
+            case _:
+                msg = f"Unknown capability: {capability}"
+                raise ValueError(msg)
+
+    def register_capability_tools(self, agent: LLMlingAgent[Any, Any]):
+        """Register all capability-based tools."""
+        # Resource tools - always register, enable based on capabilities
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(agent.runtime.load_resource),
+            enabled=self.can_load_resources,
+            source="builtin",
+            requires_capability="can_load_resources",
+        )
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(agent.runtime.get_resources),
+            enabled=self.can_list_resources,
+            source="builtin",
+            requires_capability="can_list_resources",
+        )
+
+        # Tool management
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(agent.runtime.register_tool),
+            enabled=self.can_register_tools,
+            source="builtin",
+            requires_capability="can_register_tools",
+        )
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(agent.runtime.register_code_tool),
+            enabled=self.can_register_code,
+            source="builtin",
+            requires_capability="can_register_code",
+        )
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(agent.runtime.install_package),
+            enabled=self.can_install_packages,
+            source="builtin",
+            requires_capability="can_install_packages",
+        )
+
+        # Agent discovery and delegation
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(self.create_worker_agent),
+            enabled=self.can_create_workers,
+            source="builtin",
+            requires_capability="can_create_workers",
+        )
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(self.spawn_delegate),
+            enabled=self.can_create_delegates,
+            source="builtin",
+            requires_capability="can_create_delegates",
+        )
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(self.list_available_agents),
+            enabled=self.can_list_agents,
+            source="builtin",
+            requires_capability="can_list_agents",
+        )
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(self.delegate_to),
+            enabled=self.can_delegate_tasks,
+            source="builtin",
+            requires_capability="can_delegate_tasks",
+        )
+
+    # IMPLEMENTATIONS
+    @staticmethod
     async def delegate_to(
         ctx: RunContext[AgentContext],
         agent_name: str,
@@ -32,92 +161,68 @@ def create_delegate_tool() -> LLMCallableTool:
         result = await specialist.run(prompt)
         return str(result.data)
 
-    return LLMCallableTool.from_callable(delegate_to)
-
-
-def create_list_agents_tool() -> LLMCallableTool:
+    @staticmethod
     async def list_available_agents(ctx: RunContext[AgentContext]) -> list[str]:
         if not ctx.deps.pool:
             msg = "Agent needs to be in a pool to list agents"
             raise ToolError(msg)
         return ctx.deps.pool.list_agents()
 
-    return LLMCallableTool.from_callable(list_available_agents)
+    @staticmethod
+    async def create_worker_agent(
+        ctx: RunContext[AgentContext],
+        name: str,
+        system_prompt: str,
+        model: str | None = None,
+    ) -> str:
+        """Create a new agent and register it as a tool.
 
-
-class Capabilities(EventedModel):
-    """Defines what operations an agent is allowed to perform.
-
-    Controls an agent's permissions and access levels including:
-    - Agent discovery and delegation abilities
-    - History access permissions
-    - Statistics viewing rights
-    - Tool usage restrictions
-
-    Can be defined per role or customized per agent.
-    """
-
-    can_list_agents: bool = False
-    """Whether the agent can discover other available agents."""
-
-    can_delegate_tasks: bool = False
-    """Whether the agent can delegate tasks to other agents."""
-
-    can_observe_agents: bool = False
-    """Whether the agent can monitor other agents' activities."""
-
-    history_access: AccessLevel = "none"
-    """Level of access to conversation history.
-
-    Levels:
-    - none: No access to history
-    - own: Can only access own conversations
-    - all: Can access all agents' conversations
-    """
-
-    stats_access: AccessLevel = "none"
-    """Level of access to usage statistics.
-
-    Levels:
-    - none: No access to statistics
-    - own: Can only view own statistics
-    - all: Can view all agents' statistics
-    """
-
-    def has_capability(self, capability: str) -> bool:
-        """Check if a specific capability is enabled.
-
-        Args:
-            capability: Name of capability to check.
-                      Can be a boolean capability (e.g., "can_delegate_tasks")
-                      or an access level (e.g., "history_access")
-
-        Returns:
-            True if capability is enabled
+        The new agent will be available as a tool for delegating specific tasks.
+        It inherits the current model unless overridden.
         """
-        match capability:
-            case str() if hasattr(self, capability):
-                value = getattr(self, capability)
-                return bool(value) if isinstance(value, bool) else value != "none"
-            case _:
-                msg = f"Unknown capability: {capability}"
-                raise ValueError(msg)
+        from llmling_agent.models.agents import AgentConfig
 
-    def register_delegation_tools(self, agent: LLMlingAgent[Any, Any]):
-        """Register delegation tools if enabled."""
-        if self.can_delegate_tasks:
-            tool = create_delegate_tool()
-            agent.tools.register_tool(tool, enabled=True, source="builtin")
-        if self.can_list_agents:
-            tool = create_list_agents_tool()
-            agent.tools.register_tool(tool, enabled=True, source="builtin")
+        if not ctx.deps.pool:
+            msg = "No agent pool available"
+            raise ToolError(msg)
 
-    def enable(self, capability: str):
-        """Enable a capability."""
-        setattr(self, capability, True)
+        config = AgentConfig(
+            name=name, system_prompts=[system_prompt], model=model or ctx.model.name()
+        )
 
-    def disable(self, capability: str):
-        """Disable a capability."""
-        setattr(self, capability, False)
+        worker = await ctx.deps.pool.create_agent(name, config)
+        assert ctx.deps.agent
+        tool_info = ctx.deps.agent.register_worker(worker)
+        return f"Created worker agent and registered as tool: {tool_info.name}"
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    @staticmethod
+    async def spawn_delegate(
+        ctx: RunContext[AgentContext],
+        task: str,
+        system_prompt: str,
+        model: str | None = None,
+        capabilities: dict[str, bool] | None = None,
+        connect_back: bool = False,
+    ) -> str:
+        """Spawn a temporary agent for a specific task.
+
+        Creates an ephemeral agent that will execute the task and clean up automatically.
+        Optionally connects back to receive results.
+        """
+        from llmling_agent.models.agents import AgentConfig
+
+        if not ctx.deps.pool:
+            msg = "No agent pool available"
+            raise ToolError(msg)
+
+        name = f"delegate_{uuid4().hex[:8]}"
+        config = AgentConfig(
+            name=name, system_prompts=[system_prompt], model=model or ctx.model.name()
+        )
+
+        agent = await ctx.deps.pool.create_agent(name, config, temporary=True)
+        if connect_back:
+            assert ctx.deps.agent
+            ctx.deps.agent.pass_results_to(agent)
+        await agent.run(task)
+        return f"Spawned delegate {name} for task"

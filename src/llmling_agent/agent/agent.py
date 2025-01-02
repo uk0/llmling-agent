@@ -146,7 +146,7 @@ class LLMlingAgent[TDeps, TResult]:
 
         # Register capability-based tools
         if self._context and self._context.capabilities:
-            self._context.capabilities.register_delegation_tools(self)
+            self._context.capabilities.register_capability_tools(self)
 
         # Initialize agent with all tools
         self._pydantic_agent = PydanticAgent(
