@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 import time
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast, overload
 from uuid import UUID, uuid4
 
 from llmling import Config, LLMCallableTool, RuntimeConfig, ToolError
@@ -433,6 +433,10 @@ class Agent[TDeps, TResult]:
             self.outbox.disconnect(other._handle_message)
             self._connected_agents.remove(other)
 
+    def is_busy(self) -> bool:
+        """Check if agent is currently processing tasks."""
+        return bool(self._pending_tasks or self._background_task)
+
     @property
     def model_name(self) -> str | None:
         """Get the model name in a consistent format."""
@@ -568,6 +572,55 @@ class Agent[TDeps, TResult]:
                 old = self._pydantic_agent.model
                 model_obj = infer_model(old) if isinstance(old, str) else old
                 self.model_changed.emit(model_obj)
+
+    @overload
+    async def talk_to(
+        self,
+        agent: str | Agent[TDeps, Any],
+        prompt: str,
+        *,
+        get_answer: Literal[True],
+    ) -> RunResult[Any]: ...
+
+    @overload
+    async def talk_to(
+        self,
+        agent: str | Agent[TDeps, Any],
+        prompt: str,
+        *,
+        get_answer: Literal[False] = False,
+    ) -> None: ...
+
+    async def talk_to(
+        self,
+        agent: str | Agent[TDeps, Any],
+        prompt: str,
+        *,
+        get_answer: bool = False,
+    ) -> RunResult[Any] | None:
+        """Send a message to another agent.
+
+        The target agent must accept the same dependency type (TDeps) to ensure
+        type-safe communication between agents.
+
+        Args:
+            agent: Name of agent or agent instance to talk to
+            prompt: Message to send
+            get_answer: Whether to request a response from the other agent
+        """
+        assert self._context.pool
+        target = (
+            agent if isinstance(agent, Agent) else self._context.pool.get_agent(agent)
+        )
+
+        # Add message to target's conversation history
+        await target.conversation.add_context_message(prompt, source=self.name)
+
+        if get_answer:
+            # Target should respond back to us
+            return await target.run(prompt)
+
+        return None
 
     def to_agent_tool(
         self,
