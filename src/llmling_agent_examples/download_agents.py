@@ -1,4 +1,11 @@
-"""Example comparing sequential and parallel downloads with agents."""
+"""Example comparing sequential and parallel downloads with agents.
+
+This example explains:
+- Continouos repetitive tasks
+- Async parallel execution of LLM calls and Input/Output
+- YAML config definition
+- Simple stateful callback mechanism using a class
+"""
 
 import asyncio
 import tempfile
@@ -89,6 +96,8 @@ Delegate to file_getter_1 and file_getter_2.
 Let them work in parallel. Report the results
 """
 
+TEAM_PROMPT = f"Download this file: {FILE_URL}"
+
 
 async def run(config_path: str):
     async with AgentPool.open(config_path) as pool:
@@ -97,7 +106,6 @@ async def run(config_path: str):
         worker_2 = await pool.clone_agent(worker_1, new_name="file_getter_2")
 
         team = [worker_1, worker_2]
-        prompt = f"Download this file: {FILE_URL}"
 
         fan = pool.get_agent("fan")
         progress = CheerProgress()
@@ -106,23 +114,26 @@ async def run(config_path: str):
         progress.update("Sequential downloads starting - let's see how they do!")
 
         print("Sequential downloads:")
+
         start_time = time.time()
-        await pool.team_task(prompt, team=team, mode="sequential")
+        await pool.team_task(TEAM_PROMPT, team=team, mode="sequential")
         sequential_time = time.time() - start_time
         print(f"Sequential time: {sequential_time:.2f} seconds")
         progress.update(f"Sequential downloads completed in {sequential_time:.2f} secs!")
+
         print("\nParallel downloads:")
+
         start_time = time.time()
-        await pool.team_task(prompt, team=team, mode="parallel")
+        await pool.team_task(TEAM_PROMPT, team=team, mode="parallel")
         parallel_time = time.time() - start_time
         progress.update(f"Parallel downloads completed in {parallel_time:.2f} secs!")
         print(f"Parallel time: {parallel_time:.2f} seconds")
         print(f"\nParallel was {sequential_time / parallel_time:.1f}x faster")
 
-        # Let the overseer handle it
+        print("Same task, different strategy: Boss lists agents and delegates the work.")
         overseer: Agent[None, str] = pool.get_agent("overseer")
         result = await overseer.run(OVERSEER_PROMPT)
-        await fan.stop()
+        await fan.stop()  # End of joy.
 
         print("\nOverseer's report:")
         print(result.data)
