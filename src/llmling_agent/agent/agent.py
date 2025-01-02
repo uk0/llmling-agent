@@ -129,7 +129,6 @@ class LLMlingAgent[TDeps, TResult]:
         all_tools.extend(runtime.tools.values())  # Add runtime tools directly
         logger.debug("Runtime tools: %s", list(runtime.tools.keys()))
         self._tool_manager = ToolManager(tools=all_tools, tool_choice=tool_choice)
-        self._tool_manager.setup_history_tools(self._context.capabilities)
 
         # Resolve result type
         self.actual_type: type[TResult]

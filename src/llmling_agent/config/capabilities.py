@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
@@ -146,6 +147,19 @@ class Capabilities(EventedModel):
             source="builtin",
             requires_capability="can_delegate_tasks",
         )
+        # History tools
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(self.search_history),
+            enabled=self.history_access != "none",
+            source="builtin",
+            requires_capability="history_access",
+        )
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(self.show_statistics),
+            enabled=self.stats_access != "none",
+            source="builtin",
+            requires_capability="stats_access",
+        )
 
     # IMPLEMENTATIONS
     @staticmethod
@@ -226,3 +240,47 @@ class Capabilities(EventedModel):
             ctx.deps.agent.pass_results_to(agent)
         await agent.run(task)
         return f"Spawned delegate {name} for task"
+
+    @staticmethod
+    async def search_history(
+        ctx: RunContext[AgentContext],
+        query: str | None = None,
+        hours: int = 24,
+        limit: int = 5,
+    ) -> str:
+        """Search conversation history."""
+        from llmling_agent.history.formatters import format_output
+        from llmling_agent.history.queries import get_filtered_conversations
+
+        if ctx.deps.capabilities.history_access == "none":
+            msg = "No permission to access history"
+            raise ToolError(msg)
+
+        results = get_filtered_conversations(
+            query=query,
+            period=f"{hours}h",
+            limit=limit,
+            include_tokens=True,
+        )
+        return format_output(results, output_format="text")
+
+    @staticmethod
+    async def show_statistics(
+        ctx: RunContext[AgentContext],
+        group_by: Literal["agent", "model", "hour", "day"] = "model",
+        hours: int = 24,
+    ) -> str:
+        """Show usage statistics for conversations."""
+        from llmling_agent.history.formatters import format_output, format_stats
+        from llmling_agent.history.models import StatsFilters
+        from llmling_agent.history.stats import get_conversation_stats
+
+        if ctx.deps.capabilities.stats_access == "none":
+            msg = "No permission to view statistics"
+            raise ToolError(msg)
+
+        cutoff = datetime.now() - timedelta(hours=hours)
+        filters = StatsFilters(cutoff=cutoff, group_by=group_by)
+        stats = get_conversation_stats(filters)
+        formatted = format_stats(stats, f"{hours}h", group_by)
+        return format_output(formatted, output_format="text")
