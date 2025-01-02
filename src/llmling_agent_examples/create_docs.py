@@ -1,25 +1,31 @@
-"""Shows how to chain two agents together for documentation generation.
+"""Agentsoft Corp. 3 agents publishing software.
 
-The first agent lists files in a directory, then passes the list to a second agent
-that reads the files and generates markdown documentation for them.
+This example shows:
+1. Async delegation: File scanner delegates to doc writer (fire and forget)
+2. Tool usage (async + wait): File scanner uses error checker as a tool (wait for result)
+3. Chained tool calls.
 """
 
 from __future__ import annotations
 
-import asyncio
-import logging
-import tempfile
+from mypy import api
 
 from llmling_agent.delegation import AgentPool
 
 
+def check_types(path: str) -> str:
+    """Type check Python file using mypy."""
+    stdout, _stderr, _code = api.run([path])
+    return stdout
+
+
 AGENT_CONFIG = """
 agents:
-  file_lister:
-    name: "File lister"
+  file_scanner:
+    name: "File Scanner"
     model: openai:gpt-4o-mini
     system_prompts:
-      - You are a file-lister. List all files from the folder given to you.
+      - You scan directories and list source files that need documentation.
     environment:
       type: inline
       tools:
@@ -35,31 +41,52 @@ agents:
       type: inline
       tools:
         read_source_file:
-          # equals roughly to pathlib.Path.read_text
           import_path: llmling_agent_tools.file.read_source_file
+
+  error_checker:
+    name: "Code Validator"
+    model: openai:gpt-4o-mini
+    system_prompts:
+      - You validate Python source files for syntax errors.
+    environment:
+      type: inline
+      tools:
+        validate_syntax:
+          import_path: __main__.check_types
+          description: Type check Python file using mypy.
 """
 
 
 async def main(config_path: str):
     async with AgentPool.open(config_path) as pool:
-        file_lister = pool.get_agent("file_lister")
+        scanner = pool.get_agent("file_scanner")
         writer = pool.get_agent("doc_writer")
+        checker = pool.get_agent("error_checker")
 
-        # Connect file_lister to writer
-        file_lister.pass_results_to(writer, prompt="Please write documentation for me.")
-        # Connect writer output to our print function
-        writer.outbox.connect(lambda msg, _: print(msg.content))
+        # Setup async chain: scanner -> writer -> console output
+        scanner.pass_results_to(writer)
+        writer.outbox.connect(lambda msg, _: print(f"Documentation:\n{msg.content}"))
 
-        # Just run the file_lister - it will find files and pass them on
-        await file_lister.run(
-            'List all files in the "src/llmling_agent/agent" directory.'
-        )
-        await writer.complete_tasks()  # everything is async, so we need to wait.
+        # Start async docs generation (the writer will start working in async fashion)
+        await scanner.run('List all Python files in "src/llmling_agent/agent"')
+
+        # Use error checker as tool (this blocks until complete)
+        scanner.register_worker(checker)
+        prompt = 'Check types for all Python files in "src/llmling_agent/agent"'
+        result = await scanner.run(prompt)
+        print(f"Type checking result:\n{result.data}")
+
+        # Wait for async documentation to finish and print.
+        await writer.complete_tasks()
 
 
 if __name__ == "__main__":
+    import asyncio
+    import logging
+    import tempfile
+
     logging.basicConfig(level=logging.DEBUG)
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml") as tmp:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp:
         tmp.write(AGENT_CONFIG)
         tmp.flush()
         asyncio.run(main(tmp.name))
