@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from functools import wraps
 import json
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from llmling import RuntimeConfig, ToolError
 from pydantic_ai import RunContext
@@ -97,10 +97,10 @@ class AgentContext[TDeps]:
 
     async def handle_confirmation(
         self,
-        run_ctx: RunContext[AgentContext] | AgentContext,
+        ctx: RunContext[AgentContext] | AgentContext,
         tool: ToolInfo,
         args: dict[str, Any],
-    ) -> bool:
+    ) -> ConfirmationResult:
         """Handle tool execution confirmation.
 
         Returns True if:
@@ -108,10 +108,9 @@ class AgentContext[TDeps]:
         - Handler confirms the execution
         """
         if not self.confirmation_callback:
-            return True
-
-        result = self.confirmation_callback(run_ctx, tool, args)
-        if isinstance(result, bool):
+            return "allow"
+        result = self.confirmation_callback(ctx, tool, args)
+        if isinstance(result, str):
             return result
         return await result
 
@@ -119,7 +118,7 @@ class AgentContext[TDeps]:
     def wrap_tool(
         self,
         tool: ToolInfo,
-        agent_ctx: AgentContext,  # Pass this in from _update_tools
+        agent_ctx: AgentContext,
     ) -> Callable[..., Awaitable[Any]]:
         """Wrap tool with confirmation handling.
 
@@ -131,17 +130,35 @@ class AgentContext[TDeps]:
 
         @wraps(original_tool)
         async def wrapped_with_ctx(ctx: RunContext[AgentContext], *args, **kwargs):
-            if not await self.handle_confirmation(ctx, tool, kwargs):
-                msg = f"Tool execution of {tool.name} was denied"
-                raise ToolError(msg)
-            return await original_tool(ctx, *args, **kwargs)
+            result = await self.handle_confirmation(ctx, tool, kwargs)
+            match result:
+                case "allow":
+                    return await original_tool(ctx, *args, **kwargs)
+                case "skip":
+                    msg = f"Tool {tool.name} execution skipped"
+                    raise ToolError(msg)
+                case "abort_run":
+                    msg = "Run aborted by user"
+                    raise ToolError(msg)
+                case "abort_chain":
+                    msg = "Agent chain aborted by user"
+                    raise ToolError(msg)
 
         @wraps(original_tool)
         async def wrapped_without_ctx(*args, **kwargs):
-            if not await self.handle_confirmation(agent_ctx, tool, kwargs):
-                msg = f"Tool execution of {tool.name} was denied"
-                raise ToolError(msg)
-            return await original_tool(*args, **kwargs)
+            result = await self.handle_confirmation(agent_ctx, tool, kwargs)
+            match result:
+                case "allow":
+                    return await original_tool(*args, **kwargs)
+                case "skip":
+                    msg = f"Tool {tool.name} execution skipped"
+                    raise ToolError(msg)
+                case "abort_run":
+                    msg = "Run aborted by user"
+                    raise ToolError(msg)
+                case "abort_chain":
+                    msg = "Agent chain aborted by user"
+                    raise ToolError(msg)
 
         return (
             wrapped_with_ctx
@@ -150,9 +167,11 @@ class AgentContext[TDeps]:
         )
 
 
+ConfirmationResult = Literal["allow", "skip", "abort_run", "abort_chain"]
+
 ConfirmationCallback = Callable[
     [RunContext[AgentContext] | AgentContext, ToolInfo, dict[str, Any]],
-    Awaitable[bool] | bool,
+    ConfirmationResult | Awaitable[ConfirmationResult],
 ]
 
 
