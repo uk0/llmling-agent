@@ -13,6 +13,11 @@ from llmling import RuntimeConfig, ToolError
 from pydantic_ai import RunContext
 from typing_extensions import TypeVar
 
+from llmling_agent.tasks.exceptions import (
+    ChainAbortedError,
+    RunAbortedError,
+    ToolSkippedError,
+)
 from llmling_agent.tools.base import ToolInfo
 from llmling_agent.utils.inspection import has_argument_type
 
@@ -136,13 +141,13 @@ class AgentContext[TDeps]:
                     return await original_tool(ctx, *args, **kwargs)
                 case "skip":
                     msg = f"Tool {tool.name} execution skipped"
-                    raise ToolError(msg)
+                    raise ToolSkippedError(msg)
                 case "abort_run":
                     msg = "Run aborted by user"
-                    raise ToolError(msg)
+                    raise RunAbortedError(msg)
                 case "abort_chain":
                     msg = "Agent chain aborted by user"
-                    raise ToolError(msg)
+                    raise ChainAbortedError(msg)
 
         @wraps(original_tool)
         async def wrapped_without_ctx(*args, **kwargs):
@@ -179,7 +184,7 @@ async def simple_confirmation(
     ctx: RunContext[AgentContext] | AgentContext,
     tool: ToolInfo,
     args: dict[str, Any],
-) -> bool:
+) -> ConfirmationResult:
     """Simple confirmation handler using input() in executor."""
     # Get agent name regardless of context type
     agent_name = ctx.deps.agent_name if isinstance(ctx, RunContext) else ctx.agent_name
@@ -206,9 +211,8 @@ async def simple_confirmation(
 
     prompt += "\nAllow this tool execution? [y/N]: "
 
+    response = input(prompt + "\n")
     # # Run input() in executor to avoid blocking
     # loop = asyncio.get_running_loop()
     # response = await loop.run_in_executor(None, input, prompt + "\n")
-    response = input(prompt + "\n")
-
-    return response.lower().startswith("y")
+    return "allow" if response.lower().startswith("y") else "skip"

@@ -7,6 +7,7 @@ from typing import Any
 from llmling.core.baseregistry import BaseRegistry
 
 from llmling_agent.models.task import AgentTask
+from llmling_agent.tasks.exceptions import TaskRegistrationError
 
 
 class TaskRegistry(BaseRegistry[str, AgentTask[Any]]):
@@ -14,7 +15,7 @@ class TaskRegistry(BaseRegistry[str, AgentTask[Any]]):
 
     @property
     def _error_class(self) -> type[Exception]:
-        return ValueError  # or custom TaskError
+        return TaskRegistrationError
 
     def _validate_item(self, item: Any) -> AgentTask[Any]:
         if not isinstance(item, AgentTask):

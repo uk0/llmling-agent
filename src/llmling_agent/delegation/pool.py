@@ -11,8 +11,8 @@ from pydantic import BaseModel
 from typing_extensions import TypeVar
 
 from llmling_agent import LLMlingAgent
-from llmling_agent.agent.taskregistry import TaskRegistry
 from llmling_agent.log import get_logger
+from llmling_agent.tasks import TaskRegistry
 
 
 if TYPE_CHECKING:
