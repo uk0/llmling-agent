@@ -14,7 +14,7 @@ class TaskRegistry(BaseRegistry[str, AgentTask[Any]]):
     """Registry for managing tasks."""
 
     @property
-    def _error_class(self) -> type[Exception]:
+    def _error_class(self) -> type[TaskRegistrationError]:
         return TaskRegistrationError
 
     def _validate_item(self, item: Any) -> AgentTask[Any]:
