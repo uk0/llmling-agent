@@ -81,6 +81,28 @@ class Capabilities(EventedModel):
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
+    def __contains__(self, required: Capabilities) -> bool:
+        """Check if these capabilities contain all required capabilities.
+
+        Example:
+            required in agent.capabilities  # Can agent fulfill requirements?
+        """
+        # Check all boolean capabilities
+        for field in self.__fields__:
+            if isinstance(getattr(required, field), bool):  # noqa: SIM102
+                if getattr(required, field) and not getattr(self, field):
+                    return False
+
+        # Check access levels (none < own < all)
+        access_order = {"none": 0, "own": 1, "all": 2}
+        for field in ("history_access", "stats_access"):
+            required_level = access_order[getattr(required, field)]
+            self_level = access_order[getattr(self, field)]
+            if required_level > self_level:
+                return False
+
+        return True
+
     def has_capability(self, capability: str) -> bool:
         """Check if a specific capability is enabled.
 
