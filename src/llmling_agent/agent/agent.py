@@ -48,7 +48,7 @@ TDeps = TypeVar("TDeps", default=Any)
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
 
-class LLMlingAgent[TDeps, TResult]:
+class Agent[TDeps, TResult]:
     """Agent for AI-powered interaction with LLMling resources and tools.
 
     Generically typed with: LLMLingAgent[Type of Dependencies, Type of Result]
@@ -193,7 +193,7 @@ class LLMlingAgent[TDeps, TResult]:
 
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._background_task: asyncio.Task[Any] | None = None
-        self._connected_agents: set[LLMlingAgent[Any, Any]] = set()
+        self._connected_agents: set[Agent[Any, Any]] = set()
 
     @property
     def name(self) -> str:
@@ -222,7 +222,7 @@ class LLMlingAgent[TDeps, TResult]:
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         **kwargs: Any,
-    ) -> AsyncIterator[LLMlingAgent[TDeps, TResult]]:
+    ) -> AsyncIterator[Agent[TDeps, TResult]]:
         """Create an agent with an auto-managed runtime configuration.
 
         This is a convenience method that combines RuntimeConfig.open with agent creation.
@@ -245,11 +245,11 @@ class LLMlingAgent[TDeps, TResult]:
             **kwargs: Additional arguments for PydanticAI agent
 
         Yields:
-            Configured LLMlingAgent instance
+            Configured Agent instance
 
         Example:
             ```python
-            async with LLMlingAgent.open("config.yml") as agent:
+            async with Agent.open("config.yml") as agent:
                 result = await agent.run("Hello!")
                 print(result.data)
             ```
@@ -302,7 +302,7 @@ class LLMlingAgent[TDeps, TResult]:
         # Other settings
         system_prompt: str | Sequence[str] | None = None,
         enable_logging: bool = True,
-    ) -> AsyncIterator[LLMlingAgent[TDeps, TResult]]:
+    ) -> AsyncIterator[Agent[TDeps, TResult]]:
         """Open and configure a specific agent from configuration.
 
         Args:
@@ -336,7 +336,7 @@ class LLMlingAgent[TDeps, TResult]:
             enable_logging: Whether to enable logging for the agent
 
         Yields:
-            Configured LLMlingAgent instance
+            Configured Agent instance
 
         Raises:
             ValueError: If agent not found or configuration invalid
@@ -344,7 +344,7 @@ class LLMlingAgent[TDeps, TResult]:
 
         Example:
             ```python
-            async with LLMlingAgent.open_agent(
+            async with Agent.open_agent(
                 "agents.yml",
                 "my_agent",
                 model="gpt-4",
@@ -422,12 +422,12 @@ class LLMlingAgent[TDeps, TResult]:
             for target in list(self._connected_agents):
                 self.stop_passing_results_to(target)
 
-    def pass_results_to(self, other: LLMlingAgent[Any, Any], prompt: str | None = None):
+    def pass_results_to(self, other: Agent[Any, Any], prompt: str | None = None):
         """Forward results to another agent."""
         self.outbox.connect(other._handle_message)
         self._connected_agents.add(other)
 
-    def stop_passing_results_to(self, other: LLMlingAgent[Any, Any]):
+    def stop_passing_results_to(self, other: Agent[Any, Any]):
         """Stop forwarding results to another agent."""
         if other in self._connected_agents:
             self.outbox.disconnect(other._handle_message)
@@ -576,7 +576,7 @@ class LLMlingAgent[TDeps, TResult]:
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
         share_context: bool = False,
-        parent: LLMlingAgent[Any, Any] | None = None,
+        parent: Agent[Any, Any] | None = None,
     ) -> LLMCallableTool:
         """Create a tool from this agent.
 
@@ -887,7 +887,7 @@ class LLMlingAgent[TDeps, TResult]:
 
     def register_worker(
         self,
-        worker: LLMlingAgent[Any, Any],
+        worker: Agent[Any, Any],
         *,
         name: str | None = None,
         reset_history_on_run: bool = True,
@@ -957,7 +957,7 @@ if __name__ == "__main__":
 
     async def main():
         async with RuntimeConfig.open(config_resources.OPEN_BROWSER) as r:
-            agent = LLMlingAgent[Any, Any](r, model="openai:gpt-4o-mini")
+            agent = Agent[Any, Any](r, model="openai:gpt-4o-mini")
             result = await agent.run(sys_prompt)
             print(result.data)
 

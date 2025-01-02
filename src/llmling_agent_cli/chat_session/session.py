@@ -21,7 +21,7 @@ from llmling_agent_cli.chat_session.history import SessionHistory
 
 
 if TYPE_CHECKING:
-    from llmling_agent import LLMlingAgent
+    from llmling_agent import Agent
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.tools.base import ToolInfo
@@ -32,7 +32,7 @@ class InteractiveSession:
 
     def __init__(
         self,
-        agent: LLMlingAgent[Any, str],
+        agent: Agent[Any, str],
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,
@@ -83,7 +83,7 @@ class InteractiveSession:
             # Only if no pool, connect directly to main agent
             self._chat_session._agent.tool_used.connect(self._on_tool_call)
 
-    def _on_agent_connected(self, agent: LLMlingAgent[Any, Any]):
+    def _on_agent_connected(self, agent: Agent[Any, Any]):
         """Handle newly connected agent."""
         agent.message_sent.connect(self._on_message)
         agent.tool_used.connect(self._on_tool_call)
@@ -254,7 +254,7 @@ class InteractiveSession:
 
 # Helper function for CLI
 async def start_interactive_session(
-    agent: LLMlingAgent[str, str],
+    agent: Agent[str, str],
     *,
     pool: AgentPool | None = None,
     wait_chain: bool = True,

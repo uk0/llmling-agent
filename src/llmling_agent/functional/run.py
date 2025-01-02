@@ -16,7 +16,7 @@ from typing import (
 
 from llmling import Config
 
-from llmling_agent import LLMlingAgent
+from llmling_agent import Agent
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentConfig, AgentsManifest, SystemPrompt
@@ -206,7 +206,7 @@ async def run_agent_pipeline(  # noqa: PLR0911
                     raise TypeError(msg)  # noqa: TRY301
 
         # Create agent with all settings
-        async with LLMlingAgent[Any, T].open_agent(
+        async with Agent[Any, T].open_agent(
             agent_def,
             agent_name,
             model=model,  # type: ignore[arg-type]

@@ -24,13 +24,13 @@ Create and use an agent:
 
 ```python
 from llmling import RuntimeConfig
-from llmling_agent import LLMlingAgent
+from llmling_agent import Agent
 from pydantic import BaseModel
 
 
 async with RuntimeConfig.open("config.yml") as runtime:
     # Create agent with string output. It will have all resources and tools available from the config.
-    basic_agent = LLMlingAgent(
+    basic_agent = Agent(
         runtime,
         model="openai:gpt-4",
         system_prompt="You are a helpful assistant."
@@ -45,7 +45,7 @@ async with RuntimeConfig.open("config.yml") as runtime:
         suggestions: list[str]
 
 
-    typed_agent = LLMlingAgent[Any, Analysis](
+    typed_agent = Agent[Any, Analysis](
         runtime,
         result_type=Analysis,
         model="openai:gpt-4",
@@ -64,7 +64,7 @@ async with RuntimeConfig.open("config.yml") as runtime:
 The agent can be configured with various options:
 
 ```python
-agent = LLMlingAgent(
+agent = Agent(
     runtime,
     # Model settings
     model="openai:gpt-4",            # Model to use
@@ -116,7 +116,7 @@ result = agent.run_sync("Quick question")
 Add custom tools and system prompts:
 
 ```python
-class CodeAgent(LLMlingAgent[Any, Analysis]):
+class CodeAgent(Agent[Any, Analysis]):
     def __init__(self, runtime: RuntimeConfig):
         super().__init__(
             runtime,
@@ -176,7 +176,7 @@ async def get_prompt(ctx: RunContext[AgentContext]) -> str:
 The agent can handle runtime events:
 
 ```python
-class MyAgent(LLMlingAgent[Any, str]):
+class MyAgent(Agent[Any, str]):
     async def handle_event(self, event: Event):
         """Handle runtime events."""
         match event.type:
@@ -197,7 +197,7 @@ class MyAgent(LLMlingAgent[Any, str]):
 ```python
 # Proper cleanup with context manager
 async with runtime as r:
-    agent = LLMlingAgent(r)
+    agent = Agent(r)
     try:
         result = await agent.run("Query")
     except Exception as e:

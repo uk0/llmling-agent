@@ -12,7 +12,7 @@ from llmling_agent.responses import InlineResponseDefinition, ResponseField
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.agent import LLMlingAgent
+    from llmling_agent.agent.agent import Agent
 
 MODEL = "openai:gpt-4o-mini"
 
@@ -24,11 +24,11 @@ async def test_agent_pool_conversation_flow(test_model):
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
     cfg = AgentConfig(name="Test Agent", model=test_model, result_type="BasicResult")
     agents = {"test_agent": cfg}
-    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
+    agent_def = AgentsManifest[Any, Any](responses={"BasicResult": defn}, agents=agents)
 
     async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
         # Get agent directly for conversation
-        agent: LLMlingAgent[Any, str] = pool.get_agent("test_agent")
+        agent: Agent[Any, str] = pool.get_agent("test_agent")
 
         # Run multiple prompts in sequence
         history = None
@@ -50,7 +50,7 @@ async def test_agent_pool_validation():
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
     cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
     agents = {"test_agent": cfg}
-    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
+    agent_def = AgentsManifest[Any, Any](responses={"BasicResult": defn}, agents=agents)
 
     # Test initialization with non-existent agent
     with pytest.raises(ValueError, match="Unknown agents"):
@@ -69,7 +69,7 @@ async def test_agent_pool_team_task_errors(test_model):
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
     cfg = AgentConfig(name="Test Agent", model=test_model, result_type="BasicResult")
     agents = {"test_agent": cfg}
-    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
+    agent_def = AgentsManifest[Any, Any](responses={"BasicResult": defn}, agents=agents)
 
     async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
         # Test with non-existent team member
@@ -94,12 +94,12 @@ async def test_agent_pool_cleanup():
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
     cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
     agents = {"test_agent": cfg}
-    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
+    agent_def = AgentsManifest[Any, Any](responses={"BasicResult": defn}, agents=agents)
 
     # Use context manager to ensure proper cleanup
     async with AgentPool(agent_def) as pool:
         # Add some agents
-        agent: LLMlingAgent[Any, str] = pool.get_agent("test_agent")
+        agent: Agent[Any, str] = pool.get_agent("test_agent")
         assert "test_agent" in pool.agents
 
         # Get runtime reference to check cleanup
@@ -122,12 +122,12 @@ async def test_agent_pool_context_cleanup():
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
     cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
     agents = {"test_agent": cfg}
-    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
+    agent_def = AgentsManifest[Any, Any](responses={"BasicResult": defn}, agents=agents)
 
     runtime_ref = None
 
     async with AgentPool(agent_def) as pool:
-        agent: LLMlingAgent[Any, str] = pool.get_agent("test_agent")
+        agent: Agent[Any, str] = pool.get_agent("test_agent")
         runtime_ref = agent._runtime
         assert "test_agent" in pool.agents
         assert runtime_ref is not None

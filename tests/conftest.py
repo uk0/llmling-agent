@@ -9,7 +9,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 import yamling
 
-from llmling_agent import AgentConfig, LLMlingAgent, config_resources
+from llmling_agent import Agent, AgentConfig, config_resources
 from llmling_agent.responses import InlineResponseDefinition, ResponseField
 from llmling_agent.testing.ui import DummyUI
 
@@ -97,15 +97,11 @@ def runtime() -> RuntimeConfig:
 
 
 @pytest.fixture
-async def simple_agent(runtime: RuntimeConfig) -> LLMlingAgent[Any, str]:
+async def simple_agent(runtime: RuntimeConfig) -> Agent[Any, str]:
     """Provide a basic text agent."""
-    from llmling_agent.agent import LLMlingAgent
+    from llmling_agent.agent import Agent
 
-    return LLMlingAgent(
-        runtime=runtime,
-        name="test-agent",
-        model="openai:gpt-4o-mini",
-    )
+    return Agent(runtime=runtime, name="test-agent", model="openai:gpt-4o-mini")
 
 
 @pytest.fixture
@@ -153,9 +149,9 @@ async def no_tool_runtime() -> AsyncGenerator[RuntimeConfig, None]:
 
 
 @pytest.fixture
-def test_agent(no_tool_runtime: RuntimeConfig) -> LLMlingAgent[Any, str]:
+def test_agent(no_tool_runtime: RuntimeConfig) -> Agent[Any, str]:
     """Create an agent with TestModel for testing."""
-    return LLMlingAgent(
+    return Agent(
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE),

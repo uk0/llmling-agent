@@ -13,7 +13,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from llmling_agent import LLMlingAgent
+    from llmling_agent import Agent
     from llmling_agent.chat_session.base import AgentPoolView
 
 
@@ -45,7 +45,7 @@ Displays:
 """
 
 
-def format_agent_name(agent: LLMlingAgent[Any, Any], current: bool = False) -> str:
+def format_agent_name(agent: Agent[Any, Any], current: bool = False) -> str:
     """Format agent name for display."""
     name = agent.name
     if current:

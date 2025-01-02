@@ -18,7 +18,7 @@ from llmling_agent.models.context import AgentContext  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.agent import LLMlingAgent
+    from llmling_agent.agent.agent import Agent
 
 
 AccessLevel = Literal["none", "own", "all"]
@@ -119,7 +119,7 @@ class Capabilities(EventedModel):
                 msg = f"Unknown capability: {capability}"
                 raise ValueError(msg)
 
-    def register_capability_tools(self, agent: LLMlingAgent[Any, Any]):
+    def register_capability_tools(self, agent: Agent[Any, Any]):
         """Register all capability-based tools."""
         # Resource tools - always register, enable based on capabilities
         agent.tools.register_tool(

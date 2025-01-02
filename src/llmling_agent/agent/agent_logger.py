@@ -11,7 +11,7 @@ from llmling_agent.storage.models import ToolCall
 
 
 if TYPE_CHECKING:
-    from llmling_agent import LLMlingAgent
+    from llmling_agent import Agent
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.messages import ChatMessage
 
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class AgentLogger:
     """Handles database logging for agent interactions."""
 
-    def __init__(self, agent: LLMlingAgent[Any, Any], enable_logging: bool = True):
+    def __init__(self, agent: Agent[Any, Any], enable_logging: bool = True):
         """Initialize logger.
 
         Args:

@@ -12,13 +12,13 @@ from pydantic_ai.messages import (
 from pydantic_ai.result import RunResult
 import pytest
 
-from llmling_agent.agent.agent import LLMlingAgent
+from llmling_agent.agent.agent import Agent
 
 
 @pytest.mark.asyncio
 async def test_conversation_history_management():
     """Test ConversationManager maintains proper message history."""
-    async with LLMlingAgent[Any, str].open() as agent:
+    async with Agent[Any, str].open() as agent:
         # First message setup
         mock_result1 = AsyncMock(spec=RunResult)
         mock_result1.data = "First response"

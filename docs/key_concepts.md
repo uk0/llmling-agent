@@ -105,9 +105,9 @@ Both interfaces provide a consistent command system using slash commands:
 For integration into larger applications:
 
 ```python
-from llmling_agent import LLMlingAgent
+from llmling_agent import Agent
 
-async with LLMlingAgent.open_agent("agents.yml", "web_assistant") as agent:
+async with Agent.open_agent("agents.yml", "web_assistant") as agent:
     result = await agent.run("Open Python website")
 ```
 

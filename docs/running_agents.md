@@ -87,10 +87,10 @@ The web interface provides:
 Use agents in your Python code:
 
 ```python
-from llmling_agent import LLMlingAgent
+from llmling_agent import Agent
 
 # Basic usage
-async with LLMlingAgent.open_agent("agents.yml", "my-agent") as agent:
+async with Agent.open_agent("agents.yml", "my-agent") as agent:
 
     # Basic query
     result = await agent.run("What's the system status?")

@@ -9,11 +9,11 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import (
+    Agent,
     AgentPool,
     AgentPoolView,
     AgentsManifest,
     ChatMessage,
-    LLMlingAgent,
 )
 
 
@@ -24,11 +24,8 @@ TEST_MESSAGE = "Hello, agent!"
 async def test_basic_message_response():
     """Test basic message-response flow with metadata."""
     async with RuntimeConfig.open(Config()) as runtime:
-        agent = LLMlingAgent[Any, Any](
-            runtime,
-            model=TestModel(custom_result_text="Test response"),
-            name="test-agent",
-        )
+        model = TestModel(custom_result_text="Test response")
+        agent = Agent[Any, Any](runtime, model=model, name="test-agent")
         session = AgentPoolView(agent)
         await session.initialize()
 
@@ -50,7 +47,7 @@ async def test_streaming_response():
     """Test streaming responses with chunks and metadata."""
     async with RuntimeConfig.open(Config()) as runtime:
         model = TestModel(custom_result_text="Hello world")
-        agent = LLMlingAgent[Any, Any](runtime, model=model, name="test-agent")
+        agent = Agent[Any, Any](runtime, model=model, name="test-agent")
         session = AgentPoolView(agent)
         await session.initialize()
 
@@ -77,9 +74,9 @@ async def test_agent_forwarding():
     async with RuntimeConfig.open(Config()) as runtime:
         # Create agents with different responses
         model = TestModel(custom_result_text="Main response")
-        main_agent = LLMlingAgent[Any, Any](runtime, model=model, name="main-agent")
+        main_agent = Agent[Any, Any](runtime, model=model, name="main-agent")
         model = TestModel(custom_result_text="Helper response")
-        helper_agent = LLMlingAgent[Any, Any](runtime, model=model, name="helper-agent")
+        helper_agent = Agent[Any, Any](runtime, model=model, name="helper-agent")
 
         # Set up pool and register agents
         pool = AgentPool(AgentsManifest(agents={}))
@@ -116,7 +113,7 @@ async def test_agent_forwarding():
 async def test_error_handling():
     """Test error handling scenarios."""
     async with RuntimeConfig.open(Config()) as runtime:
-        agent = LLMlingAgent[Any, Any](
+        agent = Agent[Any, Any](
             runtime, model=TestModel(custom_result_text="Test"), name="test-agent"
         )
         session = AgentPoolView(agent)

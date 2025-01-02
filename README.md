@@ -177,9 +177,9 @@ llmling-agent chat system_checker
 
 4. Or run it programmatically:
 ```python
-from llmling_agent import LLMlingAgent
+from llmling_agent import Agent
 
-async with LLMlingAgent.open_agent("agents.yml", "system_checker") as agent:
+async with Agent.open_agent("agents.yml", "system_checker") as agent:
     result = await agent.run("How much memory is available?")
     print(result.data)
 ```
@@ -278,8 +278,8 @@ LLMling Agent supports message forwarding between agents, allowing creation of a
 
 ```python
 # Create two agents
-async with LLMlingAgent.open_agent("agents.yml", "analyzer") as agent_a, \
-          LLMlingAgent.open_agent("agents.yml", "reviewer") as agent_b:
+async with Agent.open_agent("agents.yml", "analyzer") as agent_a, \
+          Agent.open_agent("agents.yml", "reviewer") as agent_b:
 
     # Let agent_a pass its results to agent_b
     agent_a.pass_results_to(agent_b)
@@ -321,15 +321,15 @@ classDiagram
     %% Core relationships
     AgentsManifest --* AgentConfig : contains
     AgentsManifest --> AgentPool : creates
-    AgentPool --* LLMlingAgent : manages
+    AgentPool --* Agent : manages
     FileEnvironment --> Config : loads
     InlineEnvironment --* Config : contains
     Config --> RuntimeConfig : initialized as
-    LLMlingAgent --> RuntimeConfig : uses
+    Agent --> RuntimeConfig : uses
     AgentConfig --> FileEnvironment : uses
     AgentConfig --> InlineEnvironment : uses
-    LLMlingAgent --* ToolManager : uses
-    LLMlingAgent --* ConversationManager : uses
+    Agent --* ToolManager : uses
+    Agent --* ConversationManager : uses
 
     class Config ["[LLMling Core] Config"] {
         Base configuration format defining tools, resources, and settings
@@ -392,12 +392,12 @@ classDiagram
         Manager for multiple initialized agents
         +
         +manifest: AgentsManifest
-        +agents: dict[str, LLMlingAgent]
+        +agents: dict[str, Agent]
         +team_task()
         +open()
     }
 
-    class LLMlingAgent {
+    class Agent {
         Main agent class handling LLM interactions and tool usage
         +
         +runtime: RuntimeConfig

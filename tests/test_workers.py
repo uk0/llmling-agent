@@ -11,7 +11,7 @@ from llmling_agent import AgentPool, AgentsManifest
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from llmling_agent.agent.agent import LLMlingAgent
+    from llmling_agent.agent.agent import Agent
 
 
 BASIC_WORKERS = """\
@@ -98,10 +98,10 @@ def invalid_config(tmp_path: Path) -> Path:
 
 async def test_basic_worker_setup(basic_config: Path):
     """Test basic worker registration and usage."""
-    manifest = AgentsManifest.from_file(basic_config)
+    manifest = AgentsManifest[Any, Any].from_file(basic_config)
 
     async with AgentPool.open(manifest) as pool:
-        main_agent: LLMlingAgent[Any, str] = pool.get_agent("main")
+        main_agent: Agent[Any, str] = pool.get_agent("main")
 
         # Verify workers were registered as tools
         assert "ask_worker" in main_agent.tools
@@ -114,7 +114,7 @@ async def test_basic_worker_setup(basic_config: Path):
 
 async def test_history_sharing(sharing_config: Path):
     """Test history sharing between agents."""
-    manifest = AgentsManifest.from_file(sharing_config)
+    manifest = AgentsManifest[Any, Any].from_file(sharing_config)
 
     async with AgentPool.open(manifest) as pool:
         main_agent = pool.get_agent("main")
@@ -142,7 +142,7 @@ async def test_history_sharing(sharing_config: Path):
 
 async def test_context_sharing(sharing_config: Path):
     """Test context sharing between agents."""
-    manifest = AgentsManifest.from_file(sharing_config)
+    manifest = AgentsManifest[Any, Any].from_file(sharing_config)
 
     async with AgentPool.open(manifest) as pool:
         main_agent = pool.get_agent("main")
@@ -168,7 +168,7 @@ async def test_context_sharing(sharing_config: Path):
 
 async def test_invalid_worker(invalid_config: Path):
     """Test error when using non-existent worker."""
-    manifest = AgentsManifest.from_file(invalid_config)
+    manifest = AgentsManifest[Any, Any].from_file(invalid_config)
 
     with pytest.raises(ValueError, match="Worker agent.*not found"):
         async with AgentPool.open(manifest):
@@ -177,10 +177,10 @@ async def test_invalid_worker(invalid_config: Path):
 
 async def test_worker_independence(basic_config: Path):
     """Test that workers maintain independent state when not sharing."""
-    manifest = AgentsManifest.from_file(basic_config)
+    manifest = AgentsManifest[Any, Any].from_file(basic_config)
 
     async with AgentPool.open(manifest) as pool:
-        main_agent: LLMlingAgent[Any, str] = pool.get_agent("main")
+        main_agent: Agent[Any, str] = pool.get_agent("main")
 
         # Create history in main agent
         await main_agent.run("Remember X equals 42")
@@ -192,12 +192,12 @@ async def test_worker_independence(basic_config: Path):
 
 async def test_multiple_workers_same_prompt(basic_config: Path):
     """Test using multiple workers with the same prompt."""
-    manifest = AgentsManifest.from_file(basic_config)
+    manifest = AgentsManifest[Any, Any].from_file(basic_config)
 
     async with AgentPool.open(manifest) as pool:
-        main_agent: LLMlingAgent[Any, str] = pool.get_agent("main")
-        worker: LLMlingAgent[Any, str] = pool.get_agent("worker")
-        specialist: LLMlingAgent[Any, str] = pool.get_agent("specialist")
+        main_agent: Agent[Any, str] = pool.get_agent("main")
+        worker: Agent[Any, str] = pool.get_agent("worker")
+        specialist: Agent[Any, str] = pool.get_agent("specialist")
 
         # Configure test models
         main_model = TestModel(

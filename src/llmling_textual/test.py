@@ -11,7 +11,7 @@ from textual.app import App, ComposeResult
 from textual.containers import Container
 from textual.widgets import Header
 
-from llmling_agent import LLMlingAgent
+from llmling_agent import Agent
 from llmling_agent.commands import get_commands
 from llmling_agent.models import ChatMessage
 from llmling_textual.widget import ChatView
@@ -26,7 +26,7 @@ class ChatApp(App):
     def __init__(self):
         super().__init__()
         self._pending_tasks: set[asyncio.Task[None]] = set()
-        self._agent: LLMlingAgent[Any, str] | None = None
+        self._agent: Agent[Any, str] | None = None
         self._agent_cm: Any = None
 
     def compose(self) -> ComposeResult:
@@ -41,7 +41,7 @@ class ChatApp(App):
     async def on_mount(self):
         """Initialize agent when app starts."""
         path = "src/llmling_agent/config_resources/agents.yml"
-        self._agent_cm = LLMlingAgent.open_agent(path, "url_opener")
+        self._agent_cm = Agent.open_agent(path, "url_opener")
         self._agent = await self._agent_cm.__aenter__()
         assert self._agent
         logger.info("Agent initialized: %s", self._agent.name)

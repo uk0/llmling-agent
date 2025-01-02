@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from llmling.prompts import PromptType
     from pydantic_ai.messages import ModelMessage
 
-    from llmling_agent.agent.agent import LLMlingAgent
+    from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import MessageRole, StrPath
 
 logger = get_logger(__name__)
@@ -50,7 +50,7 @@ class ConversationManager:
 
     def __init__(
         self,
-        agent: LLMlingAgent[Any, Any],
+        agent: Agent[Any, Any],
         session_id: str | UUID | None = None,
         initial_prompts: str | Sequence[str] | None = None,
         *,
@@ -444,10 +444,10 @@ class ConversationManager:
 
 
 if __name__ == "__main__":
-    from llmling_agent import LLMlingAgent
+    from llmling_agent import Agent
 
     async def main():
-        async with LLMlingAgent[Any, Any].open() as agent:
+        async with Agent[Any, Any].open() as agent:
             convo = ConversationManager(agent, session_id="test")
             await convo.add_context_from_path("E:/mcp_zed.yml")
             print(convo._current_history)

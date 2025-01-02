@@ -149,9 +149,9 @@ llmling-agent chat simple_agent  # or system_checker
 
 3. Or use it in code:
 ```python
-from llmling_agent import LLMlingAgent
+from llmling_agent import Agent
 
-async with LLMlingAgent.open_agent("agents.yml", "simple_agent") as agent:
+async with Agent.open_agent("agents.yml", "simple_agent") as agent:
     result = await agent.run("How can you help me?")
     print(result.data)
 ```

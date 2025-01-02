@@ -23,7 +23,7 @@ from llmling_agent.utils.inspection import has_argument_type
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.agent import LLMlingAgent
+    from llmling_agent.agent.agent import Agent
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig, AgentsManifest
@@ -94,7 +94,7 @@ class AgentContext[TDeps]:
 
     # TODO: perhaps add agent directly to context?
     @property
-    def agent(self) -> LLMlingAgent[TDeps, Any] | None:
+    def agent(self) -> Agent[TDeps, Any] | None:
         """Get the agent instance from the pool."""
         if not self.pool or not self.agent_name:
             return None

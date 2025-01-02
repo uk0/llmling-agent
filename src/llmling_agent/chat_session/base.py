@@ -19,7 +19,7 @@ from slashed import (
     ExitCommandError,
 )
 
-from llmling_agent.agent import LLMlingAgent
+from llmling_agent.agent import Agent
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
 from llmling_agent.commands import get_commands
@@ -78,11 +78,11 @@ class AgentPoolView:
     tool_added = Signal(ToolInfo)
     tool_removed = Signal(str)  # tool_name
     tool_changed = Signal(str, ToolInfo)  # name, new_info
-    agent_connected = Signal(LLMlingAgent)
+    agent_connected = Signal(Agent)
 
     def __init__(
         self,
-        agent: LLMlingAgent[Any, str],
+        agent: Agent[Any, str],
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,
@@ -114,7 +114,7 @@ class AgentPoolView:
     @classmethod
     async def create(
         cls,
-        agent: LLMlingAgent[Any, str],
+        agent: Agent[Any, str],
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,

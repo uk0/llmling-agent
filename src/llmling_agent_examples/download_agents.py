@@ -9,7 +9,7 @@ from llmling_agent.delegation import AgentPool
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent import LLMlingAgent
+    from llmling_agent.agent import Agent
 
 
 def cheer(slogan: str):
@@ -120,7 +120,7 @@ async def run(config_path: str):
         print(f"\nParallel was {sequential_time / parallel_time:.1f}x faster")
 
         # Let the overseer handle it
-        overseer: LLMlingAgent[None, str] = pool.get_agent("overseer")
+        overseer: Agent[None, str] = pool.get_agent("overseer")
         result = await overseer.run(OVERSEER_PROMPT)
         await fan.stop()
 

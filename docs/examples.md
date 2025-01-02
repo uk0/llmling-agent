@@ -57,9 +57,9 @@ Assistant: I'll open the Python documentation (https://docs.python.org) in your 
 
 Or programmatically:
 ```python
-from llmling_agent import LLMlingAgent
+from llmling_agent import Agent
 
-async with LLMlingAgent.open_agent("agents.yml", "url_opener") as agent:
+async with Agent.open_agent("agents.yml", "url_opener") as agent:
     result = await agent.run("Open the Python website")
     print(result.data)
 ```
@@ -148,9 +148,9 @@ resources:
 
 Use the file manager:
 ```python
-from llmling_agent import LLMlingAgent
+from llmling_agent import Agent
 
-async with LLMlingAgent.open_agent("agents.yml", "file_manager") as agent:
+async with Agent.open_agent("agents.yml", "file_manager") as agent:
     # List files
     result = await agent.run("What files are in the current directory?")
     print(result.data)

@@ -1,7 +1,7 @@
 """Agent configuration and creation."""
 
 from llmling_agent.models import AgentsManifest, SystemPrompt, AgentConfig
-from llmling_agent.agent import LLMlingAgent
+from llmling_agent.agent import Agent
 from llmling_agent.functional import (
     run_with_model,
     run_with_model_sync,
@@ -19,12 +19,12 @@ __version__ = "0.16.0"
 load_dotenv()
 
 __all__ = [
+    "Agent",
     "AgentConfig",
     "AgentPool",
     "AgentPoolView",
     "AgentsManifest",
     "ChatMessage",
-    "LLMlingAgent",
     "SystemPrompt",
     "get_structured",
     "run_agent_pipeline",

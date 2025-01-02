@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal, get_args
 
 from llmling import Config
 
-from llmling_agent.agent.agent import LLMlingAgent
+from llmling_agent.agent.agent import Agent
 from llmling_agent.log import get_logger
 
 
@@ -83,7 +83,7 @@ async def get_structured[T](
         """Construct instance from LLM-provided arguments."""
         return response_type(**kwargs)
 
-    async with LLMlingAgent[Any, T].open(
+    async with Agent[Any, T].open(
         result_type=response_type,
         model=model,
         system_prompt=system_prompt or [],
@@ -145,7 +145,7 @@ async def get_structured_multiple[T](
         type_info,
     ]
 
-    async with LLMlingAgent[Any, Any].open(
+    async with Agent[Any, Any].open(
         Config(),
         model=model,
         system_prompt=system_prompts,
@@ -191,12 +191,9 @@ async def pick_one[T](
     docs = "\n".join(f"- {k}: {desc}" for k, (_, desc) in choices.items())
     assert select_option.__doc__
     select_option.__doc__ += f"\nOptions:\n{docs}"
-
-    async with LLMlingAgent[Any, Any].open(
-        Config(),
-        model=model,
-        system_prompt="Select the most appropriate option based on the context.",
-    ) as agent:
+    sys_prompt = "Select the most appropriate option based on the context."
+    cfg = Config()
+    async with Agent[Any, Any].open(cfg, model=model, system_prompt=sys_prompt) as agent:
         agent.tools.register_tool(select_option, enabled=True)
         agent._tool_manager.tool_choice = "select_option"
 

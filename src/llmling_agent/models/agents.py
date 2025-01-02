@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from uuid import UUID
 
-    from llmling_agent import AgentPool, LLMlingAgent
+    from llmling_agent import Agent, AgentPool
     from llmling_agent.common_types import StrPath
 
 
@@ -277,12 +277,12 @@ class AgentConfig(BaseModel):
         return data
 
     def get_agent_kwargs(self, **overrides) -> dict[str, Any]:
-        """Get kwargs for LLMlingAgent constructor.
+        """Get kwargs for Agent constructor.
 
         Returns:
-            dict[str, Any]: Kwargs to pass to LLMlingAgent
+            dict[str, Any]: Kwargs to pass to Agent
         """
-        # Include only the fields that LLMlingAgent expects
+        # Include only the fields that Agent expects
         dct = {
             "name": self.name,
             "description": self.description,
@@ -298,7 +298,7 @@ class AgentConfig(BaseModel):
             **self.model_settings,
         }
         # Note: result_type is handled separately as it needs to be resolved
-        # from string to actual type in LLMlingAgent initialization
+        # from string to actual type in Agent initialization
 
         dct.update(overrides)
         return dct
@@ -519,7 +519,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         return_type: None = None,
         model: str | None = None,
         session_id: str | UUID | None = None,
-    ) -> AsyncIterator[LLMlingAgent[TDeps, TResult]]: ...
+    ) -> AsyncIterator[Agent[TDeps, TResult]]: ...
 
     @overload
     async def open_agent(
@@ -529,7 +529,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         return_type: type[TResultOverride],
         model: str | None = None,
         session_id: str | UUID | None = None,
-    ) -> AsyncIterator[LLMlingAgent[TDeps, TResultOverride]]: ...
+    ) -> AsyncIterator[Agent[TDeps, TResultOverride]]: ...
 
     @asynccontextmanager
     async def open_agent(
@@ -539,7 +539,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         return_type: type[TResultOverride] | None = None,
         model: str | None = None,
         session_id: str | UUID | None = None,
-    ) -> AsyncIterator[LLMlingAgent[TDeps, TResult | TResultOverride]]:
+    ) -> AsyncIterator[Agent[TDeps, TResult | TResultOverride]]:
         """Open and configure a specific agent from configuration.
 
         Creates the agent in the context of a single-agent pool.
@@ -555,13 +555,13 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
             async with manifest.open_agent("my-agent") as agent:
                 result = await agent.run("Hello!")
         """
-        from llmling_agent import LLMlingAgent
+        from llmling_agent import Agent
         from llmling_agent.delegation import AgentPool
 
         # Create empty pool just for context
         pool = AgentPool(manifest=self, agents_to_load=[], connect_agents=False)
         try:
-            async with LLMlingAgent[TDeps, TResult | TResultOverride].open_agent(
+            async with Agent[TDeps, TResult | TResultOverride].open_agent(
                 self,
                 agent_name,
                 model=model,

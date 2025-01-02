@@ -15,7 +15,7 @@ from llmling_agent_cli import resolve_agent_config
 
 
 if TYPE_CHECKING:
-    from llmling_agent import LLMlingAgent
+    from llmling_agent import Agent
 
 
 logger = get_logger(__name__)
@@ -74,7 +74,7 @@ def chat_command(
                 connect_agents=False,  # We'll handle connections manually
             ) as pool:
                 # Get main agent
-                agent: LLMlingAgent[Any, str] = pool.get_agent(
+                agent: Agent[Any, str] = pool.get_agent(
                     agent_name,
                     model_override=model,
                     session_id=session_id,

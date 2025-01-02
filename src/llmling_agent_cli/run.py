@@ -11,7 +11,7 @@ import typer as t
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.agent import LLMlingAgent
+    from llmling_agent.agent.agent import Agent
 
 PROMPT_HELP = "Include named prompt from environment configuration"
 OUTPUT_HELP = "Output format (text/json/yaml)"
@@ -87,7 +87,7 @@ def run_command(
 
                 if len(agent_names) == 1:
                     # Single agent execution
-                    agent: LLMlingAgent[Any, Any] = pool.get_agent(
+                    agent: Agent[Any, Any] = pool.get_agent(
                         agent_names[0],
                         model_override=model,
                     )

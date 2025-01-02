@@ -10,7 +10,7 @@ from llmling import BaseRegistry, Config, LLMLingError, RuntimeConfig
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
-from llmling_agent import LLMlingAgent
+from llmling_agent import Agent
 from llmling_agent.log import get_logger
 from llmling_agent.tasks import TaskRegistry
 
@@ -55,7 +55,7 @@ class AgentResponse[TResult](BaseModel):
         return self.error is None
 
 
-class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
+class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
     """Pool of initialized agents.
 
     Each agent maintains its own runtime environment based on its configuration.
@@ -113,7 +113,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
             )
 
             # Create agent with runtime and context
-            agent = LLMlingAgent[Any, Any](
+            agent = Agent[Any, Any](
                 runtime=runtime,
                 context=context,
                 result_type=None,  # type: ignore[arg-type]
@@ -144,7 +144,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
     #         self._setup_connections()
 
     @property
-    def agents(self) -> EventedDict[str, LLMlingAgent[Any, Any]]:
+    def agents(self) -> EventedDict[str, Agent[Any, Any]]:
         """Get agents dict (backward compatibility)."""
         return self._items
 
@@ -153,22 +153,20 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
         """Error class for agent operations."""
         return LLMLingError
 
-    def _validate_item(
-        self, item: LLMlingAgent[Any, Any] | Any
-    ) -> LLMlingAgent[Any, Any]:
+    def _validate_item(self, item: Agent[Any, Any] | Any) -> Agent[Any, Any]:
         """Validate and convert items before registration.
 
         Args:
             item: Item to validate
 
         Returns:
-            Validated LLMlingAgent
+            Validated Agent
 
         Raises:
             LLMlingError: If item is not a valid agent
         """
-        if not isinstance(item, LLMlingAgent):
-            msg = f"Item must be LLMlingAgent, got {type(item)}"
+        if not isinstance(item, Agent):
+            msg = f"Item must be Agent, got {type(item)}"
             raise self._error_class(msg)
         return item
 
@@ -230,7 +228,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
         config: AgentConfig,
         *,
         temporary: bool = True,
-    ) -> LLMlingAgent[Any, Any]:
+    ) -> Agent[Any, Any]:
         """Create and register a new agent in the pool."""
         from llmling_agent.models.context import AgentContext
 
@@ -251,7 +249,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
             )
 
             # Create agent with runtime and context
-            agent = LLMlingAgent[Any, Any](
+            agent = Agent[Any, Any](
                 runtime=runtime,
                 context=context,
                 result_type=None,  # type: ignore[arg-type]
@@ -273,13 +271,13 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
 
     async def clone_agent[TDeps, TResult](
         self,
-        agent: LLMlingAgent[TDeps, TResult] | str,
+        agent: Agent[TDeps, TResult] | str,
         new_name: str | None = None,
         *,
         model_override: str | None = None,
         system_prompts: list[str] | None = None,
         template_context: dict[str, Any] | None = None,
-    ) -> LLMlingAgent[TDeps, TResult]:
+    ) -> Agent[TDeps, TResult]:
         """Create a copy of an agent.
 
         Args:
@@ -298,7 +296,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
                 msg = f"Agent {agent} not found"
                 raise KeyError(msg)
             config = self.manifest.agents[agent]
-            original_agent: LLMlingAgent[TDeps, TResult] = self.get_agent(agent)
+            original_agent: Agent[TDeps, TResult] = self.get_agent(agent)
         else:
             config = agent._context.config  # type: ignore
             original_agent = agent
@@ -317,7 +315,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
             new_config.system_prompts = new_config.render_system_prompts(template_context)
 
         # Create new agent with same runtime
-        new_agent = LLMlingAgent[TDeps, TResult](
+        new_agent = Agent[TDeps, TResult](
             runtime=original_agent._runtime,
             context=original_agent._context,
             result_type=original_agent.actual_type,
@@ -333,9 +331,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
 
         return new_agent
 
-    def setup_agent_workers(
-        self, agent: LLMlingAgent[Any, Any], workers: list[WorkerConfig]
-    ):
+    def setup_agent_workers(self, agent: Agent[Any, Any], workers: list[WorkerConfig]):
         """Set up workers for an agent from configuration."""
         for worker_config in workers:
             try:
@@ -358,7 +354,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
         model_override: str | None = None,
         session_id: str | UUID | None = None,
         environment_override: StrPath | Config | None = None,
-    ) -> LLMlingAgent:
+    ) -> Agent:
         """Get an agent by name with optional runtime modifications.
 
         Args:
@@ -435,7 +431,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
     async def team_task(
         self,
         prompt: str,
-        team: Sequence[str | LLMlingAgent[Any, Any]],
+        team: Sequence[str | Agent[Any, Any]],
         *,
         mode: Literal["parallel", "sequential"] = "parallel",
         model_override: str | None = None,
@@ -451,12 +447,12 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
             environment_override: Optional environment override for all agents
         """
 
-        async def run_agent(agent_ref: str | LLMlingAgent[Any, Any]) -> AgentResponse:
+        async def run_agent(agent_ref: str | Agent[Any, Any]) -> AgentResponse:
             try:
                 # Use agent directly if instance provided, otherwise look up by name
                 agent = (
                     agent_ref
-                    if isinstance(agent_ref, LLMlingAgent)
+                    if isinstance(agent_ref, Agent)
                     else self.get_agent(agent_ref)
                 )
                 if model_override:
@@ -495,7 +491,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
 
 async def main():
     async with AgentPool.open("agents.yml") as pool:
-        agent: LLMlingAgent[Any, str] = pool.get_agent("overseer")
+        agent: Agent[Any, str] = pool.get_agent("overseer")
         print(agent)
 
 

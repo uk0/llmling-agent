@@ -31,7 +31,7 @@ class PromptTemplate(BaseModel):
         **kwargs: Any,
     ) -> str:
         """Apply this template to generate a new prompt."""
-        from pydantic_ai import Agent
+        from pydantic_ai import Agent as PydanticAiAgent
 
         template_vars = {"goal": goal, **self.defaults, **kwargs}
         if max_length:
@@ -41,7 +41,7 @@ class PromptTemplate(BaseModel):
         content = self.template.format(**template_vars) if self.template else goal
 
         # Create temporary pydantic agent
-        agent = Agent(model=model, system_prompt=self.system)  # type: ignore
+        agent = PydanticAiAgent(model=model, system_prompt=self.system)  # type: ignore
 
         # Run through the model
         result = await agent.run(content)
