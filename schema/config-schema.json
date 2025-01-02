@@ -231,32 +231,6 @@
           "title": "User Prompts",
           "type": "array"
         },
-        "context_sources": {
-          "description": "Initial context sources to load",
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "file": "#/$defs/FileContextSource",
-                "prompt": "#/$defs/PromptContextSource",
-                "resource": "#/$defs/ResourceContextSource"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/FileContextSource"
-              },
-              {
-                "$ref": "#/$defs/ResourceContextSource"
-              },
-              {
-                "$ref": "#/$defs/PromptContextSource"
-              }
-            ]
-          },
-          "title": "Context Sources",
-          "type": "array"
-        },
         "include_role_prompts": {
           "default": true,
           "description": "Whether to include default prompts based on the agent's role.",
@@ -577,7 +551,7 @@
       "type": "object"
     },
     "Capabilities": {
-      "description": "Defines what operations an agent is allowed to perform.\n\nControls an agent's permissions and access levels including:\n- Agent discovery and delegation abilities\n- History access permissions\n- Statistics viewing rights\n- Tool usage restrictions\n\nCan be defined per role or customized per agent.",
+      "description": "Defines what operations an agent is allowed to perform.",
       "properties": {
         "can_list_agents": {
           "default": false,
@@ -599,7 +573,7 @@
         },
         "history_access": {
           "default": "none",
-          "description": "Level of access to conversation history.\n\nLevels:\n- none: No access to history\n- own: Can only access own conversations\n- all: Can access all agents' conversations",
+          "description": "Level of access to conversation history.",
           "enum": [
             "none",
             "own",
@@ -610,7 +584,7 @@
         },
         "stats_access": {
           "default": "none",
-          "description": "Level of access to usage statistics.\n\nLevels:\n- none: No access to statistics\n- own: Can only view own statistics\n- all: Can view all agents' statistics",
+          "description": "Level of access to usage statistics.",
           "enum": [
             "none",
             "own",
@@ -618,6 +592,54 @@
           ],
           "title": "Stats Access",
           "type": "string"
+        },
+        "can_load_resources": {
+          "default": false,
+          "description": "Whether the agent can load and access resource content.",
+          "title": "Can Load Resources",
+          "type": "boolean"
+        },
+        "can_list_resources": {
+          "default": false,
+          "description": "Whether the agent can discover available resources.",
+          "title": "Can List Resources",
+          "type": "boolean"
+        },
+        "can_register_tools": {
+          "default": false,
+          "description": "Whether the agent can register importable functions as tools.",
+          "title": "Can Register Tools",
+          "type": "boolean"
+        },
+        "can_register_code": {
+          "default": false,
+          "description": "Whether the agent can create new tools from provided code.",
+          "title": "Can Register Code",
+          "type": "boolean"
+        },
+        "can_install_packages": {
+          "default": false,
+          "description": "Whether the agent can install Python packages for tools.",
+          "title": "Can Install Packages",
+          "type": "boolean"
+        },
+        "can_chain_tools": {
+          "default": false,
+          "description": "Whether the agent can chain multiple tool calls into one.",
+          "title": "Can Chain Tools",
+          "type": "boolean"
+        },
+        "can_create_workers": {
+          "default": false,
+          "description": "Whether the agent can create worker agents (as tools).",
+          "title": "Can Create Workers",
+          "type": "boolean"
+        },
+        "can_create_delegates": {
+          "default": false,
+          "description": "Whether the agent can spawn temporary delegate agents.",
+          "title": "Can Create Delegates",
+          "type": "boolean"
         }
       },
       "title": "Capabilities",
@@ -777,38 +799,6 @@
         "module"
       ],
       "title": "EntryPointToolsetConfig",
-      "type": "object"
-    },
-    "FileContextSource": {
-      "description": "Load context from a file.",
-      "properties": {
-        "type": {
-          "const": "file",
-          "default": "file",
-          "title": "Type",
-          "type": "string"
-        },
-        "convert_to_md": {
-          "default": false,
-          "title": "Convert To Md",
-          "type": "boolean"
-        },
-        "metadata": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "title": "Metadata",
-          "type": "object"
-        },
-        "path": {
-          "title": "Path",
-          "type": "string"
-        }
-      },
-      "required": [
-        "path"
-      ],
-      "title": "FileContextSource",
       "type": "object"
     },
     "FileEnvironment": {
@@ -1489,30 +1479,44 @@
       "type": "object"
     },
     "Knowledge": {
-      "description": "Collection of context sources for an agent.",
+      "description": "Collection of context sources for an agent.\n\nSupports both simple paths and rich resource types for content loading,\nplus LLMling's prompt system for dynamic content generation.",
       "properties": {
         "paths": {
+          "description": "Quick access to files and URLs.",
           "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "$ref": "#/$defs/FileContextSource"
-              }
-            ]
+            "type": "string"
           },
           "title": "Paths",
           "type": "array"
         },
         "resources": {
+          "description": "Rich resource definitions supporting:\n- PathResource: Complex file patterns, watching\n- TextResource: Raw content\n- CLIResource: Command output\n- RepositoryResource: Git repos\n- SourceResource: Python source\n- CallableResource: Function results",
           "items": {
-            "anyOf": [
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableResource",
+                "cli": "#/$defs/CLIResource",
+                "path": "#/$defs/PathResource",
+                "source": "#/$defs/SourceResource",
+                "text": "#/$defs/TextResource"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
               {
-                "type": "string"
+                "$ref": "#/$defs/PathResource"
               },
               {
-                "$ref": "#/$defs/ResourceContextSource"
+                "$ref": "#/$defs/TextResource"
+              },
+              {
+                "$ref": "#/$defs/CLIResource"
+              },
+              {
+                "$ref": "#/$defs/SourceResource"
+              },
+              {
+                "$ref": "#/$defs/CallableResource"
               }
             ]
           },
@@ -1520,22 +1524,35 @@
           "type": "array"
         },
         "prompts": {
+          "description": "Prompts for dynamic content generation:\n- StaticPrompt: Fixed message templates\n- DynamicPrompt: Python function-based\n- FilePrompt: File-based with template support",
           "items": {
-            "anyOf": [
+            "discriminator": {
+              "mapping": {
+                "file": "#/$defs/FilePrompt",
+                "function": "#/$defs/DynamicPrompt",
+                "text": "#/$defs/StaticPrompt"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
               {
-                "type": "string"
+                "$ref": "#/$defs/StaticPrompt"
               },
               {
-                "$ref": "#/$defs/PromptContextSource"
+                "$ref": "#/$defs/DynamicPrompt"
+              },
+              {
+                "$ref": "#/$defs/FilePrompt"
               }
             ]
           },
           "title": "Prompts",
           "type": "array"
         },
-        "convert_paths_to_markdown": {
+        "convert_to_markdown": {
           "default": false,
-          "title": "Convert Paths To Markdown",
+          "description": "Whether to convert content to markdown when possible.",
+          "title": "Convert To Markdown",
           "type": "boolean"
         }
       },
@@ -1894,42 +1911,6 @@
       "title": "ProcessorConfig",
       "type": "object"
     },
-    "PromptContextSource": {
-      "description": "Load context from a prompt.",
-      "properties": {
-        "type": {
-          "const": "prompt",
-          "default": "prompt",
-          "title": "Type",
-          "type": "string"
-        },
-        "convert_to_md": {
-          "default": false,
-          "title": "Convert To Md",
-          "type": "boolean"
-        },
-        "metadata": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "title": "Metadata",
-          "type": "object"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "arguments": {
-          "title": "Arguments",
-          "type": "object"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "PromptContextSource",
-      "type": "object"
-    },
     "PromptMessage": {
       "description": "A message in a prompt template.",
       "properties": {
@@ -2056,42 +2037,6 @@
         "models"
       ],
       "title": "RandomMultiModel",
-      "type": "object"
-    },
-    "ResourceContextSource": {
-      "description": "Load context from a resource.",
-      "properties": {
-        "type": {
-          "const": "resource",
-          "default": "resource",
-          "title": "Type",
-          "type": "string"
-        },
-        "convert_to_md": {
-          "default": false,
-          "title": "Convert To Md",
-          "type": "boolean"
-        },
-        "metadata": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "title": "Metadata",
-          "type": "object"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "arguments": {
-          "title": "Arguments",
-          "type": "object"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "ResourceContextSource",
       "type": "object"
     },
     "ResponseField": {
