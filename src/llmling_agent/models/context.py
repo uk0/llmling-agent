@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Protocol
+import json
+from textwrap import dedent
+from typing import TYPE_CHECKING, Any
 
 from llmling import RuntimeConfig  # noqa: TC002
+from pydantic_ai import RunContext
 from typing_extensions import TypeVar
+
+from llmling_agent.tools.base import ToolInfo
 
 
 if TYPE_CHECKING:
@@ -14,7 +21,6 @@ if TYPE_CHECKING:
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig, AgentsManifest
-    from llmling_agent.tools.base import ToolInfo
 
 
 TDeps = TypeVar("TDeps", default=Any)
@@ -54,8 +60,11 @@ class AgentContext[TDeps]:
     pool: AgentPool | None = None
     """Pool the agent is part of."""
 
-    confirmation_handler: ConfirmationHandler | None = None
+    confirmation_handler: ConfirmationCallback | None = None
     """Optional confirmation handler for tool execution."""
+
+    in_async_context: bool = False
+    """Whether we're running in an async context."""
 
     @classmethod
     def create_default(
@@ -85,12 +94,55 @@ class AgentContext[TDeps]:
             return None
         return self.pool.get_agent(self.agent_name)
 
-
-class ConfirmationHandler(Protocol):
-    async def confirm_tool(
+    async def handle_confirmation(
         self,
+        run_ctx: RunContext[AgentContext],
         tool: ToolInfo,
         args: dict[str, Any],
     ) -> bool:
-        """Request confirmation for tool execution."""
-        ...
+        """Handle tool execution confirmation.
+
+        Returns True if:
+        - No confirmation handler is set
+        - Handler confirms the execution
+        """
+        if not self.confirmation_handler:
+            return True
+
+        result = self.confirmation_handler(run_ctx, tool, args)
+        if isinstance(result, bool):
+            return result
+        return await result
+
+
+ConfirmationCallback = Callable[
+    [RunContext[AgentContext], ToolInfo, dict[str, Any]], Awaitable[bool] | bool
+]
+
+
+async def simple_confirmation(
+    ctx: RunContext[AgentContext],
+    tool: ToolInfo,
+    args: dict[str, Any],
+) -> bool:
+    """Simple confirmation handler using input() in executor."""
+    prompt = dedent(f"""
+        Tool Execution Confirmation
+        -------------------------
+        Tool: {tool.name}
+        Description: {tool.description or "No description"}
+
+        Arguments:
+        {json.dumps(args, indent=2)}
+
+        Context:
+        - Agent: {ctx.deps.agent_name}
+        - Model: {ctx.model.name()}
+        - Prompt: "{ctx.prompt[:100]}..."
+
+        Allow this tool execution? [y/N]: """).strip()
+
+    # Run input() in executor to avoid blocking
+    loop = asyncio.get_running_loop()
+    response = await loop.run_in_executor(None, input, prompt + "\n")
+    return response.lower().startswith("y")

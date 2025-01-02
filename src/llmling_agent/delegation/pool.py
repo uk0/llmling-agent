@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import StrPath
     from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
-    from llmling_agent.models.context import ConfirmationHandler
+    from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.task import AgentTask
 
 
@@ -67,7 +67,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
         *,
         agents_to_load: list[str] | None = None,
         connect_agents: bool = True,
-        confirmation_handler: ConfirmationHandler | None = None,
+        confirmation_handler: ConfirmationCallback | None = None,
     ):
         """Initialize agent pool with immediate agent creation.
 
@@ -109,6 +109,7 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
                 definition=self.manifest,
                 config=config,
                 pool=self,
+                confirmation_handler=confirmation_handler,
             )
 
             # Create agent with runtime and context
@@ -377,8 +378,8 @@ class AgentPool(BaseRegistry[str, LLMlingAgent[Any, Any]]):
             raise KeyError(msg)
 
         agent = self.agents[name]
-        if agent._context and agent._context.pool is not self:
-            agent._context.pool = self
+        agent._context.pool = self
+        agent._context.confirmation_handler = self._confirmation_handler
         if session_id:
             agent.conversation.load_history_from_database(session_id=session_id)
         # Apply any overrides to the existing agent
