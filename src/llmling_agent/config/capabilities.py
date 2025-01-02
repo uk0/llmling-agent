@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 from datetime import datetime, timedelta
+import io
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
@@ -60,6 +63,14 @@ class Capabilities(EventedModel):
 
     can_chain_tools: bool = False
     """Whether the agent can chain multiple tool calls into one."""
+
+    # Execution
+
+    can_execute_code: bool = False
+    """Whether the agent can execute Python code (WARNING: No sandbox)."""
+
+    can_execute_commands: bool = False
+    """Whether the agent can execute CLI commands (use at your own risk)."""
 
     # Agent creation
     can_create_workers: bool = False
@@ -284,3 +295,35 @@ class Capabilities(EventedModel):
         stats = get_conversation_stats(filters)
         formatted = format_stats(stats, f"{hours}h", group_by)
         return format_output(formatted, output_format="text")
+
+    @staticmethod
+    async def execute_python(ctx: RunContext[AgentContext], code: str) -> str:
+        """Execute Python code directly."""
+        if not ctx.deps.capabilities.can_execute_code:
+            msg = "No permission to execute code"
+            raise ToolError(msg)
+
+        try:
+            # Capture output
+            with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+                exec(code, {"__builtins__": __builtins__})
+                return buf.getvalue() or "Code executed successfully"
+        except Exception as e:  # noqa: BLE001
+            return f"Error executing code: {e}"
+
+    @staticmethod
+    async def execute_command(ctx: RunContext[AgentContext], command: str) -> str:
+        """Execute a shell command."""
+        if not ctx.deps.capabilities.can_execute_commands:
+            msg = "No permission to execute commands"
+            raise ToolError(msg)
+
+        try:
+            pipe = asyncio.subprocess.PIPE
+            proc = await asyncio.create_subprocess_shell(
+                command, stdout=pipe, stderr=pipe
+            )
+            stdout, stderr = await proc.communicate()
+            return stdout.decode() or stderr.decode() or "Command completed"
+        except Exception as e:  # noqa: BLE001
+            return f"Error executing command: {e}"
