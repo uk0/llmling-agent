@@ -215,7 +215,7 @@ class ConversationManager:
 
         return "\n".join(messages)
 
-    async def load_context_source(self, source: Resource | str):
+    async def load_context_source(self, source: Resource | PromptType | str):
         """Load context from a single source."""
         try:
             match source:
@@ -223,6 +223,8 @@ class ConversationManager:
                     await self.add_context_from_path(source)
                 case BaseResource():
                     await self.add_context_from_resource(source)
+                case BasePrompt():
+                    await self.add_context_from_prompt(source)
         except Exception:
             msg = "Failed to load context from %s"
             logger.exception(msg, "file" if isinstance(source, str) else source.type)
