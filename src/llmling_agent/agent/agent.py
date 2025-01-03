@@ -703,7 +703,7 @@ class Agent[TDeps, TResult]:
         """
         tool_name = f"ask_{self.name}"
 
-        async def wrapped_tool(ctx: RunContext[AgentContext], prompt: str) -> str:
+        async def wrapped_tool(ctx: RunContext[AgentContext[TDeps]], prompt: str) -> str:
             if pass_message_history and not parent:
                 msg = "Parent agent required for message history sharing"
                 raise ToolError(msg)
