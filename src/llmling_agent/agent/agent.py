@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 
 from llmling import Config, LLMCallableTool, RuntimeConfig, ToolError
 from psygnal import Signal
-from pydantic_ai import Agent as PydanticAgent, RunContext
+from pydantic_ai import Agent as PydanticAgent, RunContext, _result
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import infer_model
 from tokonomics import TokenLimits, get_model_limits
@@ -134,7 +134,8 @@ class Agent[TDeps, TResult]:
         all_tools.extend(runtime.tools.values())  # Add runtime tools directly
         logger.debug("Runtime tools: %s", list(runtime.tools.keys()))
         self._tool_manager = ToolManager(tools=all_tools, tool_choice=tool_choice)
-
+        self._result_tool_name = result_tool_name
+        self._result_tool_description = result_tool_description
         # Resolve result type
         self.actual_type: type[TResult]
         match result_type:
@@ -402,6 +403,23 @@ class Agent[TDeps, TResult]:
             finally:
                 # Any cleanup if needed
                 pass
+
+    @property
+    def result_type(self) -> type[TResult] | None:
+        """Get current result type."""
+        return self.actual_type
+
+    @result_type.setter
+    def result_type(self, value: type[Any] | None):
+        """Set result type and update pydantic-ai agent schema."""
+        self.actual_type = value  # type: ignore
+        if value is not None:
+            # Update pydantic-ai agent's result schema
+            self._pydantic_agent._result_schema = _result.ResultSchema[value].build(
+                value, self._result_tool_name, self._result_tool_description
+            )
+        else:
+            self._pydantic_agent._result_schema = None
 
     def _forward_message(self, message: ChatMessage[Any]):
         """Forward sent messages."""
