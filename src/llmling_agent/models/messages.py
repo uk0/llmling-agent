@@ -46,7 +46,7 @@ class ChatMessage[TContent](BaseModel):
     """
 
     content: TContent
-    """Message content, typed as T (either str or BaseModel)."""
+    """Message content, typed as TContent (either str or BaseModel)."""
 
     model: str | None = None
     """Name of the model that generated this message."""
