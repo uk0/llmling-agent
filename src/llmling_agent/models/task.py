@@ -55,9 +55,6 @@ class AgentTask[TDeps, TResult](BaseModel):
     min_context_tokens: int | None = None
     """Minimum amount of required context size."""
 
-    skip_if: ImportString[bool] | None = None
-    """Skip execution if condition evaluates to True."""
-
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
     @property
