@@ -85,6 +85,9 @@ class ToolInfo:
     metadata: dict[str, str] = field(default_factory=dict)
     """Additional tool metadata"""
 
+    cache_enabled: bool = False
+    """Whether to enable caching for this tool."""
+
     @property
     def schema(self) -> OpenAIFunctionTool:
         """Get the OpenAI function schema for the tool."""
