@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from llmling_agent.agent.agent import Agent
-    from llmling_agent.common_types import ToolType
+    from llmling_agent.common_types import ToolSource, ToolType
 
 
 logger = get_logger(__name__)
@@ -158,7 +158,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         tool: LLMCallableTool | Callable[..., Any],
         *,
         enabled: bool = True,
-        source: Literal["runtime", "agent", "builtin", "dynamic"] = "runtime",
+        source: ToolSource = "runtime",
         priority: int = 100,
         requires_confirmation: bool = False,
         requires_capability: str | None = None,

@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from py2openai.typedefs import Property, ToolParameters
     from pydantic_ai import RunContext
 
+    from llmling_agent.common_types import ToolSource
     from llmling_agent.models import AgentContext
 
 T = TypeVar("T")
@@ -67,7 +68,7 @@ class ToolInfo:
     enabled: bool = True
     """Whether the tool is currently enabled"""
 
-    source: Literal["runtime", "agent", "builtin", "dynamic"] = "runtime"
+    source: ToolSource = "runtime"
     """Where the tool came from."""
 
     priority: int = 100

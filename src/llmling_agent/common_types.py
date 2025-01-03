@@ -22,3 +22,4 @@ MessageRole = Literal["user", "assistant", "system"]
 PartType = Literal["text", "image", "audio", "video"]
 
 EnvironmentType = Literal["file", "inline"]
+ToolSource = Literal["runtime", "agent", "builtin", "dynamic", "task"]
