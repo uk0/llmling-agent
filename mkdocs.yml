@@ -57,7 +57,70 @@ theme:
 plugins:
   - search
   - autorefs
-  - mknodes
+  - mknodes:
+      kwargs:
+        pages:
+          - title: Home
+            type: MkText
+            text: "{{ metadata.description }}"
+            is_index: true
+          - Concepts:
+              - type: MkTemplate
+                title: General
+                template: docs/agent.md
+              - type: MkTemplate
+                title: Configuration
+                template: docs/agent_config.md
+              - type: MkTemplate
+                title: Commands
+                template: docs/commands.md
+              - type: MkTemplate
+                title: Examples
+                template: docs/examples.md
+              - type: MkTemplate
+                title: Key concepts
+                template: docs/key_concepts.md
+              - type: MkTemplate
+                title: Quickstart
+                template: docs/quickstart.md
+              - type: MkTemplate
+                title: Running agents
+                template: docs/running_agents.md
+              - type: MkTemplate
+                title: WebUI
+                template: docs/webui.md
+          - title: API
+            type: MkDoc
+            section_name: "API"
+            recursive: true
+          - title: CLI
+            type: MkCliDoc
+            show_subcommands: true
+            condition: "{{ metadata.cli }}"
+          - Development:
+              - title: Changelog
+                type: MkChangelog
+              - title: Code of Conduct
+                type: MkCodeOfConduct
+              - title: Contributing
+                type: MkCommitConventions
+              - title: Pull requests
+                type: MkPullRequestGuidelines
+              - title: Dependencies
+                type: MkPage
+                items:
+                  - title: Dependency table
+                    type: MkDependencyTable
+                  - title: Dependency tree
+                    type: MkPipDepTree
+                    direction: LR
+              - title: Dependencies
+                type: MkDependencyTable
+              - title: MkDocs Plugins
+                condition: '{{ "mkdocs.plugins" in metadata.entry_points }}'
+                type: MkPluginFlow
+              - title: License
+                type: MkLicense
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -86,7 +149,7 @@ markdown_extensions:
 
 extra:
   social:
-  - icon: fontawesome/brands/github
-    link: https://github.com/phil65
-  - icon: fontawesome/brands/python
-    link: https://pypi.org/project/llmling-agent/
+    - icon: fontawesome/brands/github
+      link: https://github.com/phil65
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/llmling-agent/
