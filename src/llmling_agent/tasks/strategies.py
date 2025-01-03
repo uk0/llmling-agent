@@ -12,7 +12,6 @@ from typing_extensions import TypeVar
 from llmling_agent.agent.agent import Agent
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.models.task import AgentTask
-from llmling_agent.tasks import TaskError
 
 
 TResult = TypeVar("TResult")
@@ -137,17 +136,12 @@ class ResearchStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
         task: AgentTask[TDeps, TResult],
         agent: Agent[TDeps, TResult],
     ) -> ChatMessage[TResult]:
-        if not task.knowledge:
-            msg = "Research strategy requires knowledge sources"
-            raise TaskError(msg)
-
         # Research phase
         research_prompt = self.research_prompt_template.format(prompt=task.prompt)
         research = await agent.run(research_prompt)
-
         # Execution phase
         execution_prompt = self.execution_prompt_template.format(
-            research=research,
+            research=research.content,
             prompt=task.prompt,
         )
         return await agent.run(execution_prompt)
