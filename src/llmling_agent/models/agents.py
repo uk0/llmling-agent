@@ -25,6 +25,7 @@ from llmling_agent.config import Capabilities, Knowledge
 from llmling_agent.environment import AgentEnvironment, FileEnvironment, InlineEnvironment
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
+from llmling_agent.models.mcp_server import MCPServerConfig  # noqa: TC001
 from llmling_agent.models.task import AgentTask  # noqa: TC001
 from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
 from llmling_agent.templating import render_prompt
@@ -326,6 +327,9 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
 
     tasks: dict[str, AgentTask] = Field(default_factory=dict)
     """Pre-defined tasks, ready to be used by agents."""
+
+    mcp_servers: dict[str, MCPServerConfig] = Field(default_factory=dict)
+    """MCP server configurations"""
 
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
