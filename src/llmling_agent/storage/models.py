@@ -13,6 +13,8 @@ from sqlmodel.main import SQLModelConfig
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pydantic_ai.messages import ModelMessage
 
     from llmling_agent.common_types import MessageRole
@@ -251,7 +253,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     @classmethod
     def to_pydantic_ai_messages(
         cls,
-        conversation_id: str,
+        conversation_id: str | Sequence[str],  # Allow single ID or sequence
         *,
         since: datetime | None = None,
         until: datetime | None = None,
@@ -280,11 +282,13 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
 
         from llmling_agent.storage import engine
 
-        query = (
-            select(cls)
-            .where(cls.conversation_id == conversation_id)
-            .order_by(cls.timestamp)  # type: ignore
-        )
+        query = select(cls)
+
+        # Handle single ID or sequence
+        if isinstance(conversation_id, str):
+            query = query.where(cls.conversation_id == conversation_id)
+        else:
+            query = query.where(Column("conversation_id").in_(conversation_id))
 
         if since:
             query = query.where(cls.timestamp >= since)
