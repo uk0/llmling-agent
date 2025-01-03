@@ -112,23 +112,48 @@ class ConversationManager:
     def __getitem__(self, key: int) -> ChatMessage[Any]: ...
 
     @overload
-    def __getitem__(self, key: slice) -> list[ChatMessage[Any]]: ...
+    def __getitem__(self, key: slice | str) -> list[ChatMessage[Any]]: ...
 
-    def __getitem__(self, key: int | slice) -> ChatMessage[Any] | list[ChatMessage[Any]]:
-        """Access conversation history directly.
+    def __getitem__(
+        self, key: int | slice | str
+    ) -> ChatMessage[Any] | list[ChatMessage[Any]]:
+        """Access conversation history.
 
         Args:
-            key: Integer index or slice
-
-        Returns:
-            Single message for integer index, list of messages for slice
-
-        Raises:
-            IndexError: If index out of range
+            key: Either:
+                - Integer index for single message
+                - Slice for message range
+                - Agent name for conversation history with that agent
         """
-        if isinstance(key, int):
-            return convert_model_message(self._current_history[key])
-        return [convert_model_message(msg) for msg in self._current_history[key]]
+        from sqlmodel import Session
+
+        from llmling_agent.storage import engine
+        from llmling_agent.storage.models import Conversation, Message
+
+        match key:
+            case int():
+                return convert_model_message(self._current_history[key])
+            case slice():
+                return [convert_model_message(msg) for msg in self._current_history[key]]
+            case str():
+                from sqlmodel import or_, select
+
+                # First get all relevant conversation IDs
+                stmt = select(Conversation.id).where(
+                    or_(
+                        Conversation.agent_name == self._agent.name,
+                        Conversation.agent_name == key,
+                    )
+                )
+
+                with Session(engine) as session:
+                    conv_ids = session.exec(stmt).all()
+                    if not conv_ids:
+                        return []  # No conversations found
+
+                    # Now works with sequence of IDs
+                    messages = Message.to_pydantic_ai_messages(conv_ids)
+                    return [convert_model_message(msg) for msg in messages]
 
     def __contains__(self, item: Any) -> bool:
         """Check if item is in history."""
