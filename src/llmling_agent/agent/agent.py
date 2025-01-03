@@ -44,6 +44,7 @@ logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=Any)
+TResultOverride = TypeVar("TResultOverride", default=str)
 
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
@@ -480,19 +481,42 @@ class Agent[TDeps, TResult]:
             else:
                 agent.tool_plain(wrapped)
 
+    @overload
     async def run(
         self,
         *prompt: str,
+        result_type: None = None,
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-        # wait_for_chain: bool = True,
         usage: Usage | None = None,
-    ) -> ChatMessage[TResult]:
+    ) -> ChatMessage[TResult]: ...
+
+    @overload
+    async def run(
+        self,
+        *prompt: str,
+        result_type: type[TResultOverride],
+        deps: TDeps | None = None,
+        message_history: list[ModelMessage] | None = None,
+        model: models.Model | models.KnownModelName | None = None,
+        usage: Usage | None = None,
+    ) -> ChatMessage[TResultOverride]: ...
+
+    async def run(
+        self,
+        *prompt: str,
+        result_type: type[Any] | None = None,
+        deps: TDeps | None = None,
+        message_history: list[ModelMessage] | None = None,
+        model: models.Model | models.KnownModelName | None = None,
+        usage: Usage | None = None,
+    ) -> ChatMessage[Any]:
         """Run agent with prompt and get response.
 
         Args:
             prompt: User query or instruction
+            result_type: Optional type for structured responses
             deps: Optional dependencies for the agent
             message_history: Optional previous messages for context
             model: Optional model override
@@ -514,6 +538,8 @@ class Agent[TDeps, TResult]:
         wait_for_chain = False  # TODO
         if deps is not None:
             self._context.data = deps
+        if result_type is not None:
+            self.result_type = result_type
         try:
             # Clear all tools
             if self._context:
