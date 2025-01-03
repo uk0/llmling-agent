@@ -482,10 +482,10 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
         """List available agent names."""
         return list(self.manifest.agents)
 
-    def get_task(self, name: str) -> AgentTask[Any]:
+    def get_task(self, name: str) -> AgentTask[Any, Any]:
         return self._tasks[name]
 
-    def register_task(self, name: str, task: AgentTask[Any]):
+    def register_task(self, name: str, task: AgentTask[Any, Any]):
         self._tasks.register(name, task)
 
 

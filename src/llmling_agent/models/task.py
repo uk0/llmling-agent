@@ -10,7 +10,7 @@ from llmling_agent.config.knowledge import Knowledge  # noqa: TC001
 TResult = TypeVar("TResult", default=str)
 
 
-class AgentTask[TResult](BaseModel):
+class AgentTask[TDeps, TResult](BaseModel):
     """Definition of a task that can be executed by an agent.
 
     Can be used both programmatically and defined in YAML:
@@ -38,6 +38,9 @@ class AgentTask[TResult](BaseModel):
 
     result_type: ImportString[type[TResult]] = str  # type: ignore
     """Expected type of the task result."""
+
+    deps: TDeps | None = None
+    """Dependencies or context data needed for task execution"""
 
     knowledge: Knowledge | None = None
     """Optional knowledge sources for this task:
