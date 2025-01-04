@@ -255,6 +255,7 @@ class Agent[TDeps]:
             tool_name_override=tool_name,
             tool_description_override=tool_description,
         )
+        logger.debug("Created schema: %s", schema)
 
         # Apply schema and settings
         self._pydantic_agent._result_schema = schema
