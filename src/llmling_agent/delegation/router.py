@@ -164,11 +164,8 @@ class RuleRouter(AgentRouter):
 
             # Skip if target doesn't exist
             if rule.target not in self.pool.list_agents():
-                logger.debug(
-                    "Target agent %s not available for rule: %s",
-                    rule.target,
-                    rule.keyword,
-                )
+                msg = "Target agent %s not available for rule: %s"
+                logger.debug(msg, rule.target, rule.keyword)
                 continue
 
             # Skip if capability required but not available
@@ -177,11 +174,8 @@ class RuleRouter(AgentRouter):
                 if not agent._context.capabilities.has_capability(
                     rule.requires_capability
                 ):
-                    logger.debug(
-                        "Agent %s missing required capability: %s",
-                        rule.target,
-                        rule.requires_capability,
-                    )
+                    msg = "Agent %s missing required capability: %s"
+                    logger.debug(msg, rule.target, rule.requires_capability)
                     continue
 
             # Create appropriate decision using base class methods
@@ -248,38 +242,3 @@ class RoutingConfig(BaseModel):
     """Whether keyword matching should be case-sensitive."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-
-
-class DecisionRouter:
-    """Factory for creating routing decisions.
-
-    Provides a clean interface for creating different types of routing
-    decisions without having to work with decision classes directly.
-    """
-
-    def get_wait_decision(
-        self,
-        target: str,
-        reason: str,
-        talk_back: bool = False,
-    ) -> Decision:
-        """Create a decision to route and wait for response.
-
-        Args:
-            target: Name of agent to route to
-            reason: Reason for this routing
-            talk_back: Whether to send response back to original agent
-        """
-        return AwaitResponseDecision(
-            target_agent=target,
-            reason=reason,
-            talk_back=talk_back,
-        )
-
-    def get_route_decision(self, target: str, reason: str) -> Decision:
-        """Create a decision to route without waiting."""
-        return RouteDecision(target_agent=target, reason=reason)
-
-    def get_end_decision(self, reason: str) -> Decision:
-        """Create a decision to end routing."""
-        return EndDecision(reason=reason)

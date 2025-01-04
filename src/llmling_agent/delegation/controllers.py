@@ -33,9 +33,7 @@ async def interactive_controller(
     print("3. End conversation")
 
     try:
-        choice = int(input("> "))
-
-        match choice:
+        match choice := int(input("> ")):
             case 1 | 2:  # Route or TalkBack
                 print("\nAvailable agents:")
                 # Use pool's list_agents instead of passed list
@@ -79,8 +77,7 @@ async def controlled_conversation(
     """
     controller = CallbackRouter(pool, decision_callback)
 
-    # Handle both string and Agent
-    current_agent = (
+    agent = (
         initial_agent
         if isinstance(initial_agent, Agent)
         else pool.get_agent(initial_agent)
@@ -89,20 +86,18 @@ async def controlled_conversation(
 
     while True:
         # Get response from current agent
-        response = await current_agent.run(current_message)
+        response = await agent.run(current_message)
         decision = await controller.decide(response.content)
+
+        # Execute the decision with the response message
+        await decision.execute(response, agent, pool)
 
         match decision:
             case EndDecision():
-                print(f"\nEnding conversation: {decision.reason}")
                 break
-
             case RouteDecision():
-                print(f"\nForwarding to {decision.target_agent}: {decision.reason}")
-                next_agent = pool.get_agent(decision.target_agent)
-                next_agent.outbox.emit(response, None)
-
+                # Message already forwarded in execute(), continue loop
+                continue
             case AwaitResponseDecision():
-                print(f"\nRouting to {decision.target_agent}: {decision.reason}")
-                current_agent = pool.get_agent(decision.target_agent)
-                current_message = response.content
+                agent = pool.get_agent(decision.target_agent)
+                current_message = str(response.content)
