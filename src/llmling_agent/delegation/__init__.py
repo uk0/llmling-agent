@@ -11,7 +11,7 @@ from llmling_agent.delegation.router import (
     Decision,
     EndDecision,
     RouteDecision,
-    TalkBackDecision,
+    AwaitResponseDecision,
     RoutingRule,
     RoutingConfig,
 )
@@ -19,6 +19,7 @@ from llmling_agent.delegation.callbacks import DecisionCallback
 
 __all__ = [
     "AgentPool",
+    "AwaitResponseDecision",
     "CallbackConversationController",
     "ConversationController",
     "Decision",
@@ -28,6 +29,5 @@ __all__ = [
     "RoutingConfig",
     "RoutingRule",
     "RuleBasedController",
-    "TalkBackDecision",
     "interactive_controller",
 ]

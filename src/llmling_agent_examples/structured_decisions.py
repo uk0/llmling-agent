@@ -2,35 +2,20 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel
 
 from llmling_agent.delegation.controllers import CallbackConversationController
 from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.delegation.router import (
-    Decision,
-    RouteDecision,
-    TalkBackDecision,
-)
-
-
-class Category(str, Enum):
-    TECH = "tech"
-    BILLING = "billing"
+from llmling_agent.delegation.router import AwaitResponseDecision, Decision, RouteDecision
 
 
 class Ticket(BaseModel):
     """Minimal ticket with just enough to demonstrate routing."""
 
-    category: Category
+    category: Literal["tech", "billing"]
     urgent: bool
-
-
-class Response(BaseModel):
-    """Simple response type."""
-
-    solved: bool
 
 
 AGENT_CONFIG = """
@@ -49,36 +34,34 @@ agents:
     system_prompts:
       - Handle technical support tickets.
 
-  human:
-    type: human
-    name: "Human"
+  billing_support:
+    type: ai
+    name: "Billing Support"
+    model: openai:gpt-4o-mini
     system_prompts:
-      - You handle urgent cases.
+      - Handle billing and payment issues.
 """
 
 
 async def smart_router(ticket: Ticket, pool: AgentPool) -> Decision:
     """Route based on category and urgency."""
     if ticket.urgent:
-        # Can use pool features like team_task
-        team = ["tech_support", "human"]
-        await pool.team_task(str(ticket), team=team, mode="parallel", result_type=Ticket)
-        # Route based on team response
-        return RouteDecision(target_agent="human", reason="Urgent case handled by team")
+        # For urgent cases, route directly to appropriate specialist
+        agent = "tech_support" if ticket.category == "tech" else "billing_support"
+        reason = f"Urgent {ticket.category} issue needs immediate attention"
+        return AwaitResponseDecision(target_agent=agent, reason=reason)
 
-    # Simple routing for non-urgent cases
-    agent_name = "tech_support" if ticket.category == Category.TECH else "billing"
-    return TalkBackDecision(target_agent=agent_name, reason=f"{ticket.category} issue")
+    # Non-urgent cases can be handled asynchronously
+    agent = "tech_support" if ticket.category == "tech" else "billing_support"
+    return RouteDecision(target_agent=agent, reason=f"Standard {ticket.category} issue")
 
 
 async def main(config_path: str):
     async with AgentPool.open(config_path) as pool:
-        # Get type-safe agents
+        # Get type-safe classifier agent
         classifier = pool.get_agent("classifier", return_type=Ticket)
-
         # Create controller with pool-aware router
         controller = CallbackConversationController[Ticket](pool, smart_router)
-
         # Process request
         request = "My app is broken and I need urgent help!"
         ticket_msg = await classifier.run(request)

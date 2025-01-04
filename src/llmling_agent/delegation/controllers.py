@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING, Any
 from llmling_agent.agent import Agent
 from llmling_agent.delegation.callbacks import DecisionCallback
 from llmling_agent.delegation.router import (
+    AwaitResponseDecision,
     Decision,
     EndDecision,
     RouteDecision,
     RoutingConfig,
-    TalkBackDecision,
 )
 from llmling_agent.log import get_logger
 
@@ -97,12 +97,12 @@ class RuleBasedController(ConversationController[str]):
 
             # Create appropriate decision type
             if rule.wait_for_response:
-                return TalkBackDecision(target_agent=rule.target, reason=rule.reason)
+                return AwaitResponseDecision(target_agent=rule.target, reason=rule.reason)
             return RouteDecision(target_agent=rule.target, reason=rule.reason)
 
         # Use default route if configured
         if self.config.default_target:
-            return TalkBackDecision(
+            return AwaitResponseDecision(
                 target_agent=self.config.default_target, reason=self.config.default_reason
             )
 
@@ -136,7 +136,7 @@ async def interactive_controller(message: str, pool: "AgentPool") -> Decision:
 
                 if choice == 1:
                     return RouteDecision(target_agent=target, reason=reason)
-                return TalkBackDecision(target_agent=target, reason=reason)
+                return AwaitResponseDecision(target_agent=target, reason=reason)
 
             case 3:  # End
                 reason = input("Reason for ending: ")
@@ -188,7 +188,7 @@ async def controlled_conversation(
                 next_agent = pool.get_agent(decision.target_agent)
                 next_agent.outbox.emit(response, None)
 
-            case TalkBackDecision():
+            case AwaitResponseDecision():
                 print(f"\nRouting to {decision.target_agent}: {decision.reason}")
                 current_agent = pool.get_agent(decision.target_agent)
                 current_message = response.content

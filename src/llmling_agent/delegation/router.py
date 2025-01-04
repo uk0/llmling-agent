@@ -23,7 +23,7 @@ class RouteDecision(Decision):
     target_agent: str
 
 
-class TalkBackDecision(Decision):
+class AwaitResponseDecision(Decision):
     """Decision to route and wait for response."""
 
     type: Literal["talk_back"] = "talk_back"

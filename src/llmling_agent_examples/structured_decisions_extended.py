@@ -15,10 +15,10 @@ from pydantic import BaseModel
 
 from llmling_agent.delegation import (
     AgentPool,
+    AwaitResponseDecision,
     Decision,
     EndDecision,
     RouteDecision,
-    TalkBackDecision,
 )
 from llmling_agent.delegation.controllers import CallbackConversationController
 
@@ -85,7 +85,7 @@ async def smart_router(ticket: SupportTicket, pool: AgentPool) -> Decision:
     # Critical tickets always go to human first
     if ticket.priority == "critical":
         reason = f"Critical {ticket.category} issue needs immediate attention"
-        return TalkBackDecision(target_agent="human_agent", reason=reason)
+        return AwaitResponseDecision(target_agent="human_agent", reason=reason)
 
     match (ticket.category, ticket.priority):
         case ("technical", "high"):
@@ -98,7 +98,7 @@ async def smart_router(ticket: SupportTicket, pool: AgentPool) -> Decision:
                 return RouteDecision(target_agent="human_agent", reason=reason)
         case ("billing", "high" | "medium"):
             reason = "Priority billing issue"
-            return TalkBackDecision(target_agent="billing", reason=reason)
+            return AwaitResponseDecision(target_agent="billing", reason=reason)
         case _ if ticket.needs_human_review:
             reason = "Marked for human review"
             return RouteDecision(target_agent="human_agent", reason=reason)
@@ -108,7 +108,7 @@ async def smart_router(ticket: SupportTicket, pool: AgentPool) -> Decision:
 
 async def main(config_path: str):
     async with AgentPool.open(config_path) as pool:
-        # Create type-safe agents
+        # Create type-safe agent
         classifier = pool.get_agent("classifier", return_type=SupportTicket)
 
         # Create smart controller
@@ -132,7 +132,7 @@ async def main(config_path: str):
         decision = await controller.decide(ticket)
 
         match decision:
-            case TalkBackDecision():
+            case AwaitResponseDecision():
                 print(f"\n[bold green]Routing to {decision.target_agent}[/]")
                 print(f"Reason: {decision.reason}")
 
