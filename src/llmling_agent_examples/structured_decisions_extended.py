@@ -134,13 +134,13 @@ async def smart_router(ticket: SupportTicket, pool: AgentPool) -> Decision:
     return EndDecision(reason="Ticket handled appropriately")
 
 
-async def main():
-    async with AgentPool.open(AGENT_CONFIG) as pool:
+async def main(config_path: str):
+    async with AgentPool.open(config_path) as pool:
         # Create type-safe agents
         classifier = pool.get_agent("classifier", return_type=SupportTicket)
+
         # Create smart controller
         controller = CallbackConversationController[SupportTicket](pool, smart_router)
-
         # Process a support request
         request = (
             "I can't access my account and I have an urgent demo in 1 hour! "
@@ -190,7 +190,11 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+    import tempfile
 
     from rich import print  # noqa: A004
 
-    asyncio.run(main())
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp:
+        tmp.write(AGENT_CONFIG)
+        tmp.flush()
+        asyncio.run(main(tmp.name))
