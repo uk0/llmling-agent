@@ -9,11 +9,9 @@ This example demonstrates:
 
 from __future__ import annotations
 
-from enum import Enum
 from typing import Literal
-from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from llmling_agent.delegation import (
     AgentPool,
@@ -25,21 +23,13 @@ from llmling_agent.delegation import (
 from llmling_agent.delegation.controllers import CallbackConversationController
 
 
-class Priority(str, Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
-
-
 class SupportTicket(BaseModel):
     """Support ticket with classification."""
 
-    id: str = Field(default_factory=lambda: str(uuid4()))
     title: str
     description: str
     category: Literal["technical", "billing", "feature", "bug"]
-    priority: Priority
+    priority: Literal["low", "medium", "high", "critical"]
     needs_human_review: bool = False
 
 
@@ -90,46 +80,30 @@ agents:
 """
 
 
-# Sync decision maker - simple routing based on category
-def simple_router(ticket: SupportTicket, agents: list[str]) -> Decision:
-    """Route tickets based on category only."""
-    match ticket.category:
-        case "technical":
-            return TalkBackDecision(target_agent="tech_support", reason="Technical issue")
-        case "billing":
-            return TalkBackDecision(target_agent="billing", reason="Billing issue")
-    return EndDecision(reason="Unhandled category")
-
-
-# Async decision maker - complex routing with priority handling
 async def smart_router(ticket: SupportTicket, pool: AgentPool) -> Decision:
     """Smart routing based on ticket properties."""
     # Critical tickets always go to human first
-    if ticket.priority == Priority.CRITICAL:
+    if ticket.priority == "critical":
         return TalkBackDecision(
             target_agent="human_agent",
             reason=f"Critical {ticket.category} issue needs immediate attention",
         )
 
     match (ticket.category, ticket.priority):
-        case ("technical", Priority.HIGH):
+        case ("technical", "high"):
             # High priority tech issues get human review after tech support
             tech_agent = pool.get_agent("tech_support", return_type=Resolution)
             # Convert ticket to string for tech agent
             resolution = await tech_agent.run(str(ticket))
             if not resolution.data.resolved:
-                return RouteDecision(
-                    target_agent="human_agent",
-                    reason="Unresolved high-priority technical issue",
-                )
-        case ("billing", Priority.HIGH | Priority.MEDIUM):
-            return TalkBackDecision(
-                target_agent="billing", reason="Priority billing issue"
-            )
+                reason = "Unresolved high-priority technical issue"
+                return RouteDecision(target_agent="human_agent", reason=reason)
+        case ("billing", "high" | "medium"):
+            reason = "Priority billing issue"
+            return TalkBackDecision(target_agent="billing", reason=reason)
         case _ if ticket.needs_human_review:
-            return RouteDecision(
-                target_agent="human_agent", reason="Marked for human review"
-            )
+            reason = "Marked for human review"
+            return RouteDecision(target_agent="human_agent", reason=reason)
 
     return EndDecision(reason="Ticket handled appropriately")
 
@@ -152,7 +126,6 @@ async def main(config_path: str):
         ticket = ticket_msg.data  # Type-safe SupportTicket
 
         print("\n[bold blue]Ticket Classification:[/]")
-        print(f"ID: {ticket.id}")
         print(f"Priority: {ticket.priority}")
         print(f"Category: {ticket.category}")
         print(f"Needs human review: {ticket.needs_human_review}")
