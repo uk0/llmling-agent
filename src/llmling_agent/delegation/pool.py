@@ -11,6 +11,15 @@ from pydantic import BaseModel
 from typing_extensions import TypeVar
 
 from llmling_agent import Agent
+from llmling_agent.delegation.router import (
+    ConversationController,
+    Decision,
+    DecisionCallback,
+    EndDecision,
+    RouteDecision,
+    TalkBackDecision,
+    interactive_controller,
+)
 from llmling_agent.log import get_logger
 from llmling_agent.tasks import TaskRegistry
 
@@ -25,6 +34,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import StrPath
     from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
+    from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.task import AgentTask
 
 
@@ -487,6 +497,73 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
 
     def register_task(self, name: str, task: AgentTask[Any, Any]):
         self._tasks.register(name, task)
+
+    async def controlled_conversation(
+        self,
+        initial_agent: str | Agent[Any] = "starter",
+        initial_prompt: str = "Hello!",
+        decision_callback: DecisionCallback = interactive_controller,
+    ) -> None:
+        """Start a controlled conversation between agents.
+
+        Args:
+            initial_agent: Agent instance or name to start with
+            initial_prompt: First message to start conversation
+            decision_callback: Callback for routing decisions
+        """
+        controller = ConversationController(self, decision_callback)
+
+        # Handle both string and Agent
+        current_agent = (
+            initial_agent
+            if isinstance(initial_agent, Agent)
+            else self.get_agent(initial_agent)
+        )
+        current_message = initial_prompt
+
+        while True:
+            response = await current_agent.run(current_message)
+            decision = await controller.decide(response.content)
+
+            match decision:
+                case EndDecision():
+                    logger.info("Ending conversation: %s", decision.reason)
+                    break
+
+                case RouteDecision():
+                    logger.info(
+                        "Forwarding to %s: %s", decision.target_agent, decision.reason
+                    )
+                    next_agent = self.get_agent(decision.target_agent)
+                    next_agent.outbox.emit(response, None)
+
+                case TalkBackDecision():
+                    logger.info(
+                        "Routing to %s: %s", decision.target_agent, decision.reason
+                    )
+                    current_agent = self.get_agent(decision.target_agent)
+                    current_message = response.content
+
+    async def controlled_talk(
+        self,
+        agent: str | Agent[Any],
+        message: str,
+        decision_callback: DecisionCallback = interactive_controller,
+    ) -> tuple[ChatMessage[Any], Decision]:
+        """Get one response with control decision.
+
+        Args:
+            agent: Agent instance or name to talk to
+            message: Message to send
+            decision_callback: Callback for routing decision
+        """
+        controller = ConversationController(self, decision_callback)
+        current_agent = agent if isinstance(agent, Agent) else self.get_agent(agent)
+
+        response = await current_agent.run(message)
+        decision = await controller.decide(response.content)
+
+        return response, decision
 
 
 async def main():
