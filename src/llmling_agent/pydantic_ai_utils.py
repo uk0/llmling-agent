@@ -330,6 +330,14 @@ def to_result_schema[TResultData](
     Raises:
         ValueError: If named type not found in manifest
     """
+    logger.debug(
+        "Creating result schema for type=%s (context=%s)",
+        result_type,
+        "available" if context else "none",
+    )
+    from pydantic_ai import _utils
+
+    logger.debug("Is model-like: %s", _utils.is_model_like(result_type))
     match result_type:
         case None:
             return None

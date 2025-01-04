@@ -87,6 +87,7 @@ class Agent[TDeps]:
 
     # this fixes weird mypy issue
     conversation: ConversationManager
+    description: str | None
 
     message_received = Signal(ChatMessage[str])  # Always string
     message_sent = Signal(ChatMessage)
@@ -247,6 +248,7 @@ class Agent[TDeps]:
             tool_name: Optional override for tool name
             tool_description: Optional override for tool description
         """
+        logger.debug("Setting result type to: %s", result_type)
         schema = to_result_schema(
             result_type,
             context=self._context,
@@ -541,6 +543,7 @@ class Agent[TDeps]:
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
+        logger.debug("Agent.run result_type = %s", result_type)
         final_prompt = "\n\n".join(
             format_instance_for_llm(p)
             if not isinstance(p, str) and can_format_fields(p)

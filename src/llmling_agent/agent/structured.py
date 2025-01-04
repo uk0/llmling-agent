@@ -61,6 +61,7 @@ class StructuredAgent[TDeps, TResult]:
         Raises:
             ValueError: If named response type not found in manifest
         """
+        logger.debug("StructuredAgent.run result_type = %s", result_type)
         self._agent = agent
         self._result_type = result_type
 
