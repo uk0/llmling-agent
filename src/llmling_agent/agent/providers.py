@@ -297,14 +297,15 @@ class HumanProvider(AgentProvider):
         if message_history:
             print("\nContext:")
             for msg in message_history:
-                if isinstance(msg, ModelRequest):
-                    parts = [p for p in msg.parts if isinstance(p, UserPromptPart)]
-                    for part in parts:
-                        print(f"User: {part.content}")
-                elif isinstance(msg, ModelResponse):
-                    parts = [p for p in msg.parts if isinstance(p, TextPart)]
-                    for part in parts:
-                        print(f"Assistant: {part.content}")
+                match msg:
+                    case ModelRequest():
+                        parts = [p for p in msg.parts if isinstance(p, UserPromptPart)]
+                        for part in parts:
+                            print(f"User: {part.content}")
+                    case ModelResponse():
+                        parts = [p for p in msg.parts if isinstance(p, TextPart)]
+                        for part in parts:
+                            print(f"Assistant: {part.content}")
             print("\n---")
 
         # Show prompt and get response
@@ -320,14 +321,10 @@ class HumanProvider(AgentProvider):
                 content = result_type.model_validate_json(response)
             except Exception as e:
                 logger.exception("Failed to parse structured response")
-                msg = f"Invalid response format: {e}"
-                raise ToolError(msg) from e
+                error_msg = f"Invalid response format: {e}"
+                raise ToolError(error_msg) from e
 
-        return ProviderResponse(
-            content=content,
-            tool_calls=[],  # Human providers don't use tools for now
-            usage=None,  # No token usage for human responses
-        )
+        return ProviderResponse(content=content, tool_calls=[], usage=None)
 
     async def stream_response(
         self,
@@ -359,8 +356,8 @@ class HumanProvider(AgentProvider):
                 content = result_type.model_validate_json(content)
             except Exception as e:
                 logger.exception("Failed to parse structured response")
-                msg = f"Invalid response format: {e}"
-                raise ToolError(msg) from e
+                error_msg = f"Invalid response format: {e}"
+                raise ToolError(error_msg) from e
 
         # Yield final response
         yield ProviderResponse(content=content)
