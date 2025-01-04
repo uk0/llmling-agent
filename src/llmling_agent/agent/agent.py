@@ -157,6 +157,20 @@ class Agent[TDeps]:
         if self._context and self._context.capabilities:
             self._context.capabilities.register_capability_tools(self)
 
+        config_prompts = context.config.system_prompts if context else []
+        all_prompts = list(config_prompts)
+        if isinstance(system_prompt, str):
+            all_prompts.append(system_prompt)
+        else:
+            all_prompts.extend(system_prompt)
+
+        # Initialize ConversationManager with all prompts
+        self.conversation = ConversationManager(
+            self,
+            initial_prompts=all_prompts,
+            session_id=session_id,
+        )
+
         # Initialize provider based on type
         match agent_type:
             case "ai":
@@ -164,6 +178,7 @@ class Agent[TDeps]:
                     model=model,
                     system_prompt=system_prompt,
                     tools=self._tool_manager,
+                    conversation=self.conversation,
                     retries=retries,
                     end_strategy=end_strategy,
                     result_retries=result_retries,
@@ -171,7 +186,7 @@ class Agent[TDeps]:
                     context=self._context,
                 )
             case "human":
-                self._provider = HumanProvider(name=name)
+                self._provider = HumanProvider(conversation=self.conversation, name=name)
             case AgentProvider():
                 self._provider = agent_type
             case _:
@@ -200,19 +215,6 @@ class Agent[TDeps]:
 
         self._logger = AgentLogger(self, enable_logging=enable_logging)
         self._events = EventManager(self, enable_events=True)
-        config_prompts = context.config.system_prompts if context else []
-        all_prompts = list(config_prompts)
-        if isinstance(system_prompt, str):
-            all_prompts.append(system_prompt)
-        else:
-            all_prompts.extend(system_prompt)
-
-        # Initialize ConversationManager with all prompts
-        self.conversation = ConversationManager(
-            self,
-            initial_prompts=all_prompts,
-            session_id=session_id,
-        )
 
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._background_task: asyncio.Task[Any] | None = None

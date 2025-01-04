@@ -21,9 +21,9 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
 
     from pydantic_ai.agent import EndStrategy, models
-    from pydantic_ai.messages import ModelMessage
     from tokonomics import Usage as TokonomicsUsage
 
+    from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.tools.manager import ToolManager
 
 
@@ -45,24 +45,19 @@ class AgentProvider(Protocol):
 
     tool_used = Signal(ToolCallInfo)
     chunk_streamed = Signal(str)
+    model: Any
 
     async def generate_response(
         self,
         prompt: str,
         *,
         result_type: type[Any] | None = None,
-        deps: Any | None = None,
-        message_history: list[ModelMessage] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
     ) -> ProviderResponse:
         """Generate a response for the given prompt.
 
         Args:
             prompt: Text prompt to respond to
             result_type: Optional type for structured responses
-            deps: Optional dependency injection data
-            message_history: Optional previous messages for context
-            model: Optional model override
 
         Returns:
             Response message with optional structured content
@@ -74,9 +69,6 @@ class AgentProvider(Protocol):
         prompt: str,
         *,
         result_type: type[Any] | None = None,
-        deps: Any | None = None,
-        message_history: list[ModelMessage] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
     ) -> AsyncIterator[ProviderResponse]: ...
 
 
@@ -89,6 +81,7 @@ class PydanticAIProvider(AgentProvider):
         model: str | models.Model | None = None,
         system_prompt: str | Sequence[str] = (),
         tools: ToolManager,
+        conversation: ConversationManager,
         retries: int = 1,
         result_retries: int | None = None,
         end_strategy: EndStrategy = "early",
@@ -101,6 +94,7 @@ class PydanticAIProvider(AgentProvider):
             model: Model to use for responses
             system_prompt: Initial system instructions
             tools: Available tools
+            conversation: Conversation manager
             retries: Number of retries for failed operations
             result_retries: Max retries for result validation
             end_strategy: How to handle tool calls with final result
@@ -109,6 +103,7 @@ class PydanticAIProvider(AgentProvider):
         """
         self._tool_manager = tools
         self._model = model
+        self._conversation = conversation
         self._agent = PydanticAgent(
             model=model,  # type: ignore
             system_prompt=system_prompt,
@@ -121,38 +116,40 @@ class PydanticAIProvider(AgentProvider):
         )
         self._context = context
 
+    @property
+    def model(self) -> str | models.Model | models.KnownModelName | None:
+        return self._model
+
+    @model.setter
+    def model(self, value: models.Model | models.KnownModelName | None):
+        self._model = value
+        self._agent.model = value
+
     async def generate_response(
         self,
         prompt: str,
         *,
         result_type: type[Any] | None = None,
-        deps: Any | None = None,
-        message_history: list[ModelMessage] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
     ) -> ProviderResponse:
         """Generate response using pydantic-ai.
 
         Args:
             prompt: Text prompt to respond to
             result_type: Optional type for structured responses
-            deps: Optional dependency injection data
-            message_history: Optional previous messages for context
-            model: Optional model override
 
         Returns:
             Response message with optional structured content
         """
-        if deps is not None and self._context is not None:
-            self._context.data = deps
         # Update available tools
         self._update_tools()
+        message_history = self._conversation.get_history()
         try:
             # Run through pydantic-ai
             result = await self._agent.run(
                 prompt,
                 deps=self._context,  # type: ignore
                 message_history=message_history,
-                model=model,
+                model=self.model,  # type: ignore
             )
 
             # Extract tool calls
@@ -189,42 +186,36 @@ class PydanticAIProvider(AgentProvider):
         prompt: str,
         *,
         result_type: type[Any] | None = None,
-        deps: Any | None = None,
-        message_history: list[ModelMessage] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
     ) -> AsyncIterator[ProviderResponse]:
         """Stream response using pydantic-ai."""
-        if deps is not None and self._context is not None:
-            self._context.data = deps
-
-        # Update available tools
         self._update_tools()
 
         try:
+            message_history = self._conversation.get_history()
             async with self._agent.run_stream(
                 prompt,
                 deps=self._context,  # type: ignore
                 message_history=message_history,
-                model=model,
+                model=self.model,  # type: ignore
             ) as stream_result:
                 # Stream intermediate chunks
                 async for response in stream_result.stream():
                     self.chunk_streamed.emit(str(response))
-                    # Yield intermediate responses without tool calls/usage
                     yield ProviderResponse(content=str(response))
 
-                # Once stream is complete, yield final state with all metadata
-                messages = stream_result.new_messages()
-                if messages:  # Get content from final messages
+                # Once stream is complete, set history and yield final state
+                if stream_result.is_complete:
+                    if not message_history:
+                        self._conversation.set_history(stream_result.all_messages())
+
+                    messages = stream_result.new_messages()
+                    self._conversation._last_messages = list(messages)
                     content = "\n".join(
                         format_part(part) for msg in messages for part in msg.parts
                     )
-                    tool_calls = get_tool_calls(messages, dict(self._tool_manager))
-                    yield ProviderResponse(
-                        content=content,
-                        tool_calls=tool_calls,
-                        usage=stream_result.usage(),
-                    )
+                    calls = get_tool_calls(messages, dict(self._tool_manager))
+                    usage = stream_result.usage()
+                    yield ProviderResponse(content=content, tool_calls=calls, usage=usage)
 
         except Exception as e:
             logger.exception("Error streaming response")
@@ -235,29 +226,27 @@ class PydanticAIProvider(AgentProvider):
 class HumanProvider(AgentProvider):
     """Provider for human-in-the-loop responses."""
 
-    def __init__(self, name: str | None = None):
+    model = None
+
+    def __init__(self, conversation: ConversationManager, name: str = "human"):
         """Initialize human provider."""
         self.name = name or "human"
+        self._conversation = conversation
 
     async def generate_response(
         self,
         prompt: str,
         *,
         result_type: type[Any] | None = None,
-        deps: Any | None = None,
-        message_history: list[ModelMessage] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
     ) -> ProviderResponse:
         """Get response through human input.
 
         Args:
             prompt: Text prompt to respond to
             result_type: Optional type for structured responses
-            deps: Optional dependency injection data
-            message_history: Optional previous messages for context
-            model: Not used for human provider
         """
         # Show context if available
+        message_history = self._conversation.get_history()
         if message_history:
             print("\nContext:")
             for msg in message_history:
@@ -298,9 +287,6 @@ class HumanProvider(AgentProvider):
         prompt: str,
         *,
         result_type: type[Any] | None = None,
-        deps: Any | None = None,
-        message_history: list[ModelMessage] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
     ) -> AsyncIterator[ProviderResponse]:
         msg = "Streaming not supported for human provider"
         if False:  # to make it a generator
