@@ -57,7 +57,7 @@ async def test_agent_pool_validation():
 
     # Test getting non-existent agent
     async with AgentPool(agent_def) as pool:
-        with pytest.raises(KeyError, match="Agent nonexistent not found"):
+        with pytest.raises(KeyError, match="nonexistent"):
             pool.get_agent("nonexistent")
 
 

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Literal, Self, overload
+from uuid import UUID
 
 from llmling import BaseRegistry, Config, LLMLingError, RuntimeConfig
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
-from llmling_agent import Agent
+from llmling_agent.agent import Agent, StructuredAgent
 from llmling_agent.delegation.router import (
     ConversationController,
     Decision,
@@ -357,47 +358,77 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
                 msg = f"Worker agent {worker_config.name!r} not found"
                 raise ValueError(msg) from e
 
+    @overload
     def get_agent(
         self,
-        name: str,
+        agent: str | Agent[Any],
         *,
         model_override: str | None = None,
         session_id: str | UUID | None = None,
         environment_override: StrPath | Config | None = None,
-    ) -> Agent:
-        """Get an agent by name with optional runtime modifications.
+    ) -> Agent[Any]: ...
+
+    @overload
+    def get_agent(
+        self,
+        agent: str | Agent[Any],
+        *,
+        return_type: type[TResult],
+        model_override: str | None = None,
+        session_id: str | UUID | None = None,
+        environment_override: StrPath | Config | None = None,
+    ) -> StructuredAgent[Any, TResult]: ...
+
+    def get_agent(
+        self,
+        agent: str | Agent[Any],
+        *,
+        return_type: type[TResult] | None = None,
+        model_override: str | None = None,
+        session_id: str | UUID | None = None,
+        environment_override: StrPath | Config | None = None,
+    ) -> Agent[Any] | StructuredAgent[Any, TResult]:
+        """Get or wrap an agent.
 
         Args:
-            name: Name of agent to get
-            model_override: Optional model to use
-            session_id: Optional session id to recover conversation
-            environment_override: Optional environment to use
+            agent: Either agent name or instance
+            return_type: Optional type to make agent structured
+            model_override: Optional model override
+            session_id: Optional session ID to recover conversation
+            environment_override: Optional environment configuration:
+                - Path to environment file
+                - Complete Config instance
+                - None to use agent's default environment
 
         Returns:
-            Requested agent instance
+            Either regular Agent or StructuredAgent depending on return_type
 
         Raises:
             KeyError: If agent name not found
+            ValueError: If environment configuration is invalid
         """
-        if name not in self.agents:
-            msg = f"Agent {name} not found"
-            raise KeyError(msg)
+        # Get base agent
+        base_agent = agent if isinstance(agent, Agent) else self.agents[agent]
 
-        agent = self.agents[name]
-        agent._context.pool = self
-        agent._context.confirmation_callback = self._confirmation_callback
-        if session_id:
-            agent.conversation.load_history_from_database(session_id=session_id)
-        # Apply any overrides to the existing agent
+        # Apply overrides
         if model_override:
-            agent.set_model(model_override)  # type: ignore
+            base_agent.set_model(model_override)  # type: ignore
 
-        if env := environment_override:
-            # Create new runtime with override
-            cfg = env if isinstance(env, Config) else Config.from_file(env)
-            agent._runtime = RuntimeConfig.from_config(cfg)
+        if session_id:
+            base_agent.conversation.load_history_from_database(session_id=session_id)
 
-        return agent
+        if environment_override:
+            if isinstance(environment_override, Config):
+                base_agent._runtime = RuntimeConfig.from_config(environment_override)
+            else:
+                cfg = Config.from_file(environment_override)
+                base_agent._runtime = RuntimeConfig.from_config(cfg)
+
+        # Wrap in StructuredAgent if return_type provided
+        if return_type is not None:
+            return StructuredAgent[Any, TResult](base_agent, return_type)
+
+        return base_agent
 
     @classmethod
     @asynccontextmanager
