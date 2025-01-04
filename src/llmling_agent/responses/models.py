@@ -30,15 +30,37 @@ class ResponseField(BaseModel):
 
     type: str
     """Data type of the response field"""
+
     description: str | None = None
     """Optional description of what this field represents"""
+
     constraints: dict[str, Any] | None = None
     """Optional validation constraints for the field"""
 
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
 
-class InlineResponseDefinition(BaseModel):
+class BaseResponseDefinition(BaseModel):
+    """Base class for response definitions."""
+
+    type: str = Field(init=False)
+
+    description: str | None = None
+    """A description for this response definition."""
+
+    result_tool_name: str = "final_result"
+    """The tool name for the Agent tool to create the structured response."""
+
+    result_tool_description: str | None = None
+    """The tool description for the Agent tool to create the structured response."""
+
+    result_retries: int | None = None
+    """Retry override. How often the Agent should try to validate the response."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
+
+
+class InlineResponseDefinition(BaseResponseDefinition):
     """Inline definition of an agent's response structure.
 
     Allows defining response types directly in the configuration using:
@@ -56,8 +78,10 @@ class InlineResponseDefinition(BaseModel):
     """
 
     type: Literal["inline"] = Field("inline", init=False)
-    description: str | None = None
+
     fields: dict[str, ResponseField]
+    """A dictionary containing all fields."""
+
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
     def create_model(self) -> type[BaseModel]:  # type: ignore
@@ -76,7 +100,7 @@ class InlineResponseDefinition(BaseModel):
         return create_model(cls_name, **fields, __base__=BaseModel)  # type: ignore[call-overload]
 
 
-class ImportedResponseDefinition(BaseModel):
+class ImportedResponseDefinition(BaseResponseDefinition):
     """Response definition that imports an existing Pydantic model.
 
     Allows using externally defined Pydantic models as response types.
@@ -94,9 +118,9 @@ class ImportedResponseDefinition(BaseModel):
     """
 
     type: Literal["import"] = Field("import", init=False)
-    description: str | None = None
+
     import_path: str
-    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
+    """The path to the pydantic model to use as the response type."""
 
     # mypy is confused about
     def resolve_model(self) -> type[BaseModel]:  # type: ignore
