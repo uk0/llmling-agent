@@ -12,6 +12,7 @@ from llmling_agent.responses.models import (
     BaseResponseDefinition,
     ResponseDefinition,
 )
+from llmling_agent.responses.utils import to_type
 
 
 if TYPE_CHECKING:
@@ -52,7 +53,7 @@ class StructuredAgent[TDeps, TResult]:
         Args:
             agent: Base agent to wrap
             result_type: Expected result type:
-                - Python type for validation
+                - BaseModel / dataclasses
                 - Name of response definition in manifest
                 - Complete response definition instance
             tool_name: Optional override for tool name
@@ -63,7 +64,8 @@ class StructuredAgent[TDeps, TResult]:
         """
         logger.debug("StructuredAgent.run result_type = %s", result_type)
         self._agent = agent
-        self._result_type = result_type
+        self._result_type = to_type(result_type)
+        agent.set_result_type(result_type)
 
         match result_type:
             case type() | str():
@@ -81,6 +83,7 @@ class StructuredAgent[TDeps, TResult]:
     async def run(
         self,
         *prompt: str | TResult,
+        result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
@@ -90,6 +93,10 @@ class StructuredAgent[TDeps, TResult]:
 
         Args:
             prompt: String prompts or structured objects of type TResult
+            result_type: Expected result type:
+                - BaseModel / dataclasses
+                - Name of response definition in manifest
+                - Complete response definition instance
             deps: Optional dependencies for the agent
             message_history: Optional previous messages for context
             model: Optional model override
@@ -101,6 +108,7 @@ class StructuredAgent[TDeps, TResult]:
 
         return await self._agent.run(
             *formatted_prompts,
+            result_type=result_type or self._result_type,
             deps=deps,
             message_history=message_history,
             model=model,
