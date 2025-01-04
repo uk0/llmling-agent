@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import messages as _messages, models
+from pydantic_ai import _result, messages as _messages, models
 from pydantic_ai.messages import (
     ArgsDict,
     ModelMessage,
@@ -21,6 +21,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 import tokonomics
+from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
@@ -293,3 +294,16 @@ def get_message_role(msg: ModelMessage) -> str:
             return "System"
         case _:
             return "Unknown"
+
+
+TResultData = TypeVar("TResultData", default=str)
+
+
+def to_result_schema(
+    result_type: type[TResultData],
+    tool_name: str = "final_result",
+    tool_description: str | None = None,
+) -> _result.ResultSchema[TResultData] | None:
+    return _result.ResultSchema[result_type].build(
+        result_type, tool_name, tool_description
+    )
