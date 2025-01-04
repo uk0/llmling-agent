@@ -7,7 +7,10 @@ from typing import TYPE_CHECKING, Any
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent.pydantic_ai_utils import to_result_schema
+from llmling_agent.responses.models import (
+    BaseResponseDefinition,
+    ResponseDefinition,
+)
 
 
 if TYPE_CHECKING:
@@ -28,31 +31,50 @@ TDeps = TypeVar("TDeps", default=Any)
 class StructuredAgent[TDeps, TResult]:
     """Wrapper for Agent that enforces a specific result type.
 
-    This provides backwards compatibility for code that expects fixed result types,
-    while keeping the base Agent class flexible.
+    This wrapper ensures the agent always returns results of the specified type.
+    The type can be provided as:
+    - A Python type for validation
+    - A response definition name from the manifest
+    - A complete response definition instance
     """
 
     def __init__(
         self,
         agent: Agent[TDeps],
-        result_type: type[TResult],
-        final_tool_name: str = "final_result",
-        final_tool_description: str | None = None,
+        result_type: type[TResult] | str | ResponseDefinition,
+        *,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
     ):
+        """Initialize structured agent wrapper.
+
+        Args:
+            agent: Base agent to wrap
+            result_type: Expected result type:
+                - Python type for validation
+                - Name of response definition in manifest
+                - Complete response definition instance
+            tool_name: Optional override for tool name
+            tool_description: Optional override for tool description
+
+        Raises:
+            ValueError: If named response type not found in manifest
+        """
         self._agent = agent
         self._result_type = result_type
-        self._tool_name = final_tool_name
-        self._tool_description = final_tool_description
 
-        # Set up initial schema
-        schema = to_result_schema(
-            result_type,
-            final_tool_name,
-            final_tool_description,
-        )
-        assert schema
-        self._agent._pydantic_agent._result_schema = schema
-        self._agent._pydantic_agent._allow_text_result = schema.allow_text_result
+        match result_type:
+            case type() | str():
+                # For types and named definitions, use overrides if provided
+                self._agent.set_result_type(
+                    result_type,
+                    tool_name=tool_name,
+                    tool_description=tool_description,
+                )
+            case BaseResponseDefinition():
+                # For response definitions, use as-is
+                # (overrides don't apply to complete definitions)
+                self._agent.set_result_type(result_type)
 
     async def run(
         self,
@@ -65,7 +87,6 @@ class StructuredAgent[TDeps, TResult]:
         """Run with fixed result type."""
         return await self._agent.run(
             *prompt,
-            result_type=self._result_type,
             deps=deps,
             message_history=message_history,
             model=model,

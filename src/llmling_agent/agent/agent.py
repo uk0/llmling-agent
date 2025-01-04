@@ -38,6 +38,11 @@ from llmling_agent.pydantic_ai_utils import (
     get_tool_calls,
     to_result_schema,
 )
+from llmling_agent.responses.models import (
+    ImportedResponseDefinition,
+    InlineResponseDefinition,
+    ResponseDefinition,
+)
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context, has_argument_type
 
@@ -198,18 +203,42 @@ class Agent[TDeps]:
     def name(self, value: str | None):
         self._pydantic_agent.name = value
 
-    def set_result_type(self, result_type):
-        if result_type is not None:
-            # Create and set up complete result schema
-            schema = to_result_schema(result_type)
-            assert schema
-            self._pydantic_agent._result_schema = schema
-            # Set whether we allow text results
-            self._pydantic_agent._allow_text_result = schema.allow_text_result
-        else:
-            # Default to allowing text results with no schema
-            self._pydantic_agent._result_schema = None
-            self._pydantic_agent._allow_text_result = True
+    def set_result_type(
+        self,
+        result_type: type[TResult] | str | ResponseDefinition | None,
+        *,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+    ):
+        """Set or update the result type for this agent.
+
+        Args:
+            result_type: New result type, can be:
+                - A Python type for validation
+                - Name of a response definition
+                - Response definition instance
+                - None to reset to unstructured mode
+            tool_name: Optional override for tool name
+            tool_description: Optional override for tool description
+        """
+        schema = to_result_schema(
+            result_type,
+            context=self._context,
+            tool_name_override=tool_name,
+            tool_description_override=tool_description,
+        )
+
+        # Apply schema and settings
+        self._pydantic_agent._result_schema = schema
+        self._pydantic_agent._allow_text_result = (
+            schema.allow_text_result if schema else True
+        )
+
+        # Apply retries if from response definition
+        match result_type:
+            case InlineResponseDefinition() | ImportedResponseDefinition() as definition:
+                if definition.result_retries is not None:
+                    self._pydantic_agent._max_result_retries = definition.result_retries
 
     @classmethod
     @asynccontextmanager

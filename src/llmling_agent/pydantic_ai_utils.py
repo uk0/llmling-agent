@@ -26,6 +26,11 @@ from typing_extensions import TypeVar
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage, TokenAndCostResult, TokenUsage
+from llmling_agent.responses.models import (
+    ImportedResponseDefinition,
+    InlineResponseDefinition,
+    ResponseDefinition,
+)
 
 
 logger = get_logger(__name__)
@@ -35,6 +40,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai.result import Usage
 
+    from llmling_agent.models.context import AgentContext
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -300,22 +306,68 @@ TResultData = TypeVar("TResultData", default=str)
 
 
 def to_result_schema[TResultData](
-    result_type: type[TResultData] | None,
-    tool_name: str = "final_result",
-    tool_description: str | None = None,
+    result_type: type[TResultData] | str | ResponseDefinition | None,
+    *,
+    context: AgentContext[Any] | None = None,
+    tool_name_override: str | None = None,
+    tool_description_override: str | None = None,
 ) -> _result.ResultSchema[TResultData] | None:
-    """Create result schema from type.
+    """Create result schema from type, definition, or name.
 
     Args:
-        result_type: The type to create a schema for
-        tool_name: Name of the tool that will return this type
-        tool_description: Optional description of the tool
+        result_type: Either:
+            - Type to create schema for
+            - Name of response definition (requires context)
+            - Response definition instance
+            - None for unstructured responses
+        context: Optional agent context for looking up named definitions
+        tool_name_override: Optional override for tool name
+        tool_description_override: Optional override for tool description
 
     Returns:
-        Result schema for pydantic-ai
+        Result schema for pydantic-ai or None for unstructured
+
+    Raises:
+        ValueError: If named type not found in manifest
     """
-    if result_type is None:
-        return None
-    return _result.ResultSchema[TResultData].build(
-        result_type, tool_name, tool_description
-    )
+    match result_type:
+        case None:
+            return None
+
+        case str() if context:
+            if result_type not in context.definition.responses:
+                msg = f"Response type {result_type!r} not found in manifest"
+                raise ValueError(msg)
+            definition = context.definition.responses[result_type]
+            return to_result_schema(
+                definition,
+                tool_name_override=tool_name_override,
+                tool_description_override=tool_description_override,
+            )
+        case str():
+            msg = f"Response type {result_type!r} not found in manifest"
+            raise ValueError(msg)
+        case InlineResponseDefinition() | ImportedResponseDefinition() as definition:
+            model = (
+                definition.create_model()
+                if isinstance(definition, InlineResponseDefinition)
+                else definition.resolve_model()
+            )
+            return _result.ResultSchema[Any].build(
+                model,
+                tool_name_override or definition.result_tool_name,
+                tool_description_override or definition.result_tool_description,
+            )
+
+        case type():
+            # Use context defaults or fallback for tool settings
+            default_name = context.config.result_tool_name if context else "final_result"
+            default_desc = context.config.result_tool_description if context else None
+            return _result.ResultSchema[TResultData].build(
+                result_type,
+                tool_name_override or default_name,
+                tool_description_override or default_desc,
+            )
+        case _:
+            msg = f"Invalid result type: {type(result_type)}"
+            raise TypeError(msg)
