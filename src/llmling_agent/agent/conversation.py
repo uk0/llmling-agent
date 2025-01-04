@@ -17,7 +17,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.pydantic_ai_utils import (
     convert_model_message,
-    format_response,
+    format_part,
     get_message_role,
 )
 
@@ -169,7 +169,7 @@ class ConversationManager:
 
         encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
         # Format message to text for token counting
-        content = "\n".join(format_response(part) for part in message.parts)
+        content = "\n".join(format_part(part) for part in message.parts)
         return len(encoding.encode(content))
 
     async def format_history(
@@ -199,7 +199,7 @@ class ConversationManager:
             # Check message type instead of role string
             if not include_system and isinstance(msg, SystemPromptPart):
                 continue
-            content = "\n".join(format_response(part) for part in msg.parts)
+            content = "\n".join(format_part(part) for part in msg.parts)
             formatted = template.format(agent=get_message_role(msg), content=content)
 
             if max_tokens:
@@ -528,7 +528,7 @@ class ConversationManager:
 
         encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
         return sum(
-            len(encoding.encode(format_response(part)))
+            len(encoding.encode(format_part(part)))
             for msg in self._current_history
             for part in msg.parts
         )
@@ -539,7 +539,7 @@ class ConversationManager:
 
         encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
         return sum(
-            len(encoding.encode(format_response(part)))
+            len(encoding.encode(format_part(part)))
             for msg in self._pending_messages
             for part in msg.parts
         )

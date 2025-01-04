@@ -34,7 +34,7 @@ from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.pydantic_ai_utils import (
     extract_usage,
-    format_response,
+    format_part,
     get_tool_calls,
     to_result_schema,
 )
@@ -801,7 +801,7 @@ class Agent[TDeps]:
                         # Get all model responses and format their parts
                         responses = [m for m in messages if isinstance(m, ModelResponse)]
                         parts = [p for msg in responses for p in msg.parts]
-                        content = "\n".join(format_response(p) for p in parts)
+                        content = "\n".join(format_part(p) for p in parts)
                         usage = stream.usage()
                         cost = (
                             await extract_usage(

@@ -14,7 +14,7 @@ from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserProm
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
 from llmling_agent.models.messages import ChatMessage, TokenAndCostResult
-from llmling_agent.pydantic_ai_utils import extract_usage, format_response
+from llmling_agent.pydantic_ai_utils import extract_usage, format_part
 
 
 if TYPE_CHECKING:
@@ -217,7 +217,7 @@ class PydanticAIProvider(AgentProvider):
                             response_parts: list[str] = []
                             for msg in messages:
                                 response_parts.extend(
-                                    format_response(part) for part in msg.parts
+                                    format_part(part) for part in msg.parts
                                 )
 
                             response_text = "\n".join(response_parts)

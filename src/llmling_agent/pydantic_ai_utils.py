@@ -86,7 +86,7 @@ async def extract_usage(
     return TokenAndCostResult(token_usage=token_usage, total_cost=total_cost)
 
 
-def format_response(  # noqa: PLR0911
+def format_part(  # noqa: PLR0911
     response: str | _messages.ModelRequestPart | _messages.ModelResponsePart,
 ) -> str:
     """Format any kind of response in a readable way.
@@ -224,13 +224,13 @@ def convert_model_message(
         case ModelResponse():
             # Collect content and tool calls from all parts
             tool_calls = get_tool_calls([message], tools, None)
-            parts = [format_response(p) for p in message.parts if isinstance(p, TextPart)]
+            parts = [format_part(p) for p in message.parts if isinstance(p, TextPart)]
             content = "\n".join(parts)
             return ChatMessage(content=content, role="assistant", tool_calls=tool_calls)
 
         case TextPart() | UserPromptPart() | SystemPromptPart() as part:
             role = "assistant" if isinstance(part, TextPart) else "user"
-            return ChatMessage(content=format_response(part), role=role)
+            return ChatMessage(content=format_part(part), role=role)
 
         case ToolCallPart():
             args = (
