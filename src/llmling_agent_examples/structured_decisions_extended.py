@@ -20,10 +20,10 @@ from llmling_agent.delegation import (
     EndDecision,
     RouteDecision,
 )
-from llmling_agent.delegation.controllers import CallbackConversationController
+from llmling_agent.delegation.router import AgentRouter, CallbackRouter
 
 
-class SupportTicket(BaseModel):
+class Ticket(BaseModel):
     """Support ticket with classification."""
 
     title: str
@@ -80,7 +80,7 @@ agents:
 """
 
 
-async def smart_router(ticket: SupportTicket, pool: AgentPool) -> Decision:
+async def smart_router(ticket: Ticket, pool: AgentPool, router: AgentRouter) -> Decision:
     """Smart routing based on ticket properties."""
     # Critical tickets always go to human first
     if ticket.priority == "critical":
@@ -109,10 +109,10 @@ async def smart_router(ticket: SupportTicket, pool: AgentPool) -> Decision:
 async def main(config_path: str):
     async with AgentPool.open(config_path) as pool:
         # Create type-safe agent
-        classifier = pool.get_agent("classifier", return_type=SupportTicket)
+        classifier = pool.get_agent("classifier", return_type=Ticket)
 
         # Create smart controller
-        controller = CallbackConversationController[SupportTicket](pool, smart_router)
+        controller = CallbackRouter[Ticket](pool, smart_router)
         # Process a support request
         request = (
             "I can't access my account and I have an urgent demo in 1 hour! "
@@ -121,7 +121,7 @@ async def main(config_path: str):
 
         # Get structured ticket from classifier
         ticket_msg = await classifier.run(request)
-        ticket = ticket_msg.data  # Type-safe SupportTicket
+        ticket = ticket_msg.data  # Type-safe Ticket
 
         print("\n[bold blue]Ticket Classification:[/]")
         print(f"Priority: {ticket.priority}")

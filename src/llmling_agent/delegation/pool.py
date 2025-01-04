@@ -13,10 +13,10 @@ from typing_extensions import TypeVar
 from llmling_agent.agent import Agent, HumanAgent
 from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.delegation.controllers import (
-    CallbackConversationController,
     controlled_conversation,
     interactive_controller,
 )
+from llmling_agent.delegation.router import CallbackRouter
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
 from llmling_agent.tasks import TaskRegistry
@@ -615,7 +615,7 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
             Tuple of (response message, routing decision)
         """
         # Create appropriate controller based on message type
-        controller = CallbackConversationController[TMessage](self, decision_callback)
+        controller = CallbackRouter[TMessage](self, decision_callback)
 
         # Get or use agent
         match agent:

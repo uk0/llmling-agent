@@ -1,10 +1,9 @@
 """Agent delegation and collaboration functionality."""
 
 from llmling_agent.delegation.pool import AgentPool
+from llmling_agent.delegation.router import AgentRouter, CallbackRouter, RuleRouter
 from llmling_agent.delegation.controllers import (
-    ConversationController,
-    CallbackConversationController,
-    RuleBasedController,
+    controlled_conversation,
     interactive_controller,
 )
 from llmling_agent.delegation.router import (
@@ -19,15 +18,16 @@ from llmling_agent.delegation.callbacks import DecisionCallback
 
 __all__ = [
     "AgentPool",
+    "AgentRouter",
     "AwaitResponseDecision",
-    "CallbackConversationController",
-    "ConversationController",
+    "CallbackRouter",
     "Decision",
     "DecisionCallback",
     "EndDecision",
     "RouteDecision",
     "RoutingConfig",
     "RoutingRule",
-    "RuleBasedController",
+    "RuleRouter",
+    "controlled_conversation",
     "interactive_controller",
 ]

@@ -6,9 +6,14 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from llmling_agent.delegation.controllers import CallbackConversationController
 from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.delegation.router import AwaitResponseDecision, Decision, RouteDecision
+from llmling_agent.delegation.router import (
+    AgentRouter,
+    AwaitResponseDecision,
+    CallbackRouter,
+    Decision,
+    RouteDecision,
+)
 
 
 class Ticket(BaseModel):
@@ -43,7 +48,7 @@ agents:
 """
 
 
-async def smart_router(ticket: Ticket, pool: AgentPool) -> Decision:
+async def smart_router(ticket: Ticket, pool: AgentPool, router: AgentRouter) -> Decision:
     """Route based on category and urgency."""
     agent = "tech_support" if ticket.category == "tech" else "billing_support"
     if ticket.urgent:
@@ -60,7 +65,7 @@ async def main(config_path: str):
         # Get type-safe classifier agent
         classifier = pool.get_agent("classifier", return_type=Ticket)
         # Create controller with pool-aware router
-        controller = CallbackConversationController[Ticket](pool, smart_router)
+        controller = CallbackRouter[Ticket](pool, smart_router)
         request = "My app is broken and I need urgent help!"
         ticket_msg = await classifier.run(request)
         decision = await controller.decide(ticket_msg.data)

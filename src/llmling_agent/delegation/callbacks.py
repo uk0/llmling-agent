@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from typing_extensions import TypeVar
 
-from llmling_agent.delegation.router import Decision
+from llmling_agent.delegation.router import AgentRouter, Decision
 
 
 if TYPE_CHECKING:
@@ -13,4 +13,6 @@ if TYPE_CHECKING:
 
 
 TMessage = TypeVar("TMessage", default=str)
-DecisionCallback = Callable[[TMessage, "AgentPool"], Awaitable[Decision] | Decision]
+DecisionCallback = Callable[
+    [TMessage, "AgentPool", AgentRouter], Decision | Awaitable[Decision]
+]

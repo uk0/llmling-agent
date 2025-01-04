@@ -11,14 +11,14 @@ from llmling_agent.functional import (
 )
 from llmling_agent.delegation import (
     AgentPool,
-    ConversationController,
     Decision,
     EndDecision,
     RouteDecision,
     AwaitResponseDecision,
     interactive_controller,
-    RuleBasedController,
 )
+from llmling_agent.delegation.callbacks import DecisionCallback
+from llmling_agent.delegation.router import AgentRouter, RuleRouter, CallbackRouter
 from dotenv import load_dotenv
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.chat_session.base import AgentPoolView
@@ -32,15 +32,18 @@ __all__ = [
     "AgentConfig",
     "AgentPool",
     "AgentPoolView",
+    "AgentRouter",
     "AgentsManifest",
     "AwaitResponseDecision",
+    "CallbackRouter",
     "ChatMessage",
-    "ConversationController",
     "Decision",
+    "DecisionCallback",
     "EndDecision",
     "HumanAgent",
     "RouteDecision",
     "RuleBasedController",
+    "RuleRouter",
     "SystemPrompt",
     "get_structured",
     "interactive_controller",
