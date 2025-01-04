@@ -84,10 +84,8 @@ async def smart_router(ticket: SupportTicket, pool: AgentPool) -> Decision:
     """Smart routing based on ticket properties."""
     # Critical tickets always go to human first
     if ticket.priority == "critical":
-        return TalkBackDecision(
-            target_agent="human_agent",
-            reason=f"Critical {ticket.category} issue needs immediate attention",
-        )
+        reason = f"Critical {ticket.category} issue needs immediate attention"
+        return TalkBackDecision(target_agent="human_agent", reason=reason)
 
     match (ticket.category, ticket.priority):
         case ("technical", "high"):
