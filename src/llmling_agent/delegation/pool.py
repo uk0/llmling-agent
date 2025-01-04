@@ -5,20 +5,16 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Literal, Self, overload
-from uuid import UUID
 
 from llmling import BaseRegistry, Config, LLMLingError, RuntimeConfig
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
-from llmling_agent.agent import Agent, StructuredAgent
-from llmling_agent.delegation.router import (
-    ConversationController,
-    Decision,
-    DecisionCallback,
-    EndDecision,
-    RouteDecision,
-    TalkBackDecision,
+from llmling_agent.agent import Agent, HumanAgent
+from llmling_agent.agent.structured import StructuredAgent
+from llmling_agent.delegation.controllers import (
+    CallbackConversationController,
+    controlled_conversation,
     interactive_controller,
 )
 from llmling_agent.log import get_logger
@@ -33,6 +29,10 @@ if TYPE_CHECKING:
     from psygnal.containers import EventedDict
 
     from llmling_agent.common_types import StrPath
+    from llmling_agent.delegation.callbacks import DecisionCallback
+    from llmling_agent.delegation.router import (
+        Decision,
+    )
     from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.messages import ChatMessage
@@ -258,9 +258,9 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
                 config=config,
                 pool=self,
             )
-
+            agent_cls = Agent[Any] if config.type == "ai" else HumanAgent[Any]
             # Create agent with runtime and context
-            agent = Agent[Any](
+            agent = agent_cls(
                 runtime=runtime,
                 context=context,
                 result_type=None,  # type: ignore[arg-type]
@@ -542,68 +542,79 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
             initial_prompt: First message to start conversation
             decision_callback: Callback for routing decisions
         """
-        controller = ConversationController(self, decision_callback)
-
-        # Handle both string and Agent
-        current_agent = (
-            initial_agent
-            if isinstance(initial_agent, Agent)
-            else self.get_agent(initial_agent)
+        await controlled_conversation(
+            self,
+            initial_agent=initial_agent,
+            initial_prompt=initial_prompt,
+            decision_callback=decision_callback,
         )
-        current_message = initial_prompt
 
-        while True:
-            response = await current_agent.run(current_message)
-            decision = await controller.decide(response.content)
-
-            match decision:
-                case EndDecision():
-                    logger.info("Ending conversation: %s", decision.reason)
-                    break
-
-                case RouteDecision():
-                    logger.info(
-                        "Forwarding to %s: %s", decision.target_agent, decision.reason
-                    )
-                    next_agent = self.get_agent(decision.target_agent)
-                    next_agent.outbox.emit(response, None)
-
-                case TalkBackDecision():
-                    logger.info(
-                        "Routing to %s: %s", decision.target_agent, decision.reason
-                    )
-                    current_agent = self.get_agent(decision.target_agent)
-                    current_message = response.content
-
+    @overload
     async def controlled_talk(
         self,
         agent: str | Agent[Any],
         message: str,
-        decision_callback: DecisionCallback = interactive_controller,
+        decision_callback: DecisionCallback[str] = interactive_controller,
+    ) -> tuple[ChatMessage[str], Decision]: ...
+
+    @overload
+    async def controlled_talk[TMessage](
+        self,
+        agent: StructuredAgent[Any, TMessage],
+        message: TMessage,
+        decision_callback: DecisionCallback[TMessage],
+    ) -> tuple[ChatMessage[TMessage], Decision]: ...
+
+    async def controlled_talk[TMessage](
+        self,
+        agent: str | Agent[Any] | StructuredAgent[Any, TMessage],
+        message: str | TMessage,
+        decision_callback: DecisionCallback[Any] = interactive_controller,
     ) -> tuple[ChatMessage[Any], Decision]:
         """Get one response with control decision.
 
         Args:
-            agent: Agent instance or name to talk to
-            message: Message to send
+            agent: Either:
+                - Name of agent to look up
+                - Regular Agent instance
+                - StructuredAgent for type-safe messages
+            message: Message to send (type depends on agent)
             decision_callback: Callback for routing decision
-        """
-        controller = ConversationController(self, decision_callback)
-        current_agent = agent if isinstance(agent, Agent) else self.get_agent(agent)
 
-        response = await current_agent.run(message)
-        decision = await controller.decide(response.content)
+        Returns:
+            Tuple of (response message, routing decision)
+        """
+        # Create appropriate controller based on message type
+        controller = CallbackConversationController[TMessage](self, decision_callback)
+
+        # Get or use agent
+        match agent:
+            case str():
+                # String name - get regular agent
+                current_agent: Agent[Any] | StructuredAgent[Any, TMessage] = (
+                    self.get_agent(agent)
+                )
+            case Agent() | StructuredAgent():
+                current_agent = agent
+            case _:
+                msg = f"Invalid agent type: {type(agent)}"
+                raise TypeError(msg)
+
+        # Run with message
+        response = await current_agent.run(message)  # type: ignore
+        decision = await controller.decide(response.content)  # type: ignore
 
         return response, decision
 
 
-async def main():
-    async with AgentPool.open("agents.yml") as pool:
-        agent: Agent[Any] = pool.get_agent("overseer")
-        print(agent)
-
-
 if __name__ == "__main__":
+
+    async def main():
+        path = "src/llmling_agent/config/resources/agents.yml"
+        async with AgentPool.open(path) as pool:
+            agent: Agent[Any] = pool.get_agent("overseer")
+            print(agent)
+
     import asyncio
 
     asyncio.run(main())

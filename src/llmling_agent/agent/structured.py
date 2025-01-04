@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
+from llmling_agent.model_utils import format_instance_for_llm
 from llmling_agent.responses.models import (
     BaseResponseDefinition,
     ResponseDefinition,
@@ -78,15 +79,27 @@ class StructuredAgent[TDeps, TResult]:
 
     async def run(
         self,
-        *prompt: str,
+        *prompt: str | TResult,
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
         usage: Usage | None = None,
     ) -> ChatMessage[TResult]:
-        """Run with fixed result type."""
+        """Run with fixed result type.
+
+        Args:
+            prompt: String prompts or structured objects of type TResult
+            deps: Optional dependencies for the agent
+            message_history: Optional previous messages for context
+            model: Optional model override
+            usage: Optional usage tracking
+        """
+        formatted_prompts = [
+            format_instance_for_llm(p) if not isinstance(p, str) else p for p in prompt
+        ]
+
         return await self._agent.run(
-            *prompt,
+            *formatted_prompts,
             deps=deps,
             message_history=message_history,
             model=model,

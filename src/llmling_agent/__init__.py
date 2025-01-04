@@ -17,7 +17,7 @@ from llmling_agent.delegation import (
     RouteDecision,
     TalkBackDecision,
     interactive_controller,
-    rule_based_controller,
+    RuleBasedController,
 )
 from dotenv import load_dotenv
 from llmling_agent.models.messages import ChatMessage
@@ -39,11 +39,11 @@ __all__ = [
     "EndDecision",
     "HumanAgent",
     "RouteDecision",
+    "RuleBasedController",
     "SystemPrompt",
     "TalkBackDecision",
     "get_structured",
     "interactive_controller",
-    "rule_based_controller",
     "run_agent_pipeline",
     "run_agent_pipeline_sync",
     "run_with_model",
