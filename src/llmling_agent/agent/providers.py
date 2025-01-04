@@ -7,11 +7,12 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 from uuid import uuid4
 
 from llmling import ToolError
+from psygnal import Signal
 from pydantic_ai import Agent as PydanticAgent
-from pydantic_ai.agent import EndStrategy, models
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from llmling_agent.log import get_logger
+from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.context import AgentContext
 from llmling_agent.models.messages import ChatMessage, TokenAndCostResult
 from llmling_agent.pydantic_ai_utils import extract_usage, format_part
@@ -20,9 +21,10 @@ from llmling_agent.pydantic_ai_utils import extract_usage, format_part
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
 
+    from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.messages import ModelMessage
 
-    from llmling_agent.common_types import ToolType
+    from llmling_agent.tools.manager import ToolManager
 
 
 logger = get_logger(__name__)
@@ -31,6 +33,8 @@ logger = get_logger(__name__)
 @runtime_checkable
 class AgentProvider(Protocol):
     """Protocol for agent response generation."""
+
+    tool_used = Signal(ToolCallInfo)
 
     async def generate_response(
         self,
@@ -74,7 +78,7 @@ class PydanticAIProvider(AgentProvider):
         *,
         model: str | models.Model | None = None,
         system_prompt: str | Sequence[str] = (),
-        tools: Sequence[ToolType] | None = None,
+        tools: ToolManager,
         retries: int = 1,
         result_retries: int | None = None,
         end_strategy: EndStrategy = "early",
@@ -93,9 +97,7 @@ class PydanticAIProvider(AgentProvider):
             defer_model_check: Whether to defer model validation
             context: Optional agent context
         """
-        if isinstance(model, str):
-            model = models.infer_model(model)  # type: ignore
-
+        self._tool_manager = tools
         self._model = model
         self._agent = PydanticAgent(
             model=model,  # type: ignore
@@ -321,3 +323,17 @@ class HumanProvider(AgentProvider):
             message_id=str(uuid4()),
             response_time=(datetime.now() - start_time).total_seconds(),
         )
+
+    async def stream_response(
+        self,
+        prompt: str,
+        *,
+        result_type: type[Any] | None = None,
+        deps: Any | None = None,
+        message_history: list[ModelMessage] | None = None,
+        model: models.Model | models.KnownModelName | None = None,
+    ) -> AsyncIterator[ChatMessage[Any]]:
+        msg = "Streaming not supported for human provider"
+        if False:  # to make it a generator
+            yield ChatMessage[Any](content="", role="user")
+        raise NotImplementedError(msg)

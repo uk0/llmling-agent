@@ -27,6 +27,7 @@ from tokonomics import TokenLimits, get_model_limits
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.conversation import ConversationManager
+from llmling_agent.agent.providers import AgentProvider, HumanProvider, PydanticAIProvider
 from llmling_agent.log import get_logger
 from llmling_agent.model_utils import can_format_fields, format_instance_for_llm
 from llmling_agent.models import AgentContext, AgentsManifest
@@ -65,7 +66,7 @@ logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=Any)
-
+AgentType = Literal["ai", "human"] | AgentProvider
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
 
@@ -100,6 +101,7 @@ class Agent[TDeps]:
         runtime: RuntimeConfig,
         context: AgentContext[TDeps] | None = None,
         *,
+        agent_type: AgentType = "ai",
         session_id: str | UUID | None = None,
         model: models.Model | models.KnownModelName | None = None,
         system_prompt: str | Sequence[str] = (),
@@ -120,6 +122,7 @@ class Agent[TDeps]:
         Args:
             runtime: Runtime configuration providing access to resources/tools
             context: Agent context with capabilities and configuration
+            agent_type: Agent type to use (ai: PydanticAIProvider, human: HumanProvider)
             session_id: Optional id to recover a conversation
             model: The default model to use (defaults to GPT-4)
             system_prompt: Static system prompts to use for this agent
@@ -153,6 +156,27 @@ class Agent[TDeps]:
         # Register capability-based tools
         if self._context and self._context.capabilities:
             self._context.capabilities.register_capability_tools(self)
+
+        # Initialize provider based on type
+        match agent_type:
+            case "ai":
+                self._provider: AgentProvider = PydanticAIProvider(
+                    model=model,
+                    system_prompt=system_prompt,
+                    tools=self._tool_manager,
+                    retries=retries,
+                    end_strategy=end_strategy,
+                    result_retries=result_retries,
+                    defer_model_check=defer_model_check,
+                    context=self._context,
+                )
+            case "human":
+                self._provider = HumanProvider(name=name)
+            case AgentProvider():
+                self._provider = agent_type
+            case _:
+                msg = f"Invalid agent type: {type}"
+                raise ValueError(msg)
 
         # Initialize agent with all tools
         self._pydantic_agent = PydanticAgent(
@@ -506,7 +530,7 @@ class Agent[TDeps]:
             deps: Optional dependencies for the agent
             message_history: Optional previous messages for context
             model: Optional model override
-            usage:  Optional usage to start with,
+            usage: Optional usage to start with,
                     useful for resuming a conversation or agents used in tools
 
         Returns:
