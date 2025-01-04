@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel
+from typing_extensions import TypeVar
 
 
 if TYPE_CHECKING:
@@ -13,6 +14,8 @@ if TYPE_CHECKING:
 
 
 DecisionType = Literal["route", "talk_back", "end"]
+TMessage = TypeVar("TMessage", default=str)
+TCallback = TypeVar("TCallback")
 
 
 class Decision(BaseModel):
@@ -42,27 +45,32 @@ class EndDecision(Decision):
     type: Literal["end"] = "end"
 
 
-DecisionCallback = Callable[[str, list[str]], Awaitable[Decision]]
+DecisionCallback = Callable[[TMessage, list[str]], Awaitable[Decision]]
 
 
-class ConversationController:
+class ConversationController[TMessage]:
     """Controls conversation flow through decisions."""
 
-    def __init__(self, pool: AgentPool, decision_callback: DecisionCallback):
+    def __init__(
+        self,
+        pool: AgentPool,
+        decision_callback: DecisionCallback[TMessage],
+    ):
         """Initialize controller.
 
         Args:
             pool: Agent pool containing available agents
-            decision_callback: Function making routing decisions
+            decision_callback: Function making routing decisions based on (structured)
+                               messages
         """
         self.pool = pool
         self.decision_callback = decision_callback
 
-    async def decide(self, message: str) -> Decision:
+    async def decide(self, message: TMessage) -> Decision:
         """Get decision for current conversation state.
 
         Args:
-            message: Current message to make decision about
+            message: Current (structured) message to make decision about
 
         Returns:
             Decision about how to proceed with conversation
