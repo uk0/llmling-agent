@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pydantic import BaseModel
+
+from llmling_agent.responses.models import InlineResponseDefinition
+
 
 if TYPE_CHECKING:
-    from pydantic import BaseModel
-
     from llmling_agent.models import AgentContext
-    from llmling_agent.responses.models import InlineResponseDefinition
 
 
 def resolve_response_type(
@@ -48,3 +49,18 @@ def resolve_response_type(
         case _:
             msg = f"Invalid result type: {type_name}"
             raise ValueError(msg)
+
+
+def to_type(result_type, context: AgentContext | None = None) -> type:
+    match result_type:
+        case str():
+            return resolve_response_type(result_type, context)
+        case InlineResponseDefinition():
+            return resolve_response_type(result_type, None)
+        case None:
+            return str
+        case type() as model if issubclass(model, BaseModel):
+            return model
+        case _:
+            msg = f"Invalid result_type: {type(result_type)}"
+            raise TypeError(msg)
