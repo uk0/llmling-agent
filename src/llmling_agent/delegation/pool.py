@@ -18,6 +18,7 @@ from llmling_agent.delegation.controllers import (
     interactive_controller,
 )
 from llmling_agent.log import get_logger
+from llmling_agent.models.context import AgentContext
 from llmling_agent.tasks import TaskRegistry
 
 
@@ -359,17 +360,30 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
                 raise ValueError(msg) from e
 
     @overload
-    def get_agent(
+    def get_agent[TDeps, TResult](
         self,
         agent: str | Agent[Any],
         *,
+        deps: TDeps,
+        return_type: type[TResult],
         model_override: str | None = None,
         session_id: str | UUID | None = None,
         environment_override: StrPath | Config | None = None,
-    ) -> Agent[Any]: ...
+    ) -> StructuredAgent[TDeps, TResult]: ...
 
     @overload
-    def get_agent(
+    def get_agent[TDeps](
+        self,
+        agent: str | Agent[Any],
+        *,
+        deps: TDeps,
+        model_override: str | None = None,
+        session_id: str | UUID | None = None,
+        environment_override: StrPath | Config | None = None,
+    ) -> Agent[TDeps]: ...
+
+    @overload
+    def get_agent[TResult](
         self,
         agent: str | Agent[Any],
         *,
@@ -379,19 +393,31 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
         environment_override: StrPath | Config | None = None,
     ) -> StructuredAgent[Any, TResult]: ...
 
+    @overload
     def get_agent(
         self,
         agent: str | Agent[Any],
         *,
+        model_override: str | None = None,
+        session_id: str | UUID | None = None,
+        environment_override: StrPath | Config | None = None,
+    ) -> Agent[Any]: ...
+
+    def get_agent[TDeps, TResult](
+        self,
+        agent: str | Agent[Any],
+        *,
+        deps: TDeps | None = None,
         return_type: type[TResult] | None = None,
         model_override: str | None = None,
         session_id: str | UUID | None = None,
         environment_override: StrPath | Config | None = None,
-    ) -> Agent[Any] | StructuredAgent[Any, TResult]:
+    ) -> Agent[TDeps] | StructuredAgent[TDeps, TResult]:
         """Get or wrap an agent.
 
         Args:
             agent: Either agent name or instance
+            deps: Dependencies for the agent
             return_type: Optional type to make agent structured
             model_override: Optional model override
             session_id: Optional session ID to recover conversation
@@ -408,27 +434,30 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
             ValueError: If environment configuration is invalid
         """
         # Get base agent
-        base_agent = agent if isinstance(agent, Agent) else self.agents[agent]
+        base = agent if isinstance(agent, Agent) else self.agents[agent]
+        if deps is not None:
+            base._context = base._context or AgentContext[TDeps].create_default(base.name)
+            base._context.data = deps
 
         # Apply overrides
         if model_override:
-            base_agent.set_model(model_override)  # type: ignore
+            base.set_model(model_override)  # type: ignore
 
         if session_id:
-            base_agent.conversation.load_history_from_database(session_id=session_id)
+            base.conversation.load_history_from_database(session_id=session_id)
 
         if environment_override:
             if isinstance(environment_override, Config):
-                base_agent._runtime = RuntimeConfig.from_config(environment_override)
+                base._runtime = RuntimeConfig.from_config(environment_override)
             else:
                 cfg = Config.from_file(environment_override)
-                base_agent._runtime = RuntimeConfig.from_config(cfg)
+                base._runtime = RuntimeConfig.from_config(cfg)
 
         # Wrap in StructuredAgent if return_type provided
         if return_type is not None:
-            return StructuredAgent[Any, TResult](base_agent, return_type)
+            return StructuredAgent[Any, TResult](base, return_type)
 
-        return base_agent
+        return base
 
     @classmethod
     @asynccontextmanager
