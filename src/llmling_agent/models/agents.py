@@ -309,6 +309,7 @@ class AgentConfig(BaseModel):
         dct = {
             "name": self.name,
             "description": self.description,
+            "agent_type": self.type,
             "model": self.model,
             "system_prompt": self.system_prompts,
             "retries": self.retries,
