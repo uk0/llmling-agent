@@ -45,14 +45,13 @@ agents:
 
 async def smart_router(ticket: Ticket, pool: AgentPool) -> Decision:
     """Route based on category and urgency."""
+    agent = "tech_support" if ticket.category == "tech" else "billing_support"
     if ticket.urgent:
         # For urgent cases, route directly to appropriate specialist
-        agent = "tech_support" if ticket.category == "tech" else "billing_support"
         reason = f"Urgent {ticket.category} issue needs immediate attention"
         return AwaitResponseDecision(target_agent=agent, reason=reason)
 
     # Non-urgent cases can be handled asynchronously
-    agent = "tech_support" if ticket.category == "tech" else "billing_support"
     return RouteDecision(target_agent=agent, reason=f"Standard {ticket.category} issue")
 
 
@@ -62,7 +61,6 @@ async def main(config_path: str):
         classifier = pool.get_agent("classifier", return_type=Ticket)
         # Create controller with pool-aware router
         controller = CallbackConversationController[Ticket](pool, smart_router)
-        # Process request
         request = "My app is broken and I need urgent help!"
         ticket_msg = await classifier.run(request)
         decision = await controller.decide(ticket_msg.data)
