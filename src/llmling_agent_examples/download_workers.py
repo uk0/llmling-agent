@@ -43,7 +43,7 @@ PROMPT = "Download this file using both agent tools available to you: http://spe
 async def run(config_path: str):
     async with AgentPool.open(config_path) as pool:
         # Get the boss agent
-        boss: Agent[Any, Any] = pool.get_agent("overseer")
+        boss: Agent[Any] = pool.get_agent("overseer")
 
         # Create second downloader by cloning the first
         worker_1 = pool.get_agent("file_getter_1")

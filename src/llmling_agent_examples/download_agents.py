@@ -131,7 +131,7 @@ async def run(config_path: str):
         print(f"\nParallel was {sequential_time / parallel_time:.1f}x faster")
 
         print("Same task, different strategy: Boss lists agents and delegates the work.")
-        overseer: Agent[None, str] = pool.get_agent("overseer")
+        overseer: Agent[None] = pool.get_agent("overseer")
         result = await overseer.run(OVERSEER_PROMPT)
         await fan.stop()  # End of joy.
 

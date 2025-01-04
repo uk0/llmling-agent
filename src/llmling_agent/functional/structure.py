@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Literal, get_args
+from typing import TYPE_CHECKING, Any, Literal, cast, get_args
 
 from llmling import Config
 
@@ -83,7 +83,7 @@ async def get_structured[T](
         """Construct instance from LLM-provided arguments."""
         return response_type(**kwargs)
 
-    async with Agent[Any, T].open(
+    async with Agent[Any].open(
         result_type=response_type,
         model=model,
         system_prompt=system_prompt or [],
@@ -102,7 +102,7 @@ async def get_structured[T](
                 return err_result
             raise
         else:
-            return result.data
+            return cast(T, result.data)
 
 
 async def get_structured_multiple[T](
@@ -145,7 +145,7 @@ async def get_structured_multiple[T](
         type_info,
     ]
 
-    async with Agent[Any, Any].open(
+    async with Agent[Any].open(
         Config(),
         model=model,
         system_prompt=system_prompts,
@@ -193,7 +193,7 @@ async def pick_one[T](
     select_option.__doc__ += f"\nOptions:\n{docs}"
     sys_prompt = "Select the most appropriate option based on the context."
     cfg = Config()
-    async with Agent[Any, Any].open(cfg, model=model, system_prompt=sys_prompt) as agent:
+    async with Agent[Any].open(cfg, model=model, system_prompt=sys_prompt) as agent:
         agent.tools.register_tool(select_option, enabled=True)
         agent._tool_manager.tool_choice = "select_option"
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, Self
 
 from llmling import (
     Config,
@@ -290,9 +290,9 @@ class AgentConfig(BaseModel):
             "model": self.model,
             "system_prompt": self.system_prompts,
             "retries": self.retries,
-            "result_tool_name": self.result_tool_name,
+            # "result_tool_name": self.result_tool_name,
             "session_id": self.session_id,
-            "result_tool_description": self.result_tool_description,
+            # "result_tool_description": self.result_tool_description,
             "result_retries": self.result_retries,
             "end_strategy": self.end_strategy,
             # "defer_model_check": self.defer_model_check,
@@ -436,17 +436,17 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         data["agents"] = resolved
         return data
 
-    @model_validator(mode="after")
-    def validate_response_types(self) -> AgentsManifest:
-        """Ensure all agent result_types exist in responses or are inline."""
-        for agent_id, agent in self.agents.items():
-            if (
-                isinstance(agent.result_type, str)
-                and agent.result_type not in self.responses
-            ):
-                msg = f"'{agent.result_type=}' for '{agent_id=}' not found in responses"
-                raise ValueError(msg)
-        return self
+    # @model_validator(mode="after")
+    # def validate_response_types(self) -> AgentsManifest:
+    #     """Ensure all agent result_types exist in responses or are inline."""
+    #     for agent_id, agent in self.agents.items():
+    #         if (
+    #             isinstance(agent.result_type, str)
+    #             and agent.result_type not in self.responses
+    #         ):
+    #             msg = f"'{agent.result_type=}' for '{agent_id=}' not found in responses"
+    #             raise ValueError(msg)
+    #     return self
 
     @classmethod
     def from_file(cls, path: StrPath) -> Self:
@@ -515,42 +515,20 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
 
         return pool
 
-    @overload
-    async def open_agent(
-        self,
-        agent_name: str,
-        *,
-        return_type: None = None,
-        model: str | None = None,
-        session_id: str | UUID | None = None,
-    ) -> AsyncIterator[Agent[TDeps, TResult]]: ...
-
-    @overload
-    async def open_agent(
-        self,
-        agent_name: str,
-        *,
-        return_type: type[TResultOverride],
-        model: str | None = None,
-        session_id: str | UUID | None = None,
-    ) -> AsyncIterator[Agent[TDeps, TResultOverride]]: ...
-
     @asynccontextmanager
     async def open_agent(
         self,
         agent_name: str,
         *,
-        return_type: type[TResultOverride] | None = None,
         model: str | None = None,
         session_id: str | UUID | None = None,
-    ) -> AsyncIterator[Agent[TDeps, TResult | TResultOverride]]:
+    ) -> AsyncIterator[Agent[TDeps]]:
         """Open and configure a specific agent from configuration.
 
         Creates the agent in the context of a single-agent pool.
 
         Args:
             agent_name: Name of the agent to load
-            return_type: Optional type override for agent's return type
             model: Optional model override
             session_id: Optional ID to recover a previous state
 
@@ -565,12 +543,11 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         # Create empty pool just for context
         pool = AgentPool(manifest=self, agents_to_load=[], connect_agents=False)
         try:
-            async with Agent[TDeps, TResult | TResultOverride].open_agent(
+            async with Agent[TDeps].open_agent(
                 self,
                 agent_name,
                 model=model,
                 session_id=session_id,
-                result_type=return_type,
             ) as agent:
                 if agent._context:
                     agent._context.pool = pool

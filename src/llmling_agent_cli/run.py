@@ -87,7 +87,7 @@ def run_command(
 
                 if len(agent_names) == 1:
                     # Single agent execution
-                    agent: Agent[Any, Any] = pool.get_agent(
+                    agent: Agent[Any] = pool.get_agent(
                         agent_names[0],
                         model_override=model,
                     )

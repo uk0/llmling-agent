@@ -54,7 +54,7 @@ class ConversationManager:
 
     def __init__(
         self,
-        agent: Agent[Any, Any],
+        agent: Agent[Any],
         session_id: str | UUID | None = None,
         initial_prompts: str | Sequence[str] | None = None,
         *,
@@ -549,7 +549,7 @@ if __name__ == "__main__":
     from llmling_agent import Agent
 
     async def main():
-        async with Agent[Any, Any].open() as agent:
+        async with Agent[Any].open() as agent:
             convo = ConversationManager(agent, session_id="test")
             await convo.add_context_from_path("E:/mcp_zed.yml")
             print(convo._current_history)

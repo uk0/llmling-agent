@@ -119,7 +119,7 @@ class Capabilities(EventedModel):
                 msg = f"Unknown capability: {capability}"
                 raise ValueError(msg)
 
-    def register_capability_tools(self, agent: Agent[Any, Any]):
+    def register_capability_tools(self, agent: Agent[Any]):
         """Register all capability-based tools."""
         # Resource tools - always register, enable based on capabilities
         agent.tools.register_tool(

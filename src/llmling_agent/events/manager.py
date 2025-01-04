@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 class EventManager:
     """Manages multiple event sources and their lifecycles."""
 
-    def __init__(self, agent: Agent[Any, Any], enable_events: bool = True):
+    def __init__(self, agent: Agent[Any], enable_events: bool = True):
         """Initialize event manager.
 
         Args:

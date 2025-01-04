@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Awaitable, Callable
-from typing import Annotated, Literal
+from typing import Annotated, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import TypeVar
@@ -18,7 +18,7 @@ TResult = TypeVar("TResult")
 TDeps = TypeVar("TDeps")
 
 ExecuteFunction = Callable[
-    [AgentTask[TDeps, TResult], Agent[TDeps, TResult]],
+    [AgentTask[TDeps, TResult], Agent[TDeps]],
     ChatMessage[TResult] | Awaitable[ChatMessage[TResult]],
 ]
 
@@ -35,7 +35,7 @@ class TaskStrategy[TDeps, TResult](BaseModel, abc.ABC):
     async def execute(
         self,
         task: AgentTask[TDeps, TResult],
-        agent: Agent[TDeps, TResult],
+        agent: Agent[TDeps],
     ) -> ChatMessage[TResult]:
         """Execute task according to strategy."""
 
@@ -48,7 +48,7 @@ class DirectStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
     async def execute(
         self,
         task: AgentTask[TDeps, TResult],
-        agent: Agent[TDeps, TResult],
+        agent: Agent[TDeps],
     ) -> ChatMessage[TResult]:
         """Direct execution of task prompt."""
         return await agent.run(task.prompt)
@@ -74,7 +74,7 @@ class StepByStepStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
     async def execute(
         self,
         task: AgentTask[TDeps, TResult],
-        agent: Agent[TDeps, TResult],
+        agent: Agent[TDeps],
     ) -> ChatMessage[TResult]:
         # Get step breakdown using configurable prompt
         planning_prompt = self.planning_prompt_template.format(
@@ -89,7 +89,7 @@ class StepByStepStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
             results.append(step_result)
 
         if not self.combine_results:
-            return results[-1]
+            return cast(ChatMessage[TResult], results[-1])
 
         # Combine results using configurable prompt
         combine_prompt = self.combination_prompt_template.format(
@@ -107,7 +107,7 @@ class CustomStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
     async def execute(
         self,
         task: AgentTask[TDeps, TResult],
-        agent: Agent[TDeps, TResult],
+        agent: Agent[TDeps],
     ) -> ChatMessage[TResult]:
         """Execute using imported function."""
         from llmling.utils.importing import import_callable
@@ -134,7 +134,7 @@ class ResearchStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
     async def execute(
         self,
         task: AgentTask[TDeps, TResult],
-        agent: Agent[TDeps, TResult],
+        agent: Agent[TDeps],
     ) -> ChatMessage[TResult]:
         # Research phase
         research_prompt = self.research_prompt_template.format(prompt=task.prompt)

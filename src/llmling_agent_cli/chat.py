@@ -74,7 +74,7 @@ def chat_command(
                 connect_agents=False,  # We'll handle connections manually
             ) as pool:
                 # Get main agent
-                agent: Agent[Any, str] = pool.get_agent(
+                agent: Agent[Any] = pool.get_agent(
                     agent_name,
                     model_override=model,
                     session_id=session_id,

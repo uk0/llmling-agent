@@ -55,7 +55,7 @@ class AgentResponse[TResult](BaseModel):
         return self.error is None
 
 
-class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
+class AgentPool(BaseRegistry[str, Agent[Any]]):
     """Pool of initialized agents.
 
     Each agent maintains its own runtime environment based on its configuration.
@@ -113,7 +113,7 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
             )
 
             # Create agent with runtime and context
-            agent = Agent[Any, Any](
+            agent = Agent[Any](
                 runtime=runtime,
                 context=context,
                 result_type=None,  # type: ignore[arg-type]
@@ -144,7 +144,7 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
     #         self._setup_connections()
 
     @property
-    def agents(self) -> EventedDict[str, Agent[Any, Any]]:
+    def agents(self) -> EventedDict[str, Agent[Any]]:
         """Get agents dict (backward compatibility)."""
         return self._items
 
@@ -153,7 +153,7 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
         """Error class for agent operations."""
         return LLMLingError
 
-    def _validate_item(self, item: Agent[Any, Any] | Any) -> Agent[Any, Any]:
+    def _validate_item(self, item: Agent[Any] | Any) -> Agent[Any]:
         """Validate and convert items before registration.
 
         Args:
@@ -228,7 +228,7 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
         config: AgentConfig,
         *,
         temporary: bool = True,
-    ) -> Agent[Any, Any]:
+    ) -> Agent[Any]:
         """Create and register a new agent in the pool."""
         from llmling_agent.models.context import AgentContext
 
@@ -249,7 +249,7 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
             )
 
             # Create agent with runtime and context
-            agent = Agent[Any, Any](
+            agent = Agent[Any](
                 runtime=runtime,
                 context=context,
                 result_type=None,  # type: ignore[arg-type]
@@ -271,13 +271,13 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
 
     async def clone_agent[TDeps, TResult](
         self,
-        agent: Agent[TDeps, TResult] | str,
+        agent: Agent[TDeps] | str,
         new_name: str | None = None,
         *,
         model_override: str | None = None,
         system_prompts: list[str] | None = None,
         template_context: dict[str, Any] | None = None,
-    ) -> Agent[TDeps, TResult]:
+    ) -> Agent[TDeps]:
         """Create a copy of an agent.
 
         Args:
@@ -296,7 +296,7 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
                 msg = f"Agent {agent} not found"
                 raise KeyError(msg)
             config = self.manifest.agents[agent]
-            original_agent: Agent[TDeps, TResult] = self.get_agent(agent)
+            original_agent: Agent[TDeps] = self.get_agent(agent)
         else:
             config = agent._context.config  # type: ignore
             original_agent = agent
@@ -315,10 +315,10 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
             new_config.system_prompts = new_config.render_system_prompts(template_context)
 
         # Create new agent with same runtime
-        new_agent = Agent[TDeps, TResult](
+        new_agent = Agent[TDeps](
             runtime=original_agent._runtime,
             context=original_agent._context,
-            result_type=original_agent.actual_type,
+            # result_type=original_agent.actual_type,
             model=new_config.model,  # type: ignore
             system_prompt=new_config.system_prompts,
             name=new_name or f"{config.name}_copy_{len(self.agents)}",
@@ -331,7 +331,7 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
 
         return new_agent
 
-    def setup_agent_workers(self, agent: Agent[Any, Any], workers: list[WorkerConfig]):
+    def setup_agent_workers(self, agent: Agent[Any], workers: list[WorkerConfig]):
         """Set up workers for an agent from configuration."""
         for worker_config in workers:
             try:
@@ -431,7 +431,7 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
     async def team_task(
         self,
         prompt: str,
-        team: Sequence[str | Agent[Any, Any]],
+        team: Sequence[str | Agent[Any]],
         *,
         mode: Literal["parallel", "sequential"] = "parallel",
         model_override: str | None = None,
@@ -447,7 +447,7 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
             environment_override: Optional environment override for all agents
         """
 
-        async def run_agent(agent_ref: str | Agent[Any, Any]) -> AgentResponse:
+        async def run_agent(agent_ref: str | Agent[Any]) -> AgentResponse:
             try:
                 # Use agent directly if instance provided, otherwise look up by name
                 agent = (
@@ -491,7 +491,7 @@ class AgentPool(BaseRegistry[str, Agent[Any, Any]]):
 
 async def main():
     async with AgentPool.open("agents.yml") as pool:
-        agent: Agent[Any, str] = pool.get_agent("overseer")
+        agent: Agent[Any] = pool.get_agent("overseer")
         print(agent)
 
 

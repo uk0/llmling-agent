@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class AgentLogger:
     """Handles database logging for agent interactions."""
 
-    def __init__(self, agent: Agent[Any, Any], enable_logging: bool = True):
+    def __init__(self, agent: Agent[Any], enable_logging: bool = True):
         """Initialize logger.
 
         Args:

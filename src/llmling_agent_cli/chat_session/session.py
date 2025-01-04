@@ -32,7 +32,7 @@ class InteractiveSession:
 
     def __init__(
         self,
-        agent: Agent[Any, str],
+        agent: Agent[Any],
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,
@@ -83,7 +83,7 @@ class InteractiveSession:
             # Only if no pool, connect directly to main agent
             self._chat_session._agent.tool_used.connect(self._on_tool_call)
 
-    def _on_agent_connected(self, agent: Agent[Any, Any]):
+    def _on_agent_connected(self, agent: Agent[Any]):
         """Handle newly connected agent."""
         agent.message_sent.connect(self._on_message)
         agent.tool_used.connect(self._on_tool_call)
@@ -254,7 +254,7 @@ class InteractiveSession:
 
 # Helper function for CLI
 async def start_interactive_session(
-    agent: Agent[str, str],
+    agent: Agent[Any],
     *,
     pool: AgentPool | None = None,
     wait_chain: bool = True,

@@ -193,7 +193,7 @@ async def switch_agent(
         return
 
     try:
-        async with Agent[Any, str].open_agent(definition, name) as new_agent:
+        async with Agent[Any].open_agent(definition, name) as new_agent:
             # Update session's agent
             ctx.context._agent = new_agent
             await ctx.output.print(f"Switched to agent: {name}")

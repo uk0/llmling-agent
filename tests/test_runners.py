@@ -28,7 +28,7 @@ async def test_agent_pool_conversation_flow(test_model):
 
     async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
         # Get agent directly for conversation
-        agent: Agent[Any, str] = pool.get_agent("test_agent")
+        agent: Agent[Any] = pool.get_agent("test_agent")
 
         # Run multiple prompts in sequence
         history = None
@@ -98,7 +98,7 @@ async def test_agent_pool_cleanup():
     # Use context manager to ensure proper cleanup
     async with AgentPool(agent_def) as pool:
         # Add some agents
-        agent: Agent[Any, str] = pool.get_agent("test_agent")
+        agent: Agent[Any] = pool.get_agent("test_agent")
         assert "test_agent" in pool.agents
 
         # Get runtime reference to check cleanup
@@ -126,7 +126,7 @@ async def test_agent_pool_context_cleanup():
     runtime_ref = None
 
     async with AgentPool(agent_def) as pool:
-        agent: Agent[Any, str] = pool.get_agent("test_agent")
+        agent: Agent[Any] = pool.get_agent("test_agent")
         runtime_ref = agent._runtime
         assert "test_agent" in pool.agents
         assert runtime_ref is not None

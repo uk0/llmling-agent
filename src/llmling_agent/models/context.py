@@ -94,7 +94,7 @@ class AgentContext[TDeps]:
 
     # TODO: perhaps add agent directly to context?
     @property
-    def agent(self) -> Agent[TDeps, Any] | None:
+    def agent(self) -> Agent[TDeps] | None:
         """Get the agent instance from the pool."""
         if not self.pool or not self.agent_name:
             return None

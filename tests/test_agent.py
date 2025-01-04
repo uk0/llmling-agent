@@ -29,7 +29,7 @@ TEST_RESPONSE = "I am a test response"
 
 
 @pytest.mark.asyncio
-async def test_simple_agent_run(test_agent: Agent[Any, str]):
+async def test_simple_agent_run(test_agent: Agent[Any]):
     """Test basic agent text response."""
     result = await test_agent.run(SIMPLE_PROMPT)
     assert isinstance(result.data, str)
@@ -38,7 +38,7 @@ async def test_simple_agent_run(test_agent: Agent[Any, str]):
 
 
 @pytest.mark.asyncio
-async def test_agent_message_history(test_agent: Agent[Any, str]):
+async def test_agent_message_history(test_agent: Agent[Any]):
     """Test agent with message history."""
     history = [
         ModelRequest(parts=[UserPromptPart(content="Previous message")]),
@@ -51,7 +51,7 @@ async def test_agent_message_history(test_agent: Agent[Any, str]):
 
 
 @pytest.mark.asyncio
-async def test_agent_streaming(test_agent: Agent[Any, str]):
+async def test_agent_streaming(test_agent: Agent[Any]):
     """Test agent streaming response."""
     stream_ctx = test_agent.run_stream(SIMPLE_PROMPT)
     async with stream_ctx as stream:
@@ -60,7 +60,7 @@ async def test_agent_streaming(test_agent: Agent[Any, str]):
 
 
 @pytest.mark.asyncio
-async def test_agent_streaming_with_history(test_agent: Agent[Any, str]):
+async def test_agent_streaming_with_history(test_agent: Agent[Any]):
     """Test streaming with message history."""
     history = [
         ModelRequest(parts=[UserPromptPart(content="Previous message")]),
@@ -89,7 +89,7 @@ async def test_agent_streaming_with_history(test_agent: Agent[Any, str]):
 
 
 @pytest.mark.asyncio
-async def test_agent_concurrent_runs(test_agent: Agent[Any, str]):
+async def test_agent_concurrent_runs(test_agent: Agent[Any]):
     """Test running multiple prompts concurrently."""
     prompts = ["Hello!", "Hi there!", "Good morning!"]
     tasks = [test_agent.run(prompt) for prompt in prompts]
@@ -103,7 +103,7 @@ async def test_agent_model_override(no_tool_runtime: RuntimeConfig):
     default_response = "default response"
     override_response = "override response"
     model = TestModel(custom_result_text=default_response)
-    agent = Agent[Any, str](runtime=no_tool_runtime, name="test-agent", model=model)
+    agent = Agent[Any](runtime=no_tool_runtime, name="test-agent", model=model)
 
     # Run with default model
     result1 = await agent.run(SIMPLE_PROMPT)
@@ -115,7 +115,7 @@ async def test_agent_model_override(no_tool_runtime: RuntimeConfig):
     assert result2.data == override_response
 
 
-def test_sync_wrapper(test_agent: Agent[Any, str]):
+def test_sync_wrapper(test_agent: Agent[Any]):
     """Test synchronous wrapper method."""
     result = test_agent.run_sync(SIMPLE_PROMPT)
     assert result.data == TEST_RESPONSE
@@ -133,7 +133,7 @@ async def test_agent_context_manager(tmp_path: Path):
     config_path.write_text(yamling.dump_yaml(config))
     model = TestModel(custom_result_text=TEST_RESPONSE)
 
-    async with Agent[Any, str].open(config_path, name="test-agent", model=model) as agent:
+    async with Agent[Any].open(config_path, name="test-agent", model=model) as agent:
         result = await agent.run(SIMPLE_PROMPT)
         assert result.data == TEST_RESPONSE
 
@@ -151,7 +151,7 @@ async def test_agent_context_manager(tmp_path: Path):
 async def test_agent_logging(no_tool_runtime: RuntimeConfig):
     """Test agent logging functionality."""
     # Test with logging enabled
-    agent1 = Agent[Any, str](
+    agent1 = Agent[Any](
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE),
@@ -161,7 +161,7 @@ async def test_agent_logging(no_tool_runtime: RuntimeConfig):
     assert result1.data == TEST_RESPONSE
 
     # Test with logging disabled
-    agent2 = Agent[Any, str](
+    agent2 = Agent[Any](
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE),

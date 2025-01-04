@@ -79,9 +79,6 @@ agent = Agent(
 
     # Execution settings
     retries=3,                      # Max retries
-    result_tool_name="output",      # Tool name for final result
-    result_tool_description="Final analysis output",
-    defer_model_check=False,        # Check model on init
 )
 ```
 
@@ -176,7 +173,7 @@ async def get_prompt(ctx: RunContext[AgentContext]) -> str:
 The agent can handle runtime events:
 
 ```python
-class MyAgent(Agent[Any, str]):
+class MyAgent(Agent[Any]):
     async def handle_event(self, event: Event):
         """Handle runtime events."""
         match event.type:

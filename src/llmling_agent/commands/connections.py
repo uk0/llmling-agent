@@ -45,7 +45,7 @@ Displays:
 """
 
 
-def format_agent_name(agent: Agent[Any, Any], current: bool = False) -> str:
+def format_agent_name(agent: Agent[Any], current: bool = False) -> str:
     """Format agent name for display."""
     name = agent.name
     if current:

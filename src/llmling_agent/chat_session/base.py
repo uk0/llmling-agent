@@ -82,7 +82,7 @@ class AgentPoolView:
 
     def __init__(
         self,
-        agent: Agent[Any, str],
+        agent: Agent[Any],
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,
@@ -114,7 +114,7 @@ class AgentPoolView:
     @classmethod
     async def create(
         cls,
-        agent: Agent[Any, str],
+        agent: Agent[Any],
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,

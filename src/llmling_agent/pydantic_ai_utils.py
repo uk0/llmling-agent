@@ -299,11 +299,23 @@ def get_message_role(msg: ModelMessage) -> str:
 TResultData = TypeVar("TResultData", default=str)
 
 
-def to_result_schema(
-    result_type: type[TResultData],
+def to_result_schema[TResultData](
+    result_type: type[TResultData] | None,
     tool_name: str = "final_result",
     tool_description: str | None = None,
 ) -> _result.ResultSchema[TResultData] | None:
-    return _result.ResultSchema[result_type].build(
+    """Create result schema from type.
+
+    Args:
+        result_type: The type to create a schema for
+        tool_name: Name of the tool that will return this type
+        tool_description: Optional description of the tool
+
+    Returns:
+        Result schema for pydantic-ai
+    """
+    if result_type is None:
+        return None
+    return _result.ResultSchema[TResultData].build(
         result_type, tool_name, tool_description
     )

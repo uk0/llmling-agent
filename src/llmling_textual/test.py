@@ -26,7 +26,7 @@ class ChatApp(App):
     def __init__(self):
         super().__init__()
         self._pending_tasks: set[asyncio.Task[None]] = set()
-        self._agent: Agent[Any, str] | None = None
+        self._agent: Agent[Any] | None = None
         self._agent_cm: Any = None
 
     def compose(self) -> ComposeResult:

@@ -206,7 +206,7 @@ async def run_agent_pipeline(  # noqa: PLR0911
                     raise TypeError(msg)  # noqa: TRY301
 
         # Create agent with all settings
-        async with Agent[Any, T].open_agent(
+        async with Agent[Any].open_agent(
             agent_def,
             agent_name,
             model=model,  # type: ignore[arg-type]

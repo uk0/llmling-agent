@@ -8,9 +8,19 @@ import time
 from typing import TYPE_CHECKING, Any, Literal, cast, overload
 from uuid import UUID, uuid4
 
-from llmling import Config, LLMCallableTool, RuntimeConfig, ToolError
+from llmling import (
+    Config,
+    DynamicPrompt,
+    LLMCallableTool,
+    RuntimeConfig,
+    StaticPrompt,
+    ToolError,
+)
+from llmling.prompts.models import FilePrompt
+from llmling.utils.importing import import_callable
 from psygnal import Signal
-from pydantic_ai import Agent as PydanticAgent, RunContext, _result
+from psygnal.containers import EventedDict
+from pydantic_ai import Agent as PydanticAgent, RunContext
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import infer_model
 from tokonomics import TokenLimits, get_model_limits
@@ -22,8 +32,12 @@ from llmling_agent.model_utils import can_format_fields, format_instance_for_llm
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage
-from llmling_agent.pydantic_ai_utils import extract_usage, format_response, get_tool_calls
-from llmling_agent.responses import InlineResponseDefinition, resolve_response_type
+from llmling_agent.pydantic_ai_utils import (
+    extract_usage,
+    format_response,
+    get_tool_calls,
+    to_result_schema,
+)
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context, has_argument_type
 
@@ -31,12 +45,14 @@ from llmling_agent.utils.inspection import call_with_context, has_argument_type
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
 
+    from llmling.config.models import Resource
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.messages import ModelMessage
     from pydantic_ai.result import StreamedRunResult, Usage
 
     from llmling_agent.common_types import PromptFunction, StrPath, ToolType
     from llmling_agent.models.context import ConfirmationCallback
+    from llmling_agent.models.task import AgentTask
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -44,12 +60,11 @@ logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=Any)
-TResultOverride = TypeVar("TResultOverride", default=str)
 
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
 
-class Agent[TDeps, TResult]:
+class Agent[TDeps]:
     """Agent for AI-powered interaction with LLMling resources and tools.
 
     Generically typed with: LLMLingAgent[Type of Dependencies, Type of Result]
@@ -68,8 +83,8 @@ class Agent[TDeps, TResult]:
     conversation: ConversationManager
 
     message_received = Signal(ChatMessage[str])  # Always string
-    message_sent = Signal(ChatMessage[TResult])
-    message_exchanged = Signal(ChatMessage[TResult | str])
+    message_sent = Signal(ChatMessage)
+    message_exchanged = Signal(ChatMessage)
     tool_used = Signal(ToolCallInfo)
     model_changed = Signal(object)  # Model | None
     chunk_streamed = Signal(str)
@@ -79,7 +94,6 @@ class Agent[TDeps, TResult]:
         self,
         runtime: RuntimeConfig,
         context: AgentContext[TDeps] | None = None,
-        result_type: type[TResult] | None = None,
         *,
         session_id: str | UUID | None = None,
         model: models.Model | models.KnownModelName | None = None,
@@ -88,8 +102,6 @@ class Agent[TDeps, TResult]:
         description: str | None = None,
         tools: Sequence[ToolType] | None = None,
         retries: int = 1,
-        result_tool_name: str = "final_result",
-        result_tool_description: str | None = None,
         result_retries: int | None = None,
         tool_choice: bool | str | list[str] = True,
         end_strategy: EndStrategy = "early",
@@ -103,7 +115,6 @@ class Agent[TDeps, TResult]:
         Args:
             runtime: Runtime configuration providing access to resources/tools
             context: Agent context with capabilities and configuration
-            result_type: Optional type for structured responses
             session_id: Optional id to recover a conversation
             model: The default model to use (defaults to GPT-4)
             system_prompt: Static system prompts to use for this agent
@@ -111,8 +122,6 @@ class Agent[TDeps, TResult]:
             description: Description of the Agent ("what it can do")
             tools: List of tools to register with the agent
             retries: Default number of retries for failed operations
-            result_tool_name: Name of the tool used for final result
-            result_tool_description: Description of the final result tool
             result_retries: Max retries for result validation (defaults to retries)
             tool_choice: Ability to set a fixed tool or temporarily disable tools usage.
             end_strategy: Strategy for handling tool calls that are requested alongside
@@ -135,20 +144,6 @@ class Agent[TDeps, TResult]:
         all_tools.extend(runtime.tools.values())  # Add runtime tools directly
         logger.debug("Runtime tools: %s", list(runtime.tools.keys()))
         self._tool_manager = ToolManager(tools=all_tools, tool_choice=tool_choice)
-        self._result_tool_name = result_tool_name
-        self._result_tool_description = result_tool_description
-        # Resolve result type
-        self.actual_type: type[TResult]
-        match result_type:
-            case str():
-                self.actual_type = resolve_response_type(result_type, context)  # type: ignore[assignment]
-            case InlineResponseDefinition():
-                self.actual_type = resolve_response_type(result_type, None)  # type: ignore[assignment]
-            case None | type():
-                self.actual_type = result_type or str  # type: ignore[assignment]
-            case _:
-                msg = f"Invalid result_type: {type(result_type)}"
-                raise TypeError(msg)
 
         # Register capability-based tools
         if self._context and self._context.capabilities:
@@ -157,13 +152,10 @@ class Agent[TDeps, TResult]:
         # Initialize agent with all tools
         self._pydantic_agent = PydanticAgent(
             model=model,
-            result_type=self.actual_type,
             system_prompt=system_prompt,
             deps_type=AgentContext,
             tools=[],  # tools get added for each call explicitely
             retries=retries,
-            result_tool_name=result_tool_name,
-            result_tool_description=result_tool_description,
             end_strategy=end_strategy,
             result_retries=result_retries,
             defer_model_check=defer_model_check,
@@ -171,8 +163,8 @@ class Agent[TDeps, TResult]:
         )
         self.name = name
         self.description = description
-        msg = "Initialized %s (model=%s, result_type=%s)"
-        logger.debug(msg, self.name, model, result_type or "str")
+        msg = "Initialized %s (model=%s)"
+        logger.debug(msg, self.name, model)
 
         from llmling_agent.agent import AgentLogger
         from llmling_agent.events import EventManager
@@ -195,7 +187,7 @@ class Agent[TDeps, TResult]:
 
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._background_task: asyncio.Task[Any] | None = None
-        self._connected_agents: set[Agent[Any, Any]] = set()
+        self._connected_agents: set[Agent[Any]] = set()
 
     @property
     def name(self) -> str:
@@ -206,25 +198,35 @@ class Agent[TDeps, TResult]:
     def name(self, value: str | None):
         self._pydantic_agent.name = value
 
+    def set_result_type(self, result_type):
+        if result_type is not None:
+            # Create and set up complete result schema
+            schema = to_result_schema(result_type)
+            assert schema
+            self._pydantic_agent._result_schema = schema
+            # Set whether we allow text results
+            self._pydantic_agent._allow_text_result = schema.allow_text_result
+        else:
+            # Default to allowing text results with no schema
+            self._pydantic_agent._result_schema = None
+            self._pydantic_agent._allow_text_result = True
+
     @classmethod
     @asynccontextmanager
     async def open(
         cls,
         config_path: StrPath | Config | None = None,
-        result_type: type[TResult] | None = None,
         *,
         model: models.Model | models.KnownModelName | None = None,
         session_id: str | UUID | None = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
         retries: int = 1,
-        result_tool_name: str = "final_result",
-        result_tool_description: str | None = None,
         result_retries: int | None = None,
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         **kwargs: Any,
-    ) -> AsyncIterator[Agent[TDeps, TResult]]:
+    ) -> AsyncIterator[Agent[TDeps]]:
         """Create an agent with an auto-managed runtime configuration.
 
         This is a convenience method that combines RuntimeConfig.open with agent creation.
@@ -232,14 +234,11 @@ class Agent[TDeps, TResult]:
         Args:
             config_path: Path to the runtime configuration file or a Config instance
                          (defaults to Config())
-            result_type: Optional type for structured responses
             model: The default model to use (defaults to GPT-4)
             session_id: Optional id to recover a conversation
             system_prompt: Static system prompts to use for this agent
             name: Name of the agent for logging
             retries: Default number of retries for failed operations
-            result_tool_name: Name of the tool used for final result
-            result_tool_description: Description of the final result tool
             result_retries: Max retries for result validation (defaults to retries)
             end_strategy: Strategy for handling tool calls that are requested alongside
                           a final result
@@ -261,15 +260,12 @@ class Agent[TDeps, TResult]:
         async with RuntimeConfig.open(config_path) as runtime:
             agent = cls(
                 runtime=runtime,
-                result_type=result_type,
                 model=model,
                 session_id=session_id,
                 system_prompt=system_prompt,
                 name=name,
                 retries=retries,
                 end_strategy=end_strategy,
-                result_tool_name=result_tool_name,
-                result_tool_description=result_tool_description,
                 result_retries=result_retries,
                 defer_model_check=defer_model_check,
                 **kwargs,
@@ -304,7 +300,7 @@ class Agent[TDeps, TResult]:
         # Other settings
         system_prompt: str | Sequence[str] | None = None,
         enable_logging: bool = True,
-    ) -> AsyncIterator[Agent[TDeps, TResult]]:
+    ) -> AsyncIterator[Agent[TDeps]]:
         """Open and configure a specific agent from configuration.
 
         Args:
@@ -405,23 +401,6 @@ class Agent[TDeps, TResult]:
                 # Any cleanup if needed
                 pass
 
-    @property
-    def result_type(self) -> type[TResult] | None:
-        """Get current result type."""
-        return self.actual_type
-
-    @result_type.setter
-    def result_type(self, value: type[Any] | None):
-        """Set result type and update pydantic-ai agent schema."""
-        self.actual_type = value  # type: ignore
-        if value is not None:
-            # Update pydantic-ai agent's result schema
-            self._pydantic_agent._result_schema = _result.ResultSchema[value].build(
-                value, self._result_tool_name, self._result_tool_description
-            )
-        else:
-            self._pydantic_agent._result_schema = None
-
     def _forward_message(self, message: ChatMessage[Any]):
         """Forward sent messages."""
         logger.debug(
@@ -441,12 +420,12 @@ class Agent[TDeps, TResult]:
             for target in list(self._connected_agents):
                 self.stop_passing_results_to(target)
 
-    def pass_results_to(self, other: Agent[Any, Any], prompt: str | None = None):
+    def pass_results_to(self, other: Agent[Any], prompt: str | None = None):
         """Forward results to another agent."""
         self.outbox.connect(other._handle_message)
         self._connected_agents.add(other)
 
-    def stop_passing_results_to(self, other: Agent[Any, Any]):
+    def stop_passing_results_to(self, other: Agent[Any]):
         """Stop forwarding results to another agent."""
         if other in self._connected_agents:
             self.outbox.disconnect(other._handle_message)
@@ -481,37 +460,15 @@ class Agent[TDeps, TResult]:
             else:
                 agent.tool_plain(wrapped)
 
-    @overload
     async def run(
         self,
         *prompt: str,
-        result_type: None = None,
+        result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
         usage: Usage | None = None,
-    ) -> ChatMessage[TResult]: ...
-
-    @overload
-    async def run(
-        self,
-        *prompt: str,
-        result_type: type[TResultOverride],
-        deps: TDeps | None = None,
-        message_history: list[ModelMessage] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
-        usage: Usage | None = None,
-    ) -> ChatMessage[TResultOverride]: ...
-
-    async def run(
-        self,
-        *prompt: str,
-        result_type: type[Any] | None = None,
-        deps: TDeps | None = None,
-        message_history: list[ModelMessage] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
-        usage: Usage | None = None,
-    ) -> ChatMessage[Any]:
+    ) -> ChatMessage[TResult]:
         """Run agent with prompt and get response.
 
         Args:
@@ -538,8 +495,7 @@ class Agent[TDeps, TResult]:
         wait_for_chain = False  # TODO
         if deps is not None:
             self._context.data = deps
-        if result_type is not None:
-            self.result_type = result_type
+        self.set_result_type(result_type)
         try:
             # Clear all tools
             if self._context:
@@ -620,7 +576,7 @@ class Agent[TDeps, TResult]:
     @overload
     async def talk_to(
         self,
-        agent: str | Agent[TDeps, Any],
+        agent: str | Agent[TDeps],
         prompt: str,
         *,
         get_answer: Literal[True],
@@ -629,7 +585,7 @@ class Agent[TDeps, TResult]:
     @overload
     async def talk_to(
         self,
-        agent: str | Agent[TDeps, Any],
+        agent: str | Agent[TDeps],
         prompt: str,
         *,
         get_answer: Literal[False] = False,
@@ -637,7 +593,7 @@ class Agent[TDeps, TResult]:
 
     async def talk_to(
         self,
-        agent: str | Agent[TDeps, Any],
+        agent: str | Agent[TDeps],
         prompt: str,
         *,
         get_answer: bool = False,
@@ -690,7 +646,7 @@ class Agent[TDeps, TResult]:
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
         share_context: bool = False,
-        parent: Agent[Any, Any] | None = None,
+        parent: Agent[Any] | None = None,
     ) -> LLMCallableTool:
         """Create a tool from this agent.
 
@@ -739,6 +695,7 @@ class Agent[TDeps, TResult]:
     async def run_stream(
         self,
         *prompt: str,
+        result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
@@ -748,6 +705,7 @@ class Agent[TDeps, TResult]:
 
         Args:
             prompt: User query or instruction
+            result_type: Optional type for structured responses
             deps: Optional dependencies for the agent
             message_history: Optional previous messages for context
             model: Optional model override
@@ -766,6 +724,8 @@ class Agent[TDeps, TResult]:
             else str(p)
             for p in prompt
         )
+        self.set_result_type(result_type)
+
         if deps is not None:
             self._context.data = deps
         try:
@@ -889,6 +849,74 @@ class Agent[TDeps, TResult]:
                 seen.add(agent.name)
                 await agent.wait_for_chain(seen)
 
+    async def run_task[TResult](
+        self,
+        task: AgentTask[TDeps, TResult],
+        *,
+        result_type: type[TResult] | None = None,
+    ) -> ChatMessage[TResult]:
+        """Execute a pre-defined task.
+
+        Args:
+            task: Task configuration to execute
+            result_type: Optional override for task result type
+
+        Returns:
+            Task execution result
+
+        Raises:
+            TaskError: If task execution fails
+            ValueError: If task configuration is invalid
+        """
+        from llmling_agent.tasks import TaskError
+
+        if result_type is not None:
+            self._pydantic_agent._result_schema = to_result_schema(result_type)
+        # Load task knowledge
+        if task.knowledge:
+            # Add knowledge sources to context
+            resources: list[Resource | str] = list(task.knowledge.paths) + list(
+                task.knowledge.resources
+            )
+            for source in resources:
+                await self.conversation.load_context_source(source)
+            for prompt in task.knowledge.prompts:
+                if isinstance(prompt, StaticPrompt | DynamicPrompt | FilePrompt):
+                    await self.conversation.add_context_from_prompt(prompt)
+                else:
+                    await self.conversation.load_context_source(prompt)
+
+        # Register task tools
+        original_tools = dict(self.tools._items)  # Store original tools
+        try:
+            for tool_config in task.tool_configs:
+                callable_obj = import_callable(tool_config.import_path)
+                # Create LLMCallableTool with optional overrides
+                llm_tool = LLMCallableTool.from_callable(
+                    callable_obj,
+                    name_override=tool_config.name,
+                    description_override=tool_config.description,
+                )
+
+                # Register with ToolManager
+                meta = {"import_path": tool_config.import_path}
+                self.tools.register_tool(llm_tool, source="task", metadata=meta)
+            # Execute task with default strategy
+            from llmling_agent.tasks.strategies import DirectStrategy
+
+            strategy = DirectStrategy[TDeps, TResult]()
+            agent = cast(Agent[TDeps], self)
+            return await strategy.execute(task=task, agent=agent)
+
+        except Exception as e:
+            msg = f"Task execution failed: {e}"
+            logger.exception(msg)
+            raise TaskError(msg) from e
+
+        finally:
+            # Restore original tools
+            self.tools._items = EventedDict(original_tools)
+
     async def run_continuous(
         self,
         prompt: str | PromptFunction,
@@ -1001,7 +1029,7 @@ class Agent[TDeps, TResult]:
 
     def register_worker(
         self,
-        worker: Agent[Any, Any],
+        worker: Agent[Any],
         *,
         name: str | None = None,
         reset_history_on_run: bool = True,
@@ -1071,7 +1099,7 @@ if __name__ == "__main__":
 
     async def main():
         async with RuntimeConfig.open(config_resources.OPEN_BROWSER) as r:
-            agent = Agent[Any, Any](r, model="openai:gpt-4o-mini")
+            agent = Agent[Any](r, model="openai:gpt-4o-mini")
             result = await agent.run(sys_prompt)
             print(result.data)
 

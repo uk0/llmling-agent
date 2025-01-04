@@ -60,7 +60,7 @@ async def test_prompt_command_simple(runtime_config: Config):
             messages.append(message)
 
     async with RuntimeConfig.from_config(runtime_config) as runtime:
-        agent = Agent[Any, str](runtime)
+        agent = Agent[Any](runtime)
         session = AgentPoolView(agent)
 
         store = CommandStore(enable_system_commands=True)
@@ -91,7 +91,7 @@ async def test_prompt_command_with_args(runtime_config: Config):
             messages.append(message)
 
     async with RuntimeConfig.from_config(runtime_config) as runtime:
-        agent = Agent[Any, Any](runtime)
+        agent = Agent[Any](runtime)
         session = AgentPoolView(agent)
 
         store = CommandStore(enable_system_commands=True)

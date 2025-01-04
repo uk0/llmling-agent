@@ -199,13 +199,13 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
     def register_worker(
         self,
-        worker: Agent[Any, Any],
+        worker: Agent[Any],
         *,
         name: str | None = None,
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
         share_context: bool = False,
-        parent: Agent[Any, Any] | None = None,
+        parent: Agent[Any] | None = None,
     ) -> ToolInfo:
         """Register an agent as a worker tool.
 
