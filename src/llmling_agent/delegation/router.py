@@ -3,67 +3,109 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
-# Decision models
 class Decision(BaseModel):
-    """Base class for all control decisions."""
+    """Base class for all routing decisions."""
 
-    type: Literal["route", "talk_back", "end"]
+    type: str
+    """Discriminator field for decision types."""
+
     reason: str
+    """Reason for this routing decision."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
 
 
 class RouteDecision(Decision):
-    """Decision to forward to another agent without waiting."""
+    """Forward message to another agent without waiting.
+
+    The message will be sent to the target agent, but execution continues
+    immediately without waiting for a response.
+    """
 
     type: Literal["route"] = "route"
+    """Type discriminator for routing decisions."""
+
     target_agent: str
+    """Name of the agent to forward the message to."""
 
 
 class AwaitResponseDecision(Decision):
-    """Decision to route and wait for response."""
+    """Forward message to another agent and await response.
 
-    type: Literal["talk_back"] = "talk_back"
+    The message will be sent to the target agent and execution will pause
+    until the target agent responds. Used when the response is needed
+    for further processing.
+    """
+
+    type: Literal["await_response"] = "await_response"
+    """Type discriminator for await decisions."""
+
     target_agent: str
+    """Name of the agent to forward the message to and await response from."""
 
 
 class EndDecision(Decision):
-    """Decision to end conversation."""
+    """End the conversation.
+
+    Signal that no further routing is needed and the conversation
+    can be considered complete.
+    """
 
     type: Literal["end"] = "end"
+    """Type discriminator for end decisions."""
 
 
 # Routing configuration
 @dataclass
 class RoutingRule:
-    """Single routing rule configuration."""
+    """Rule for routing messages based on content matching.
+
+    Defines when and how messages should be routed to specific agents.
+    Rules are evaluated in priority order, with the first matching rule
+    being applied.
+    """
 
     keyword: str
+    """Keyword to match in the message content."""
+
     target: str
+    """Name of the agent to route to when rule matches."""
+
     reason: str
+    """Reason for this routing decision."""
+
     wait_for_response: bool = True
+    """Whether to wait for the target agent's response."""
+
     priority: int = 100
+    """Rule priority (lower numbers = higher priority)."""
+
     requires_capability: str | None = None
+    """Optional capability the target agent must have."""
 
 
-@dataclass
-class RoutingConfig:
-    """Complete routing configuration."""
+class RoutingConfig(BaseModel):
+    """Complete routing configuration for an agent.
+
+    Defines a set of rules for message routing and default behavior
+    when no rules match. Rules are evaluated in priority order.
+    """
 
     rules: list[RoutingRule]
-    default_target: str | None = None
-    default_reason: str = "No specific rule matched"
-    case_sensitive: bool = False
+    """Ordered list of routing rules to evaluate."""
 
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> RoutingConfig:
-        rules = [RoutingRule(**rule) for rule in data.get("rules", [])]
-        return cls(
-            rules=rules,
-            default_target=data.get("default_target"),
-            default_reason=data.get("default_reason", "No specific rule matched"),
-            case_sensitive=data.get("case_sensitive", False),
-        )
+    default_target: str | None = None
+    """Agent to route to when no rules match."""
+
+    default_reason: str = "No specific rule matched"
+    """Reason to use for default routing."""
+
+    case_sensitive: bool = False
+    """Whether keyword matching should be case-sensitive."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
