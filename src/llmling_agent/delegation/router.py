@@ -7,7 +7,7 @@ import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class Decision(BaseModel):
     """Base class for all routing decisions."""
 
-    type: str
+    type: str = Field(init=False)
     """Discriminator field for decision types."""
 
     reason: str
@@ -33,7 +33,7 @@ class Decision(BaseModel):
 class RouteDecision(Decision):
     """Forward message to another agent without waiting."""
 
-    type: Literal["route"] = "route"
+    type: Literal["route"] = Field("route", init=False)
     """Type discriminator for routing decisions."""
 
     target_agent: str
@@ -43,7 +43,7 @@ class RouteDecision(Decision):
 class AwaitResponseDecision(Decision):
     """Forward message to another agent and await response."""
 
-    type: Literal["await_response"] = "await_response"
+    type: Literal["await_response"] = Field("await_response", init=False)
     """Type discriminator for await decisions."""
 
     target_agent: str
@@ -56,7 +56,7 @@ class AwaitResponseDecision(Decision):
 class EndDecision(Decision):
     """End the conversation."""
 
-    type: Literal["end"] = "end"
+    type: Literal["end"] = Field("end", init=False)
     """Type discriminator for end decisions."""
 
 
