@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai.result import Usage
 
+    from llmling_agent.common_types import MessageRole
     from llmling_agent.models.context import AgentContext
     from llmling_agent.tools.base import ToolInfo
 
@@ -211,7 +212,7 @@ def convert_model_message(
         case ModelRequest():
             # Collect content from all parts
             content_parts = []
-            role = "system"
+            role: MessageRole = "system"
             for part in message.parts:
                 match part:
                     case UserPromptPart():

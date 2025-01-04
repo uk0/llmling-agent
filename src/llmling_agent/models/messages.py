@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TypedDict
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
 from typing_extensions import TypeVar
 
 from llmling_agent.common_types import JsonObject, MessageRole  # noqa: TC001
@@ -38,7 +38,8 @@ class TokenAndCostResult:
     """Total cost in USD"""
 
 
-class ChatMessage[TContent](BaseModel):
+@dataclass
+class ChatMessage[TContent]:
     """Common message format for all UI types.
 
     Generically typed with: ChatMessage[Type of Content]
@@ -48,37 +49,39 @@ class ChatMessage[TContent](BaseModel):
     content: TContent
     """Message content, typed as TContent (either str or BaseModel)."""
 
-    model: str | None = None
-    """Name of the model that generated this message."""
-
     role: MessageRole
     """Role of the message sender (user/assistant/system)."""
 
-    metadata: JsonObject = Field(default_factory=dict)
+    model: str | None = None
+    """Name of the model that generated this message."""
+
+    metadata: JsonObject = field(default_factory=dict)
     """Additional metadata about the message."""
 
-    timestamp: datetime = Field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=datetime.now)
     """When this message was created."""
 
     cost_info: TokenAndCostResult | None = None
     """Token usage and costs for this specific message if available."""
 
-    message_id: str = Field(default_factory=lambda: str(uuid4()))
+    message_id: str = field(default_factory=lambda: str(uuid4()))
     """Unique identifier for this message."""
 
     response_time: float | None = None
     """Time it took the LLM to respond."""
 
-    tool_calls: list[ToolCallInfo] = Field(default_factory=list)
+    tool_calls: list[ToolCallInfo] = field(default_factory=list)
     """List of tool calls made during message generation."""
 
     name: str | None = None
     """Display name for the message sender in UI."""
 
-    forwarded_from: list[str] = Field(default_factory=list)
+    forwarded_from: list[str] = field(default_factory=list)
     """List of agent names (the chain) that forwarded this message to the sender."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    # model_config = ConfigDict(
+    #     frozen=True, use_attribute_docstrings=True, arbitrary_types_allowed=True
+    # )
 
     def _get_content_str(self) -> str:
         """Get string representation of content."""

@@ -57,11 +57,11 @@ class HumanAgent[TDeps](Agent[TDeps]):
 
         # Get human input
         print(f"\n{final_prompt}")
-        response = input("> ")
+        response: TResult = input("> ")  # type: ignore
 
         # Create pydantic-ai messages for conversation history
         request = ModelRequest(parts=[UserPromptPart(content=final_prompt)])
-        response_msg = ModelResponse(parts=[TextPart(content=response)])
+        response_msg = ModelResponse(parts=[TextPart(content=str(response))])
 
         # Update conversation history
         self.conversation._last_messages = [request, response_msg]

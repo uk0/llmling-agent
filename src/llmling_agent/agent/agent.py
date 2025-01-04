@@ -469,9 +469,10 @@ class Agent[TDeps]:
             type(message.content),
             len(self._connected_agents),
         )
-        update = {"forwarded_from": [*message.forwarded_from, self.name]}
-        forwarded_msg = message.model_copy(update=update)
-        self.outbox.emit(forwarded_msg, None)
+        # update = {"forwarded_from": [*message.forwarded_from, self.name]}
+        # forwarded_msg = message.model_copy(update=update)
+        message.forwarded_from.append(self.name)
+        self.outbox.emit(message, None)
 
     async def disconnect_all(self):
         """Disconnect from all agents."""
