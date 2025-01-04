@@ -549,6 +549,7 @@ class Agent[TDeps]:
         if deps is not None:
             self._context.data = deps
         self.set_result_type(result_type)
+
         try:
             # Clear all tools
             if self._context:

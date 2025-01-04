@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
-from uuid import uuid4
 
 from llmling import ToolError
 from psygnal import Signal
@@ -14,8 +13,8 @@ from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserProm
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.context import AgentContext
-from llmling_agent.models.messages import ChatMessage, TokenAndCostResult
-from llmling_agent.pydantic_ai_utils import extract_usage, format_part
+from llmling_agent.pydantic_ai_utils import format_part, get_tool_calls
+from llmling_agent.utils.inspection import has_argument_type
 
 
 if TYPE_CHECKING:
@@ -23,6 +22,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.messages import ModelMessage
+    from tokonomics import Usage as TokonomicsUsage
 
     from llmling_agent.tools.manager import ToolManager
 
@@ -30,11 +30,21 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+@dataclass
+class ProviderResponse:
+    """Raw response data from provider."""
+
+    content: Any
+    tool_calls: list[ToolCallInfo] = field(default_factory=list)
+    usage: TokonomicsUsage | None = None
+
+
 @runtime_checkable
 class AgentProvider(Protocol):
     """Protocol for agent response generation."""
 
     tool_used = Signal(ToolCallInfo)
+    chunk_streamed = Signal(str)
 
     async def generate_response(
         self,
@@ -44,7 +54,7 @@ class AgentProvider(Protocol):
         deps: Any | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-    ) -> ChatMessage[Any]:
+    ) -> ProviderResponse:
         """Generate a response for the given prompt.
 
         Args:
@@ -67,7 +77,7 @@ class AgentProvider(Protocol):
         deps: Any | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-    ) -> AsyncIterator[ChatMessage[Any]]: ...
+    ) -> AsyncIterator[ProviderResponse]: ...
 
 
 class PydanticAIProvider(AgentProvider):
@@ -119,7 +129,7 @@ class PydanticAIProvider(AgentProvider):
         deps: Any | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-    ) -> ChatMessage[Any]:
+    ) -> ProviderResponse:
         """Generate response using pydantic-ai.
 
         Args:
@@ -134,9 +144,8 @@ class PydanticAIProvider(AgentProvider):
         """
         if deps is not None and self._context is not None:
             self._context.data = deps
-
-        start_time = datetime.now()
-
+        # Update available tools
+        self._update_tools()
         try:
             # Run through pydantic-ai
             result = await self._agent.run(
@@ -146,34 +155,34 @@ class PydanticAIProvider(AgentProvider):
                 model=model,
             )
 
-            # Extract cost info
-            usage = result.usage()
-            cost_info: TokenAndCostResult | None = None
-            if usage:
-                model_str = str(self._model) if self._model else None
-                if model_str:
-                    cost_info = await extract_usage(
-                        usage,
-                        model_str,
-                        prompt,
-                        str(result.data),
-                    )
-
-            # Create chat message
-            return ChatMessage[Any](
-                content=result.data,
-                role="assistant",
-                name=self._context.agent_name if self._context else None,
-                model=str(self._model) if self._model else None,
-                message_id=str(uuid4()),
-                cost_info=cost_info,
-                response_time=(datetime.now() - start_time).total_seconds(),
+            # Extract tool calls
+            tool_calls = get_tool_calls(
+                result.new_messages(), dict(self._tool_manager._items)
             )
+            # Return raw response data
+            usage = result.usage()
+            data = result.data
+            return ProviderResponse(content=data, tool_calls=tool_calls, usage=usage)
 
         except Exception as e:
             logger.exception("Error generating response")
             msg = f"Response generation failed: {e}"
             raise ToolError(msg) from e
+
+    def _update_tools(self):
+        """Update pydantic-ai-agent tools."""
+        self._agent._function_tools.clear()
+        tools = [t for t in self._tool_manager.values() if t.enabled]
+        for tool in tools:
+            wrapped = (
+                self._context.wrap_tool(tool, self._context)
+                if self._context
+                else tool.callable.callable
+            )
+            if has_argument_type(wrapped, "RunContext"):
+                self._agent.tool(wrapped)
+            else:
+                self._agent.tool_plain(wrapped)
 
     async def stream_response(
         self,
@@ -183,12 +192,13 @@ class PydanticAIProvider(AgentProvider):
         deps: Any | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-    ) -> AsyncIterator[ChatMessage[Any]]:
+    ) -> AsyncIterator[ProviderResponse]:
         """Stream response using pydantic-ai."""
         if deps is not None and self._context is not None:
             self._context.data = deps
 
-        start_time = datetime.now()
+        # Update available tools
+        self._update_tools()
 
         try:
             async with self._agent.run_stream(
@@ -199,46 +209,21 @@ class PydanticAIProvider(AgentProvider):
             ) as stream_result:
                 # Stream intermediate chunks
                 async for response in stream_result.stream():
-                    yield ChatMessage[Any](
-                        content=str(response),
-                        role="assistant",
-                        name=self._context.agent_name if self._context else None,
-                        model=str(self._model) if self._model else None,
+                    self.chunk_streamed.emit(str(response))
+                    # Yield intermediate responses without tool calls/usage
+                    yield ProviderResponse(content=str(response))
+
+                # Once stream is complete, yield final state with all metadata
+                messages = stream_result.new_messages()
+                if messages:  # Get content from final messages
+                    content = "\n".join(
+                        format_part(part) for msg in messages for part in msg.parts
                     )
-
-                # Once stream is complete, we can get metrics
-                if stream_result.is_complete:
-                    # Get usage info if available
-                    usage = stream_result.usage()
-                    cost_info: TokenAndCostResult | None = None
-                    if usage:
-                        model_str = str(self._model) if self._model else None
-                        if model_str:
-                            # Get final response from messages
-                            messages = stream_result.new_messages()
-                            response_parts: list[str] = []
-                            for msg in messages:
-                                response_parts.extend(
-                                    format_part(part) for part in msg.parts
-                                )
-
-                            response_text = "\n".join(response_parts)
-                            cost_info = await extract_usage(
-                                usage,
-                                model_str,
-                                prompt,
-                                response_text,
-                            )
-
-                    # Send final status message
-                    yield ChatMessage[Any](
-                        content="",  # Empty content for status message
-                        role="assistant",
-                        name=self._context.agent_name if self._context else None,
-                        model=str(self._model) if self._model else None,
-                        message_id=str(uuid4()),
-                        cost_info=cost_info,
-                        response_time=(datetime.now() - start_time).total_seconds(),
+                    tool_calls = get_tool_calls(messages, dict(self._tool_manager))
+                    yield ProviderResponse(
+                        content=content,
+                        tool_calls=tool_calls,
+                        usage=stream_result.usage(),
                     )
 
         except Exception as e:
@@ -251,11 +236,7 @@ class HumanProvider(AgentProvider):
     """Provider for human-in-the-loop responses."""
 
     def __init__(self, name: str | None = None):
-        """Initialize human provider.
-
-        Args:
-            name: Optional name for the human agent
-        """
+        """Initialize human provider."""
         self.name = name or "human"
 
     async def generate_response(
@@ -266,7 +247,7 @@ class HumanProvider(AgentProvider):
         deps: Any | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-    ) -> ChatMessage[Any]:
+    ) -> ProviderResponse:
         """Get response through human input.
 
         Args:
@@ -275,16 +256,7 @@ class HumanProvider(AgentProvider):
             deps: Optional dependency injection data
             message_history: Optional previous messages for context
             model: Not used for human provider
-
-        Returns:
-            Response message from human input
-
-        Note:
-            If result_type is provided, will attempt to parse/validate input
-            as that type. Otherwise returns raw text response.
         """
-        start_time = datetime.now()
-
         # Show context if available
         if message_history:
             print("\nContext:")
@@ -315,13 +287,10 @@ class HumanProvider(AgentProvider):
                 msg = f"Invalid response format: {e}"
                 raise ToolError(msg) from e
 
-        # Create chat message
-        return ChatMessage[Any](
+        return ProviderResponse(
             content=content,
-            role="user",
-            name=self.name,
-            message_id=str(uuid4()),
-            response_time=(datetime.now() - start_time).total_seconds(),
+            tool_calls=[],  # Human providers don't use tools for now
+            usage=None,  # No token usage for human responses
         )
 
     async def stream_response(
@@ -332,8 +301,8 @@ class HumanProvider(AgentProvider):
         deps: Any | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-    ) -> AsyncIterator[ChatMessage[Any]]:
+    ) -> AsyncIterator[ProviderResponse]:
         msg = "Streaming not supported for human provider"
         if False:  # to make it a generator
-            yield ChatMessage[Any](content="", role="user")
+            yield ProviderResponse(content="")
         raise NotImplementedError(msg)
