@@ -475,6 +475,7 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
         team: Sequence[str | Agent[Any]],
         *,
         mode: Literal["parallel", "sequential"] = "parallel",
+        result_type: type[Any] | None = None,
         model_override: str | None = None,
         environment_override: StrPath | Config | None = None,
     ) -> list[AgentResponse]:
@@ -484,13 +485,13 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
             prompt: Task to execute
             team: List of agents or agent names
             mode: Whether to run agents in parallel or sequence
+            result_type: Optional type for structured responses
             model_override: Optional model override for all agents
             environment_override: Optional environment override for all agents
         """
 
         async def run_agent(agent_ref: str | Agent[Any]) -> AgentResponse:
             try:
-                # Use agent directly if instance provided, otherwise look up by name
                 agent = (
                     agent_ref
                     if isinstance(agent_ref, Agent)
@@ -505,7 +506,7 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
                         else Config.from_file(environment_override)
                     )
                     agent._runtime = RuntimeConfig.from_config(cfg)
-                result = await agent.run(prompt)
+                result = await agent.run(prompt, result_type=result_type)
                 return AgentResponse(agent_name=agent.name, response=result.data)
             except Exception as e:
                 name = agent_ref if isinstance(agent_ref, str) else agent_ref.name

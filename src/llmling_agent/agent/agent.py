@@ -147,7 +147,7 @@ class Agent[TDeps]:
         self.message_received.connect(self.message_exchanged.emit)
         self.message_sent.connect(self.message_exchanged.emit)
         self.message_sent.connect(self._forward_message)
-
+        self._result_type = None
         # Initialize tool manager
         all_tools = list(tools or [])
         all_tools.extend(runtime.tools.values())  # Add runtime tools directly
@@ -249,6 +249,7 @@ class Agent[TDeps]:
             tool_description: Optional override for tool description
         """
         logger.debug("Setting result type to: %s", result_type)
+        self._result_type = result_type
         schema = to_result_schema(
             result_type,
             context=self._context,
@@ -734,8 +735,10 @@ class Agent[TDeps]:
             )
             deps = ctx.deps.data if share_context else None
 
-            result = await self.run(prompt, message_history=history, deps=deps)
-            return str(result.data)
+            result = await self.run(
+                prompt, message_history=history, deps=deps, result_type=self._result_type
+            )
+            return result.data
 
         normalized_name = self.name.replace("_", " ").title()
         docstring = f"Get expert answer from specialized agent: {normalized_name}"

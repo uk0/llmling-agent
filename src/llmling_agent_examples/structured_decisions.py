@@ -62,7 +62,7 @@ async def smart_router(ticket: Ticket, pool: AgentPool) -> Decision:
     if ticket.urgent:
         # Can use pool features like team_task
         team = ["tech_support", "human"]
-        await pool.team_task(str(ticket), team=team, mode="parallel")
+        await pool.team_task(str(ticket), team=team, mode="parallel", result_type=Ticket)
         # Route based on team response
         return RouteDecision(target_agent="human", reason="Urgent case handled by team")
 
