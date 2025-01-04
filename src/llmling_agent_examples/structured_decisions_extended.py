@@ -1,0 +1,196 @@
+"""Smart Support Router Example.
+
+This example demonstrates:
+1. Type-safe agent communication using StructuredAgent
+2. Generic routing with structured messages
+3. Mix of sync and async decision makers
+4. Different response types for different agents
+"""
+
+from __future__ import annotations
+
+from enum import Enum
+from typing import Literal
+from uuid import uuid4
+
+from pydantic import BaseModel, Field
+
+from llmling_agent.delegation import (
+    AgentPool,
+    Decision,
+    EndDecision,
+    RouteDecision,
+    TalkBackDecision,
+)
+from llmling_agent.delegation.controllers import CallbackConversationController
+
+
+class Priority(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class SupportTicket(BaseModel):
+    """Support ticket with classification."""
+
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    title: str
+    description: str
+    category: Literal["technical", "billing", "feature", "bug"]
+    priority: Priority
+    needs_human_review: bool = False
+
+
+class Resolution(BaseModel):
+    """Support ticket resolution."""
+
+    ticket_id: str
+    solution: str
+    resolved: bool
+    followup_needed: bool = False
+    assigned_to: str | None = None
+
+
+AGENT_CONFIG = """
+agents:
+  classifier:
+    type: ai
+    name: "Ticket Classifier"
+    model: openai:gpt-4o-mini
+    description: "Analyzes requests and creates structured tickets"
+    system_prompts:
+      - |
+        You analyze support requests and create structured tickets.
+        Consider urgency, category, and whether human review is needed.
+
+  tech_support:
+    type: ai
+    name: "Technical Support"
+    model: openai:gpt-4o-mini
+    system_prompts:
+      - |
+        You handle technical support tickets.
+        Provide clear solutions and mark if followup is needed.
+
+  billing:
+    type: ai
+    name: "Billing Support"
+    model: openai:gpt-4o-mini
+    system_prompts:
+      - You handle billing and payment issues.
+
+  human_agent:
+    type: human
+    name: "Support Lead"
+    description: "Human supervisor for complex cases"
+    system_prompts:
+      - You are an experienced support team lead.
+"""
+
+
+# Sync decision maker - simple routing based on category
+def simple_router(ticket: SupportTicket, agents: list[str]) -> Decision:
+    """Route tickets based on category only."""
+    match ticket.category:
+        case "technical":
+            return TalkBackDecision(target_agent="tech_support", reason="Technical issue")
+        case "billing":
+            return TalkBackDecision(target_agent="billing", reason="Billing issue")
+    return EndDecision(reason="Unhandled category")
+
+
+# Async decision maker - complex routing with priority handling
+async def smart_router(ticket: SupportTicket, pool: AgentPool) -> Decision:
+    """Smart routing based on ticket properties."""
+    # Critical tickets always go to human first
+    if ticket.priority == Priority.CRITICAL:
+        return TalkBackDecision(
+            target_agent="human_agent",
+            reason=f"Critical {ticket.category} issue needs immediate attention",
+        )
+
+    match (ticket.category, ticket.priority):
+        case ("technical", Priority.HIGH):
+            # High priority tech issues get human review after tech support
+            tech_agent = pool.get_agent("tech_support", return_type=Resolution)
+            # Convert ticket to string for tech agent
+            resolution = await tech_agent.run(str(ticket))
+            if not resolution.data.resolved:
+                return RouteDecision(
+                    target_agent="human_agent",
+                    reason="Unresolved high-priority technical issue",
+                )
+        case ("billing", Priority.HIGH | Priority.MEDIUM):
+            return TalkBackDecision(
+                target_agent="billing", reason="Priority billing issue"
+            )
+        case _ if ticket.needs_human_review:
+            return RouteDecision(
+                target_agent="human_agent", reason="Marked for human review"
+            )
+
+    return EndDecision(reason="Ticket handled appropriately")
+
+
+async def main():
+    async with AgentPool.open(AGENT_CONFIG) as pool:
+        # Create type-safe agents
+        classifier = pool.get_agent("classifier", return_type=SupportTicket)
+        # Create smart controller
+        controller = CallbackConversationController[SupportTicket](pool, smart_router)
+
+        # Process a support request
+        request = (
+            "I can't access my account and I have an urgent demo in 1 hour! "
+            "This is blocking our whole team."
+        )
+
+        # Get structured ticket from classifier
+        ticket_msg = await classifier.run(request)
+        ticket = ticket_msg.data  # Type-safe SupportTicket
+
+        print("\n[bold blue]Ticket Classification:[/]")
+        print(f"ID: {ticket.id}")
+        print(f"Priority: {ticket.priority}")
+        print(f"Category: {ticket.category}")
+        print(f"Needs human review: {ticket.needs_human_review}")
+
+        # Get routing decision
+        decision = await controller.decide(ticket)
+
+        match decision:
+            case TalkBackDecision():
+                print(f"\n[bold green]Routing to {decision.target_agent}[/]")
+                print(f"Reason: {decision.reason}")
+
+                # Get properly typed agent for resolution
+                agent = pool.get_agent(decision.target_agent, return_type=Resolution)
+                # Convert ticket to string
+                response = await agent.run(str(ticket))
+                resolution = response.data  # Type-safe Resolution
+
+                print("\n[bold blue]Resolution:[/]")
+                print(f"Solution: {resolution.solution}")
+                print(f"Resolved: {resolution.resolved}")
+                if resolution.followup_needed:
+                    print(f"Followup needed with: {resolution.assigned_to}")
+
+            case RouteDecision():
+                print(f"\n[bold yellow]Forwarding to {decision.target_agent}[/]")
+                print(f"Reason: {decision.reason}")
+                next_agent = pool.get_agent(decision.target_agent)
+                next_agent.outbox.emit(ticket_msg, None)
+
+            case EndDecision():
+                print("\n[bold green]Ticket handling complete[/]")
+                print(f"Reason: {decision.reason}")
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    from rich import print  # noqa: A004
+
+    asyncio.run(main())
