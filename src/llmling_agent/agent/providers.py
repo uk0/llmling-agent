@@ -30,6 +30,37 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def get_textual_streaming_app():
+    from textual.app import App
+    from textual.events import Key  # noqa: TC002
+    from textual.widgets import Input
+
+    class StreamingInputApp(App):
+        def __init__(self, chunk_callback):
+            super().__init__()
+            self.chunk_callback = chunk_callback
+            self.buffer = []
+            self.done = False
+
+        def compose(self):
+            yield Input(id="input")
+
+        def on_input_changed(self, event: Input.Changed):
+            # New character was typed
+            if len(event.value) > len(self.buffer):
+                new_char = event.value[len(self.buffer) :]
+                self.chunk_callback(new_char)
+            self.buffer = list(event.value)
+
+        def on_key(self, event: Key):
+            if event.key == "enter":
+                self.done = True
+                self.result = "".join(self.buffer)
+                self.exit()
+
+    return StreamingInputApp
+
+
 @dataclass
 class ProviderResponse:
     """Raw response data from provider."""
@@ -288,7 +319,32 @@ class HumanProvider(AgentProvider):
         *,
         result_type: type[Any] | None = None,
     ) -> AsyncIterator[ProviderResponse]:
-        msg = "Streaming not supported for human provider"
-        if False:  # to make it a generator
-            yield ProviderResponse(content="")
-        raise NotImplementedError(msg)
+        """Stream response keystroke by keystroke."""
+        print(f"\n{prompt}")
+        if result_type:
+            print(f"(Please provide response as {result_type.__name__})")
+
+        content_buffer = []
+
+        async def handle_chunk(chunk: str):
+            self.chunk_streamed.emit(chunk)
+            content_buffer.append(chunk)
+            yield ProviderResponse(content=chunk)
+
+        textual_app = get_textual_streaming_app()
+        app = textual_app(handle_chunk)
+        await app.run_async()
+
+        content = "".join(content_buffer)
+
+        # Parse structured response if needed
+        if result_type:
+            try:
+                content = result_type.model_validate_json(content)
+            except Exception as e:
+                logger.exception("Failed to parse structured response")
+                msg = f"Invalid response format: {e}"
+                raise ToolError(msg) from e
+
+        # Yield final response
+        yield ProviderResponse(content=content)
