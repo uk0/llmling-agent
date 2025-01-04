@@ -1,4 +1,4 @@
-"""LLMling integration with PydanticAI for AI-powered resource interaction."""
+"""The main Agent. Can do all sort of crazy things."""
 
 from __future__ import annotations
 
@@ -39,11 +39,7 @@ from llmling_agent.pydantic_ai_utils import (
     get_tool_calls,
     to_result_schema,
 )
-from llmling_agent.responses.models import (
-    ImportedResponseDefinition,
-    InlineResponseDefinition,
-    ResponseDefinition,
-)
+from llmling_agent.responses.models import BaseResponseDefinition, ResponseDefinition
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context, has_argument_type
 
@@ -274,9 +270,8 @@ class Agent[TDeps]:
 
         # Apply retries if from response definition
         match result_type:
-            case InlineResponseDefinition() | ImportedResponseDefinition() as definition:
-                if definition.result_retries is not None:
-                    self._pydantic_agent._max_result_retries = definition.result_retries
+            case BaseResponseDefinition() if result_type.result_retries is not None:
+                self._pydantic_agent._max_result_retries = result_type.result_retries
 
     @classmethod
     @asynccontextmanager
