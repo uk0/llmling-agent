@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from uuid import uuid4
 
 from pydantic_ai.messages import (
     ModelMessage,
@@ -66,17 +65,8 @@ class HumanAgent[TDeps](Agent[TDeps]):
         # Update conversation history
         self.conversation._last_messages = [request, response_msg]
         if not message_history:  # Only update if not in middle of chain
-            self.conversation.set_history([
-                *self.conversation.get_history(),
-                request,
-                response_msg,
-            ])
+            history = self.conversation.get_history()
+            self.conversation.set_history([*history, request, response_msg])
 
         # Return standard ChatMessage
-        # TODO: get this type issue in order
-        return ChatMessage(  # type: ignore
-            content=response,
-            role="user",
-            name=self.name or "human",
-            message_id=str(uuid4()),
-        )
+        return ChatMessage(content=response, role="user", name=self.name or "human")
