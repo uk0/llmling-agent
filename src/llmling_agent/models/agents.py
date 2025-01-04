@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling import (
     Config,
@@ -71,6 +71,9 @@ class AgentConfig(BaseModel):
 
     The configuration can be loaded from YAML or created programmatically.
     """
+
+    type: Literal["ai", "human"] = "ai"
+    """Type of agent to create (AI-powered or human-in-the-loop)"""
 
     name: str | None = None
     """Name of the agent"""
