@@ -117,6 +117,7 @@ class PydanticAIProvider(AgentProvider):
         result_retries: int | None = None,
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
+        debug: bool = False,
         context: AgentContext[Any] | None = None,
     ):
         """Initialize pydantic-ai backend.
@@ -131,10 +132,12 @@ class PydanticAIProvider(AgentProvider):
             end_strategy: How to handle tool calls with final result
             defer_model_check: Whether to defer model validation
             context: Optional agent context
+            debug: Whether to enable debug mode
         """
         self._tool_manager = tools
         self._model = model
         self._conversation = conversation
+        self._debug = debug
         self._agent = PydanticAgent(
             model=model,  # type: ignore
             system_prompt=system_prompt,
@@ -175,7 +178,10 @@ class PydanticAIProvider(AgentProvider):
         self._update_tools()
         message_history = self._conversation.get_history()
         try:
-            # Run through pydantic-ai
+            if self._debug:
+                from devtools import debug
+
+                debug(self._agent)
             result = await self._agent.run(
                 prompt,
                 deps=self._context,  # type: ignore
@@ -223,6 +229,10 @@ class PydanticAIProvider(AgentProvider):
 
         try:
             message_history = self._conversation.get_history()
+            if self._debug:
+                from devtools import debug
+
+                debug(self._agent)
             async with self._agent.run_stream(
                 prompt,
                 deps=self._context,  # type: ignore
@@ -259,10 +269,16 @@ class HumanProvider(AgentProvider):
 
     model = None
 
-    def __init__(self, conversation: ConversationManager, name: str = "human"):
+    def __init__(
+        self,
+        conversation: ConversationManager,
+        name: str = "human",
+        debug: bool = False,
+    ):
         """Initialize human provider."""
         self.name = name or "human"
         self._conversation = conversation
+        self._debug = debug
 
     async def generate_response(
         self,

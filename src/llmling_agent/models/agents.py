@@ -170,6 +170,9 @@ class AgentConfig(BaseModel):
     workers: list[WorkerConfig] = Field(default_factory=list)
     """Worker agents which will be available as tools."""
 
+    debug: bool = False
+    """Enable debug output for this agent."""
+
     model_config = ConfigDict(
         frozen=True,
         arbitrary_types_allowed=True,
@@ -318,6 +321,7 @@ class AgentConfig(BaseModel):
             # "result_tool_description": self.result_tool_description,
             "result_retries": self.result_retries,
             "end_strategy": self.end_strategy,
+            "debug": self.debug,
             # "defer_model_check": self.defer_model_check,
             **self.model_settings,
         }

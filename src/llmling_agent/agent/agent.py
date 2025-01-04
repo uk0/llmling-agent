@@ -116,6 +116,7 @@ class Agent[TDeps]:
         defer_model_check: bool = False,
         enable_logging: bool = True,
         confirmation_callback: ConfirmationCallback | None = None,
+        debug: bool = False,
         **kwargs,
     ):
         """Initialize agent with runtime configuration.
@@ -139,8 +140,10 @@ class Agent[TDeps]:
             kwargs: Additional arguments for PydanticAI agent
             enable_logging: Whether to enable logging for the agent
             confirmation_callback: Callback for confirmation prompts
+            debug: Whether to enable debug mode
         """
         self._runtime = runtime
+        self._debug = debug
         self._context = context or AgentContext[TDeps].create_default(name)
         self._context.confirmation_callback = confirmation_callback
         self._context.runtime = runtime
@@ -185,9 +188,14 @@ class Agent[TDeps]:
                     result_retries=result_retries,
                     defer_model_check=defer_model_check,
                     context=self._context,
+                    debug=debug,
                 )
             case "human":
-                self._provider = HumanProvider(conversation=self.conversation, name=name)
+                self._provider = HumanProvider(
+                    conversation=self.conversation,
+                    name=name,
+                    debug=debug,
+                )
             case AgentProvider():
                 self._provider = agent_type
             case _:
@@ -578,6 +586,10 @@ class Agent[TDeps]:
             msg_history = (
                 message_history if message_history else self.conversation.get_history()
             )
+            if self._debug:
+                from devtools import debug
+
+                debug(self._pydantic_agent)
             result = await self._pydantic_agent.run(
                 final_prompt,
                 deps=self._context,
