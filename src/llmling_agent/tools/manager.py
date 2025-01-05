@@ -224,4 +224,6 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             pass_message_history=pass_message_history,
             share_context=share_context,
         )
+        msg = "Registering worker %s as tool %s"
+        logger.debug(msg, worker.name, tool.name)
         return self.register_tool(tool, source="agent", metadata={"agent": worker.name})
