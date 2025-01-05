@@ -91,10 +91,11 @@ async def get_structured[T](
         retries=max_retries,
     ) as agent:
         # Register constructor as only tool
-        tool = agent._pydantic_agent.tool_plain(construct)
-        tool.__name__ = schema["name"]
-        tool.__doc__ = schema["description"]
-
+        agent.tools.register_tool(
+            construct,
+            name_override=schema["name"],
+            description_override=schema["description"],
+        )
         try:
             result = await agent.run(prompt)
         except Exception as e:

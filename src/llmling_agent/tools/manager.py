@@ -157,6 +157,8 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         self,
         tool: LLMCallableTool | Callable[..., Any],
         *,
+        name_override: str | None = None,
+        description_override: str | None = None,
         enabled: bool = True,
         source: ToolSource = "runtime",
         priority: int = 100,
@@ -169,6 +171,8 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         Args:
             tool: Tool to register (callable, LLMCallableTool, or config dict)
             enabled: Whether tool is initially enabled
+            name_override: Optional name override for the tool
+            description_override: Optional description override for the tool
             source: Tool source (runtime/agent/builtin/dynamic)
             priority: Execution priority (lower = higher priority)
             requires_confirmation: Whether tool needs confirmation
@@ -180,9 +184,15 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         """
         # First convert to basic ToolInfo
         if not isinstance(tool, LLMCallableTool):
-            llm_tool = LLMCallableTool.from_callable(tool)
+            llm_tool = LLMCallableTool.from_callable(
+                tool,
+                name_override=name_override,
+                description_override=description_override,
+            )
         else:
             llm_tool = tool
+            llm_tool.name = name_override or llm_tool.name
+            llm_tool.description = description_override or llm_tool.description
 
         tool_info = ToolInfo(
             llm_tool,

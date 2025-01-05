@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections import deque
-from contextlib import asynccontextmanager
 import tempfile
 from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
@@ -23,7 +22,7 @@ from llmling_agent.pydantic_ai_utils import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import Sequence
     from datetime import datetime
 
     from llmling.config.models import Resource
@@ -273,45 +272,6 @@ class ConversationManager:
         self.set_history(messages)
         if session_id is not None:
             self.id = session_id
-
-    @asynccontextmanager
-    async def temporary(
-        self,
-        *,
-        sys_prompts: PromptInput | Sequence[PromptInput] | None = None,
-        mode: OverrideMode = "append",
-    ) -> AsyncIterator[None]:
-        """Start temporary conversation with different system prompts."""
-        # Store original state
-        original_prompts = list(self._initial_prompts)
-        original_system_prompts = self._agent._pydantic_agent._system_prompts
-        original_history = self._current_history
-
-        try:
-            if sys_prompts is not None:
-                # Convert to list of BasePrompt
-                new_prompts: list[BasePrompt] = []
-                if isinstance(sys_prompts, str | BasePrompt):
-                    new_prompts = [_to_base_prompt(sys_prompts)]
-                else:
-                    new_prompts = [_to_base_prompt(prompt) for prompt in sys_prompts]
-
-                self._initial_prompts = (
-                    original_prompts + new_prompts if mode == "append" else new_prompts
-                )
-
-                # Update pydantic-ai's system prompts
-                formatted_prompts = await self.get_all_prompts()
-                self._agent._pydantic_agent._system_prompts = tuple(formatted_prompts)
-
-            # Force new conversation
-            self._current_history = []
-            yield
-        finally:
-            # Restore complete original state
-            self._initial_prompts = original_prompts
-            self._agent._pydantic_agent._system_prompts = original_system_prompts
-            self._current_history = original_history
 
     def add_prompt(self, prompt: PromptInput):
         """Add a system prompt.
