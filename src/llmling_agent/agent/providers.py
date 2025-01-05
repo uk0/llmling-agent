@@ -122,6 +122,7 @@ class PydanticAIProvider(AgentProvider):
         defer_model_check: bool = False,
         debug: bool = False,
         context: AgentContext[Any] | None = None,
+        **kwargs,
     ):
         """Initialize pydantic-ai backend.
 
@@ -136,6 +137,7 @@ class PydanticAIProvider(AgentProvider):
             defer_model_check: Whether to defer model validation
             context: Optional agent context
             debug: Whether to enable debug mode
+            kwargs: Additional arguments for PydanticAI agent
         """
         self._tool_manager = tools
         self._model = model
@@ -150,6 +152,7 @@ class PydanticAIProvider(AgentProvider):
             result_retries=result_retries,
             defer_model_check=defer_model_check,
             deps_type=AgentContext,
+            **kwargs,
         )
         self._context = context
 

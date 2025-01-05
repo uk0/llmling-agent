@@ -186,6 +186,7 @@ class Agent[TDeps]:
                     defer_model_check=defer_model_check,
                     context=self._context,
                     debug=debug,
+                    **kwargs,
                 )
             case "human":
                 self._provider = HumanProvider(
