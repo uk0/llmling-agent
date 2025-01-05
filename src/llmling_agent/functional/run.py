@@ -225,14 +225,10 @@ async def run_agent_pipeline(  # noqa: PLR0911
             if stream:
                 # Streaming mode - yield messages
                 async def stream_prompts() -> AsyncIterator[str]:
-                    last_messages = None
                     for p in prompts:
-                        async with agent.run_stream(
-                            p, message_history=last_messages
-                        ) as result:
+                        async with agent.run_stream(p) as result:
                             async for message in result.stream():
                                 yield str(message)
-                            last_messages = result.new_messages()
 
                 # Return the async iterator
                 return stream_prompts()

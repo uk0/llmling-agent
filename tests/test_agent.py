@@ -67,8 +67,8 @@ async def test_agent_streaming_with_history(test_agent: Agent[Any]):
         ModelRequest(parts=[UserPromptPart(content="Previous message")]),
         ModelResponse(parts=[TextPart(content="Previous response")]),
     ]
-
-    stream_ctx = test_agent.run_stream(SIMPLE_PROMPT, message_history=history)
+    test_agent.conversation.set_history(history)
+    stream_ctx = test_agent.run_stream(SIMPLE_PROMPT)
     async with stream_ctx as stream:
         collected = [str(msg) async for msg in stream.stream()]
         result = "".join(collected)

@@ -51,7 +51,6 @@ if TYPE_CHECKING:
 
     from llmling.config.models import Resource
     from pydantic_ai.agent import EndStrategy, models
-    from pydantic_ai.messages import ModelMessage
     from pydantic_ai.result import StreamedRunResult, Usage
 
     from llmling_agent.common_types import PromptFunction, StrPath, ToolType
@@ -525,13 +524,12 @@ class Agent[TDeps]:
             else:
                 agent.tool_plain(wrapped)
 
-    @logfire.instrument("Calling Agent.run with result type {result_type}: {prompt}:")
+    @logfire.instrument("Calling Agent.run: {prompt}:")
     async def run(
         self,
         *prompt: str,
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
-        message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
         usage: Usage | None = None,
     ) -> ChatMessage[TResult]:
@@ -541,7 +539,6 @@ class Agent[TDeps]:
             prompt: User query or instruction
             result_type: Optional type for structured responses
             deps: Optional dependencies for the agent
-            message_history: Optional previous messages for context
             model: Optional model override
             usage: Optional usage to start with,
                     useful for resuming a conversation or agents used in tools
@@ -580,9 +577,7 @@ class Agent[TDeps]:
 
             # Run through pydantic-ai's public interface
             start_time = time.perf_counter()
-            msg_history = (
-                message_history if message_history else self.conversation.get_history()
-            )
+            msg_history = self.conversation.get_history()
             if self._debug:
                 from devtools import debug
 
@@ -601,8 +596,7 @@ class Agent[TDeps]:
                 call.context_data = self._context.data if self._context else None
                 self.tool_used.emit(call)
             self.conversation._last_messages = list(messages)
-            if not message_history:
-                self.conversation.set_history(result.all_messages())
+            self.conversation.set_history(result.all_messages())
 
             # Emit user message
             _user_msg = ChatMessage[str](content=final_prompt, role="user")
@@ -742,16 +736,15 @@ class Agent[TDeps]:
             if reset_history_on_run:
                 self.conversation.clear()
 
-            history = (
-                parent.conversation.get_history()
-                if pass_message_history and parent
-                else None
-            )
+            history = None
             deps = ctx.deps.data if share_context else None
-
-            result = await self.run(
-                prompt, message_history=history, deps=deps, result_type=self._result_type
-            )
+            if pass_message_history and parent:
+                history = parent.conversation.get_history()
+                old = self.conversation.get_history()
+                self.conversation.set_history(history)
+            result = await self.run(prompt, deps=deps, result_type=self._result_type)
+            if history:
+                self.conversation.set_history(old)
             return result.data
 
         normalized_name = self.name.replace("_", " ").title()
@@ -774,7 +767,6 @@ class Agent[TDeps]:
         *prompt: str,
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
-        message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
     ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], TResult]]:
         """Run agent with prompt and get a streaming response.
@@ -783,7 +775,6 @@ class Agent[TDeps]:
             prompt: User query or instruction
             result_type: Optional type for structured responses
             deps: Optional dependencies for the agent
-            message_history: Optional previous messages for context
             model: Optional model override
 
         Returns:
@@ -809,7 +800,7 @@ class Agent[TDeps]:
             _user_msg = ChatMessage[str](content=final_prompt, role="user")
             self.message_received.emit(_user_msg)
             start_time = time.perf_counter()
-            msg_history = message_history or self.conversation.get_history()
+            msg_history = self.conversation.get_history()
             async with self._pydantic_agent.run_stream(
                 final_prompt,
                 message_history=msg_history,
@@ -825,8 +816,7 @@ class Agent[TDeps]:
 
                     if stream.is_complete:
                         message_id = str(uuid4())
-                        if not message_history:
-                            self.conversation.set_history(stream.all_messages())
+                        self.conversation.set_history(stream.all_messages())
                         # TODO: need to properly deal with structured
                         if stream.is_structured:
                             message = stream._stream_response.get(final=True)
