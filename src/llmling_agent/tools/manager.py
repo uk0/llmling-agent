@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import fields
+from dataclasses import dataclass, field, fields
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling import BaseRegistry, LLMCallableTool, ToolError
+from psygnal import Signal
 
 from llmling_agent.log import get_logger
 from llmling_agent.tools.base import ToolInfo
@@ -33,6 +35,16 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
     - State check: manager.is_empty, manager.has_item()
     - Async iteration: async for name, tool in manager: ...
     """
+
+    @dataclass(frozen=True)
+    class ToolStateReset:
+        """Emitted when tool states are reset."""
+
+        previous_tools: dict[str, bool]
+        new_tools: dict[str, bool]
+        timestamp: datetime = field(default_factory=datetime.now)
+
+    tool_states_reset = Signal(ToolStateReset)
 
     def __init__(
         self,
@@ -237,3 +249,16 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         msg = "Registering worker %s as tool %s"
         logger.debug(msg, worker.name, tool.name)
         return self.register_tool(tool, source="agent", metadata={"agent": worker.name})
+
+    def reset(self) -> ToolStateReset:
+        """Reset tool states."""
+        old_tools = self.list_tools()
+        self.reset_states()
+        new_tools = self.list_tools()
+
+        event = self.ToolStateReset(
+            previous_tools=old_tools,
+            new_tools=new_tools,
+        )
+        self.tool_states_reset.emit(event)
+        return event

@@ -20,6 +20,7 @@ from slashed import (
 )
 
 from llmling_agent.agent import Agent
+from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
 from llmling_agent.commands import get_commands
@@ -58,13 +59,6 @@ class AgentPoolView:
     """
 
     @dataclass(frozen=True)
-    class HistoryCleared:
-        """Emitted when chat history is cleared."""
-
-        session_id: str
-        timestamp: datetime = field(default_factory=datetime.now)
-
-    @dataclass(frozen=True)
     class SessionReset:
         """Emitted when session is reset."""
 
@@ -73,7 +67,7 @@ class AgentPoolView:
         new_tools: dict[str, bool]
         timestamp: datetime = field(default_factory=datetime.now)
 
-    history_cleared = Signal(HistoryCleared)
+    history_cleared = Signal(ConversationManager.HistoryCleared)
     session_reset = Signal(SessionReset)
     tool_added = Signal(ToolInfo)
     tool_removed = Signal(str)  # tool_name
@@ -105,6 +99,7 @@ class AgentPoolView:
         self._agent.tools.events.added.connect(self.tool_added.emit)
         self._agent.tools.events.removed.connect(self.tool_removed.emit)
         self._agent.tools.events.changed.connect(self.tool_changed.emit)
+        self._agent.conversation.history_cleared.connect(self.tool_changed.emit)
         self._initialized = False  # Track initialization state
         file_path = HISTORY_DIR / f"{agent.name}.history"
         self.commands = CommandStore(history_file=file_path, enable_system_commands=True)
@@ -244,8 +239,6 @@ class AgentPoolView:
     async def clear(self):
         """Clear chat history."""
         self._agent.conversation.clear()
-        event = AgentPoolView.HistoryCleared(session_id=str(self.id))
-        self.history_cleared.emit(event)
 
     async def reset(self):
         """Reset session state."""

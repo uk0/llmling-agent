@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from collections import deque
+from dataclasses import dataclass, field
+from datetime import datetime
 import tempfile
 from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4
 
 from llmling import BasePrompt, PromptMessage, StaticPrompt
 from llmling.config.models import BaseResource
+from psygnal import Signal
 from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserPromptPart
 from upath import UPath
 
@@ -23,7 +26,6 @@ from llmling_agent.pydantic_ai_utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from datetime import datetime
 
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
@@ -50,6 +52,15 @@ def _to_base_prompt(prompt: PromptInput) -> BasePrompt:
 
 class ConversationManager:
     """Manages conversation state and system prompts."""
+
+    @dataclass(frozen=True)
+    class HistoryCleared:
+        """Emitted when chat history is cleared."""
+
+        session_id: str
+        timestamp: datetime = field(default_factory=datetime.now)
+
+    history_cleared = Signal(HistoryCleared)
 
     def __init__(
         self,
@@ -340,6 +351,8 @@ class ConversationManager:
         self._initial_prompts.clear()
         self._current_history = []
         self._last_messages = []
+        event = self.HistoryCleared(session_id=str(self.id))
+        self.history_cleared.emit(event)
 
     @property
     def last_run_messages(self) -> list[ChatMessage]:
