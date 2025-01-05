@@ -22,7 +22,6 @@ import logfire
 from psygnal import Signal
 from psygnal.containers import EventedDict
 from pydantic_ai import RunContext  # noqa: TC002
-from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import infer_model
 from tokonomics import TokenLimits, get_model_limits
 from typing_extensions import TypeVar
@@ -36,8 +35,6 @@ from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.pydantic_ai_utils import (
     extract_usage,
-    format_part,
-    get_tool_calls,
 )
 from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
@@ -217,7 +214,7 @@ class Agent[TDeps]:
     @property
     def _pydantic_agent(self) -> PydanticAgent[TDeps, str]:
         # For backwards compatibility
-        return self._provider._agent
+        return self._provider._agent  # type: ignore
 
     @property
     def name(self) -> str:
@@ -540,7 +537,7 @@ class Agent[TDeps]:
                 await extract_usage(
                     usage, self.model_name, final_prompt, str(result.content)
                 )
-                if self.model_name
+                if self.model_name and usage
                 else None
             )
 
@@ -730,75 +727,61 @@ class Agent[TDeps]:
         if deps is not None:
             self._context.data = deps
         try:
-            self._provider._update_tools()
+            if self._context:
+                self._context.current_prompt = final_prompt
+            if model:
+                if isinstance(model, str):
+                    model = infer_model(model)
+                self.model_changed.emit(model)
 
-            # Emit user message
-            _user_msg = ChatMessage[str](content=final_prompt, role="user")
-            self.message_received.emit(_user_msg)
+            # Create and emit user message
+            user_msg = ChatMessage[str](content=final_prompt, role="user")
+            self.message_received.emit(user_msg)
+
+            message_id = str(uuid4())
             start_time = time.perf_counter()
-            msg_history = self.conversation.get_history()
-            async with self._pydantic_agent.run_stream(
+
+            async with self._provider.stream_response(
                 final_prompt,
-                message_history=msg_history,
+                message_id,
+                result_type=result_type,
                 model=model,
-                deps=self._context,
             ) as stream:
-                original_stream = stream.stream
+                yield stream  # type: ignore
 
-                async def wrapped_stream(*args, **kwargs):
-                    async for chunk in original_stream(*args, **kwargs):
-                        self.chunk_streamed.emit(str(chunk))
-                        yield chunk
+                # After streaming is done, create and emit final message
+                usage = stream.usage()
+                cost_info = (
+                    await extract_usage(
+                        usage,
+                        self.model_name,
+                        final_prompt,
+                        str(stream.formatted_content),  # type: ignore
+                    )
+                    if self.model_name
+                    else None
+                )
 
-                    if stream.is_complete:
-                        message_id = str(uuid4())
-                        self.conversation.set_history(stream.all_messages())
-                        # TODO: need to properly deal with structured
-                        if stream.is_structured:
-                            message = stream._stream_response.get(final=True)
-                            if not isinstance(message, ModelResponse):
-                                msg = "Expected ModelResponse for structured output"
-                                raise TypeError(msg)  # noqa: TRY301
-                        # Handle captured tool calls
-                        messages = stream.new_messages()
-                        self.conversation._last_messages = list(messages)
-                        for call in get_tool_calls(messages, self.tools):
-                            call.message_id = message_id
-                            call.context_data = (
-                                self._context.data if self._context else None
-                            )
-                            self.tool_used.emit(call)
-                        # Get all model responses and format their parts
-                        responses = [m for m in messages if isinstance(m, ModelResponse)]
-                        parts = [p for msg in responses for p in msg.parts]
-                        content = "\n".join(format_part(p) for p in parts)
-                        usage = stream.usage()
-                        cost = (
-                            await extract_usage(
-                                usage, self.model_name, final_prompt, content
-                            )
-                            if self.model_name
-                            else None
-                        )
-
-                        # Create and emit assistant message
-                        assistant_msg = ChatMessage[TResult](
-                            content=cast(TResult, content),
-                            role="assistant",
-                            name=self.name,
-                            model=self.model_name,
-                            message_id=message_id,
-                            cost_info=cost,
-                            response_time=time.perf_counter() - start_time,
-                        )
-                        self.message_sent.emit(assistant_msg)
-
-                stream.stream = wrapped_stream  # type: ignore
-                yield stream
+                assistant_msg = ChatMessage[TResult](
+                    content=cast(TResult, stream.formatted_content),  # type: ignore
+                    role="assistant",
+                    name=self.name,
+                    model=self.model_name,
+                    message_id=message_id,
+                    cost_info=cost_info,
+                    response_time=time.perf_counter() - start_time,
+                )
+                self.message_sent.emit(assistant_msg)
 
         except Exception:
             logger.exception("Agent stream failed")
             raise
+
+        finally:
+            if model:
+                old = self._pydantic_agent.model
+                model_obj = infer_model(old) if isinstance(old, str) else old
+                self.model_changed.emit(model_obj)
 
     def run_sync(
         self,
