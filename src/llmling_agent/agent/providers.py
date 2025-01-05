@@ -160,6 +160,7 @@ class PydanticAIProvider(AgentProvider):
         self._model = value
         self._agent.model = value
 
+    @logfire.instrument("Pydantic-AI call. result type {result_type}. Prompt: {prompt}")
     async def generate_response(
         self,
         prompt: str,
@@ -304,7 +305,7 @@ class HumanProvider(AgentProvider):
         self._conversation = conversation
         self._debug = debug
 
-    @logfire.instrument("Pydantic-AI call. result type {result_type}. Prompt: {prompt}")
+    @logfire.instrument("Human input. result type {result_type}. Prompt: {prompt}")
     async def generate_response(
         self,
         prompt: str,
