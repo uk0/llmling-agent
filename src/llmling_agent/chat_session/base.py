@@ -341,12 +341,6 @@ class AgentPoolView:
                 metadata=metadata,
             )
         try:
-            # Update tool states in pydantic agent before call
-            self._agent._pydantic_agent._function_tools.clear()
-            enabled_tools = self._agent.tools.get_tools(state="enabled")
-            for tool in enabled_tools:
-                self._agent._pydantic_agent.tool_plain(tool.callable)
-
             if stream:
                 return self._stream_message(content)
             return await self._send_normal(content)
