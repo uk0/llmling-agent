@@ -18,6 +18,7 @@ from llmling import (
 )
 from llmling.prompts.models import FilePrompt
 from llmling.utils.importing import import_callable
+import logfire
 from psygnal import Signal
 from psygnal.containers import EventedDict
 from pydantic_ai import Agent as PydanticAgent, RunContext
@@ -524,6 +525,7 @@ class Agent[TDeps]:
             else:
                 agent.tool_plain(wrapped)
 
+    @logfire.instrument("Calling Agent.run with result type {result_type}: {prompt}:")
     async def run(
         self,
         *prompt: str,
@@ -550,7 +552,6 @@ class Agent[TDeps]:
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        logger.debug("Agent.run result_type = %s", result_type)
         final_prompt = "\n\n".join(
             format_instance_for_llm(p)
             if not isinstance(p, str) and can_format_fields(p)
@@ -775,7 +776,6 @@ class Agent[TDeps]:
         deps: TDeps | None = None,
         message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-        usage: Usage | None = None,
     ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], TResult]]:
         """Run agent with prompt and get a streaming response.
 
@@ -785,8 +785,6 @@ class Agent[TDeps]:
             deps: Optional dependencies for the agent
             message_history: Optional previous messages for context
             model: Optional model override
-            usage:  Optional usage to start with,
-                    useful for resuming a conversation or agents used in tools
 
         Returns:
             A streaming result to iterate over.
@@ -817,7 +815,6 @@ class Agent[TDeps]:
                 message_history=msg_history,
                 model=model,
                 deps=self._context,
-                usage=usage,
             ) as stream:
                 original_stream = stream.stream
 
@@ -882,7 +879,6 @@ class Agent[TDeps]:
         prompt: str,
         *,
         deps: TDeps | None = None,
-        message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
     ) -> ChatMessage[TResult]:
         """Run agent synchronously (convenience wrapper).
@@ -890,16 +886,13 @@ class Agent[TDeps]:
         Args:
             prompt: User query or instruction
             deps: Optional dependencies for the agent
-            message_history: Optional previous messages for context
             model: Optional model override
 
         Returns:
             Result containing response and run information
         """
         try:
-            return asyncio.run(
-                self.run(prompt, message_history=message_history, deps=deps, model=model)
-            )
+            return asyncio.run(self.run(prompt, deps=deps, model=model))
         except KeyboardInterrupt:
             raise
         except Exception:

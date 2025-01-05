@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from llmling import ToolError
+import logfire
 from psygnal import Signal
 from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
@@ -303,6 +304,7 @@ class HumanProvider(AgentProvider):
         self._conversation = conversation
         self._debug = debug
 
+    @logfire.instrument("Pydantic-AI call. result type {result_type}. Prompt: {prompt}")
     async def generate_response(
         self,
         prompt: str,
