@@ -626,6 +626,10 @@ class Agent[TDeps]:
                 cost_info=cost_info,
                 response_time=time.perf_counter() - start_time,
             )
+            if self._debug:
+                import devtools
+
+                devtools.debug(assistant_msg)
             self.message_sent.emit(assistant_msg)
 
         except Exception:

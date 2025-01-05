@@ -42,7 +42,6 @@ __all__ = [
     "EndDecision",
     "HumanAgent",
     "RouteDecision",
-    "RuleBasedController",
     "RuleRouter",
     "SystemPrompt",
     "get_structured",

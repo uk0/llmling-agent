@@ -34,7 +34,7 @@ class ResponseField(BaseModel):
     description: str | None = None
     """Optional description of what this field represents"""
 
-    constraints: dict[str, Any] | None = None
+    constraints: dict[str, Any] = Field(default_factory=dict)
     """Optional validation constraints for the field"""
 
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
@@ -93,7 +93,7 @@ class InlineResponseDefinition(BaseResponseDefinition):
                 msg = f"Unsupported field type: {field.type}"
                 raise ValueError(msg)
 
-            field_info = Field(description=field.description)
+            field_info = Field(description=field.description, **(field.constraints))
             fields[name] = (python_type, field_info)
 
         cls_name = self.description or "ResponseType"
