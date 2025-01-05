@@ -17,6 +17,7 @@ from llmling_agent.delegation.controllers import (
     interactive_controller,
 )
 from llmling_agent.delegation.router import CallbackRouter
+from llmling_agent.delegation.supervisor import PoolSupervisor
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
 from llmling_agent.tasks import TaskRegistry
@@ -154,6 +155,12 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
     #     # Set up forwarding connections
     #     if self._connect_signals:
     #         self._setup_connections()
+
+    async def start_supervision(self) -> PoolSupervisor:
+        """Start supervision of pool activities."""
+        supervisor = PoolSupervisor(self)
+        await supervisor.start()
+        return supervisor
 
     @property
     def agents(self) -> EventedDict[str, Agent[Any]]:
