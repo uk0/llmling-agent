@@ -38,7 +38,7 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai.result import Usage
+    from tokonomics.pydanticai_cost import Usage
 
     from llmling_agent.common_types import MessageRole
     from llmling_agent.models.context import AgentContext
