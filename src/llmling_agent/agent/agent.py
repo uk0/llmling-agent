@@ -40,6 +40,7 @@ from llmling_agent.pydantic_ai_utils import (
     to_result_schema,
 )
 from llmling_agent.responses.models import BaseResponseDefinition, ResponseDefinition
+from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context, has_argument_type
 
@@ -253,7 +254,7 @@ class Agent[TDeps]:
             tool_description: Optional override for tool description
         """
         logger.debug("Setting result type to: %s", result_type)
-        self._result_type = result_type
+        self._result_type = to_type(result_type)  # to_type?
         schema = to_result_schema(
             result_type,
             context=self._context,
