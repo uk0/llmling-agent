@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from llmling import Config, RuntimeConfig, ToolError
+from llmling import Config, RuntimeConfig
 from pydantic_ai.models.test import TestModel
 import pytest
 
@@ -125,7 +125,3 @@ async def test_error_handling():
 
         with pytest.raises(ValueError, match="Message cannot be empty"):
             await session.send_message("   ")
-
-        # Test handling of invalid tool operations
-        with pytest.raises(ToolError):
-            session.configure_tools({"nonexistent": True})

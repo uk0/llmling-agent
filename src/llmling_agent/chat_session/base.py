@@ -358,7 +358,6 @@ class AgentPoolView:
         start_time = time.perf_counter()
         # Collect all metrics from the run
         self._state.message_count += 2  # User and assistant messages
-
         # Create complete assistant message with all metrics
         chat_message = ChatMessage[str](
             content=response,
@@ -423,30 +422,6 @@ class AgentPoolView:
                 await self._agent.wait_for_chain()
 
             yield final_msg
-
-    def configure_tools(self, updates: dict[str, bool]) -> dict[str, str]:
-        """Update tool configuration.
-
-        Args:
-            updates: Mapping of tool names to desired states
-
-        Returns:
-            Mapping of tool names to status messages
-        """
-        results = {}
-        for tool, enabled in updates.items():
-            try:
-                if enabled:
-                    self.tools.enable_tool(tool)
-                    results[tool] = "enabled"
-                else:
-                    self.tools.disable_tool(tool)
-                    results[tool] = "disabled"
-            except ValueError as e:
-                results[tool] = f"error: {e}"
-
-        logger.debug("Updated tool states for session %s: %s", self.id, results)
-        return results
 
     def has_chain(self) -> bool:
         """Check if agent has any connections."""

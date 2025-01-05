@@ -352,17 +352,26 @@ class UIState:
             return UIUpdate(status="No active session")
 
         try:
-            results = self._current_session.configure_tools(updates)
-            status = "; ".join(f"{k}: {v}" for k, v in results.items())
+            tool_manager = self._current_session.tools
+            results = {}
+            for tool, enabled in updates.items():
+                try:
+                    if enabled:
+                        tool_manager.enable_tool(tool)
+                        results[tool] = "enabled"
+                    else:
+                        tool_manager.disable_tool(tool)
+                        results[tool] = "disabled"
+                except ValueError as e:
+                    results[tool] = f"error: {e}"
 
-            # Get updated tool states
-            manager = self._current_session.tools
-            tool_states = [(t.name, t.enabled) for t in manager.values()]
+            status = "; ".join(f"{k}: {v}" for k, v in results.items())
+            tool_states = [(t.name, t.enabled) for t in tool_manager.values()]
             logs = self.get_debug_logs()
             msg = f"Updated tools: {status}"
             return UIUpdate(status=msg, tool_states=tool_states, debug_logs=logs)
 
         except Exception as e:
             logger.exception("Failed to update tools")
-            logs = self.get_debug_logs()
-            return UIUpdate(status=f"Error updating tools: {e}", debug_logs=logs)
+            msg = f"Error updating tools: {e}"
+            return UIUpdate(status=msg, debug_logs=self.get_debug_logs())
