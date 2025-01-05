@@ -15,7 +15,8 @@ from pydantic_ai.models import infer_model
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.context import AgentContext
-from llmling_agent.pydantic_ai_utils import format_part, get_tool_calls
+from llmling_agent.pydantic_ai_utils import format_part, get_tool_calls, to_result_schema
+from llmling_agent.responses.models import BaseResponseDefinition, ResponseDefinition
 from llmling_agent.utils.inspection import has_argument_type
 
 
@@ -80,10 +81,12 @@ class AgentProvider(Protocol):
     chunk_streamed = Signal(str)
     model_changed = Signal(object)  # Model | None
     model: Any
+    _agent = None
 
     async def generate_response(
         self,
         prompt: str,
+        message_id: str,
         *,
         result_type: type[Any] | None = None,
     ) -> ProviderResponse:
@@ -91,6 +94,7 @@ class AgentProvider(Protocol):
 
         Args:
             prompt: Text prompt to respond to
+            message_id: ID to assign to the response and tool calls
             result_type: Optional type for structured responses
 
         Returns:
@@ -169,6 +173,7 @@ class PydanticAIProvider(AgentProvider):
     async def generate_response(
         self,
         prompt: str,
+        message_id: str,
         *,
         result_type: type[Any] | None = None,
         model: models.Model | models.KnownModelName | None = None,
@@ -177,6 +182,7 @@ class PydanticAIProvider(AgentProvider):
 
         Args:
             prompt: Text prompt to respond to
+            message_id: ID to assign to the response and tool calls
             result_type: Optional type for structured responses
             model: Optional model override for this call
 
@@ -186,33 +192,33 @@ class PydanticAIProvider(AgentProvider):
         self._update_tools()
         message_history = self._conversation.get_history()
 
+        # If we have a model override, temporarily set it
+        original_model = self._agent.model
         try:
-            if self._debug:
-                from devtools import debug
-
-                debug(self._agent)
-
             result = await self._agent.run(
                 prompt,
-                deps=self._context,  # type: ignore
+                deps=self._context,
                 message_history=message_history,
-                model=model or self.model,  # type: ignore
+                model=model or self.model,
             )
 
-            # Extract tool calls and update conversation
+            # Extract tool calls and set message_id
             new_msgs = result.new_messages()
             tool_calls = get_tool_calls(new_msgs, self._tool_manager)
+            for call in tool_calls:
+                call.message_id = message_id
+                call.context_data = self._context.data if self._context else None
+
             self._conversation._last_messages = list(new_msgs)
             self._conversation.set_history(result.all_messages())
 
             return ProviderResponse(
                 content=result.data, tool_calls=tool_calls, usage=result.usage()
             )
-
-        except Exception as e:
-            logger.exception("Error generating response")
-            msg = f"Response generation failed: {e}"
-            raise ToolError(msg) from e
+        finally:
+            # Restore original model if we had an override
+            if model:
+                self.model = original_model
 
     def _update_tools(self):
         """Update pydantic-ai-agent tools."""
@@ -253,6 +259,47 @@ class PydanticAIProvider(AgentProvider):
                 return self._agent.model
             case _:
                 return self._agent.model.name()
+
+    def result_validator(self, *args: Any, **kwargs: Any) -> Any:
+        """Register a result validator.
+
+        Validators can access runtime through RunContext[AgentContext].
+
+        Example:
+            ```python
+            @agent.result_validator
+            async def validate(ctx: RunContext[AgentContext], result: str) -> str:
+                if len(result) < 10:
+                    raise ModelRetry("Response too short")
+                return result
+            ```
+        """
+        return self._agent.result_validator(*args, **kwargs)
+
+    def set_result_type(
+        self,
+        result_type: type | str | ResponseDefinition | None,
+        *,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+    ):
+        """Set or update the result type for this agent."""
+        schema = to_result_schema(
+            result_type,
+            context=self._context,
+            tool_name_override=tool_name,
+            tool_description_override=tool_description,
+        )
+        logger.debug("Created schema: %s", schema)
+
+        # Apply schema and settings
+        self._agent._result_schema = schema
+        self._agent._allow_text_result = schema.allow_text_result if schema else True
+
+        # Apply retries if from response definition
+        match result_type:
+            case BaseResponseDefinition() if result_type.result_retries is not None:
+                self._agent._max_result_retries = result_type.result_retries
 
     async def stream_response(
         self,
@@ -302,9 +349,7 @@ class PydanticAIProvider(AgentProvider):
                     self._conversation.set_history(stream_result.all_messages())
 
                     # Format final content and extract tool calls
-                    content = "\n".join(
-                        format_part(part) for msg in messages for part in msg.parts
-                    )
+                    content = "\n".join(format_part(p) for m in messages for p in m.parts)
                     tool_calls = get_tool_calls(messages, self._tool_manager)
 
                     yield ProviderResponse(

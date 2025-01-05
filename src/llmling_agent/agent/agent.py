@@ -21,7 +21,7 @@ from llmling.utils.importing import import_callable
 import logfire
 from psygnal import Signal
 from psygnal.containers import EventedDict
-from pydantic_ai import Agent as PydanticAgent, RunContext
+from pydantic_ai import RunContext  # noqa: TC002
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import infer_model
 from tokonomics import TokenLimits, get_model_limits
@@ -38,24 +38,24 @@ from llmling_agent.pydantic_ai_utils import (
     extract_usage,
     format_part,
     get_tool_calls,
-    to_result_schema,
 )
-from llmling_agent.responses.models import BaseResponseDefinition, ResponseDefinition
 from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
-from llmling_agent.utils.inspection import call_with_context, has_argument_type
+from llmling_agent.utils.inspection import call_with_context
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
 
     from llmling.config.models import Resource
+    from pydantic_ai import Agent as PydanticAgent
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.result import StreamedRunResult
 
     from llmling_agent.common_types import PromptFunction, StrPath, ToolType
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.task import AgentTask
+    from llmling_agent.responses.models import ResponseDefinition
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -199,19 +199,6 @@ class Agent[TDeps]:
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
-
-        # Initialize agent with all tools
-        self._pydantic_agent = PydanticAgent(
-            model=model,
-            system_prompt=system_prompt,
-            deps_type=AgentContext,
-            tools=[],  # tools get added for each call explicitely
-            retries=retries,
-            end_strategy=end_strategy,
-            result_retries=result_retries,
-            defer_model_check=defer_model_check,
-            **kwargs,
-        )
         self.name = name
         self.description = description
         msg = "Initialized %s (model=%s)"
@@ -226,6 +213,11 @@ class Agent[TDeps]:
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._background_task: asyncio.Task[Any] | None = None
         self._connected_agents: set[Agent[Any]] = set()
+
+    @property
+    def _pydantic_agent(self) -> PydanticAgent[TDeps, str]:
+        # For backwards compatibility
+        return self._provider._agent
 
     @property
     def name(self) -> str:
@@ -256,24 +248,7 @@ class Agent[TDeps]:
         """
         logger.debug("Setting result type to: %s", result_type)
         self._result_type = to_type(result_type)  # to_type?
-        schema = to_result_schema(
-            result_type,
-            context=self._context,
-            tool_name_override=tool_name,
-            tool_description_override=tool_description,
-        )
-        logger.debug("Created schema: %s", schema)
-
-        # Apply schema and settings
-        self._pydantic_agent._result_schema = schema
-        self._pydantic_agent._allow_text_result = (
-            schema.allow_text_result if schema else True
-        )
-
-        # Apply retries if from response definition
-        match result_type:
-            case BaseResponseDefinition() if result_type.result_retries is not None:
-                self._pydantic_agent._max_result_retries = result_type.result_retries
+        self._provider.set_result_type(self._result_type)
 
     @classmethod
     @asynccontextmanager
@@ -503,27 +478,7 @@ class Agent[TDeps]:
     @property
     def model_name(self) -> str | None:
         """Get the model name in a consistent format."""
-        match self._pydantic_agent.model:
-            case str() | None:
-                return self._pydantic_agent.model
-            case _:
-                return self._pydantic_agent.model.name()
-
-    def _update_tools(self):
-        """Update pydantic-ai-agent tools."""
-        agent = self._pydantic_agent
-        agent._function_tools.clear()
-        tools = [t for t in self.tools.values() if t.enabled]
-        for tool in tools:
-            wrapped = (
-                self._context.wrap_tool(tool, self._context)
-                if self._context
-                else tool.callable.callable
-            )
-            if has_argument_type(wrapped, "RunContext"):
-                agent.tool(wrapped)
-            else:
-                agent.tool_plain(wrapped)
+        return self._provider.model_name
 
     @logfire.instrument("Calling Agent.run: {prompt}:")
     async def run(
@@ -547,19 +502,19 @@ class Agent[TDeps]:
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
+        """Run agent with prompt and get response."""
         final_prompt = "\n\n".join(
             format_instance_for_llm(p)
             if not isinstance(p, str) and can_format_fields(p)
             else str(p)
             for p in prompt
         )
-        wait_for_chain = False  # TODO
         if deps is not None:
             self._context.data = deps
         self.set_result_type(result_type)
+        wait_for_chain = False  # TODO
 
         try:
-            # Clear all tools
             if self._context:
                 self._context.current_prompt = final_prompt
             if model:
@@ -567,52 +522,36 @@ class Agent[TDeps]:
                 if isinstance(model, str):
                     model = infer_model(model)
                 self.model_changed.emit(model)
-            # Register currently enabled tools
-            self._update_tools()
 
-            logger.debug("agent run prompt=%s", final_prompt)
+            # Create and emit user message
+            user_msg = ChatMessage[str](content=final_prompt, role="user")
+            self.message_received.emit(user_msg)
+
+            # Get response through provider
             message_id = str(uuid4())
-
-            # Run through pydantic-ai's public interface
             start_time = time.perf_counter()
-            msg_history = self.conversation.get_history()
-            if self._debug:
-                from devtools import debug
-
-                debug(self._pydantic_agent)
-            result = await self._pydantic_agent.run(
-                final_prompt, deps=self._context, message_history=msg_history, model=model
+            result = await self._provider.generate_response(
+                final_prompt, message_id, result_type=result_type, model=model
             )
-            logger.debug("Agent run result: %r", result.data)
-            messages = result.new_messages()
-            for call in get_tool_calls(messages, self.tools):
-                call.message_id = message_id
-                call.context_data = self._context.data if self._context else None
-                self.tool_used.emit(call)
-            self.conversation._last_messages = list(messages)
-            self.conversation.set_history(result.all_messages())
-
-            # Emit user message
-            _user_msg = ChatMessage[str](content=final_prompt, role="user")
-            self.message_received.emit(_user_msg)
 
             # Get cost info for assistant response
-            usage = result.usage()
+            usage = result.usage
             cost_info = (
                 await extract_usage(
-                    usage, self.model_name, final_prompt, str(result.data)
+                    usage, self.model_name, final_prompt, str(result.content)
                 )
                 if self.model_name
                 else None
             )
 
-            # Create and emit assistant message
+            # Create final message with all metrics
             assistant_msg = ChatMessage[TResult](
-                content=result.data,
+                content=result.content,
                 role="assistant",
                 name=self.name,
                 model=self.model_name,
                 message_id=message_id,
+                tool_calls=result.tool_calls,
                 cost_info=cost_info,
                 response_time=time.perf_counter() - start_time,
             )
@@ -791,7 +730,7 @@ class Agent[TDeps]:
         if deps is not None:
             self._context.data = deps
         try:
-            self._update_tools()
+            self._provider._update_tools()
 
             # Emit user message
             _user_msg = ChatMessage[str](content=final_prompt, role="user")
@@ -926,8 +865,7 @@ class Agent[TDeps]:
         """
         from llmling_agent.tasks import TaskError
 
-        if result_type is not None:
-            self._pydantic_agent._result_schema = to_result_schema(result_type)
+        self.set_result_type(result_type)
         # Load task knowledge
         if task.knowledge:
             # Add knowledge sources to context
@@ -1037,8 +975,6 @@ class Agent[TDeps]:
         """Clear both internal and pydantic-ai history."""
         self._logger.clear_state()
         self.conversation.clear()
-        for tool in self._pydantic_agent._function_tools.values():
-            tool.current_retry = 0
         logger.debug("Cleared history and reset tool state")
 
     def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None):
@@ -1114,25 +1050,9 @@ class Agent[TDeps]:
         old_name = self.model_name
         if isinstance(model, str):
             model = infer_model(model)
-        self._pydantic_agent.model = model
+        self._provider.model = model
         self.model_changed.emit(model)
         logger.debug("Changed model from %s to %s", old_name, self.model_name)
-
-    def result_validator(self, *args: Any, **kwargs: Any) -> Any:
-        """Register a result validator.
-
-        Validators can access runtime through RunContext[AgentContext].
-
-        Example:
-            ```python
-            @agent.result_validator
-            async def validate(ctx: RunContext[AgentContext], result: str) -> str:
-                if len(result) < 10:
-                    raise ModelRetry("Response too short")
-                return result
-            ```
-        """
-        return self._pydantic_agent.result_validator(*args, **kwargs)
 
     @property
     def runtime(self) -> RuntimeConfig:
