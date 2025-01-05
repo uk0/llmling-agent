@@ -44,7 +44,8 @@ async def test_agent_message_history(test_agent: Agent[Any]):
         ModelRequest(parts=[UserPromptPart(content="Previous message")]),
         ModelResponse(parts=[TextPart(content="Previous response")]),
     ]
-    result = await test_agent.run(SIMPLE_PROMPT, message_history=history)
+    test_agent.conversation._current_history = history
+    result = await test_agent.run(SIMPLE_PROMPT)
     assert result.data == TEST_RESPONSE
     assert test_agent.conversation.last_run_messages
     assert len(test_agent.conversation.last_run_messages) == 2  # noqa: PLR2004
