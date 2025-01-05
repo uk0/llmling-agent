@@ -28,8 +28,8 @@ async def test_response_validation():
 
     # Valid data should work
     report = quality_cls(coverage=85.5, issues=3)
-    assert report.coverage == 85.5  # noqa: PLR2004
-    assert report.issues == 3  # noqa: PLR2004
+    assert report.coverage == 85.5  # noqa: PLR2004  # type: ignore
+    assert report.issues == 3  # noqa: PLR2004  # type: ignore
 
     # Invalid data should fail validation
     with pytest.raises(ValidationError):

@@ -31,11 +31,10 @@ async def test_agent_pool_conversation_flow(test_model):
         agent: Agent[Any] = pool.get_agent("test_agent")
 
         # Run multiple prompts in sequence
-        history = None
         responses = []
 
         for prompt in ["Hello!", "How are you?"]:
-            result = await agent.run(prompt, message_history=history)
+            result = await agent.run(prompt)
             responses.append(result)
 
         assert len(responses) == 2  # noqa: PLR2004
