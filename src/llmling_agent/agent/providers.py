@@ -198,7 +198,7 @@ class PydanticAIProvider(AgentProvider):
 
             # Extract tool calls and update conversation
             new_msgs = result.new_messages()
-            tool_calls = get_tool_calls(new_msgs, dict(self._tool_manager._items))
+            tool_calls = get_tool_calls(new_msgs, self._tool_manager)
             self._conversation._last_messages = list(new_msgs)
             self._conversation.set_history(result.all_messages())
 
@@ -302,7 +302,7 @@ class PydanticAIProvider(AgentProvider):
                     content = "\n".join(
                         format_part(part) for msg in messages for part in msg.parts
                     )
-                    tool_calls = get_tool_calls(messages, dict(self._tool_manager))
+                    tool_calls = get_tool_calls(messages, self._tool_manager)
 
                     yield ProviderResponse(
                         content=content,

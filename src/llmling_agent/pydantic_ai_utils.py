@@ -31,6 +31,7 @@ from llmling_agent.responses.models import (
     InlineResponseDefinition,
     ResponseDefinition,
 )
+from llmling_agent.tools.manager import ToolManager
 
 
 logger = get_logger(__name__)
@@ -140,17 +141,17 @@ def find_last_assistant_message(messages: Sequence[ModelMessage]) -> str | None:
 
 def get_tool_calls(
     messages: list[ModelMessage],
-    tools: dict[str, ToolInfo] | None = None,
+    tools: ToolManager | None = None,
     context_data: Any | None = None,
 ) -> list[ToolCallInfo]:
     """Extract tool call information from messages.
 
     Args:
         messages: Messages from captured run
-        tools: Original ToolInfo set to enrich ToolCallInfos with additional info
+        tools: ToolManager to enrich ToolCallInfos with additional info
         context_data: Optional context data to attach to tool calls
     """
-    tools = tools or {}
+    tools = tools or ToolManager()
     parts = [part for message in messages for part in message.parts]
     call_parts = {
         part.tool_call_id: part
@@ -192,7 +193,7 @@ def parts_to_tool_call_info(
 
 def convert_model_message(
     message: ModelMessage | ModelRequestPart | ModelResponsePart,
-    tools: dict[str, ToolInfo] | None = None,
+    tools: ToolManager | None = None,
 ) -> ChatMessage:
     """Convert a pydantic-ai message to our ChatMessage format.
 
@@ -200,7 +201,7 @@ def convert_model_message(
 
     Args:
         message: Message to convert (ModelMessage or its parts)
-        tools: Original ToolInfo set to enrich ToolCallInfos with additional info
+        tools: ToolManager to enrich ToolCallInfos with additional info
 
     Returns:
         Converted ChatMessage

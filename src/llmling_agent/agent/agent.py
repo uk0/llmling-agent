@@ -584,7 +584,7 @@ class Agent[TDeps]:
             )
             logger.debug("Agent run result: %r", result.data)
             messages = result.new_messages()
-            for call in get_tool_calls(messages, dict(self.tools._items)):
+            for call in get_tool_calls(messages, self.tools):
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
                 self.tool_used.emit(call)
@@ -619,15 +619,18 @@ class Agent[TDeps]:
                 import devtools
 
                 devtools.debug(assistant_msg)
+
             self.message_sent.emit(assistant_msg)
 
         except Exception:
             logger.exception("Agent run failed")
             raise
+
         else:
             if wait_for_chain:
                 await self.wait_for_chain()
             return assistant_msg
+
         finally:
             if model:
                 # Restore original model in signal
@@ -819,7 +822,7 @@ class Agent[TDeps]:
                         # Handle captured tool calls
                         messages = stream.new_messages()
                         self.conversation._last_messages = list(messages)
-                        for call in get_tool_calls(messages, dict(self.tools._items)):
+                        for call in get_tool_calls(messages, self.tools):
                             call.message_id = message_id
                             call.context_data = (
                                 self._context.data if self._context else None
