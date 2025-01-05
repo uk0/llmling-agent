@@ -82,7 +82,7 @@ plugins:
                 template: docs/key_concepts.md
               - type: MkTemplate
                 title: Quickstart
-                template: docs/quickstart.md
+                template: docs/getting_started/quickstart.md
               - type: MkTemplate
                 title: Running agents
                 template: docs/running_agents.md
