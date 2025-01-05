@@ -10,6 +10,7 @@ import logfire
 from psygnal import Signal
 from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
+from pydantic_ai.models import infer_model
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
@@ -77,6 +78,7 @@ class AgentProvider(Protocol):
 
     tool_used = Signal(ToolCallInfo)
     chunk_streamed = Signal(str)
+    model_changed = Signal(object)  # Model | None
     model: Any
 
     async def generate_response(
@@ -223,6 +225,31 @@ class PydanticAIProvider(AgentProvider):
                 self._agent.tool(wrapped)
             else:
                 self._agent.tool_plain(wrapped)
+
+    def set_model(self, model: models.Model | models.KnownModelName | None):
+        """Set the model for this agent.
+
+        Args:
+            model: New model to use (name or instance)
+
+        Emits:
+            model_changed signal with the new model
+        """
+        old_name = self.model_name
+        if isinstance(model, str):
+            model = infer_model(model)
+        self._agent.model = model
+        self.model_changed.emit(model)
+        logger.debug("Changed model from %s to %s", old_name, self.model_name)
+
+    @property
+    def model_name(self) -> str | None:
+        """Get the model name in a consistent format."""
+        match self._agent.model:
+            case str() | None:
+                return self._agent.model
+            case _:
+                return self._agent.model.name()
 
     async def stream_response(
         self,
