@@ -468,9 +468,9 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
 
     @classmethod
     @asynccontextmanager
-    async def open(
+    async def open[TDeps, TResult](
         cls,
-        config_path: StrPath | AgentsManifest,
+        config_path: StrPath | AgentsManifest[TDeps, TResult] | None = None,
         *,
         agents: list[str] | None = None,
         connect_agents: bool = True,
@@ -489,11 +489,16 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
         """
         from llmling_agent.models import AgentsManifest
 
-        manifest = (
-            config_path
-            if isinstance(config_path, AgentsManifest)
-            else AgentsManifest.from_file(config_path)
-        )
+        match config_path:
+            case None:
+                manifest = AgentsManifest[Any, Any]()
+            case str():
+                manifest = AgentsManifest[Any, Any].from_file(config_path)
+            case AgentsManifest():
+                manifest = config_path
+            case _:
+                msg = f"Invalid config path: {config_path}"
+                raise ValueError(msg)
         pool = cls(
             manifest,
             agents_to_load=agents,
