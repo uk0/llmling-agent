@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from functools import wraps
+import inspect
 import json
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any, Literal
@@ -138,7 +139,9 @@ class AgentContext[TDeps]:
             result = await self.handle_confirmation(ctx, tool, kwargs)
             match result:
                 case "allow":
-                    return await original_tool(ctx, *args, **kwargs)
+                    if inspect.iscoroutinefunction(original_tool):
+                        return await original_tool(ctx, *args, **kwargs)
+                    return original_tool(ctx, *args, **kwargs)
                 case "skip":
                     msg = f"Tool {tool.name} execution skipped"
                     raise ToolSkippedError(msg)
@@ -154,7 +157,9 @@ class AgentContext[TDeps]:
             result = await self.handle_confirmation(agent_ctx, tool, kwargs)
             match result:
                 case "allow":
-                    return await original_tool(*args, **kwargs)
+                    if inspect.iscoroutinefunction(original_tool):
+                        return await original_tool(*args, **kwargs)
+                    return original_tool(*args, **kwargs)
                 case "skip":
                     msg = f"Tool {tool.name} execution skipped"
                     raise ToolError(msg)
