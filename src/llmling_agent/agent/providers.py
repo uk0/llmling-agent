@@ -164,39 +164,43 @@ class PydanticAIProvider(AgentProvider):
         prompt: str,
         *,
         result_type: type[Any] | None = None,
+        model: models.Model | models.KnownModelName | None = None,
     ) -> ProviderResponse:
         """Generate response using pydantic-ai.
 
         Args:
             prompt: Text prompt to respond to
             result_type: Optional type for structured responses
+            model: Optional model override for this call
 
         Returns:
             Response message with optional structured content
         """
-        # Update available tools
         self._update_tools()
         message_history = self._conversation.get_history()
+
         try:
             if self._debug:
                 from devtools import debug
 
                 debug(self._agent)
+
             result = await self._agent.run(
                 prompt,
                 deps=self._context,  # type: ignore
                 message_history=message_history,
-                model=self.model,  # type: ignore
+                model=model or self.model,  # type: ignore
             )
 
-            # Extract tool calls
-            tool_calls = get_tool_calls(
-                result.new_messages(), dict(self._tool_manager._items)
+            # Extract tool calls and update conversation
+            new_msgs = result.new_messages()
+            tool_calls = get_tool_calls(new_msgs, dict(self._tool_manager._items))
+            self._conversation._last_messages = list(new_msgs)
+            self._conversation.set_history(result.all_messages())
+
+            return ProviderResponse(
+                content=result.data, tool_calls=tool_calls, usage=result.usage()
             )
-            # Return raw response data
-            usage = result.usage()
-            data = result.data
-            return ProviderResponse(content=data, tool_calls=tool_calls, usage=usage)
 
         except Exception as e:
             logger.exception("Error generating response")
@@ -223,40 +227,59 @@ class PydanticAIProvider(AgentProvider):
         prompt: str,
         *,
         result_type: type[Any] | None = None,
+        model: models.Model | models.KnownModelName | None = None,
     ) -> AsyncIterator[ProviderResponse]:
-        """Stream response using pydantic-ai."""
+        """Stream response using pydantic-ai.
+
+        Args:
+            prompt: Text prompt to respond to
+            result_type: Optional type for structured responses
+            model: Optional model override for this call
+
+        Yields:
+            Intermediate responses during streaming and final state
+
+        Raises:
+            ToolError: If response streaming fails
+        """
         self._update_tools()
 
         try:
             message_history = self._conversation.get_history()
+
             if self._debug:
                 from devtools import debug
 
                 debug(self._agent)
+
             async with self._agent.run_stream(
                 prompt,
                 deps=self._context,  # type: ignore
                 message_history=message_history,
-                model=self.model,  # type: ignore
+                model=model or self.model,  # Use override if provided
             ) as stream_result:
                 # Stream intermediate chunks
                 async for response in stream_result.stream():
                     self.chunk_streamed.emit(str(response))
                     yield ProviderResponse(content=str(response))
 
-                # Once stream is complete, set history and yield final state
+                # Once stream is complete, update conversation and yield final state
                 if stream_result.is_complete:
-                    if not message_history:
-                        self._conversation.set_history(stream_result.all_messages())
-
                     messages = stream_result.new_messages()
                     self._conversation._last_messages = list(messages)
+                    self._conversation.set_history(stream_result.all_messages())
+
+                    # Format final content and extract tool calls
                     content = "\n".join(
                         format_part(part) for msg in messages for part in msg.parts
                     )
-                    calls = get_tool_calls(messages, dict(self._tool_manager))
-                    usage = stream_result.usage()
-                    yield ProviderResponse(content=content, tool_calls=calls, usage=usage)
+                    tool_calls = get_tool_calls(messages, dict(self._tool_manager))
+
+                    yield ProviderResponse(
+                        content=content,
+                        tool_calls=tool_calls,
+                        usage=stream_result.usage(),
+                    )
 
         except Exception as e:
             logger.exception("Error streaming response")
