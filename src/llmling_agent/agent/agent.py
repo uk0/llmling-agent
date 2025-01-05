@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 
     from llmling.config.models import Resource
     from pydantic_ai.agent import EndStrategy, models
-    from pydantic_ai.result import StreamedRunResult, Usage
+    from pydantic_ai.result import StreamedRunResult
 
     from llmling_agent.common_types import PromptFunction, StrPath, ToolType
     from llmling_agent.models.context import ConfirmationCallback
@@ -531,7 +531,6 @@ class Agent[TDeps]:
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         model: models.Model | models.KnownModelName | None = None,
-        usage: Usage | None = None,
     ) -> ChatMessage[TResult]:
         """Run agent with prompt and get response.
 
@@ -540,8 +539,6 @@ class Agent[TDeps]:
             result_type: Optional type for structured responses
             deps: Optional dependencies for the agent
             model: Optional model override
-            usage: Optional usage to start with,
-                    useful for resuming a conversation or agents used in tools
 
         Returns:
             Result containing response and run information
@@ -583,11 +580,7 @@ class Agent[TDeps]:
 
                 debug(self._pydantic_agent)
             result = await self._pydantic_agent.run(
-                final_prompt,
-                deps=self._context,
-                message_history=msg_history,
-                model=model,
-                usage=usage,
+                final_prompt, deps=self._context, message_history=msg_history, model=model
             )
             logger.debug("Agent run result: %r", result.data)
             messages = result.new_messages()
