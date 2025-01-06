@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent.prompts.convert import AnyPromptType, to_prompt
 from llmling_agent.responses.models import (
     BaseResponseDefinition,
     ResponseDefinition,
@@ -20,6 +19,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.models.messages import ChatMessage
+    from llmling_agent.prompts.convert import AnyPromptType
 
 
 logger = get_logger(__name__)
@@ -98,10 +98,8 @@ class StructuredAgent[TDeps, TResult]:
             model: Optional model override
             usage: Optional usage tracking
         """
-        prompts = [p if isinstance(p, str) else to_prompt(p) for p in prompt]
-
         return await self._agent.run(
-            *prompts,
+            *prompt,
             result_type=result_type or self._result_type,
             deps=deps,
             model=model,
