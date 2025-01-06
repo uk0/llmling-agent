@@ -294,9 +294,8 @@ class Capabilities(EventedModel):
             raise ToolError(msg)
 
         name = f"delegate_{uuid4().hex[:8]}"
-        config = AgentConfig(
-            name=name, system_prompts=[system_prompt], model=model or ctx.model.name()
-        )
+        model = model or ctx.model.name()
+        config = AgentConfig(name=name, system_prompts=[system_prompt], model=model)
 
         agent = await ctx.deps.pool.create_agent(name, config, temporary=True)
         if connect_back:
