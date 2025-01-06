@@ -54,6 +54,7 @@ async def run(config_path: str):
         boss.register_worker(worker_2)
 
         print("Calling both tools sequentally:")
+        # Downloads are run sequentially because they are coordinated by the same agent.
         start_time = time.time()
         result = await boss.run(PROMPT)
         duration = time.time() - start_time
@@ -61,12 +62,11 @@ async def run(config_path: str):
         print(result.data)
 
 
-async def main():
+if __name__ == "__main__":
+    import asyncio
+    import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp:
         tmp.write(AGENT_CONFIG)
         tmp.flush()
-        await run(tmp.name)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+        asyncio.run(run(tmp.name))

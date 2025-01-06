@@ -139,17 +139,14 @@ async def run(config_path: str):
         print(result.data)
 
 
-async def main():
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".yml", delete=False, encoding="utf-8"
-    ) as tmp:
+if __name__ == "__main__":
+    import asyncio
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp:
         tmp.write(AGENT_CONFIG)
         tmp.flush()
-        await run(tmp.name)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+        asyncio.run(run(tmp.name))
 
 
 # Result:
