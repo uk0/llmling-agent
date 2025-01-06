@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, overload
 
 from typing_extensions import TypeVar
 
@@ -111,3 +111,42 @@ class StructuredAgent[TDeps, TResult]:
     @property
     def _context(self) -> Any:
         return self._agent._context
+
+    @_context.setter
+    def _context(self, value: Any):
+        self._agent._context = value
+
+    @overload
+    def to_structured(
+        self,
+        result_type: None,
+        *,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+    ) -> Agent[TDeps]: ...
+
+    @overload
+    def to_structured[TNewResult](
+        self,
+        result_type: type[TNewResult] | str | ResponseDefinition,
+        *,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+    ) -> StructuredAgent[TDeps, TNewResult]: ...
+
+    def to_structured[TNewResult](
+        self,
+        result_type: type[TNewResult] | str | ResponseDefinition | None,
+        *,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+    ) -> Agent[TDeps] | StructuredAgent[TDeps, TNewResult]:
+        if result_type is None:
+            return self._agent
+
+        return StructuredAgent(
+            self._agent,
+            result_type=result_type,
+            tool_name=tool_name,
+            tool_description=tool_description,
+        )
