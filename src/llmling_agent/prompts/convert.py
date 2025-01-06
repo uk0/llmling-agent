@@ -3,9 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, Protocol, TypeVar
 
+from fieldz import fields, get_adapter
 from pydantic import BaseModel
-
-from llmling_agent.model_utils import can_format_fields, format_instance_for_llm
 
 
 T = TypeVar("T")
@@ -89,6 +88,38 @@ def to_prompt(obj: AnyPromptType) -> str:  # noqa: PLR0911
 
         case _:
             return str(obj)
+
+
+def format_instance_for_llm(obj: Any) -> str:
+    """Format object instance showing structure and current values."""
+    try:
+        obj_fields = fields(obj)
+    except TypeError:
+        return f"Unable to inspect fields of {type(obj)}"
+
+    lines = [f"{type(obj).__name__}:\n{type(obj).__doc__}\n"]
+
+    for field in obj_fields:
+        if field.name.startswith("_"):
+            continue
+        value = getattr(obj, field.name)
+        if field.description:
+            lines.append(f"- {field.name} = {value!r} ({field.description})")
+        else:
+            type_name = field.type if field.type else "any"
+            lines.append(f"- {field.name} = {value!r} ({type_name})")
+
+    return "\n".join(lines)
+
+
+def can_format_fields(obj: Any) -> bool:
+    """Check if object can be inspected by fieldz."""
+    try:
+        get_adapter(obj)
+    except TypeError:
+        return False
+    else:
+        return True
 
 
 if __name__ == "__main__":
