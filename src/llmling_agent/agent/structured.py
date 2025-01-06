@@ -107,7 +107,12 @@ class StructuredAgent[TDeps, TResult]:
 
     def __repr__(self) -> str:
         type_name = getattr(self._result_type, "__name__", str(self._result_type))
-        return f"StructuredAgent({self._agent.name!r}, result_type={type_name})"
+        return f"StructuredAgent({self._agent!r}, result_type={type_name})"
+
+    def __prompt__(self) -> str:
+        type_name = getattr(self._result_type, "__name__", str(self._result_type))
+        base_info = self._agent.__prompt__()
+        return f"{base_info}\nStructured output type: {type_name}"
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._agent, name)

@@ -219,9 +219,23 @@ class Agent[TDeps]:
         self._connected_agents: set[Agent[Any]] = set()
 
     def __repr__(self) -> str:
-        model = f", model={self.model_name}" if self.model_name else ""
         desc = f", {self.description!r}" if self.description else ""
-        return f"Agent({self.name!r}{model}{desc})"
+        tools = f", tools={len(self.tools)}" if self.tools else ""
+        return f"Agent({self._provider!r}{desc}{tools})"
+
+    def __prompt__(self) -> str:
+        parts = [
+            f"Agent: {self.name}",
+            f"Type: {self._provider.__class__.__name__}",
+            f"Model: {self.model_name or 'default'}",
+        ]
+
+        if self.description:
+            parts.append(f"Description: {self.description}")
+
+        parts.extend([self.tools.__prompt__(), self.conversation.__prompt__()])
+
+        return "\n".join(parts)
 
     @property
     def name(self) -> str:

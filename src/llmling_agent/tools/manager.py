@@ -69,6 +69,12 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             t = self._validate_item(tool)
             self.register(t.name, t)
 
+    def __prompt__(self) -> str:
+        enabled_tools = [t.name for t in self.values() if t.enabled]
+        if not enabled_tools:
+            return "No tools available"
+        return f"Available tools: {', '.join(enabled_tools)}"
+
     def reset_states(self):
         """Reset all tools to their default enabled states."""
         for info in self.values():

@@ -85,6 +85,9 @@ class HumanProvider(AgentProvider):
         self.name = name or "human"
         self._debug = debug
 
+    def __repr__(self) -> str:
+        return f"Human({self.name!r})"
+
     @logfire.instrument("Human input. result type {result_type}. Prompt: {prompt}")
     async def generate_response(
         self,

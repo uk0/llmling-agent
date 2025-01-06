@@ -89,6 +89,10 @@ class PydanticAIProvider(AgentProvider):
         )
         self._context = context
 
+    def __repr__(self) -> str:
+        model = f", model={self.model_name}" if self.model_name else ""
+        return f"PydanticAI({self.name!r}{model})"
+
     @property
     def model(self) -> str | models.Model | models.KnownModelName | None:
         return self._model

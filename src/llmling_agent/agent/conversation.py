@@ -118,6 +118,19 @@ class ConversationManager:
     def __repr__(self) -> str:
         return f"ConversationManager(id={self.id!r})"
 
+    def __prompt__(self) -> str:
+        if not self._current_history:
+            return "No conversation history"
+
+        last_msgs = self._current_history[-2:]
+        parts = ["Recent conversation:"]
+        parts.extend(
+            f"{get_message_role(msg).title()}: {format_part(part)[:100]}..."
+            for msg in last_msgs
+            for part in msg.parts
+        )
+        return "\n".join(parts)
+
     @overload
     def __getitem__(self, key: int) -> ChatMessage[Any]: ...
 

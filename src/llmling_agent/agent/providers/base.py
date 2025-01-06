@@ -62,6 +62,9 @@ class AgentProvider:
         self._conversation = conversation
         self._debug = False
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(model={self.model_name})"
+
     def set_result_type(
         self,
         result_type: type[Any] | str | ResponseDefinition | None,
