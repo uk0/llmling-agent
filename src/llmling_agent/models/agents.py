@@ -27,8 +27,8 @@ from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 from llmling_agent.models.mcp_server import MCPServerConfig  # noqa: TC001
 from llmling_agent.models.task import AgentTask  # noqa: TC001
+from llmling_agent.prompts.convert import render_prompt
 from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
-from llmling_agent.templating import render_prompt
 
 
 if TYPE_CHECKING:
@@ -202,14 +202,27 @@ class AgentConfig(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def validate_result_type(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Convert result type to proper format."""
+        """Convert result type and apply its settings."""
         result_type = data.get("result_type")
         if isinstance(result_type, dict):
-            # Convert inline definition to ResponseDefinition
+            # Extract response-specific settings
+            tool_name = result_type.pop("result_tool_name", None)
+            tool_description = result_type.pop("result_tool_description", None)
+            retries = result_type.pop("result_retries", None)
+
+            # Convert remaining dict to ResponseDefinition
             if "type" not in result_type:
-                # Default to inline type if not specified
                 result_type["type"] = "inline"
             data["result_type"] = InlineResponseDefinition(**result_type)
+
+            # Apply extracted settings to agent config
+            if tool_name:
+                data["result_tool_name"] = tool_name
+            if tool_description:
+                data["result_tool_description"] = tool_description
+            if retries is not None:
+                data["result_retries"] = retries
+
         return data
 
     @model_validator(mode="before")
