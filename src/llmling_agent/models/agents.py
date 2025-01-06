@@ -173,6 +173,10 @@ class AgentConfig(BaseModel):
     debug: bool = False
     """Enable debug output for this agent."""
 
+    def is_structured(self) -> bool:
+        """Check if this config defines a structured agent."""
+        return self.result_type is not None
+
     model_config = ConfigDict(
         frozen=True,
         arbitrary_types_allowed=True,
