@@ -29,10 +29,10 @@ from typing_extensions import TypeVar
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.agent.providers import AgentProvider, HumanProvider, PydanticAIProvider
 from llmling_agent.log import get_logger
-from llmling_agent.model_utils import can_format_fields, format_instance_for_llm
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage
+from llmling_agent.prompts.convert import AnyPromptType, to_prompt
 from llmling_agent.pydantic_ai_utils import (
     extract_usage,
 )
@@ -480,7 +480,7 @@ class Agent[TDeps]:
     @logfire.instrument("Calling Agent.run: {prompt}:")
     async def run(
         self,
-        *prompt: str,
+        *prompt: AnyPromptType,
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         model: models.Model | models.KnownModelName | None = None,
@@ -500,12 +500,7 @@ class Agent[TDeps]:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         """Run agent with prompt and get response."""
-        final_prompt = "\n\n".join(
-            format_instance_for_llm(p)
-            if not isinstance(p, str) and can_format_fields(p)
-            else str(p)
-            for p in prompt
-        )
+        final_prompt = "\n\n".join(to_prompt(p) for p in prompt)
         if deps is not None:
             self._context.data = deps
         self.set_result_type(result_type)
@@ -697,7 +692,7 @@ class Agent[TDeps]:
     @asynccontextmanager
     async def run_stream(
         self,
-        *prompt: str,
+        *prompt: AnyPromptType,
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         model: models.Model | models.KnownModelName | None = None,
@@ -716,12 +711,7 @@ class Agent[TDeps]:
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        final_prompt = "\n\n".join(
-            format_instance_for_llm(p)
-            if not isinstance(p, str) and can_format_fields(p)
-            else str(p)
-            for p in prompt
-        )
+        final_prompt = "\n\n".join(to_prompt(p) for p in prompt)
         self.set_result_type(result_type)
 
         if deps is not None:
