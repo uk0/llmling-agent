@@ -7,16 +7,14 @@ from typing import TYPE_CHECKING, Any, overload
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent.responses.models import (
-    BaseResponseDefinition,
-    ResponseDefinition,
-)
+from llmling_agent.responses.models import BaseResponseDefinition, ResponseDefinition
 from llmling_agent.responses.utils import to_type
 
 
 if TYPE_CHECKING:
     from pydantic_ai.agent import models
 
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.prompts.convert import AnyPromptType
@@ -40,7 +38,7 @@ class StructuredAgent[TDeps, TResult]:
 
     def __init__(
         self,
-        agent: Agent[TDeps],
+        agent: AnyAgent[TDeps, TResult],
         result_type: type[TResult] | str | ResponseDefinition,
         *,
         tool_name: str | None = None,
@@ -61,7 +59,10 @@ class StructuredAgent[TDeps, TResult]:
             ValueError: If named response type not found in manifest
         """
         logger.debug("StructuredAgent.run result_type = %s", result_type)
-        self._agent = agent
+        if isinstance(agent, StructuredAgent):
+            self._agent: Agent[TDeps] = agent._agent
+        else:
+            self._agent = agent
         self._result_type = to_type(result_type)
         agent.set_result_type(result_type)
 
