@@ -18,7 +18,6 @@ type JsonArray = list[JsonValue]
 type ToolType = str | Callable[..., Any] | LLMCallableTool
 
 type StrPath = str | os.PathLike[str]
-type PromptFunction = Callable[..., str]
 type SessionIdType = str | UUID | None
 MessageRole = Literal["user", "assistant", "system"]
 PartType = Literal["text", "image", "audio", "video"]

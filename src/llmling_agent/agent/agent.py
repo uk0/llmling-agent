@@ -49,12 +49,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.structured import StructuredAgent
-    from llmling_agent.common_types import (
-        PromptFunction,
-        SessionIdType,
-        StrPath,
-        ToolType,
-    )
+    from llmling_agent.common_types import SessionIdType, StrPath, ToolType
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.task import AgentTask
     from llmling_agent.responses.models import ResponseDefinition
@@ -951,7 +946,7 @@ class Agent[TDeps]:
 
     async def run_continuous(
         self,
-        prompt: str | PromptFunction,
+        prompt: AnyPromptType,
         *,
         max_count: int | None = None,
         interval: float = 1.0,
@@ -973,9 +968,9 @@ class Agent[TDeps]:
             while max_count is None or count < max_count:
                 try:
                     current_prompt = (
-                        prompt
-                        if isinstance(prompt, str)
-                        else call_with_context(prompt, self._context, **kwargs)
+                        call_with_context(prompt, self._context, **kwargs)
+                        if callable(prompt)
+                        else to_prompt(prompt)
                     )
                     await self.run(current_prompt, **kwargs)
                     await self.run(current_prompt, **kwargs)

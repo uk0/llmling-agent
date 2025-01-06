@@ -100,11 +100,9 @@ class ConversationManager:
                 [initial_prompts] if isinstance(initial_prompts, str) else initial_prompts
             )
             for prompt in prompts_list:
-                obj = StaticPrompt(
-                    name="Initial system prompt",
-                    description="Initial system prompt",
-                    messages=[PromptMessage(role="system", content=prompt)],
-                )
+                desc = "Initial system prompt"
+                msg = PromptMessage(role="system", content=prompt)
+                obj = StaticPrompt(name=desc, description=desc, messages=[msg])
                 self._initial_prompts.append(obj)
         # Add context loading tasks to agent
         for source in resources:

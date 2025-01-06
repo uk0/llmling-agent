@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 import webbrowser
 
 from llmling import RuntimeConfig
 from slashed import Command, CommandContext, CommandError, PathCompleter
 from upath import UPath
 
+from llmling_agent.agent.agent import Agent
+from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 
 
 if TYPE_CHECKING:
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.chat_session.base import AgentPoolView
 
 
@@ -68,9 +71,16 @@ async def set_env(
         async with RuntimeConfig.open(config.get_config()) as new_runtime:
             # Create new agent with updated runtime
             kw_args = agent._context.config.get_agent_kwargs()
-            kls = agent.__class__
-            new_agent = kls(runtime=new_runtime, context=agent._context, **kw_args)
-
+            new_agent: AnyAgent[Any, Any] = Agent(
+                runtime=new_runtime, context=agent._context, **kw_args
+            )
+            if isinstance(agent, StructuredAgent):
+                new_agent = StructuredAgent(
+                    agent=new_agent,
+                    result_type=agent.result_type,
+                    # tool_name=agent.tool_name,
+                    # tool_description=agent.tool_description,
+                )
             # Update session's agent
             ctx.context._agent = new_agent
 

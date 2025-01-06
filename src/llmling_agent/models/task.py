@@ -33,7 +33,7 @@ class AgentTask[TDeps, TResult](BaseModel):
     description: str | None = None
     """Human-readable description of what this task does"""
 
-    prompt: str
+    prompt: str | ImportString[str]
     """The task instruction/prompt."""
 
     result_type: ImportString[type[TResult]] = str  # type: ignore

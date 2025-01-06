@@ -99,12 +99,8 @@ class StructuredAgent[TDeps, TResult]:
             model: Optional model override
             usage: Optional usage tracking
         """
-        return await self._agent.run(
-            *prompt,
-            result_type=result_type or self._result_type,
-            deps=deps,
-            model=model,
-        )
+        typ = result_type or self._result_type
+        return await self._agent.run(*prompt, result_type=typ, deps=deps, model=model)
 
     def __repr__(self) -> str:
         type_name = getattr(self._result_type, "__name__", str(self._result_type))

@@ -16,6 +16,7 @@ from llmling_agent.tools.base import ToolInfo
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import ToolSource, ToolType
 
@@ -227,7 +228,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
     def register_worker(
         self,
-        worker: Agent[Any],
+        worker: AnyAgent[Any, Any],
         *,
         name: str | None = None,
         reset_history_on_run: bool = True,
