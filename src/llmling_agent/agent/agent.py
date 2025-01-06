@@ -44,7 +44,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
 
     from llmling.config.models import Resource
-    from pydantic_ai import Agent as PydanticAgent
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.result import StreamedRunResult
 
@@ -215,18 +214,13 @@ class Agent[TDeps]:
         self._connected_agents: set[Agent[Any]] = set()
 
     @property
-    def _pydantic_agent(self) -> PydanticAgent[TDeps, Any]:
-        # For backwards compatibility
-        return self._provider._agent  # type: ignore
-
-    @property
     def name(self) -> str:
         """Get agent name."""
-        return self._pydantic_agent.name or "llmling-agent"
+        return self._provider.name or "llmling-agent"
 
     @name.setter
-    def name(self, value: str | None):
-        self._pydantic_agent.name = value
+    def name(self, value: str):
+        self._provider.name = value
 
     def set_result_type(
         self,

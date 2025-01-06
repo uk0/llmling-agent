@@ -52,7 +52,9 @@ class AgentProvider:
         tools: ToolManager,
         conversation: ConversationManager,
         model: str | Model | None = None,
+        name: str = "agent",
     ):
+        self._name = name
         self._model = model
         self._agent: Any = None
         self._tool_manager = tools
@@ -79,6 +81,16 @@ class AgentProvider:
     def model_name(self) -> str | None:
         """Get model name."""
         return None
+
+    @property
+    def name(self) -> str:
+        """Get agent name."""
+        return self._agent.name or "agent"
+
+    @name.setter
+    def name(self, value: str | None) -> None:
+        """Set agent name."""
+        self._agent.name = value
 
     async def generate_response(
         self,

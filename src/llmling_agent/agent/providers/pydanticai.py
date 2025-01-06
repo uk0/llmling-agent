@@ -44,6 +44,7 @@ class PydanticAIProvider(AgentProvider):
         system_prompt: str | Sequence[str] = (),
         tools: ToolManager,
         conversation: ConversationManager,
+        name: str = "agent",
         retries: int = 1,
         result_retries: int | None = None,
         end_strategy: EndStrategy = "early",
@@ -58,6 +59,7 @@ class PydanticAIProvider(AgentProvider):
             system_prompt: Initial system instructions
             tools: Available tools
             conversation: Conversation manager
+            name: Agent name
             retries: Number of retries for failed operations
             result_retries: Max retries for result validation
             end_strategy: How to handle tool calls with final result
@@ -67,12 +69,16 @@ class PydanticAIProvider(AgentProvider):
             kwargs: Additional arguments for PydanticAI agent
         """
         super().__init__(
-            tools=tools, conversation=conversation, model=model, context=context
+            tools=tools,
+            conversation=conversation,
+            model=model,
+            context=context,
         )
         self._debug = debug
         self._agent: Any = PydanticAgent(
             model=model,  # type: ignore
             system_prompt=system_prompt,
+            name=name,
             tools=[],
             retries=retries,
             end_strategy=end_strategy,
@@ -146,6 +152,16 @@ class PydanticAIProvider(AgentProvider):
                 if isinstance(original, str):
                     original = infer_model(original)  # type: ignore
                 self.model_changed.emit(original)
+
+    @property
+    def name(self) -> str:
+        """Get agent name."""
+        return self._agent.name or "agent"
+
+    @name.setter
+    def name(self, value: str | None) -> None:
+        """Set agent name."""
+        self._agent.name = value
 
     def _update_tools(self):
         """Update pydantic-ai-agent tools."""
