@@ -26,7 +26,7 @@ EnvironmentType = Literal["file", "inline"]
 ToolSource = Literal["runtime", "agent", "builtin", "dynamic", "task"]
 
 T = TypeVar("T")
-OptionalAwaitable = T | Awaitable[T]
+type OptionalAwaitable[T] = T | Awaitable[T]
 
 # P = ParamSpec("P")
 # SyncAsync = Callable[P, OptionalAwaitable[T]]

@@ -17,7 +17,6 @@ from llmling_agent.delegation.controllers import (
     interactive_controller,
 )
 from llmling_agent.delegation.router import CallbackRouter
-from llmling_agent.delegation.supervisor import PoolSupervisor
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
 from llmling_agent.tasks import TaskRegistry
@@ -30,7 +29,7 @@ if TYPE_CHECKING:
 
     from psygnal.containers import EventedDict
 
-    from llmling_agent.common_types import StrPath
+    from llmling_agent.common_types import OptionalAwaitable, StrPath
     from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.delegation.router import (
         Decision,
@@ -156,11 +155,26 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
     #     if self._connect_signals:
     #         self._setup_connections()
 
-    async def start_supervision(self) -> PoolSupervisor:
-        """Start supervision of pool activities."""
-        supervisor = PoolSupervisor(self)
-        await supervisor.start()
-        return supervisor
+    def start_supervision(self) -> OptionalAwaitable[None]:
+        """Start supervision interface.
+
+        Can be called either synchronously or asynchronously:
+
+        # Sync usage:
+        start_supervision(pool)
+
+        # Async usage:
+        await start_supervision(pool)
+        """
+        from llmling_agent.delegation.supervisor_ui import SupervisorApp
+
+        app = SupervisorApp(self)
+        if asyncio.get_event_loop().is_running():
+            # We're in an async context
+            return app.run_async()
+        # We're in a sync context
+        app.run()
+        return None
 
     @property
     def agents(self) -> EventedDict[str, Agent[Any]]:
