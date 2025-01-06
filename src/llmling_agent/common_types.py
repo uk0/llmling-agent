@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 import os
 from typing import Any, Literal
+from uuid import UUID
 
 from llmling import LLMCallableTool
 from typing_extensions import TypeVar
@@ -18,7 +19,7 @@ type ToolType = str | Callable[..., Any] | LLMCallableTool
 
 type StrPath = str | os.PathLike[str]
 type PromptFunction = Callable[..., str]
-
+type SessionIdType = str | UUID | None
 MessageRole = Literal["user", "assistant", "system"]
 PartType = Literal["text", "image", "audio", "video"]
 

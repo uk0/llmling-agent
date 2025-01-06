@@ -25,11 +25,10 @@ from llmling_agent.tasks import TaskRegistry
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
-    from uuid import UUID
 
     from psygnal.containers import EventedDict
 
-    from llmling_agent.common_types import OptionalAwaitable, StrPath
+    from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
     from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.delegation.router import (
         Decision,
@@ -388,7 +387,7 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
         deps: TDeps,
         return_type: type[TResult],
         model_override: str | None = None,
-        session_id: str | UUID | None = None,
+        session_id: SessionIdType = None,
         environment_override: StrPath | Config | None = None,
     ) -> StructuredAgent[TDeps, TResult]: ...
 
@@ -399,7 +398,7 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
         *,
         deps: TDeps,
         model_override: str | None = None,
-        session_id: str | UUID | None = None,
+        session_id: SessionIdType = None,
         environment_override: StrPath | Config | None = None,
     ) -> Agent[TDeps]: ...
 
@@ -410,7 +409,7 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
         *,
         return_type: type[TResult],
         model_override: str | None = None,
-        session_id: str | UUID | None = None,
+        session_id: SessionIdType = None,
         environment_override: StrPath | Config | None = None,
     ) -> StructuredAgent[Any, TResult]: ...
 
@@ -420,7 +419,7 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
         agent: str | Agent[Any],
         *,
         model_override: str | None = None,
-        session_id: str | UUID | None = None,
+        session_id: SessionIdType = None,
         environment_override: StrPath | Config | None = None,
     ) -> Agent[Any]: ...
 
@@ -431,7 +430,7 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
         deps: TDeps | None = None,
         return_type: type[TResult] | None = None,
         model_override: str | None = None,
-        session_id: str | UUID | None = None,
+        session_id: SessionIdType = None,
         environment_override: StrPath | Config | None = None,
     ) -> AnyAgent[TDeps, TResult]:
         """Get or wrap an agent.

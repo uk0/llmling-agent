@@ -21,6 +21,7 @@ from typing_extensions import TypeVar
 from upath.core import UPath
 import yamling
 
+from llmling_agent.common_types import SessionIdType  # noqa: TC001
 from llmling_agent.config import Capabilities, Knowledge
 from llmling_agent.environment import AgentEnvironment, FileEnvironment, InlineEnvironment
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
@@ -33,7 +34,6 @@ from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-    from uuid import UUID
 
     from llmling_agent import Agent, AgentPool
     from llmling_agent.common_types import StrPath
@@ -113,7 +113,7 @@ class AgentConfig(BaseModel):
     capabilities: Capabilities = Field(default_factory=Capabilities)
     """Current agent's capabilities."""
 
-    session_id: str | None = None
+    session_id: SessionIdType = None
     """Opetional id of a session to load."""
 
     result_type: str | ResponseDefinition | None = None
@@ -527,7 +527,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         *,
         agents_to_load: list[str] | None = None,
         connect_agents: bool = True,
-        session_id: str | UUID | None = None,
+        session_id: SessionIdType = None,
     ) -> AgentPool:
         """Create an agent pool from this manifest.
 
@@ -565,7 +565,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         agent_name: str,
         *,
         model: str | None = None,
-        session_id: str | UUID | None = None,
+        session_id: SessionIdType = None,
     ) -> AsyncIterator[Agent[TDeps]]:
         """Open and configure a specific agent from configuration.
 

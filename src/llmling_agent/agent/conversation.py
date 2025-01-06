@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from pydantic_ai.messages import ModelMessage
 
     from llmling_agent.agent.agent import Agent
-    from llmling_agent.common_types import MessageRole, StrPath
+    from llmling_agent.common_types import MessageRole, SessionIdType, StrPath
 
 logger = get_logger(__name__)
 
@@ -65,7 +65,7 @@ class ConversationManager:
     def __init__(
         self,
         agent: Agent[Any],
-        session_id: str | UUID | None = None,
+        session_id: SessionIdType = None,
         initial_prompts: str | Sequence[str] | None = None,
         *,
         resources: Sequence[Resource | str] = (),
@@ -241,7 +241,7 @@ class ConversationManager:
 
     def load_history_from_database(
         self,
-        session_id: str | UUID | None = None,
+        session_id: SessionIdType = None,
         *,
         since: datetime | None = None,
         until: datetime | None = None,

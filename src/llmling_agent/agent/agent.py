@@ -6,7 +6,7 @@ import asyncio
 from contextlib import asynccontextmanager
 import time
 from typing import TYPE_CHECKING, Any, Literal, cast, overload
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from llmling import (
     Config,
@@ -48,7 +48,12 @@ if TYPE_CHECKING:
     from pydantic_ai.result import StreamedRunResult
 
     from llmling_agent.agent.structured import StructuredAgent
-    from llmling_agent.common_types import PromptFunction, StrPath, ToolType
+    from llmling_agent.common_types import (
+        PromptFunction,
+        SessionIdType,
+        StrPath,
+        ToolType,
+    )
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.task import AgentTask
     from llmling_agent.responses.models import ResponseDefinition
@@ -96,7 +101,7 @@ class Agent[TDeps]:
         context: AgentContext[TDeps] | None = None,
         *,
         agent_type: AgentType = "ai",
-        session_id: str | UUID | None = None,
+        session_id: SessionIdType = None,
         model: models.Model | models.KnownModelName | None = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
@@ -280,7 +285,7 @@ class Agent[TDeps]:
         config_path: StrPath | Config | None = None,
         *,
         model: models.Model | models.KnownModelName | None = None,
-        session_id: str | UUID | None = None,
+        session_id: SessionIdType = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
         retries: int = 1,
@@ -347,7 +352,7 @@ class Agent[TDeps]:
         *,
         # Model configuration
         model: str | models.Model | models.KnownModelName | None = None,
-        session_id: str | UUID | None = None,
+        session_id: SessionIdType = None,
         result_type: type[TResult] | None = None,
         model_settings: dict[str, Any] | None = None,
         # Tool configuration
