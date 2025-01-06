@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import datetime
+import logging
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling import (
@@ -43,6 +44,8 @@ if TYPE_CHECKING:
 TDeps = TypeVar("TDeps", default=Any)
 TResult = TypeVar("TResult", default=Any)
 TResultOverride = TypeVar("TResultOverride")
+
+logger = logging.getLogger(__name__)
 
 
 class WorkerConfig(BaseModel):
@@ -609,11 +612,10 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         agent_config = self.agents[agent_name]
         if not agent_config.result_type:
             return None
-
+        logger.debug("Building response model for %r", agent_config.result_type)
         if isinstance(agent_config.result_type, str):
             response_def = self.responses[agent_config.result_type]
             return response_def.create_model()  # type: ignore
-
         return agent_config.result_type.create_model()  # type: ignore
 
 
