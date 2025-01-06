@@ -218,6 +218,11 @@ class Agent[TDeps]:
         self._background_task: asyncio.Task[Any] | None = None
         self._connected_agents: set[Agent[Any]] = set()
 
+    def __repr__(self) -> str:
+        model = f", model={self.model_name}" if self.model_name else ""
+        desc = f", {self.description!r}" if self.description else ""
+        return f"Agent({self.name!r}{model}{desc})"
+
     @property
     def name(self) -> str:
         """Get agent name."""

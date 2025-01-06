@@ -105,6 +105,10 @@ class StructuredAgent[TDeps, TResult]:
             model=model,
         )
 
+    def __repr__(self) -> str:
+        type_name = getattr(self._result_type, "__name__", str(self._result_type))
+        return f"StructuredAgent({self._agent.name!r}, result_type={type_name})"
+
     def __getattr__(self, name: str) -> Any:
         return getattr(self._agent, name)
 
