@@ -600,6 +600,21 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         finally:
             await pool.cleanup()
 
+    def get_result_type(self, agent_name: str) -> type[Any] | None:
+        """Get the resolved result type for an agent.
+
+        Returns None if no result type is configured.
+        """
+        agent_config = self.agents[agent_name]
+        if not agent_config.result_type:
+            return None
+
+        if isinstance(agent_config.result_type, str):
+            response_def = self.responses[agent_config.result_type]
+            return response_def.create_model()  # type: ignore
+
+        return agent_config.result_type.create_model()  # type: ignore
+
 
 class ToolCallInfo(BaseModel):
     """Information about an executed tool call."""
