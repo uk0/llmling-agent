@@ -199,7 +199,7 @@ class PoolSupervisor:
             return
 
         parts = cmd[1:].split(maxsplit=1)
-        if len(parts) < 2:
+        if len(parts) < 2:  # noqa: PLR2004
             await self.output_handler.display("Usage: @agent_name <message or /command>")
             return
 
