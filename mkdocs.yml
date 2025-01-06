@@ -89,6 +89,19 @@ plugins:
               - type: MkTemplate
                 title: WebUI
                 template: docs/webui.md
+          - The Agents:
+              - type: MkTemplate
+                title: Basic Agent
+                template: docs/agents/basic_agent.md
+              - type: MkTemplate
+                title: Structured Agent
+                template: docs/agents/structured_agent.md
+              - type: MkTemplate
+                title: Slashed Agent
+                template: docs/agents/structured_agent.md
+              - type: MkTemplate
+                title: Slashed Agent
+                template: docs/agents/structured_agent.md
           - title: API
             type: MkDoc
             section_name: "API"
