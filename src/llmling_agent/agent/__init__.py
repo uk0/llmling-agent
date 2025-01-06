@@ -1,7 +1,7 @@
 """CLI commands for llmling-agent."""
 
 from __future__ import annotations
-from typing import Any, TypeVar
+from typing_extensions import TypeVar
 
 from llmling_agent.agent.agent import Agent
 from llmling_agent.agent.agent_logger import AgentLogger
@@ -12,7 +12,10 @@ from llmling_agent.agent.slashed_agent import SlashedAgent
 
 
 TDeps = TypeVar("TDeps")
-AnyAgent = Agent[TDeps] | StructuredAgent[TDeps, Any]
+TResult = TypeVar("TResult", default=str)
+
+
+AnyAgent = Agent[TDeps] | StructuredAgent[TDeps, TResult]
 
 
 __all__ = [
