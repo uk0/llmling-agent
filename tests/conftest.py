@@ -11,11 +11,10 @@ import yamling
 
 from llmling_agent import Agent, AgentConfig, config_resources
 from llmling_agent.responses import InlineResponseDefinition, ResponseField
-from llmling_agent.testing.ui import DummyUI
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, AsyncIterator
+    from collections.abc import AsyncGenerator
 
 
 TEST_RESPONSE = "I am a test response"
@@ -59,35 +58,6 @@ agents:
     system_prompts:
       - You are a researcher
 """
-
-
-@pytest.fixture
-async def test_ui() -> AsyncIterator[DummyUI]:
-    """Provide a clean DummyUI instance."""
-    ui = DummyUI()
-    yield ui
-    ui.clear_interactions()
-
-
-@pytest.fixture
-async def error_ui() -> AsyncIterator[DummyUI]:
-    """Provide a DummyUI that raises errors."""
-    ui = DummyUI(raise_errors=True)
-    yield ui
-    ui.clear_interactions()
-
-
-@pytest.fixture
-async def streaming_ui() -> AsyncIterator[DummyUI]:
-    """Provide a DummyUI with streaming responses."""
-    ui = DummyUI(
-        message_responses={
-            "hello": "Hello World!",
-            "test": "Test Response",
-        }
-    )
-    yield ui
-    ui.clear_interactions()
 
 
 @pytest.fixture
