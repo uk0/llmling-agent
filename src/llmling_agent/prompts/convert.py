@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+import asyncio
+from collections.abc import Callable, Coroutine
 from typing import Any, Protocol, TypeVar
 
 from fieldz import fields, get_adapter
+from llmling import BasePrompt
 from pydantic import BaseModel
 
 
@@ -29,24 +31,27 @@ class FieldFormattable(Protocol):
     __annotations__: dict[str, Any]
 
 
-AnyPromptType = (
+type AnyPromptType = (
     str
     | PromptConvertible
     | PromptTypeConvertible
     | FieldFormattable
     | BaseModel
+    | BasePrompt
     | dict[str, Any]
     | list[Any]
     | tuple[Any, ...]
     | Callable[..., str]
+    | Coroutine[Any, Any, str]
 )
 
 
-def to_prompt(obj: AnyPromptType) -> str:  # noqa: PLR0911
+async def to_prompt(obj: AnyPromptType, **format_kwargs: Any) -> str:  # noqa: PLR0911
     """Convert any supported type to a prompt string.
 
     Args:
         obj: Object to convert
+        format_kwargs: Optional kwargs for prompt formatting
 
     Examples:
         >>> to_prompt("Hello")
@@ -73,24 +78,34 @@ def to_prompt(obj: AnyPromptType) -> str:  # noqa: PLR0911
         case _ if hasattr(obj, "__prompt__"):
             return obj.__prompt__()  # pyright: ignore[reportAttributeAccessIssue]
 
+        case BasePrompt():
+            messages = await obj.format(format_kwargs)
+            return "\n".join(msg.get_text_content() for msg in messages)
+
         case _ if can_format_fields(obj):
-            return format_instance_for_llm(obj)
+            return format_dataclass_like(obj)
 
         case dict():
-            formatted = [f"{k}: {to_prompt(v)}" for k, v in obj.items()]
-            return "\n".join(formatted)
+            results = await asyncio.gather(*(to_prompt(v) for k, v in obj.items()))
+            return "\n".join(f"{k}: {r}" for (k, _), r in zip(obj.items(), results))
 
         case list() | tuple():
-            return "\n".join(to_prompt(item) for item in obj)
+            items = await asyncio.gather(*(to_prompt(item) for item in obj))
+            return "\n".join(items)
+
+        case Coroutine():
+            result = await obj
+            return await to_prompt(result, **format_kwargs)
 
         case _ if callable(obj):
-            return obj()
+            result = obj()
+            return await to_prompt(result, **format_kwargs)
 
         case _:
             return str(obj)
 
 
-def format_instance_for_llm(obj: Any) -> str:
+def format_dataclass_like(obj: Any) -> str:
     """Format object instance showing structure and current values."""
     try:
         obj_fields = fields(obj)
@@ -120,49 +135,3 @@ def can_format_fields(obj: Any) -> bool:
         return False
     else:
         return True
-
-
-if __name__ == "__main__":
-    from dataclasses import dataclass
-
-    from pydantic import Field
-
-    class Greeter:
-        def __prompt__(self) -> str:
-            return "Hello from instance!"
-
-        @classmethod
-        def __prompt_type__(cls) -> str:
-            return "The Greeter class says hello"
-
-    @dataclass
-    class User:
-        """A user in the system."""
-
-        name: str
-        age: int
-
-    class Config(BaseModel):
-        """System configuration."""
-
-        host: str = Field(description="Server hostname")
-        port: int = Field(default=8080, description="Server port")
-
-    def get_greeting() -> str:
-        return "Hello from callable!"
-
-    # Test different types
-    print(to_prompt("Simple string"))
-    print("\n" + "=" * 50 + "\n")
-    print(to_prompt(Greeter()))  # Instance
-    print(to_prompt(Greeter))  # Class
-    print("\n" + "=" * 50 + "\n")
-    print(to_prompt(User("Alice", 30)))
-    print("\n" + "=" * 50 + "\n")
-    print(to_prompt(Config(host="localhost")))
-    print("\n" + "=" * 50 + "\n")
-    print(to_prompt(get_greeting))
-    print("\n" + "=" * 50 + "\n")
-    print(to_prompt([1, 2, 3]))
-    print("\n" + "=" * 50 + "\n")
-    print(to_prompt({"a": 1, "b": 2}))

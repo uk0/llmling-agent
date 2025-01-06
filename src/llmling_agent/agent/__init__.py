@@ -15,7 +15,7 @@ TDeps = TypeVar("TDeps")
 TResult = TypeVar("TResult", default=str)
 
 
-AnyAgent = Agent[TDeps] | StructuredAgent[TDeps, TResult]
+type AnyAgent[TDeps, TResult] = Agent[TDeps] | StructuredAgent[TDeps, TResult]
 
 
 __all__ = [

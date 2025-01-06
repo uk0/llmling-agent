@@ -32,7 +32,7 @@ class SlashedAgent[TDeps, TContext]:
 
     def __init__(
         self,
-        agent: AnyAgent[TDeps, TResult],
+        agent: AnyAgent[TDeps, Any],
         *,
         command_context: TContext | None = None,
         command_history_path: str | None = None,

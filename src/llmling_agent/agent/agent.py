@@ -22,7 +22,6 @@ import logfire
 from psygnal import Signal
 from psygnal.containers import EventedDict
 from pydantic_ai import RunContext  # noqa: TC002
-from pydantic_ai.models import infer_model
 from tokonomics import TokenLimits, get_model_limits
 from typing_extensions import TypeVar
 
@@ -189,6 +188,8 @@ class Agent[TDeps]:
             case "human":
                 self._provider = HumanProvider(
                     conversation=self.conversation,
+                    context=self._context,
+                    tools=self._tool_manager,
                     name=name,
                     debug=debug,
                 )
@@ -197,6 +198,7 @@ class Agent[TDeps]:
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
+        self._provider.model_changed.connect(self.model_changed.emit)
         self.name = name
         self.description = description
         msg = "Initialized %s (model=%s)"
@@ -213,7 +215,7 @@ class Agent[TDeps]:
         self._connected_agents: set[Agent[Any]] = set()
 
     @property
-    def _pydantic_agent(self) -> PydanticAgent[TDeps, str]:
+    def _pydantic_agent(self) -> PydanticAgent[TDeps, Any]:
         # For backwards compatibility
         return self._provider._agent  # type: ignore
 
@@ -530,7 +532,8 @@ class Agent[TDeps]:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         """Run agent with prompt and get response."""
-        final_prompt = "\n\n".join(to_prompt(p) for p in prompt)
+        prompts = [await to_prompt(p) for p in prompt]
+        final_prompt = "\n\n".join(prompts)
         if deps is not None:
             self._context.data = deps
         self.set_result_type(result_type)
@@ -539,11 +542,6 @@ class Agent[TDeps]:
         try:
             if self._context:
                 self._context.current_prompt = final_prompt
-            if model:
-                # perhaps also check for old model == new model?
-                if isinstance(model, str):
-                    model = infer_model(model)
-                self.model_changed.emit(model)
 
             # Create and emit user message
             user_msg = ChatMessage[str](content=final_prompt, role="user")
@@ -560,7 +558,7 @@ class Agent[TDeps]:
             usage = result.usage
             cost_info = (
                 await extract_usage(
-                    usage, self.model_name, final_prompt, str(result.content)
+                    usage, result.model_name, final_prompt, str(result.content)
                 )
                 if self.model_name and usage
                 else None
@@ -592,13 +590,6 @@ class Agent[TDeps]:
             if wait_for_chain:
                 await self.wait_for_chain()
             return assistant_msg
-
-        finally:
-            if model:
-                # Restore original model in signal
-                old = self._pydantic_agent.model
-                model_obj = infer_model(old) if isinstance(old, str) else old
-                self.model_changed.emit(model_obj)
 
     @overload
     async def talk_to(
@@ -741,7 +732,8 @@ class Agent[TDeps]:
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        final_prompt = "\n\n".join(to_prompt(p) for p in prompt)
+        prompts = [await to_prompt(p) for p in prompt]
+        final_prompt = "\n\n".join(prompts)
         self.set_result_type(result_type)
 
         if deps is not None:
@@ -749,15 +741,9 @@ class Agent[TDeps]:
         try:
             if self._context:
                 self._context.current_prompt = final_prompt
-            if model:
-                if isinstance(model, str):
-                    model = infer_model(model)
-                self.model_changed.emit(model)
-
             # Create and emit user message
             user_msg = ChatMessage[str](content=final_prompt, role="user")
             self.message_received.emit(user_msg)
-
             message_id = str(uuid4())
             start_time = time.perf_counter()
 
@@ -774,7 +760,7 @@ class Agent[TDeps]:
                 cost_info = (
                     await extract_usage(
                         usage,
-                        self.model_name,
+                        stream.model_name,  # type: ignore
                         final_prompt,
                         str(stream.formatted_content),  # type: ignore
                     )
@@ -796,12 +782,6 @@ class Agent[TDeps]:
         except Exception:
             logger.exception("Agent stream failed")
             raise
-
-        finally:
-            if model:
-                old = self._pydantic_agent.model
-                model_obj = infer_model(old) if isinstance(old, str) else old
-                self.model_changed.emit(model_obj)
 
     def run_sync(
         self,
@@ -1050,12 +1030,7 @@ class Agent[TDeps]:
         Emits:
             model_changed signal with the new model
         """
-        old_name = self.model_name
-        if isinstance(model, str):
-            model = infer_model(model)
-        self._provider.model = model
-        self.model_changed.emit(model)
-        logger.debug("Changed model from %s to %s", old_name, self.model_name)
+        self._provider.set_model(model)
 
     @property
     def runtime(self) -> RuntimeConfig:

@@ -10,7 +10,7 @@ from llmling import BaseRegistry, Config, LLMLingError, RuntimeConfig
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
-from llmling_agent.agent import Agent, HumanAgent
+from llmling_agent.agent import Agent, AnyAgent, HumanAgent
 from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.delegation.controllers import (
     controlled_conversation,
@@ -433,7 +433,7 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
         model_override: str | None = None,
         session_id: str | UUID | None = None,
         environment_override: StrPath | Config | None = None,
-    ) -> Agent[TDeps] | StructuredAgent[TDeps, TResult]:
+    ) -> AnyAgent[TDeps, TResult]:
         """Get or wrap an agent.
 
         Args:

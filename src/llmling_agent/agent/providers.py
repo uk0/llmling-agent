@@ -12,7 +12,7 @@ import logfire
 from psygnal import Signal
 from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
-from pydantic_ai.models import infer_model
+from pydantic_ai.models import Model, infer_model
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
@@ -73,6 +73,7 @@ class ProviderResponse:
 
     content: Any
     tool_calls: list[ToolCallInfo] = field(default_factory=list)
+    model_name: str = ""
     usage: TokonomicsUsage | None = None
 
 
@@ -83,12 +84,19 @@ class AgentProvider:
     chunk_streamed = Signal(str)
     model_changed = Signal(object)  # Model | None
 
-    def __init__(self):
-        self._model = None
-        self._agent = None
-        self._tool_manager = None
-        self._context = None
-        self._conversation = None
+    def __init__(
+        self,
+        *,
+        context: AgentContext[Any],
+        tools: ToolManager,
+        conversation: ConversationManager,
+        model: str | Model | None = None,
+    ):
+        self._model = model
+        self._agent: Any = None
+        self._tool_manager = tools
+        self._context = context
+        self._conversation = conversation
         self._debug = False
 
     def set_result_type(
@@ -99,6 +107,12 @@ class AgentProvider:
         tool_description: str | None = None,
     ) -> None:
         """Default no-op implementation for setting result type."""
+
+    def set_model(
+        self,
+        model: models.Model | models.KnownModelName | None,
+    ) -> None:
+        """Default no-op implementation for setting model."""
 
     @property
     def model_name(self) -> str | None:
@@ -131,9 +145,12 @@ class AgentProvider:
 class PydanticAIProvider(AgentProvider):
     """Provider using pydantic-ai as backend."""
 
+    _conversation: ConversationManager
+
     def __init__(
         self,
         *,
+        context: AgentContext[Any],
         model: str | models.Model | None = None,
         system_prompt: str | Sequence[str] = (),
         tools: ToolManager,
@@ -143,7 +160,6 @@ class PydanticAIProvider(AgentProvider):
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         debug: bool = False,
-        context: AgentContext[Any] | None = None,
         **kwargs,
     ):
         """Initialize pydantic-ai backend.
@@ -161,12 +177,11 @@ class PydanticAIProvider(AgentProvider):
             debug: Whether to enable debug mode
             kwargs: Additional arguments for PydanticAI agent
         """
-        super().__init__()
-        self._tool_manager = tools
-        self._model = model
-        self._conversation = conversation
+        super().__init__(
+            tools=tools, conversation=conversation, model=model, context=context
+        )
         self._debug = debug
-        self._agent = PydanticAgent(
+        self._agent: Any = PydanticAgent(
             model=model,  # type: ignore
             system_prompt=system_prompt,
             tools=[],
@@ -182,11 +197,6 @@ class PydanticAIProvider(AgentProvider):
     @property
     def model(self) -> str | models.Model | models.KnownModelName | None:
         return self._model
-
-    @model.setter
-    def model(self, value: models.Model | models.KnownModelName | None):
-        self._model = value
-        self._agent.model = value
 
     @logfire.instrument("Pydantic-AI call. result type {result_type}. Prompt: {prompt}")
     async def generate_response(
@@ -210,9 +220,10 @@ class PydanticAIProvider(AgentProvider):
         """
         self._update_tools()
         message_history = self._conversation.get_history()
-
-        # If we have a model override, temporarily set it
-        original_model = self._agent.model
+        use_model = model or self.model
+        if isinstance(use_model, str):
+            use_model = infer_model(use_model)  # type: ignore
+            self.model_changed.emit(use_model)
         try:
             result = await self._agent.run(
                 prompt,
@@ -230,14 +241,22 @@ class PydanticAIProvider(AgentProvider):
 
             self._conversation._last_messages = list(new_msgs)
             self._conversation.set_history(result.all_messages())
-
+            resolved_model = (
+                use_model.name() if isinstance(use_model, Model) else str(use_model)
+            )
             return ProviderResponse(
-                content=result.data, tool_calls=tool_calls, usage=result.usage()
+                content=result.data,
+                tool_calls=tool_calls,
+                usage=result.usage(),
+                model_name=resolved_model,
             )
         finally:
-            # Restore original model if we had an override
+            # Restore original model in signal if we had an override
             if model:
-                self.model = original_model
+                original = self.model
+                if isinstance(original, str):
+                    original = infer_model(original)  # type: ignore
+                self.model_changed.emit(original)
 
     def _update_tools(self):
         """Update pydantic-ai-agent tools."""
@@ -266,6 +285,7 @@ class PydanticAIProvider(AgentProvider):
         old_name = self.model_name
         if isinstance(model, str):
             model = infer_model(model)
+        self._model = model
         self._agent.model = model
         self.model_changed.emit(model)
         logger.debug("Changed model from %s to %s", old_name, self.model_name)
@@ -333,6 +353,13 @@ class PydanticAIProvider(AgentProvider):
         self._update_tools()
         message_history = self._conversation.get_history()
 
+        use_model = model or self.model
+        if isinstance(use_model, str):
+            use_model = infer_model(use_model)  # type: ignore
+
+        if model:
+            self.model_changed.emit(use_model)
+
         if self._debug:
             from devtools import debug
 
@@ -374,9 +401,20 @@ class PydanticAIProvider(AgentProvider):
                     responses = [m for m in messages if isinstance(m, ModelResponse)]
                     parts = [p for msg in responses for p in msg.parts]
                     content = "\n".join(format_part(p) for p in parts)
-
+                    resolved_model = (
+                        use_model.name()
+                        if isinstance(use_model, Model)
+                        else str(use_model)
+                    )
                     # Update stream result with formatted content
                     stream_result.formatted_content = content  # type: ignore
+                    stream_result.model_name = resolved_model  # type: ignore
+
+            if model:
+                original = self.model
+                if isinstance(original, str):
+                    original = infer_model(original)  # type: ignore
+                self.model_changed.emit(original)
 
             stream_result.stream = wrapped_stream  # type: ignore
             yield stream_result  # type: ignore
@@ -386,17 +424,25 @@ class HumanProvider(AgentProvider):
     """Provider for human-in-the-loop responses."""
 
     model = None
+    _conversation: ConversationManager
 
     def __init__(
         self,
+        *,
         conversation: ConversationManager,
+        context: AgentContext[Any],
+        tools: ToolManager,
         name: str = "human",
         debug: bool = False,
     ):
         """Initialize human provider."""
-        super().__init__()
+        super().__init__(
+            tools=tools,
+            conversation=conversation,
+            model=None,
+            context=context,
+        )
         self.name = name or "human"
-        self._conversation = conversation
         self._debug = debug
 
     @logfire.instrument("Human input. result type {result_type}. Prompt: {prompt}")
@@ -467,6 +513,7 @@ class HumanProvider(AgentProvider):
                 self.is_complete = False
                 self.formatted_content = ""
                 self.is_structured = False
+                self.model_name = "human"
 
             def usage(self):
                 return None
