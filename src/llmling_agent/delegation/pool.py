@@ -10,7 +10,7 @@ from llmling import BaseRegistry, Config, LLMLingError, RuntimeConfig
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
-from llmling_agent.agent import Agent, AnyAgent, HumanAgent
+from llmling_agent.agent import Agent, AnyAgent
 from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.delegation.controllers import (
     controlled_conversation,
@@ -280,9 +280,9 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
                 config=config,
                 pool=self,
             )
-            agent_cls = Agent[Any] if config.type == "ai" else HumanAgent[Any]
             # Create agent with runtime and context
-            agent = agent_cls(
+            agent = Agent[Any](
+                agent_type=config.type,
                 runtime=runtime,
                 context=context,
                 result_type=None,  # type: ignore[arg-type]

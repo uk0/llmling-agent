@@ -2,20 +2,16 @@
 
 from __future__ import annotations
 
-import asyncio
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
-from dataclasses import dataclass, field
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
-from llmling import ToolError
 import logfire
-from psygnal import Signal
 from pydantic_ai import Agent as PydanticAgent
-from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
+from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import Model, infer_model
 
+from llmling_agent.agent.providers.base import AgentProvider, ProviderResponse
 from llmling_agent.log import get_logger
-from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.context import AgentContext
 from llmling_agent.pydantic_ai_utils import format_part, get_tool_calls, to_result_schema
 from llmling_agent.responses.models import BaseResponseDefinition, ResponseDefinition
@@ -27,119 +23,12 @@ if TYPE_CHECKING:
 
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.result import StreamedRunResult
-    from tokonomics import Usage as TokonomicsUsage
 
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.tools.manager import ToolManager
 
 
 logger = get_logger(__name__)
-
-
-def get_textual_streaming_app():
-    from textual.app import App
-    from textual.events import Key  # noqa: TC002
-    from textual.widgets import Input
-
-    class StreamingInputApp(App):
-        def __init__(self, chunk_callback):
-            super().__init__()
-            self.chunk_callback = chunk_callback
-            self.buffer = []
-            self.done = False
-
-        def compose(self):
-            yield Input(id="input")
-
-        def on_input_changed(self, event: Input.Changed):
-            # New character was typed
-            if len(event.value) > len(self.buffer):
-                new_char = event.value[len(self.buffer) :]
-                self.chunk_callback(new_char)
-            self.buffer = list(event.value)
-
-        def on_key(self, event: Key):
-            if event.key == "enter":
-                self.done = True
-                self.result = "".join(self.buffer)
-                self.exit()
-
-    return StreamingInputApp
-
-
-@dataclass
-class ProviderResponse:
-    """Raw response data from provider."""
-
-    content: Any
-    tool_calls: list[ToolCallInfo] = field(default_factory=list)
-    model_name: str = ""
-    usage: TokonomicsUsage | None = None
-
-
-class AgentProvider:
-    """Base class for agent providers."""
-
-    tool_used = Signal(ToolCallInfo)
-    chunk_streamed = Signal(str)
-    model_changed = Signal(object)  # Model | None
-
-    def __init__(
-        self,
-        *,
-        context: AgentContext[Any],
-        tools: ToolManager,
-        conversation: ConversationManager,
-        model: str | Model | None = None,
-    ):
-        self._model = model
-        self._agent: Any = None
-        self._tool_manager = tools
-        self._context = context
-        self._conversation = conversation
-        self._debug = False
-
-    def set_result_type(
-        self,
-        result_type: type[Any] | str | ResponseDefinition | None,
-        *,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
-    ) -> None:
-        """Default no-op implementation for setting result type."""
-
-    def set_model(
-        self,
-        model: models.Model | models.KnownModelName | None,
-    ) -> None:
-        """Default no-op implementation for setting model."""
-
-    @property
-    def model_name(self) -> str | None:
-        """Get model name."""
-        return None
-
-    async def generate_response(
-        self,
-        prompt: str,
-        message_id: str,
-        *,
-        result_type: type[Any] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
-    ) -> ProviderResponse:
-        """Generate a response. Must be implemented by providers."""
-        raise NotImplementedError
-
-    def stream_response(
-        self,
-        prompt: str,
-        message_id: str,
-        *,
-        result_type: type[Any] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
-    ) -> AbstractAsyncContextManager[StreamedRunResult]:  # type: ignore[type-var]
-        """Stream a response. Must be implemented by providers."""
-        raise NotImplementedError
 
 
 class PydanticAIProvider(AgentProvider):
@@ -418,146 +307,3 @@ class PydanticAIProvider(AgentProvider):
 
             stream_result.stream = wrapped_stream  # type: ignore
             yield stream_result  # type: ignore
-
-
-class HumanProvider(AgentProvider):
-    """Provider for human-in-the-loop responses."""
-
-    model = None
-    _conversation: ConversationManager
-
-    def __init__(
-        self,
-        *,
-        conversation: ConversationManager,
-        context: AgentContext[Any],
-        tools: ToolManager,
-        name: str = "human",
-        debug: bool = False,
-    ):
-        """Initialize human provider."""
-        super().__init__(
-            tools=tools,
-            conversation=conversation,
-            model=None,
-            context=context,
-        )
-        self.name = name or "human"
-        self._debug = debug
-
-    @logfire.instrument("Human input. result type {result_type}. Prompt: {prompt}")
-    async def generate_response(
-        self,
-        prompt: str,
-        *,
-        result_type: type[Any] | None = None,
-    ) -> ProviderResponse:
-        """Get response through human input.
-
-        Args:
-            prompt: Text prompt to respond to
-            result_type: Optional type for structured responses
-        """
-        # Show context if available
-        message_history = self._conversation.get_history()
-        if message_history:
-            print("\nContext:")
-            for msg in message_history:
-                match msg:
-                    case ModelRequest():
-                        parts = [p for p in msg.parts if isinstance(p, UserPromptPart)]
-                        for part in parts:
-                            print(f"User: {part.content}")
-                    case ModelResponse():
-                        parts = [p for p in msg.parts if isinstance(p, TextPart)]
-                        for part in parts:
-                            print(f"Assistant: {part.content}")
-            print("\n---")
-
-        # Show prompt and get response
-        print(f"\n{prompt}")
-        if result_type:
-            print(f"(Please provide response as {result_type.__name__})")
-        response = input("> ")
-
-        # Parse structured response if needed
-        content: Any = response
-        if result_type:
-            try:
-                content = result_type.model_validate_json(response)
-            except Exception as e:
-                logger.exception("Failed to parse structured response")
-                error_msg = f"Invalid response format: {e}"
-                raise ToolError(error_msg) from e
-
-        return ProviderResponse(content=content, tool_calls=[], usage=None)
-
-    @asynccontextmanager
-    async def stream_response(
-        self,
-        prompt: str,
-        message_id: str,
-        *,
-        result_type: type[Any] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
-    ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
-        """Stream response keystroke by keystroke."""
-        print(f"\n{prompt}")
-        if result_type:
-            print(f"(Please provide response as {result_type.__name__})")
-
-        # Create a StreamedRunResult-like object
-        class StreamResult:
-            def __init__(self):
-                self.stream = None
-                self.is_complete = False
-                self.formatted_content = ""
-                self.is_structured = False
-                self.model_name = "human"
-
-            def usage(self):
-                return None
-
-        stream_result = StreamResult()
-        chunk_queue: asyncio.Queue[str] = asyncio.Queue()
-
-        async def handle_chunk(chunk: str):
-            await chunk_queue.put(chunk)
-
-        # Setup streaming
-        async def wrapped_stream(*args, **kwargs):
-            while not stream_result.is_complete or not chunk_queue.empty():
-                try:
-                    chunk = await chunk_queue.get()
-                    self.chunk_streamed.emit(chunk)
-                    yield chunk
-                except asyncio.CancelledError:
-                    break
-
-        stream_result.stream = wrapped_stream  # type: ignore
-
-        try:
-            # Run textual app
-            textual_app = get_textual_streaming_app()
-            app = textual_app(handle_chunk)
-            content = await app.run_async()
-
-            # Mark as complete and set final content
-            stream_result.is_complete = True
-
-            # Parse structured response if needed
-            if result_type:
-                try:
-                    content = result_type.model_validate_json(content)
-                    stream_result.is_structured = True
-                except Exception as e:
-                    logger.exception("Failed to parse structured response")
-                    error_msg = f"Invalid response format: {e}"
-                    raise ToolError(error_msg) from e
-
-            stream_result.formatted_content = str(content)
-            yield stream_result  # type: ignore
-
-        finally:
-            # Cleanup if needed
-            stream_result.is_complete = True
