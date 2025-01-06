@@ -1,0 +1,116 @@
+# Base Agent
+
+The basic Agent class is our core implementation that wraps pydantic-ai functionality while adding additional features.
+In contrast to pydantic-ai, the Base Agent is only generic over its dependency type. Its only generic over its return type on a method scope. (using return_type=)
+For an agent which is generic over both dependency and result type, see the StructuredAgent.
+
+## Core Interface
+
+### Running Queries
+
+The agent provides three main ways to execute queries:
+
+```python
+# Basic async run
+result = await agent.run(
+    "What is 2+2?",
+    result_type=int,  # Optional type for structured responses (and a generic type)
+    deps=my_deps,     # Optional dependencies
+    model="gpt-4o-mini"     # Optional model override
+)
+
+# Streaming responses
+async with agent.run_stream("Count to 10") as stream:
+    async for chunk in stream.stream():
+        print(chunk)
+
+# Synchronous wrapper (convenience)
+result = agent.run_sync("Hello!")
+```
+
+### Conversation Management
+
+The agent maintains conversation history and context through its `conversation` property:
+
+```python
+# Access conversation manager
+await agent.conversation.add_context_message("Important context")
+history = agent.conversation.get_history()
+agent.conversation.clear()
+```
+
+### Tool Management
+
+Tools are managed through the `tools` property:
+
+```python
+# Register a tool
+agent.tools.register_tool(my_tool)
+
+# Enable/disable tools
+agent.tools.enable_tool("calculator")
+agent.tools.disable_tool("web_browser")
+```
+
+## Signals
+
+The agent emits various signals that can be connected to:
+
+```python
+# Message signals
+agent.message_sent.connect(handle_message)
+agent.message_received.connect(handle_message)
+agent.message_exchanged.connect(handle_message)
+
+# Tool and model signals
+agent.tool_used.connect(handle_tool)
+agent.model_changed.connect(handle_model_change)
+agent.chunk_streamed.connect(handle_chunk)  # For streaming
+```
+
+## Agent Communication
+
+Agents can communicate with each other:
+
+```python
+# Direct communication
+response = await agent1.talk_to(
+    "agent2",
+    "What do you think?",
+    get_answer=True,
+    include_history=True
+)
+
+# Setting up forwarding
+agent1.pass_results_to(agent2)
+agent1.stop_passing_results_to(agent2)
+```
+
+## Continuous Operation
+
+Agents can run continuously:
+
+```python
+# Run with static prompt
+await agent.run_continuous(
+    "Monitor the system",
+    interval=60,
+    max_count=10
+)
+
+# Run with dynamic prompt
+def get_prompt(ctx):
+    return f"Check status of {ctx.data.system}"
+
+await agent.run_continuous(get_prompt)
+```
+
+## Other Features
+
+- `register_worker`: Turn an agent into a tool for another agent
+- `to_agent_tool`: Create a callable tool from the agent
+- `set_model`: Change the model dynamically
+- `get_token_limits`: Get model's token limits
+- Various task execution and chain management methods
+
+All methods maintain proper typing and integrate seamlessly with the rest of the LLMling ecosystem.
