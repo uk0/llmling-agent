@@ -234,7 +234,7 @@ class PydanticAIProvider(AgentProvider):
 
             # Extract tool calls and set message_id
             new_msgs = result.new_messages()
-            tool_calls = get_tool_calls(new_msgs, self._tool_manager)
+            tool_calls = get_tool_calls(new_msgs, dict(self._tool_manager._items))
             for call in tool_calls:
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
@@ -392,7 +392,7 @@ class PydanticAIProvider(AgentProvider):
                     self._conversation.set_history(stream_result.all_messages())
 
                     # Extract and update tool calls
-                    tool_calls = get_tool_calls(messages, self._tool_manager)
+                    tool_calls = get_tool_calls(messages, dict(self._tool_manager._items))
                     for call in tool_calls:
                         call.message_id = message_id
                         call.context_data = self._context.data if self._context else None
