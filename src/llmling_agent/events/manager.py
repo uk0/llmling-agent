@@ -16,7 +16,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.agent import Agent
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.events.sources import EventData
 
 logger = get_logger(__name__)
@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 class EventManager:
     """Manages multiple event sources and their lifecycles."""
 
-    def __init__(self, agent: Agent[Any], enable_events: bool = True):
+    def __init__(self, agent: AnyAgent[Any, Any], enable_events: bool = True):
         """Initialize event manager.
 
         Args:
