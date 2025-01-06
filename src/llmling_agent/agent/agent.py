@@ -47,6 +47,7 @@ if TYPE_CHECKING:
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.result import StreamedRunResult
 
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import (
         PromptFunction,
@@ -216,7 +217,7 @@ class Agent[TDeps]:
 
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._background_task: asyncio.Task[Any] | None = None
-        self._connected_agents: set[Agent[Any]] = set()
+        self._connected_agents: set[AnyAgent[Any, Any]] = set()
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
@@ -543,12 +544,12 @@ class Agent[TDeps]:
             for target in list(self._connected_agents):
                 self.stop_passing_results_to(target)
 
-    def pass_results_to(self, other: Agent[Any], prompt: str | None = None):
+    def pass_results_to(self, other: AnyAgent[Any, Any], prompt: str | None = None):
         """Forward results to another agent."""
         self.outbox.connect(other._handle_message)
         self._connected_agents.add(other)
 
-    def stop_passing_results_to(self, other: Agent[Any]):
+    def stop_passing_results_to(self, other: AnyAgent[Any, Any]):
         """Stop forwarding results to another agent."""
         if other in self._connected_agents:
             self.outbox.disconnect(other._handle_message)
