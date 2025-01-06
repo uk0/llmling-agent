@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 import time
-from typing import TYPE_CHECKING, Any, Literal, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, cast, overload
 from uuid import uuid4
 
 from llmling import (
@@ -249,26 +249,52 @@ class Agent[TDeps]:
         self._result_type = to_type(result_type)  # to_type?
         self._provider.set_result_type(self._result_type)
 
+    @overload
+    def to_structured(
+        self,
+        result_type: None,
+        *,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+    ) -> Self: ...
+
+    @overload
     def to_structured[TResult](
         self,
         result_type: type[TResult] | str | ResponseDefinition,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
-    ) -> StructuredAgent[TDeps, TResult]:
+    ) -> StructuredAgent[TDeps, TResult]: ...
+
+    def to_structured[TResult](
+        self,
+        result_type: type[TResult] | str | ResponseDefinition | None,
+        *,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+    ) -> StructuredAgent[TDeps, TResult] | Self:
         """Convert this agent to a structured agent.
+
+        If result_type is None, returns self unchanged (no wrapping).
+        Otherwise creates a StructuredAgent wrapper.
 
         Args:
             result_type: Type for structured responses. Can be:
                 - A Python type (Pydantic model)
                 - Name of response definition from context
                 - Complete response definition
+                - None to skip wrapping
             tool_name: Optional override for result tool name
             tool_description: Optional override for result tool description
 
         Returns:
-            Structured version of this agent
+            Either StructuredAgent wrapper or self unchanged
+        from llmling_agent.agent import StructuredAgent
         """
+        if result_type is None:
+            return self
+
         from llmling_agent.agent import StructuredAgent
 
         return StructuredAgent(
