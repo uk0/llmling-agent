@@ -6,6 +6,12 @@ import importlib.resources
 from typing import Final
 
 from llmling_agent.prompts.models import PromptLibrary, PromptTemplate
+from llmling_agent.prompts.convert import (
+    to_prompt,
+    PromptConvertible,
+    PromptTypeConvertible,
+    AnyPromptType,
+)
 
 # Default prompt paths
 DEFAULT_PROMPTS: Final[str] = str(
@@ -14,6 +20,10 @@ DEFAULT_PROMPTS: Final[str] = str(
 
 __all__ = [
     "DEFAULT_PROMPTS",
+    "AnyPromptType",
+    "PromptConvertible",
     "PromptLibrary",
     "PromptTemplate",
+    "PromptTypeConvertible",
+    "to_prompt",
 ]
