@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import base64
 import json
-from typing import TYPE_CHECKING, Any
+import os
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai import _result, messages as _messages, models
 from pydantic_ai.messages import (
@@ -22,6 +25,7 @@ from pydantic_ai.messages import (
 )
 import tokonomics
 from typing_extensions import TypeVar
+from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
@@ -33,8 +37,6 @@ from llmling_agent.responses.models import (
 )
 
 
-logger = get_logger(__name__)
-
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -43,6 +45,18 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import MessageRole
     from llmling_agent.models.context import AgentContext
     from llmling_agent.tools.base import ToolInfo
+
+
+logger = get_logger(__name__)
+
+# Type definitions
+type ContentType = Literal["text", "image", "audio", "video"]
+type ContentSource = str | bytes | Path | Any
+
+
+def to_base64(data: bytes) -> str:
+    """Convert bytes to base64 string."""
+    return base64.b64encode(data).decode()
 
 
 async def extract_usage(
@@ -343,6 +357,7 @@ def to_result_schema[TResultData](
         case None:
             return None
 
+            return _result.ResultSchema[str](allow_text_result=True)
         case str() if context:
             if result_type not in context.definition.responses:
                 msg = f"Response type {result_type!r} not found in manifest"
@@ -380,3 +395,147 @@ def to_result_schema[TResultData](
         case _:
             msg = f"Invalid result type: {type(result_type)}"
             raise TypeError(msg)
+
+
+def format_result_schema(schema: _result.ResultSchema[Any] | None) -> str:
+    """Format result schema information."""
+    if not schema:
+        return "str (free text)"
+
+    parts = []
+    if schema.allow_text_result:
+        parts.append("Allows free text")
+
+    for name, tool in schema.tools.items():
+        params = tool.tool_def.parameters_json_schema["function"]["parameters"]
+        type_info = params.get("type", "object")
+        if "properties" in params:
+            properties = params["properties"]
+            fields = [f"    {f}: {i.get('type', 'any')}" for f, i in properties.items()]
+            type_info = "{\n" + "\n".join(fields) + "\n  }"
+        parts.append(f"  {name}: {type_info}")
+
+    return "\n  ".join(parts)
+
+
+def format_messages(messages: list[ModelMessage], indent: str = "  ") -> list[str]:
+    """Format model messages."""
+    formatted = []
+    for msg in messages:
+        match msg:
+            case ModelRequest() as req:
+                for p in req.parts:
+                    content = str(p.content)
+                    formatted.append(f"{indent}[{p.part_kind}] {content[:100]}...")
+            case ModelResponse() as resp:
+                for part in resp.parts:
+                    match part:
+                        case TextPart():
+                            content = part.content
+                        case ToolCallPart():
+                            args = (
+                                part.args.args_dict  # pyright: ignore
+                                if hasattr(part.args, "args_dict")
+                                else part.args.args_json  # pyright: ignore
+                            )
+                            content = f"Tool: {part.tool_name}, Args: {args}"
+                        case _:
+                            content = str(part)
+                    formatted.append(f"{indent}[{part.part_kind}] {content[:100]}...")
+    return formatted
+
+
+def create_message(
+    contents: list[tuple[ContentType, ContentSource]] | str,
+    role: MessageRole = "user",
+) -> ModelMessage:
+    """Create a message from content pairs.
+
+    For multi-modal content, creates a JSON string that models like GPT-4V
+    can interpret. For simple text, creates a plain text message.
+    """
+    # Handle simple text case
+    if isinstance(contents, str):
+        part = (
+            UserPromptPart(content=contents)
+            if role == "user"
+            else SystemPromptPart(content=contents)
+        )
+        return ModelRequest(parts=[part])
+
+    # For multi-modal, convert to a JSON string
+    content_list = []
+    for type_, content in contents:
+        match type_:
+            case "text":
+                content_list.append({"type": "text", "text": str(content)})
+            case "image":
+                url = prepare_image_url(content)
+                content_list.append({"type": "image", "url": url})
+            case "audio":
+                url = prepare_audio_url(content)
+                content_list.append({"type": "audio", "url": url})
+            case _:
+                msg = f"Unsupported content type: {type_}"
+                raise ValueError(msg)
+
+    # Convert to JSON string and create appropriate message part
+    content_str = json.dumps({"content": content_list})
+    return ModelRequest(
+        parts=[
+            UserPromptPart(content=content_str)
+            if role == "user"
+            else SystemPromptPart(content=content_str)
+        ]
+    )
+
+
+def prepare_image_url(content: ContentSource) -> str:
+    """Convert image content to URL or data URL."""
+    match content:
+        case str() if content.startswith(("http://", "https://")):
+            return content
+        case str() | os.PathLike():
+            # Read file and convert to data URL
+            path = UPath(content)
+            content_b64 = to_base64(path.read_bytes())
+            return f"data:image/png;base64,{content_b64}"
+        case bytes():
+            content_b64 = to_base64(content)
+            return f"data:image/png;base64,{content_b64}"
+        case _:
+            msg = f"Unsupported image content type: {type(content)}"
+            raise ValueError(msg)
+
+
+def prepare_audio_url(content: ContentSource) -> str:
+    """Convert audio content to URL or data URL.
+
+    Supports common audio formats (mp3, wav, ogg, m4a).
+    Uses content-type detection when possible.
+    """
+    import mimetypes
+
+    def get_audio_mime(path: str | Path) -> str:
+        """Get MIME type for audio file."""
+        mime_type, _ = mimetypes.guess_type(str(path))
+        if not mime_type or not mime_type.startswith("audio/"):
+            # Default to mp3 if we can't detect or it's not audio
+            return "audio/mpeg"
+        return mime_type
+
+    match content:
+        case str() if content.startswith(("http://", "https://")):
+            return content
+        case str() | os.PathLike():
+            path = UPath(content)
+            content_b64 = to_base64(path.read_bytes())
+            mime_type = get_audio_mime(path)
+            return f"data:{mime_type};base64,{content_b64}"
+        case bytes():
+            # For raw bytes, default to mp3 as it's most common
+            content_b64 = to_base64(content)
+            return f"data:audio/mpeg;base64,{content_b64}"
+        case _:
+            msg = f"Unsupported audio content type: {type(content)}"
+            raise ValueError(msg)
