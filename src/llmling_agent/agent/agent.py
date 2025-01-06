@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.result import StreamedRunResult
 
+    from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import PromptFunction, StrPath, ToolType
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.task import AgentTask
@@ -246,6 +247,35 @@ class Agent[TDeps]:
         logger.debug("Setting result type to: %s", result_type)
         self._result_type = to_type(result_type)  # to_type?
         self._provider.set_result_type(self._result_type)
+
+    def to_structured[TResult](
+        self,
+        result_type: type[TResult] | str | ResponseDefinition,
+        *,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+    ) -> StructuredAgent[TDeps, TResult]:
+        """Convert this agent to a structured agent.
+
+        Args:
+            result_type: Type for structured responses. Can be:
+                - A Python type (Pydantic model)
+                - Name of response definition from context
+                - Complete response definition
+            tool_name: Optional override for result tool name
+            tool_description: Optional override for result tool description
+
+        Returns:
+            Structured version of this agent
+        """
+        from llmling_agent.agent import StructuredAgent
+
+        return StructuredAgent(
+            self,
+            result_type=result_type,
+            tool_name=tool_name,
+            tool_description=tool_description,
+        )
 
     @classmethod
     @asynccontextmanager
