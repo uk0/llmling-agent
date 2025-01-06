@@ -390,29 +390,28 @@ class Agent[TDeps]:
 
     @classmethod
     @asynccontextmanager
-    async def open_agent(
+    async def open_agent[TResult](
         cls,
         config: StrPath | AgentsManifest,
         agent_name: str,
         *,
-        # Model configuration
+        deps: TDeps | None = None,  # TDeps from class
+        result_type: type[TResult] | None = None,
         model: str | models.Model | models.KnownModelName | None = None,
         session_id: SessionIdType = None,
-        result_type: type[TResult] | None = None,
         model_settings: dict[str, Any] | None = None,
-        # Tool configuration
         tools: list[ToolType] | None = None,
         tool_choice: bool | str | list[str] = True,
         end_strategy: EndStrategy = "early",
-        # Execution settings
         retries: int = 1,
         result_tool_name: str = "final_result",
         result_tool_description: str | None = None,
         result_retries: int | None = None,
-        # Other settings
         system_prompt: str | Sequence[str] | None = None,
         enable_logging: bool = True,
-    ) -> AsyncIterator[Agent[TDeps]]:
+    ) -> AsyncIterator[Agent[TDeps] | StructuredAgent[TDeps, TResult]]:
+        """Open and configure a specific agent from configuration."""
+        """Implementation with all parameters..."""
         """Open and configure a specific agent from configuration.
 
         Args:
@@ -479,8 +478,9 @@ class Agent[TDeps]:
         if not actual_model:
             msg = "Model must be specified either in config or as override"
             raise ValueError(msg)
+
         # Create context
-        context = AgentContext[TDeps](
+        context = AgentContext[TDeps](  # Use TDeps here
             agent_name=agent_name,
             capabilities=agent_config.capabilities,
             definition=agent_def,
@@ -491,15 +491,13 @@ class Agent[TDeps]:
         # Set up runtime
         cfg = agent_config.get_config()
         async with RuntimeConfig.open(cfg) as runtime:
-            agent = cls(
+            # Create base agent with correct typing
+            base_agent = cls(  # cls is Agent[TDeps]
                 runtime=runtime,
                 context=context,
-                result_type=result_type,
                 model=actual_model,  # type: ignore[arg-type]
                 retries=retries,
                 session_id=session_id,
-                result_tool_name=result_tool_name,
-                result_tool_description=result_tool_description,
                 result_retries=result_retries,
                 end_strategy=end_strategy,
                 tool_choice=tool_choice,
@@ -508,7 +506,19 @@ class Agent[TDeps]:
                 enable_logging=enable_logging,
             )
             try:
-                yield agent
+                if result_type is not None:
+                    # Yield structured agent with correct typing
+                    from llmling_agent.agent.structured import StructuredAgent
+
+                    yield StructuredAgent[TDeps, TResult](  # Use TDeps and TResult
+                        base_agent,
+                        result_type,
+                        tool_description=result_tool_description,
+                        tool_name=result_tool_name,
+                    )
+                else:
+                    # Yield base agent
+                    yield base_agent
             finally:
                 # Any cleanup if needed
                 pass

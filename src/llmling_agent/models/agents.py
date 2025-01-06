@@ -35,7 +35,8 @@ from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from llmling_agent import Agent, AgentPool
+    from llmling_agent import AgentPool
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import StrPath
 
 
@@ -566,7 +567,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         *,
         model: str | None = None,
         session_id: SessionIdType = None,
-    ) -> AsyncIterator[Agent[TDeps]]:
+    ) -> AsyncIterator[AnyAgent[TDeps, Any]]:
         """Open and configure a specific agent from configuration.
 
         Creates the agent in the context of a single-agent pool.
@@ -587,7 +588,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         # Create empty pool just for context
         pool = AgentPool(manifest=self, agents_to_load=[], connect_agents=False)
         try:
-            async with Agent[TDeps].open_agent(
+            async with Agent[TDeps].open_agent(  # type: ignore
                 self,
                 agent_name,
                 model=model,

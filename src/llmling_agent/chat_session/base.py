@@ -19,7 +19,7 @@ from slashed import (
     ExitCommandError,
 )
 
-from llmling_agent.agent import Agent
+from llmling_agent.agent import Agent, AnyAgent
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
@@ -76,7 +76,7 @@ class AgentPoolView:
 
     def __init__(
         self,
-        agent: Agent[Any],
+        agent: AnyAgent[Any, Any],
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,

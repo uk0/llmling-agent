@@ -8,7 +8,7 @@ from slashed import Command, CommandContext, CommandError
 from slashed.completers import CallbackCompleter
 import yamling
 
-from llmling_agent.agent import Agent
+from llmling_agent.agent import Agent, AnyAgent
 from llmling_agent.commands.completers import get_available_agents
 from llmling_agent.environment.models import InlineEnvironment
 from llmling_agent.models.agents import AgentConfig
@@ -193,6 +193,7 @@ async def switch_agent(
         return
 
     try:
+        new_agent: AnyAgent[Any, Any]
         async with Agent[Any].open_agent(definition, name) as new_agent:
             # Update session's agent
             ctx.context._agent = new_agent

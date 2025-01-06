@@ -66,7 +66,7 @@ class AgentResponse[TResult](BaseModel):
         return self.error is None
 
 
-class AgentPool(BaseRegistry[str, Agent[Any]]):
+class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
     """Pool of initialized agents.
 
     Each agent maintains its own runtime environment based on its configuration.
@@ -176,7 +176,7 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
         return None
 
     @property
-    def agents(self) -> EventedDict[str, Agent[Any]]:
+    def agents(self) -> EventedDict[str, AnyAgent[Any, Any]]:
         """Get agents dict (backward compatibility)."""
         return self._items
 
@@ -363,7 +363,7 @@ class AgentPool(BaseRegistry[str, Agent[Any]]):
 
         return new_agent
 
-    def setup_agent_workers(self, agent: Agent[Any], workers: list[WorkerConfig]):
+    def setup_agent_workers(self, agent: AnyAgent[Any, Any], workers: list[WorkerConfig]):
         """Set up workers for an agent from configuration."""
         for worker_config in workers:
             try:
