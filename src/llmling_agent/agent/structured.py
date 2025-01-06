@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent.model_utils import format_instance_for_llm
+from llmling_agent.prompts.convert import AnyPromptType, to_prompt
 from llmling_agent.responses.models import (
     BaseResponseDefinition,
     ResponseDefinition,
@@ -17,8 +17,6 @@ from llmling_agent.responses.utils import to_type
 
 if TYPE_CHECKING:
     from pydantic_ai.agent import models
-    from pydantic_ai.messages import ModelMessage
-    from pydantic_ai.result import Usage
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.models.messages import ChatMessage
@@ -82,17 +80,15 @@ class StructuredAgent[TDeps, TResult]:
 
     async def run(
         self,
-        *prompt: str | TResult,
+        *prompt: AnyPromptType | TResult,
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
-        message_history: list[ModelMessage] | None = None,
         model: models.Model | models.KnownModelName | None = None,
-        usage: Usage | None = None,
     ) -> ChatMessage[TResult]:
         """Run with fixed result type.
 
         Args:
-            prompt: String prompts or structured objects of type TResult
+            prompt: Any prompt-compatible object or structured objects of type TResult
             result_type: Expected result type:
                 - BaseModel / dataclasses
                 - Name of response definition in manifest
@@ -102,17 +98,13 @@ class StructuredAgent[TDeps, TResult]:
             model: Optional model override
             usage: Optional usage tracking
         """
-        formatted_prompts = [
-            format_instance_for_llm(p) if not isinstance(p, str) else p for p in prompt
-        ]
+        prompts = [p if isinstance(p, str) else to_prompt(p) for p in prompt]
 
         return await self._agent.run(
-            *formatted_prompts,
+            *prompts,
             result_type=result_type or self._result_type,
             deps=deps,
-            message_history=message_history,
             model=model,
-            usage=usage,
         )
 
     def __getattr__(self, name: str) -> Any:
