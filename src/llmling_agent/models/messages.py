@@ -79,9 +79,21 @@ class ChatMessage[TContent]:
     forwarded_from: list[str] = field(default_factory=list)
     """List of agent names (the chain) that forwarded this message to the sender."""
 
-    # model_config = ConfigDict(
-    #     frozen=True, use_attribute_docstrings=True, arbitrary_types_allowed=True
-    # )
+    def to_text_message(self) -> ChatMessage[str]:
+        """Convert this message to a text-only version."""
+        return ChatMessage[str](
+            content=str(self.content),
+            role=self.role,
+            name=self.name,
+            model=self.model,
+            metadata=self.metadata,
+            timestamp=self.timestamp,
+            cost_info=self.cost_info,
+            message_id=self.message_id,
+            response_time=self.response_time,
+            tool_calls=self.tool_calls,
+            forwarded_from=self.forwarded_from,
+        )
 
     def _get_content_str(self) -> str:
         """Get string representation of content."""
