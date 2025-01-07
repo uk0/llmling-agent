@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 
 from llmling import ToolError
 import logfire
-from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from llmling_agent.agent.providers import AgentProvider
 from llmling_agent.agent.providers.base import ProviderResponse
@@ -109,22 +108,15 @@ class HumanProvider(AgentProvider):
             result_type: Optional type for structured responses
             model: Model override (unused for human)
         """
-        # Show context if available
-        message_history = self._conversation.get_history()
-        if message_history:
-            print("\nContext:")
-            for msg in message_history:
-                match msg:
-                    case ModelRequest():
-                        parts = [p for p in msg.parts if isinstance(p, UserPromptPart)]
-                        for part in parts:
-                            print(f"User: {part.content}")
-                    case ModelResponse():
-                        parts = [p for p in msg.parts if isinstance(p, TextPart)]
-                        for part in parts:
-                            print(f"Assistant: {part.content}")
-            print("\n---")
-
+        if self._show_context:
+            history = await self._conversation.format_history(
+                format_template="[{agent}] {content}\n",  # Optionally customize format
+                include_system=False,  # Skip system messages for cleaner output
+            )
+            if history:
+                print("\nContext:")
+                print(history)
+                print("\n---")
         # Show prompt and get response
         print(f"\n{prompt}")
         if result_type:

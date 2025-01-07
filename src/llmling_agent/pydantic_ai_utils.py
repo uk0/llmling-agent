@@ -418,33 +418,6 @@ def format_result_schema(schema: _result.ResultSchema[Any] | None) -> str:
     return "\n  ".join(parts)
 
 
-def format_messages(messages: list[ModelMessage], indent: str = "  ") -> list[str]:
-    """Format model messages."""
-    formatted = []
-    for msg in messages:
-        match msg:
-            case ModelRequest() as req:
-                for p in req.parts:
-                    content = str(p.content)
-                    formatted.append(f"{indent}[{p.part_kind}] {content[:100]}...")
-            case ModelResponse() as resp:
-                for part in resp.parts:
-                    match part:
-                        case TextPart():
-                            content = part.content
-                        case ToolCallPart():
-                            args = (
-                                part.args.args_dict  # pyright: ignore
-                                if hasattr(part.args, "args_dict")
-                                else part.args.args_json  # pyright: ignore
-                            )
-                            content = f"Tool: {part.tool_name}, Args: {args}"
-                        case _:
-                            content = str(part)
-                    formatted.append(f"{indent}[{part.part_kind}] {content[:100]}...")
-    return formatted
-
-
 def create_message(
     contents: list[tuple[ContentType, ContentSource]] | str,
     role: MessageRole = "user",
