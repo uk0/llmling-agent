@@ -220,7 +220,7 @@ class InteractiveSession:
 
             # Show welcome message
             welcome_info = create_welcome_messages(
-                self._chat_session, streaming=self._stream, rich_format=True
+                self._chat_session._agent, streaming=self._stream, rich_format=True
             )
             self.formatter.print_welcome(welcome_info)
 
