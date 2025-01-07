@@ -76,7 +76,9 @@ async def meta_command(
             model = ctx.context._agent.model_name
             for prompt in prompts:
                 current_prompt = await prompt.apply(
-                    current_prompt, model=model, max_length=max_length
+                    current_prompt,
+                    model=model,  # type: ignore
+                    max_length=max_length,  # type: ignore
                 )
             result = current_prompt
         else:
@@ -99,7 +101,7 @@ async def meta_command(
             result = await combined.apply(
                 goal=goal,
                 styles=", ".join(style_names),
-                model=ctx.context._agent.model_name,
+                model=ctx.context._agent.model_name,  # type: ignore
                 max_length=max_length,
             )
         await ctx.output.print("\nGenerated Prompt:\n" + result)

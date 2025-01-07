@@ -21,6 +21,7 @@ from llmling_agent.utils.inspection import has_argument_type
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
 
+    from pydantic_ai import _result
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.result import StreamedRunResult
 
@@ -233,7 +234,7 @@ class PydanticAIProvider(AgentProvider):
         tool_description: str | None = None,
     ):
         """Set or update the result type for this agent."""
-        schema = to_result_schema(
+        schema: _result.ResultSchema[Any] | None = to_result_schema(
             result_type,
             context=self._context,
             tool_name_override=tool_name,

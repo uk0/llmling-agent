@@ -96,14 +96,18 @@ class HumanProvider(AgentProvider):
     async def generate_response(
         self,
         prompt: str,
+        message_id: str,
         *,
         result_type: type[Any] | None = None,
+        model: ModelType = None,
     ) -> ProviderResponse:
         """Get response through human input.
 
         Args:
             prompt: Text prompt to respond to
+            message_id: Message id to use for the response
             result_type: Optional type for structured responses
+            model: Model override (unused for human)
         """
         # Show context if available
         message_history = self._conversation.get_history()
