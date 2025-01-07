@@ -68,6 +68,7 @@ async def meta_command(
                 raise CommandError(msg) from e
 
         if not prompts:
+            await ctx.output.print("No meta prompt selected via kwargs")
             return
 
         if chain:

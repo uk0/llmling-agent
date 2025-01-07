@@ -99,7 +99,7 @@ class InteractiveSession:
             self.formatter.print_message_content(message.content)
             self.formatter.print_message_end(message)
 
-    def _on_tool_added(self, tool: ToolInfo):
+    def _on_tool_added(self, name: str, tool: ToolInfo):
         """Handle tool addition."""
         self.console.print(f"\nTool added: {tool.name}")
 

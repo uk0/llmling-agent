@@ -69,7 +69,7 @@ class AgentPoolView:
 
     history_cleared = Signal(ConversationManager.HistoryCleared)
     session_reset = Signal(SessionReset)
-    tool_added = Signal(ToolInfo)
+    tool_added = Signal(str, ToolInfo)
     tool_removed = Signal(str)  # tool_name
     tool_changed = Signal(str, ToolInfo)  # name, new_info
     agent_connected = Signal(Agent)

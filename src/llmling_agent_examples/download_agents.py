@@ -143,7 +143,7 @@ if __name__ == "__main__":
     import asyncio
     import tempfile
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", delete=False) as tmp:
         tmp.write(AGENT_CONFIG)
         tmp.flush()
         asyncio.run(run(tmp.name))
