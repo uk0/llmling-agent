@@ -89,7 +89,6 @@ class PydanticAIProvider(AgentProvider):
             deps_type=AgentContext,
             **kwargs,
         )
-        self._context = context
 
     def __repr__(self) -> str:
         model = f", model={self.model_name}" if self.model_name else ""

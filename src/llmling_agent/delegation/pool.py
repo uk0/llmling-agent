@@ -456,8 +456,8 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         # Get base agent
         base = agent if isinstance(agent, Agent) else self.agents[agent]
         if deps is not None:
-            base._context = base._context or AgentContext[TDeps].create_default(base.name)
-            base._context.data = deps
+            base.context = base.context or AgentContext[TDeps].create_default(base.name)
+            base.context.data = deps
 
         # Apply overrides
         if model_override:

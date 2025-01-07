@@ -152,8 +152,7 @@ class Agent[TDeps]:
         self._tool_manager = ToolManager(tools=all_tools, tool_choice=tool_choice)
 
         # Register capability-based tools
-        if self._context and self._context.capabilities:
-            self._context.capabilities.register_capability_tools(self)
+        self.context.capabilities.register_capability_tools(self)
 
         config_prompts = context.config.system_prompts if context else []
         all_prompts = list(config_prompts)
@@ -181,14 +180,14 @@ class Agent[TDeps]:
                     end_strategy=end_strategy,
                     result_retries=result_retries,
                     defer_model_check=defer_model_check,
-                    context=self._context,
+                    context=self.context,
                     debug=debug,
                     **kwargs,
                 )
             case "human":
                 self._provider = HumanProvider(
                     conversation=self.conversation,
-                    context=self._context,
+                    context=self.context,
                     tools=self._tool_manager,
                     name=name,
                     debug=debug,
@@ -241,6 +240,17 @@ class Agent[TDeps]:
     @name.setter
     def name(self, value: str):
         self._provider.name = value
+
+    @property
+    def context(self) -> AgentContext[TDeps]:
+        """Get agent context."""
+        return self._context
+
+    @context.setter
+    def context(self, value: AgentContext[TDeps]):
+        """Set agent context and propagate to provider."""
+        self._context = value
+        self._provider._context = value  # Provider always exists and has _context
 
     def set_result_type(
         self,
@@ -585,14 +595,12 @@ class Agent[TDeps]:
         prompts = [await to_prompt(p) for p in prompt]
         final_prompt = "\n\n".join(prompts)
         if deps is not None:
-            self._context.data = deps
+            self.context.data = deps
+        self.context.current_prompt = final_prompt
         self.set_result_type(result_type)
         wait_for_chain = False  # TODO
 
         try:
-            if self._context:
-                self._context.current_prompt = final_prompt
-
             # Create and emit user message
             user_msg = ChatMessage[str](content=final_prompt, role="user")
             self.message_received.emit(user_msg)
@@ -687,10 +695,8 @@ class Agent[TDeps]:
                 max_tokens=1000
             )
         """
-        assert self._context.pool
-        target = (
-            agent if isinstance(agent, Agent) else self._context.pool.get_agent(agent)
-        )
+        assert self.context.pool
+        target = agent if isinstance(agent, Agent) else self.context.pool.get_agent(agent)
 
         if include_history:
             # Add formatted history as context first
@@ -787,10 +793,9 @@ class Agent[TDeps]:
         self.set_result_type(result_type)
 
         if deps is not None:
-            self._context.data = deps
+            self.context.data = deps
+        self.context.current_prompt = final_prompt
         try:
-            if self._context:
-                self._context.current_prompt = final_prompt
             # Create and emit user message
             user_msg = ChatMessage[str](content=final_prompt, role="user")
             self.message_received.emit(user_msg)
@@ -968,7 +973,7 @@ class Agent[TDeps]:
             while max_count is None or count < max_count:
                 try:
                     current_prompt = (
-                        call_with_context(prompt, self._context, **kwargs)
+                        call_with_context(prompt, self.context, **kwargs)
                         if callable(prompt)
                         else to_prompt(prompt)
                     )
@@ -1027,7 +1032,7 @@ class Agent[TDeps]:
         task = loop.create_task(self.run(*prompts))
         self._pending_tasks.add(task)
         task.add_done_callback(self._pending_tasks.discard)
-        # for target in self._context.config.forward_to:
+        # for target in self.context.config.forward_to:
         #     match target:
         #         case AgentTarget():
         #             # Create task for agent forwarding

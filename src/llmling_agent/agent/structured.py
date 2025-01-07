@@ -114,12 +114,12 @@ class StructuredAgent[TDeps, TResult]:
         return getattr(self._agent, name)
 
     @property
-    def _context(self) -> Any:
-        return self._agent._context
+    def context(self) -> Any:
+        return self._agent.context
 
-    @_context.setter
-    def _context(self, value: Any):
-        self._agent._context = value
+    @context.setter
+    def context(self, value: Any):
+        self._agent.context = value
 
     @overload
     def to_structured(
