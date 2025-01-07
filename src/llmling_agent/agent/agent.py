@@ -44,12 +44,12 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
 
     from llmling.config.models import Resource
-    from pydantic_ai.agent import EndStrategy, models
+    from pydantic_ai.agent import EndStrategy
     from pydantic_ai.result import StreamedRunResult
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.structured import StructuredAgent
-    from llmling_agent.common_types import SessionIdType, StrPath, ToolType
+    from llmling_agent.common_types import ModelType, SessionIdType, StrPath, ToolType
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.task import AgentTask
     from llmling_agent.responses.models import ResponseDefinition
@@ -98,7 +98,7 @@ class Agent[TDeps]:
         *,
         agent_type: AgentType = "ai",
         session_id: SessionIdType = None,
-        model: models.Model | models.KnownModelName | None = None,
+        model: ModelType = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
         description: str | None = None,
@@ -325,7 +325,7 @@ class Agent[TDeps]:
         cls,
         config_path: StrPath | Config | None = None,
         *,
-        model: models.Model | models.KnownModelName | None = None,
+        model: ModelType = None,
         session_id: SessionIdType = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
@@ -393,7 +393,7 @@ class Agent[TDeps]:
         *,
         deps: TDeps | None = None,  # TDeps from class
         result_type: type[TResult] | None = None,
-        model: str | models.Model | models.KnownModelName | None = None,
+        model: str | ModelType = None,
         session_id: SessionIdType = None,
         model_settings: dict[str, Any] | None = None,
         tools: list[ToolType] | None = None,
@@ -565,7 +565,7 @@ class Agent[TDeps]:
         *prompt: AnyPromptType,
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
-        model: models.Model | models.KnownModelName | None = None,
+        model: ModelType = None,
     ) -> ChatMessage[TResult]:
         """Run agent with prompt and get response.
 
@@ -766,7 +766,7 @@ class Agent[TDeps]:
         *prompt: AnyPromptType,
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
-        model: models.Model | models.KnownModelName | None = None,
+        model: ModelType = None,
     ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], TResult]]:
         """Run agent with prompt and get a streaming response.
 
@@ -838,7 +838,7 @@ class Agent[TDeps]:
         prompt: str,
         *,
         deps: TDeps | None = None,
-        model: models.Model | models.KnownModelName | None = None,
+        model: ModelType = None,
     ) -> ChatMessage[TResult]:
         """Run agent synchronously (convenience wrapper).
 
@@ -1071,7 +1071,7 @@ class Agent[TDeps]:
             parent=self if (pass_message_history or share_context) else None,
         )
 
-    def set_model(self, model: models.Model | models.KnownModelName | None):
+    def set_model(self, model: ModelType):
         """Set the model for this agent.
 
         Args:
