@@ -101,7 +101,7 @@ async def test_agent_pool_cleanup():
         assert "test_agent" in pool.agents
 
         # Get runtime reference to check cleanup
-        runtime = agent._runtime
+        runtime = agent.runtime
         assert runtime is not None
 
         # Test manual cleanup
@@ -126,7 +126,7 @@ async def test_agent_pool_context_cleanup():
 
     async with AgentPool(agent_def) as pool:
         agent: Agent[Any] = pool.get_agent("test_agent")
-        runtime_ref = agent._runtime
+        runtime_ref = agent.runtime
         assert "test_agent" in pool.agents
         assert runtime_ref is not None
 

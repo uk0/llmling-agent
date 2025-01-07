@@ -136,7 +136,6 @@ class Agent[TDeps]:
             confirmation_callback: Callback for confirmation prompts
             debug: Whether to enable debug mode
         """
-        self._runtime = runtime
         self._debug = debug
         self._result_type = None
 
@@ -1091,8 +1090,14 @@ class Agent[TDeps]:
 
     @property
     def runtime(self) -> RuntimeConfig:
-        """Get the runtime configuration."""
-        return self._runtime
+        """Get runtime configuration from context."""
+        assert self.context.runtime
+        return self.context.runtime
+
+    @runtime.setter
+    def runtime(self, value: RuntimeConfig):
+        """Set runtime configuration and update context."""
+        self.context.runtime = value
 
     @property
     def tools(self) -> ToolManager:

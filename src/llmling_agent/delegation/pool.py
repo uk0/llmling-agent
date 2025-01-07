@@ -205,8 +205,8 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
     async def cleanup(self):
         """Clean up all agents."""
         for agent in self.values():
-            if agent._runtime:
-                await agent._runtime.shutdown()
+            if agent.runtime:
+                await agent.runtime.shutdown()
         self.clear()
 
     def _setup_connections(self):
@@ -348,7 +348,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
         # Create new agent with same runtime
         new_agent = Agent[TDeps](
-            runtime=original_agent._runtime,
+            runtime=original_agent.runtime,
             context=original_agent.context,
             # result_type=original_agent.actual_type,
             model=new_config.model,  # type: ignore
@@ -468,10 +468,10 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
         if environment_override:
             if isinstance(environment_override, Config):
-                base._runtime = RuntimeConfig.from_config(environment_override)
+                base.context.runtime = RuntimeConfig.from_config(environment_override)
             else:
                 cfg = Config.from_file(environment_override)
-                base._runtime = RuntimeConfig.from_config(cfg)
+                base.context.runtime = RuntimeConfig.from_config(cfg)
 
         # Wrap in StructuredAgent if return_type provided
         if return_type is not None:
@@ -559,7 +559,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
                         if isinstance(environment_override, Config)
                         else Config.from_file(environment_override)
                     )
-                    agent._runtime = RuntimeConfig.from_config(cfg)
+                    agent.runtime = RuntimeConfig.from_config(cfg)
                 result = await agent.run(prompt, result_type=result_type)
                 return AgentResponse(agent_name=agent.name, response=result.data)
             except Exception as e:
