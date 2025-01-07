@@ -73,6 +73,8 @@ class HumanProvider(AgentProvider):
         context: AgentContext[Any],
         tools: ToolManager,
         name: str = "human",
+        timeout: int | None = None,
+        show_context: bool = True,
         debug: bool = False,
     ):
         """Initialize human provider."""
@@ -84,6 +86,8 @@ class HumanProvider(AgentProvider):
         )
         self.name = name or "human"
         self._debug = debug
+        self._timeout = timeout
+        self._show_context = show_context
 
     def __repr__(self) -> str:
         return f"Human({self.name!r})"
