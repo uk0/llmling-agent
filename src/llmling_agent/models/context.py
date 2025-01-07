@@ -4,26 +4,19 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from functools import wraps
-import inspect
 import json
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any, Literal
 
-from llmling import RuntimeConfig, ToolError
 from pydantic_ai import RunContext
 from typing_extensions import TypeVar
 
-from llmling_agent.tasks.exceptions import (
-    ChainAbortedError,
-    RunAbortedError,
-    ToolSkippedError,
-)
 from llmling_agent.tools.base import ToolInfo
-from llmling_agent.utils.inspection import has_argument_type
 
 
 if TYPE_CHECKING:
+    from llmling import RuntimeConfig
+
     from llmling_agent.agent.agent import Agent
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
@@ -119,62 +112,6 @@ class AgentContext[TDeps]:
         if isinstance(result, str):
             return result
         return await result
-
-    # TODO: make this generic. Requires ToolInfo to become generic.
-    def wrap_tool(
-        self,
-        tool: ToolInfo,
-        agent_ctx: AgentContext,
-    ) -> Callable[..., Awaitable[Any]]:
-        """Wrap tool with confirmation handling.
-
-        Current situation is: We only get all infos for tool calls for functions with
-        RunContext. In order to migitate this, we "fallback" to the AgentContext, which
-        at least provides some information.
-        """
-        original_tool = tool.callable.callable
-
-        @wraps(original_tool)
-        async def wrapped_with_ctx(ctx: RunContext[AgentContext], *args, **kwargs):
-            result = await self.handle_confirmation(ctx, tool, kwargs)
-            match result:
-                case "allow":
-                    if inspect.iscoroutinefunction(original_tool):
-                        return await original_tool(ctx, *args, **kwargs)
-                    return original_tool(ctx, *args, **kwargs)
-                case "skip":
-                    msg = f"Tool {tool.name} execution skipped"
-                    raise ToolSkippedError(msg)
-                case "abort_run":
-                    msg = "Run aborted by user"
-                    raise RunAbortedError(msg)
-                case "abort_chain":
-                    msg = "Agent chain aborted by user"
-                    raise ChainAbortedError(msg)
-
-        @wraps(original_tool)
-        async def wrapped_without_ctx(*args, **kwargs):
-            result = await self.handle_confirmation(agent_ctx, tool, kwargs)
-            match result:
-                case "allow":
-                    if inspect.iscoroutinefunction(original_tool):
-                        return await original_tool(*args, **kwargs)
-                    return original_tool(*args, **kwargs)
-                case "skip":
-                    msg = f"Tool {tool.name} execution skipped"
-                    raise ToolError(msg)
-                case "abort_run":
-                    msg = "Run aborted by user"
-                    raise ToolError(msg)
-                case "abort_chain":
-                    msg = "Agent chain aborted by user"
-                    raise ToolError(msg)
-
-        return (
-            wrapped_with_ctx
-            if has_argument_type(tool.callable.callable, "RunContext")
-            else wrapped_without_ctx
-        )
 
 
 ConfirmationResult = Literal["allow", "skip", "abort_run", "abort_chain"]

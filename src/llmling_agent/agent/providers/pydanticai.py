@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from functools import wraps
+import inspect
 from typing import TYPE_CHECKING, Any
 
+from llmling import ToolError
 import logfire
 from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.messages import ModelResponse
@@ -15,18 +18,25 @@ from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
 from llmling_agent.pydantic_ai_utils import format_part, get_tool_calls, to_result_schema
 from llmling_agent.responses.models import BaseResponseDefinition, ResponseDefinition
+from llmling_agent.tasks.exceptions import (
+    ChainAbortedError,
+    RunAbortedError,
+    ToolSkippedError,
+)
 from llmling_agent.utils.inspection import has_argument_type
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 
     from pydantic_ai import _result
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.result import StreamedRunResult
+    from pydantic_ai.tools import RunContext
 
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelType
+    from llmling_agent.tools.base import ToolInfo
     from llmling_agent.tools.manager import ToolManager
 
 
@@ -97,6 +107,62 @@ class PydanticAIProvider(AgentProvider):
     @property
     def model(self) -> str | ModelType:
         return self._model
+
+    # TODO: make this generic. Requires ToolInfo to become generic.
+    def wrap_tool(
+        self,
+        tool: ToolInfo,
+        agent_ctx: AgentContext,
+    ) -> Callable[..., Awaitable[Any]]:
+        """Wrap tool with confirmation handling.
+
+        Current situation is: We only get all infos for tool calls for functions with
+        RunContext. In order to migitate this, we "fallback" to the AgentContext, which
+        at least provides some information.
+        """
+        original_tool = tool.callable.callable
+
+        @wraps(original_tool)
+        async def wrapped_with_ctx(ctx: RunContext[AgentContext], *args, **kwargs):
+            result = await agent_ctx.handle_confirmation(ctx, tool, kwargs)
+            match result:
+                case "allow":
+                    if inspect.iscoroutinefunction(original_tool):
+                        return await original_tool(ctx, *args, **kwargs)
+                    return original_tool(ctx, *args, **kwargs)
+                case "skip":
+                    msg = f"Tool {tool.name} execution skipped"
+                    raise ToolSkippedError(msg)
+                case "abort_run":
+                    msg = "Run aborted by user"
+                    raise RunAbortedError(msg)
+                case "abort_chain":
+                    msg = "Agent chain aborted by user"
+                    raise ChainAbortedError(msg)
+
+        @wraps(original_tool)
+        async def wrapped_without_ctx(*args, **kwargs):
+            result = await agent_ctx.handle_confirmation(agent_ctx, tool, kwargs)
+            match result:
+                case "allow":
+                    if inspect.iscoroutinefunction(original_tool):
+                        return await original_tool(*args, **kwargs)
+                    return original_tool(*args, **kwargs)
+                case "skip":
+                    msg = f"Tool {tool.name} execution skipped"
+                    raise ToolError(msg)
+                case "abort_run":
+                    msg = "Run aborted by user"
+                    raise ToolError(msg)
+                case "abort_chain":
+                    msg = "Agent chain aborted by user"
+                    raise ToolError(msg)
+
+        return (
+            wrapped_with_ctx
+            if has_argument_type(tool.callable.callable, "RunContext")
+            else wrapped_without_ctx
+        )
 
     @logfire.instrument("Pydantic-AI call. result type {result_type}. Prompt: {prompt}")
     async def generate_response(
@@ -174,7 +240,7 @@ class PydanticAIProvider(AgentProvider):
         tools = [t for t in self._tool_manager.values() if t.enabled]
         for tool in tools:
             wrapped = (
-                self._context.wrap_tool(tool, self._context)
+                self.wrap_tool(tool, self._context)
                 if self._context
                 else tool.callable.callable
             )
