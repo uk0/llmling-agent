@@ -171,7 +171,7 @@ class RuleRouter(AgentRouter):
             # Skip if capability required but not available
             if rule.requires_capability:
                 agent = self.pool.get_agent(rule.target)
-                if not agent._context.capabilities.has_capability(
+                if not agent.context.capabilities.has_capability(
                     rule.requires_capability
                 ):
                     msg = "Agent %s missing required capability: %s"

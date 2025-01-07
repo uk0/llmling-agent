@@ -101,7 +101,7 @@ async def create_agent_command(
             system_prompts=[system_prompt],
             description=kwargs.get("description"),
             environment=InlineEnvironment(),
-            # config_file_path=current_agent._context.config.config_file_path,
+            # config_file_path=current_agent.context.config.config_file_path,
         )
 
         _agent = await ctx.context.pool.create_agent(name, config, temporary=True)
@@ -121,12 +121,12 @@ async def show_agent(
     ctx: CommandContext[AgentPoolView], args: list[str], kwargs: dict[str, str]
 ):
     """Show current agent's configuration."""
-    if not ctx.context._agent._context:
+    if not ctx.context._agent.context:
         await ctx.output.print("No agent context available")
         return
 
     # Get the agent's config with current overrides
-    config = ctx.context._agent._context.config
+    config = ctx.context._agent.context.config
 
     # Get base config as dict
     config_dict = config.model_dump(exclude_none=True)
@@ -157,7 +157,7 @@ async def list_agents(
 ):
     """List all available agents."""
     # Get agent definition through context
-    definition = ctx.context._agent._context.definition
+    definition = ctx.context._agent.context.definition
 
     await ctx.output.print("\nAvailable agents:")
     for name, agent in definition.agents.items():
@@ -186,7 +186,7 @@ async def switch_agent(
         return
 
     name = args[0]
-    definition = ctx.context._agent._context.definition
+    definition = ctx.context._agent.context.definition
 
     if name not in definition.agents:
         await ctx.output.print(f"Unknown agent: {name}")

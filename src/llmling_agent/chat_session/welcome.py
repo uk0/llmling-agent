@@ -59,8 +59,8 @@ def create_welcome_messages(
     header = [fmt("LLMling Agent Chat", "bold blue"), "=" * 50]
 
     agent_info = [f"{fmt('Agent:', 'bold')} {agent.name}"]
-    if agent._context and agent._context.config.description:
-        agent_info.append(fmt(agent._context.config.description, "dim"))
+    if agent.context.config.description:
+        agent_info.append(fmt(agent.context.config.description, "dim"))
 
     model = agent.model_name or "default"
     mode = "streaming" if streaming else "non-streaming"
@@ -78,11 +78,11 @@ def create_welcome_messages(
         tools_info.extend(f"  • {tool}" for tool in disabled_tools)
 
     prompts_info = []
-    if agent._context and agent._context.config.system_prompts:
+    if agent.context.config.system_prompts:
         prompts_info.append(fmt("System Prompts:", "bold"))
         prompts_info.extend(
             fmt(f"  {prompt.split()[0]}...", "dim")
-            for prompt in agent._context.config.system_prompts
+            for prompt in agent.context.config.system_prompts
         )
 
     disable_str = fmt("/disable-tool", "green")

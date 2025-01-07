@@ -59,20 +59,20 @@ async def set_env(
     try:
         # Get current agent configuration
         agent = ctx.context._agent
-        if not agent._context or not agent._context.config:
+        if not agent.context.config:
             msg = "No agent context available"
             raise CommandError(msg)  # noqa: TRY301
 
         # Update environment path in config
-        config = agent._context.config
+        config = agent.context.config
         config = config.model_copy(update={"environment": env_path})
 
         # Create new runtime with updated config
         async with RuntimeConfig.open(config.get_config()) as new_runtime:
             # Create new agent with updated runtime
-            kw_args = agent._context.config.get_agent_kwargs()
+            kw_args = agent.context.config.get_agent_kwargs()
             new_agent: AnyAgent[Any, Any] = Agent(
-                runtime=new_runtime, context=agent._context, **kw_args
+                runtime=new_runtime, context=agent.context, **kw_args
             )
             if isinstance(agent, StructuredAgent):
                 new_agent = StructuredAgent(
@@ -100,11 +100,11 @@ async def edit_env(
     kwargs: dict[str, str],
 ):
     """Open agent's environment file in default application."""
-    if not ctx.context._agent._context:
+    if not ctx.context._agent.context:
         msg = "No agent context available"
         raise CommandError(msg)
 
-    config = ctx.context._agent._context.config
+    config = ctx.context._agent.context.config
     match config.environment:
         case FileEnvironment(uri=uri):
             # For file environments, open in browser

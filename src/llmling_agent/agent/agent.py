@@ -138,30 +138,31 @@ class Agent[TDeps]:
         """
         self._runtime = runtime
         self._debug = debug
-        self._context = context or AgentContext[TDeps].create_default(name)
-        self._context.confirmation_callback = confirmation_callback
-        self._context.runtime = runtime
+        self._result_type = None
+
+        # prepare context
+        context = context or AgentContext[TDeps].create_default(name)
+        context.confirmation_callback = confirmation_callback
+        context.runtime = runtime
+
+        # connect signals
         self.message_received.connect(self.message_exchanged.emit)
         self.message_sent.connect(self.message_exchanged.emit)
         self.message_sent.connect(self._forward_message)
-        self._result_type = None
+
         # Initialize tool manager
         all_tools = list(tools or [])
         all_tools.extend(runtime.tools.values())  # Add runtime tools directly
         logger.debug("Runtime tools: %s", list(runtime.tools.keys()))
         self._tool_manager = ToolManager(tools=all_tools, tool_choice=tool_choice)
 
-        # Register capability-based tools
-        self.context.capabilities.register_capability_tools(self)
-
+        # set up conversation manager
         config_prompts = context.config.system_prompts if context else []
         all_prompts = list(config_prompts)
         if isinstance(system_prompt, str):
             all_prompts.append(system_prompt)
         else:
             all_prompts.extend(system_prompt)
-
-        # Initialize ConversationManager with all prompts
         self.conversation = ConversationManager(
             self,
             initial_prompts=all_prompts,
@@ -180,14 +181,14 @@ class Agent[TDeps]:
                     end_strategy=end_strategy,
                     result_retries=result_retries,
                     defer_model_check=defer_model_check,
-                    context=self.context,
+                    context=context,
                     debug=debug,
                     **kwargs,
                 )
             case "human":
                 self._provider = HumanProvider(
                     conversation=self.conversation,
-                    context=self.context,
+                    context=context,
                     tools=self._tool_manager,
                     name=name,
                     debug=debug,
@@ -197,6 +198,8 @@ class Agent[TDeps]:
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
+        context.capabilities.register_capability_tools(self)
+
         self._provider.model_changed.connect(self.model_changed.emit)
         self.name = name
         self.description = description
@@ -244,13 +247,12 @@ class Agent[TDeps]:
     @property
     def context(self) -> AgentContext[TDeps]:
         """Get agent context."""
-        return self._context
+        return self._provider.context
 
     @context.setter
     def context(self, value: AgentContext[TDeps]):
         """Set agent context and propagate to provider."""
-        self._context = value
-        self._provider._context = value  # Provider always exists and has _context
+        self._provider.context = value
 
     def set_result_type(
         self,

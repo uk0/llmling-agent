@@ -39,8 +39,8 @@ class SlashedAgent[TDeps, TContext]:
         output: DefaultOutputWriter | None = None,
     ):
         self.agent = agent
-        assert self.agent._context, "Agent must have a context!"
-        assert self.agent._context.pool, "Agent must have a pool!"
+        assert self.agent.context, "Agent must have a context!"
+        assert self.agent.context.pool, "Agent must have a pool!"
 
         self.commands = CommandStore(
             history_file=command_history_path,
@@ -52,8 +52,8 @@ class SlashedAgent[TDeps, TContext]:
     @property
     def pool(self) -> AgentPool:
         """Get agent's pool from context."""
-        assert self.agent._context.pool
-        return self.agent._context.pool
+        assert self.agent.context.pool
+        return self.agent.context.pool
 
     def register_command(self, command: BaseCommand) -> None:
         """Register additional command."""

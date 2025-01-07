@@ -597,8 +597,8 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
                 model=model,
                 session_id=session_id,
             ) as agent:
-                if agent._context:
-                    agent._context.pool = pool
+                if agent.context:
+                    agent.context.pool = pool
                 pool.agents[agent_name] = agent
                 yield agent
         finally:

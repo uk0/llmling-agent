@@ -330,7 +330,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             config = self.manifest.agents[agent]
             original_agent: Agent[TDeps] = self.get_agent(agent)
         else:
-            config = agent._context.config  # type: ignore
+            config = agent.context.config  # type: ignore
             original_agent = agent
 
         # Create new config
@@ -349,7 +349,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         # Create new agent with same runtime
         new_agent = Agent[TDeps](
             runtime=original_agent._runtime,
-            context=original_agent._context,
+            context=original_agent.context,
             # result_type=original_agent.actual_type,
             model=new_config.model,  # type: ignore
             system_prompt=new_config.system_prompts,

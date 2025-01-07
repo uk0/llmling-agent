@@ -54,11 +54,11 @@ def get_model_names(ctx: CompletionContext[AgentPoolView]) -> list[str]:
     known_models = list(get_args(KnownModelName))
 
     agent = ctx.command_context.context._agent
-    if not agent._context or not agent._context.definition:
+    if not agent.context.definition:
         return known_models
 
     # Add any additional models from the current configuration
-    agents = agent._context.definition.agents
+    agents = agent.context.definition.agents
     config_models = {str(a.model) for a in agents.values() if a.model is not None}
 
     # Combine both sources, keeping order (known models first)

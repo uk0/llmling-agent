@@ -70,11 +70,11 @@ async def edit_agent_file(
     kwargs: dict[str, str],
 ):
     """Open agent's configuration file in default application."""
-    if not ctx.context._agent._context:
+    if not ctx.context._agent.context:
         msg = "No agent context available"
         raise CommandError(msg)
 
-    config = ctx.context._agent._context.config
+    config = ctx.context._agent.context.config
     if not config.config_file_path:
         msg = "No configuration file path available"
         raise CommandError(msg)
