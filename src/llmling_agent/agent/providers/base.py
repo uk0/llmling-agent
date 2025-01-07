@@ -38,7 +38,7 @@ class ProviderResponse:
     usage: TokonomicsUsage | None = None
 
 
-class AgentProvider:
+class AgentProvider[TDeps]:
     """Base class for agent providers."""
 
     tool_used = Signal(ToolCallInfo)
@@ -48,7 +48,7 @@ class AgentProvider:
     def __init__(
         self,
         *,
-        context: AgentContext[Any],
+        context: AgentContext[TDeps],
         tools: ToolManager,
         conversation: ConversationManager,
         model: str | Model | None = None,
@@ -116,3 +116,13 @@ class AgentProvider:
     ) -> AbstractAsyncContextManager[StreamedRunResult]:  # type: ignore[type-var]
         """Stream a response. Must be implemented by providers."""
         raise NotImplementedError
+
+    @property
+    def context(self) -> AgentContext[TDeps]:
+        """Get provider context."""
+        return self._context
+
+    @context.setter
+    def context(self, value: AgentContext[TDeps]):
+        """Set provider context."""
+        self._context = value
