@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import TYPE_CHECKING, Any, overload
 
 from slashed import (
-    BaseCommand,
     CommandStore,
     DefaultOutputWriter,
     ExitCommandError,
@@ -22,9 +21,13 @@ if TYPE_CHECKING:
     from pydantic_ai.result import StreamedRunResult
 
     from llmling_agent.agent import AnyAgent
+    from llmling_agent.agent.conversation import ConversationManager
+    from llmling_agent.agent.providers.base import AgentProvider
+    from llmling_agent.common_types import ModelType
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.context import AgentContext
     from llmling_agent.prompts.convert import AnyPromptType
+    from llmling_agent.tools.manager import ToolManager
 
 
 logger = get_logger(__name__)
@@ -56,15 +59,107 @@ class SlashedAgent[TDeps, TContext]:
         self.command_context: TContext = command_context or self  # type: ignore
         self.output = output or DefaultOutputWriter()
 
-    @property
-    def pool(self) -> AgentPool:
-        """Get agent's pool from context."""
-        assert self.agent.context.pool
-        return self.agent.context.pool
+    @overload
+    async def run[TMethodResult](
+        self,
+        *prompt: AnyPromptType,
+        result_type: type[TMethodResult],
+        deps: TDeps | None = None,
+        model: ModelType = None,
+        output: OutputWriter | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> ChatMessage[TMethodResult]: ...
 
-    def register_command(self, command: BaseCommand) -> None:
-        """Register additional command."""
-        self.commands.register_command(command)
+    @overload
+    async def run(
+        self,
+        *prompt: AnyPromptType,
+        result_type: None = None,
+        deps: TDeps | None = None,
+        model: ModelType = None,
+        output: OutputWriter | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> ChatMessage[str]: ...
+
+    async def run(
+        self,
+        *prompt: AnyPromptType,
+        result_type: type[Any] | None = None,
+        deps: TDeps | None = None,
+        model: ModelType = None,
+        output: OutputWriter | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> ChatMessage[Any]:
+        """Run with slash command support."""
+        # First execute all commands sequentially
+        remaining_prompts = []
+        for p in prompt:
+            if isinstance(p, str) and p.startswith("/"):
+                await self.handle_command(
+                    p[1:],
+                    output=output or self.output,
+                    metadata=metadata,
+                )
+            else:
+                remaining_prompts.append(p)
+
+        # Then pass remaining prompts to agent
+        return await self.agent.run(
+            *remaining_prompts, result_type=result_type, deps=deps, model=model
+        )
+
+    @overload
+    def run_stream[TMethodResult](
+        self,
+        *prompt: AnyPromptType,
+        result_type: type[TMethodResult],
+        deps: TDeps | None = None,
+        model: ModelType = None,
+        output: OutputWriter | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> AbstractAsyncContextManager[
+        StreamedRunResult[AgentContext[TDeps], TMethodResult]
+    ]: ...
+
+    @overload
+    def run_stream(
+        self,
+        *prompt: AnyPromptType,
+        result_type: None = None,
+        deps: TDeps | None = None,
+        model: ModelType = None,
+        output: OutputWriter | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> AbstractAsyncContextManager[StreamedRunResult[AgentContext[TDeps], str]]: ...
+
+    @asynccontextmanager
+    async def run_stream(
+        self,
+        *prompt: AnyPromptType,
+        result_type: type[Any] | None = None,
+        deps: TDeps | None = None,
+        model: ModelType = None,
+        output: OutputWriter | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], Any]]:
+        """Stream responses with slash command support."""
+        # First execute all commands sequentially
+        remaining_prompts: list[AnyPromptType] = []
+        for p in prompt:
+            if isinstance(p, str) and p.startswith("/"):
+                await self.handle_command(
+                    p[1:],
+                    output=output or self.output,
+                    metadata=metadata,
+                )
+            else:
+                remaining_prompts.append(p)
+
+        # Then yield from agent's stream
+        async with self.agent.run_stream(
+            *remaining_prompts, result_type=result_type, deps=deps, model=model
+        ) as stream:
+            yield stream
 
     async def handle_command(
         self,
@@ -87,85 +182,33 @@ class SlashedAgent[TDeps, TContext]:
             msg = f"Command error: {e}"
             return ChatMessage(content=msg, role="system")
 
-    @overload
-    async def run[TMethodResult](
-        self,
-        content: AnyPromptType,
-        *,
-        result_type: type[TMethodResult],  # Method-level result type for regular Agent
-        output: OutputWriter | None = None,
-        metadata: dict[str, Any] | None = None,
-        **kwargs: Any,
-    ) -> ChatMessage[TMethodResult]: ...
+    @property
+    def tools(self) -> ToolManager:
+        """Access to tool management."""
+        return self.agent.tools
 
-    @overload
-    async def run(
-        self,
-        content: AnyPromptType,
-        *,
-        result_type: None = None,  # No result type -> string result
-        output: OutputWriter | None = None,
-        metadata: dict[str, Any] | None = None,
-        **kwargs: Any,
-    ) -> ChatMessage[str]: ...
+    @property
+    def conversation(self) -> ConversationManager:
+        """Access to conversation management."""
+        return self.agent.conversation
 
-    async def run(
-        self,
-        content: AnyPromptType,
-        *,
-        result_type: type[Any] | None = None,
-        output: OutputWriter | None = None,
-        metadata: dict[str, Any] | None = None,
-        **kwargs: Any,
-    ) -> ChatMessage[Any]:
-        """Run agent or handle command based on prefix."""
-        if isinstance(content, str) and content.startswith("/"):
-            return await self.handle_command(
-                content[1:],
-                output=output,
-                metadata=metadata,
-            )
+    @property
+    def provider(self) -> AgentProvider[TDeps]:
+        """Access to the underlying provider."""
+        return self.agent._provider
 
-        return await self.agent.run(content, result_type=result_type, **kwargs)
+    @property
+    def pool(self) -> AgentPool:
+        """Get agent's pool from context."""
+        assert self.agent.context.pool
+        return self.agent.context.pool
 
-    @overload
-    async def run_stream[TMethodResult](
-        self,
-        content: AnyPromptType,
-        *,
-        result_type: type[TMethodResult],
-        output: OutputWriter | None = None,
-        metadata: dict[str, Any] | None = None,
-        **kwargs: Any,
-    ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], TMethodResult]]: ...
+    @property
+    def model_name(self) -> str | None:
+        """Get current model name."""
+        return self.agent.model_name
 
-    @overload
-    async def run_stream(
-        self,
-        content: AnyPromptType,
-        *,
-        result_type: None = None,
-        output: OutputWriter | None = None,
-        metadata: dict[str, Any] | None = None,
-        **kwargs: Any,
-    ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], str]]: ...
-
-    @asynccontextmanager
-    async def run_stream(
-        self,
-        content: AnyPromptType,
-        *,
-        result_type: type[Any] | None = None,
-        output: OutputWriter | None = None,
-        metadata: dict[str, Any] | None = None,
-        **kwargs: Any,
-    ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], Any]]:
-        """Stream agent response."""
-        if isinstance(content, str) and content.startswith("/"):
-            await self.handle_command(content[1:], output=output, metadata=metadata)
-            return
-
-        async with self.agent.run_stream(
-            content, result_type=result_type, **kwargs
-        ) as stream:
-            yield stream
+    @property
+    def context(self) -> AgentContext[TDeps]:
+        """Access to agent context."""
+        return self.agent.context
