@@ -6,6 +6,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 from llmling import LLMCallableTool
+from pydantic_ai import models
 from typing_extensions import TypeVar
 
 
@@ -21,7 +22,7 @@ type StrPath = str | os.PathLike[str]
 type SessionIdType = str | UUID | None
 MessageRole = Literal["user", "assistant", "system"]
 PartType = Literal["text", "image", "audio", "video"]
-
+ModelType = models.Model | models.KnownModelName | None
 EnvironmentType = Literal["file", "inline"]
 ToolSource = Literal["runtime", "agent", "builtin", "dynamic", "task"]
 

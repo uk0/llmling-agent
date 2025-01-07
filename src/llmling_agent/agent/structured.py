@@ -12,10 +12,9 @@ from llmling_agent.responses.utils import to_type
 
 
 if TYPE_CHECKING:
-    from pydantic_ai.agent import models
-
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
+    from llmling_agent.common_types import ModelType
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.prompts.convert import AnyPromptType
 
@@ -84,7 +83,7 @@ class StructuredAgent[TDeps, TResult]:
         *prompt: AnyPromptType | TResult,
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
-        model: models.Model | models.KnownModelName | None = None,
+        model: ModelType = None,
     ) -> ChatMessage[TResult]:
         """Run with fixed result type.
 

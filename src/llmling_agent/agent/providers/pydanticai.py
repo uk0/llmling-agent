@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from pydantic_ai.result import StreamedRunResult
 
     from llmling_agent.agent.conversation import ConversationManager
+    from llmling_agent.common_types import ModelType
     from llmling_agent.tools.manager import ToolManager
 
 
@@ -94,7 +95,7 @@ class PydanticAIProvider(AgentProvider):
         return f"PydanticAI({self.name!r}{model})"
 
     @property
-    def model(self) -> str | models.Model | models.KnownModelName | None:
+    def model(self) -> str | ModelType:
         return self._model
 
     @logfire.instrument("Pydantic-AI call. result type {result_type}. Prompt: {prompt}")
@@ -104,7 +105,7 @@ class PydanticAIProvider(AgentProvider):
         message_id: str,
         *,
         result_type: type[Any] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
+        model: ModelType = None,
     ) -> ProviderResponse:
         """Generate response using pydantic-ai.
 
@@ -182,7 +183,7 @@ class PydanticAIProvider(AgentProvider):
             else:
                 self._agent.tool_plain(wrapped)
 
-    def set_model(self, model: models.Model | models.KnownModelName | None):
+    def set_model(self, model: ModelType):
         """Set the model for this agent.
 
         Args:
@@ -256,7 +257,7 @@ class PydanticAIProvider(AgentProvider):
         message_id: str,
         *,
         result_type: type[Any] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
+        model: ModelType = None,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response using pydantic-ai."""
         self._update_tools()

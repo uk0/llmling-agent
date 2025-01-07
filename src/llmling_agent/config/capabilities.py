@@ -240,10 +240,7 @@ class Capabilities(EventedModel):
 
         agents = ctx.deps.pool.list_agents()
         if only_idle:
-            # Filter out agents that have pending tasks
-            return [
-                name for name in agents if not ctx.deps.pool.get_agent(name).is_busy()
-            ]
+            return [n for n in agents if not ctx.deps.pool.get_agent(n).is_busy()]
         return agents
 
     @staticmethod
@@ -263,11 +260,8 @@ class Capabilities(EventedModel):
         if not ctx.deps.pool:
             msg = "No agent pool available"
             raise ToolError(msg)
-
-        config = AgentConfig(
-            name=name, system_prompts=[system_prompt], model=model or ctx.model.name()
-        )
-
+        model = model or ctx.model.name()
+        config = AgentConfig(name=name, system_prompts=[system_prompt], model=model)
         worker = await ctx.deps.pool.create_agent(name, config)
         assert ctx.deps.agent
         tool_info = ctx.deps.agent.register_worker(worker)

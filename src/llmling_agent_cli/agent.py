@@ -110,10 +110,7 @@ def list_agents(
         # Load and validate agent definition
         agent_def = AgentsManifest[Any, Any].from_file(config_path)
         # Set the name field from the dict key for each agent
-        agents = [
-            agent.model_copy(update={"name": name})
-            for name, agent in agent_def.agents.items()
-        ]
+        agents = [ag.model_copy(update={"name": n}) for n, ag in agent_def.agents.items()]
         format_output(agents, output_format)
 
     except t.Exit:

@@ -14,12 +14,12 @@ from llmling_agent.models.agents import ToolCallInfo
 if TYPE_CHECKING:
     from contextlib import AbstractAsyncContextManager
 
-    from pydantic_ai.agent import models
     from pydantic_ai.models import Model
     from pydantic_ai.result import StreamedRunResult
     from tokonomics import Usage as TokonomicsUsage
 
     from llmling_agent.agent.conversation import ConversationManager
+    from llmling_agent.common_types import ModelType
     from llmling_agent.models.context import AgentContext
     from llmling_agent.responses.models import ResponseDefinition
     from llmling_agent.tools.manager import ToolManager
@@ -76,7 +76,7 @@ class AgentProvider:
 
     def set_model(
         self,
-        model: models.Model | models.KnownModelName | None,
+        model: ModelType,
     ) -> None:
         """Default no-op implementation for setting model."""
 
@@ -101,7 +101,7 @@ class AgentProvider:
         message_id: str,
         *,
         result_type: type[Any] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
+        model: ModelType = None,
     ) -> ProviderResponse:
         """Generate a response. Must be implemented by providers."""
         raise NotImplementedError
@@ -112,7 +112,7 @@ class AgentProvider:
         message_id: str,
         *,
         result_type: type[Any] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
+        model: ModelType = None,
     ) -> AbstractAsyncContextManager[StreamedRunResult]:  # type: ignore[type-var]
         """Stream a response. Must be implemented by providers."""
         raise NotImplementedError

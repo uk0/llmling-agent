@@ -18,10 +18,10 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from pydantic_ai.agent import models
     from pydantic_ai.result import StreamedRunResult
 
     from llmling_agent.agent.conversation import ConversationManager
+    from llmling_agent.common_types import ModelType
     from llmling_agent.models.context import AgentContext
     from llmling_agent.tools.manager import ToolManager
 
@@ -142,7 +142,7 @@ class HumanProvider(AgentProvider):
         message_id: str,
         *,
         result_type: type[Any] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
+        model: ModelType = None,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response keystroke by keystroke."""
         print(f"\n{prompt}")

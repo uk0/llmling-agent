@@ -53,9 +53,7 @@ def show_history(
         # Compact view of recent conversations
         llmling-agent history show --period 1d --compact
     """
-    from llmling_agent.history import (
-        get_filtered_conversations,
-    )
+    from llmling_agent.history import get_filtered_conversations
     from llmling_agent.history.formatters import format_output
 
     results = get_filtered_conversations(
@@ -203,16 +201,8 @@ def reset_history(
 
         # Delete messages first (foreign key constraint)
         if agent_name:
-            # Delete messages from specific agent's conversations
-            session.execute(
-                text(DELETE_AGENT_MESSAGES),
-                {"agent": agent_name},
-            )
-            # Delete conversations
-            session.execute(
-                text(DELETE_AGENT_CONVERSATIONS),
-                {"agent": agent_name},
-            )
+            session.execute(text(DELETE_AGENT_MESSAGES), {"agent": agent_name})
+            session.execute(text(DELETE_AGENT_CONVERSATIONS), {"agent": agent_name})
         else:
             # Delete all
             session.execute(text(DELETE_ALL_MESSAGES))

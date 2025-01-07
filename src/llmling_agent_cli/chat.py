@@ -95,12 +95,8 @@ def chat_command(
 
         show_logs = False
         output = DefaultOutputWriter() if show_logs else None
-
-        with set_handler_level(
-            level,
-            ["llmling_agent", "llmling"],
-            session_handler=output,
-        ):
+        logger_names = ["llmling_agent", "llmling"]
+        with set_handler_level(level, logger_names, session_handler=output):
             asyncio.run(run_chat())
 
     except t.Exit:

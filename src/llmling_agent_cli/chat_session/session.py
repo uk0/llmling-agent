@@ -22,6 +22,7 @@ from llmling_agent_cli.chat_session.history import SessionHistory
 
 if TYPE_CHECKING:
     from llmling_agent import Agent
+    from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.tools.base import ToolInfo
@@ -116,7 +117,7 @@ class InteractiveSession:
         state = "enabled" if tool.enabled else "disabled"
         self.console.print(f"\nTool '{name}' {state}")
 
-    def _on_history_cleared(self, event: AgentPoolView.HistoryCleared):
+    def _on_history_cleared(self, event: ConversationManager.HistoryCleared):
         """Handle history cleared event."""
         self.console.print("\nChat history cleared")
 
@@ -130,10 +131,7 @@ class InteractiveSession:
         assert session is not None
 
         history = SessionHistory(session)
-        self._completer = PromptToolkitCompleter[AgentPoolView](
-            session.commands,
-            session,
-        )
+        self._completer = PromptToolkitCompleter[AgentPoolView](session.commands, session)
 
         self._prompt = PromptSession[str](
             "You: ",

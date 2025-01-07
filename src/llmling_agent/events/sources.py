@@ -71,10 +71,7 @@ class EventSourceConfig(BaseModel):
     # extra_knowledge: Knowledge | None = None
     """Additional context to load when this trigger activates."""
 
-    model_config = ConfigDict(
-        frozen=True,
-        use_attribute_docstrings=True,
-    )
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
 
 class FileWatchConfig(EventSourceConfig):
@@ -217,10 +214,8 @@ class FileSystemEventSource(EventSource):
         # Create filter from extensions if provided
         watch_filter = None
         if self.config.extensions:
-            watch_filter = ExtensionFilter(
-                self.config.extensions,
-                ignore_paths=self.config.ignore_paths,
-            )
+            to_ignore = self.config.ignore_paths
+            watch_filter = ExtensionFilter(self.config.extensions, ignore_paths=to_ignore)
 
         self._watch = awatch(
             *self.config.paths,

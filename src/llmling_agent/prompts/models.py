@@ -9,7 +9,7 @@ import yamling
 
 
 if TYPE_CHECKING:
-    from llmling_agent.common_types import StrPath
+    from llmling_agent.common_types import ModelType, StrPath
 
 
 class PromptTemplate(BaseModel):
@@ -26,7 +26,7 @@ class PromptTemplate(BaseModel):
     async def apply(
         self,
         goal: str,
-        model: str | None = None,
+        model: ModelType = None,
         max_length: int | None = None,
         **kwargs: Any,
     ) -> str:
@@ -37,13 +37,9 @@ class PromptTemplate(BaseModel):
         if max_length:
             template_vars["max_length"] = max_length
 
-        # Format template
+        # Format template, create temporary pydantic agent to generate prompt.
         content = self.template.format(**template_vars) if self.template else goal
-
-        # Create temporary pydantic agent
-        agent = PydanticAiAgent(model=model, system_prompt=self.system)  # type: ignore
-
-        # Run through the model
+        agent = PydanticAiAgent(model=model, system_prompt=self.system)
         result = await agent.run(content)
         return str(result.data)
 
