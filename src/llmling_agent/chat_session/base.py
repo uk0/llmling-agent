@@ -345,36 +345,22 @@ class AgentPoolView:
 
     async def _send_normal(self, content: str) -> ChatMessage[str]:
         """Send message and get single response."""
-        result = await self._agent.run(content)  # type: ignore
-        model = self._agent.model_name
-        response = str(result.data)
-        start_time = time.perf_counter()
-        # Collect all metrics from the run
+        result = await self._agent.run(content)
+        text_message = result.to_text_message()
+
+        # Update session state metrics
         self._state.message_count += 2  # User and assistant messages
-        # Create complete assistant message with all metrics
-        chat_message = ChatMessage[str](
-            content=response,
-            role="assistant",
-            name=self._agent.name,
-            message_id=str(uuid4()),
-            model=model,
-            cost_info=result.cost_info,
-            response_time=time.perf_counter() - start_time,  # Add response time
-        )
-
-        # Also update session state with metrics
-        if result.cost_info:
-            self._state.update_tokens(chat_message)
-            self._state.total_cost = float(result.cost_info.total_cost)
-        self._state.last_response_time = chat_message.response_time
-
-        # self._agent.message_sent.emit(chat_message)
+        if text_message.cost_info:
+            self._state.update_tokens(text_message)
+            self._state.total_cost = float(text_message.cost_info.total_cost)
+        if text_message.response_time:
+            self._state.last_response_time = text_message.response_time
 
         # Add chain waiting if enabled
         if self.wait_chain and self._pool:
             await self._agent.wait_for_chain()
 
-        return chat_message
+        return text_message
 
     async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage[str]]:
         """Send message and stream responses."""
