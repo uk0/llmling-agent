@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import MessageRole
     from llmling_agent.models.agents import ToolCallInfo
-    from llmling_agent.models.messages import TokenAndCostResult
+    from llmling_agent.models.messages import TokenCost
 
 
 class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
@@ -219,7 +219,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         content: str,
         role: MessageRole,
         name: str | None = None,
-        cost_info: TokenAndCostResult | None = None,
+        cost_info: TokenCost | None = None,
         model: str | None = None,
         response_time: float | None = None,
         forwarded_from: list[str] | None = None,

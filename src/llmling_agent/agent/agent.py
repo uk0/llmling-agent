@@ -30,11 +30,8 @@ from llmling_agent.agent.providers import AgentProvider, HumanProvider, Pydantic
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.prompts.convert import AnyPromptType, to_prompt
-from llmling_agent.pydantic_ai_utils import (
-    extract_usage,
-)
 from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context
@@ -616,7 +613,7 @@ class Agent[TDeps]:
             # Get cost info for assistant response
             usage = result.usage
             cost_info = (
-                await extract_usage(
+                await TokenCost.from_usage(
                     usage, result.model_name, final_prompt, str(result.content)
                 )
                 if self.model_name and usage
@@ -814,7 +811,7 @@ class Agent[TDeps]:
                 # After streaming is done, create and emit final message
                 usage = stream.usage()
                 cost_info = (
-                    await extract_usage(
+                    await TokenCost.from_usage(
                         usage,
                         stream.model_name,  # type: ignore
                         final_prompt,

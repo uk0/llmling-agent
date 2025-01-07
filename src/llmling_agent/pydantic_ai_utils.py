@@ -23,13 +23,12 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
-import tokonomics
 from typing_extensions import TypeVar
 from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.messages import ChatMessage, TokenAndCostResult, TokenUsage
+from llmling_agent.models.messages import ChatMessage
 from llmling_agent.responses.models import (
     ImportedResponseDefinition,
     InlineResponseDefinition,
@@ -39,8 +38,6 @@ from llmling_agent.responses.models import (
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-    from tokonomics.pydanticai_cost import Usage
 
     from llmling_agent.common_types import MessageRole
     from llmling_agent.models.context import AgentContext
@@ -57,48 +54,6 @@ type ContentSource = str | bytes | Path | Any
 def to_base64(data: bytes) -> str:
     """Convert bytes to base64 string."""
     return base64.b64encode(data).decode()
-
-
-async def extract_usage(
-    usage: Usage,
-    model: str,
-    prompt: str,
-    completion: str,
-) -> TokenAndCostResult | None:
-    """Extract token usage and calculate actual USD cost.
-
-    Args:
-        usage: Token counts from pydantic-ai Usage object
-        model: Name of the model used
-        prompt: The prompt text sent to model
-        completion: The completion text received
-
-    Returns:
-        Token usage and USD cost, or None if counts unavailable
-    """
-    if not (
-        usage
-        and usage.total_tokens is not None
-        and usage.request_tokens is not None
-        and usage.response_tokens is not None
-    ):
-        logger.debug("Missing token counts in Usage object")
-        return None
-
-    token_usage = TokenUsage(
-        total=usage.total_tokens,
-        prompt=usage.request_tokens,
-        completion=usage.response_tokens,
-    )
-    logger.debug("Token usage: %s", token_usage)
-
-    cost = await tokonomics.calculate_token_cost(
-        model,
-        usage.request_tokens,
-        usage.response_tokens,
-    )
-    total_cost = cost.total_cost if cost else 0.0
-    return TokenAndCostResult(token_usage=token_usage, total_cost=total_cost)
 
 
 def format_part(  # noqa: PLR0911

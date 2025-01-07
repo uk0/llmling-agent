@@ -25,8 +25,7 @@ from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
 from llmling_agent.commands import get_commands
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage
-from llmling_agent.pydantic_ai_utils import extract_usage
+from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.tools.base import ToolInfo
 
 
@@ -376,7 +375,9 @@ class AgentPoolView:
             # Get usage info if available
             usage = stream_result.usage()
             cost_info = (
-                await extract_usage(usage, self._agent.model_name, content, response)
+                await TokenCost.from_usage(
+                    usage, self._agent.model_name, content, response
+                )
                 if usage and self._agent.model_name
                 else None
             )

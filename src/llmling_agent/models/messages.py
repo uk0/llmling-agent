@@ -8,13 +8,17 @@ from typing import TypedDict
 from uuid import uuid4
 
 from pydantic import BaseModel
+import tokonomics
 from typing_extensions import TypeVar
 
 from llmling_agent.common_types import JsonObject, MessageRole  # noqa: TC001
+from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo  # noqa: TC001
 
 
 TContent = TypeVar("TContent", str, BaseModel, default=str)
+
+logger = get_logger(__name__)
 
 
 class TokenUsage(TypedDict):
@@ -29,13 +33,57 @@ class TokenUsage(TypedDict):
 
 
 @dataclass(frozen=True)
-class TokenAndCostResult:
+class TokenCost:
     """Combined token and cost tracking."""
 
     token_usage: TokenUsage
     """Token counts for prompt and completion"""
     total_cost: float
     """Total cost in USD"""
+
+    @classmethod
+    async def from_usage(
+        cls,
+        usage: tokonomics.Usage | None,
+        model: str,
+        prompt: str,
+        completion: str,
+    ) -> TokenCost | None:
+        """Create result from usage data.
+
+        Args:
+            usage: Token counts from model response
+            model: Name of the model used
+            prompt: The prompt text sent to model
+            completion: The completion text received
+
+        Returns:
+            TokenCost if usage data available, None otherwise
+        """
+        if not (
+            usage
+            and usage.total_tokens is not None
+            and usage.request_tokens is not None
+            and usage.response_tokens is not None
+        ):
+            logger.debug("Missing token counts in Usage object")
+            return None
+
+        token_usage = TokenUsage(
+            total=usage.total_tokens,
+            prompt=usage.request_tokens,
+            completion=usage.response_tokens,
+        )
+        logger.debug("Token usage: %s", token_usage)
+
+        cost = await tokonomics.calculate_token_cost(
+            model,
+            usage.request_tokens,
+            usage.response_tokens,
+        )
+        total_cost = cost.total_cost if cost else 0.0
+
+        return cls(token_usage=token_usage, total_cost=total_cost)
 
 
 @dataclass
@@ -61,7 +109,7 @@ class ChatMessage[TContent]:
     timestamp: datetime = field(default_factory=datetime.now)
     """When this message was created."""
 
-    cost_info: TokenAndCostResult | None = None
+    cost_info: TokenCost | None = None
     """Token usage and costs for this specific message if available."""
 
     message_id: str = field(default_factory=lambda: str(uuid4()))

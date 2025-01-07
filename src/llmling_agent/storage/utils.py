@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from llmling_agent.pydantic_ai_utils import TokenUsage
+    from llmling_agent.models.messages import TokenUsage
     from llmling_agent.storage.models import Message
 
 
