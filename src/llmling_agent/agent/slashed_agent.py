@@ -3,7 +3,13 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, overload
 
-from slashed import BaseCommand, CommandStore, DefaultOutputWriter, ExitCommandError
+from slashed import (
+    BaseCommand,
+    CommandStore,
+    DefaultOutputWriter,
+    ExitCommandError,
+    OutputWriter,
+)
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
@@ -18,6 +24,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.context import AgentContext
+    from llmling_agent.prompts.convert import AnyPromptType
 
 
 logger = get_logger(__name__)
@@ -62,7 +69,7 @@ class SlashedAgent[TDeps, TContext]:
     async def handle_command(
         self,
         command: str,
-        output: DefaultOutputWriter | None = None,
+        output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> ChatMessage[str]:
         """Handle a slash command."""
@@ -83,10 +90,10 @@ class SlashedAgent[TDeps, TContext]:
     @overload
     async def run[TMethodResult](
         self,
-        content: str,
+        content: AnyPromptType,
         *,
         result_type: type[TMethodResult],  # Method-level result type for regular Agent
-        output: DefaultOutputWriter | None = None,
+        output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> ChatMessage[TMethodResult]: ...
@@ -94,26 +101,26 @@ class SlashedAgent[TDeps, TContext]:
     @overload
     async def run(
         self,
-        content: str,
+        content: AnyPromptType,
         *,
         result_type: None = None,  # No result type -> string result
-        output: DefaultOutputWriter | None = None,
+        output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> ChatMessage[str]: ...
 
     async def run(
         self,
-        content: str,
+        content: AnyPromptType,
         *,
         result_type: type[Any] | None = None,
-        output: DefaultOutputWriter | None = None,
+        output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> ChatMessage[Any]:
         """Run agent or handle command based on prefix."""
-        if content.startswith("/"):
-            return await self.handle_command(  # type: ignore
+        if isinstance(content, str) and content.startswith("/"):
+            return await self.handle_command(
                 content[1:],
                 output=output,
                 metadata=metadata,
@@ -124,10 +131,10 @@ class SlashedAgent[TDeps, TContext]:
     @overload
     async def run_stream[TMethodResult](
         self,
-        content: str,
+        content: AnyPromptType,
         *,
         result_type: type[TMethodResult],
-        output: DefaultOutputWriter | None = None,
+        output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], TMethodResult]]: ...
@@ -135,10 +142,10 @@ class SlashedAgent[TDeps, TContext]:
     @overload
     async def run_stream(
         self,
-        content: str,
+        content: AnyPromptType,
         *,
         result_type: None = None,
-        output: DefaultOutputWriter | None = None,
+        output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], str]]: ...
@@ -146,20 +153,16 @@ class SlashedAgent[TDeps, TContext]:
     @asynccontextmanager
     async def run_stream(
         self,
-        content: str,
+        content: AnyPromptType,
         *,
         result_type: type[Any] | None = None,
-        output: DefaultOutputWriter | None = None,
+        output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], Any]]:
         """Stream agent response."""
-        if content.startswith("/"):
-            await self.handle_command(
-                content[1:],
-                output=output,
-                metadata=metadata,
-            )
+        if isinstance(content, str) and content.startswith("/"):
+            await self.handle_command(content[1:], output=output, metadata=metadata)
             return
 
         async with self.agent.run_stream(
