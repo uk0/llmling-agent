@@ -23,6 +23,7 @@ from llmling_agent_web.type_utils import ChatHistory, validate_chat_message
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+    from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -121,7 +122,7 @@ class UIState:
             await asyncio.gather(*self._pending_tasks, return_exceptions=True)
             self._pending_tasks.clear()
 
-    async def _on_history_cleared(self, event: AgentPoolView.HistoryCleared):
+    async def _on_history_cleared(self, event: ConversationManager.HistoryCleared):
         """Handle history cleared event."""
         await self.send_message(message="", history=[], agent_name=None, model=None)
 

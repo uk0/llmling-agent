@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import ToolSource, ToolType
 
 
@@ -234,7 +233,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
         share_context: bool = False,
-        parent: Agent[Any] | None = None,
+        parent: AnyAgent[Any, Any] | None = None,
     ) -> ToolInfo:
         """Register an agent as a worker tool.
 
@@ -257,15 +256,11 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         logger.debug(msg, worker.name, tool.name)
         return self.register_tool(tool, source="agent", metadata={"agent": worker.name})
 
-    def reset(self) -> ToolStateReset:
+    def reset(self):
         """Reset tool states."""
         old_tools = self.list_tools()
         self.reset_states()
         new_tools = self.list_tools()
 
-        event = self.ToolStateReset(
-            previous_tools=old_tools,
-            new_tools=new_tools,
-        )
+        event = self.ToolStateReset(old_tools, new_tools)
         self.tool_states_reset.emit(event)
-        return event

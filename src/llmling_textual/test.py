@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import logfire
 from slashed.textual_adapter import CommandInput
@@ -17,6 +17,10 @@ from llmling_agent.models import ChatMessage
 from llmling_textual.widget import ChatView
 
 
+if TYPE_CHECKING:
+    from llmling_agent.agent import AnyAgent
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,7 +30,7 @@ class ChatApp(App):
     def __init__(self):
         super().__init__()
         self._pending_tasks: set[asyncio.Task[None]] = set()
-        self._agent: Agent[Any] | None = None
+        self._agent: AnyAgent[Any, Any] | None = None
         self._agent_cm: Any = None
 
     def compose(self) -> ComposeResult:

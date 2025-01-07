@@ -714,7 +714,7 @@ class Agent[TDeps]:
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
         share_context: bool = False,
-        parent: Agent[Any] | None = None,
+        parent: AnyAgent[Any, Any] | None = None,
     ) -> LLMCallableTool:
         """Create a tool from this agent.
 
