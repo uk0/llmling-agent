@@ -39,6 +39,7 @@ from llmling_agent_providers import AgentProvider, HumanProvider, PydanticAIProv
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
+    from types import TracebackType
 
     from llmling.config.models import Resource
     from pydantic_ai.agent import EndStrategy
@@ -236,6 +237,21 @@ class Agent[TDeps]:
 
         return "\n".join(parts)
 
+    async def __aenter__(self) -> Self:
+        """Enter async context."""
+        if self.context and self.context.config.mcp_servers:
+            await self.tools.setup_mcp_servers(self.context.config.get_mcp_servers())
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit async context."""
+        # await self.cleanup()
+
     @property
     def name(self) -> str:
         """Get agent name."""
@@ -392,7 +408,8 @@ class Agent[TDeps]:
                 **kwargs,
             )
             try:
-                yield agent
+                async with agent:
+                    yield agent
             finally:
                 # Any cleanup if needed
                 pass
@@ -526,8 +543,8 @@ class Agent[TDeps]:
                         tool_name=result_tool_name,
                     )
                 else:
-                    # Yield base agent
-                    yield base_agent
+                    async with base_agent:
+                        yield base_agent
             finally:
                 # Any cleanup if needed
                 pass

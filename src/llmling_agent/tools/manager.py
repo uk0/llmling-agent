@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import AsyncExitStack
 from dataclasses import dataclass, field, fields
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
@@ -67,6 +68,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         super().__init__()
         self.tool_choice = tool_choice
         self._mcp_clients: dict[str, MCPClient] = {}
+        self.exit_stack = AsyncExitStack()
 
         # Register initial tools
         for tool in tools or []:
@@ -269,10 +271,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         event = self.ToolStateReset(old_tools, new_tools)
         self.tool_states_reset.emit(event)
 
-    async def setup_mcp_servers(
-        self,
-        servers: list[MCPServerConfig],
-    ) -> None:
+    async def setup_mcp_servers(self, servers: list[MCPServerConfig]) -> None:
         """Set up multiple MCP server integrations."""
         for server in servers:
             if not server.enabled:
@@ -281,8 +280,10 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             try:
                 match server:
                     case StdioMCPServer():
-                        # Initialize client
+                        # Create and enter client context
                         client = MCPClient()
+                        client = await self.exit_stack.enter_async_context(client)
+
                         await client.connect(
                             command=server.command,
                             args=server.args,
@@ -301,8 +302,8 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                         raise NotImplementedError(msg)  # noqa: TRY301
 
             except Exception as e:
-                msg = "Failed to setup MCP server"
-                logger.exception(msg)
+                msg = "Failed to setup MCP servers"
+                logger.exception(msg, exc_info=e)
                 raise RuntimeError(msg) from e
 
     async def cleanup(self) -> None:

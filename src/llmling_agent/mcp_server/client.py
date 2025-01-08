@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from contextlib import AsyncExitStack
-from typing import TYPE_CHECKING
+import sys
+from typing import TYPE_CHECKING, Self, TextIO
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
@@ -13,6 +14,8 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from mcp.types import Tool
 
 logger = get_logger(__name__)
@@ -25,6 +28,25 @@ class MCPClient:
         self.exit_stack = AsyncExitStack()
         self.session: ClientSession | None = None
         self._available_tools: list[Tool] = []
+        self._old_stdout: TextIO | None = None
+
+    async def __aenter__(self) -> Self:
+        """Enter context and redirect stdout."""
+        # Redirect stdout to stderr
+        self._old_stdout = sys.stdout
+        sys.stdout = sys.stderr
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Restore stdout and cleanup."""
+        if self._old_stdout:
+            sys.stdout = self._old_stdout
+        await self.cleanup()
 
     async def connect(
         self, command: str, args: list[str], env: dict[str, str] | None = None
@@ -41,7 +63,6 @@ class MCPClient:
         # Set up connection
         stdio_transport = await self.exit_stack.enter_async_context(stdio_client(params))
         stdio, write = stdio_transport
-        # Set up connection
 
         # Create and initialize session
         self.session = await self.exit_stack.enter_async_context(
@@ -93,5 +114,18 @@ class MCPClient:
         return result.content[0].text
 
     async def cleanup(self) -> None:
-        """Clean up resources."""
+        """Clean up MCP client resources.
+
+        - Closes session with server
+        - Cleans up exit stack and processes
+        """
+        if self.session:
+            try:
+                # Send shutdown notification if protocol supports it
+                # await self.session.shutdown()
+                self.session = None
+            except Exception:
+                logger.exception("Error during session shutdown")
+
         await self.exit_stack.aclose()
+        self._available_tools = []
