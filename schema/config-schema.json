@@ -4,6 +4,16 @@
       "additionalProperties": false,
       "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\ncapabilities, and behavior settings. Each agent can have its own:\n- Language model configuration\n- Environment setup (tools and resources)\n- Response type definitions\n- System prompts and default user prompts\n- Role-based capabilities\n\nThe configuration can be loaded from YAML or created programmatically.",
       "properties": {
+        "type": {
+          "default": "ai",
+          "description": "Type of agent to create (AI-powered or human-in-the-loop)",
+          "enum": [
+            "ai",
+            "human"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
         "name": {
           "anyOf": [
             {
@@ -51,9 +61,14 @@
             {
               "discriminator": {
                 "mapping": {
-                  "random": "#/$defs/RandomMultiModel",
+                  "cost-optimized": "#/$defs/CostOptimizedMultiModel",
+                  "delegation": "#/$defs/DelegationMultiModel",
+                  "fallback": "#/$defs/FallbackMultiModel",
+                  "import": "#/$defs/ImportModel",
+                  "input": "#/$defs/InputModel",
                   "string": "#/$defs/StringModel",
-                  "test": "#/$defs/_TestModelWrapper"
+                  "test": "#/$defs/_TestModelWrapper",
+                  "token-optimized": "#/$defs/TokenOptimizedMultiModel"
                 },
                 "propertyName": "type"
               },
@@ -62,7 +77,22 @@
                   "$ref": "#/$defs/StringModel"
                 },
                 {
-                  "$ref": "#/$defs/RandomMultiModel"
+                  "$ref": "#/$defs/DelegationMultiModel"
+                },
+                {
+                  "$ref": "#/$defs/CostOptimizedMultiModel"
+                },
+                {
+                  "$ref": "#/$defs/TokenOptimizedMultiModel"
+                },
+                {
+                  "$ref": "#/$defs/FallbackMultiModel"
+                },
+                {
+                  "$ref": "#/$defs/InputModel"
+                },
+                {
+                  "$ref": "#/$defs/ImportModel"
                 },
                 {
                   "$ref": "#/$defs/_TestModelWrapper"
@@ -112,17 +142,9 @@
           "description": "Current agent's capabilities."
         },
         "session_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/SessionIdType",
           "default": null,
-          "description": "Opetional id of a session to load.",
-          "title": "Session Id"
+          "description": "Opetional id of a session to load."
         },
         "result_type": {
           "anyOf": [
@@ -322,6 +344,12 @@
           },
           "title": "Workers",
           "type": "array"
+        },
+        "debug": {
+          "default": false,
+          "description": "Enable debug output for this agent.",
+          "title": "Debug",
+          "type": "boolean"
         }
       },
       "title": "AgentConfig",
@@ -353,6 +381,103 @@
         "name"
       ],
       "title": "AgentTarget",
+      "type": "object"
+    },
+    "AgentTask": {
+      "description": "Definition of a task that can be executed by an agent.\n\nCan be used both programmatically and defined in YAML:\n\ntasks:\n  analyze_code:\n    prompt: \"Analyze the code in src directory\"\n    result_type: \"myapp.types.AnalysisResult\"\n    knowledge:\n      paths: [\"src/**/*.py\"]\n      resources:\n        - type: cli\n          command: \"mypy src/\"\n    tools: [\"analyze_code\", \"check_types\"]",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Technical identifier (automatically set from config key during registration)",
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Human-readable description of what this task does",
+          "title": "Description"
+        },
+        "prompt": {
+          "description": "The task instruction/prompt.",
+          "title": "Prompt",
+          "type": "string"
+        },
+        "result_type": {
+          "description": "Expected type of the task result.",
+          "title": "Result Type",
+          "type": "string"
+        },
+        "deps": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Dependencies or context data needed for task execution",
+          "title": "Deps"
+        },
+        "knowledge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Knowledge"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional knowledge sources for this task:\n- Simple file/URL paths\n- Rich resource definitions\n- Prompt templates"
+        },
+        "tools": {
+          "description": "Tools needed for this task.",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/ToolConfig"
+              }
+            ]
+          },
+          "title": "Tools",
+          "type": "array"
+        },
+        "min_context_tokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Minimum amount of required context size.",
+          "title": "Min Context Tokens"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "title": "AgentTask",
       "type": "object"
     },
     "CLIResource": {
@@ -629,6 +754,18 @@
           "title": "Can Chain Tools",
           "type": "boolean"
         },
+        "can_execute_code": {
+          "default": false,
+          "description": "Whether the agent can execute Python code (WARNING: No sandbox).",
+          "title": "Can Execute Code",
+          "type": "boolean"
+        },
+        "can_execute_commands": {
+          "default": false,
+          "description": "Whether the agent can execute CLI commands (use at your own risk).",
+          "title": "Can Execute Commands",
+          "type": "boolean"
+        },
         "can_create_workers": {
           "default": false,
           "description": "Whether the agent can create worker agents (as tools).",
@@ -643,6 +780,49 @@
         }
       },
       "title": "Capabilities",
+      "type": "object"
+    },
+    "CostOptimizedMultiModel": {
+      "additionalProperties": false,
+      "description": "Multi-model that selects based on cost and token limits.",
+      "properties": {
+        "type": {
+          "const": "cost-optimized",
+          "default": "cost-optimized",
+          "title": "Type",
+          "type": "string"
+        },
+        "models": {
+          "description": "List of models to use.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Models",
+          "type": "array"
+        },
+        "max_input_cost": {
+          "description": "Maximum allowed cost in USD per request",
+          "exclusiveMinimum": 0.0,
+          "title": "Max Input Cost",
+          "type": "number"
+        },
+        "strategy": {
+          "default": "best_within_budget",
+          "description": "Strategy for model selection.",
+          "enum": [
+            "cheapest_possible",
+            "best_within_budget"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "models",
+        "max_input_cost"
+      ],
+      "title": "CostOptimizedMultiModel",
       "type": "object"
     },
     "CustomToolsetConfig": {
@@ -679,6 +859,59 @@
         "import_path"
       ],
       "title": "CustomToolsetConfig",
+      "type": "object"
+    },
+    "DelegationMultiModel": {
+      "additionalProperties": false,
+      "description": "Meta-model that dynamically selects models based on a user prompt.\n\nExample YAML configuration:\n    ```yaml\n    model:\n      type: delegation\n      selector_model: openai:gpt-4-turbo\n      models:\n        - openai:gpt-4\n        - openai:gpt-3.5-turbo\n      selection_prompt: |\n        Pick gpt-4 for complex tasks, gpt-3.5-turbo for simple queries.\n    ```",
+      "properties": {
+        "type": {
+          "const": "delegation",
+          "default": "delegation",
+          "title": "Type",
+          "type": "string"
+        },
+        "models": {
+          "description": "List of models to use.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Models",
+          "type": "array"
+        },
+        "selector_model": {
+          "description": "Model to use for delegation.",
+          "title": "Selector Model",
+          "type": "string"
+        },
+        "selection_prompt": {
+          "description": "Instructions for model selection based on task type.",
+          "title": "Selection Prompt",
+          "type": "string"
+        },
+        "model_descriptions": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Descriptions"
+        }
+      },
+      "required": [
+        "models",
+        "selector_model",
+        "selection_prompt"
+      ],
+      "title": "DelegationMultiModel",
       "type": "object"
     },
     "DynamicPrompt": {
@@ -799,6 +1032,32 @@
         "module"
       ],
       "title": "EntryPointToolsetConfig",
+      "type": "object"
+    },
+    "FallbackMultiModel": {
+      "additionalProperties": false,
+      "description": "Tries models in sequence until one succeeds.\n\nExample YAML configuration:\n    ```yaml\n    model:\n      type: fallback\n      models:\n        - openai:gpt-4  # Try this first\n        - openai:gpt-3.5-turbo  # Fall back to this if gpt-4 fails\n        - ollama:llama2  # Last resort\n    ```",
+      "properties": {
+        "type": {
+          "const": "fallback",
+          "default": "fallback",
+          "title": "Type",
+          "type": "string"
+        },
+        "models": {
+          "description": "List of models to use.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Models",
+          "type": "array"
+        }
+      },
+      "required": [
+        "models"
+      ],
+      "title": "FallbackMultiModel",
       "type": "object"
     },
     "FileEnvironment": {
@@ -1107,6 +1366,28 @@
       "title": "GlobalSettings",
       "type": "object"
     },
+    "ImportModel": {
+      "additionalProperties": false,
+      "description": "Model that imports and delegates to other models.",
+      "properties": {
+        "type": {
+          "const": "import",
+          "default": "import",
+          "title": "Type",
+          "type": "string"
+        },
+        "model": {
+          "description": "Model class to import and use.",
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "title": "ImportModel",
+      "type": "object"
+    },
     "ImportedResponseDefinition": {
       "additionalProperties": false,
       "description": "Response definition that imports an existing Pydantic model.\n\nAllows using externally defined Pydantic models as response types.\nBenefits:\n- Reuse existing model definitions\n- Full Python type support\n- Complex validation logic\n- IDE support for imported types\n\nExample:\n    responses:\n      AnalysisResult:\n        type: import\n        import_path: myapp.models.AnalysisResult",
@@ -1127,9 +1408,43 @@
             }
           ],
           "default": null,
+          "description": "A description for this response definition.",
           "title": "Description"
         },
+        "result_tool_name": {
+          "default": "final_result",
+          "description": "The tool name for the Agent tool to create the structured response.",
+          "title": "Result Tool Name",
+          "type": "string"
+        },
+        "result_tool_description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The tool description for the Agent tool to create the structured response.",
+          "title": "Result Tool Description"
+        },
+        "result_retries": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Retry override. How often the Agent should try to validate the response.",
+          "title": "Result Retries"
+        },
         "import_path": {
+          "description": "The path to the pydantic model to use as the response type.",
           "title": "Import Path",
           "type": "string"
         }
@@ -1322,12 +1637,46 @@
             }
           ],
           "default": null,
+          "description": "A description for this response definition.",
           "title": "Description"
+        },
+        "result_tool_name": {
+          "default": "final_result",
+          "description": "The tool name for the Agent tool to create the structured response.",
+          "title": "Result Tool Name",
+          "type": "string"
+        },
+        "result_tool_description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The tool description for the Agent tool to create the structured response.",
+          "title": "Result Tool Description"
+        },
+        "result_retries": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Retry override. How often the Agent should try to validate the response.",
+          "title": "Result Retries"
         },
         "fields": {
           "additionalProperties": {
             "$ref": "#/$defs/ResponseField"
           },
+          "description": "A dictionary containing all fields.",
           "title": "Fields",
           "type": "object"
         }
@@ -1336,6 +1685,43 @@
         "fields"
       ],
       "title": "InlineResponseDefinition",
+      "type": "object"
+    },
+    "InputModel": {
+      "additionalProperties": false,
+      "description": "Model that delegates responses to human input.",
+      "properties": {
+        "type": {
+          "const": "input",
+          "default": "input",
+          "title": "Type",
+          "type": "string"
+        },
+        "prompt_template": {
+          "default": "\ud83d\udc64 Please respond to: {prompt}",
+          "description": "Template for showing the prompt to the human.",
+          "title": "Prompt Template",
+          "type": "string"
+        },
+        "show_system": {
+          "default": true,
+          "description": "Whether to show system messages to the human.",
+          "title": "Show System",
+          "type": "boolean"
+        },
+        "input_prompt": {
+          "default": "Your response: ",
+          "description": "Prompt to show when requesting input.",
+          "title": "Input Prompt",
+          "type": "string"
+        },
+        "handler": {
+          "description": "Input handler class to use.",
+          "title": "Handler",
+          "type": "string"
+        }
+      },
+      "title": "InputModel",
       "type": "object"
     },
     "Jinja2Config": {
@@ -2013,32 +2399,6 @@
       "title": "PromptParameter",
       "type": "object"
     },
-    "RandomMultiModel": {
-      "additionalProperties": false,
-      "description": "Randomly selects from configured models.\n\nExample YAML configuration:\n    ```yaml\n    model:\n      type: random\n      models:\n        - openai:gpt-4\n        - openai:gpt-3.5-turbo\n    ```",
-      "properties": {
-        "type": {
-          "const": "random",
-          "default": "random",
-          "title": "Type",
-          "type": "string"
-        },
-        "models": {
-          "description": "List of models to use.",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1,
-          "title": "Models",
-          "type": "array"
-        }
-      },
-      "required": [
-        "models"
-      ],
-      "title": "RandomMultiModel",
-      "type": "object"
-    },
     "ResponseField": {
       "additionalProperties": false,
       "description": "Field definition for inline response types.\n\nDefines a single field in an inline response definition, including:\n- Data type specification\n- Optional description\n- Validation constraints\n\nUsed by InlineResponseDefinition to structure response fields.",
@@ -2062,17 +2422,9 @@
           "title": "Description"
         },
         "constraints": {
-          "anyOf": [
-            {
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
           "description": "Optional validation constraints for the field",
-          "title": "Constraints"
+          "title": "Constraints",
+          "type": "object"
         }
       },
       "required": [
@@ -2080,6 +2432,60 @@
       ],
       "title": "ResponseField",
       "type": "object"
+    },
+    "SSEMCPServer": {
+      "description": "MCP server using Server-Sent Events transport.",
+      "properties": {
+        "type": {
+          "const": "sse",
+          "default": "sse",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "SSEMCPServer",
+      "type": "object"
+    },
+    "SessionIdType": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "SourceResource": {
       "description": "Resource from Python source code.",
@@ -2223,6 +2629,53 @@
         "messages"
       ],
       "title": "StaticPrompt",
+      "type": "object"
+    },
+    "StdioMCPServer": {
+      "description": "MCP server started via stdio.",
+      "properties": {
+        "type": {
+          "const": "stdio",
+          "default": "stdio",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment"
+        },
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "args": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Args",
+          "type": "array"
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "title": "StdioMCPServer",
       "type": "object"
     },
     "StringModel": {
@@ -2466,6 +2919,42 @@
       "title": "TextResource",
       "type": "object"
     },
+    "TokenOptimizedMultiModel": {
+      "additionalProperties": false,
+      "description": "Multi-model that selects based on input token count.\n\nExample YAML configuration:\n    ```yaml\n    model:\n      type: token-optimized\n      models:\n        - openai:gpt-4  # 8k context\n        - openai:gpt-4-32k  # 32k context\n        - openai:gpt-3.5-turbo-16k  # 16k context\n      strategy: efficient  # Use smallest sufficient context window\n    ```",
+      "properties": {
+        "type": {
+          "const": "token-optimized",
+          "default": "token-optimized",
+          "title": "Type",
+          "type": "string"
+        },
+        "models": {
+          "description": "List of models to use.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Models",
+          "type": "array"
+        },
+        "strategy": {
+          "default": "efficient",
+          "description": "Model selection strategy.",
+          "enum": [
+            "efficient",
+            "maximum_context"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "models"
+      ],
+      "title": "TokenOptimizedMultiModel",
+      "type": "object"
+    },
     "ToolConfig": {
       "additionalProperties": false,
       "description": "Configuration for a tool.",
@@ -2640,24 +3129,28 @@
       "type": "object"
     },
     "WorkerConfig": {
-      "description": "Configuration for a worker agent.",
+      "description": "Configuration for a worker agent.\n\nWorker agents are agents that are registered as tools with a parent agent.\nThis allows building hierarchies and specializations of agents.",
       "properties": {
         "name": {
+          "description": "Name of the agent to use as a worker",
           "title": "Name",
           "type": "string"
         },
         "reset_history_on_run": {
           "default": true,
+          "description": "Whether to clear worker's conversation history before each run.\nTrue (default): Fresh conversation each time\nFalse: Maintain conversation context between runs",
           "title": "Reset History On Run",
           "type": "boolean"
         },
         "pass_message_history": {
           "default": false,
+          "description": "Whether to pass parent agent's message history to worker.\nTrue: Worker sees parent's conversation context\nFalse (default): Worker only sees current request",
           "title": "Pass Message History",
           "type": "boolean"
         },
         "share_context": {
           "default": false,
+          "description": "Whether to share parent agent's context/dependencies with worker.\nTrue: Worker has access to parent's context data\nFalse (default): Worker uses own isolated context",
           "title": "Share Context",
           "type": "boolean"
         }
@@ -2692,6 +3185,14 @@
   "additionalProperties": false,
   "description": "Complete agent configuration manifest defining all available agents.\n\nThis is the root configuration that:\n- Defines available response types (both inline and imported)\n- Configures all agent instances and their settings\n- Sets up custom role definitions and capabilities\n- Manages environment configurations\n\nA single manifest can define multiple agents that can work independently\nor collaborate through the orchestrator.",
   "properties": {
+    "agents": {
+      "additionalProperties": {
+        "$ref": "#/$defs/AgentConfig"
+      },
+      "description": "Mapping of agent IDs to their configurations",
+      "title": "Agents",
+      "type": "object"
+    },
     "responses": {
       "additionalProperties": {
         "discriminator": {
@@ -2714,18 +3215,37 @@
       "title": "Responses",
       "type": "object"
     },
-    "agents": {
+    "tasks": {
       "additionalProperties": {
-        "$ref": "#/$defs/AgentConfig"
+        "$ref": "#/$defs/AgentTask"
       },
-      "description": "Mapping of agent IDs to their configurations",
-      "title": "Agents",
+      "description": "Pre-defined tasks, ready to be used by agents.",
+      "title": "Tasks",
+      "type": "object"
+    },
+    "mcp_servers": {
+      "additionalProperties": {
+        "discriminator": {
+          "mapping": {
+            "sse": "#/$defs/SSEMCPServer",
+            "stdio": "#/$defs/StdioMCPServer"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/StdioMCPServer"
+          },
+          {
+            "$ref": "#/$defs/SSEMCPServer"
+          }
+        ]
+      },
+      "description": "MCP server configurations",
+      "title": "Mcp Servers",
       "type": "object"
     }
   },
-  "required": [
-    "agents"
-  ],
   "title": "AgentsManifest",
   "type": "object"
 }
