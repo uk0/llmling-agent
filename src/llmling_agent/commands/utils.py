@@ -7,7 +7,6 @@ import webbrowser
 from slashed import Command, CommandContext, CommandError
 
 from llmling_agent.log import get_logger
-from llmling_agent.pydantic_ai_utils import find_last_assistant_message
 
 
 if TYPE_CHECKING:
@@ -49,19 +48,25 @@ async def copy_clipboard(
         msg = "pyperclip package required for clipboard operations"
         raise CommandError(msg) from e
 
-    if not ctx.context.history:
-        await ctx.output.print("No messages to copy")
+    # Use defaults but allow overrides through kwargs
+    format_kwargs = {
+        "num_messages": 1,
+        "include_system": False,
+        **kwargs,  # Override with any provided kwargs
+    }
+
+    content = await ctx.context._agent.conversation.format_history(**format_kwargs)
+
+    if not content.strip():
+        await ctx.output.print("No assistant message found to copy")
         return
 
-    if content := find_last_assistant_message(ctx.context.history):
-        try:
-            pyperclip.copy(content)
-            await ctx.output.print("Last assistant message copied to clipboard")
-        except Exception as e:
-            msg = f"Failed to copy to clipboard: {e}"
-            raise CommandError(msg) from e
-    else:
-        await ctx.output.print("No assistant message found to copy")
+    try:
+        pyperclip.copy(content)
+        await ctx.output.print("Last assistant message copied to clipboard")
+    except Exception as e:
+        msg = f"Failed to copy to clipboard: {e}"
+        raise CommandError(msg) from e
 
 
 async def edit_agent_file(
@@ -99,7 +104,14 @@ copy_clipboard_cmd = Command(
     name="copy-clipboard",
     description="Copy the last assistant message to clipboard",
     execute_func=copy_clipboard,
-    help_text=COPY_CB_HELP,
+    help_text="""Copy messages to clipboard.
+
+Options:
+  --num-messages N   Number of messages to copy (default: 1)
+  --max-tokens N     Only include N tokens
+  --include-system   Include system messages
+  --format FORMAT    Custom format template
+""",
     category="utils",
     condition=lambda: importlib.util.find_spec("pyperclip") is not None,
 )
