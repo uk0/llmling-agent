@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import inspect
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
@@ -37,7 +38,6 @@ class AgentFunction:
         """Set name and validate dependencies."""
         self.name = self.func.__name__
         # Extract default inputs from function signature
-        import inspect
 
         sig = inspect.signature(self.func)
         self.default_inputs = {
@@ -45,12 +45,8 @@ class AgentFunction:
             for name, param in sig.parameters.items()
             if param.default is not param.empty
         }
-        logger.debug(
-            "Registered agent function %s (order=%s, deps=%s)",
-            self.name,
-            self.order,
-            self.depends_on,
-        )
+        msg = "Registered agent function %s (order=%s, deps=%s)"
+        logger.debug(msg, self.name, self.order, self.depends_on)
 
 
 def agent_function(
@@ -80,11 +76,7 @@ def agent_function(
 
     def decorator(func: Callable) -> Callable:
         deps = [depends_on] if isinstance(depends_on, str) else list(depends_on or [])
-        metadata = AgentFunction(
-            func=func,
-            order=order,
-            depends_on=deps,
-        )
+        metadata = AgentFunction(func=func, order=order, depends_on=deps)
         func._agent_function = metadata  # type: ignore
         return func
 

@@ -33,12 +33,8 @@ def inject_agents(
     """Get agents to inject based on function signature."""
     hints = typing.get_type_hints(func)
     params = inspect.signature(func).parameters
-
-    logger.debug(
-        "Injecting agents for %s.%s",
-        func.__module__,
-        func.__qualname__,
-    )
+    msg = "Injecting agents for %s.%s"
+    logger.debug(msg, func.__module__, func.__qualname__)
     logger.debug("Type hints: %s", hints)
     logger.debug("Available agents in pool: %s", sorted(pool.agents))
 
@@ -76,13 +72,8 @@ def inject_agents(
         )
 
         if not is_agent:
-            logger.debug(
-                "Skipping %s: not an agent type (hint=%s, origin=%s, args=%s)",
-                name,
-                hint,
-                origin,
-                args,
-            )
+            msg = "Skipping %s: not an agent type (hint=%s, origin=%s, args=%s)"
+            logger.debug(msg, name, hint, origin, args)
             continue
 
         logger.debug("Found agent parameter: %s", name)

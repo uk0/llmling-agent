@@ -41,10 +41,7 @@ class AgentGroup[TDeps]:
     ) -> list[ChatMessage[Any]]:
         """Run all agents in parallel."""
         tasks = [
-            agent.run(
-                prompt or self.shared_prompt,
-                deps=deps or self.shared_deps,
-            )
+            agent.run(prompt or self.shared_prompt, deps=deps or self.shared_deps)
             for agent in self.agents
         ]
         return await asyncio.gather(*tasks)
@@ -86,10 +83,7 @@ class AgentGroup[TDeps]:
 
         while True:
             # Get response from current agent
-            response = await current_agent.run(
-                current_message,
-                deps=actual_deps,
-            )
+            response = await current_agent.run(current_message, deps=actual_deps)
             results.append(response)
 
             # Get next decision
