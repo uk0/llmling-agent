@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import TYPE_CHECKING, Any, TypeVar, overload
 
 from llmling_agent.delegation import interactive_controller
+from llmling_agent.delegation.pool import AgentResponse
 from llmling_agent.delegation.router import (
     AgentRouter,
     AwaitResponseDecision,
@@ -12,13 +14,13 @@ from llmling_agent.delegation.router import (
     EndDecision,
     RouteDecision,
 )
+from llmling_agent.models.messages import ChatMessage
 
 
 if TYPE_CHECKING:
     from llmling_agent.agent import Agent, AnyAgent
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.delegation.callbacks import DecisionCallback
-    from llmling_agent.models.messages import ChatMessage
 
 
 TDeps = TypeVar("TDeps")
@@ -42,22 +44,54 @@ class AgentGroup[TDeps]:
         self,
         prompt: str | None = None,
         deps: TDeps | None = None,
-    ) -> list[ChatMessage[Any]]:
+    ) -> list[AgentResponse[Any]]:
         """Run all agents in parallel."""
-        actual_prompt = prompt or self.shared_prompt
-        actual_deps = deps or self.shared_deps
-        tasks = [agent.run(actual_prompt, deps=actual_deps) for agent in self.agents]
-        return await asyncio.gather(*tasks)
+
+        async def run_agent(agent: AnyAgent[TDeps, Any]) -> AgentResponse[Any]:
+            try:
+                start = time.perf_counter()
+                message = await agent.run(
+                    prompt or self.shared_prompt, deps=deps or self.shared_deps
+                )
+                timing = time.perf_counter() - start
+                return AgentResponse(
+                    agent_name=agent.name, message=message, timing=timing
+                )
+            except Exception as e:  # noqa: BLE001
+                return AgentResponse(
+                    agent_name=agent.name,
+                    message=ChatMessage(content="", role="assistant"),
+                    error=str(e),
+                )
+
+        return await asyncio.gather(*[run_agent(a) for a in self.agents])
 
     async def run_sequential(
         self,
         prompt: str | None = None,
         deps: TDeps | None = None,
-    ) -> list[ChatMessage[Any]]:
+    ) -> list[AgentResponse[Any]]:
         """Run agents one after another."""
-        actual_prompt = prompt or self.shared_prompt
-        actual_deps = deps or self.shared_deps
-        return [await agent.run(actual_prompt, deps=actual_deps) for agent in self.agents]
+        results = []
+        for agent in self.agents:
+            try:
+                start = time.perf_counter()
+                message = await agent.run(
+                    prompt or self.shared_prompt, deps=deps or self.shared_deps
+                )
+                timing = time.perf_counter() - start
+                results.append(
+                    AgentResponse(agent_name=agent.name, message=message, timing=timing)
+                )
+            except Exception as e:  # noqa: BLE001
+                results.append(
+                    AgentResponse(
+                        agent_name=agent.name,
+                        message=ChatMessage(content="", role="assistant"),
+                        error=str(e),
+                    )
+                )
+        return results
 
     async def run_controlled(
         self,
@@ -66,7 +100,7 @@ class AgentGroup[TDeps]:
         *,
         decision_callback: DecisionCallback = interactive_controller,
         router: AgentRouter | None = None,
-    ) -> list[ChatMessage[Any]]:
+    ) -> list[AgentResponse[Any]]:
         """Run with explicit control over agent interactions."""
         results = []
         actual_prompt = prompt or self.shared_prompt
@@ -80,15 +114,21 @@ class AgentGroup[TDeps]:
 
         while True:
             # Get response from current agent
-            response = await current_agent.run(current_message, deps=actual_deps)
+            now = time.perf_counter()
+            message = await current_agent.run(current_message, deps=actual_deps)
+            duration = time.perf_counter() - now
+            response = AgentResponse(current_agent.name, message, timing=duration)
             results.append(response)
 
             # Get next decision
-            decision = await router.decide(response.content)
+            assert response.message
+            decision = await router.decide(response.message.content)
 
             # Execute the decision
             assert current_agent.context.pool
-            await decision.execute(response, current_agent, current_agent.context.pool)
+            await decision.execute(
+                response.message, current_agent, current_agent.context.pool
+            )
 
             match decision:
                 case EndDecision():
@@ -100,7 +140,7 @@ class AgentGroup[TDeps]:
                         (a for a in self.agents if a.name == decision.target_agent),
                         current_agent,
                     )
-                    current_message = str(response.content)
+                    current_message = str(response.message.content)
 
         return results
 
