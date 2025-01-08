@@ -11,9 +11,9 @@ if TYPE_CHECKING:
     from pydantic_ai.agent import EndStrategy
 
     from llmling_agent.agent.conversation import ConversationManager
-    from llmling_agent.agent.providers.base import AgentProvider
     from llmling_agent.models.context import AgentContext
     from llmling_agent.tools.manager import ToolManager
+    from llmling_agent_providers.base import AgentProvider
 
 
 class BaseProviderConfig(BaseModel):
@@ -78,7 +78,7 @@ class AIProviderConfig(BaseProviderConfig):
         conversation: ConversationManager,
     ) -> AgentProvider:
         """Create PydanticAI provider instance."""
-        from llmling_agent.agent.providers.pydanticai import PydanticAIProvider
+        from llmling_agent_providers.pydanticai import PydanticAIProvider
 
         return PydanticAIProvider(
             context=context,
@@ -116,7 +116,7 @@ class HumanProviderConfig(BaseProviderConfig):
         conversation: ConversationManager,
     ) -> AgentProvider:
         """Create human provider instance."""
-        from llmling_agent.agent.providers.human import HumanProvider
+        from llmling_agent_providers.human import HumanProvider
 
         return HumanProvider(
             context=context,

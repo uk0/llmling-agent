@@ -9,9 +9,9 @@ from typing import TYPE_CHECKING, Any
 from llmling import ToolError
 import logfire
 
-from llmling_agent.agent.providers import AgentProvider
-from llmling_agent.agent.providers.base import ProviderResponse
 from llmling_agent.log import get_logger
+from llmling_agent_providers import AgentProvider
+from llmling_agent_providers.base import ProviderResponse
 
 
 if TYPE_CHECKING:

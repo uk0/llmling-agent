@@ -13,7 +13,6 @@ from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import Model, infer_model
 
-from llmling_agent.agent.providers.base import AgentProvider, ProviderResponse
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
 from llmling_agent.pydantic_ai_utils import format_part, get_tool_calls, to_result_schema
@@ -24,6 +23,7 @@ from llmling_agent.tasks.exceptions import (
     ToolSkippedError,
 )
 from llmling_agent.utils.inspection import has_argument_type
+from llmling_agent_providers.base import AgentProvider, ProviderResponse
 
 
 if TYPE_CHECKING:

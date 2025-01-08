@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from llmling_agent.agent.providers.base import AgentProvider, ProviderResponse
-from llmling_agent.agent.providers.human import HumanProvider
-from llmling_agent.agent.providers.pydanticai import PydanticAIProvider
+from llmling_agent_providers.base import AgentProvider, ProviderResponse
+from llmling_agent_providers.human import HumanProvider
+from llmling_agent_providers.pydanticai import PydanticAIProvider
 
 type AnyProvider = PydanticAIProvider | HumanProvider
 

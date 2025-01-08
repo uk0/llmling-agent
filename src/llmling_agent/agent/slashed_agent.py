@@ -22,12 +22,12 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.conversation import ConversationManager
-    from llmling_agent.agent.providers.base import AgentProvider
     from llmling_agent.common_types import ModelType
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.context import AgentContext
     from llmling_agent.tools.manager import ToolManager
+    from llmling_agent_providers.base import AgentProvider
 
 
 logger = get_logger(__name__)

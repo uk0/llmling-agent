@@ -27,7 +27,6 @@ from toprompt import AnyPromptType, to_prompt
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.conversation import ConversationManager
-from llmling_agent.agent.providers import AgentProvider, HumanProvider, PydanticAIProvider
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
@@ -35,6 +34,7 @@ from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context
+from llmling_agent_providers import AgentProvider, HumanProvider, PydanticAIProvider
 
 
 if TYPE_CHECKING:

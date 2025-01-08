@@ -10,6 +10,7 @@ packages = [
     "src/llmling_agent_cli",
     "src/llmling_agent_tools",
     "src/llmling_agent_commands",
+    "src/llmling_agent_providers",
 ]
 
 [build-system]
