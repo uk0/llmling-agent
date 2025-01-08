@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, Self, overload
 
 from llmling import BaseRegistry, Config, LLMLingError, RuntimeConfig
-from pydantic import BaseModel
 from typing_extensions import TypeVar
 
 from llmling_agent.agent import Agent, AnyAgent
@@ -46,14 +46,15 @@ logger = get_logger(__name__)
 TResult = TypeVar("TResult", default=Any)
 
 
-class AgentResponse[TResult](BaseModel):
+@dataclass
+class AgentResponse[TResult]:
     """Result from an agent's execution."""
 
     agent_name: str
     """Name of the agent that produced this result"""
 
-    response: TResult
-    """The actual response, typed according to the agent's result type"""
+    message: ChatMessage[TResult] | None
+    """The actual message with content and metadata"""
 
     timing: float | None = None
     """Time taken by this agent in seconds"""
@@ -65,6 +66,11 @@ class AgentResponse[TResult](BaseModel):
     def success(self) -> bool:
         """Whether the agent completed successfully."""
         return self.error is None
+
+    @property
+    def response(self) -> TResult | None:
+        """Convenient access to message content."""
+        return self.message.content if self.message else None
 
 
 class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
@@ -601,11 +607,11 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
                     )
                     agent.runtime = RuntimeConfig.from_config(cfg)
                 result = await agent.run(prompt, result_type=result_type)
-                return AgentResponse(agent_name=agent.name, response=result.data)
+                return AgentResponse(agent_name=agent.name, message=result)
             except Exception as e:
                 name = agent_ref if isinstance(agent_ref, str) else agent_ref.name
                 logger.exception("Agent %s failed", name)
-                return AgentResponse(agent_name=name, response=None, error=str(e))
+                return AgentResponse(agent_name=name, message=None, error=str(e))
 
         if mode == "parallel":
             tasks = [run_agent(ref) for ref in team]
