@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.agent import Agent
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.messages import ChatMessage
@@ -34,7 +34,7 @@ class Decision(BaseModel):
     async def execute(
         self,
         message: ChatMessage[Any],
-        source_agent: Agent[Any],
+        source_agent: AnyAgent[Any, Any],
         pool: AgentPool,
     ) -> None:
         """Execute this routing decision."""
@@ -53,7 +53,7 @@ class RouteDecision(Decision):
     async def execute(
         self,
         message: ChatMessage[Any],
-        source_agent: Agent[Any],
+        source_agent: AnyAgent[Any, Any],
         pool: AgentPool,
     ) -> None:
         """Forward message and continue."""
@@ -76,7 +76,7 @@ class AwaitResponseDecision(Decision):
     async def execute(
         self,
         message: ChatMessage[Any],
-        source_agent: Agent[Any],
+        source_agent: AnyAgent[Any, Any],
         pool: AgentPool,
     ) -> None:
         """Forward message and wait for response."""
@@ -95,7 +95,7 @@ class EndDecision(Decision):
     async def execute(
         self,
         message: ChatMessage[Any],
-        source_agent: Agent[Any],
+        source_agent: AnyAgent[Any, Any],
         pool: AgentPool,
     ) -> None:
         """End the conversation."""
