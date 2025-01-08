@@ -12,8 +12,8 @@ from textual.containers import Container
 from textual.widgets import Header
 
 from llmling_agent import Agent
-from llmling_agent.commands import get_commands
 from llmling_agent.models import ChatMessage
+from llmling_agent_commands import get_commands
 from llmling_textual.widget import ChatView
 
 

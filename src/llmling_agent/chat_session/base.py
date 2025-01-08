@@ -23,10 +23,10 @@ from llmling_agent.agent import Agent, AnyAgent
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
-from llmling_agent.commands import get_commands
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.tools.base import ToolInfo
+from llmling_agent_commands import get_commands
 
 
 if TYPE_CHECKING:

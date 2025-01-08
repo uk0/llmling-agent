@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from slashed import Command, CommandContext
 from slashed.completers import CallbackCompleter
 
-from llmling_agent.commands.completers import get_model_names
+from llmling_agent_commands.completers import get_model_names
 
 
 if TYPE_CHECKING:

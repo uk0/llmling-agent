@@ -9,7 +9,7 @@ import pytest
 from slashed import CommandStore, DefaultOutputWriter
 
 from llmling_agent import Agent, AgentPoolView
-from llmling_agent.commands.prompts import prompt_cmd
+from llmling_agent_commands.prompts import prompt_cmd
 
 
 @pytest.fixture

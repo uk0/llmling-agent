@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 
 from slashed import Command, CommandContext, CommandError
 
-from llmling_agent.commands.completers import MetaCompleter
 from llmling_agent.prompts import DEFAULT_PROMPTS, PromptLibrary
 from llmling_agent.prompts.models import PromptTemplate
+from llmling_agent_commands.completers import MetaCompleter
 
 
 if TYPE_CHECKING:

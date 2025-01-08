@@ -8,8 +8,8 @@ from rich.tree import Tree
 from slashed import Command, CommandContext, CommandError
 from slashed.completers import CallbackCompleter
 
-from llmling_agent.commands.completers import get_available_agents
 from llmling_agent.log import get_logger
+from llmling_agent_commands.completers import get_available_agents
 
 
 if TYPE_CHECKING:

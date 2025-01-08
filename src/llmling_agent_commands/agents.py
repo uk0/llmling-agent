@@ -9,9 +9,9 @@ from slashed.completers import CallbackCompleter
 import yamling
 
 from llmling_agent.agent import Agent, AnyAgent
-from llmling_agent.commands.completers import get_available_agents
 from llmling_agent.environment.models import InlineEnvironment
 from llmling_agent.models.agents import AgentConfig
+from llmling_agent_commands.completers import get_available_agents
 
 
 if TYPE_CHECKING:

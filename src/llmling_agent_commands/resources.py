@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 from slashed import Command, CommandContext, CommandError
 from slashed.completers import CallbackCompleter
 
-from llmling_agent.commands.completers import get_resource_names
 from llmling_agent.log import get_logger
+from llmling_agent_commands.completers import get_resource_names
 
 
 if TYPE_CHECKING:
