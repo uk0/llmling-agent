@@ -199,6 +199,7 @@ class ConversationManager:
         max_tokens: int | None = None,
         include_system: bool = False,
         format_template: str | None = None,
+        num_messages: int | None = None,  # Add this parameter
     ) -> str:
         """Format conversation history as a single context message.
 
@@ -206,15 +207,19 @@ class ConversationManager:
             max_tokens: Optional limit to include only last N tokens
             include_system: Whether to include system messages
             format_template: Optional custom format (defaults to agent/message pairs)
-
-        Returns:
-            Formatted conversation history as a single string
+            num_messages: Optional limit to include only last N messages
         """
         template = format_template or "Agent {agent}: {content}\n"
         messages: list[str] = []
         token_count = 0
 
-        history = reversed(self._current_history) if max_tokens else self._current_history
+        # Get messages, optionally limited
+        history = self._current_history
+        if num_messages:
+            history = history[-num_messages:]
+
+        if max_tokens:
+            history = list(reversed(history))  # Start from newest when token limited
 
         for msg in history:
             # Check message type instead of role string
