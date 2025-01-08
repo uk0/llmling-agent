@@ -149,6 +149,35 @@
           "$ref": "#/$defs/Capabilities",
           "description": "Current agent's capabilities."
         },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServer\n- MCPServerConfig for full server configuration",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServer",
+                    "stdio": "#/$defs/StdioMCPServer"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServer"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServer"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "Mcp Servers",
+          "type": "array"
+        },
         "session_id": {
           "$ref": "#/$defs/SessionIdType",
           "default": null,
@@ -2520,16 +2549,18 @@
       "type": "object"
     },
     "SSEMCPServer": {
-      "description": "MCP server using Server-Sent Events transport.",
+      "description": "MCP server using Server-Sent Events transport.\n\nConnects to a server over HTTP with SSE for real-time communication.",
       "properties": {
         "type": {
           "const": "sse",
           "default": "sse",
+          "description": "Type discriminator for SSE servers.",
           "title": "Type",
           "type": "string"
         },
         "enabled": {
           "default": true,
+          "description": "Whether this server is currently enabled.",
           "title": "Enabled",
           "type": "boolean"
         },
@@ -2546,9 +2577,11 @@
             }
           ],
           "default": null,
+          "description": "Environment variables to pass to the server process.",
           "title": "Environment"
         },
         "url": {
+          "description": "URL of the SSE server endpoint.",
           "title": "Url",
           "type": "string"
         }
@@ -2718,16 +2751,18 @@
       "type": "object"
     },
     "StdioMCPServer": {
-      "description": "MCP server started via stdio.",
+      "description": "MCP server started via stdio.\n\nUses subprocess communication through standard input/output streams.",
       "properties": {
         "type": {
           "const": "stdio",
           "default": "stdio",
+          "description": "Type discriminator for stdio servers.",
           "title": "Type",
           "type": "string"
         },
         "enabled": {
           "default": true,
+          "description": "Whether this server is currently enabled.",
           "title": "Enabled",
           "type": "boolean"
         },
@@ -2744,13 +2779,16 @@
             }
           ],
           "default": null,
+          "description": "Environment variables to pass to the server process.",
           "title": "Environment"
         },
         "command": {
+          "description": "Command to execute (e.g. \"pipx\", \"python\", \"node\").",
           "title": "Command",
           "type": "string"
         },
         "args": {
+          "description": "Command arguments (e.g. [\"run\", \"some-server\", \"--debug\"]).",
           "items": {
             "type": "string"
           },
@@ -2799,12 +2837,11 @@
             "groq:mixtral-8x7b-32768",
             "groq:gemma2-9b-it",
             "groq:gemma-7b-it",
-            "google-gla:gemini-1.5-flash",
-            "google-gla:gemini-1.5-pro",
-            "google-gla:gemini-2.0-flash-exp",
-            "google-vertex:gemini-1.5-flash",
-            "google-vertex:gemini-1.5-pro",
-            "google-vertex:gemini-2.0-flash-exp",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+            "gemini-2.0-flash-exp",
+            "vertexai:gemini-1.5-flash",
+            "vertexai:gemini-1.5-pro",
             "mistral:mistral-small-latest",
             "mistral:mistral-large-latest",
             "mistral:codestral-latest",
@@ -2826,9 +2863,9 @@
             "ollama:qwen2",
             "ollama:qwen2.5",
             "ollama:starcoder2",
-            "anthropic:claude-3-5-haiku-latest",
-            "anthropic:claude-3-5-sonnet-latest",
-            "anthropic:claude-3-opus-latest",
+            "claude-3-5-haiku-latest",
+            "claude-3-5-sonnet-latest",
+            "claude-3-opus-latest",
             "test"
           ],
           "title": "Identifier",
@@ -3311,26 +3348,33 @@
       "type": "object"
     },
     "mcp_servers": {
-      "additionalProperties": {
-        "discriminator": {
-          "mapping": {
-            "sse": "#/$defs/SSEMCPServer",
-            "stdio": "#/$defs/StdioMCPServer"
-          },
-          "propertyName": "type"
-        },
-        "oneOf": [
+      "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServer\n- MCPServerConfig for full server configuration",
+      "items": {
+        "anyOf": [
           {
-            "$ref": "#/$defs/StdioMCPServer"
+            "type": "string"
           },
           {
-            "$ref": "#/$defs/SSEMCPServer"
+            "discriminator": {
+              "mapping": {
+                "sse": "#/$defs/SSEMCPServer",
+                "stdio": "#/$defs/StdioMCPServer"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/StdioMCPServer"
+              },
+              {
+                "$ref": "#/$defs/SSEMCPServer"
+              }
+            ]
           }
         ]
       },
-      "description": "MCP server configurations",
       "title": "Mcp Servers",
-      "type": "object"
+      "type": "array"
     }
   },
   "title": "AgentsManifest",
