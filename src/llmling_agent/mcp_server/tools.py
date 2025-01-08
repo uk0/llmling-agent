@@ -30,10 +30,7 @@ def create_mcp_tool_callable(
 ) -> Callable[[RunContext[AgentContext]], Any]:
     """Create a callable that forwards to MCP tool."""
 
-    async def call_mcp_tool(
-        ctx: RunContext[AgentContext],
-        **kwargs: Any,
-    ) -> str:
+    async def call_mcp_tool(ctx: RunContext[AgentContext], **kwargs: Any) -> str:
         """Forward call to MCP server."""
         return await mcp_client.call_tool(tool.name, kwargs)
 
@@ -74,11 +71,8 @@ def register_mcp_tools(
         )
 
         # Register with manager
-        tool_info = tool_manager.register_tool(
-            llm_tool,
-            source="mcp",
-            metadata={"mcp_tool": mcp_tool.name},
-        )
+        metadata = {"mcp_tool": mcp_tool.name}
+        tool_info = tool_manager.register_tool(llm_tool, source="mcp", metadata=metadata)
         registered.append(tool_info)
 
         logger.debug("Registered MCP tool: %s", mcp_tool.name)

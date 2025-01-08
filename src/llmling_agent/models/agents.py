@@ -270,12 +270,7 @@ class AgentConfig(BaseModel):
                         msg = "Empty MCP server command"
                         raise ValueError(msg)
 
-                    configs.append(
-                        StdioMCPServer(
-                            command=parts[0],
-                            args=parts[1:],
-                        )
-                    )
+                    configs.append(StdioMCPServer(command=parts[0], args=parts[1:]))
                 case MCPServerBase():
                     configs.append(server)
 

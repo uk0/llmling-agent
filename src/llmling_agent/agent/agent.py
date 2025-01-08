@@ -151,7 +151,11 @@ class Agent[TDeps]:
         all_tools = list(tools or [])
         all_tools.extend(runtime.tools.values())  # Add runtime tools directly
         logger.debug("Runtime tools: %s", list(runtime.tools.keys()))
-        self._tool_manager = ToolManager(tools=all_tools, tool_choice=tool_choice)
+        self._tool_manager = ToolManager(
+            tools=all_tools,
+            tool_choice=tool_choice,
+            context=context,
+        )
 
         # set up conversation manager
         config_prompts = context.config.system_prompts if context else []
@@ -238,10 +242,23 @@ class Agent[TDeps]:
         return "\n".join(parts)
 
     async def __aenter__(self) -> Self:
-        """Enter async context."""
-        if self.context and self.context.config.mcp_servers:
-            await self.tools.setup_mcp_servers(self.context.config.get_mcp_servers())
-        return self
+        """Enter async context and set up MCP servers.
+
+        Called when agent enters its async context. Sets up any configured
+        MCP servers and their tools.
+        """
+        try:
+            # Setup MCP servers if agent has them configured
+            if self.context and self.context.config and self.context.config.mcp_servers:
+                await self.tools.setup_mcp_servers(self.context.config.get_mcp_servers())
+        except Exception as e:
+            # Clean up on error
+            await self.tools.cleanup()
+            msg = "Failed to initialize tool manager"
+            logger.exception(msg, exc_info=e)
+            raise RuntimeError(msg) from e
+        else:
+            return self
 
     async def __aexit__(
         self,
@@ -250,7 +267,7 @@ class Agent[TDeps]:
         exc_tb: TracebackType | None,
     ) -> None:
         """Exit async context."""
-        # await self.cleanup()
+        await self.tools.cleanup()
 
     @property
     def name(self) -> str:
@@ -270,6 +287,7 @@ class Agent[TDeps]:
     def context(self, value: AgentContext[TDeps]):
         """Set agent context and propagate to provider."""
         self._provider.context = value
+        self._tool_manager.context = value
 
     def set_result_type(
         self,

@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import AsyncExitStack
 from dataclasses import dataclass, field, fields
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling import BaseRegistry, LLMCallableTool, ToolError
 from psygnal import Signal
@@ -19,9 +19,11 @@ from llmling_agent.tools.base import ToolInfo
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
+    from types import TracebackType
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import ToolSource, ToolType
+    from llmling_agent.models.context import AgentContext
 
 
 logger = get_logger(__name__)
@@ -53,7 +55,9 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
     def __init__(
         self,
         tools: Sequence[ToolInfo | ToolType | dict[str, Any]] | None = None,
+        *,
         tool_choice: bool | str | list[str] = True,
+        context: AgentContext[Any] | None = None,
     ):
         """Initialize tool manager.
 
@@ -64,9 +68,11 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 - False: No tools
                 - str: Use specific tool
                 - list[str]: Allow specific tools
+            context: Tool context
         """
         super().__init__()
         self.tool_choice = tool_choice
+        self.context = context
         self._mcp_clients: dict[str, MCPClient] = {}
         self.exit_stack = AsyncExitStack()
 
@@ -80,6 +86,37 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         if not enabled_tools:
             return "No tools available"
         return f"Available tools: {', '.join(enabled_tools)}"
+
+    async def __aenter__(self) -> Self:
+        """Enter async context and set up MCP servers."""
+        try:
+            # Setup MCP servers if configured
+            if self.context and self.context.config and self.context.config.mcp_servers:
+                await self.setup_mcp_servers(self.context.config.get_mcp_servers())
+        except Exception as e:
+            # Clean up on error
+            await self.__aexit__(type(e), e, e.__traceback__)
+            msg = "Failed to initialize tool manager"
+            logger.exception(msg, exc_info=e)
+            raise RuntimeError(msg) from e
+        else:
+            return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit async context."""
+        try:
+            # Clean up MCP clients through exit stack
+            await self.exit_stack.aclose()
+            self._mcp_clients.clear()
+        except Exception as e:
+            msg = "Error during tool manager cleanup"
+            logger.exception(msg, exc_info=e)
+            raise RuntimeError(msg) from e
 
     def reset_states(self):
         """Reset all tools to their default enabled states."""
@@ -272,16 +309,20 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         self.tool_states_reset.emit(event)
 
     async def setup_mcp_servers(self, servers: list[MCPServerConfig]) -> None:
-        """Set up multiple MCP server integrations."""
-        for server in servers:
-            if not server.enabled:
-                continue
+        """Set up multiple MCP server integrations.
 
-            try:
+        Args:
+            servers: List of MCP server configurations
+        """
+        try:
+            for server in servers:
+                if not server.enabled:
+                    continue
+
                 match server:
                     case StdioMCPServer():
-                        # Create and enter client context
-                        client = MCPClient()
+                        # Create client with stdio mode
+                        client = MCPClient(stdio_mode=True)
                         client = await self.exit_stack.enter_async_context(client)
 
                         await client.connect(
@@ -298,16 +339,48 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                         register_mcp_tools(self, client)
 
                     case SSEMCPServer():
-                        msg = "SSE servers not yet implemented"
-                        raise NotImplementedError(msg)  # noqa: TRY301
+                        # SSE client without stdio mode
+                        client = MCPClient(stdio_mode=False)
+                        client = await self.exit_stack.enter_async_context(client)
 
-            except Exception as e:
-                msg = "Failed to setup MCP servers"
-                logger.exception(msg, exc_info=e)
-                raise RuntimeError(msg) from e
+                        await client.connect(
+                            command="",  # Not used for SSE
+                            args=[],  # Not used for SSE
+                            url=server.url,
+                            env=server.environment,
+                        )
+
+                        # Store client
+                        client_id = f"sse_{server.url}"
+                        self._mcp_clients[client_id] = client
+
+                        # Register tools
+                        register_mcp_tools(self, client)
+
+        except Exception as e:
+            msg = "Failed to setup MCP servers"
+            logger.exception(msg, exc_info=e)
+            raise RuntimeError(msg) from e
 
     async def cleanup(self) -> None:
         """Clean up resources including all MCP clients."""
-        for client in self._mcp_clients.values():
-            await client.cleanup()
-        self._mcp_clients.clear()
+        try:
+            # Store tools to remove
+            to_remove = [
+                name
+                for name, info in self.items()
+                if info.metadata.get("mcp_tool") is not None
+            ]
+
+            # Clean up exit stack (which includes MCP clients)
+            await self.exit_stack.aclose()
+            self._mcp_clients.clear()
+
+            # Remove MCP tools
+            for name in to_remove:
+                del self._items[name]
+
+        except Exception as e:
+            msg = "Error during tool manager cleanup"
+            logger.exception(msg, exc_info=e)
+            raise RuntimeError(msg) from e
