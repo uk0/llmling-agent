@@ -85,7 +85,7 @@ class Agent[TDeps]:
     message_exchanged = Signal(ChatMessage)
     tool_used = Signal(ToolCallInfo)
     model_changed = Signal(object)  # Model | None
-    chunk_streamed = Signal(str)
+    chunk_streamed = Signal(str, str)  # (chunk, message_id)
     outbox = Signal(ChatMessage[Any], str)  # self, message, prompt
 
     def __init__(
@@ -196,7 +196,12 @@ class Agent[TDeps]:
                 raise ValueError(msg)
         context.capabilities.register_capability_tools(self)
 
+        # Forward provider signals
+        self._provider.chunk_streamed.connect(self.chunk_streamed.emit)
         self._provider.model_changed.connect(self.model_changed.emit)
+        self._provider.tool_used.connect(self.tool_used.emit)
+        self._provider.model_changed.connect(self.model_changed.emit)
+
         self.name = name
         self.description = description
         msg = "Initialized %s (model=%s)"

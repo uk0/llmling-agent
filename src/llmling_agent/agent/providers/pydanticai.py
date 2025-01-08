@@ -351,10 +351,11 @@ class PydanticAIProvider(AgentProvider):
 
             async def wrapped_stream(*args, **kwargs):
                 async for chunk in original_stream(*args, **kwargs):
-                    self.chunk_streamed.emit(str(chunk))
+                    self.chunk_streamed.emit(str(chunk), message_id)
                     yield chunk
 
                 if stream_result.is_complete:
+                    self.chunk_streamed.emit("", message_id)
                     # Handle structured responses
                     if stream_result.is_structured:
                         message = stream_result._stream_response.get(final=True)

@@ -42,7 +42,7 @@ class AgentProvider[TDeps]:
     """Base class for agent providers."""
 
     tool_used = Signal(ToolCallInfo)
-    chunk_streamed = Signal(str)
+    chunk_streamed = Signal(str, str)
     model_changed = Signal(object)  # Model | None
 
     def __init__(

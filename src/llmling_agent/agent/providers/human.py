@@ -172,7 +172,7 @@ class HumanProvider(AgentProvider):
             while not stream_result.is_complete or not chunk_queue.empty():
                 try:
                     chunk = await chunk_queue.get()
-                    self.chunk_streamed.emit(chunk)
+                    self.chunk_streamed.emit(chunk, message_id)
                     yield chunk
                 except asyncio.CancelledError:
                     break

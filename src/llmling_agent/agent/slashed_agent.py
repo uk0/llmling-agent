@@ -45,6 +45,7 @@ OutputType = Literal[
     "command_executed",
     "status",
     "error",
+    "stream",
 ]
 
 
@@ -70,6 +71,8 @@ class SlashedAgent[TDeps, TContext]:
 
     message_output = Signal(AgentOutput)
     streamed_output = Signal(AgentOutput)
+    streaming_started = Signal(str)  # message_id
+    streaming_stopped = Signal(str)  # message_id
 
     def __init__(
         self,
@@ -87,6 +90,7 @@ class SlashedAgent[TDeps, TContext]:
             history_file=command_history_path,
             enable_system_commands=True,
         )
+        self._current_stream_id: str | None = None
         self.command_context: TContext = command_context or self  # type: ignore
         self.output = output or DefaultOutputWriter()
         # Connect to agent's signals
@@ -274,3 +278,19 @@ class SlashedAgent[TDeps, TContext]:
         meta = {"success": event.success, "error": error, "context": event.context}
         output = AgentOutput("command_executed", content=event.command, metadata=meta)
         self.message_output.emit(output)
+
+    def _handle_chunk_streamed(self, chunk: str, message_id: str):
+        """Handle streaming chunks."""
+        # If this is a new streaming session
+        if message_id != self._current_stream_id:
+            self._current_stream_id = message_id
+            self.streaming_started.emit(message_id)
+
+        if chunk:  # Only emit non-empty chunks
+            output = AgentOutput(
+                type="stream", content=chunk, metadata={"message_id": message_id}
+            )
+            self.streamed_output.emit(output)
+        else:  # Empty chunk signals end of stream
+            self.streaming_stopped.emit(message_id)
+            self._current_stream_id = None
