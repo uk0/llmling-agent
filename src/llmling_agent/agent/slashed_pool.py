@@ -4,17 +4,18 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+import dataclasses
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Self, overload
 
 from psygnal import Signal
-from pydantic import dataclasses
 from slashed import BaseCommand, CommandStore, DefaultOutputWriter, OutputWriter
 
 from llmling_agent.agent import Agent, AnyAgent, SlashedAgent
 from llmling_agent.agent.slashed_agent import AgentOutput
 from llmling_agent.log import get_logger
+from llmling_agent.models.messages import ChatMessage
 
 
 if TYPE_CHECKING:
@@ -22,80 +23,12 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from pydantic_ai.result import StreamedRunResult
+    from toprompt import AnyPromptType
 
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.context import AgentContext
-    from llmling_agent.models.messages import ChatMessage
 
 logger = get_logger(__name__)
-
-
-class _AgentResponseIterator:
-    """Async iterator for agent responses."""
-
-    def __init__(
-        self,
-        pool: SlashedPool[Any],
-        content: str,
-        *,
-        agent: str | None = None,
-        output: OutputWriter | None = None,
-        metadata: dict[str, Any] | None = None,
-    ):
-        self.pool = pool
-        self.content = content
-        self.target = agent
-        self.output = output
-        self.metadata = metadata
-        self._tasks: dict[str, asyncio.Task[Any]] | None = None
-
-    def __aiter__(self) -> Self:
-        return self
-
-    async def __anext__(self) -> ChatMessage[str]:
-        # Initialize tasks on first iteration
-        if self._tasks is None:
-            if self.target:
-                if self.target not in self.pool._slashed_agents:
-                    msg = f"Agent {self.target} not found"
-                    raise ValueError(msg)
-                # Single agent - just run and stop iteration
-                response = await self.pool._slashed_agents[self.target].run(
-                    self.content,
-                    output=self.output,
-                    metadata={"sender": self.target, **(self.metadata or {})},
-                )
-                self._tasks = {}  # Mark as done
-                return response
-
-            # Multi-agent - create tasks
-            self._tasks = {
-                name: asyncio.create_task(
-                    agent.run(
-                        self.content,
-                        output=self.output,
-                        metadata={"sender": name, **(self.metadata or {})},
-                    )
-                )
-                for name, agent in self.pool._slashed_agents.items()
-            }
-
-        # Stop if no more tasks
-        if not self._tasks:
-            raise StopAsyncIteration
-
-        # Wait for next completed task
-        done, _ = await asyncio.wait(
-            self._tasks.values(), return_when=asyncio.FIRST_COMPLETED
-        )
-        for task in done:
-            # Find and remove completed task
-            name = next(n for n, t in self._tasks.items() if t == task)
-            self._tasks.pop(name)
-            return await task
-
-        # Should never get here
-        raise StopAsyncIteration
 
 
 @dataclass
@@ -148,20 +81,27 @@ class SlashedPool[TDeps]:
         pool: AgentPool,
         *,
         command_history_path: str | None = None,
+        output: OutputWriter | None = None,
     ):
         """Initialize pool interface.
 
         Args:
             pool: Agent pool to manage
             command_history_path: Optional path for command history
+            output: Output writer
         """
         self.pool = pool
         self.commands = CommandStore(history_file=command_history_path)
         self._slashed_agents: dict[str, SlashedAgent[TDeps, Any]] = {}
+        self._output = output
 
         # Create SlashedAgent wrappers for each agent
         for name, agent in pool.agents.items():
             self._add_agent(name, agent)
+
+    def _get_output(self, output: OutputWriter | None) -> OutputWriter:
+        """Get appropriate output writer."""
+        return output or self._output or DefaultOutputWriter()
 
     def _add_agent(self, name: str, agent: AnyAgent[TDeps, Any]):
         """Add a new slashed agent with signal forwarding."""
@@ -188,8 +128,7 @@ class SlashedPool[TDeps]:
     @overload
     async def run(
         self,
-        content: str,
-        *,
+        *prompt: AnyPromptType,
         agent: str,  # Specific agent
         output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
@@ -198,8 +137,7 @@ class SlashedPool[TDeps]:
     @overload
     async def run(
         self,
-        content: str,
-        *,
+        *prompt: AnyPromptType,
         agent: None = None,  # Broadcasting
         output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
@@ -207,8 +145,7 @@ class SlashedPool[TDeps]:
 
     async def run(
         self,
-        content: str,
-        *,
+        *prompt: AnyPromptType,
         agent: str | None = None,
         output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
@@ -216,7 +153,7 @@ class SlashedPool[TDeps]:
         """Run with agent routing and wait for response(s).
 
         Args:
-            content: Message content (can start with @agent_name)
+            *prompt: Prompts to send
             agent: Optional specific agent to target
             output: Optional output writer
             metadata: Additional metadata for messages
@@ -228,15 +165,32 @@ class SlashedPool[TDeps]:
         Raises:
             ValueError: If agent not found or @ syntax is invalid
         """
-        if content.startswith("@"):
-            parts = content[1:].split(maxsplit=1)
-            if len(parts) != 2:  # noqa: PLR2004
-                msg = "Usage: @agent_name message"
-                raise ValueError(msg)
-            target, message = parts
-        else:
-            target = agent  # type: ignore
-            message = content
+        writer = self._get_output(output)
+        target = agent
+        remaining_prompts = []
+
+        # Handle @ routing first
+        for p in prompt:
+            if isinstance(p, str) and p.startswith("@"):
+                parts = p[1:].split(maxsplit=1)
+                if len(parts) != 2:  # noqa: PLR2004
+                    msg = "Usage: @agent_name message"
+                    raise ValueError(msg)
+                target, message = parts
+                remaining_prompts.append(message)
+            else:
+                remaining_prompts.append(p)
+
+        # Handle commands
+        non_command_prompts = []
+        for p in remaining_prompts:
+            if isinstance(p, str) and p.startswith("/"):
+                await self.execute_command(p[1:], output=writer, metadata=metadata)
+            else:
+                non_command_prompts.append(p)
+
+        if not non_command_prompts:
+            return ChatMessage(content="", role="system")
 
         # Single agent case
         if target:
@@ -244,14 +198,18 @@ class SlashedPool[TDeps]:
                 msg = f"Agent {target} not found"
                 raise ValueError(msg)
             return await self._slashed_agents[target].run(
-                message, output=output, metadata={"sender": target, **(metadata or {})}
+                *non_command_prompts,
+                output=writer,
+                metadata=metadata,
             )
 
         # Multi-agent case
         start_time = datetime.now()
         tasks = [
             agent.run(
-                message, output=output, metadata={"sender": name, **(metadata or {})}
+                *non_command_prompts,
+                output=writer,
+                metadata=metadata,
             )
             for name, agent in self._slashed_agents.items()
         ]
@@ -264,8 +222,7 @@ class SlashedPool[TDeps]:
     @asynccontextmanager
     async def run_stream(
         self,
-        content: str,
-        *,
+        *prompt: AnyPromptType,
         agent: str,
         output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
@@ -273,33 +230,50 @@ class SlashedPool[TDeps]:
         """Stream responses from a specific agent.
 
         Args:
-            content: Message to send
-            agent: Name of agent to stream from
+            *prompt: Prompts to send
+            agent: Name of agent to stream from (required)
             output: Optional output writer
             metadata: Additional metadata for messages
 
         Yields:
-            Stream of ChatMessages from the agent
+            Stream of results from pydantic-ai
 
         Raises:
-            ValueError: If agent not found
+            ValueError: If agent not found or no prompts remain after command handling
         """
+        writer = self._get_output(output)
+        remaining_prompts = []
+
+        # Handle @ routing first - not needed for streaming as agent is required
+        if any(isinstance(p, str) and p.startswith("@") for p in prompt):
+            msg = "@ routing not supported for streaming - use agent parameter"
+            raise ValueError(msg)
+
+        # Handle commands
+        for p in prompt:
+            if isinstance(p, str) and p.startswith("/"):
+                await self.execute_command(p[1:], output=writer, metadata=metadata)
+            else:
+                remaining_prompts.append(p)
+
+        if not remaining_prompts:
+            msg = "No prompts remaining after command handling"
+            raise ValueError(msg)
+
         if agent not in self._slashed_agents:
             msg = f"Agent {agent} not found"
             raise ValueError(msg)
 
-        metadata = {"sender": agent, **(metadata or {})}
         async with self._slashed_agents[agent].run_stream(
-            content,
-            output=output,
+            *remaining_prompts,
+            output=writer,
             metadata=metadata,
         ) as stream:
             yield stream
 
     async def run_iter(
         self,
-        content: str,
-        *,
+        *prompt: AnyPromptType,
         agent: str | None = None,
         output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
@@ -307,36 +281,66 @@ class SlashedPool[TDeps]:
         """Run and yield responses as they complete.
 
         Args:
-            content: Message content (can start with @agent_name)
+            *prompt: Prompts to send
             agent: Optional specific agent to target
             output: Optional output writer
-            metadata: Additional metadata
+            metadata: Additional metadata for messages
 
-        Returns:
-            AsyncIterator yielding ChatMessages as they complete
+        Yields:
+            ChatMessages as they complete
 
         Raises:
             ValueError: If agent not found or @ syntax is invalid
         """
-        # Parse @ syntax if present
-        if content.startswith("@"):
-            parts = content[1:].split(maxsplit=1)
-            if len(parts) != 2:  # noqa: PLR2004
-                msg = "Usage: @agent_name message"
-                raise ValueError(msg)
-            target, message = parts
-        else:
-            target = agent  # type: ignore
-            message = content
+        writer = self._get_output(output)
+        target = agent
+        remaining_prompts = []
 
-        # Return properly implemented iterator
-        return _AgentResponseIterator(
-            self,
-            message,
-            agent=target,
-            output=output,
-            metadata=metadata,
-        )
+        # Handle @ routing first
+        for p in prompt:
+            if isinstance(p, str) and p.startswith("@"):
+                parts = p[1:].split(maxsplit=1)
+                if len(parts) != 2:  # noqa: PLR2004
+                    msg = "Usage: @agent_name message"
+                    raise ValueError(msg)
+                target, message = parts
+                remaining_prompts.append(message)
+            else:
+                remaining_prompts.append(p)
+
+        # Handle commands
+        non_command_prompts = []
+        for p in remaining_prompts:
+            if isinstance(p, str) and p.startswith("/"):
+                await self.execute_command(p[1:], output=writer, metadata=metadata)
+            else:
+                non_command_prompts.append(p)
+
+        if not non_command_prompts:
+            yield ChatMessage(content="", role="system")
+            return
+
+        # Single agent case
+        if target:
+            if target not in self._slashed_agents:
+                msg = f"Agent {target} not found"
+                raise ValueError(msg)
+            response = await self._slashed_agents[target].run(
+                *non_command_prompts,
+                output=writer,
+                metadata=metadata,
+            )
+            yield response
+            return
+
+        # Multi-agent case
+        for slashed_agent in self._slashed_agents.values():
+            response = await slashed_agent.run(
+                *non_command_prompts,
+                output=writer,
+                metadata=metadata,
+            )
+            yield response
 
     async def execute_command(
         self,
@@ -354,7 +358,7 @@ class SlashedPool[TDeps]:
         Returns:
             Command result message
         """
-        output = output or DefaultOutputWriter()
+        output = self._get_output(output)
         ctx = self.commands.create_context(self, output_writer=output, metadata=metadata)
 
         # Handle agent-specific commands
