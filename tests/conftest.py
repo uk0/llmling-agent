@@ -10,6 +10,7 @@ import pytest
 import yamling
 
 from llmling_agent import Agent, AgentConfig, config_resources
+from llmling_agent.models.agents import AgentsManifest
 from llmling_agent.responses import InlineResponseDefinition, ResponseField
 
 
@@ -126,3 +127,23 @@ def test_agent(no_tool_runtime: RuntimeConfig) -> Agent[Any]:
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE),
     )
+
+
+@pytest.fixture
+def manifest():
+    """Create test manifest with some agents."""
+    return AgentsManifest[Any, Any](
+        agents={
+            "agent1": AgentConfig(name="agent1", model="test"),
+            "agent2": AgentConfig(name="agent2", model="test"),
+        }
+    )
+
+
+@pytest.fixture
+async def pool(manifest):
+    """Create test pool with agents."""
+    from llmling_agent.delegation import AgentPool
+
+    async with AgentPool.open(manifest) as pool:
+        yield pool

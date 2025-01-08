@@ -15,8 +15,13 @@ from llmling_agent.delegation.router import (
     RoutingConfig,
 )
 from llmling_agent.delegation.callbacks import DecisionCallback
+from llmling_agent.delegation.injection import AgentInjectionError, inject_agents
+from llmling_agent.delegation.decorators import with_agents
+from llmling_agent.delegation.agentgroup import AgentGroup
 
 __all__ = [
+    "AgentGroup",
+    "AgentInjectionError",
     "AgentPool",
     "AgentRouter",
     "AwaitResponseDecision",
@@ -29,5 +34,7 @@ __all__ = [
     "RoutingRule",
     "RuleRouter",
     "controlled_conversation",
+    "inject_agents",
     "interactive_controller",
+    "with_agents",
 ]
