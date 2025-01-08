@@ -1,6 +1,6 @@
 """Built-in commands for LLMling agent."""
 
-from slashed import BaseCommand
+from slashed import BaseCommand, SlashedCommand
 
 from llmling_agent.commands.agents import (
     create_agent_cmd,
@@ -38,13 +38,10 @@ from llmling_agent.commands.workers import (
     remove_worker_cmd,
     list_workers_cmd,
 )
-from llmling_agent.commands.utils import (
-    copy_clipboard_cmd,
-    edit_agent_file_cmd,
-)
+from llmling_agent.commands.utils import CopyClipboardCommand, EditAgentFileCommand
 
 
-def get_commands() -> list[BaseCommand]:
+def get_commands() -> list[BaseCommand | type[SlashedCommand]]:
     """Get list of built-in commands."""
     return [
         list_prompts_cmd,
@@ -58,7 +55,7 @@ def get_commands() -> list[BaseCommand]:
         disconnect_all_cmd,
         clear_cmd,
         reset_cmd,
-        copy_clipboard_cmd,
+        CopyClipboardCommand,
         edit_env_cmd,
         list_tools_cmd,
         tool_info_cmd,
@@ -69,7 +66,7 @@ def get_commands() -> list[BaseCommand]:
         add_resource_cmd,
         list_resources_cmd,
         show_resource_cmd,
-        edit_agent_file_cmd,
+        EditAgentFileCommand,
         set_env_cmd,
         show_agent_cmd,
         # write_tool_cmd,

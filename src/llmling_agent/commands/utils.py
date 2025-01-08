@@ -1,117 +1,114 @@
+"""Command utilities."""
+
 from __future__ import annotations
 
 import importlib.util
 from typing import TYPE_CHECKING
 import webbrowser
 
-from slashed import Command, CommandContext, CommandError
-
-from llmling_agent.log import get_logger
+from slashed import CommandContext, CommandError, SlashedCommand
 
 
 if TYPE_CHECKING:
     from llmling_agent.chat_session.base import AgentPoolView
 
 
-logger = get_logger(__name__)
+class CopyClipboardCommand(SlashedCommand):
+    """Copy messages from conversation history to system clipboard.
+
+    Allows copying a configurable number of messages with options for:
+    - Number of messages to include
+    - Including/excluding system messages
+    - Token limit for context size
+    - Custom format templates
+
+    Requires pyperclip package to be installed.
+    """
+
+    name = "copy-clipboard"
+    category = "utils"
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[AgentPoolView],
+        *,
+        num_messages: int = 1,
+        include_system: bool = False,
+        max_tokens: int | None = None,
+        format_template: str | None = None,
+    ):
+        """Copy messages to clipboard.
+
+        Args:
+            ctx: Command context
+            num_messages: Number of messages to copy (default: 1)
+            include_system: Include system messages
+            max_tokens: Only include messages up to token limit
+            format_template: Custom format template
+        """
+        try:
+            import pyperclip
+        except ImportError as e:
+            msg = "pyperclip package required for clipboard operations"
+            raise CommandError(msg) from e
+
+        content = await ctx.get_data()._agent.conversation.format_history(
+            num_messages=num_messages,
+            include_system=include_system,
+            max_tokens=max_tokens,
+            format_template=format_template,
+        )
+
+        if not content.strip():
+            await ctx.output.print("No messages found to copy")
+            return
+
+        try:
+            pyperclip.copy(content)
+            await ctx.output.print("Messages copied to clipboard")
+        except Exception as e:
+            msg = f"Failed to copy to clipboard: {e}"
+            raise CommandError(msg) from e
+
+    @classmethod
+    def condition(cls) -> bool:
+        """Check if pyperclip is available."""
+        return importlib.util.find_spec("pyperclip") is not None
 
 
-EDIT_AGENT_HELP = """\
-Open the agent's configuration file in your default editor.
+class EditAgentFileCommand(SlashedCommand):
+    """Open the agent's configuration file in your default editor.
 
-This file contains:
-- Agent settings and capabilities
-- System prompts
-- Model configuration
-- Environment references
-- Role definitions
+    This file contains:
+    - Agent settings and capabilities
+    - System promptss
+    - Model configuration
+    - Environment references
+    - Role definitions
 
-Note: Changes to the configuration file require reloading the agent.
+    Note: Changes to the configuration file require reloading the agent.
+    """
 
-"""
+    name = "open-agent-file"
+    category = "utils"
 
-COPY_CB_HELP = """\
-"Copy the most recent assistant response to the system clipboard.\n"
-"Requires pyperclip package to be installed."
-"""
+    async def execute_command(self, ctx: CommandContext[AgentPoolView]):
+        """Open agent's configuration file."""
+        agent = ctx.get_data()._agent
+        if not agent.context:
+            msg = "No agent context available"
+            raise CommandError(msg)
 
+        config = agent.context.config
+        if not config.config_file_path:
+            msg = "No configuration file path available"
+            raise CommandError(msg)
 
-async def copy_clipboard(
-    ctx: CommandContext[AgentPoolView],
-    args: list[str],
-    kwargs: dict[str, str],
-):
-    """Copy last assistant message to clipboard."""
-    try:
-        import pyperclip
-    except ImportError as e:
-        msg = "pyperclip package required for clipboard operations"
-        raise CommandError(msg) from e
-
-    # Use defaults but allow overrides through kwargs
-    format_kwargs = {
-        "num_messages": 1,
-        "include_system": False,
-        **kwargs,  # Override with any provided kwargs
-    }
-
-    content = await ctx.context._agent.conversation.format_history(**format_kwargs)
-
-    if not content.strip():
-        await ctx.output.print("No assistant message found to copy")
-        return
-
-    try:
-        pyperclip.copy(content)
-        await ctx.output.print("Last assistant message copied to clipboard")
-    except Exception as e:
-        msg = f"Failed to copy to clipboard: {e}"
-        raise CommandError(msg) from e
-
-
-async def edit_agent_file(
-    ctx: CommandContext[AgentPoolView],
-    args: list[str],
-    kwargs: dict[str, str],
-):
-    """Open agent's configuration file in default application."""
-    if not ctx.context._agent.context:
-        msg = "No agent context available"
-        raise CommandError(msg)
-
-    config = ctx.context._agent.context.config
-    if not config.config_file_path:
-        msg = "No configuration file path available"
-        raise CommandError(msg)
-
-    try:
-        webbrowser.open(config.config_file_path)
-        await ctx.output.print(f"Opening agent configuration: {config.config_file_path}")
-    except Exception as e:
-        msg = f"Failed to open configuration file: {e}"
-        raise CommandError(msg) from e
-
-
-edit_agent_file_cmd = Command(
-    name="open-agent-file",
-    description="Open the agent's configuration file",
-    execute_func=edit_agent_file,
-    help_text=EDIT_AGENT_HELP,
-    category="utils",
-)
-
-copy_clipboard_cmd = Command(
-    name="copy-clipboard",
-    description="Copy the last assistant message to clipboard",
-    execute_func=copy_clipboard,
-    help_text="""Copy messages to clipboard.
-
-Options:
-  --num-messages N   Number of messages to copy (default: 1)
-  --max-tokens N     Only include N tokens
-  --include-system   Include system messages
-  --format FORMAT    Custom format template
-""",
-    category="utils",
-    condition=lambda: importlib.util.find_spec("pyperclip") is not None,
-)
+        try:
+            webbrowser.open(config.config_file_path)
+            await ctx.output.print(
+                f"Opening agent configuration: {config.config_file_path}"
+            )
+        except Exception as e:
+            msg = f"Failed to open configuration file: {e}"
+            raise CommandError(msg) from e
