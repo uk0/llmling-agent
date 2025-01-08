@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
-from typing import TYPE_CHECKING, Any, overload
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Literal, overload
 
-from slashed import (
-    CommandStore,
-    DefaultOutputWriter,
-    ExitCommandError,
-    OutputWriter,
-)
+from psygnal import Signal
+from slashed import CommandStore, DefaultOutputWriter, ExitCommandError, OutputWriter
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
@@ -19,6 +17,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from pydantic_ai.result import StreamedRunResult
+    from slashed.events import CommandExecutedEvent
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
@@ -26,6 +25,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.providers.base import AgentProvider
     from llmling_agent.common_types import ModelType
     from llmling_agent.delegation.pool import AgentPool
+    from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.context import AgentContext
     from llmling_agent.tools.manager import ToolManager
 
@@ -37,8 +37,39 @@ TDeps = TypeVar("TDeps")
 TResult = TypeVar("TResult", default=str)
 
 
+OutputType = Literal[
+    "message_received",
+    "message_sent",
+    "tool_called",
+    "tool_result",
+    "command_executed",
+    "status",
+    "error",
+]
+
+
+@dataclass
+class AgentOutput:
+    """Unified output event for UIs."""
+
+    type: OutputType
+    """Type of output event."""
+
+    content: Any
+    """Main content of the output."""
+
+    timestamp: datetime = field(default_factory=datetime.now)
+    """When this output was generated."""
+
+    metadata: dict[str, Any] = field(default_factory=dict)
+    """Additional context about the output."""
+
+
 class SlashedAgent[TDeps, TContext]:
     """Wraps an agent with slash command support."""
+
+    message_output = Signal(AgentOutput)
+    streamed_output = Signal(AgentOutput)
 
     def __init__(
         self,
@@ -58,6 +89,13 @@ class SlashedAgent[TDeps, TContext]:
         )
         self.command_context: TContext = command_context or self  # type: ignore
         self.output = output or DefaultOutputWriter()
+        # Connect to agent's signals
+        agent.message_received.connect(self._handle_message_received)
+        agent.message_sent.connect(self._handle_message_sent)
+        agent.tool_used.connect(self._handle_tool_used)
+        self.commands.command_executed.connect(self._handle_command_executed)
+        self.commands.output.connect(self.streamed_output)
+        agent.chunk_streamed.connect(self.streamed_output)
 
     @overload
     async def run[TMethodResult](
@@ -212,3 +250,27 @@ class SlashedAgent[TDeps, TContext]:
     def context(self) -> AgentContext[TDeps]:
         """Access to agent context."""
         return self.agent.context
+
+    def _handle_message_received(self, message: ChatMessage[str]):
+        meta = {"role": message.role}
+        output = AgentOutput(type="message_received", content=message, metadata=meta)
+        self.message_output.emit(output)
+
+    def _handle_message_sent(self, message: ChatMessage[Any]):
+        cost = message.cost_info.total_cost if message.cost_info else None
+        metadata = {"role": message.role, "model": message.model, "cost": cost}
+        output = AgentOutput(type="message_sent", content=message, metadata=metadata)
+        self.message_output.emit(output)
+
+    def _handle_tool_used(self, tool_call: ToolCallInfo):
+        metadata = {"tool_name": tool_call.tool_name}
+        output = AgentOutput("tool_called", content=tool_call, metadata=metadata)
+        self.message_output.emit(output)
+
+    # Could also connect to Slashed's command signals
+    def _handle_command_executed(self, event: CommandExecutedEvent):
+        """Handle command execution events."""
+        error = str(event.error) if event.error else None
+        meta = {"success": event.success, "error": error, "context": event.context}
+        output = AgentOutput("command_executed", content=event.command, metadata=meta)
+        self.message_output.emit(output)
