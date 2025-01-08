@@ -44,10 +44,9 @@ class AgentGroup[TDeps]:
         deps: TDeps | None = None,
     ) -> list[ChatMessage[Any]]:
         """Run all agents in parallel."""
-        tasks = [
-            agent.run(prompt or self.shared_prompt, deps=deps or self.shared_deps)
-            for agent in self.agents
-        ]
+        actual_prompt = prompt or self.shared_prompt
+        actual_deps = deps or self.shared_deps
+        tasks = [agent.run(actual_prompt, deps=actual_deps) for agent in self.agents]
         return await asyncio.gather(*tasks)
 
     async def run_sequential(
@@ -56,14 +55,9 @@ class AgentGroup[TDeps]:
         deps: TDeps | None = None,
     ) -> list[ChatMessage[Any]]:
         """Run agents one after another."""
-        results = []
         actual_prompt = prompt or self.shared_prompt
         actual_deps = deps or self.shared_deps
-
-        for agent in self.agents:
-            result = await agent.run(actual_prompt, deps=actual_deps)
-            results.append(result)
-        return results
+        return [await agent.run(actual_prompt, deps=actual_deps) for agent in self.agents]
 
     async def run_controlled(
         self,
