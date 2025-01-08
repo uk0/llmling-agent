@@ -13,10 +13,12 @@ The run and run_stream methods have the same signature as the agent itself, but 
 - Extensible command system
 
 ### Unified Output Handling
-The agent provides two main output signals for UIs to connect to:
+The agent provides several signals for UIs to connect to:
 
 - `message_output`: Regular agent messages and events
 - `streamed_output`: Real-time streaming content
+- `streaming_started`: Emitted when a streaming session starts (with message_id)
+- `streaming_stopped`: Emitted when a streaming session ends (with message_id)
 
 These signals emit `AgentOutput` events with the following structure:
 ```python
@@ -25,7 +27,7 @@ class AgentOutput:
     type: OutputType     # Type of the output event
     content: Any         # The main content
     timestamp: datetime  # When it was generated
-    metadata: dict       # Additional context
+    metadata: dict       # Additional context like message_id, cost, etc.
 ```
 
 Output types include:
@@ -35,6 +37,7 @@ Output types include:
 - `command_executed`: Slash command execution
 - `status`: Status updates
 - `error`: Error messages
+- `stream`: Streaming content chunks
 
 ### Basic Usage
 
@@ -50,16 +53,27 @@ slashed = SlashedAgent(
     command_history_path="~/.myapp/history",
 )
 
-# Connect to output signals
+# Handle regular messages
 @slashed.message_output.connect
 async def handle_message(output: AgentOutput):
     match output.type:
         case "message_sent":
-            print(f"Assistant: {output.content}")
+            print(f"\nAssistant: {output.content}")
+            if cost := output.metadata.get("cost"):
+                print(f"Cost: ${cost:.4f}")
         case "tool_called":
             print(f"Using tool: {output.metadata['tool_name']}")
 
-# Handle streaming output
+# Handle streaming state
+@slashed.streaming_started.connect
+async def on_stream_start(message_id: str):
+    print("\nStreaming response...")
+
+@slashed.streaming_stopped.connect
+async def on_stream_end(message_id: str):
+    print("\nResponse complete")
+
+# Handle streamed content
 @slashed.streamed_output.connect
 async def handle_stream(output: AgentOutput):
     print(output.content, end="", flush=True)
@@ -75,16 +89,28 @@ The SlashedAgent is designed to work with any terminal interface. Here's a simpl
 
 ```python
 from prompt_toolkit import PromptSession
-from prompt_toolkit.completion import WordCompleter
 
 async def main():
     slashed = SlashedAgent(agent)
     session = PromptSession()
+    show_prompt = True
+
+    # Track streaming state
+    @slashed.streaming_started.connect
+    async def _():
+        nonlocal show_prompt
+        show_prompt = False
+
+    @slashed.streaming_stopped.connect
+    async def _():
+        nonlocal show_prompt
+        show_prompt = True
+        print()  # New line after streaming
 
     while True:
         try:
-            # Get input with command completion
-            text = await session.prompt_async("> ")
+            if show_prompt:
+                text = await session.prompt_async("> ")
 
             # Run with streaming for real-time output
             async with slashed.run_stream(text) as stream:
@@ -96,7 +122,6 @@ async def main():
         except EOFError:
             break
 ```
-
 ### Custom Commands
 
 You can add your own commands using Slashed's command system:
