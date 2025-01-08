@@ -107,7 +107,7 @@ class AgentConfig(BaseModel):
     description: str | None = None
     """Optional description of the agent's purpose"""
 
-    model: str | AnyModel | None = None
+    model: str | AnyModel | None = None  # pyright: ignore[reportInvalidTypeForm]
     """The model to use for this agent. Can be either a simple model name
     string (e.g. 'openai:gpt-4') or a structured model definition."""
 
