@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, Self, overload
 
@@ -101,6 +101,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
         self.manifest = manifest
         self._confirmation_callback = confirmation_callback
+        self.exit_stack = AsyncExitStack()
 
         # Validate requested agents exist
         to_load = set(agents_to_load) if agents_to_load else set(manifest.agents)
@@ -150,16 +151,36 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         if connect_agents:
             self._connect_signals()
 
-    # async def initialize(self):
-    #     """Initialize all agents asynchronously."""
-    #     # Create requested agents
-    #     for name in self.to_load:
-    #         config = self.manifest.agents[name]
-    #         await self.create_agent(name, config, temporary=False)
+    async def __aenter__(self) -> Self:
+        """Enter async context and initialize all agents."""
+        try:
+            # Enter async context for all agents
+            for agent in self.agents.values():
+                await self.exit_stack.enter_async_context(agent)
+        except Exception as e:
+            await self.cleanup()
+            msg = "Failed to initialize agent pool"
+            logger.exception(msg, exc_info=e)
+            raise RuntimeError(msg) from e
+        else:
+            return self
 
-    #     # Set up forwarding connections
-    #     if self._connect_signals:
-    #         self._setup_connections()
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit async context."""
+        await self.cleanup()
+
+    async def cleanup(self):
+        """Clean up all agents."""
+        for agent in self.values():
+            if agent.runtime:
+                await agent.runtime.shutdown()
+        await self.exit_stack.aclose()
+        self.clear()
 
     def create_group[TDeps](
         self,
@@ -248,13 +269,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             raise self._error_class(msg)
         return item
 
-    async def cleanup(self):
-        """Clean up all agents."""
-        for agent in self.values():
-            if agent.runtime:
-                await agent.runtime.shutdown()
-        self.clear()
-
     def _setup_connections(self):
         """Set up forwarding connections between agents."""
         from llmling_agent.models.forward_targets import AgentTarget
@@ -286,19 +300,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
                         raise ValueError(msg)
                     target_agent = self.agents[target.name]
                     agent.pass_results_to(target_agent)
-
-    async def __aenter__(self) -> Self:
-        """Enter async context."""
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ):
-        """Exit async context."""
-        await self.cleanup()
 
     async def create_agent(
         self,
@@ -565,7 +566,8 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             confirmation_callback=confirmation_callback,
         )
         try:
-            yield pool
+            async with pool:
+                yield pool
         finally:
             await pool.cleanup()
 
