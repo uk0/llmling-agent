@@ -18,6 +18,7 @@ from llmling_models.model_types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_ai.agent import EndStrategy  # noqa: TC002
 from pydantic_ai.models.test import TestModel
+from toprompt import render_prompt
 from typing_extensions import TypeVar
 from upath.core import UPath
 import yamling
@@ -29,7 +30,6 @@ from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 from llmling_agent.models.mcp_server import MCPServerConfig  # noqa: TC001
 from llmling_agent.models.task import AgentTask  # noqa: TC001
-from llmling_agent.prompts.convert import render_prompt
 from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
 
 

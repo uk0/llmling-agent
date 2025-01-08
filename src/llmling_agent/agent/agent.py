@@ -23,6 +23,7 @@ from psygnal import Signal
 from psygnal.containers import EventedDict
 from pydantic_ai import RunContext  # noqa: TC002
 from tokonomics import TokenLimits, get_model_limits
+from toprompt import AnyPromptType, to_prompt
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.conversation import ConversationManager
@@ -31,7 +32,6 @@ from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage, TokenCost
-from llmling_agent.prompts.convert import AnyPromptType, to_prompt
 from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context

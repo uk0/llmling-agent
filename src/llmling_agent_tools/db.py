@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import sqlalchemy as sa
 from sqlmodel import SQLModel
-
-from llmling_agent.prompts.convert import generate_schema_description
+from toprompt.sqlmodel_types import generate_schema_description
 
 
 def generate_db_description(models: list[type[SQLModel]]) -> str:

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from pydantic_ai.result import StreamedRunResult
+    from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.conversation import ConversationManager
@@ -26,7 +27,6 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import ModelType
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.context import AgentContext
-    from llmling_agent.prompts.convert import AnyPromptType
     from llmling_agent.tools.manager import ToolManager
 
 

@@ -58,6 +58,7 @@ dependencies = [
     "watchfiles>=1.0.3",
     "tiktoken>=0.8.0",
     "fieldz>=0.1.0",
+    "toprompt>=0.0.1",
 ]
 
 [project.scripts]

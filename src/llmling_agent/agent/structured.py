@@ -12,11 +12,12 @@ from llmling_agent.responses.utils import to_type
 
 
 if TYPE_CHECKING:
+    from toprompt import AnyPromptType
+
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import ModelType
     from llmling_agent.models.messages import ChatMessage
-    from llmling_agent.prompts.convert import AnyPromptType
 
 
 logger = get_logger(__name__)
