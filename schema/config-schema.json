@@ -66,6 +66,8 @@
                   "fallback": "#/$defs/FallbackMultiModel",
                   "import": "#/$defs/ImportModel",
                   "input": "#/$defs/InputModel",
+                  "remote-input": "#/$defs/RemoteInputModel",
+                  "remote-proxy": "#/$defs/RemoteProxyModel",
                   "string": "#/$defs/StringModel",
                   "test": "#/$defs/_TestModelWrapper",
                   "token-optimized": "#/$defs/TokenOptimizedMultiModel"
@@ -96,6 +98,12 @@
                 },
                 {
                   "$ref": "#/$defs/_TestModelWrapper"
+                },
+                {
+                  "$ref": "#/$defs/RemoteInputModel"
+                },
+                {
+                  "$ref": "#/$defs/RemoteProxyModel"
                 }
               ]
             },
@@ -2399,6 +2407,84 @@
       "title": "PromptParameter",
       "type": "object"
     },
+    "RemoteInputModel": {
+      "additionalProperties": false,
+      "description": "Model that connects to a remote human operator.\n\nExample YAML configuration:\n    ```yaml\n    models:\n      remote-human:\n        type: remote-input\n        url: ws://localhost:8000/v1/chat/stream  # or http://localhost:8000/v1/chat\n        protocol: websocket  # or rest\n        api_key: your-api-key\n    ```",
+      "properties": {
+        "type": {
+          "const": "remote-input",
+          "default": "remote-input",
+          "description": "Discriminator field for model type.",
+          "title": "Type",
+          "type": "string"
+        },
+        "url": {
+          "description": "URL of the remote input server.",
+          "title": "Url",
+          "type": "string"
+        },
+        "protocol": {
+          "default": "websocket",
+          "description": "Protocol to use for communication.",
+          "enum": [
+            "rest",
+            "websocket"
+          ],
+          "title": "Protocol",
+          "type": "string"
+        },
+        "api_key": {
+          "description": "API key for authentication.",
+          "title": "Api Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "api_key"
+      ],
+      "title": "RemoteInputModel",
+      "type": "object"
+    },
+    "RemoteProxyModel": {
+      "additionalProperties": false,
+      "description": "Model that proxies requests to a remote model server.\n\nExample YAML configuration:\n    ```yaml\n    models:\n      remote-gpt4:\n        type: remote-proxy\n        url: ws://model-server:8000/v1/completion  # or http://\n        protocol: websocket  # or rest\n        api_key: your-api-key\n    ```",
+      "properties": {
+        "type": {
+          "const": "remote-proxy",
+          "default": "remote-proxy",
+          "description": "Discriminator field for model type.",
+          "title": "Type",
+          "type": "string"
+        },
+        "url": {
+          "description": "URL of the remote model server.",
+          "title": "Url",
+          "type": "string"
+        },
+        "protocol": {
+          "default": "websocket",
+          "description": "Protocol to use for communication.",
+          "enum": [
+            "rest",
+            "websocket"
+          ],
+          "title": "Protocol",
+          "type": "string"
+        },
+        "api_key": {
+          "description": "API key for authentication.",
+          "title": "Api Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "api_key"
+      ],
+      "title": "RemoteProxyModel",
+      "type": "object"
+    },
     "ResponseField": {
       "additionalProperties": false,
       "description": "Field definition for inline response types.\n\nDefines a single field in an inline response definition, including:\n- Data type specification\n- Optional description\n- Validation constraints\n\nUsed by InlineResponseDefinition to structure response fields.",
@@ -2713,11 +2799,12 @@
             "groq:mixtral-8x7b-32768",
             "groq:gemma2-9b-it",
             "groq:gemma-7b-it",
-            "gemini-1.5-flash",
-            "gemini-1.5-pro",
-            "gemini-2.0-flash-exp",
-            "vertexai:gemini-1.5-flash",
-            "vertexai:gemini-1.5-pro",
+            "google-gla:gemini-1.5-flash",
+            "google-gla:gemini-1.5-pro",
+            "google-gla:gemini-2.0-flash-exp",
+            "google-vertex:gemini-1.5-flash",
+            "google-vertex:gemini-1.5-pro",
+            "google-vertex:gemini-2.0-flash-exp",
             "mistral:mistral-small-latest",
             "mistral:mistral-large-latest",
             "mistral:codestral-latest",
@@ -2739,9 +2826,9 @@
             "ollama:qwen2",
             "ollama:qwen2.5",
             "ollama:starcoder2",
-            "claude-3-5-haiku-latest",
-            "claude-3-5-sonnet-latest",
-            "claude-3-opus-latest",
+            "anthropic:claude-3-5-haiku-latest",
+            "anthropic:claude-3-5-sonnet-latest",
+            "anthropic:claude-3-opus-latest",
             "test"
           ],
           "title": "Identifier",
