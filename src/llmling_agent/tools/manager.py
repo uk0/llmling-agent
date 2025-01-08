@@ -10,6 +10,9 @@ from llmling import BaseRegistry, LLMCallableTool, ToolError
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
+from llmling_agent.mcp_server.client import MCPClient
+from llmling_agent.mcp_server.tools import register_mcp_tools
+from llmling_agent.models.mcp_server import MCPServerConfig, SSEMCPServer, StdioMCPServer
 from llmling_agent.tools.base import ToolInfo
 
 
@@ -63,6 +66,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         """
         super().__init__()
         self.tool_choice = tool_choice
+        self._mcp_clients: dict[str, MCPClient] = {}
 
         # Register initial tools
         for tool in tools or []:
@@ -264,3 +268,45 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
         event = self.ToolStateReset(old_tools, new_tools)
         self.tool_states_reset.emit(event)
+
+    async def setup_mcp_servers(
+        self,
+        servers: list[MCPServerConfig],
+    ) -> None:
+        """Set up multiple MCP server integrations."""
+        for server in servers:
+            if not server.enabled:
+                continue
+
+            try:
+                match server:
+                    case StdioMCPServer():
+                        # Initialize client
+                        client = MCPClient()
+                        await client.connect(
+                            command=server.command,
+                            args=server.args,
+                            env=server.environment,
+                        )
+
+                        # Store client
+                        client_id = f"{server.command}_{' '.join(server.args)}"
+                        self._mcp_clients[client_id] = client
+
+                        # Register tools
+                        register_mcp_tools(self, client)
+
+                    case SSEMCPServer():
+                        msg = "SSE servers not yet implemented"
+                        raise NotImplementedError(msg)  # noqa: TRY301
+
+            except Exception as e:
+                msg = "Failed to setup MCP server"
+                logger.exception(msg)
+                raise RuntimeError(msg) from e
+
+    async def cleanup(self) -> None:
+        """Clean up resources including all MCP clients."""
+        for client in self._mcp_clients.values():
+            await client.cleanup()
+        self._mcp_clients.clear()

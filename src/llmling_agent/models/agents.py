@@ -28,7 +28,7 @@ from llmling_agent.config import Capabilities, Knowledge
 from llmling_agent.environment import AgentEnvironment, FileEnvironment, InlineEnvironment
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
-from llmling_agent.models.mcp_server import MCPServerConfig  # noqa: TC001
+from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, StdioMCPServer
 from llmling_agent.models.task import AgentTask  # noqa: TC001
 from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
 
@@ -116,6 +116,12 @@ class AgentConfig(BaseModel):
 
     capabilities: Capabilities = Field(default_factory=Capabilities)
     """Current agent's capabilities."""
+
+    mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list)
+    """List of MCP server configurations:
+    - str entries are converted to StdioMCPServer
+    - MCPServerConfig for full server configuration
+    """
 
     session_id: SessionIdType = None
     """Opetional id of a session to load."""
@@ -241,6 +247,39 @@ class AgentConfig(BaseModel):
                 # Wrap TestModel in our custom wrapper
                 data["model"] = {"type": "test", "model": model}
         return data
+
+    def get_mcp_servers(self) -> list[MCPServerConfig]:
+        """Get processed MCP server configurations.
+
+        Converts string entries to StdioMCPServer configs by splitting
+        into command and arguments.
+
+        Returns:
+            List of MCPServerConfig instances
+
+        Raises:
+            ValueError: If string entry is empty
+        """
+        configs: list[MCPServerConfig] = []
+
+        for server in self.mcp_servers:
+            match server:
+                case str():
+                    parts = server.split()
+                    if not parts:
+                        msg = "Empty MCP server command"
+                        raise ValueError(msg)
+
+                    configs.append(
+                        StdioMCPServer(
+                            command=parts[0],
+                            args=parts[1:],
+                        )
+                    )
+                case MCPServerBase():
+                    configs.append(server)
+
+        return configs
 
     def render_system_prompts(self, context: dict[str, Any] | None = None) -> list[str]:
         """Render system prompts with context."""
@@ -376,9 +415,11 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
     tasks: dict[str, AgentTask] = Field(default_factory=dict)
     """Pre-defined tasks, ready to be used by agents."""
 
-    mcp_servers: dict[str, MCPServerConfig] = Field(default_factory=dict)
-    """MCP server configurations"""
-
+    mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list)
+    """List of MCP server configurations:
+    - str entries are converted to StdioMCPServer
+    - MCPServerConfig for full server configuration
+    """
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
     def clone_agent_config(
