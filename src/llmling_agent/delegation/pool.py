@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from psygnal.containers import EventedDict
 
     from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
+    from llmling_agent.delegation.agentgroup import AgentGroup
     from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.delegation.router import (
         Decision,
@@ -153,6 +154,45 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
     #     # Set up forwarding connections
     #     if self._connect_signals:
     #         self._setup_connections()
+
+    def create_group[TDeps](
+        self,
+        agents: Sequence[str | AnyAgent[TDeps, Any]],
+        *,
+        shared_prompt: str | None = None,
+        shared_deps: TDeps | None = None,
+    ) -> AgentGroup[TDeps]:
+        """Create a group from agent names or instances.
+
+        Args:
+            agents: List of agent names or instances
+            shared_prompt: Optional prompt for all agents
+            shared_deps: Optional shared dependencies
+
+        Returns:
+            Configured agent group
+
+        Example:
+            ```python
+            # Mix of names and instances
+            group = pool.create_group([
+                "agent1",
+                existing_agent,
+                "agent3"
+            ])
+            ```
+        """
+        from llmling_agent.delegation.agentgroup import AgentGroup
+
+        resolved_agents: list[AnyAgent[TDeps, Any]] = [
+            agent if isinstance(agent, Agent | StructuredAgent) else self.get_agent(agent)
+            for agent in agents
+        ]
+        return AgentGroup(
+            resolved_agents,
+            shared_prompt=shared_prompt,
+            shared_deps=shared_deps,
+        )
 
     def start_supervision(self) -> OptionalAwaitable[None]:
         """Start supervision interface.
