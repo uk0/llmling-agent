@@ -24,7 +24,7 @@ MessageRole = Literal["user", "assistant", "system"]
 PartType = Literal["text", "image", "audio", "video"]
 ModelType = models.Model | models.KnownModelName | None
 EnvironmentType = Literal["file", "inline"]
-ToolSource = Literal["runtime", "agent", "builtin", "dynamic", "task"]
+ToolSource = Literal["runtime", "agent", "builtin", "dynamic", "task", "mcp"]
 
 T = TypeVar("T")
 type OptionalAwaitable[T] = T | Awaitable[T]
