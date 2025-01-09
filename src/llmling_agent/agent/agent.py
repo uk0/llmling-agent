@@ -48,6 +48,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import ModelType, SessionIdType, StrPath, ToolType
+    from llmling_agent.delegation.agentgroup import AgentGroup
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import AgentTask
@@ -269,6 +270,43 @@ class Agent[TDeps]:
     ) -> None:
         """Exit async context."""
         await self.tools.cleanup()
+
+    def __rshift__(self, other: AnyAgent[Any, Any] | AgentGroup[Any] | str) -> Self:
+        """Connect agent to another agent or group.
+
+        Example:
+            agent >> other_agent  # Connect to single agent
+            agent >> (agent2 | agent3)  # Connect to group
+            agent >> "other_agent"  # Connect by name (needs pool)
+        """
+        from llmling_agent.delegation.agentgroup import AgentGroup
+
+        if isinstance(other, str):
+            if not self.context.pool:
+                msg = "Pool required for forwarding to agent by name"
+                raise ValueError(msg)
+            target = self.context.pool.get_agent(other)
+            self.pass_results_to(target)
+        elif isinstance(other, AgentGroup):
+            # Connect to each agent in group
+            for agent in other.agents:
+                self.pass_results_to(agent)
+        else:
+            self.pass_results_to(other)
+        return self
+
+    def __or__(self, other: AnyAgent[Any, Any] | AgentGroup[Any]) -> AgentGroup[TDeps]:
+        """Create agent group using | operator.
+
+        Example:
+            group = analyzer | planner | executor  # Create group of 3
+            group = analyzer | existing_group  # Add to existing group
+        """
+        from llmling_agent.delegation.agentgroup import AgentGroup
+
+        if isinstance(other, AgentGroup):
+            return AgentGroup([self, *other.agents])
+        return AgentGroup([self, other])
 
     @property
     def name(self) -> str:

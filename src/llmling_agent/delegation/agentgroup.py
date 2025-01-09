@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 import time
-from typing import TYPE_CHECKING, Any, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Self, TypeVar, overload
 
 from llmling_agent.delegation import interactive_controller
 from llmling_agent.delegation.pool import AgentResponse
@@ -61,6 +61,28 @@ class TeamResponse(list[AgentResponse[Any]]):
         parts = [f"{r.agent_name}: {r.timing:.2f}s" for r in self if r.timing is not None]
         return f"Individual times: {', '.join(parts)}\nTotal time: {self.duration:.2f}s"
 
+    def to_chat_message(self) -> ChatMessage[str]:
+        """Convert team response to a single chat message."""
+        # Combine all responses into one structured message
+        content = "\n\n".join(
+            f"[{resp.agent_name}]: {resp.message.content}"
+            for resp in self
+            if resp.message
+        )
+
+        # Create a message that represents the group's output
+        return ChatMessage(
+            content=content,
+            role="assistant",
+            # Could include additional metadata about the group execution
+            metadata={
+                "type": "team_response",
+                "agents": [r.agent_name for r in self],
+                "duration": self.duration,
+                "success_count": len(self.successful),
+            },
+        )
+
 
 class AgentGroup[TDeps]:
     """Group of agents that can execute together."""
@@ -75,6 +97,35 @@ class AgentGroup[TDeps]:
         self.agents = agents
         self.shared_prompt = shared_prompt
         self.shared_deps = shared_deps
+
+    def __rshift__(self, other: AnyAgent[Any, Any] | AgentGroup[Any] | str) -> Self:
+        """Connect group to target agent(s).
+
+        Example:
+            (worker1 | worker2) >> presenter  # To single agent
+            (worker1 | worker2) >> (presenter1 | presenter2)  # To group
+        """
+        if isinstance(other, str):
+            if not self.agents[0].context.pool:
+                msg = "Pool required for forwarding to agent by name"
+                raise ValueError(msg)
+            target = self.agents[0].context.pool.get_agent(other)
+            for agent in self.agents:
+                agent.pass_results_to(target)
+        elif isinstance(other, AgentGroup):
+            # Connect each source to each target
+            for source in self.agents:
+                for target in other.agents:
+                    source.pass_results_to(target)
+        else:
+            for agent in self.agents:
+                agent.pass_results_to(other)
+        return self
+
+    def pass_results_to(self, target: AnyAgent[Any, Any]) -> None:
+        """Implement Connectable protocol."""
+        for agent in self.agents:
+            agent.pass_results_to(target)
 
     async def run_parallel(
         self,
