@@ -6,6 +6,13 @@ from llmling_agent.models.prompts import SystemPrompt
 from llmling_agent.models.resources import ResourceInfo
 from llmling_agent.models.context import AgentContext
 from llmling_agent.models.forward_targets import ForwardingTarget
+from llmling_agent.models.session import SessionQuery
+from llmling_agent.models.mcp_server import (
+    MCPServerBase,
+    StdioMCPServer,
+    MCPServerConfig,
+    SSEMCPServer,
+)
 
 __all__ = [
     "AgentConfig",
@@ -13,7 +20,12 @@ __all__ = [
     "AgentsManifest",
     "ChatMessage",
     "ForwardingTarget",
+    "MCPServerBase",
+    "MCPServerConfig",
     "ResourceInfo",
+    "SSEMCPServer",
+    "SessionQuery",
+    "StdioMCPServer",
     "SystemPrompt",
     "TokenCost",
     "TokenUsage",

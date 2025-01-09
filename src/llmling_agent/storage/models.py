@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import MessageRole
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.messages import ChatMessage, TokenCost
+    from llmling_agent.models.session import SessionQuery
 
 
 class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
@@ -370,6 +371,57 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
             limit=limit,
         )
         return [convert_model_message(msg) for msg in messages]
+
+    @classmethod
+    def get_messages_by_query(
+        cls,
+        query: SessionQuery,
+        *,
+        session: Session | None = None,
+    ) -> list[Message]:
+        """Get messages matching query configuration."""
+        from sqlmodel import and_, select
+
+        from llmling_agent.storage import engine
+
+        # Start with base query
+        stmt = select(cls).order_by(cls.timestamp)  # type: ignore
+
+        # Build conditions
+        conditions = []
+
+        if query.name:
+            conditions.append(cls.conversation_id == query.name)
+
+        if query.agent:
+            conditions.append(cls.name == query.agent)
+
+        if query.since and (cutoff := query.get_time_cutoff()):
+            conditions.append(cls.timestamp >= cutoff)
+
+        if query.until and (cutoff := query.get_time_cutoff()):
+            conditions.append(cls.timestamp <= cutoff)
+
+        if query.contains:
+            conditions.append(cls.content.contains(query.contains))  # type: ignore
+
+        if query.roles:
+            conditions.append(cls.role.in_(query.roles))  # type: ignore
+
+        if conditions:
+            stmt = stmt.where(and_(*conditions))
+
+        if query.limit:
+            stmt = stmt.limit(query.limit)
+
+        # Execute query
+        should_close = session is None
+        session = session or Session(engine)
+        try:
+            return list(session.exec(stmt))
+        finally:
+            if should_close:
+                session.close()
 
 
 class ToolCall(SQLModel, table=True):  # type: ignore[call-arg]
