@@ -250,11 +250,8 @@ from llmling_agent.delegation import AgentPool
 async def main():
     async with AgentPool.open("agents.yml") as pool:
         # Run downloads in parallel (sequential mode also available)
-        responses = await pool.team_task(
-            "Download https://example.com/file.zip",
-            team=["file_getter_1", "file_getter_2"],
-            mode="parallel"
-        )
+        team = pool.create_group(["file_getter_1", "file_getter_2"])
+        responses = await team.run_parallel("Download https://example.com/file.zip")
 
         # Or let a coordinator orchestrate
         coordinator = pool.get_agent("coordinator")
@@ -417,7 +414,6 @@ classDiagram
         +
         +manifest: AgentsManifest
         +agents: dict[str, Agent]
-        +team_task()
         +open()
     }
 

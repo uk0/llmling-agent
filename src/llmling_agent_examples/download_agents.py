@@ -108,9 +108,7 @@ async def run(config_path: str):
         # Create second downloader by cloning
         worker_1 = pool.get_agent("file_getter_1")
         worker_2 = await pool.clone_agent(worker_1, new_name="file_getter_2")
-
-        team = [worker_1, worker_2]
-
+        team = pool.create_group([worker_1, worker_2])
         fan = pool.get_agent("fan")
         progress = CheerProgress()
 
@@ -120,7 +118,7 @@ async def run(config_path: str):
         print("Sequential downloads:")
 
         start_time = time.time()
-        await pool.team_task(TEAM_PROMPT, team=team, mode="sequential")
+        await team.run_sequential(TEAM_PROMPT)
         sequential_time = time.time() - start_time
         print(f"Sequential time: {sequential_time:.2f} seconds")
         progress.update(f"Sequential downloads completed in {sequential_time:.2f} secs!")
@@ -128,7 +126,7 @@ async def run(config_path: str):
         print("\nParallel downloads:")
 
         start_time = time.time()
-        await pool.team_task(TEAM_PROMPT, team=team, mode="parallel")
+        await team.run_parallel(TEAM_PROMPT)
         parallel_time = time.time() - start_time
         progress.update(f"Parallel downloads completed in {parallel_time:.2f} secs!")
         print(f"Parallel time: {parallel_time:.2f} seconds")

@@ -61,7 +61,7 @@ async def test_agent_pool_validation():
 
 
 @pytest.mark.asyncio
-async def test_agent_pool_team_task_errors(test_model):
+async def test_agent_pool_team_errors(test_model):
     """Test error handling in team tasks."""
     fields = {"message": ResponseField(type="str", description="Test message")}
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
@@ -71,18 +71,8 @@ async def test_agent_pool_team_task_errors(test_model):
 
     async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
         # Test with non-existent team member
-        responses = await pool.team_task(
-            prompt="Test prompt",
-            team=["test_agent", "nonexistent"],
-        )
-
-        assert len(responses) == 2  # noqa: PLR2004
-        success_response = next(r for r in responses if r.agent_name == "test_agent")
-        error_response = next(r for r in responses if r.agent_name == "nonexistent")
-
-        assert success_response.success
-        assert not error_response.success
-        assert error_response.error is not None
+        with pytest.raises(KeyError, match="nonexistent"):
+            pool.create_group(["test_agent", "nonexistent"])
 
 
 @pytest.mark.asyncio

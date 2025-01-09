@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, Self, overload
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from llmling import BaseRegistry, Config, LLMLingError, RuntimeConfig
 from typing_extensions import TypeVar
@@ -571,57 +571,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
                 yield pool
         finally:
             await pool.cleanup()
-
-    async def team_task(
-        self,
-        prompt: str,
-        team: Sequence[str | Agent[Any]],
-        *,
-        mode: Literal["parallel", "sequential"] = "parallel",
-        result_type: type[Any] | None = None,
-        model_override: str | None = None,
-        environment_override: StrPath | Config | None = None,
-    ) -> list[AgentResponse]:
-        """Execute a task with a team of agents.
-
-        Args:
-            prompt: Task to execute
-            team: List of agents or agent names
-            mode: Whether to run agents in parallel or sequence
-            result_type: Optional type for structured responses
-            model_override: Optional model override for all agents
-            environment_override: Optional environment override for all agents
-        """
-
-        async def run_agent(agent_ref: str | Agent[Any]) -> AgentResponse:
-            try:
-                agent = (
-                    agent_ref
-                    if isinstance(agent_ref, Agent)
-                    else self.get_agent(agent_ref)
-                )
-                if model_override:
-                    agent.set_model(model_override)  # type: ignore
-                if environment_override:
-                    cfg = (
-                        environment_override
-                        if isinstance(environment_override, Config)
-                        else Config.from_file(environment_override)
-                    )
-                    agent.runtime = RuntimeConfig.from_config(cfg)
-                result = await agent.run(prompt, result_type=result_type)
-                return AgentResponse(agent_name=agent.name, message=result)
-            except Exception as e:
-                name = agent_ref if isinstance(agent_ref, str) else agent_ref.name
-                logger.exception("Agent %s failed", name)
-                return AgentResponse(agent_name=name, message=None, error=str(e))
-
-        if mode == "parallel":
-            tasks = [run_agent(ref) for ref in team]
-            return list(await asyncio.gather(*tasks))
-
-        # Sequential execution
-        return [await run_agent(ref) for ref in team]
 
     def list_agents(self) -> list[str]:
         """List available agent names."""
