@@ -7,7 +7,7 @@ from datetime import datetime
 import pathlib
 import time
 from typing import TYPE_CHECKING, Any, Literal, overload
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from platformdirs import user_data_dir
 from psygnal import Signal
@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from pydantic_ai import messages
     from slashed import OutputWriter
 
+    from llmling_agent.common_types import SessionIdType
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.tools.manager import ToolManager
 
@@ -79,7 +80,7 @@ class AgentPoolView:
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,
-        session_id: UUID | str | None = None,
+        session_id: SessionIdType = None,
     ):
         """Initialize chat session.
 
@@ -112,7 +113,7 @@ class AgentPoolView:
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,
-        session_id: UUID | str | None = None,
+        session_id: SessionIdType = None,
     ) -> AgentPoolView:
         """Create and initialize a new agent pool view.
 
