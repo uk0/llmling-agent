@@ -13,7 +13,6 @@ async def test_basic_decoration():
     assert hasattr(test_func, "_agent_function")
     metadata = test_func._agent_function
     assert metadata.name == "test_func"
-    assert metadata.order is None
     assert not metadata.depends_on
     assert not metadata.default_inputs
 
@@ -21,12 +20,11 @@ async def test_basic_decoration():
 async def test_decoration_with_args():
     """Test decoration with arguments."""
 
-    @agent_function(order=1, depends_on="other_func")
+    @agent_function(depends_on="other_func")
     async def test_func():
         return "test"
 
     metadata = test_func._agent_function
-    assert metadata.order == 1
     assert metadata.depends_on == ["other_func"]
 
 
@@ -37,7 +35,7 @@ async def test_multiple_dependencies():
     async def test_func():
         return "test"
 
-    metadata = test_func._agent_function
+    metadata = test_func._agent_function  # type: ignore
     assert metadata.depends_on == ["func1", "func2"]
 
 
@@ -52,7 +50,7 @@ async def test_default_inputs():
     ):
         return "test"
 
-    metadata = test_func._agent_function
+    metadata = test_func._agent_function  # type: ignore
     assert metadata.default_inputs == {
         "optional": 42,
         "another": "default",

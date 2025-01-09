@@ -6,7 +6,7 @@ import asyncio
 import importlib.util
 import inspect
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, get_type_hints
 
 from llmling_agent.delegation import AgentPool, with_agents
 from llmling_agent.log import get_logger
@@ -85,10 +85,7 @@ def sort_functions(functions: list[AgentFunction]) -> list[AgentFunction]:
         ValueError: If there are circular dependencies
     """
     # First by explicit order
-    ordered = sorted(
-        functions,
-        key=lambda f: (f.order or float("inf"), f.name),
-    )
+    ordered = sorted(functions, key=lambda f: f.name)
 
     # Then resolve dependencies
     result = []
@@ -179,28 +176,72 @@ async def execute_single(
     """
     logger.debug("Executing %s", func.name)
     try:
-        # Prepare inputs from defaults and provided inputs
         kwargs = func.default_inputs.copy()
         if inputs:
             kwargs.update(inputs)
 
-        # Add results from dependencies
+        # Get type hints for the function
+        hints = get_type_hints(func.func)
+
+        # Add and validate dependency results
         for dep in func.depends_on:
             if dep not in available_results:
                 msg = f"Missing result from {dep}"
                 raise ExecutionError(msg)  # noqa: TRY301
-            kwargs[dep] = available_results[dep]
+
+            value = available_results[dep]
+            if dep in hints:  # If parameter is type hinted
+                validate_value_type(value, hints[dep], func.name, dep)
+            kwargs[dep] = value
 
         # Execute with agent injection
         wrapped = with_agents(pool)(func.func)
         result = await wrapped(**kwargs)
-        logger.debug("%s returned: %s", func.name, result)
 
+        # Validate return type if hinted
+        if "return" in hints:
+            validate_value_type(result, hints["return"], func.name, "return")
     except Exception as e:
         msg = f"Error executing {func.name}: {e}"
         raise ExecutionError(msg) from e
     else:
         return func.name, result
+
+
+def validate_dependency_types(functions: list[AgentFunction]):
+    """Validate that dependency types match return types."""
+    # Get return types for all functions
+    return_types = {}
+    for func in functions:
+        hints = get_type_hints(func.func)
+        if "return" in hints:
+            return_types[func.name] = hints["return"]
+
+    # Check each function's dependencies
+    for func in functions:
+        hints = get_type_hints(func.func)
+        for dep in func.depends_on:
+            # Only validate if both dependency return type AND parameter are typed
+            if dep in hints and dep in return_types:
+                expected_type = hints[dep]
+                provided_type = return_types[dep]
+                if expected_type != provided_type:
+                    msg = (
+                        f"Type mismatch in {func.name}: "
+                        f"dependency '{dep}' is typed as {expected_type}, "
+                        f"but {dep} returns {provided_type}"
+                    )
+                    raise TypeError(msg)
+
+
+def validate_value_type(value: Any, expected_type: type, func_name: str, param_name: str):
+    """Validate that a value matches its expected type."""
+    if not isinstance(value, expected_type):
+        msg = (
+            f"Type error in {func_name}: parameter '{param_name}' "
+            f"expected {expected_type.__name__}, got {type(value).__name__}"
+        )
+        raise TypeError(msg)
 
 
 async def execute_functions(
@@ -216,6 +257,7 @@ async def execute_functions(
 
     # Sort by order/dependencies
     sorted_funcs = sort_functions(functions)
+    validate_dependency_types(sorted_funcs)
 
     if parallel:
         # Group functions that can run in parallel

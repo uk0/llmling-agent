@@ -15,15 +15,15 @@ from llmling_agent.running.executor import (
 
 
 async def test_function_sorting():
-    """Test function sorting by order and dependencies."""
+    """Test function sorting by dependencies and definition order."""
 
-    @agent_function(order=2)
-    async def second(): ...
-
-    @agent_function(order=1)
+    @agent_function
     async def first(): ...
 
     @agent_function(depends_on="first")
+    async def second(): ...
+
+    @agent_function(depends_on="second")
     async def third(): ...
 
     funcs = [second, third, first]
@@ -47,7 +47,7 @@ async def test_circular_dependency():
 async def test_parallel_grouping():
     """Test grouping of parallel functions."""
 
-    @agent_function(order=1)
+    @agent_function
     async def first(): ...
 
     @agent_function(depends_on="first")
@@ -74,7 +74,7 @@ async def test_execution_order(pool):
     """Test function execution order."""
     executed = []
 
-    @agent_function(order=1)
+    @agent_function
     async def first(agent1: Agent[Any]):
         executed.append("first")
         return "first"
@@ -88,7 +88,7 @@ async def test_execution_order(pool):
         executed.append("second")
         return "second"
 
-    funcs = [second._agent_function, first._agent_function]
+    funcs = [second._agent_function, first._agent_function]  # type: ignore
     results = await execute_functions(funcs, pool)
 
     assert executed == ["first", "second"]
@@ -103,7 +103,7 @@ async def test_parallel_execution(pool):
     start_times: dict[str, float] = {}
     end_times: dict[str, float] = {}
 
-    @agent_function(order=1)
+    @agent_function
     async def first(agent1: Agent[Any]):
         start_times["first"] = asyncio.get_event_loop().time()
         await asyncio.sleep(0.1)

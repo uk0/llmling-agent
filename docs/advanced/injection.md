@@ -35,37 +35,52 @@ agents:
 
 ## Function Execution Patterns
 
-### Basic Function
+### Basic Function with Type Safety
 
-The `agent_function` decorator marks functions for automatic execution and dependency handling:
+The `agent_function` decorator marks functions for automatic execution and provides type checking between functions:
 
 ```python
 @agent_function
-async def simple_task(
+async def gather_data(
+    researcher: Agent[Any],
+    topic: str,
+) -> list[str]:  # Return type is enforced
+    """Gather research data."""
+    result = await researcher.run(f"Research: {topic}")
+    return result.data.split("\n")
+
+@agent_function(depends_on="gather_data")
+async def analyze_data(
     analyst: Agent[Any],
-    data: str,
+    gather_data: list[str],  # Type must match return type of gather_data
 ) -> str:
-    return await analyst.run(f"Analyze: {data}")
+    """Analyze the gathered data."""
+    return await analyst.run(f"Analyze these points:\n{'\n'.join(gather_data)}")
 ```
+
+The system ensures type safety between functions:
+- Return types are checked against dependency parameter types
+- Runtime type checking of actual values
+- Clear error messages for type mismatches
 
 ### Sequential Dependencies
 
 Functions can depend on the results of other functions:
 
 ```python
-@agent_function(order=1)  # Runs first
-async def gather_data(
+@agent_function
+async def research_topic(
     researcher: Agent[Any],
     topic: str,
 ) -> str:
     return await researcher.run(f"Research: {topic}")
 
-@agent_function(depends_on="gather_data")  # Uses gather_data's result
-async def analyze_data(
-    analyst: Agent[Any],
-    gather_data: str,  # Result from previous function
+@agent_function(depends_on="research_topic")
+async def write_article(
+    writer: Agent[Any],
+    research_topic: str,  # Gets typed result from research_topic
 ) -> str:
-    return await analyst.run(f"Analyze this:\n{gather_data}")
+    return await writer.run(f"Write article based on:\n{research_topic}")
 ```
 
 ### Parallel Execution
@@ -133,6 +148,42 @@ async def collaborative_task(
     )
     return results[-1].content
 ```
+
+
+## Type Safety
+
+The system provides comprehensive type checking:
+
+```python
+# Type mismatch between functions
+@agent_function
+async def get_numbers(
+    agent: Agent[Any],
+) -> list[int]:
+    return [1, 2, 3]
+
+@agent_function(depends_on="get_numbers")
+async def process_data(
+    agent: Agent[Any],
+    get_numbers: str,  # Wrong type! Expected list[int]
+) -> str:
+    ...  # Raises: TypeError: Type mismatch in process_data: dependency 'get_numbers' is typed as str, but get_numbers returns list[int]
+
+# Runtime type checking
+@agent_function
+async def validate_data(
+    agent: Agent[Any],
+) -> list[str]:
+    return 42  # Wrong return type!
+    # Raises: TypeError: Type error in validate_data: return value expected list[str], got int
+```
+
+Type checking is:
+- Optional (untyped functions work normally)
+- Enforced between dependencies
+- Validated at runtime
+- Clear about errors
+
 
 ### Continuous Monitoring
 

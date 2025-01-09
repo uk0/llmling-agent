@@ -22,9 +22,6 @@ class AgentFunction:
     func: Callable[..., Any]
     """The actual function to execute."""
 
-    order: int | None = None
-    """Optional execution order (lower numbers run first)."""
-
     depends_on: list[str] = field(default_factory=list)
     """Names of functions this one depends on."""
 
@@ -45,14 +42,13 @@ class AgentFunction:
             for name, param in sig.parameters.items()
             if param.default is not param.empty
         }
-        msg = "Registered agent function %s (order=%s, deps=%s)"
-        logger.debug(msg, self.name, self.order, self.depends_on)
+        msg = "Registered agent function %s (deps=%s)"
+        logger.debug(msg, self.name, self.depends_on)
 
 
 def agent_function(
     func: Callable | None = None,
     *,
-    order: int | None = None,
     depends_on: str | Sequence[str] | None = None,
 ) -> Callable:
     """Mark a function for automatic agent execution.
@@ -67,7 +63,6 @@ def agent_function(
 
     Args:
         func: Function to mark
-        order: Optional execution order (lower runs first)
         depends_on: Names of functions this one depends on
 
     Returns:
@@ -76,7 +71,7 @@ def agent_function(
 
     def decorator(func: Callable) -> Callable:
         deps = [depends_on] if isinstance(depends_on, str) else list(depends_on or [])
-        metadata = AgentFunction(func=func, order=order, depends_on=deps)
+        metadata = AgentFunction(func=func, depends_on=deps)
         func._agent_function = metadata  # type: ignore
         return func
 
