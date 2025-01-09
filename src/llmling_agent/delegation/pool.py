@@ -31,9 +31,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
     from llmling_agent.delegation.agentgroup import AgentGroup
     from llmling_agent.delegation.callbacks import DecisionCallback
-    from llmling_agent.delegation.router import (
-        Decision,
-    )
+    from llmling_agent.delegation.router import Decision
     from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.messages import ChatMessage
@@ -190,6 +188,8 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[str | AnyAgent[TDeps, Any]],
         *,
+        model_override: str | None = None,
+        environment_override: StrPath | Config | None = None,
         shared_prompt: str | None = None,
         shared_deps: TDeps | None = None,
     ) -> AgentGroup[TDeps]:
@@ -197,30 +197,27 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
         Args:
             agents: List of agent names or instances
+            model_override: Optional model to use for all agents
+            environment_override: Optional environment for all agents
             shared_prompt: Optional prompt for all agents
             shared_deps: Optional shared dependencies
-
-        Returns:
-            Configured agent group
-
-        Example:
-            ```python
-            # Mix of names and instances
-            group = pool.create_group([
-                "agent1",
-                existing_agent,
-                "agent3"
-            ])
-            ```
         """
         from llmling_agent.delegation.agentgroup import AgentGroup
 
-        resolved_agents: list[AnyAgent[TDeps, Any]] = [
-            agent if isinstance(agent, Agent | StructuredAgent) else self.get_agent(agent)
-            for agent in agents
-        ]
+        # First resolve/configure agents
+        resolved_agents: list[AnyAgent[TDeps, Any]] = []
+        for agent in agents:
+            if isinstance(agent, str):
+                agent = self.get_agent(
+                    agent,
+                    model_override=model_override,
+                    environment_override=environment_override,
+                )
+            resolved_agents.append(agent)
+
         return AgentGroup(
-            resolved_agents,
+            agents=resolved_agents,
+            # pool=self,
             shared_prompt=shared_prompt,
             shared_deps=shared_deps,
         )
