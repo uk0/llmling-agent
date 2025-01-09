@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import MessageRole
     from llmling_agent.models.agents import ToolCallInfo
-    from llmling_agent.models.messages import TokenCost
+    from llmling_agent.models.messages import ChatMessage, TokenCost
 
 
 class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
@@ -253,24 +253,25 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     @classmethod
     def to_pydantic_ai_messages(
         cls,
-        conversation_id: str | Sequence[str],  # Allow single ID or sequence
+        conversation_id: str | Sequence[str],
         *,
         since: datetime | None = None,
         until: datetime | None = None,
         roles: set[MessageRole] | None = None,
+        agents: set[str] | None = None,
+        include_forwarded: bool = True,
         limit: int | None = None,
     ) -> list[ModelMessage]:
-        """Convert database messages to pydantic-ai messages.
+        """Get messages as pydantic-ai format.
 
         Args:
-            conversation_id: ID of conversation to load
-            since: Only include messages after this time
-            until: Only include messages before this time
-            roles: Only include messages with these roles
-            limit: Maximum number of messages to return
-
-        Returns:
-            List of pydantic-ai ModelMessages in chronological order
+            conversation_id: ID(s) of conversation(s) to load
+            since: Only messages after this time
+            until: Only messages before this time
+            roles: Only messages with these roles
+            agents: Only messages from/to these agents
+            include_forwarded: Include messages forwarded between agents
+            limit: Max number of messages
         """
         from pydantic_ai.messages import (
             ModelRequest,
@@ -279,6 +280,9 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
             TextPart,
             UserPromptPart,
         )
+        from sqlalchemy import JSON, Column, and_, or_
+        from sqlalchemy.sql import expression
+        from sqlmodel import select
 
         from llmling_agent.storage import engine
 
@@ -286,22 +290,34 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
 
         # Handle single ID or sequence
         if isinstance(conversation_id, str):
-            query = query.where(cls.conversation_id == conversation_id)
+            query = query.where(Column("conversation_id") == conversation_id)
         else:
             query = query.where(Column("conversation_id").in_(conversation_id))
 
         if since:
-            query = query.where(cls.timestamp >= since)
+            query = query.where(Column("timestamp") >= since)
         if until:
-            query = query.where(cls.timestamp <= until)
+            query = query.where(Column("timestamp") <= until)
         if roles:
-            query = query.where(cls.role.in_(roles))  # type: ignore
+            query = query.where(Column("role").in_(roles))
+        if agents:
+            # Match messages from these agents or forwarded through them
+            conditions = [Column("name").in_(agents)]
+            if include_forwarded:
+                conditions.append(
+                    and_(
+                        Column("forwarded_from").isnot(None),
+                        expression.cast(Column("forwarded_from"), JSON).contains(
+                            list(agents)
+                        ),  # type: ignore
+                    )
+                )
+            query = query.where(or_(*conditions))
         if limit:
             query = query.limit(limit)
 
         with Session(engine) as session:
             messages = session.exec(query).all()
-
             result: list[ModelMessage] = []
             for msg in messages:
                 match msg.role:
@@ -317,8 +333,43 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
                         result.append(
                             ModelRequest(parts=[SystemPromptPart(content=msg.content)])
                         )
-
             return result
+
+    @classmethod
+    def to_chat_messages(
+        cls,
+        conversation_id: str | Sequence[str],
+        *,
+        since: datetime | None = None,
+        until: datetime | None = None,
+        roles: set[MessageRole] | None = None,
+        agents: set[str] | None = None,
+        include_forwarded: bool = True,
+        limit: int | None = None,
+    ) -> list[ChatMessage[str]]:
+        """Get messages as ChatMessage format.
+
+        Args:
+            conversation_id: ID(s) of conversation(s) to load
+            since: Only messages after this time
+            until: Only messages before this time
+            roles: Only messages with these roles
+            agents: Only messages from/to these agents
+            include_forwarded: Include messages forwarded between agents
+            limit: Max number of messages
+        """
+        from llmling_agent.pydantic_ai_utils import convert_model_message
+
+        messages = cls.to_pydantic_ai_messages(
+            conversation_id,
+            since=since,
+            until=until,
+            roles=roles,
+            agents=agents,
+            include_forwarded=include_forwarded,
+            limit=limit,
+        )
+        return [convert_model_message(msg) for msg in messages]
 
 
 class ToolCall(SQLModel, table=True):  # type: ignore[call-arg]
