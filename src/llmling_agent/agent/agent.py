@@ -366,11 +366,12 @@ class Agent[TDeps]:
         )
 
     @classmethod
-    @asynccontextmanager
-    async def open(
+    @overload
+    def open(
         cls,
         config_path: StrPath | Config | None = None,
         *,
+        result_type: None = None,
         model: ModelType = None,
         session_id: SessionIdType = None,
         system_prompt: str | Sequence[str] = (),
@@ -380,14 +381,51 @@ class Agent[TDeps]:
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         **kwargs: Any,
-    ) -> AsyncIterator[Agent[TDeps]]:
-        """Create an agent with an auto-managed runtime configuration.
+    ) -> AbstractAsyncContextManager[Agent[TDeps]]: ...
+
+    @classmethod
+    @overload
+    def open[TResult](
+        cls,
+        config_path: StrPath | Config | None = None,
+        *,
+        result_type: type[TResult],
+        model: ModelType = None,
+        session_id: SessionIdType = None,
+        system_prompt: str | Sequence[str] = (),
+        name: str = "llmling-agent",
+        retries: int = 1,
+        result_retries: int | None = None,
+        end_strategy: EndStrategy = "early",
+        defer_model_check: bool = False,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[StructuredAgent[TDeps, TResult]]: ...
+
+    @classmethod
+    @asynccontextmanager
+    async def open[TResult](
+        cls,
+        config_path: StrPath | Config | None = None,
+        *,
+        result_type: type[TResult] | None = None,
+        model: ModelType = None,
+        session_id: SessionIdType = None,
+        system_prompt: str | Sequence[str] = (),
+        name: str = "llmling-agent",
+        retries: int = 1,
+        result_retries: int | None = None,
+        end_strategy: EndStrategy = "early",
+        defer_model_check: bool = False,
+        **kwargs: Any,
+    ) -> AsyncIterator[Agent[TDeps] | StructuredAgent[TDeps, TResult]]:
+        """Open and configure an agent with an auto-managed runtime configuration.
 
         This is a convenience method that combines RuntimeConfig.open with agent creation.
 
         Args:
             config_path: Path to the runtime configuration file or a Config instance
-                         (defaults to Config())
+                        (defaults to Config())
+            result_type: Optional type for structured responses
             model: The default model to use (defaults to GPT-4)
             session_id: Optional id to recover a conversation
             system_prompt: Static system prompts to use for this agent
@@ -395,7 +433,7 @@ class Agent[TDeps]:
             retries: Default number of retries for failed operations
             result_retries: Max retries for result validation (defaults to retries)
             end_strategy: Strategy for handling tool calls that are requested alongside
-                          a final result
+                        a final result
             defer_model_check: Whether to defer model evaluation until first run
             **kwargs: Additional arguments for PydanticAI agent
 
@@ -422,11 +460,14 @@ class Agent[TDeps]:
                 end_strategy=end_strategy,
                 result_retries=result_retries,
                 defer_model_check=defer_model_check,
+                result_type=result_type,
                 **kwargs,
             )
             try:
                 async with agent:
-                    yield agent
+                    yield (
+                        agent if result_type is None else agent.to_structured(result_type)
+                    )
             finally:
                 # Any cleanup if needed
                 pass
