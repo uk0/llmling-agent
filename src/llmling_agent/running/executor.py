@@ -13,6 +13,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
+    from llmling_agent.common_types import StrPath
     from llmling_agent.running.discovery import AgentFunction
 
 
@@ -23,7 +24,7 @@ class ExecutionError(Exception):
     """Raised when function execution fails."""
 
 
-def discover_functions(path: str | Path) -> list[AgentFunction]:
+def discover_functions(path: StrPath) -> list[AgentFunction]:
     """Find all agent functions in a module.
 
     Args:
@@ -142,13 +143,9 @@ def group_parallel(
             group = by_deps[key]
             groups.append(group)
             seen_funcs.update(f.name for f in group)
-
-    logger.debug(
-        "Grouped %d functions into %d groups: %s",
-        len(sorted_funcs),
-        len(groups),
-        [[f.name for f in g] for g in groups],
-    )
+    msg = "Grouped %d functions into %d groups: %s"
+    group_names = [[f.name for f in g] for g in groups]
+    logger.debug(msg, len(sorted_funcs), len(groups), group_names)
     return groups
 
 
@@ -205,11 +202,8 @@ async def execute_functions(
     parallel: bool = False,
 ) -> dict[str, Any]:
     """Execute discovered functions in the right order."""
-    logger.info(
-        "Executing %d functions (parallel=%s)",
-        len(functions),
-        parallel,
-    )
+    msg = "Executing %d functions (parallel=%s)"
+    logger.info(msg, len(functions), parallel)
     results: dict[str, Any] = {}
 
     # Sort by order/dependencies
@@ -219,12 +213,8 @@ async def execute_functions(
         # Group functions that can run in parallel
         groups = group_parallel(sorted_funcs)
         for i, group in enumerate(groups):
-            logger.debug(
-                "Executing parallel group %d/%d: %s",
-                i + 1,
-                len(groups),
-                [f.name for f in group],
-            )
+            msg = "Executing parallel group %d/%d: %s"
+            logger.debug(msg, i + 1, len(groups), [f.name for f in group])
 
             # Ensure previous results are available
             logger.debug("Available results: %s", sorted(results))
