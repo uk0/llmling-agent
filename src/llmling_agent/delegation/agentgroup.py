@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass, field
+from datetime import datetime
 import time
 from typing import TYPE_CHECKING, Any, TypeVar, overload
 
@@ -26,6 +28,44 @@ if TYPE_CHECKING:
 TDeps = TypeVar("TDeps")
 
 
+@dataclass
+class TeamResponse(list[AgentResponse[Any]]):
+    """Results from a team execution."""
+
+    start_time: datetime
+    end_time: datetime = field(default_factory=datetime.now)
+
+    def __init__(
+        self, responses: list[AgentResponse[Any]], start_time: datetime | None = None
+    ):
+        super().__init__(responses)
+        self.start_time = start_time or datetime.now()
+
+    @property
+    def duration(self) -> float:
+        """Get execution duration in seconds."""
+        return (self.end_time - self.start_time).total_seconds()
+
+    @property
+    def successful(self) -> list[AgentResponse[Any]]:
+        """Get only successful responses."""
+        return [r for r in self if r.success]
+
+    @property
+    def failed(self) -> list[AgentResponse[Any]]:
+        """Get failed responses."""
+        return [r for r in self if not r.success]
+
+    def by_agent(self, name: str) -> AgentResponse[Any] | None:
+        """Get response from specific agent."""
+        return next((r for r in self if r.agent_name == name), None)
+
+    def format_durations(self) -> str:
+        """Format execution times."""
+        parts = [f"{r.agent_name}: {r.timing:.2f}s" for r in self if r.timing is not None]
+        return f"Individual times: {', '.join(parts)}\nTotal time: {self.duration:.2f}s"
+
+
 class AgentGroup[TDeps]:
     """Group of agents that can execute together."""
 
@@ -44,34 +84,31 @@ class AgentGroup[TDeps]:
         self,
         prompt: str | None = None,
         deps: TDeps | None = None,
-    ) -> list[AgentResponse[Any]]:
+    ) -> TeamResponse:
         """Run all agents in parallel."""
+        start_time = datetime.now()
 
         async def run_agent(agent: AnyAgent[TDeps, Any]) -> AgentResponse[Any]:
             try:
                 start = time.perf_counter()
-                message = await agent.run(
-                    prompt or self.shared_prompt, deps=deps or self.shared_deps
-                )
+                actual_prompt = prompt or self.shared_prompt
+                message = await agent.run(actual_prompt, deps=deps or self.shared_deps)
                 timing = time.perf_counter() - start
-                return AgentResponse(
-                    agent_name=agent.name, message=message, timing=timing
-                )
+                return AgentResponse(agent.name, message=message, timing=timing)
             except Exception as e:  # noqa: BLE001
-                return AgentResponse(
-                    agent_name=agent.name,
-                    message=ChatMessage(content="", role="assistant"),
-                    error=str(e),
-                )
+                msg = ChatMessage(content="", role="assistant")
+                return AgentResponse(agent_name=agent.name, message=msg, error=str(e))
 
-        return await asyncio.gather(*[run_agent(a) for a in self.agents])
+        responses = await asyncio.gather(*[run_agent(a) for a in self.agents])
+        return TeamResponse(responses, start_time)
 
     async def run_sequential(
         self,
         prompt: str | None = None,
         deps: TDeps | None = None,
-    ) -> list[AgentResponse[Any]]:
+    ) -> TeamResponse:
         """Run agents one after another."""
+        start_time = datetime.now()
         results = []
         for agent in self.agents:
             try:
@@ -80,18 +117,13 @@ class AgentGroup[TDeps]:
                     prompt or self.shared_prompt, deps=deps or self.shared_deps
                 )
                 timing = time.perf_counter() - start
-                results.append(
-                    AgentResponse(agent_name=agent.name, message=message, timing=timing)
-                )
+                res = AgentResponse(agent_name=agent.name, message=message, timing=timing)
+                results.append(res)
             except Exception as e:  # noqa: BLE001
-                results.append(
-                    AgentResponse(
-                        agent_name=agent.name,
-                        message=ChatMessage(content="", role="assistant"),
-                        error=str(e),
-                    )
-                )
-        return results
+                msg = ChatMessage(content="", role="assistant")
+                res = AgentResponse(agent_name=agent.name, message=msg, error=str(e))
+                results.append(res)
+        return TeamResponse(results, start_time)
 
     async def run_controlled(
         self,
@@ -100,11 +132,12 @@ class AgentGroup[TDeps]:
         *,
         decision_callback: DecisionCallback = interactive_controller,
         router: AgentRouter | None = None,
-    ) -> list[AgentResponse[Any]]:
+    ) -> TeamResponse:
         """Run with explicit control over agent interactions."""
         results = []
         actual_prompt = prompt or self.shared_prompt
         actual_deps = deps or self.shared_deps
+        start_time = datetime.now()
 
         # Create router for decisions
         assert self.agents[0].context.pool
@@ -142,7 +175,7 @@ class AgentGroup[TDeps]:
                     )
                     current_message = str(response.message.content)
 
-        return results
+        return TeamResponse(results, start_time)
 
     @overload
     async def controlled_talk[TResult](

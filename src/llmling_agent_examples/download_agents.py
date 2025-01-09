@@ -9,7 +9,6 @@ This example explains:
 
 import asyncio
 import tempfile
-import time
 from typing import TYPE_CHECKING
 
 from llmling_agent.delegation import AgentPool
@@ -116,21 +115,15 @@ async def run(config_path: str):
         progress.update("Sequential downloads starting - let's see how they do!")
 
         print("Sequential downloads:")
-
-        start_time = time.time()
-        await team.run_sequential(TEAM_PROMPT)
-        sequential_time = time.time() - start_time
-        print(f"Sequential time: {sequential_time:.2f} seconds")
-        progress.update(f"Sequential downloads completed in {sequential_time:.2f} secs!")
+        sequential = await team.run_sequential(TEAM_PROMPT)
+        print(f"Sequential time: {sequential.duration:.2f} seconds")
+        progress.update(f"Downloads completed in {sequential.duration:.2f} secs!")
 
         print("\nParallel downloads:")
-
-        start_time = time.time()
-        await team.run_parallel(TEAM_PROMPT)
-        parallel_time = time.time() - start_time
-        progress.update(f"Parallel downloads completed in {parallel_time:.2f} secs!")
-        print(f"Parallel time: {parallel_time:.2f} seconds")
-        print(f"\nParallel was {sequential_time / parallel_time:.1f}x faster")
+        parallel = await team.run_parallel(TEAM_PROMPT)
+        progress.update(f"Downloads completed in {parallel.duration:.2f} secs!")
+        print(f"Parallel time: {parallel.duration:.2f} seconds")
+        print(f"\nParallel was {sequential.duration / parallel.duration:.1f}x faster")
 
         print("Same task, different strategy: Boss lists agents and delegates the work.")
         overseer: Agent[None] = pool.get_agent("overseer")

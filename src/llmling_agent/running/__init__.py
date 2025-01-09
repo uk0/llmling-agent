@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from llmling_agent.delegation import AgentPool
 from llmling_agent.running.discovery import agent_function
 from llmling_agent.running.executor import discover_functions, execute_functions
 
+if TYPE_CHECKING:
+    from llmling_agent.models.agents import AgentsManifest
+    from llmling_agent.common_types import StrPath
+
 
 async def run_agents_async(
-    config: str,
+    config: StrPath | AgentsManifest,
     *,
     module: str | None = None,
     functions: list[str] | None = None,
