@@ -32,6 +32,9 @@ class SessionQuery(BaseModel):
     limit: int | None = None
     """Maximum number of messages to return."""
 
+    include_forwarded: bool = True
+    """Whether to include messages forwarded through agents."""
+
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
     def get_time_cutoff(self) -> datetime | None:
