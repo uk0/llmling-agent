@@ -309,7 +309,6 @@ class Agent[TDeps]:
         """
         logger.debug("Setting result type to: %s", result_type)
         self._result_type = to_type(result_type)  # to_type?
-        self._provider.set_result_type(self._result_type)
 
     @overload
     def to_structured(

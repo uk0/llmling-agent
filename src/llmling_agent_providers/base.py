@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelType
     from llmling_agent.models.context import AgentContext
-    from llmling_agent.responses.models import ResponseDefinition
     from llmling_agent.tools.manager import ToolManager
 
 
@@ -64,15 +63,6 @@ class AgentProvider[TDeps]:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(model={self.model_name})"
-
-    def set_result_type(
-        self,
-        result_type: type[Any] | str | ResponseDefinition | None,
-        *,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
-    ) -> None:
-        """Default no-op implementation for setting result type."""
 
     def set_model(
         self,

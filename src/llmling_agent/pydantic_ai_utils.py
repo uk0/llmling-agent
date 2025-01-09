@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic_ai import _result, messages as _messages, models
+from pydantic_ai import messages as _messages, models
 from pydantic_ai.messages import (
     ArgsDict,
     ModelMessage,
@@ -23,24 +23,17 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
-from typing_extensions import TypeVar
 from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage
-from llmling_agent.responses.models import (
-    ImportedResponseDefinition,
-    InlineResponseDefinition,
-    ResponseDefinition,
-)
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from llmling_agent.common_types import MessageRole
-    from llmling_agent.models.context import AgentContext
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -270,107 +263,6 @@ def get_message_role(msg: ModelMessage) -> str:
             return "System"
         case _:
             return "Unknown"
-
-
-TResultData = TypeVar("TResultData", default=str)
-
-
-def to_result_schema[TResultData](
-    result_type: type[TResultData] | str | ResponseDefinition | None,
-    *,
-    context: AgentContext[Any] | None = None,
-    tool_name_override: str | None = None,
-    tool_description_override: str | None = None,
-) -> _result.ResultSchema[TResultData] | None:
-    """Create result schema from type, definition, or name.
-
-    Args:
-        result_type: Either:
-            - Type to create schema for
-            - Name of response definition (requires context)
-            - Response definition instance
-            - None for unstructured responses
-        context: Optional agent context for looking up named definitions
-        tool_name_override: Optional override for tool name
-        tool_description_override: Optional override for tool description
-
-    Returns:
-        Result schema for pydantic-ai or None for unstructured
-
-    Raises:
-        ValueError: If named type not found in manifest
-    """
-    logger.debug(
-        "Creating result schema for type=%s (context=%s)",
-        result_type,
-        "available" if context else "none",
-    )
-    from pydantic_ai import _utils
-
-    logger.debug("Is model-like: %s", _utils.is_model_like(result_type))
-    match result_type:
-        case None:
-            return None
-
-            return _result.ResultSchema[str](allow_text_result=True)
-        case str() if context:
-            if result_type not in context.definition.responses:
-                msg = f"Response type {result_type!r} not found in manifest"
-                raise ValueError(msg)
-            definition = context.definition.responses[result_type]
-            return to_result_schema(
-                definition,
-                tool_name_override=tool_name_override,
-                tool_description_override=tool_description_override,
-            )
-        case str():
-            msg = f"Response type {result_type!r} not found in manifest"
-            raise ValueError(msg)
-        case InlineResponseDefinition() | ImportedResponseDefinition() as definition:
-            model = (
-                definition.create_model()
-                if isinstance(definition, InlineResponseDefinition)
-                else definition.resolve_model()
-            )
-            return _result.ResultSchema[Any].build(
-                model,
-                tool_name_override or definition.result_tool_name,
-                tool_description_override or definition.result_tool_description,
-            )
-
-        case type():
-            # Use context defaults or fallback for tool settings
-            default_name = context.config.result_tool_name if context else "final_result"
-            default_desc = context.config.result_tool_description if context else None
-            return _result.ResultSchema[TResultData].build(
-                result_type,
-                tool_name_override or default_name,
-                tool_description_override or default_desc,
-            )
-        case _:
-            msg = f"Invalid result type: {type(result_type)}"
-            raise TypeError(msg)
-
-
-def format_result_schema(schema: _result.ResultSchema[Any] | None) -> str:
-    """Format result schema information."""
-    if not schema:
-        return "str (free text)"
-
-    parts = []
-    if schema.allow_text_result:
-        parts.append("Allows free text")
-
-    for name, tool in schema.tools.items():
-        params = tool.tool_def.parameters_json_schema["function"]["parameters"]
-        type_info = params.get("type", "object")
-        if "properties" in params:
-            properties = params["properties"]
-            fields = [f"    {f}: {i.get('type', 'any')}" for f, i in properties.items()]
-            type_info = "{\n" + "\n".join(fields) + "\n  }"
-        parts.append(f"  {name}: {type_info}")
-
-    return "\n  ".join(parts)
 
 
 def create_message(

@@ -15,8 +15,7 @@ from pydantic_ai.models import Model, infer_model
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
-from llmling_agent.pydantic_ai_utils import format_part, get_tool_calls, to_result_schema
-from llmling_agent.responses.models import BaseResponseDefinition, ResponseDefinition
+from llmling_agent.pydantic_ai_utils import format_part, get_tool_calls
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
     RunAbortedError,
@@ -29,7 +28,6 @@ from llmling_agent_providers.base import AgentProvider, ProviderResponse
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 
-    from pydantic_ai import _result
     from pydantic_ai.agent import EndStrategy, models
     from pydantic_ai.result import StreamedRunResult
     from pydantic_ai.tools import RunContext
@@ -196,6 +194,7 @@ class PydanticAIProvider(AgentProvider):
                 deps=self._context,  # type: ignore
                 message_history=message_history,
                 model=model or self.model,  # type: ignore
+                result_type=result_type or str,
             )
 
             # Extract tool calls and set message_id
@@ -291,30 +290,6 @@ class PydanticAIProvider(AgentProvider):
         """
         return self._agent.result_validator(*args, **kwargs)
 
-    def set_result_type(
-        self,
-        result_type: type | str | ResponseDefinition | None,
-        *,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
-    ):
-        """Set or update the result type for this agent."""
-        schema: _result.ResultSchema[Any] | None = to_result_schema(
-            result_type,
-            context=self._context,
-            tool_name_override=tool_name,
-            tool_description_override=tool_description,
-        )
-        logger.debug("Created schema: %s", schema)
-
-        # Apply schema and settings
-        self._agent._result_schema = schema
-
-        # Apply retries if from response definition
-        match result_type:
-            case BaseResponseDefinition() if result_type.result_retries is not None:
-                self._agent._max_result_retries = result_type.result_retries
-
     @asynccontextmanager
     async def stream_response(
         self,
@@ -345,6 +320,7 @@ class PydanticAIProvider(AgentProvider):
             deps=self._context,  # type: ignore
             message_history=message_history,
             model=model or self.model,  # type: ignore
+            result_type=result_type or str,
         ) as stream_result:
             original_stream = stream_result.stream
 
