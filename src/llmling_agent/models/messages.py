@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal, TypedDict
@@ -130,19 +131,7 @@ class ChatMessage[TContent]:
 
     def to_text_message(self) -> ChatMessage[str]:
         """Convert this message to a text-only version."""
-        return ChatMessage[str](
-            content=str(self.content),
-            role=self.role,
-            name=self.name,
-            model=self.model,
-            metadata=self.metadata,
-            timestamp=self.timestamp,
-            cost_info=self.cost_info,
-            message_id=self.message_id,
-            response_time=self.response_time,
-            tool_calls=self.tool_calls,
-            forwarded_from=self.forwarded_from,
-        )
+        return dataclasses.replace(self, content=str(self.content))  # type: ignore
 
     def _get_content_str(self) -> str:
         """Get string representation of content."""
