@@ -34,6 +34,29 @@
 
 LLMling Agent is a framework for creating and managing LLM-powered agents. It integrates with LLMling's resource system and provides structured interactions with language models.
 
+**Unique features**
+- Pydantic-AI based. Modern python (3.12+)
+- True async framework. Easy set-up of complex async agent flows.
+- Easy consistent APIs
+- Complete agent defintion via YAML files including extensive JSON schema to help with creating configurations.
+- Leveraging the complete pydantic-based type-safe stack (Pydantic- Pydantic-AI, Typer, SQLModel, etc.)
+- Complete integrated command sytem to control agents from prompt-based interfaces
+- Agent MCP server support, initialized when entering the async context.
+- Support for creating prompts for many common python type(s / instances). Your agent understands common datatypes.
+- Integration of Meta-Model system based on [LLMling-models](https://github.com/phil65/llmling-models), also configurable via YAML.
+- Structured responses. With pydantic-AI at its core, the Agents allow injecting dependencies as well as defining a return type while keeping type safety.
+- Capabilites system allowing runtime modifications and "special" commands (on-the-fly agent generation, history lookups)
+- Complete database logging of Agent interactions
+- pytest-inspired way to create agents from YAML in a type-safe manner. "Auto-populated signatures."
+- Tasks, tools, and what else you can expect from an Agent framework.
+- Easy human-in-the-loop interactions on multiple levels (complete "providers" or model-based, see llmling-models)
+- A CLI application with extensive slash command support to build agent flows interactively. Set up message connections via commands.
+
+
+**Coming soon**
+- Built-in event system for reactive agent behaviors (file changes, webhooks, timed events)
+- Real-time-monitoring via Textual app in truly async manner. Talk to your agents while they are working and monitor the progress!
+
 
 ## Quick Start
 
