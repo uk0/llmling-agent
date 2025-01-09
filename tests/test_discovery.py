@@ -5,6 +5,7 @@ from llmling_agent.running.discovery import agent_function
 
 async def test_basic_decoration():
     """Test basic function decoration."""
+
     @agent_function
     async def test_func():
         return "test"
@@ -19,6 +20,7 @@ async def test_basic_decoration():
 
 async def test_decoration_with_args():
     """Test decoration with arguments."""
+
     @agent_function(order=1, depends_on="other_func")
     async def test_func():
         return "test"
@@ -30,6 +32,7 @@ async def test_decoration_with_args():
 
 async def test_multiple_dependencies():
     """Test multiple dependencies."""
+
     @agent_function(depends_on=["func1", "func2"])
     async def test_func():
         return "test"
@@ -40,6 +43,7 @@ async def test_multiple_dependencies():
 
 async def test_default_inputs():
     """Test default input extraction."""
+
     @agent_function
     async def test_func(
         required: str,
@@ -57,10 +61,12 @@ async def test_default_inputs():
 
 async def test_function_name():
     """Test function name extraction."""
+
     def outer():
         @agent_function
         async def inner():
             return "test"
+
         return inner
 
     func = outer()
