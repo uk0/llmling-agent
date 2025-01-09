@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from typing_extensions import TypeVar
 
@@ -12,6 +12,8 @@ from llmling_agent.responses.utils import to_type
 
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
@@ -78,6 +80,24 @@ class StructuredAgent[TDeps, TResult]:
                 # For response definitions, use as-is
                 # (overrides don't apply to complete definitions)
                 self._agent.set_result_type(result_type)
+
+    async def __aenter__(self) -> Self:
+        """Enter async context and set up MCP servers.
+
+        Called when agent enters its async context. Sets up any configured
+        MCP servers and their tools.
+        """
+        await self._agent.__aenter__()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit async context."""
+        await self._agent.__aexit__(exc_type, exc_val, exc_tb)
 
     async def run(
         self,
