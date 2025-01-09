@@ -29,24 +29,25 @@ agents:
       - Focus on actionable insights and bottom-line impact.
 """
 
+DATA = """
+Monthly Sales Data (2023):
+Jan: $12,500
+Feb: $15,300
+Mar: $18,900
+Apr: $14,200
+May: $16,800
+Jun: $21,500
+"""
 
-@agent_function(order=1)
+
+@agent_function
 async def analyze_data(analyzer: Agent):
     """First step: Analyze the data."""
-    data = """
-    Monthly Sales Data (2023):
-    Jan: $12,500
-    Feb: $15,300
-    Mar: $18,900
-    Apr: $14,200
-    May: $16,800
-    Jun: $21,500
-    """
-    result = await analyzer.run(f"Analyze this sales data and identify trends:\n{data}")
+    result = await analyzer.run(f"Analyze this sales data and identify trends:\n{DATA}")
     return result.data
 
 
-@agent_function(order=2, depends_on="analyze_data")
+@agent_function(depends_on="analyze_data")
 async def summarize_analysis(writer: Agent, analyze_data: str):
     """Second step: Create an executive summary."""
     prompt = "Create a brief executive summary of this sales analysis:\n{analyze_data}"
