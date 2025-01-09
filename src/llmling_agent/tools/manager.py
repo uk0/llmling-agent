@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+MAX_LEN_DESCRIPTION = 1000
 
 
 class ToolManager(BaseRegistry[str, ToolInfo]):
@@ -254,7 +255,9 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             llm_tool = tool
             llm_tool.name = name_override or llm_tool.name
             llm_tool.description = description_override or llm_tool.description
-
+        if llm_tool.description and len(llm_tool.description) > MAX_LEN_DESCRIPTION:
+            msg = f"Too long description for {tool}"
+            raise ToolError(msg)
         tool_info = ToolInfo(
             llm_tool,
             enabled=enabled,
