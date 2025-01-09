@@ -167,7 +167,7 @@ class SlashedPool[TDeps]:
         """
         writer = self._get_output(output)
         target = agent
-        remaining_prompts = []
+        remaining_prompts: list[Any] = []
 
         # Handle @ routing first
         for p in prompt:
@@ -294,7 +294,7 @@ class SlashedPool[TDeps]:
         """
         writer = self._get_output(output)
         target = agent
-        remaining_prompts = []
+        remaining_prompts: list[Any] = []
 
         # Handle @ routing first
         for p in prompt:
