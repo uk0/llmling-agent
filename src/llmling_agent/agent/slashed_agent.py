@@ -53,6 +53,8 @@ OutputType = Literal[
 class AgentOutput:
     """Unified output event for UIs."""
 
+    # TODO: replace with Response, also in Docs
+
     type: OutputType
     """Type of output event."""
 

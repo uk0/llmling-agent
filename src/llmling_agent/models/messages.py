@@ -5,7 +5,7 @@ from __future__ import annotations
 import dataclasses
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -231,3 +231,65 @@ class ChatMessage[TContent]:
             parts.append(f"\n*Forwarded via: {' → '.join(self.forwarded_from)}*")
 
         return "\n".join(parts)
+
+
+@dataclass
+class Response[TContent]:
+    """Response from any source in the agent system."""
+
+    content: ChatMessage[TContent] | str
+    """The actual response content (either a ChatMessage or raw text)."""
+
+    source: str
+    """Identifies where this response came from (agent/command/tool/stream)."""
+
+    agent_name: str
+    """Name of the agent that generated or handled this response."""
+
+    timing: float | None = None
+    """Time taken to generate this response in seconds."""
+
+    error: str | None = None
+    """Error message if the response generation failed."""
+
+    @property
+    def success(self) -> bool:
+        """Whether the response was generated successfully."""
+        return self.error is None
+
+    @property
+    def data(self) -> TContent | str:
+        """Direct access to the response content data."""
+        return (
+            self.content.content
+            if isinstance(self.content, ChatMessage)
+            else self.content
+        )
+
+    def format(
+        self,
+        style: Literal["simple", "detailed", "markdown"] = "simple",
+        *,
+        include_context: bool = False,
+        **kwargs: Any,
+    ) -> str:
+        """Format response as string with optional context info."""
+        # Get base message formatting
+        msg = (
+            self.content.format(style, **kwargs)
+            if isinstance(self.content, ChatMessage)
+            else str(self.content)
+        )
+
+        if not include_context:
+            return msg
+
+        context_parts = []
+        if self.error:
+            context_parts.append(f"Error: {self.error}")
+        else:
+            context_parts.append(f"Source: {self.source}")
+            if self.timing:
+                context_parts.append(f"Duration: {self.timing:.2f}s")
+
+        return f"{' | '.join(context_parts)}\n{msg}"

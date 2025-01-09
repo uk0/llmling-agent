@@ -50,6 +50,8 @@ TResult = TypeVar("TResult", default=Any)
 class AgentResponse[TResult]:
     """Result from an agent's execution."""
 
+    # TODO: replace with Response
+
     agent_name: str
     """Name of the agent that produced this result"""
 
