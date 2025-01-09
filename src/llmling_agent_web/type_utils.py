@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
-
-if TYPE_CHECKING:
-    from llmling_agent.common_types import MessageRole
+from llmling_agent.common_types import MessageRole  # noqa: TC001
 
 
 class GradioChatMessage(TypedDict):
