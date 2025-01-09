@@ -12,6 +12,7 @@ import typer as t
 
 if TYPE_CHECKING:
     from llmling_agent.agent.agent import Agent
+    from llmling_agent.delegation.agentgroup import AgentGroup
 
 PROMPT_HELP = "Include named prompt from environment configuration"
 OUTPUT_HELP = "Output format (text/json/yaml)"
@@ -78,18 +79,12 @@ def run_command(
 
         async def run():
             async with AgentPool.open(config_path, agents=agent_names) as pool:
-                if environment:
-                    # Set environment override for all agents
-                    pool.manifest.agents = {
-                        name: config.model_copy(update={"environment": environment})
-                        for name, config in pool.manifest.agents.items()
-                    }
-
                 if len(agent_names) == 1:
                     # Single agent execution
                     agent: Agent[Any] = pool.get_agent(
                         agent_names[0],
                         model_override=model,
+                        environment_override=environment,
                     )
                     for prompt in prompts:
                         result = await agent.run(prompt)
@@ -98,15 +93,14 @@ def run_command(
                         else:
                             format_output(result.data, output_format)
                 else:
-                    # Team task execution
+                    # Multi-agent execution
+                    group: AgentGroup[Any] = pool.create_group(
+                        agent_names,
+                        model_override=model,
+                        environment_override=environment,
+                    )
                     for prompt in prompts:
-                        responses = await pool.team_task(
-                            prompt,
-                            agent_names,
-                            mode="parallel",
-                            model_override=model,
-                            environment_override=environment,
-                        )
+                        responses = await group.run_parallel(prompt)
                         formatted = {r.agent_name: r.response for r in responses}
                         format_output(formatted, output_format)
 
