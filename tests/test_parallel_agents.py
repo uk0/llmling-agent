@@ -44,12 +44,9 @@ async def test_parallel_agent_execution(test_model):
 
     # Run agents in parallel using AgentPool
     async with AgentPool(agent_def, agents_to_load=["agent1", "agent2"]) as pool:
-        # Use team_task to run both agents in parallel
-        responses = await pool.team_task(
-            prompt="Process this input",
-            team=["agent1", "agent2"],
-            mode="parallel",
-        )
+        # Create group and run in parallel
+        group = pool.create_group(["agent1", "agent2"])
+        responses = await group.run_parallel("Process this input")
 
         # Verify each agent processed the prompt
         assert len(responses) == 2  # noqa: PLR2004
@@ -91,12 +88,9 @@ async def test_agent_pool_sequential_execution(test_model):
     agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
     async with AgentPool(agent_def, agents_to_load=["agent1", "agent2"]) as pool:
-        # Run agents sequentially
-        responses = await pool.team_task(
-            prompt="Process this input",
-            team=["agent1", "agent2"],
-            mode="sequential",
-        )
+        # Create group and run sequentially
+        group = pool.create_group(["agent1", "agent2"])
+        responses = await group.run_sequential("Process this input")
 
         # Verify sequential execution
         assert len(responses) == 2  # noqa: PLR2004
@@ -123,12 +117,12 @@ async def test_agent_pool_with_environment_override(test_model):
     test_env = Config()
 
     async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
-        # Run with environment override
-        responses = await pool.team_task(
-            prompt="Test prompt",
-            team=["test_agent"],
+        # Create group with environment override
+        group = pool.create_group(
+            ["test_agent"],
             environment_override=test_env,  # Pass Config instance instead of path
         )
+        responses = await group.run_parallel("Test prompt")
 
         assert len(responses) == 1
         response = responses[0]
@@ -147,11 +141,12 @@ async def test_agent_pool_model_override(test_model):
     agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
 
     async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
-        responses = await pool.team_task(
-            prompt="Test prompt",
-            team=["test_agent"],
+        # Create group with model override
+        group = pool.create_group(
+            ["test_agent"],
             model_override=test_model,  # Override with test model
         )
+        responses = await group.run_parallel("Test prompt")
 
         assert len(responses) == 1
         response = responses[0]
