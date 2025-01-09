@@ -92,6 +92,7 @@ class SlashedAgent[TDeps, TContext]:
             history_file=command_history_path,
             enable_system_commands=True,
         )
+        self.commands._initialize_sync()
         self._current_stream_id: str | None = None
         self.command_context: TContext = command_context or self  # type: ignore
         self.output = output or DefaultOutputWriter()
