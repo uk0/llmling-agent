@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from pydantic_ai import messages
     from slashed import OutputWriter
 
-    from llmling_agent.common_types import SessionIdType
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.tools.manager import ToolManager
 
@@ -80,7 +79,6 @@ class AgentPoolView:
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,
-        session_id: SessionIdType = None,
     ):
         """Initialize chat session.
 
@@ -88,10 +86,8 @@ class AgentPoolView:
             agent: The LLMling agent to use
             pool: Optional agent pool for multi-agent interactions
             wait_chain: Whether to wait for chain completion
-            session_id: Optional session ID (generated if not provided)
         """
         # Basic setup that doesn't need async
-        self.id = str(session_id) if session_id is not None else str(uuid4())
         self._agent = agent
         self._pool = pool
         self.wait_chain = wait_chain
@@ -113,7 +109,6 @@ class AgentPoolView:
         *,
         pool: AgentPool | None = None,
         wait_chain: bool = True,
-        session_id: SessionIdType = None,
     ) -> AgentPoolView:
         """Create and initialize a new agent pool view.
 
@@ -121,12 +116,11 @@ class AgentPoolView:
             agent: The primary agent to interact with
             pool: Optional agent pool for multi-agent interactions
             wait_chain: Whether to wait for chain completion
-            session_id: Optional ID to recover a previous state
 
         Returns:
             Initialized AgentPoolView
         """
-        view = cls(agent, pool=pool, wait_chain=wait_chain, session_id=session_id)
+        view = cls(agent, pool=pool, wait_chain=wait_chain)
         await view.initialize()
         return view
 
@@ -196,8 +190,7 @@ class AgentPoolView:
             self.commands.register_command(cmd)
 
         self._initialized = True
-        msg = "Initialized chat session %r for agent %r"
-        logger.debug(msg, self.id, self._agent.name)
+        logger.debug("Initialized chat session for agent %r", self._agent.name)
 
     async def cleanup(self):
         """Clean up session resources."""
@@ -210,7 +203,7 @@ class AgentPoolView:
             return
         from llmling_agent.storage.models import CommandHistory
 
-        id_ = str(self.id)
+        id_ = str(self._agent.conversation.id)
         CommandHistory.log(agent_name=self._agent.name, session_id=id_, command=command)
 
     def get_commands(
@@ -221,7 +214,7 @@ class AgentPoolView:
 
         return CommandHistory.get_commands(
             agent_name=self._agent.name,
-            session_id=str(self.id),
+            session_id=str(self._agent.conversation.id),
             limit=limit,
             current_session_only=current_session_only,
         )
@@ -230,7 +223,7 @@ class AgentPoolView:
     def metadata(self) -> ChatSessionMetadata:
         """Get current session metadata."""
         return ChatSessionMetadata(
-            session_id=self.id,
+            session_id=str(self._agent.conversation.id),
             agent_name=self._agent.name,
             model=self._agent.model_name,
             tool_states=self.tools.list_tools(),
@@ -248,7 +241,7 @@ class AgentPoolView:
         new_tools = self.tools.list_tools()
 
         event = self.SessionReset(
-            session_id=str(self.id),
+            session_id=str(self._agent.conversation.id),
             previous_tools=old_tools,
             new_tools=new_tools,
         )
@@ -370,7 +363,6 @@ class AgentPoolView:
                 yield ChatMessage[str](content=str(response), role="assistant")
 
             # Final message with complete metrics after stream completes
-            message_id = str(uuid4())
             start_time = time.perf_counter()
 
             # Get usage info if available
@@ -389,7 +381,7 @@ class AgentPoolView:
                 role="assistant",
                 name=self._agent.name,
                 model=self._agent.model_name,
-                message_id=message_id,
+                message_id=str(uuid4()),
                 cost_info=cost_info,
                 response_time=time.perf_counter() - start_time,
             )
