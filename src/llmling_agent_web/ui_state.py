@@ -19,6 +19,7 @@ from llmling_agent_web.type_utils import ChatHistory, validate_chat_message
 
 if TYPE_CHECKING:
     from llmling_agent import Agent
+    from llmling_agent.agent.slashed_agent import SlashedAgent
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -79,6 +80,7 @@ class UIState:
         self.debug_mode = False
         self.handler: AgentHandler | None = None
         self._agent: Agent[Any] | None = None
+        self._slashed_agent: SlashedAgent | None = None
         self._pending_tasks: set[asyncio.Task[Any]] = set()
 
     def _connect_signals(self):
@@ -214,6 +216,16 @@ class UIState:
             # Get agent from pool through handler
             self._agent = await self.handler.select_agent(agent_name, model)
 
+            # Create temporary AgentPoolView just for command context
+            from llmling_agent.chat_session.base import AgentPoolView
+
+            view = await AgentPoolView.create(self._agent, pool=self.handler.state.pool)
+
+            # Create SlashedAgent with the view
+            from llmling_agent.agent import SlashedAgent
+
+            self._slashed_agent = SlashedAgent(self._agent, command_context=view)
+
             # Connect signals
             self._connect_signals()
 
@@ -245,7 +257,7 @@ class UIState:
             logs = self.get_debug_logs()
             return UIUpdate(message_box="", status="Message is empty", debug_logs=logs)
 
-        if not self._agent:
+        if not self._agent or not self._slashed_agent:
             return UIUpdate(
                 message_box=message,
                 chat_history=history,
@@ -255,22 +267,10 @@ class UIState:
 
         try:
             messages = list(history)
-
-            # Temporarily disable command support
-            if message.startswith("/"):
-                messages.append({"content": message, "role": "user"})
-                return UIUpdate(
-                    message_box="",
-                    chat_history=messages,
-                    status="Commands are temporarily disabled",
-                    debug_logs=self.get_debug_logs(),
-                )
-
-            # Add user message
             messages.append({"content": message, "role": "user"})
 
-            # Get response from agent
-            result = await self._agent.run(message)
+            # Use slashed agent instead of direct agent
+            result = await self._slashed_agent.run(message)
             messages.append({"content": str(result.content), "role": "assistant"})
 
             return UIUpdate(
