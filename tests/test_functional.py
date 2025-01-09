@@ -8,9 +8,9 @@ from typing import Any
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent.functional import run_agent_pipeline, run_agent_pipeline_sync
 from llmling_agent.models import AgentConfig, AgentsManifest, SystemPrompt
 from llmling_agent.responses import InlineResponseDefinition, ResponseField
+from llmling_agent_functional import run_agent_pipeline, run_agent_pipeline_sync
 
 
 @pytest.fixture

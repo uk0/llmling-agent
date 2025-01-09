@@ -87,7 +87,7 @@ if __name__ == "__main__":
 Quick model interactions without configuration:
 
 ```python
-from llmling_agent.functional import run_with_model, run_with_model_sync
+from llmling_agent import run_with_model, run_with_model_sync
 
 # Async usage
 async def main():
