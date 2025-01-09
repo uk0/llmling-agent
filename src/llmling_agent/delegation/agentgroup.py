@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
 from datetime import datetime
 import time
 from typing import TYPE_CHECKING, Any, TypeVar, overload
@@ -28,18 +27,15 @@ if TYPE_CHECKING:
 TDeps = TypeVar("TDeps")
 
 
-@dataclass
 class TeamResponse(list[AgentResponse[Any]]):
     """Results from a team execution."""
-
-    start_time: datetime
-    end_time: datetime = field(default_factory=datetime.now)
 
     def __init__(
         self, responses: list[AgentResponse[Any]], start_time: datetime | None = None
     ):
         super().__init__(responses)
         self.start_time = start_time or datetime.now()
+        self.end_time = datetime.now()
 
     @property
     def duration(self) -> float:

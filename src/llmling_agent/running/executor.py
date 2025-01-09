@@ -37,6 +37,14 @@ def discover_functions(path: StrPath) -> list[AgentFunction]:
         ImportError: If module cannot be imported
         ValueError: If path is invalid
     """
+    if str(path) == "__main__":
+        # Get the actual file being run
+        import sys
+
+        path = sys.modules["__main__"].__file__  # type: ignore
+        if not path:
+            msg = "Could not determine main module file"
+            raise ValueError(msg)
     path_obj = Path(path)
     if not path_obj.exists():
         msg = f"Module not found: {path}"

@@ -602,11 +602,9 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
 
         # Initialize agents with knowledge
         for name, agent in pool.agents.items():
-            if (config := self.agents.get(name)) and config.knowledge:
+            if (cfg := self.agents.get(name)) and cfg.knowledge:
                 for source in (
-                    config.knowledge.paths
-                    + config.knowledge.resources
-                    + config.knowledge.prompts
+                    cfg.knowledge.paths + cfg.knowledge.resources + cfg.knowledge.prompts
                 ):
                     await agent.conversation.load_context_source(source)  # type: ignore
 
