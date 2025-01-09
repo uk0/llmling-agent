@@ -9,21 +9,16 @@ from typing import TYPE_CHECKING, Any
 import gradio as gr
 from llmling import ConfigStore
 from pydantic import BaseModel, model_validator
-from slashed.output import CallbackOutputWriter
 from upath import UPath
 import yamling
 
-from llmling_agent.chat_session import AgentPoolView
-from llmling_agent.chat_session.models import ChatMessage
 from llmling_agent.log import LogCapturer
 from llmling_agent_web.handlers import AgentHandler
 from llmling_agent_web.type_utils import ChatHistory, validate_chat_message
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-
-    from llmling_agent.agent.conversation import ConversationManager
+    from llmling_agent import Agent
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -83,35 +78,32 @@ class UIState:
         self.log_capturer = LogCapturer()
         self.debug_mode = False
         self.handler: AgentHandler | None = None
-        self._current_session: AgentPoolView | None = None
+        self._agent: Agent[Any] | None = None
         self._pending_tasks: set[asyncio.Task[Any]] = set()
 
     def _connect_signals(self):
-        """Connect to chat session signals."""
-        assert self._current_session is not None
+        """Connect to agent signals."""
+        assert self._agent is not None
 
-        # Connect to signals with bound methods
-        self._current_session.history_cleared.connect(self._on_history_cleared)
-        self._current_session.session_reset.connect(self._on_session_reset)
-        # Tool events
-        self._current_session.tool_added.connect(self._handle_tool_added)
-        self._current_session.tool_removed.connect(self._handle_tool_removed)
-        self._current_session.tool_changed.connect(self._handle_tool_changed)
+        # Connect tool events
+        self._agent.tools.events.added.connect(self._handle_tool_added)
+        self._agent.tools.events.removed.connect(self._handle_tool_removed)
+        self._agent.tools.events.changed.connect(self._handle_tool_changed)
 
-    def _handle_tool_added(self, tool: ToolInfo):
-        """Sync handler for tool addition."""
-        task = asyncio.create_task(self.update_tool_states({tool.name: tool.enabled}))
+    def _handle_tool_added(self, name: str, tool: ToolInfo):
+        """Handle tool addition."""
+        task = asyncio.create_task(self.update_tool_states({name: tool.enabled}))
         self._pending_tasks.add(task)
         task.add_done_callback(self._pending_tasks.discard)
 
-    def _handle_tool_removed(self, tool_name: str):
-        """Sync handler for tool removal."""
+    def _handle_tool_removed(self, name: str):
+        """Handle tool removal."""
         task = asyncio.create_task(self.update_tool_states({}))
         self._pending_tasks.add(task)
         task.add_done_callback(self._pending_tasks.discard)
 
     def _handle_tool_changed(self, name: str, tool: ToolInfo):
-        """Sync handler for tool state changes."""
+        """Handle tool state changes."""
         task = asyncio.create_task(self.update_tool_states({name: tool.enabled}))
         self._pending_tasks.add(task)
         task.add_done_callback(self._pending_tasks.discard)
@@ -121,18 +113,28 @@ class UIState:
         if self._pending_tasks:
             await asyncio.gather(*self._pending_tasks, return_exceptions=True)
             self._pending_tasks.clear()
+        if self.handler:
+            await self.handler.cleanup()
+            self.handler = None
 
-    async def _on_history_cleared(self, event: ConversationManager.HistoryCleared):
-        """Handle history cleared event."""
-        await self.send_message(message="", history=[], agent_name=None, model=None)
+    async def reset_session(self) -> UIUpdate:
+        """Reset session state."""
+        if not self._agent:
+            return UIUpdate(status="No active session")
 
-    async def _on_session_reset(self, event: AgentPoolView.SessionReset):
-        """Handle session reset event."""
-        # Clear chat and update tool states
-        _update = await self.send_message(
-            message="", history=[], agent_name=None, model=None
+        # Reset tool states
+        self._agent.tools.reset_states()
+        tool_states = [(t.name, t.enabled) for t in self._agent.tools.values()]
+
+        # Clear conversation
+        self._agent.conversation.clear()
+
+        return UIUpdate(
+            chat_history=[],
+            tool_states=tool_states,
+            status="Session reset",
+            debug_logs=self.get_debug_logs(),
         )
-        await self.update_tool_states(event.new_tools)
 
     def toggle_debug(self, enabled: bool) -> UIUpdate:
         """Toggle debug mode."""
@@ -209,32 +211,25 @@ class UIState:
                 msg = "No configuration loaded"
                 raise ValueError(msg)  # noqa: TRY301
 
-            # Initialize the runner
-            await self.handler.select_agent(agent_name, model)
+            # Get agent from pool through handler
+            self._agent = await self.handler.select_agent(agent_name, model)
 
-            # Get the agent from the runner
-            if not self.handler.state.pool:
-                msg = f"Failed to initialize pool for {agent_name}"
-                raise ValueError(msg)  # noqa: TRY301
-
-            agent = self.handler.state.pool.get_agent(agent_name)
-            # Create new session
-            self._current_session = await AgentPoolView.create(agent=agent)
+            # Connect signals
             self._connect_signals()
 
             # Get tool states for UI
-            tools = self._current_session.tools
-            tool_states = [(t.name, t.enabled) for t in tools.values()]
+            tool_states = [(t.name, t.enabled) for t in self._agent.tools.values()]
 
             return UIUpdate(
                 status=f"Agent {agent_name} ready",
-                chat_history=[],  # type: ignore
+                chat_history=[],
                 tool_states=tool_states,
                 debug_logs=self.get_debug_logs(),
             )
 
         except Exception as e:
             logger.exception("Failed to initialize agent")
+            self._agent = None
             logs = self.get_debug_logs()
             return UIUpdate(status=f"Error: {e}", debug_logs=logs)
 
@@ -250,46 +245,34 @@ class UIState:
             logs = self.get_debug_logs()
             return UIUpdate(message_box="", status="Message is empty", debug_logs=logs)
 
-        if not self._current_session:
+        if not self._agent:
             return UIUpdate(
                 message_box=message,
                 chat_history=history,
-                status="No active session",
+                status="No active agent",
                 debug_logs=self.get_debug_logs(),
             )
 
         try:
             messages = list(history)
 
-            # For commands, add the command as user message
+            # Temporarily disable command support
             if message.startswith("/"):
                 messages.append({"content": message, "role": "user"})
+                return UIUpdate(
+                    message_box="",
+                    chat_history=messages,
+                    status="Commands are temporarily disabled",
+                    debug_logs=self.get_debug_logs(),
+                )
 
-            # Collect command outputs
-            command_outputs: list[str] = []
+            # Add user message
+            messages.append({"content": message, "role": "user"})
 
-            async def message_callback(content: str):
-                if message.startswith("/"):
-                    command_outputs.append(content)
-                else:
-                    chat_msg = ChatMessage[str](content=content, role="system")
-                    messages.append({"content": chat_msg.content, "role": chat_msg.role})
+            # Get response from agent
+            result = await self._agent.run(message)
+            messages.append({"content": str(result.content), "role": "assistant"})
 
-            # Use slashed's CallbackOutputWriter
-            writer = CallbackOutputWriter(message_callback)
-            result = await self._current_session.send_message(message, output=writer)
-
-            # For non-command messages, add the regular response
-            if not message.startswith("/"):
-                messages.append({"content": message, "role": "user"})
-                if result.content:
-                    messages.append({"content": str(result.content), "role": "assistant"})
-            # For commands, add the collected output as a response
-            elif command_outputs:
-                content = "\n".join(command_outputs)
-                messages.append({"content": content, "role": "assistant"})
-
-            logger.debug("Final messages: %s", messages)
             return UIUpdate(
                 message_box="",
                 chat_history=messages,
@@ -306,68 +289,26 @@ class UIState:
                 debug_logs=self.get_debug_logs(),
             )
 
-    async def stream_message(
-        self,
-        message: str,
-        history: ChatHistory,
-    ) -> AsyncIterator[UIUpdate]:
-        """Stream message responses."""
-        session = self._current_session
-        if not session:
-            yield UIUpdate(status="No active session")
-            return
-
-        try:
-            messages = list(history)
-            messages.append({"content": message, "role": "user"})
-
-            # Get the iterator from send_message
-            message_iterator = await session.send_message(message, stream=True)
-
-            # Iterate over the chat messages
-            async for chat_msg in message_iterator:
-                messages.append({
-                    "content": str(chat_msg.content),
-                    "role": "assistant",
-                    "metadata": chat_msg.metadata,
-                })
-
-                yield UIUpdate(chat_history=messages, status="Receiving response...")
-
-            # Final update
-            yield UIUpdate(
-                message_box="",
-                chat_history=messages,
-                status="Message sent",
-                debug_logs=self.get_debug_logs(),
-            )
-
-        except Exception as e:
-            logger.exception("Failed to stream message")
-            logs = self.get_debug_logs()
-            yield UIUpdate(status=f"Error: {e}", debug_logs=logs)
-
     async def update_tool_states(self, updates: dict[str, bool]) -> UIUpdate:
-        """Update tool states in current session."""
-        if not self._current_session:
-            return UIUpdate(status="No active session")
+        """Update tool states."""
+        if not self._agent:
+            return UIUpdate(status="No active agent")
 
         try:
-            tool_manager = self._current_session.tools
             results = {}
             for tool, enabled in updates.items():
                 try:
                     if enabled:
-                        tool_manager.enable_tool(tool)
+                        self._agent.tools.enable_tool(tool)
                         results[tool] = "enabled"
                     else:
-                        tool_manager.disable_tool(tool)
+                        self._agent.tools.disable_tool(tool)
                         results[tool] = "disabled"
                 except ValueError as e:
                     results[tool] = f"error: {e}"
 
             status = "; ".join(f"{k}: {v}" for k, v in results.items())
-            tool_states = [(t.name, t.enabled) for t in tool_manager.values()]
+            tool_states = [(t.name, t.enabled) for t in self._agent.tools.values()]
             logs = self.get_debug_logs()
             msg = f"Updated tools: {status}"
             return UIUpdate(status=msg, tool_states=tool_states, debug_logs=logs)

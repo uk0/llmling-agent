@@ -1,14 +1,21 @@
-"""Event handlers for the web interface."""
+"""Web interface event handler."""
 
 from __future__ import annotations
 
-import logfire
+from dataclasses import dataclass
+from typing import Any
 
-from llmling_agent.log import get_logger
-from llmling_agent_web.state import AgentState
+from llmling_agent import Agent, AgentPool
+from llmling_agent.models import AgentsManifest
 
 
-logger = get_logger(__name__)
+@dataclass
+class AgentState:
+    """State for web interface."""
+
+    agent_def: AgentsManifest[Any, Any]
+    pool: AgentPool
+    current_agent: Agent[Any] | None = None
 
 
 class AgentHandler:
@@ -18,138 +25,76 @@ class AgentHandler:
         """Initialize handler.
 
         Args:
-            file_path: Initial configuration file path
+            file_path: Path to agent configuration file
         """
         self._file_path = file_path
         self._state: AgentState | None = None
 
+    @property
+    def state(self) -> AgentState:
+        """Get current state.
+
+        Raises:
+            ValueError: If state not initialized
+        """
+        if not self._state:
+            msg = "Handler not initialized"
+            raise ValueError(msg)
+        return self._state
+
     @classmethod
     async def create(cls, file_path: str) -> AgentHandler:
-        """Create and initialize a new handler.
+        """Create and initialize handler.
 
         Args:
-            file_path: Path to configuration file
+            file_path: Path to agent configuration file
 
         Returns:
             Initialized handler
-
-        Raises:
-            ValueError: If initialization fails
         """
         handler = cls(file_path)
         await handler.initialize()
         return handler
 
     async def initialize(self):
-        """Initialize the handler state.
-
-        Raises:
-            ValueError: If initialization fails
-        """
-        logger.debug("Initializing handler with file: %s", self._file_path)
-        self._state = await AgentState.create(self._file_path)
-        logger.debug("Handler initialized with state: %s", self._state)
-
-    @property
-    def state(self) -> AgentState:
-        """Get the current state.
-
-        Returns:
-            Current agent state
-
-        Raises:
-            RuntimeError: If state not initialized
-        """
-        if not self._state:
-            msg = "Handler not initialized"
-            raise RuntimeError(msg)
-        return self._state
-
-    @logfire.instrument("Loading file from path {file_path}")
-    async def load_agent_file(
-        self,
-        file_path: str,
-    ) -> tuple[list[str], str]:
-        """Handle agent file selection.
-
-        Args:
-            file_path: Path to agent configuration file
-
-        Returns:
-            Tuple of (agent choices, status message)
-        """
-        try:
-            # Clean up old state if it exists
-            if self._state:
-                await self._state.cleanup()
-
-            # Create new state
-            self._state = await AgentState.create(file_path)
-            agents = list(self._state.agent_def.agents)
-            msg = f"Loaded {len(agents)} agents from {file_path}"
-            logger.info(msg)
-
-        except Exception as e:
-            error = f"Error loading file: {e}"
-            logger.exception(error)
-            return [], error
-        else:
-            return agents, msg
+        """Initialize with full agent pool."""
+        agent_def = AgentsManifest[Any, Any].from_file(self._file_path)
+        # Create pool with ALL agents
+        pool = AgentPool(agent_def)
+        self._state = AgentState(agent_def=agent_def, pool=pool)
 
     async def select_agent(
         self,
-        agent_name: str | None,
-        model: str | None,
-    ) -> tuple[str, list[list[str]]]:
-        """Handle agent selection."""
-        if not agent_name:
-            msg = "No agent name provided"
+        agent_name: str,
+        model: str | None = None,
+    ) -> Agent[Any]:
+        """Select and configure an agent.
+
+        Args:
+            agent_name: Name of agent to select
+            model: Optional model override
+
+        Returns:
+            Selected and configured agent
+
+        Raises:
+            ValueError: If not initialized or agent not found
+        """
+        if not self._state:
+            msg = "No configuration loaded"
             raise ValueError(msg)
 
-        try:
-            await self.state.select_agent(agent_name, model)
-        except Exception:
-            if self._state:
-                await self._state.cleanup()
+        # Get agent from pool
+        agent = self._state.pool.get_agent(agent_name)
+        if model:
+            agent.set_model(model)  # type: ignore
+
+        # Store as current agent
+        self._state.current_agent = agent
+        return agent
+
+    async def cleanup(self):
+        """Clean up resources."""
+        if self._state and self._state.pool:
+            await self._state.pool.cleanup()
             self._state = None
-            raise
-        else:
-            return f"Agent {agent_name} ready", []
-
-    async def send_message(
-        self,
-        message: str,
-        chat_history: list[dict[str, str]],  # Note: Using dict format consistently
-    ) -> tuple[str, list[dict[str, str]], str]:
-        """Handle sending a chat message."""
-        if not message.strip():
-            return "", chat_history, "Message is empty"
-
-        if not self.state.pool:
-            return message, chat_history, "No agent selected"
-
-        try:
-            # Get agent from pool and send message
-            agent = next(iter(self.state.pool.agents.values()))
-            result = await agent.run(message)
-            response = str(result.data)
-
-            # Update history with new messages
-            new_history = list(chat_history)
-            new_history.extend([
-                {"role": "user", "content": message},
-                {"role": "assistant", "content": response},
-            ])
-
-            # Store updated history
-            agent_name = agent.name
-            self.state.history[agent_name] = [
-                [msg["content"] for msg in pair]
-                for pair in zip(new_history[::2], new_history[1::2])
-            ]
-        except Exception as e:
-            error = f"Error getting response: {e}"
-            logger.exception(error)
-            return message, chat_history, error
-        else:
-            return "", new_history, "Message sent"
