@@ -201,9 +201,9 @@ class ChatMessage[TContent]:
         if show_metadata and self.metadata:
             parts.append("Metadata:")
             parts.extend(f"  {k}: {v}" for k, v in self.metadata.items())
-
         if self.forwarded_from:
-            parts.append(f"Forwarded via: {' -> '.join(self.forwarded_from)}")
+            forwarded_from = " -> ".join(self.forwarded_from)
+            parts.append(f"Forwarded via: {forwarded_from}")
 
         return "\n".join(parts)
 
