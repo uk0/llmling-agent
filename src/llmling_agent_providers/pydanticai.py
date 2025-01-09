@@ -309,7 +309,6 @@ class PydanticAIProvider(AgentProvider):
 
         # Apply schema and settings
         self._agent._result_schema = schema
-        self._agent._allow_text_result = schema.allow_text_result if schema else True
 
         # Apply retries if from response definition
         match result_type:
