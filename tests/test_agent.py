@@ -156,7 +156,7 @@ async def test_agent_logging(no_tool_runtime: RuntimeConfig):
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE),
-        enable_logging=True,
+        enable_db_logging=True,
     )
     result1 = await agent1.run(SIMPLE_PROMPT)
     assert result1.data == TEST_RESPONSE
@@ -166,7 +166,7 @@ async def test_agent_logging(no_tool_runtime: RuntimeConfig):
         runtime=no_tool_runtime,
         name="test-agent",
         model=TestModel(custom_result_text=TEST_RESPONSE),
-        enable_logging=False,
+        enable_db_logging=False,
     )
     result2 = await agent2.run(SIMPLE_PROMPT)
     assert result2.data == TEST_RESPONSE

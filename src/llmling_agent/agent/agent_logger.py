@@ -22,21 +22,21 @@ logger = logging.getLogger(__name__)
 class AgentLogger:
     """Handles database logging for agent interactions."""
 
-    def __init__(self, agent: Agent[Any], enable_logging: bool = True):
+    def __init__(self, agent: Agent[Any], enable_db_logging: bool = True):
         """Initialize logger.
 
         Args:
             agent: Agent to log interactions for
-            enable_logging: Whether to enable logging
+            enable_db_logging: Whether to enable logging
         """
         self.agent = agent
-        self.enable_logging = enable_logging
+        self.enable_db_logging = enable_db_logging
         self.conversation_id = str(uuid4())
         self.message_history: list[ChatMessage] = []
         self.toolcall_history: list[ToolCallInfo] = []
 
         # Initialize conversation record if enabled
-        if enable_logging:
+        if enable_db_logging:
             self.init_conversation()
             # Connect to the combined signal to capture all messages
             agent.message_exchanged.connect(self.log_message)
@@ -65,7 +65,7 @@ class AgentLogger:
         """Handle message from chat signal."""
         self.message_history.append(message)
 
-        if not self.enable_logging:
+        if not self.enable_db_logging:
             return
 
         Message.log(
@@ -83,7 +83,7 @@ class AgentLogger:
         """Handle tool usage signal."""
         self.toolcall_history.append(tool_call)
 
-        if not self.enable_logging:
+        if not self.enable_db_logging:
             return
 
         ToolCall.log(

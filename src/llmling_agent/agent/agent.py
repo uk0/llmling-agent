@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import ModelType, SessionIdType, StrPath, ToolType
     from llmling_agent.models.context import ConfirmationCallback
+    from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import AgentTask
     from llmling_agent.responses.models import ResponseDefinition
     from llmling_agent.tools.base import ToolInfo
@@ -95,7 +96,7 @@ class Agent[TDeps]:
         context: AgentContext[TDeps] | None = None,
         *,
         agent_type: AgentType = "ai",
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         model: ModelType = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
@@ -106,7 +107,7 @@ class Agent[TDeps]:
         tool_choice: bool | str | list[str] = True,
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
-        enable_logging: bool = True,
+        enable_db_logging: bool = True,
         confirmation_callback: ConfirmationCallback | None = None,
         debug: bool = False,
         **kwargs,
@@ -117,7 +118,7 @@ class Agent[TDeps]:
             runtime: Runtime configuration providing access to resources/tools
             context: Agent context with capabilities and configuration
             agent_type: Agent type to use (ai: PydanticAIProvider, human: HumanProvider)
-            session_id: Optional id to recover a conversation
+            session: Optional id or Session query to recover a conversation
             model: The default model to use (defaults to GPT-4)
             system_prompt: Static system prompts to use for this agent
             name: Name of the agent for logging
@@ -130,7 +131,7 @@ class Agent[TDeps]:
                           a final result
             defer_model_check: Whether to defer model evaluation until first run
             kwargs: Additional arguments for PydanticAI agent
-            enable_logging: Whether to enable logging for the agent
+            enable_db_logging: Whether to enable logging for the agent
             confirmation_callback: Callback for confirmation prompts
             debug: Whether to enable debug mode
         """
@@ -167,7 +168,7 @@ class Agent[TDeps]:
         self.conversation = ConversationManager(
             self,
             initial_prompts=all_prompts,
-            session_id=session_id,
+            session=session,
         )
 
         # Initialize provider based on type
@@ -215,7 +216,7 @@ class Agent[TDeps]:
         from llmling_agent.agent import AgentLogger
         from llmling_agent.events import EventManager
 
-        self._logger = AgentLogger(self, enable_logging=enable_logging)
+        self._logger = AgentLogger(self, enable_db_logging=enable_db_logging)
         self._events = EventManager(self, enable_events=True)
 
         self._pending_tasks: set[asyncio.Task[Any]] = set()
@@ -373,7 +374,7 @@ class Agent[TDeps]:
         *,
         result_type: None = None,
         model: ModelType = None,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
         retries: int = 1,
@@ -391,7 +392,7 @@ class Agent[TDeps]:
         *,
         result_type: type[TResult],
         model: ModelType = None,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
         retries: int = 1,
@@ -409,7 +410,7 @@ class Agent[TDeps]:
         *,
         result_type: type[TResult] | None = None,
         model: ModelType = None,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
         retries: int = 1,
@@ -427,7 +428,7 @@ class Agent[TDeps]:
                         (defaults to Config())
             result_type: Optional type for structured responses
             model: The default model to use (defaults to GPT-4)
-            session_id: Optional id to recover a conversation
+            session: Optional id or Session query to recover a conversation
             system_prompt: Static system prompts to use for this agent
             name: Name of the agent for logging
             retries: Default number of retries for failed operations
@@ -453,7 +454,7 @@ class Agent[TDeps]:
             agent = cls(
                 runtime=runtime,
                 model=model,
-                session_id=session_id,
+                session=session,
                 system_prompt=system_prompt,
                 name=name,
                 retries=retries,
@@ -482,7 +483,7 @@ class Agent[TDeps]:
         deps: TDeps | None = None,
         result_type: None = None,
         model: str | None = None,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         model_settings: dict[str, Any] | None = None,
         tools: list[ToolType] | None = None,
         tool_choice: bool | str | list[str] = True,
@@ -499,7 +500,7 @@ class Agent[TDeps]:
         deps: TDeps | None = None,
         result_type: type[TResult],
         model: str | None = None,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         model_settings: dict[str, Any] | None = None,
         tools: list[ToolType] | None = None,
         tool_choice: bool | str | list[str] = True,
@@ -516,7 +517,7 @@ class Agent[TDeps]:
         deps: TDeps | None = None,  # TDeps from class
         result_type: type[TResult] | None = None,
         model: str | ModelType = None,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         model_settings: dict[str, Any] | None = None,
         tools: list[ToolType] | None = None,
         tool_choice: bool | str | list[str] = True,
@@ -526,7 +527,7 @@ class Agent[TDeps]:
         result_tool_description: str | None = None,
         result_retries: int | None = None,
         system_prompt: str | Sequence[str] | None = None,
-        enable_logging: bool = True,
+        enable_db_logging: bool = True,
     ) -> AsyncIterator[Agent[TDeps] | StructuredAgent[TDeps, TResult]]:
         """Open and configure a specific agent from configuration."""
         """Implementation with all parameters..."""
@@ -540,7 +541,7 @@ class Agent[TDeps]:
             model: Optional model override
             result_type: Optional type for structured responses
             model_settings: Additional model-specific settings
-            session_id: Optional id to recover a conversation
+            session: Optional id or Session query to recover a conversation
 
             # Tool Configuration
             tools: Additional tools to register (import paths or callables)
@@ -560,7 +561,7 @@ class Agent[TDeps]:
 
             # Other Settings
             system_prompt: Additional system prompts
-            enable_logging: Whether to enable logging for the agent
+            enable_db_logging: Whether to enable logging for the agent
 
         Yields:
             Configured Agent instance
@@ -616,13 +617,13 @@ class Agent[TDeps]:
                 context=context,
                 model=actual_model,  # type: ignore[arg-type]
                 retries=retries,
-                session_id=session_id,
+                session=session,
                 result_retries=result_retries,
                 end_strategy=end_strategy,
                 tool_choice=tool_choice,
                 tools=tools,
                 system_prompt=system_prompt or [],
-                enable_logging=enable_logging,
+                enable_db_logging=enable_db_logging,
             )
             try:
                 async with base_agent:

@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, DateTime
+from sqlalchemy.sql import expression
 from sqlmodel import JSON, Field, Session, SQLModel, select
 from sqlmodel.main import SQLModelConfig
 
@@ -259,7 +260,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         since: datetime | None = None,
         until: datetime | None = None,
         roles: set[MessageRole] | None = None,
-        agents: set[str] | None = None,
+        agents: set[str] | None = None,  # changed from agent: str
         include_forwarded: bool = True,
         limit: int | None = None,
     ) -> list[ModelMessage]:
@@ -270,71 +271,47 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
             since: Only messages after this time
             until: Only messages before this time
             roles: Only messages with these roles
-            agents: Only messages from/to these agents
+            agents: Only messages from these agents
             include_forwarded: Include messages forwarded between agents
             limit: Max number of messages
         """
-        from pydantic_ai.messages import (
-            ModelRequest,
-            ModelResponse,
-            SystemPromptPart,
-            TextPart,
-            UserPromptPart,
-        )
-        from sqlalchemy import JSON, Column, and_, or_
-        from sqlalchemy.sql import expression
-        from sqlmodel import select
+        from sqlmodel import JSON, Column, and_, or_, select
 
+        from llmling_agent.pydantic_ai_utils import db_message_to_pydantic_ai_message
         from llmling_agent.storage import engine
 
-        query = select(cls)
-
-        # Handle single ID or sequence
-        if isinstance(conversation_id, str):
-            query = query.where(Column("conversation_id") == conversation_id)
-        else:
-            query = query.where(Column("conversation_id").in_(conversation_id))
-
-        if since:
-            query = query.where(Column("timestamp") >= since)
-        if until:
-            query = query.where(Column("timestamp") <= until)
-        if roles:
-            query = query.where(Column("role").in_(roles))
-        if agents:
-            # Match messages from these agents or forwarded through them
-            conditions = [Column("name").in_(agents)]
-            if include_forwarded:
-                conditions.append(
-                    and_(
-                        Column("forwarded_from").isnot(None),
-                        expression.cast(Column("forwarded_from"), JSON).contains(
-                            list(agents)
-                        ),  # type: ignore
-                    )
-                )
-            query = query.where(or_(*conditions))
-        if limit:
-            query = query.limit(limit)
-
         with Session(engine) as session:
-            messages = session.exec(query).all()
-            result: list[ModelMessage] = []
-            for msg in messages:
-                match msg.role:
-                    case "user":
-                        result.append(
-                            ModelRequest(parts=[UserPromptPart(content=msg.content)])
+            stmt = select(cls).order_by(cls.timestamp)  # type: ignore
+
+            # Handle single ID or sequence
+            if isinstance(conversation_id, str):
+                stmt = stmt.where(cls.conversation_id == conversation_id)
+            else:
+                stmt = stmt.where(cls.conversation_id.in_(conversation_id))  # type: ignore
+
+            if since:
+                stmt = stmt.where(cls.timestamp >= since)
+            if until:
+                stmt = stmt.where(cls.timestamp <= until)
+            if roles:
+                stmt = stmt.where(cls.role.in_(roles))  # type: ignore
+            if agents:
+                agent_conditions = [Column("name").in_(agents)]
+                if include_forwarded:
+                    agent_conditions.append(
+                        and_(
+                            Column("forwarded_from").isnot(None),
+                            expression.cast(Column("forwarded_from"), JSON).contains(
+                                list(agents)
+                            ),  # type: ignore
                         )
-                    case "assistant":
-                        result.append(
-                            ModelResponse(parts=[TextPart(content=msg.content)])
-                        )
-                    case "system":
-                        result.append(
-                            ModelRequest(parts=[SystemPromptPart(content=msg.content)])
-                        )
-            return result
+                    )
+                stmt = stmt.where(or_(*agent_conditions))
+            if limit:
+                stmt = stmt.limit(limit)
+
+            messages = session.exec(stmt).all()
+            return [db_message_to_pydantic_ai_message(msg) for msg in messages]
 
     @classmethod
     def to_chat_messages(
@@ -378,47 +355,49 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         query: SessionQuery,
         *,
         session: Session | None = None,
-    ) -> list[Message]:
+    ) -> list[ModelMessage]:
         """Get messages matching query configuration."""
-        from sqlmodel import and_, select
+        from sqlmodel import JSON, Column, and_, or_, select
 
+        from llmling_agent.pydantic_ai_utils import db_message_to_pydantic_ai_message
         from llmling_agent.storage import engine
 
-        # Start with base query
         stmt = select(cls).order_by(cls.timestamp)  # type: ignore
 
-        # Build conditions
         conditions = []
-
         if query.name:
             conditions.append(cls.conversation_id == query.name)
-
-        if query.agent:
-            conditions.append(cls.name == query.agent)
-
+        if query.agents:
+            agent_conditions = [Column("name").in_(query.agents)]
+            if query.include_forwarded:
+                agent_conditions.append(
+                    and_(
+                        Column("forwarded_from").isnot(None),
+                        expression.cast(Column("forwarded_from"), JSON).contains(
+                            list(query.agents)
+                        ),  # type: ignore
+                    )
+                )
+            conditions.append(or_(*agent_conditions))
         if query.since and (cutoff := query.get_time_cutoff()):
             conditions.append(cls.timestamp >= cutoff)
-
         if query.until and (cutoff := query.get_time_cutoff()):
             conditions.append(cls.timestamp <= cutoff)
-
         if query.contains:
             conditions.append(cls.content.contains(query.contains))  # type: ignore
-
         if query.roles:
             conditions.append(cls.role.in_(query.roles))  # type: ignore
 
         if conditions:
             stmt = stmt.where(and_(*conditions))
-
         if query.limit:
             stmt = stmt.limit(query.limit)
 
-        # Execute query
         should_close = session is None
         session = session or Session(engine)
         try:
-            return list(session.exec(stmt))
+            messages = session.exec(stmt).all()
+            return [db_message_to_pydantic_ai_message(msg) for msg in messages]
         finally:
             if should_close:
                 session.close()

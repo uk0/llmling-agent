@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.messages import ChatMessage
+    from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import AgentTask
 
 
@@ -141,6 +142,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
                 model=config.model,  # type: ignore[arg-type]
                 system_prompt=config.system_prompts,
                 name=name,
+                enable_db_logging=config.enable_db_logging,
             )
             self.register(name, agent)
 
@@ -436,7 +438,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         deps: TDeps,
         return_type: type[TResult],
         model_override: str | None = None,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         environment_override: StrPath | Config | None = None,
     ) -> StructuredAgent[TDeps, TResult]: ...
 
@@ -447,7 +449,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         *,
         deps: TDeps,
         model_override: str | None = None,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         environment_override: StrPath | Config | None = None,
     ) -> Agent[TDeps]: ...
 
@@ -458,7 +460,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         *,
         return_type: type[TResult],
         model_override: str | None = None,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         environment_override: StrPath | Config | None = None,
     ) -> StructuredAgent[Any, TResult]: ...
 
@@ -468,7 +470,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         agent: str | Agent[Any],
         *,
         model_override: str | None = None,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         environment_override: StrPath | Config | None = None,
     ) -> Agent[Any]: ...
 
@@ -479,7 +481,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         deps: TDeps | None = None,
         return_type: type[TResult] | None = None,
         model_override: str | None = None,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         environment_override: StrPath | Config | None = None,
     ) -> AnyAgent[TDeps, TResult]:
         """Get or wrap an agent.
@@ -489,7 +491,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             deps: Dependencies for the agent
             return_type: Optional type to make agent structured
             model_override: Optional model override
-            session_id: Optional session ID to recover conversation
+            session: Optional session ID or Session query to recover conversation
             environment_override: Optional environment configuration:
                 - Path to environment file
                 - Complete Config instance
@@ -512,8 +514,8 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         if model_override:
             base.set_model(model_override)  # type: ignore
 
-        if session_id:
-            base.conversation.load_history_from_database(session_id=session_id)
+        if session:
+            base.conversation.load_history_from_database(session=session)
 
         if environment_override:
             if isinstance(environment_override, Config):

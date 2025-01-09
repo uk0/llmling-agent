@@ -29,6 +29,7 @@ from llmling_agent.environment import AgentEnvironment, FileEnvironment, InlineE
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, StdioMCPServer
+from llmling_agent.models.session import SessionQuery
 from llmling_agent.models.task import AgentTask  # noqa: TC001
 from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
 
@@ -123,8 +124,11 @@ class AgentConfig(BaseModel):
     - MCPServerConfig for full server configuration
     """
 
-    session_id: SessionIdType = None
-    """Opetional id of a session to load."""
+    session: str | SessionQuery | None = None
+    """Session configuration for conversation recovery."""
+
+    enable_db_logging: bool = True
+    """Enable session database logging."""
 
     result_type: str | ResponseDefinition | None = None
     """Name of the response definition to use"""
@@ -247,6 +251,14 @@ class AgentConfig(BaseModel):
                 # Wrap TestModel in our custom wrapper
                 data["model"] = {"type": "test", "model": model}
         return data
+
+    def get_session_query(self) -> SessionQuery | None:
+        """Get session query from config."""
+        if self.session is None:
+            return None
+        if isinstance(self.session, str):
+            return SessionQuery(name=self.session)
+        return self.session
 
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.
@@ -371,8 +383,9 @@ class AgentConfig(BaseModel):
             "model": self.model,
             "system_prompt": self.system_prompts,
             "retries": self.retries,
+            "enable_db_logging": self.enable_db_logging,
             # "result_tool_name": self.result_tool_name,
-            "session_id": self.session_id,
+            "session": self.session,
             # "result_tool_description": self.result_tool_description,
             "result_retries": self.result_retries,
             "end_strategy": self.end_strategy,
@@ -605,7 +618,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         agent_name: str,
         *,
         model: str | None = None,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
     ) -> AsyncIterator[AnyAgent[TDeps, Any]]:
         """Open and configure a specific agent from configuration.
 
@@ -614,7 +627,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         Args:
             agent_name: Name of the agent to load
             model: Optional model override
-            session_id: Optional ID to recover a previous state
+            session: Optional ID or SessionQuery to recover a previous state
 
         Example:
             manifest = AgentsManifest[Any, str].from_file("agents.yml")
@@ -631,7 +644,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
                 self,
                 agent_name,
                 model=model,
-                session_id=session_id,
+                session=session,
             ) as agent:
                 if agent.context:
                     agent.context.pool = pool

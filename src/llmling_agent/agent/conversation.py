@@ -17,6 +17,7 @@ from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
+from llmling_agent.models.session import SessionQuery
 from llmling_agent.pydantic_ai_utils import (
     convert_model_message,
     format_part,
@@ -65,7 +66,7 @@ class ConversationManager:
     def __init__(
         self,
         agent: Agent[Any],
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         initial_prompts: str | Sequence[str] | None = None,
         *,
         resources: Sequence[Resource | str] = (),
@@ -74,36 +75,42 @@ class ConversationManager:
 
         Args:
             agent: instance to manage
-            session_id: Optional session ID to load and continue conversation
+            session: Optional session ID or query to load and continue conversation
             initial_prompts: Initial system prompts that start each conversation
             resources: Optional paths to load as context
         """
+        from llmling_agent.storage.models import Message
+
         self._agent = agent
         self._initial_prompts: list[BasePrompt] = []
         self._current_history: list[ModelMessage] = []
         self._last_messages: list[ModelMessage] = []
         self._pending_messages: deque[ModelRequest] = deque()
-        if session_id is not None:
-            from llmling_agent.storage.models import Message
 
-            # Use provided session ID and load its history
-            self.id = str(session_id)
-            messages = Message.to_pydantic_ai_messages(self.id)
-            self._current_history = messages
-        else:
-            # Start new conversation with UUID
-            self.id = str(uuid4())
-            # Add initial prompts
-            if not initial_prompts:
-                return
-            prompts_list = (
-                [initial_prompts] if isinstance(initial_prompts, str) else initial_prompts
-            )
-            for prompt in prompts_list:
-                desc = "Initial system prompt"
-                msg = PromptMessage(role="system", content=prompt)
-                obj = StaticPrompt(name=desc, description=desc, messages=[msg])
-                self._initial_prompts.append(obj)
+        # Generate new ID if none provided
+        self.id = str(uuid4())
+
+        if session is not None:
+            match session:
+                case SessionQuery():
+                    self._current_history = Message.get_messages_by_query(session)
+                    if session.name:
+                        self.id = session.name
+                case _:  # SessionIdType
+                    self.id = str(session)
+                    self._current_history = Message.to_pydantic_ai_messages(self.id)
+
+        # Add initial prompts
+        if not initial_prompts:
+            return
+        prompts_list = (
+            [initial_prompts] if isinstance(initial_prompts, str) else initial_prompts
+        )
+        for prompt in prompts_list:
+            desc = "Initial system prompt"
+            msg = PromptMessage(role="system", content=prompt)
+            obj = StaticPrompt(name=desc, description=desc, messages=[msg])
+            self._initial_prompts.append(obj)
         # Add context loading tasks to agent
         for source in resources:
             task = asyncio.create_task(self.load_context_source(source))
@@ -257,48 +264,57 @@ class ConversationManager:
 
     def load_history_from_database(
         self,
-        session_id: SessionIdType = None,
+        session: SessionIdType | SessionQuery = None,
         *,
         since: datetime | None = None,
         until: datetime | None = None,
         roles: set[MessageRole] | None = None,
         limit: int | None = None,
     ):
-        """Load and set conversation history from database.
+        """Load conversation history from database.
 
         Args:
-            session_id: ID of conversation to load
-            since: Only include messages after this time
-            until: Only include messages before this time
-            roles: Only include messages with these roles
-            limit: Maximum number of messages to return
-
-        Example:
-            # Load last hour of user/assistant messages
-            conversation.load_history_from_database(
-                "conv-123",
-                since=datetime.now() - timedelta(hours=1),
-                roles={"user", "assistant"}
-            )
+            session: Session ID or query config
+            since: Only include messages after this time (override)
+            until: Only include messages before this time (override)
+            roles: Only include messages with these roles (override)
+            limit: Maximum number of messages to return (override)
         """
         from llmling_agent.storage.models import Message
 
-        match session_id:
+        match session:
+            case SessionQuery() as query:
+                # Override query params if provided
+                if since is not None or until is not None or roles or limit:
+                    query = query.model_copy(
+                        update={
+                            "since": since.isoformat() if since else None,
+                            "until": until.isoformat() if until else None,
+                            "roles": roles,
+                            "limit": limit,
+                        }
+                    )
+                self._current_history = Message.get_messages_by_query(query)
+                if query.name:
+                    self.id = query.name
+            case str() | UUID():
+                self.id = str(session)
+                self._current_history = Message.to_pydantic_ai_messages(
+                    self.id,
+                    since=since,
+                    until=until,
+                    roles=roles,
+                    limit=limit,
+                )
             case None:
-                session_id = self.id
-            case UUID():
-                session_id = str(session_id)
-        conversation_id = session_id if session_id is not None else self.id
-        messages = Message.to_pydantic_ai_messages(
-            conversation_id,
-            since=since,
-            until=until,
-            roles=roles,
-            limit=limit,
-        )
-        self.set_history(messages)
-        if session_id is not None:
-            self.id = session_id
+                # Use current session ID
+                self._current_history = Message.to_pydantic_ai_messages(
+                    self.id,
+                    since=since,
+                    until=until,
+                    roles=roles,
+                    limit=limit,
+                )
 
     def add_prompt(self, prompt: PromptInput):
         """Add a system prompt.
@@ -539,7 +555,7 @@ if __name__ == "__main__":
 
     async def main():
         async with Agent[Any].open() as agent:
-            convo = ConversationManager(agent, session_id="test")
+            convo = ConversationManager(agent, session="test")
             await convo.add_context_from_path("E:/mcp_zed.yml")
             print(convo._current_history)
 

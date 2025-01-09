@@ -14,8 +14,8 @@ class SessionQuery(BaseModel):
     name: str | None = None
     """Session identifier to match."""
 
-    agent: str | None = None
-    """Filter by agent name."""
+    agents: set[str] | None = None
+    """Filter by agent names."""
 
     since: str | None = None
     """Time period to look back (e.g. "1h", "2d")."""

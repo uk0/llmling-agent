@@ -178,10 +178,21 @@
           "title": "Mcp Servers",
           "type": "array"
         },
-        "session_id": {
-          "$ref": "#/$defs/SessionIdType",
+        "session": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/SessionQuery"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
-          "description": "Opetional id of a session to load."
+          "description": "Session configuration for conversation recovery.",
+          "title": "Session"
         },
         "result_type": {
           "anyOf": [
@@ -455,6 +466,7 @@
           "type": "string"
         },
         "result_type": {
+          "default": "str",
           "description": "Expected type of the task result.",
           "title": "Result Type",
           "type": "string"
@@ -2592,19 +2604,122 @@
       "title": "SSEMCPServer",
       "type": "object"
     },
-    "SessionIdType": {
-      "anyOf": [
-        {
-          "type": "string"
+    "SessionQuery": {
+      "description": "Query configuration for session recovery.",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Session identifier to match.",
+          "title": "Name"
         },
-        {
-          "format": "uuid",
-          "type": "string"
+        "agents": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Filter by agent names.",
+          "title": "Agents"
         },
-        {
-          "type": "null"
+        "since": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time period to look back (e.g. \"1h\", \"2d\").",
+          "title": "Since"
+        },
+        "until": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time period to look up to.",
+          "title": "Until"
+        },
+        "contains": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Filter by message content.",
+          "title": "Contains"
+        },
+        "roles": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "user",
+                  "assistant",
+                  "system"
+                ],
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Only include specific message roles.",
+          "title": "Roles"
+        },
+        "limit": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum number of messages to return.",
+          "title": "Limit"
+        },
+        "include_forwarded": {
+          "default": true,
+          "description": "Whether to include messages forwarded through agents.",
+          "title": "Include Forwarded",
+          "type": "boolean"
         }
-      ]
+      },
+      "title": "SessionQuery",
+      "type": "object"
     },
     "SourceResource": {
       "description": "Resource from Python source code.",
@@ -2837,11 +2952,12 @@
             "groq:mixtral-8x7b-32768",
             "groq:gemma2-9b-it",
             "groq:gemma-7b-it",
-            "gemini-1.5-flash",
-            "gemini-1.5-pro",
-            "gemini-2.0-flash-exp",
-            "vertexai:gemini-1.5-flash",
-            "vertexai:gemini-1.5-pro",
+            "google-gla:gemini-1.5-flash",
+            "google-gla:gemini-1.5-pro",
+            "google-gla:gemini-2.0-flash-exp",
+            "google-vertex:gemini-1.5-flash",
+            "google-vertex:gemini-1.5-pro",
+            "google-vertex:gemini-2.0-flash-exp",
             "mistral:mistral-small-latest",
             "mistral:mistral-large-latest",
             "mistral:codestral-latest",
@@ -2863,9 +2979,9 @@
             "ollama:qwen2",
             "ollama:qwen2.5",
             "ollama:starcoder2",
-            "claude-3-5-haiku-latest",
-            "claude-3-5-sonnet-latest",
-            "claude-3-opus-latest",
+            "anthropic:claude-3-5-haiku-latest",
+            "anthropic:claude-3-5-sonnet-latest",
+            "anthropic:claude-3-opus-latest",
             "test"
           ],
           "title": "Identifier",
