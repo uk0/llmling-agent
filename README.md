@@ -45,6 +45,7 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 - Support for creating prompts for many common python type(s / instances). Your agent understands common datatypes.
 - Integration of Meta-Model system based on [LLMling-models](https://github.com/phil65/llmling-models), also configurable via YAML.
 - Structured responses. With pydantic-AI at its core, the Agents allow injecting dependencies as well as defining a return type while keeping type safety.
+- Response type definition via YAML. Structured response Agents can be defined in the agent config.
 - Capabilites system allowing runtime modifications and "special" commands (on-the-fly agent generation, history lookups)
 - Complete database logging of Agent interactions
 - pytest-inspired way to create agents from YAML in a type-safe manner. "Auto-populated signatures."

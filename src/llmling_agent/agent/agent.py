@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 import time
 from typing import TYPE_CHECKING, Any, Literal, Self, cast, overload
 from uuid import uuid4
@@ -430,6 +430,40 @@ class Agent[TDeps]:
             finally:
                 # Any cleanup if needed
                 pass
+
+    @classmethod
+    @overload
+    def open_agent(
+        cls,
+        config: StrPath | AgentsManifest,
+        agent_name: str,
+        *,
+        deps: TDeps | None = None,
+        result_type: None = None,
+        model: str | None = None,
+        session_id: SessionIdType = None,
+        model_settings: dict[str, Any] | None = None,
+        tools: list[ToolType] | None = None,
+        tool_choice: bool | str | list[str] = True,
+        end_strategy: EndStrategy = "early",
+    ) -> AbstractAsyncContextManager[Agent[TDeps]]: ...
+
+    @classmethod
+    @overload
+    def open_agent[TResult](
+        cls,
+        config: StrPath | AgentsManifest,
+        agent_name: str,
+        *,
+        deps: TDeps | None = None,
+        result_type: type[TResult],
+        model: str | None = None,
+        session_id: SessionIdType = None,
+        model_settings: dict[str, Any] | None = None,
+        tools: list[ToolType] | None = None,
+        tool_choice: bool | str | list[str] = True,
+        end_strategy: EndStrategy = "early",
+    ) -> AbstractAsyncContextManager[StructuredAgent[TDeps, TResult]]: ...
 
     @classmethod
     @asynccontextmanager

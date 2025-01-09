@@ -207,15 +207,15 @@ async def run_agent_pipeline(  # noqa: PLR0911
                     raise TypeError(msg)  # noqa: TRY301
 
         # Create agent with all settings
-        async with Agent[Any].open_agent(
+        async with Agent.open_agent(  # type: ignore[call-overload]
             agent_def,
             agent_name,
-            model=model,  # type: ignore[arg-type]
             result_type=result_type,
-            retries=retries or 1,
+            model=model,  # type: ignore[arg-type]
             tools=tools,
             tool_choice=tool_choice,
             model_settings=model_settings or {},
+            retries=retries or 1,
         ) as agent:
             # Handle different prompt types
             prompts = (

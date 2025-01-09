@@ -85,7 +85,7 @@ class PydanticAIProvider(AgentProvider):
             context=context,
         )
         self._debug = debug
-        self._agent: Any = PydanticAgent(
+        self._agent: PydanticAgent[Any, Any] = PydanticAgent(
             model=model,  # type: ignore
             system_prompt=system_prompt,
             name=name,

@@ -43,7 +43,11 @@ agents:
   fan:
     name: "Async Agent Fan"
     description: "The #1 supporter of all agents!"
-    model: openai:gpt-4o-mini
+    model:
+      type: fallback  # all llmling-models work here!
+      models:
+          - openai:gpt-4o-mini
+          - openai:gpt-3.5-turbo
     capabilities:
       can_list_agents: true  # Need to know who to cheer for!
     system_prompts:
