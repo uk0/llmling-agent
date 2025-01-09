@@ -177,14 +177,3 @@ def test_sync_pipeline(pipeline_manifest: AgentsManifest):
         output_format="text",
     )
     assert result == "Test response"
-
-
-def test_sync_pipeline_streaming_error(pipeline_manifest: AgentsManifest):
-    """Test that streaming raises error in sync version."""
-    with pytest.raises(ValueError, match="Streaming not supported"):
-        run_agent_pipeline_sync(
-            "test_agent",
-            "Hello!",
-            pipeline_manifest,
-            stream=True,
-        )

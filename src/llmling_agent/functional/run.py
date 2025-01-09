@@ -172,6 +172,7 @@ async def run_agent_pipeline(  # noqa: PLR0911
         RuntimeError: If agent initialization fails
         TypeError: If result type doesn't match expected type
     """
+    result_type = result_type or str  # type: ignore
     try:
         # Load configuration if needed
         agent_def = (
@@ -273,13 +274,7 @@ def run_agent_pipeline_sync(
 
     This is a convenience wrapper that runs the async pipeline in a new event loop.
     See run_agent_pipeline for full documentation.
-
-    Note: Streaming mode is not supported in the sync version.
     """
-    if kwargs.get("stream"):
-        msg = "Streaming not supported in synchronous version"
-        raise ValueError(msg)
-
     fn = run_agent_pipeline(agent_name=agent_name, prompt=prompt, config=config, **kwargs)
     return asyncio.run(fn)
 
@@ -398,7 +393,8 @@ async def run_with_model(
     """
     # Create minimal manifest with optional response type
     responses = {}
-    if result_type is not None:
+    result_type = result_type or str  # type: ignore
+    if result_type is not str:
         fields = {"result": ResponseField(type="str", description="Result")}
         r = InlineResponseDefinition(description="Default result type", fields=fields)
         responses["DefaultResult"] = r
