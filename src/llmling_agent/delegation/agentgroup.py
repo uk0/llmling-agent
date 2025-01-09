@@ -126,21 +126,26 @@ class AgentGroup[TDeps]:
         prompt: str | None = None,
         deps: TDeps | None = None,
         *,
+        initial_agent: str | AnyAgent[TDeps, Any] | None = None,
         decision_callback: DecisionCallback = interactive_controller,
         router: AgentRouter | None = None,
     ) -> TeamResponse:
-        """Run with explicit control over agent interactions."""
         results = []
         actual_prompt = prompt or self.shared_prompt
         actual_deps = deps or self.shared_deps
         start_time = datetime.now()
 
-        # Create router for decisions
-        assert self.agents[0].context.pool
-        router = router or CallbackRouter(self.agents[0].context.pool, decision_callback)
-        current_agent = self.agents[0]
-        current_message = actual_prompt
+        # Resolve initial agent
+        current_agent = (
+            next(a for a in self.agents if a.name == initial_agent)
+            if isinstance(initial_agent, str)
+            else initial_agent or self.agents[0]
+        )
 
+        # Create router for decisions
+        assert current_agent.context.pool
+        router = router or CallbackRouter(current_agent.context.pool, decision_callback)
+        current_message = actual_prompt
         while True:
             # Get response from current agent
             now = time.perf_counter()

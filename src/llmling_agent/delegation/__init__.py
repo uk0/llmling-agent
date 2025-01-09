@@ -2,10 +2,7 @@
 
 from llmling_agent.delegation.pool import AgentPool
 from llmling_agent.delegation.router import AgentRouter, CallbackRouter, RuleRouter
-from llmling_agent.delegation.controllers import (
-    controlled_conversation,
-    interactive_controller,
-)
+from llmling_agent.delegation.controllers import interactive_controller
 from llmling_agent.delegation.router import (
     Decision,
     EndDecision,
@@ -33,7 +30,6 @@ __all__ = [
     "RoutingConfig",
     "RoutingRule",
     "RuleRouter",
-    "controlled_conversation",
     "inject_agents",
     "interactive_controller",
     "with_agents",

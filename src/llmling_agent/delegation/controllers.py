@@ -1,13 +1,10 @@
 """Controller implementations for agent conversations."""
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from llmling_agent.agent import Agent
-from llmling_agent.delegation.callbacks import DecisionCallback
 from llmling_agent.delegation.router import (
     AgentRouter,
     AwaitResponseDecision,
-    CallbackRouter,
     Decision,
     EndDecision,
     RouteDecision,
@@ -59,45 +56,3 @@ async def interactive_controller(
 
     except (ValueError, IndexError):
         return EndDecision(reason="Invalid input")
-
-
-async def controlled_conversation(
-    pool: "AgentPool",
-    initial_agent: str | Agent[Any] = "starter",
-    initial_prompt: str = "Hello!",
-    decision_callback: DecisionCallback = interactive_controller,
-) -> None:
-    """Run a controlled conversation between agents.
-
-    Args:
-        pool: Agent pool containing available agents
-        initial_agent: Name of agent to start with
-        initial_prompt: First message to start conversation
-        decision_callback: Optional decision callback (defaults to interactive)
-    """
-    controller = CallbackRouter(pool, decision_callback)
-
-    agent = (
-        initial_agent
-        if isinstance(initial_agent, Agent)
-        else pool.get_agent(initial_agent)
-    )
-    current_message = initial_prompt
-
-    while True:
-        # Get response from current agent
-        response = await agent.run(current_message)
-        decision = await controller.decide(response.content)
-
-        # Execute the decision with the response message
-        await decision.execute(response, agent, pool)
-
-        match decision:
-            case EndDecision():
-                break
-            case RouteDecision():
-                # Message already forwarded in execute(), continue loop
-                continue
-            case AwaitResponseDecision():
-                agent = pool.get_agent(decision.target_agent)
-                current_message = str(response.content)

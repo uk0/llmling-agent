@@ -12,10 +12,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.agent import Agent, AnyAgent
 from llmling_agent.agent.structured import StructuredAgent
-from llmling_agent.delegation.controllers import (
-    controlled_conversation,
-    interactive_controller,
-)
+from llmling_agent.delegation.controllers import interactive_controller
 from llmling_agent.delegation.router import CallbackRouter
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
@@ -595,10 +592,13 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             initial_prompt: First message to start conversation
             decision_callback: Callback for routing decisions
         """
-        await controlled_conversation(
-            self,
+        from llmling_agent.delegation.agentgroup import AgentGroup
+
+        group = AgentGroup(list(self.agents.values()))
+
+        await group.run_controlled(
+            prompt=initial_prompt,
             initial_agent=initial_agent,
-            initial_prompt=initial_prompt,
             decision_callback=decision_callback,
         )
 
@@ -620,7 +620,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
     async def controlled_talk[TMessage](
         self,
-        agent: str | Agent[Any] | StructuredAgent[Any, TMessage],
+        agent: str | AnyAgent[Any, TMessage],
         message: str | TMessage,
         decision_callback: DecisionCallback[Any] = interactive_controller,
     ) -> tuple[ChatMessage[Any], Decision]:
