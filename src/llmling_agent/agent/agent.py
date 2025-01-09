@@ -515,6 +515,7 @@ class Agent[TDeps]:
             raise ValueError(msg)
 
         agent_config = agent_def.agents[agent_name]
+        # resolved_type = result_type or agent_def.get_result_type(agent_name)
 
         # Use model from override or agent config
         actual_model = model or agent_config.model
@@ -549,18 +550,18 @@ class Agent[TDeps]:
                 enable_logging=enable_logging,
             )
             try:
-                if result_type is not None:
-                    # Yield structured agent with correct typing
-                    from llmling_agent.agent.structured import StructuredAgent
+                async with base_agent:
+                    if result_type is not None:
+                        # Yield structured agent with correct typing
+                        from llmling_agent.agent.structured import StructuredAgent
 
-                    yield StructuredAgent[TDeps, TResult](  # Use TDeps and TResult
-                        base_agent,
-                        result_type,
-                        tool_description=result_tool_description,
-                        tool_name=result_tool_name,
-                    )
-                else:
-                    async with base_agent:
+                        yield StructuredAgent[TDeps, TResult](  # Use TDeps and TResult
+                            base_agent,
+                            result_type,
+                            tool_description=result_tool_description,
+                            tool_name=result_tool_name,
+                        )
+                    else:
                         yield base_agent
             finally:
                 # Any cleanup if needed
