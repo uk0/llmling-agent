@@ -39,7 +39,8 @@ class AgentLogger:
         if enable_db_logging:
             self.init_conversation()
             # Connect to the combined signal to capture all messages
-            agent.message_exchanged.connect(self.log_message)
+            agent.message_received.connect(self.log_message)
+            agent.message_sent.connect(self.log_message)
             agent.tool_used.connect(self.log_tool_call)
 
     def clear_state(self):

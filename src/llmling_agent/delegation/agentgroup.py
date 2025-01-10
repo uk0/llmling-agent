@@ -5,6 +5,7 @@ from datetime import datetime
 import time
 from typing import TYPE_CHECKING, Any, Self, TypeVar, overload
 
+from llmling_agent.agent.connection import TalkManager, TeamTalk
 from llmling_agent.delegation import interactive_controller
 from llmling_agent.delegation.pool import AgentResponse
 from llmling_agent.delegation.router import (
@@ -84,7 +85,7 @@ class TeamResponse(list[AgentResponse[Any]]):
         )
 
 
-class AgentGroup[TDeps]:
+class Team[TDeps]:
     """Group of agents that can execute together."""
 
     def __init__(
@@ -97,8 +98,10 @@ class AgentGroup[TDeps]:
         self.agents = agents
         self.shared_prompt = shared_prompt
         self.shared_deps = shared_deps
+        self.connections = TalkManager(self)
+        self.team_talk = TeamTalk.from_agents(self.agents)
 
-    def __rshift__(self, other: AnyAgent[Any, Any] | AgentGroup[Any] | str) -> Self:
+    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> Self:
         """Connect group to target agent(s).
 
         Example:
@@ -112,7 +115,7 @@ class AgentGroup[TDeps]:
             target = self.agents[0].context.pool.get_agent(other)
             for agent in self.agents:
                 agent.pass_results_to(target)
-        elif isinstance(other, AgentGroup):
+        elif isinstance(other, Team):
             # Connect each source to each target
             for source in self.agents:
                 for target in other.agents:

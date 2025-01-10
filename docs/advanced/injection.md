@@ -131,7 +131,7 @@ async def improve_code(
 
 ### Controlled Execution
 
-Use AgentGroup for interactive or rule-based agent interaction:
+Use Team for interactive or rule-based agent interaction:
 
 ```python
 @agent_function
@@ -141,7 +141,7 @@ async def collaborative_task(
     specialist2: Agent[Any],
     task: str,
 ) -> str:
-    team = AgentGroup([coordinator, specialist1, specialist2])
+    team = Team([coordinator, specialist1, specialist2])
     results = await team.run_controlled(
         prompt=f"Solve: {task}",
         decision_callback=my_router,
@@ -247,7 +247,7 @@ async def dynamic_team(
     task: str,
 ):
     team = [pool.get_agent(name) for name in ["agent1", "agent2"]]
-    group = AgentGroup(team)
+    group = Team(team)
     return await group.run_parallel(task)
 ```
 
@@ -258,14 +258,15 @@ async def shared_analysis(
     analyzer2: Agent[Context],
     context: Context,
 ):
-    group = AgentGroup[Context](
+    group = Team[Context](
         [analyzer1, analyzer2],
         shared_deps=context,
     )
     return await group.run_parallel("Analyze using shared context")
 ```
 
-## Connection to Manifest
+##
+to Manifest
 
 The connection between your YAML manifest and the injection system is made through the AgentPool:
 

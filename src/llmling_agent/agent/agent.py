@@ -26,6 +26,7 @@ from tokonomics import TokenLimits, get_model_limits
 from toprompt import AnyPromptType, to_prompt
 from typing_extensions import TypeVar
 
+from llmling_agent.agent.connection import TalkManager
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
@@ -48,7 +49,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import ModelType, SessionIdType, StrPath, ToolType
-    from llmling_agent.delegation.agentgroup import AgentGroup
+    from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import AgentTask
@@ -85,7 +86,6 @@ class Agent[TDeps]:
 
     message_received = Signal(ChatMessage[str])  # Always string
     message_sent = Signal(ChatMessage)
-    message_exchanged = Signal(ChatMessage)
     tool_used = Signal(ToolCallInfo)
     model_changed = Signal(object)  # Model | None
     chunk_streamed = Signal(str, str)  # (chunk, message_id)
@@ -147,8 +147,6 @@ class Agent[TDeps]:
         else:
             ctx.runtime = RuntimeConfig.from_config(Config())
         # connect signals
-        self.message_received.connect(self.message_exchanged.emit)
-        self.message_sent.connect(self.message_exchanged.emit)
         self.message_sent.connect(self._forward_message)
 
         # Initialize tool manager
@@ -215,6 +213,8 @@ class Agent[TDeps]:
         from llmling_agent.agent import AgentLogger
         from llmling_agent.events import EventManager
 
+        self.connections = TalkManager(self)
+
         self._logger = AgentLogger(self, enable_db_logging=enable_db_logging)
         self._events = EventManager(self, enable_events=True)
 
@@ -275,7 +275,7 @@ class Agent[TDeps]:
             if self._owns_runtime and self.context.runtime:
                 await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)
 
-    def __rshift__(self, other: AnyAgent[Any, Any] | AgentGroup[Any] | str) -> Self:
+    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> Self:
         """Connect agent to another agent or group.
 
         Example:
@@ -283,7 +283,7 @@ class Agent[TDeps]:
             agent >> (agent2 | agent3)  # Connect to group
             agent >> "other_agent"  # Connect by name (needs pool)
         """
-        from llmling_agent.delegation.agentgroup import AgentGroup
+        from llmling_agent.delegation.agentgroup import Team
 
         if isinstance(other, str):
             if not self.context.pool:
@@ -291,7 +291,7 @@ class Agent[TDeps]:
                 raise ValueError(msg)
             target = self.context.pool.get_agent(other)
             self.pass_results_to(target)
-        elif isinstance(other, AgentGroup):
+        elif isinstance(other, Team):
             # Connect to each agent in group
             for agent in other.agents:
                 self.pass_results_to(agent)
@@ -299,18 +299,18 @@ class Agent[TDeps]:
             self.pass_results_to(other)
         return self
 
-    def __or__(self, other: AnyAgent[Any, Any] | AgentGroup[Any]) -> AgentGroup[TDeps]:
+    def __or__(self, other: AnyAgent[Any, Any] | Team[Any]) -> Team[TDeps]:
         """Create agent group using | operator.
 
         Example:
             group = analyzer | planner | executor  # Create group of 3
             group = analyzer | existing_group  # Add to existing group
         """
-        from llmling_agent.delegation.agentgroup import AgentGroup
+        from llmling_agent.delegation.agentgroup import Team
 
-        if isinstance(other, AgentGroup):
-            return AgentGroup([self, *other.agents])
-        return AgentGroup([self, other])
+        if isinstance(other, Team):
+            return Team([self, *other.agents])
+        return Team([self, other])
 
     @property
     def name(self) -> str:
@@ -701,9 +701,8 @@ class Agent[TDeps]:
 
     async def disconnect_all(self):
         """Disconnect from all agents."""
-        if self._connected_agents:
-            for target in list(self._connected_agents):
-                self.stop_passing_results_to(target)
+        for target in list(self._connected_agents):
+            self.stop_passing_results_to(target)
 
     def pass_results_to(self, other: AnyAgent[Any, Any], prompt: str | None = None):
         """Forward results to another agent."""

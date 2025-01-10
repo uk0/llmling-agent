@@ -11,6 +11,7 @@ from llmling import BaseRegistry, Config, LLMLingError, RuntimeConfig
 from typing_extensions import TypeVar
 
 from llmling_agent.agent import Agent, AnyAgent
+from llmling_agent.agent.connection import TeamTalk
 from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.delegation.controllers import interactive_controller
 from llmling_agent.delegation.router import CallbackRouter
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
     from psygnal.containers import EventedDict
 
     from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
-    from llmling_agent.delegation.agentgroup import AgentGroup
+    from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.delegation.router import Decision
     from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
@@ -111,6 +112,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         # Register tasks from manifest
         for name, task in manifest.tasks.items():
             self._tasks.register(name, task)
+        self.pool_talk = TeamTalk.from_agents(list(self.agents.values()))
         # Create requested agents immediately using sync initialization
         for name in to_load:
             config = manifest.agents[name]
@@ -188,7 +190,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         environment_override: StrPath | Config | None = None,
         shared_prompt: str | None = None,
         shared_deps: TDeps | None = None,
-    ) -> AgentGroup[TDeps]:
+    ) -> Team[TDeps]:
         """Create a group from agent names or instances.
 
         Args:
@@ -198,7 +200,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             shared_prompt: Optional prompt for all agents
             shared_deps: Optional shared dependencies
         """
-        from llmling_agent.delegation.agentgroup import AgentGroup
+        from llmling_agent.delegation.agentgroup import Team
 
         # First resolve/configure agents
         resolved_agents: list[AnyAgent[TDeps, Any]] = []
@@ -211,7 +213,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
                 )
             resolved_agents.append(agent)
 
-        return AgentGroup(
+        return Team(
             agents=resolved_agents,
             # pool=self,
             shared_prompt=shared_prompt,
@@ -591,9 +593,9 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             initial_prompt: First message to start conversation
             decision_callback: Callback for routing decisions
         """
-        from llmling_agent.delegation.agentgroup import AgentGroup
+        from llmling_agent.delegation.agentgroup import Team
 
-        group = AgentGroup(list(self.agents.values()))
+        group = Team(list(self.agents.values()))
 
         await group.run_controlled(
             prompt=initial_prompt,
