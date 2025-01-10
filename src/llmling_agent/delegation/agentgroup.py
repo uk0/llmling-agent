@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 import time
-from typing import TYPE_CHECKING, Any, Self, TypeVar, overload
+from typing import TYPE_CHECKING, Any, TypeVar, overload
 
-from llmling_agent.agent.connection import TalkManager, TeamTalk
+from llmling_agent.agent.connection import Talk, TalkManager, TeamTalk
 from llmling_agent.delegation import interactive_controller
 from llmling_agent.delegation.pool import AgentResponse
 from llmling_agent.delegation.router import (
@@ -101,34 +101,49 @@ class Team[TDeps]:
         self.connections = TalkManager(self)
         self.team_talk = TeamTalk.from_agents(self.agents)
 
-    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> Self:
+    @overload
+    def __rshift__(self, other: AnyAgent[Any, Any] | str) -> list[Talk]: ...
+
+    @overload
+    def __rshift__(self, other: Team[Any]) -> list[TeamTalk]: ...
+
+    def __rshift__(
+        self, other: AnyAgent[Any, Any] | Team[Any] | str
+    ) -> list[Talk] | list[TeamTalk]:
         """Connect group to target agent(s).
 
-        Example:
-            (worker1 | worker2) >> presenter  # To single agent
-            (worker1 | worker2) >> (presenter1 | presenter2)  # To group
+        Returns:
+            - list[Talk] when connecting to single agent (one Talk per source)
+            - list[TeamTalk] when connecting to team (one TeamTalk per source)
         """
-        if isinstance(other, str):
-            if not self.agents[0].context.pool:
-                msg = "Pool required for forwarding to agent by name"
-                raise ValueError(msg)
-            target = self.agents[0].context.pool.get_agent(other)
-            for agent in self.agents:
-                agent.pass_results_to(target)
-        elif isinstance(other, Team):
-            # Connect each source to each target
-            for source in self.agents:
-                for target in other.agents:
-                    source.pass_results_to(target)
-        else:
-            for agent in self.agents:
-                agent.pass_results_to(other)
-        return self
+        return self.pass_results_to(other)
 
-    def pass_results_to(self, target: AnyAgent[Any, Any]) -> None:
-        """Implement Connectable protocol."""
-        for agent in self.agents:
-            agent.pass_results_to(target)
+    @overload
+    def pass_results_to(
+        self,
+        other: AnyAgent[Any, Any] | str,
+    ) -> list[Talk]: ...
+
+    @overload
+    def pass_results_to(
+        self,
+        other: Team[Any],
+    ) -> list[TeamTalk]: ...
+
+    def pass_results_to(
+        self, other: AnyAgent[Any, Any] | Team[Any] | str
+    ) -> list[Talk] | list[TeamTalk]:
+        match other:
+            case Team():
+                return [self.connections.connect_agent_to(other) for other in self.agents]
+            case str():
+                if not self.agents[0].context.pool:
+                    msg = "Pool required for forwarding to agent by name"
+                    raise ValueError(msg)
+                target = self.agents[0].context.pool.get_agent(other)
+                return self.pass_results_to(target)
+            case _:
+                return [self.connections.connect_agent_to(other) for other in self.agents]
 
     async def run_parallel(
         self,

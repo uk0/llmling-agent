@@ -26,7 +26,7 @@ from tokonomics import TokenLimits, get_model_limits
 from toprompt import AnyPromptType, to_prompt
 from typing_extensions import TypeVar
 
-from llmling_agent.agent.connection import TalkManager
+from llmling_agent.agent.connection import Talk, TalkManager, TeamTalk
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
@@ -275,7 +275,13 @@ class Agent[TDeps]:
             if self._owns_runtime and self.context.runtime:
                 await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)
 
-    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> Self:
+    @overload
+    def __rshift__(self, other: AnyAgent[Any, Any] | str) -> Talk: ...
+
+    @overload
+    def __rshift__(self, other: Team[Any]) -> TeamTalk: ...
+
+    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> Talk | TeamTalk:
         """Connect agent to another agent or group.
 
         Example:
@@ -283,21 +289,7 @@ class Agent[TDeps]:
             agent >> (agent2 | agent3)  # Connect to group
             agent >> "other_agent"  # Connect by name (needs pool)
         """
-        from llmling_agent.delegation.agentgroup import Team
-
-        if isinstance(other, str):
-            if not self.context.pool:
-                msg = "Pool required for forwarding to agent by name"
-                raise ValueError(msg)
-            target = self.context.pool.get_agent(other)
-            self.pass_results_to(target)
-        elif isinstance(other, Team):
-            # Connect to each agent in group
-            for agent in other.agents:
-                self.pass_results_to(agent)
-        else:
-            self.pass_results_to(other)
-        return self
+        return self.pass_results_to(other)
 
     def __or__(self, other: AnyAgent[Any, Any] | Team[Any]) -> Team[TDeps]:
         """Create agent group using | operator.
@@ -704,16 +696,56 @@ class Agent[TDeps]:
         for target in list(self._connected_agents):
             self.stop_passing_results_to(target)
 
-    def pass_results_to(self, other: AnyAgent[Any, Any], prompt: str | None = None):
-        """Forward results to another agent."""
-        self.outbox.connect(other._handle_message)
-        self._connected_agents.add(other)
+    @overload
+    def pass_results_to(
+        self,
+        other: AnyAgent[Any, Any] | str,
+        prompt: str | None = None,
+    ) -> Talk: ...
+
+    @overload
+    def pass_results_to(
+        self,
+        other: Team[Any],
+        prompt: str | None = None,
+    ) -> TeamTalk: ...
+
+    def pass_results_to(
+        self,
+        other: AnyAgent[Any, Any] | Team[Any] | str,
+        prompt: str | None = None,
+    ) -> Talk | TeamTalk:
+        """Forward results to another agent or all agents in a team."""
+        from llmling_agent.delegation.agentgroup import Team
+
+        match other:
+            case Team():
+                # Create connections to each team member
+                for agent in other.agents:
+                    self.outbox.connect(agent._handle_message)
+                    self._connected_agents.add(agent)
+                # Create a TeamTalk for all these connections
+                return self.connections.connect_agent_to(
+                    other
+                )  # TalkManager handles Team case
+            case str():
+                if not self.context.pool:
+                    msg = "Pool required for forwarding to agent by name"
+                    raise ValueError(msg)
+                target = self.context.pool.get_agent(other)
+                self.pass_results_to(target)
+                return self.connections.connect_agent_to(other)
+            case _:
+                self.outbox.connect(other._handle_message)
+                self._connected_agents.add(other)
+                return self.connections.connect_agent_to(other)
 
     def stop_passing_results_to(self, other: AnyAgent[Any, Any]):
         """Stop forwarding results to another agent."""
         if other in self._connected_agents:
             self.outbox.disconnect(other._handle_message)
             self._connected_agents.remove(other)
+        self.connections.disconnect(other)
 
     def is_busy(self) -> bool:
         """Check if agent is currently processing tasks."""

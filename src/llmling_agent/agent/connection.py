@@ -129,8 +129,8 @@ class Talk:
             target_names=self._stats.target_names,
         )
 
-        for target in self.targets:
-            target._handle_message(message, prompt)
+        # for target in self.targets:
+        #     target._handle_message(message, prompt)
         self.message_forwarded.emit(message)
 
     def when(self, condition: FilterFn) -> Self:
