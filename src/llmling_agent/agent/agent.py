@@ -140,12 +140,12 @@ class Agent[TDeps]:
         self._result_type = None
         self._owns_runtime = False
         # prepare context
-        context = context or AgentContext[TDeps].create_default(name)
-        context.confirmation_callback = confirmation_callback
+        ctx = context or AgentContext[TDeps].create_default(name)
+        ctx.confirmation_callback = confirmation_callback
         if runtime:
-            context.runtime = runtime
+            ctx.runtime = runtime
         else:
-            context.runtime = RuntimeConfig.from_config(Config())
+            ctx.runtime = RuntimeConfig.from_config(Config())
         # connect signals
         self.message_received.connect(self.message_exchanged.emit)
         self.message_sent.connect(self.message_exchanged.emit)
@@ -153,16 +153,12 @@ class Agent[TDeps]:
 
         # Initialize tool manager
         all_tools = list(tools or [])
-        all_tools.extend(context.runtime.tools.values())  # Add runtime tools directly
-        logger.debug("Runtime tools: %s", list(context.runtime.tools.keys()))
-        self._tool_manager = ToolManager(
-            tools=all_tools,
-            tool_choice=tool_choice,
-            context=context,
-        )
+        all_tools.extend(ctx.runtime.tools.values())  # Add runtime tools directly
+        logger.debug("Runtime tools: %s", list(ctx.runtime.tools.keys()))
+        self._tool_manager = ToolManager(all_tools, tool_choice=tool_choice, context=ctx)
 
         # set up conversation manager
-        config_prompts = context.config.system_prompts if context else []
+        config_prompts = ctx.config.system_prompts if ctx else []
         all_prompts = list(config_prompts)
         if isinstance(system_prompt, str):
             all_prompts.append(system_prompt)
@@ -186,14 +182,14 @@ class Agent[TDeps]:
                     end_strategy=end_strategy,
                     result_retries=result_retries,
                     defer_model_check=defer_model_check,
-                    context=context,
+                    context=ctx,
                     debug=debug,
                     **kwargs,
                 )
             case "human":
                 self._provider = HumanProvider(
                     conversation=self.conversation,
-                    context=context,
+                    context=ctx,
                     tools=self._tool_manager,
                     name=name,
                     debug=debug,
@@ -203,7 +199,7 @@ class Agent[TDeps]:
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
-        context.capabilities.register_capability_tools(self)
+        ctx.capabilities.register_capability_tools(self)
 
         # Forward provider signals
         self._provider.chunk_streamed.connect(self.chunk_streamed.emit)
