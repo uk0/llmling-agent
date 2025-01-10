@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -41,7 +41,7 @@ class TalkStats:
 class TeamTalkStats:
     """Statistics aggregated from multiple connections."""
 
-    stats: list[TalkStats] = field(default_factory=list)
+    stats: list[TalkStats | TeamTalkStats] = field(default_factory=list)
 
     @cached_property
     def message_count(self) -> int:
@@ -78,8 +78,22 @@ class TeamTalkStats:
 
     @cached_property
     def source_names(self) -> set[str]:
-        """Set of unique source names."""
-        return {s.source_name for s in self.stats if s.source_name}
+        """Set of unique source names recursively."""
+
+        def _collect_source_names(stat: TalkStats | TeamTalkStats) -> set[str]:
+            """Recursively collect source names."""
+            if isinstance(stat, TalkStats):
+                return {stat.source_name} if stat.source_name else set()
+            # It's a TeamTalkStats, recurse
+            names = set()
+            for s in stat.stats:
+                names.update(_collect_source_names(s))
+            return names
+
+        names = set()
+        for stat in self.stats:
+            names.update(_collect_source_names(stat))
+        return names
 
     @cached_property
     def target_names(self) -> set[str]:
@@ -159,13 +173,22 @@ class Talk:
         return self._stats
 
 
-class TeamTalk(list[Talk]):
+class TeamTalk(list["Talk | TeamTalk"]):
     """Group of connections with aggregate operations."""
 
-    def __init__(self, talks: list[Talk]):
+    def __init__(self, talks: Sequence[Talk | TeamTalk]):
         super().__init__(talks)
         self._filter: FilterFn | None = None
         self.active = True
+
+    @property
+    def targets(self) -> list[AnyAgent[Any, Any]]:
+        """Get all targets from all connections."""
+        return [t for talk in self for t in talk.targets]
+
+    def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None):
+        for talk in self:
+            talk._handle_message(message, prompt)
 
     @classmethod
     def from_agents(
@@ -190,7 +213,7 @@ class TeamTalk(list[Talk]):
         """Check if any contained talks are active."""
         return any(talk.active for talk in self)
 
-    def get_active_talks(self) -> list[Talk]:
+    def get_active_talks(self) -> list[Talk | TeamTalk]:
         """Get list of currently active talks."""
         return [talk for talk in self if talk.active]
 
@@ -205,7 +228,7 @@ class TeamTalk(list[Talk]):
             talk.when(condition)
         return self
 
-    def disconnect_all(self):
+    def disconnect(self):
         """Disconnect all connections in group."""
         for talk in self:
             talk.disconnect()
@@ -216,7 +239,7 @@ class TalkManager:
 
     def __init__(self, owner: AnyAgent[Any, Any] | Team[Any]):
         self.owner = owner
-        self._connections: list[Talk] = []
+        self._connections: list[Talk | TeamTalk] = []
 
     def _route_message(self, message: ChatMessage[Any], prompt: str | None):
         # Each Talk already knows its targets
@@ -314,12 +337,15 @@ class TalkManager:
 
     def disconnect(self, agent: AnyAgent[Any, Any]):
         """Disconnect a specific agent."""
-        # TODO: should this handle both target and source matches?
-        to_disconnect = [
-            talk
-            for talk in self._connections
-            if agent in talk.targets or agent == talk.source
-        ]
+        to_disconnect: list[Talk | TeamTalk] = []
+        for talk in self._connections:
+            match talk:
+                case Talk():
+                    if agent in talk.targets or agent == talk.source:
+                        to_disconnect.append(talk)
+                case TeamTalk():
+                    if agent in talk.targets:
+                        to_disconnect.append(talk)
 
         for talk in to_disconnect:
             talk.active = False

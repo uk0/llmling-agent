@@ -5,7 +5,7 @@ from datetime import datetime
 import time
 from typing import TYPE_CHECKING, Any, TypeVar, overload
 
-from llmling_agent.agent.connection import Talk, TalkManager, TeamTalk
+from llmling_agent.agent.connection import TalkManager, TeamTalk
 from llmling_agent.delegation import interactive_controller
 from llmling_agent.delegation.pool import AgentResponse
 from llmling_agent.delegation.router import (
@@ -101,15 +101,13 @@ class Team[TDeps]:
         self.connections = TalkManager(self)
         self.team_talk = TeamTalk.from_agents(self.agents)
 
-    @overload
-    def __rshift__(self, other: AnyAgent[Any, Any] | str) -> list[Talk]: ...
+    # @overload
+    # def __rshift__(self, other: AnyAgent[Any, Any] | str)-> TeamTalk: ...
 
-    @overload
-    def __rshift__(self, other: Team[Any]) -> list[TeamTalk]: ...
+    # @overload
+    # def __rshift__(self, other: Team[Any]) -> list[TeamTalk]: ...
 
-    def __rshift__(
-        self, other: AnyAgent[Any, Any] | Team[Any] | str
-    ) -> list[Talk] | list[TeamTalk]:
+    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> TeamTalk:
         """Connect group to target agent(s).
 
         Returns:
@@ -118,24 +116,13 @@ class Team[TDeps]:
         """
         return self.pass_results_to(other)
 
-    @overload
-    def pass_results_to(
-        self,
-        other: AnyAgent[Any, Any] | str,
-    ) -> list[Talk]: ...
-
-    @overload
-    def pass_results_to(
-        self,
-        other: Team[Any],
-    ) -> list[TeamTalk]: ...
-
-    def pass_results_to(
-        self, other: AnyAgent[Any, Any] | Team[Any] | str
-    ) -> list[Talk] | list[TeamTalk]:
+    def pass_results_to(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> TeamTalk:
         match other:
             case Team():
-                return [self.connections.connect_agent_to(other) for other in self.agents]
+                talks = [
+                    self.connections.connect_group_to(other) for other in self.agents
+                ]
+                return TeamTalk(talks)
             case str():
                 if not self.agents[0].context.pool:
                     msg = "Pool required for forwarding to agent by name"
@@ -143,7 +130,10 @@ class Team[TDeps]:
                 target = self.agents[0].context.pool.get_agent(other)
                 return self.pass_results_to(target)
             case _:
-                return [self.connections.connect_agent_to(other) for other in self.agents]
+                talks = [
+                    self.connections.connect_group_to(other) for other in self.agents
+                ]
+                return TeamTalk(talks)
 
     async def run_parallel(
         self,
