@@ -117,7 +117,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             # Create runtime without async context
             cfg = config.get_config()
             runtime = RuntimeConfig.from_config(cfg)
-            runtime._register_default_components()  # Manual initialization
 
             # Create context with config path and capabilities
             context = AgentContext[Any](

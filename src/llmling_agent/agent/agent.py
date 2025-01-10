@@ -89,13 +89,13 @@ class Agent[TDeps]:
     tool_used = Signal(ToolCallInfo)
     model_changed = Signal(object)  # Model | None
     chunk_streamed = Signal(str, str)  # (chunk, message_id)
-    outbox = Signal(ChatMessage[Any], str)  # self, message, prompt
+    outbox = Signal(ChatMessage[Any], str)  # message, prompt
 
     def __init__(
         self,
-        runtime: RuntimeConfig,
-        context: AgentContext[TDeps] | None = None,
+        runtime: RuntimeConfig | None = None,
         *,
+        context: AgentContext[TDeps] | None = None,
         agent_type: AgentType = "ai",
         session: SessionIdType | SessionQuery = None,
         model: ModelType = None,
@@ -138,12 +138,14 @@ class Agent[TDeps]:
         """
         self._debug = debug
         self._result_type = None
-
+        self._owns_runtime = False
         # prepare context
         context = context or AgentContext[TDeps].create_default(name)
         context.confirmation_callback = confirmation_callback
-        context.runtime = runtime
-
+        if runtime:
+            context.runtime = runtime
+        else:
+            context.runtime = RuntimeConfig.from_config(Config())
         # connect signals
         self.message_received.connect(self.message_exchanged.emit)
         self.message_sent.connect(self.message_exchanged.emit)
@@ -151,8 +153,8 @@ class Agent[TDeps]:
 
         # Initialize tool manager
         all_tools = list(tools or [])
-        all_tools.extend(runtime.tools.values())  # Add runtime tools directly
-        logger.debug("Runtime tools: %s", list(runtime.tools.keys()))
+        all_tools.extend(context.runtime.tools.values())  # Add runtime tools directly
+        logger.debug("Runtime tools: %s", list(context.runtime.tools.keys()))
         self._tool_manager = ToolManager(
             tools=all_tools,
             tool_choice=tool_choice,
@@ -244,20 +246,22 @@ class Agent[TDeps]:
         return "\n".join(parts)
 
     async def __aenter__(self) -> Self:
-        """Enter async context and set up MCP servers.
-
-        Called when agent enters its async context. Sets up any configured
-        MCP servers and their tools.
-        """
+        """Enter async context and set up MCP servers."""
         try:
-            # Setup MCP servers if agent has them configured
+            # First initialize runtime
+            runtime_ref = self.context.runtime
+            if runtime_ref and not runtime_ref._initialized:
+                self._owns_runtime = True
+                await runtime_ref.__aenter__()
+
+            # Then setup MCP servers if configured
             if self.context and self.context.config and self.context.config.mcp_servers:
                 await self.tools.setup_mcp_servers(self.context.config.get_mcp_servers())
         except Exception as e:
-            # Clean up on error
-            await self.tools.cleanup()
-            msg = "Failed to initialize tool manager"
-            logger.exception(msg, exc_info=e)
+            # Clean up in reverse order
+            if self._owns_runtime and runtime_ref and self.context.runtime == runtime_ref:
+                await runtime_ref.__aexit__(type(e), e, e.__traceback__)
+            msg = "Failed to initialize agent"
             raise RuntimeError(msg) from e
         else:
             return self
@@ -269,7 +273,11 @@ class Agent[TDeps]:
         exc_tb: TracebackType | None,
     ) -> None:
         """Exit async context."""
-        await self.tools.cleanup()
+        try:
+            await self.tools.cleanup()
+        finally:
+            if self._owns_runtime and self.context.runtime:
+                await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)
 
     def __rshift__(self, other: AnyAgent[Any, Any] | AgentGroup[Any] | str) -> Self:
         """Connect agent to another agent or group.
