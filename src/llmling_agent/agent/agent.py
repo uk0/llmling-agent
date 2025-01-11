@@ -1243,6 +1243,64 @@ class Agent[TDeps]:
             logger.debug("Could not get token limits for model: %s", self.model_name)
             return None
 
+    async def share(
+        self,
+        target: AnyAgent[TDeps, Any],
+        *,
+        tools: list[str] | None = None,
+        resources: list[str] | None = None,
+        history: bool | int | None = None,  # bool or number of messages
+        token_limit: int | None = None,
+    ) -> None:
+        """Share capabilities and knowledge with another agent.
+
+        Args:
+            target: Agent to share with
+            tools: List of tool names to share
+            resources: List of resource names to share
+            history: Share conversation history:
+                    - True: Share full history
+                    - int: Number of most recent messages to share
+                    - None: Don't share history
+            token_limit: Optional max tokens for history
+
+        Raises:
+            ValueError: If requested items don't exist
+            RuntimeError: If runtime not available for resources
+        """
+        # Share tools if requested
+        if tools:
+            for name in tools:
+                if tool := self.tools.get(name):
+                    target.tools.register_tool(
+                        tool.callable, metadata={"shared_from": self.name}
+                    )
+                else:
+                    msg = f"Tool not found: {name}"
+                    raise ValueError(msg)
+
+        # Share resources if requested
+        if resources:
+            if not self.runtime:
+                msg = "No runtime available for sharing resources"
+                raise RuntimeError(msg)
+            for name in resources:
+                if resource := self.runtime.get_resource(name):
+                    await target.conversation.load_context_source(resource)
+                else:
+                    msg = f"Resource not found: {name}"
+                    raise ValueError(msg)
+
+        # Share history if requested
+        if history:
+            history_text = await self.conversation.format_history(
+                max_tokens=token_limit,
+                num_messages=history if isinstance(history, int) else None,
+            )
+            await target.conversation.add_context_message(
+                history_text, source=self.name, metadata={"type": "shared_history"}
+            )
+
     def register_worker(
         self,
         worker: Agent[Any],
