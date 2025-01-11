@@ -72,33 +72,17 @@ agents:
 """
 
 
-@pytest.fixture
-def basic_config(tmp_path: Path) -> Path:
-    """Create a temporary config file with basic worker setup."""
-    config_file = tmp_path / "agents.yml"
-    config_file.write_text(BASIC_WORKERS)
+def write_config(content: str, path: Path) -> Path:
+    """Write config content to a file."""
+    config_file = path / "agents.yml"
+    config_file.write_text(content)
     return config_file
 
 
-@pytest.fixture
-def sharing_config(tmp_path: Path) -> Path:
-    """Create a temporary config file with history/context sharing."""
-    config_file = tmp_path / "sharing.yml"
-    config_file.write_text(WORKERS_WITH_SHARING)
-    return config_file
-
-
-@pytest.fixture
-def invalid_config(tmp_path: Path) -> Path:
-    """Create a temporary config file with invalid worker setup."""
-    config_file = tmp_path / "invalid.yml"
-    config_file.write_text(INVALID_WORKERS)
-    return config_file
-
-
-async def test_basic_worker_setup(basic_config: Path):
+async def test_basic_worker_setup(tmp_path: Path):
     """Test basic worker registration and usage."""
-    manifest = AgentsManifest[Any, Any].from_file(basic_config)
+    config_path = write_config(BASIC_WORKERS, tmp_path)
+    manifest = AgentsManifest[Any, Any].from_file(config_path)
 
     async with AgentPool.open(manifest) as pool:
         main_agent: Agent[Any] = pool.get_agent("main")
@@ -112,10 +96,10 @@ async def test_basic_worker_setup(basic_config: Path):
         assert worker_tool.metadata["agent"] == "worker"
 
 
-async def test_history_sharing(sharing_config: Path):
+async def test_history_sharing(tmp_path: Path):
     """Test history sharing between agents."""
-    manifest = AgentsManifest[Any, Any].from_file(sharing_config)
-
+    config_path = write_config(WORKERS_WITH_SHARING, tmp_path)
+    manifest = AgentsManifest[Any, Any].from_file(config_path)
     async with AgentPool.open(manifest) as pool:
         main_agent = pool.get_agent("main")
         worker = pool.get_agent("worker")
@@ -140,10 +124,10 @@ async def test_history_sharing(sharing_config: Path):
         assert "42" in result.data
 
 
-async def test_context_sharing(sharing_config: Path):
+async def test_context_sharing(tmp_path: Path):
     """Test context sharing between agents."""
-    manifest = AgentsManifest[Any, Any].from_file(sharing_config)
-
+    config_path = write_config(WORKERS_WITH_SHARING, tmp_path)
+    manifest = AgentsManifest[Any, Any].from_file(config_path)
     async with AgentPool.open(manifest) as pool:
         main_agent = pool.get_agent("main")
         specialist = pool.get_agent("specialist")
@@ -166,19 +150,20 @@ async def test_context_sharing(sharing_config: Path):
         assert "123" in result.data
 
 
-async def test_invalid_worker(invalid_config: Path):
+async def test_invalid_worker(tmp_path: Path):
     """Test error when using non-existent worker."""
-    manifest = AgentsManifest[Any, Any].from_file(invalid_config)
+    config_path = write_config(INVALID_WORKERS, tmp_path)
+    manifest = AgentsManifest[Any, Any].from_file(config_path)
 
     with pytest.raises(ValueError, match="Worker agent.*not found"):
         async with AgentPool.open(manifest):
             pass
 
 
-async def test_worker_independence(basic_config: Path):
+async def test_worker_independence(tmp_path: Path):
     """Test that workers maintain independent state when not sharing."""
-    manifest = AgentsManifest[Any, Any].from_file(basic_config)
-
+    config_path = write_config(BASIC_WORKERS, tmp_path)
+    manifest = AgentsManifest[Any, Any].from_file(config_path)
     async with AgentPool.open(manifest) as pool:
         main_agent: Agent[Any] = pool.get_agent("main")
 
@@ -190,10 +175,10 @@ async def test_worker_independence(basic_config: Path):
         assert "42" not in result.data
 
 
-async def test_multiple_workers_same_prompt(basic_config: Path):
+async def test_multiple_workers_same_prompt(tmp_path: Path):
     """Test using multiple workers with the same prompt."""
-    manifest = AgentsManifest[Any, Any].from_file(basic_config)
-
+    config_path = write_config(BASIC_WORKERS, tmp_path)
+    manifest = AgentsManifest[Any, Any].from_file(config_path)
     async with AgentPool.open(manifest) as pool:
         main_agent: Agent[Any] = pool.get_agent("main")
         worker: Agent[Any] = pool.get_agent("worker")
