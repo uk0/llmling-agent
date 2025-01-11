@@ -41,7 +41,7 @@ class TokenAnalysis(Widget):
         widget_id: str | None = None,
         classes: str | None = None,
         disabled: bool = False,
-    ) -> None:
+    ):
         super().__init__(
             name=name,
             id=widget_id,

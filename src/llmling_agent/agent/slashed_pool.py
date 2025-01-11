@@ -403,6 +403,6 @@ class SlashedPool[TDeps]:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Exit async context."""
         # Cleanup will be handled by pool

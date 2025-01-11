@@ -23,9 +23,7 @@ class TaskRegistry(BaseRegistry[str, AgentTask[Any, Any]]):
             raise self._error_class(msg)
         return item
 
-    def register(
-        self, name: str, task: AgentTask[Any, Any], replace: bool = False
-    ) -> None:
+    def register(self, name: str, task: AgentTask[Any, Any], replace: bool = False):
         """Register a task with name.
 
         Creates a copy of the task with the name set.

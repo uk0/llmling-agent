@@ -52,7 +52,7 @@ class MCPClient(AbstractAsyncContextManager["MCPClient"]):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Restore stdout if redirected and cleanup."""
         try:
             if self._old_stdout:
@@ -68,7 +68,7 @@ class MCPClient(AbstractAsyncContextManager["MCPClient"]):
         args: list[str],
         env: dict[str, str] | None = None,
         url: str | None = None,
-    ) -> None:
+    ):
         """Connect to an MCP server.
 
         Args:
@@ -177,7 +177,7 @@ class MCPClient(AbstractAsyncContextManager["MCPClient"]):
             msg = f"MCP tool call failed: {e}"
             raise RuntimeError(msg) from e
 
-    async def cleanup(self) -> None:
+    async def cleanup(self):
         """Clean up resources."""
         await self.exit_stack.aclose()
         self._available_tools = []

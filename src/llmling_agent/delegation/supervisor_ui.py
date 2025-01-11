@@ -38,7 +38,7 @@ class TextualOutputHandler(OutputHandler):
     def __init__(self, app: SupervisorApp):
         self.app = app
 
-    async def display(self, message: str) -> None:
+    async def display(self, message: str):
         """Display message in RichLog."""
         self.app.call_later(self.app.output.write, message)
 
@@ -63,7 +63,7 @@ class SupervisorApp(App):
         yield self.output
         yield self.input
 
-    async def on_mount(self) -> None:
+    async def on_mount(self):
         """Start supervision when app mounts."""
         # Create supervisor with proper handlers
         self.supervisor = PoolSupervisor(
@@ -75,7 +75,7 @@ class SupervisorApp(App):
         self.supervisor.commands.register_command(ListAgentsCommand())
         await self.supervisor.start()
 
-    async def on_input_submitted(self, event: Input.Submitted) -> None:
+    async def on_input_submitted(self, event: Input.Submitted):
         """Process submitted input."""
         if not self.supervisor:
             return
@@ -90,7 +90,7 @@ class SupervisorApp(App):
             await self.supervisor._handle_command(text)
         self.input.value = ""
 
-    async def on_unmount(self) -> None:
+    async def on_unmount(self):
         """Clean up when app exits."""
         if self.supervisor:
             await self.supervisor.stop()

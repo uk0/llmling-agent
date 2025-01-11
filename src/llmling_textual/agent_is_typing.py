@@ -15,12 +15,12 @@ class ResponseStatus(Vertical):
         yield Label(f" {self.message}")
         yield LoadingIndicator()
 
-    def set_awaiting_response(self) -> None:
+    def set_awaiting_response(self):
         self.message = "Awaiting response"
         self.add_class("-awaiting-response")
         self.remove_class("-agent-responding")
 
-    def set_agent_responding(self) -> None:
+    def set_agent_responding(self):
         self.message = "Agent is responding"
         self.add_class("-agent-responding")
         self.remove_class("-awaiting-response")

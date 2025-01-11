@@ -64,10 +64,7 @@ class AgentProvider[TDeps]:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(model={self.model_name})"
 
-    def set_model(
-        self,
-        model: ModelType,
-    ) -> None:
+    def set_model(self, model: ModelType):
         """Default no-op implementation for setting model."""
 
     @property
@@ -81,7 +78,7 @@ class AgentProvider[TDeps]:
         return self._agent.name or "agent"
 
     @name.setter
-    def name(self, value: str | None) -> None:
+    def name(self, value: str | None):
         """Set agent name."""
         self._agent.name = value
 

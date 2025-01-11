@@ -36,7 +36,7 @@ class Decision(BaseModel):
         message: ChatMessage[Any],
         source_agent: AnyAgent[Any, Any],
         pool: AgentPool,
-    ) -> None:
+    ):
         """Execute this routing decision."""
         raise NotImplementedError
 
@@ -55,7 +55,7 @@ class RouteDecision(Decision):
         message: ChatMessage[Any],
         source_agent: AnyAgent[Any, Any],
         pool: AgentPool,
-    ) -> None:
+    ):
         """Forward message and continue."""
         target = pool.get_agent(self.target_agent)
         target.outbox.emit(message, None)
@@ -78,7 +78,7 @@ class AwaitResponseDecision(Decision):
         message: ChatMessage[Any],
         source_agent: AnyAgent[Any, Any],
         pool: AgentPool,
-    ) -> None:
+    ):
         """Forward message and wait for response."""
         target = pool.get_agent(self.target_agent)
         response = await target.run(str(message))
@@ -97,7 +97,7 @@ class EndDecision(Decision):
         message: ChatMessage[Any],
         source_agent: AnyAgent[Any, Any],
         pool: AgentPool,
-    ) -> None:
+    ):
         """End the conversation."""
 
 

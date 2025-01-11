@@ -79,7 +79,7 @@ class InputHandler(Protocol):
 class OutputHandler(Protocol):
     """Protocol for handling output display."""
 
-    async def display(self, message: str) -> None:
+    async def display(self, message: str):
         """Display a message to the user.
 
         Args:
@@ -94,7 +94,7 @@ class QueueOutputWriter(DefaultOutputWriter):
     def __init__(self, queue: asyncio.Queue[str]):
         self.queue = queue
 
-    async def print(self, message: str) -> None:
+    async def print(self, message: str):
         await self.queue.put(message)
 
 
@@ -112,7 +112,7 @@ class QueueOutputHandler:
     def __init__(self, queue: asyncio.Queue[str]):
         self.queue = queue
 
-    async def display(self, message: str) -> None:
+    async def display(self, message: str):
         """Put message in queue."""
         await self.queue.put(message)
 
@@ -142,7 +142,7 @@ class PoolSupervisor:
         self.commands = CommandStore()
         # Register commands would go here
 
-    async def start(self) -> None:
+    async def start(self):
         """Start supervision."""
         if self._running:
             return
@@ -166,7 +166,7 @@ class PoolSupervisor:
             'Type "@agent /help" for available commands.'
         )
 
-    async def stop(self) -> None:
+    async def stop(self):
         """Stop supervision."""
         self._running = False
 
@@ -182,17 +182,17 @@ class PoolSupervisor:
             await asyncio.gather(*self._tasks, return_exceptions=True)
         self._tasks.clear()
 
-    async def _handle_message(self, message: ChatMessage) -> None:
+    async def _handle_message(self, message: ChatMessage):
         """Handle messages from supervised agents."""
         await self.output_handler.display(f"Agent {message.name}: {message.content}")
 
-    async def _handle_tool(self, tool_call: ToolCallInfo) -> None:
+    async def _handle_tool(self, tool_call: ToolCallInfo):
         """Handle tool usage from supervised agents."""
         await self.output_handler.display(
             f"Tool used: {tool_call.tool_name}({tool_call.args})"
         )
 
-    async def _handle_command(self, cmd: str) -> None:
+    async def _handle_command(self, cmd: str):
         """Handle agent commands and messages."""
         if not cmd.startswith("@"):
             await self.output_handler.display("Usage: @agent <message or /command>")
@@ -225,7 +225,7 @@ class PoolSupervisor:
         except Exception as e:  # noqa: BLE001
             await self.output_handler.display(f"Error: {e}")
 
-    async def _monitor_human_input(self) -> None:
+    async def _monitor_human_input(self):
         """Monitor for human input."""
         print("\nSupervision active. Use @agent_name to interact with agents.")
 
@@ -240,7 +240,7 @@ class PoolSupervisor:
             except asyncio.CancelledError:
                 break
 
-    async def _print_status(self) -> None:
+    async def _print_status(self):
         """Print status updates."""
         while self._running:
             try:

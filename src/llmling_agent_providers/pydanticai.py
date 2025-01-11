@@ -229,7 +229,7 @@ class PydanticAIProvider(AgentProvider):
         return self._agent.name or "agent"
 
     @name.setter
-    def name(self, value: str | None) -> None:
+    def name(self, value: str | None):
         """Set agent name."""
         self._agent.name = value
 

@@ -95,7 +95,7 @@ class StructuredAgent[TDeps, TResult]:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Exit async context."""
         await self._agent.__aexit__(exc_type, exc_val, exc_tb)
 

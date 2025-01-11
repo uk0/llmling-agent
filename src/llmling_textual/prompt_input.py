@@ -36,7 +36,7 @@ class PromptInput(TextArea):
         widget_id: str | None = None,
         classes: str | None = None,
         disabled: bool = False,
-    ) -> None:
+    ):
         super().__init__(
             name=name,
             id=widget_id,
@@ -45,7 +45,7 @@ class PromptInput(TextArea):
             language="markdown",
         )
 
-    def on_key(self, event: events.Key) -> None:
+    def on_key(self, event: events.Key):
         if self.cursor_location == (0, 0) and event.key == "up":
             event.prevent_default()
             self.post_message(self.CursorEscapingTop())
@@ -55,14 +55,14 @@ class PromptInput(TextArea):
             self.post_message(self.CursorEscapingBottom())
             event.stop()
 
-    def watch_submit_ready(self, submit_ready: bool) -> None:
+    def watch_submit_ready(self, submit_ready: bool):
         self.set_class(not submit_ready, "-submit-blocked")
 
     def on_mount(self):
         self.border_title = "Enter your [u]m[/]essage..."
 
     @on(TextArea.Changed)
-    async def prompt_changed(self, event: TextArea.Changed) -> None:
+    async def prompt_changed(self, event: TextArea.Changed):
         text_area = event.text_area
         if text_area.text.strip() != "":
             text_area.border_subtitle = "[[white]^j[/]] Send message"
@@ -78,7 +78,7 @@ class PromptInput(TextArea):
         assert self.parent
         self.parent.refresh()
 
-    def action_submit_prompt(self) -> None:
+    def action_submit_prompt(self):
         if self.text.strip() == "":
             self.notify("Cannot send empty message!")
             return

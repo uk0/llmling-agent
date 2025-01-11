@@ -325,7 +325,7 @@ class TalkManager:
                 return other.agents
         return [other]
 
-    def disconnect_all(self) -> None:
+    def disconnect_all(self):
         """Disconnect all managed connections."""
         for conn in self._connections:
             conn.disconnect()

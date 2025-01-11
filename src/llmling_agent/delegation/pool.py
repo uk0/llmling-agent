@@ -170,7 +170,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Exit async context."""
         await self.cleanup()
 
@@ -585,7 +585,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         initial_agent: str | Agent[Any] = "starter",
         initial_prompt: str = "Hello!",
         decision_callback: DecisionCallback = interactive_controller,
-    ) -> None:
+    ):
         """Start a controlled conversation between agents.
 
         Args:

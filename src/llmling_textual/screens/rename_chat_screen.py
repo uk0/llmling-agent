@@ -23,5 +23,5 @@ class RenameChat(ModalScreen[str]):
             yield title_input
 
     @on(Input.Submitted)
-    def close_screen(self, event: Input.Submitted) -> None:
+    def close_screen(self, event: Input.Submitted):
         self.dismiss(event.value)
