@@ -1142,6 +1142,8 @@ class Agent[TDeps]:
 
         async def _continuous():
             count = 0
+            msg = "%s: Starting continuous run (max_count=%s, interval=%s)"
+            logger.debug(msg, self.name, max_count, interval)
             while max_count is None or count < max_count:
                 try:
                     current_prompt = (
@@ -1149,14 +1151,23 @@ class Agent[TDeps]:
                         if callable(prompt)
                         else to_prompt(prompt)
                     )
+                    msg = "%s: Generated prompt #%d: %s"
+                    logger.debug(msg, self.name, count, current_prompt)
+
                     await self.run(current_prompt, **kwargs)
+                    msg = "%s: Run continous result #%d"
+                    logger.debug(msg, self.name, count)
+
                     count += 1
                     await asyncio.sleep(interval)
                 except asyncio.CancelledError:
+                    logger.debug("%s: Continuous run cancelled", self.name)
                     break
                 except Exception:
-                    logger.exception("Background run failed")
+                    logger.exception("%s: Background run failed", self.name)
                     await asyncio.sleep(interval)
+            msg = "%s: Continuous run completed after %d iterations"
+            logger.debug(msg, self.name, count)
 
         # Cancel any existing background task
         await self.stop()
@@ -1164,12 +1175,13 @@ class Agent[TDeps]:
 
         if block:
             try:
-                await task  # Wait for completion if max_count set
+                await task
                 return None
             finally:
                 if not task.done():
                     task.cancel()
         else:
+            logger.debug("%s: Started background task %s", self.name, task.get_name())
             self._background_task = task
             return None
 
