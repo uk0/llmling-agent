@@ -83,6 +83,7 @@ class Agent[TDeps]:
 
     # this fixes weird mypy issue
     conversation: ConversationManager
+    connections: TalkManager
     description: str | None
 
     message_received = Signal(ChatMessage[str])  # Always string
@@ -228,7 +229,6 @@ class Agent[TDeps]:
 
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._background_task: asyncio.Task[Any] | None = None
-        self._connected_agents: set[AnyAgent[Any, Any]] = set()
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
@@ -694,7 +694,7 @@ class Agent[TDeps]:
             self.name,
             repr(message.content),
             type(message.content),
-            len(self._connected_agents),
+            len(self.connections.get_targets()),
         )
         # update = {"forwarded_from": [*message.forwarded_from, self.name]}
         # forwarded_msg = message.model_copy(update=update)
@@ -703,7 +703,7 @@ class Agent[TDeps]:
 
     async def disconnect_all(self):
         """Disconnect from all agents."""
-        for target in list(self._connected_agents):
+        for target in list(self.connections.get_targets()):
             self.stop_passing_results_to(target)
 
     @overload
@@ -726,35 +726,10 @@ class Agent[TDeps]:
         prompt: str | None = None,
     ) -> Talk | TeamTalk:
         """Forward results to another agent or all agents in a team."""
-        from llmling_agent.delegation.agentgroup import Team
-
-        match other:
-            case Team():
-                # Create connections to each team member
-                for agent in other.agents:
-                    self.outbox.connect(agent._handle_message)
-                    self._connected_agents.add(agent)
-                # Create a TeamTalk for all these connections
-                return self.connections.connect_agent_to(
-                    other
-                )  # TalkManager handles Team case
-            case str():
-                if not self.context.pool:
-                    msg = "Pool required for forwarding to agent by name"
-                    raise ValueError(msg)
-                target = self.context.pool.get_agent(other)
-                self.pass_results_to(target)
-                return self.connections.connect_agent_to(other)
-            case _:
-                self.outbox.connect(other._handle_message)
-                self._connected_agents.add(other)
-                return self.connections.connect_agent_to(other)
+        return self.connections.connect_agent_to(other)
 
     def stop_passing_results_to(self, other: AnyAgent[Any, Any]):
         """Stop forwarding results to another agent."""
-        if other in self._connected_agents:
-            self.outbox.disconnect(other._handle_message)
-            self._connected_agents.remove(other)
         self.connections.disconnect(other)
 
     def is_busy(self) -> bool:
@@ -1074,7 +1049,7 @@ class Agent[TDeps]:
         await self.complete_tasks()
 
         # Wait for connected agents
-        for agent in self._connected_agents:
+        for agent in self.connections.get_targets():
             if agent.name not in seen:
                 seen.add(agent.name)
                 await agent.wait_for_chain(seen)

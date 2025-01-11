@@ -44,8 +44,8 @@ class ListAgentsCommand(SlashedCommand):
 
             # Add connections if requested
             connections = []
-            if show_connections and agent._connected_agents:
-                connections = [a.name for a in agent._connected_agents]
+            if show_connections and agent.connections.get_targets():
+                connections = [a.name for a in agent.connections.get_targets()]
                 conn_str = f" → {', '.join(connections)}"
             else:
                 conn_str = ""

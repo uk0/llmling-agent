@@ -50,7 +50,7 @@ def format_agent_name(agent: AnyAgent[Any, Any], current: bool = False) -> str:
     name = agent.name
     if current:
         return f"[bold blue]{name}[/]"
-    if agent._connected_agents:
+    if agent.connections.get_targets():
         return f"[green]{name}[/]"
     return f"[dim]{name}[/]"
 

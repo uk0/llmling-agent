@@ -66,9 +66,9 @@ class TeamResponse(list[AgentResponse[Any]]):
         """Convert team response to a single chat message."""
         # Combine all responses into one structured message
         content = "\n\n".join(
-            f"[{resp.agent_name}]: {resp.message.content}"
-            for resp in self
-            if resp.message
+            f"[{response.agent_name}]: {response.message.content}"
+            for response in self
+            if response.message
         )
 
         # Create a message that represents the group's output
@@ -101,12 +101,6 @@ class Team[TDeps]:
         self.connections = TalkManager(self)
         self.team_talk = TeamTalk.from_agents(self.agents)
 
-    # @overload
-    # def __rshift__(self, other: AnyAgent[Any, Any] | str)-> TeamTalk: ...
-
-    # @overload
-    # def __rshift__(self, other: Team[Any]) -> list[TeamTalk]: ...
-
     def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> TeamTalk:
         """Connect group to target agent(s).
 
@@ -118,22 +112,16 @@ class Team[TDeps]:
 
     def pass_results_to(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> TeamTalk:
         match other:
-            case Team():
-                talks = [
-                    self.connections.connect_group_to(other) for other in self.agents
-                ]
-                return TeamTalk(talks)
             case str():
                 if not self.agents[0].context.pool:
                     msg = "Pool required for forwarding to agent by name"
                     raise ValueError(msg)
-                target = self.agents[0].context.pool.get_agent(other)
-                return self.pass_results_to(target)
+                resolved = self.agents[0].context.pool.get_agent(other)
+                return self.pass_results_to(resolved)
+            case Team():
+                return self.connections.connect_group_to(other)
             case _:
-                talks = [
-                    self.connections.connect_group_to(other) for other in self.agents
-                ]
-                return TeamTalk(talks)
+                return self.connections.connect_group_to(other)
 
     async def run_parallel(
         self,

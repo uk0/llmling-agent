@@ -143,8 +143,8 @@ class Talk:
             target_names=self._stats.target_names,
         )
 
-        # for target in self.targets:
-        #     target._handle_message(message, prompt)
+        for target in self.targets:
+            target._handle_message(message, prompt)
         self.message_forwarded.emit(message)
 
     def when(self, condition: FilterFn) -> Self:
@@ -256,17 +256,11 @@ class TalkManager:
 
     @overload
     def connect_agent_to(
-        self,
-        other: AnyAgent[Any, Any] | str,
-        **kwargs: Any,
+        self, other: AnyAgent[Any, Any] | str, **kwargs: Any
     ) -> Talk: ...
 
     @overload
-    def connect_agent_to(
-        self,
-        other: Team[Any],
-        **kwargs: Any,
-    ) -> TeamTalk: ...
+    def connect_agent_to(self, other: Team[Any], **kwargs: Any) -> TeamTalk: ...
 
     def connect_agent_to(
         self,
@@ -307,6 +301,7 @@ class TalkManager:
         targets = self._resolve_targets(other)
         conns = [Talk(src, [t]) for src in self.owner.agents for t in targets]
         connections = TeamTalk(conns)
+        ## using extend() here flattens the list
         self._connections.extend(connections)
         return connections
 
@@ -317,16 +312,17 @@ class TalkManager:
         from llmling_agent.agent import Agent, StructuredAgent
         from llmling_agent.delegation.agentgroup import Team
 
-        if isinstance(other, str):
-            if (
-                not isinstance(self.owner, Agent | StructuredAgent)
-                or not self.owner.context.pool
-            ):
-                msg = "Pool required for forwarding to agent by name"
-                raise ValueError(msg)
-            return [self.owner.context.pool.get_agent(other)]
-        if isinstance(other, Team):
-            return other.agents
+        match other:
+            case str():
+                if (
+                    not isinstance(self.owner, Agent | StructuredAgent)
+                    or not self.owner.context.pool
+                ):
+                    msg = "Pool required for forwarding to agent by name"
+                    raise ValueError(msg)
+                return [self.owner.context.pool.get_agent(other)]
+            case Team():
+                return other.agents
         return [other]
 
     def disconnect_all(self) -> None:

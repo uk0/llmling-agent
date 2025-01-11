@@ -171,7 +171,10 @@ class AgentPoolView:
         Returns:
             List of (agent_name, waits_for_completion) tuples
         """
-        return [(agent.name, self.wait_chain) for agent in self._agent._connected_agents]
+        return [
+            (agent.name, self.wait_chain)
+            for agent in self._agent.connections.get_targets()
+        ]
 
     def _ensure_initialized(self):
         """Check if session is initialized."""
@@ -398,11 +401,11 @@ class AgentPoolView:
 
     def has_chain(self) -> bool:
         """Check if agent has any connections."""
-        return bool(self._agent._connected_agents)
+        return bool(self._agent.connections.get_targets())
 
     def is_processing_chain(self) -> bool:
         """Check if chain is currently processing."""
-        return any(a._pending_tasks for a in self._agent._connected_agents)
+        return any(a._pending_tasks for a in self._agent.connections.get_targets())
 
     @property
     def tools(self) -> ToolManager:
