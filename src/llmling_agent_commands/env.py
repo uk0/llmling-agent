@@ -75,8 +75,7 @@ async def set_env(
                 runtime=new_runtime, context=agent.context, **kw_args
             )
             if isinstance(agent, StructuredAgent):
-                new_agent = StructuredAgent(
-                    agent=new_agent,
+                new_agent = new_agent.to_structured(
                     result_type=agent.result_type,
                     # tool_name=agent.tool_name,
                     # tool_description=agent.tool_description,

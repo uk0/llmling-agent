@@ -322,7 +322,7 @@ class TalkManager:
                     raise ValueError(msg)
                 return [self.owner.context.pool.get_agent(other)]
             case Team():
-                return other.agents
+                return list(other.agents)
         return [other]
 
     def disconnect_all(self):

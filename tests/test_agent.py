@@ -21,8 +21,6 @@ from llmling_agent.agent import Agent
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from llmling import RuntimeConfig
-
 
 SIMPLE_PROMPT = "Hello, how are you?"
 TEST_RESPONSE = "I am a test response"
@@ -99,21 +97,20 @@ async def test_agent_concurrent_runs(test_agent: Agent[Any]):
 
 
 @pytest.mark.asyncio
-async def test_agent_model_override(no_tool_runtime: RuntimeConfig):
+async def test_agent_model_override():
     """Test overriding model for specific runs."""
     default_response = "default response"
     override_response = "override response"
     model = TestModel(custom_result_text=default_response)
-    agent = Agent[Any](runtime=no_tool_runtime, name="test-agent", model=model)
+    async with Agent[None].open(model=model, name="test-agent") as agent:
+        # Run with default model
+        result1 = await agent.run(SIMPLE_PROMPT)
+        assert result1.data == default_response
 
-    # Run with default model
-    result1 = await agent.run(SIMPLE_PROMPT)
-    assert result1.data == default_response
-
-    # Run with overridden model
-    model2 = TestModel(custom_result_text=override_response)
-    result2 = await agent.run(SIMPLE_PROMPT, model=model2)
-    assert result2.data == override_response
+        # Run with overridden model
+        model2 = TestModel(custom_result_text=override_response)
+        result2 = await agent.run(SIMPLE_PROMPT, model=model2)
+        assert result2.data == override_response
 
 
 def test_sync_wrapper(test_agent: Agent[Any]):
@@ -149,24 +146,14 @@ async def test_agent_context_manager(tmp_path: Path):
 
 
 @pytest.mark.asyncio
-async def test_agent_logging(no_tool_runtime: RuntimeConfig):
+async def test_agent_logging():
     """Test agent logging functionality."""
-    # Test with logging enabled
-    agent1 = Agent[Any](
-        runtime=no_tool_runtime,
-        name="test-agent",
-        model=TestModel(custom_result_text=TEST_RESPONSE),
-        enable_db_logging=True,
-    )
-    result1 = await agent1.run(SIMPLE_PROMPT)
-    assert result1.data == TEST_RESPONSE
-
-    # Test with logging disabled
-    agent2 = Agent[Any](
-        runtime=no_tool_runtime,
-        name="test-agent",
-        model=TestModel(custom_result_text=TEST_RESPONSE),
-        enable_db_logging=False,
-    )
-    result2 = await agent2.run(SIMPLE_PROMPT)
-    assert result2.data == TEST_RESPONSE
+    model = TestModel(custom_result_text=TEST_RESPONSE)
+    async with (
+        Agent[None](name="test-agent", model=model) as agent1,
+        Agent[None](name="test-agent", model=model, enable_db_logging=False) as agent2,
+    ):
+        result1 = await agent1.run(SIMPLE_PROMPT)
+        assert result1.data == TEST_RESPONSE
+        result2 = await agent2.run(SIMPLE_PROMPT)
+        assert result2.data == TEST_RESPONSE

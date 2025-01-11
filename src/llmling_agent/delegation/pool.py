@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
+from os import PathLike
 from typing import TYPE_CHECKING, Any, Self, overload
 
 from llmling import BaseRegistry, Config, LLMLingError, RuntimeConfig
@@ -307,16 +308,31 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         *,
         temporary: bool = True,
     ) -> Agent[Any]:
-        """Create and register a new agent in the pool."""
+        """Create and register a new agent in the pool.
+
+        Args:
+            name: Name of the new agent
+            config: Agent configuration
+            temporary: If True, agent won't be added to manifest
+
+        Returns:
+            Created and initialized agent
+
+        Raises:
+            ValueError: If agent name already exists
+            RuntimeError: If agent initialization fails
+        """
         from llmling_agent.models.context import AgentContext
 
         if name in self.agents:
             msg = f"Agent {name} already exists"
             raise ValueError(msg)
 
-        # Create runtime from agent's config
-        cfg = config.get_config()
-        async with RuntimeConfig.open(cfg) as runtime:
+        try:
+            # Create runtime from agent's config
+            cfg = config.get_config()
+            runtime = RuntimeConfig.from_config(cfg)
+
             # Create context with config path and capabilities
             context = AgentContext[Any](
                 agent_name=name,
@@ -325,6 +341,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
                 config=config,
                 pool=self,
             )
+
             # Create agent with runtime and context
             agent = Agent[Any](
                 agent_type=config.type,
@@ -336,15 +353,21 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
                 name=name,
             )
 
+            # Enter agent's async context through pool's exit stack
+            agent = await self.exit_stack.enter_async_context(agent)
+
             # Set up workers if defined
             if config.workers:
                 self.setup_agent_workers(agent, config.workers)
 
-            # Register
+            # Register in pool and optionally manifest
             self.agents[name] = agent
             if not temporary:
                 self.manifest.agents[name] = config
-
+        except Exception as e:
+            msg = f"Failed to create agent {name}"
+            raise RuntimeError(msg) from e
+        else:
             return agent
 
     async def clone_agent[TDeps, TResult](
@@ -511,13 +534,11 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
         if session:
             base.conversation.load_history_from_database(session=session)
-
-        if environment_override:
-            if isinstance(environment_override, Config):
+        match environment_override:
+            case Config():
                 base.context.runtime = RuntimeConfig.from_config(environment_override)
-            else:
-                cfg = Config.from_file(environment_override)
-                base.context.runtime = RuntimeConfig.from_config(cfg)
+            case str() | PathLike():
+                base.context.runtime = RuntimeConfig.from_file(environment_override)
 
         # Wrap in StructuredAgent if return_type provided
         if return_type is not None:

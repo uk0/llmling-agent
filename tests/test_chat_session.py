@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from llmling import Config, RuntimeConfig
 from pydantic_ai.models.test import TestModel
 import pytest
 
@@ -23,9 +20,8 @@ TEST_MESSAGE = "Hello, agent!"
 @pytest.mark.asyncio
 async def test_basic_message_response():
     """Test basic message-response flow with metadata."""
-    async with RuntimeConfig.open(Config()) as runtime:
-        model = TestModel(custom_result_text="Test response")
-        agent = Agent[Any](runtime, model=model, name="test-agent")
+    model = TestModel(custom_result_text="Test response")
+    async with Agent[None].open(model=model, name="test-agent") as agent:
         session = AgentPoolView(agent)
         await session.initialize()
 
@@ -45,9 +41,8 @@ async def test_basic_message_response():
 @pytest.mark.asyncio
 async def test_streaming_response():
     """Test streaming responses with chunks and metadata."""
-    async with RuntimeConfig.open(Config()) as runtime:
-        model = TestModel(custom_result_text="Hello world")
-        agent = Agent[Any](runtime, model=model, name="test-agent")
+    model = TestModel(custom_result_text="Hello world")
+    async with Agent[None].open(name="test-agent", model=model) as agent:
         session = AgentPoolView(agent)
         await session.initialize()
 
@@ -71,13 +66,12 @@ async def test_streaming_response():
 @pytest.mark.asyncio
 async def test_agent_forwarding():
     """Test message forwarding between agents."""
-    async with RuntimeConfig.open(Config()) as runtime:
-        # Create agents with different responses
-        model = TestModel(custom_result_text="Main response")
-        main_agent = Agent[Any](runtime, model=model, name="main-agent")
-        model = TestModel(custom_result_text="Helper response")
-        helper_agent = Agent[Any](runtime, model=model, name="helper-agent")
-
+    model_1 = TestModel(custom_result_text="Main response")
+    model_2 = TestModel(custom_result_text="Helper response")
+    async with (
+        Agent[None].open(model=model_1, name="main-agent") as main_agent,
+        Agent[None].open(model=model_2, name="helper-agent") as helper_agent,
+    ):
         # Set up pool and register agents
         pool = AgentPool(AgentsManifest(agents={}))
         pool.register("main", main_agent)  # Use register instead of direct assignment
@@ -112,10 +106,8 @@ async def test_agent_forwarding():
 @pytest.mark.asyncio
 async def test_error_handling():
     """Test error handling scenarios."""
-    async with RuntimeConfig.open(Config()) as runtime:
-        agent = Agent[Any](
-            runtime, model=TestModel(custom_result_text="Test"), name="test-agent"
-        )
+    model = TestModel(custom_result_text="Test")
+    async with Agent[None].open(model=model, name="test-agent") as agent:
         session = AgentPoolView(agent)
         await session.initialize()
 

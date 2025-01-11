@@ -281,7 +281,7 @@ class Agent[TDeps]:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Exit async context."""
         try:
             await self.tools.cleanup()
@@ -841,7 +841,7 @@ class Agent[TDeps]:
         prompt: str,
         *,
         get_answer: Literal[False] = False,
-    ) -> None: ...
+    ): ...
 
     async def talk_to(
         self,
@@ -1298,10 +1298,10 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     sys_prompt = "Open browser with google, please"
+    path = config_resources.OPEN_BROWSER
 
     async def main():
-        async with RuntimeConfig.open(config_resources.OPEN_BROWSER) as r:
-            agent = Agent[Any](r, model="openai:gpt-4o-mini")
+        async with Agent[None].open(path, model="openai:gpt-4o-mini") as agent:
             result = await agent.run(sys_prompt)
             print(result.data)
 

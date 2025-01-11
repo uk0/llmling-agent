@@ -2,20 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from llmling import Config, GlobalSettings, LLMCapabilitiesConfig, RuntimeConfig
+from llmling import RuntimeConfig
 from pydantic_ai.models.test import TestModel
 import pytest
 import yamling
 
 from llmling_agent import Agent, AgentConfig, config_resources
+from llmling_agent.delegation import AgentPool
 from llmling_agent.models.agents import AgentsManifest
 from llmling_agent.responses import InlineResponseDefinition, ResponseField
-
-
-if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
 
 
 TEST_RESPONSE = "I am a test response"
@@ -70,8 +67,6 @@ def runtime() -> RuntimeConfig:
 @pytest.fixture
 async def simple_agent(runtime: RuntimeConfig) -> Agent[Any]:
     """Provide a basic text agent."""
-    from llmling_agent.agent import Agent
-
     return Agent(runtime=runtime, name="test-agent", model="openai:gpt-4o-mini")
 
 
@@ -108,42 +103,22 @@ def basic_response_def() -> dict[str, InlineResponseDefinition]:
 
 
 @pytest.fixture
-async def no_tool_runtime() -> AsyncGenerator[RuntimeConfig, None]:
-    """Create a runtime configuration for testing."""
-    caps = LLMCapabilitiesConfig(load_resource=False, get_resources=False)
-    global_settings = GlobalSettings(llm_capabilities=caps)
-    config = Config(global_settings=global_settings)
-    runtime = RuntimeConfig.from_config(config)
-    await runtime.__aenter__()
-    yield runtime
-    await runtime.__aexit__(None, None, None)
-
-
-@pytest.fixture
-def test_agent(no_tool_runtime: RuntimeConfig) -> Agent[Any]:
+def test_agent() -> Agent[None]:
     """Create an agent with TestModel for testing."""
-    return Agent(
-        runtime=no_tool_runtime,
-        name="test-agent",
-        model=TestModel(custom_result_text=TEST_RESPONSE),
-    )
+    model = TestModel(custom_result_text=TEST_RESPONSE)
+    return Agent(name="test-agent", model=model)
 
 
 @pytest.fixture
 def manifest():
     """Create test manifest with some agents."""
-    return AgentsManifest[Any, Any](
-        agents={
-            "agent1": AgentConfig(name="agent1", model="test"),
-            "agent2": AgentConfig(name="agent2", model="test"),
-        }
-    )
+    agent_1 = AgentConfig(name="agent1", model="test")
+    agent_2 = AgentConfig(name="agent2", model="test")
+    return AgentsManifest[Any, Any](agents={"agent1": agent_1, "agent2": agent_2})
 
 
 @pytest.fixture
 async def pool(manifest):
     """Create test pool with agents."""
-    from llmling_agent.delegation import AgentPool
-
     async with AgentPool.open(manifest) as pool:
         yield pool

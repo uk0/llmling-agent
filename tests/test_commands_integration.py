@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from llmling import Config, PromptMessage, PromptParameter, RuntimeConfig, StaticPrompt
+from llmling import Config, PromptMessage, PromptParameter, StaticPrompt
 import pytest
 from slashed import CommandStore, DefaultOutputWriter
 
@@ -13,8 +11,8 @@ from llmling_agent_commands.prompts import prompt_cmd
 
 
 @pytest.fixture
-def runtime_config() -> Config:
-    """Create a RuntimeConfig with test prompts."""
+def config() -> Config:
+    """Create a Config with test prompts."""
     # Create prompt messages
     greet_message = PromptMessage(role="system", content="Hello {name}!")
 
@@ -51,7 +49,7 @@ def runtime_config() -> Config:
 
 
 @pytest.mark.asyncio
-async def test_prompt_command_simple(runtime_config: Config):
+async def test_prompt_command_simple(config: Config):
     """Test executing a simple prompt without arguments."""
     messages = []
 
@@ -59,8 +57,7 @@ async def test_prompt_command_simple(runtime_config: Config):
         async def print(self, message: str):
             messages.append(message)
 
-    async with RuntimeConfig.from_config(runtime_config) as runtime:
-        agent = Agent[Any](runtime)
+    async with Agent[None].open(config) as agent:
         session = AgentPoolView(agent)
 
         store = CommandStore(enable_system_commands=True)
@@ -82,7 +79,7 @@ async def test_prompt_command_simple(runtime_config: Config):
 
 
 @pytest.mark.asyncio
-async def test_prompt_command_with_args(runtime_config: Config):
+async def test_prompt_command_with_args(config: Config):
     """Test executing a prompt with arguments."""
     messages = []
 
@@ -90,8 +87,7 @@ async def test_prompt_command_with_args(runtime_config: Config):
         async def print(self, message: str):
             messages.append(message)
 
-    async with RuntimeConfig.from_config(runtime_config) as runtime:
-        agent = Agent[Any](runtime)
+    async with Agent[None].open(config) as agent:
         session = AgentPoolView(agent)
 
         store = CommandStore(enable_system_commands=True)
