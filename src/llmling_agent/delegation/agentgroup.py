@@ -5,6 +5,8 @@ from datetime import datetime
 import time
 from typing import TYPE_CHECKING, Any, TypeVar, overload
 
+from psygnal.containers import EventedList
+
 from llmling_agent.agent.connection import TalkManager, TeamTalk
 from llmling_agent.delegation import interactive_controller
 from llmling_agent.delegation.pool import AgentResponse
@@ -95,7 +97,7 @@ class Team[TDeps]:
         shared_prompt: str | None = None,
         shared_deps: TDeps | None = None,
     ):
-        self.agents = agents
+        self.agents = EventedList(agents)
         self.shared_prompt = shared_prompt
         self.shared_deps = shared_deps
         self.connections = TalkManager(self)
@@ -124,9 +126,7 @@ class Team[TDeps]:
                 return self.connections.connect_group_to(other)
 
     async def run_parallel(
-        self,
-        prompt: str | None = None,
-        deps: TDeps | None = None,
+        self, prompt: str | None = None, deps: TDeps | None = None
     ) -> TeamResponse:
         """Run all agents in parallel."""
         start_time = datetime.now()
@@ -160,11 +160,13 @@ class Team[TDeps]:
                     prompt or self.shared_prompt, deps=deps or self.shared_deps
                 )
                 timing = time.perf_counter() - start
-                res = AgentResponse(agent_name=agent.name, message=message, timing=timing)
+                res = AgentResponse[str](
+                    agent_name=agent.name, message=message, timing=timing
+                )
                 results.append(res)
             except Exception as e:  # noqa: BLE001
                 msg = ChatMessage(content="", role="assistant")
-                res = AgentResponse(agent_name=agent.name, message=msg, error=str(e))
+                res = AgentResponse[str](agent_name=agent.name, message=msg, error=str(e))
                 results.append(res)
         return TeamResponse(results, start_time)
 

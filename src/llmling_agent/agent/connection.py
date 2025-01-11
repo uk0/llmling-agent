@@ -193,7 +193,7 @@ class TeamTalk(list["Talk | TeamTalk"]):
     @classmethod
     def from_agents(
         cls,
-        agents: list[AnyAgent[Any, Any]],
+        agents: Sequence[AnyAgent[Any, Any]],
         targets: list[AnyAgent[Any, Any]] | None = None,
     ) -> TeamTalk:
         """Create TeamTalk from a collection of agents."""
