@@ -3,7 +3,8 @@
 This example explains:
 - Continouos repetitive tasks
 - Async parallel execution of LLM calls and Input/Output
-- YAML config definition
+- YAML config definitions
+- Capability use: list other agents
 - Simple stateful callback mechanism using a class
 """
 
@@ -104,13 +105,17 @@ TEAM_PROMPT = f"Download this file: {FILE_URL}"
 
 async def run(config_path: str):
     async with AgentPool.open(config_path) as pool:
-        # Create second downloader by cloning
+        # we can get agents from the YAML config via get_agent("name")
         worker_1 = pool.get_agent("file_getter_1")
+
+        # Create second agent by cloning. Both do the same job, so same prompt & tools.
         worker_2 = await pool.clone_agent(worker_1, new_name="file_getter_2")
+
         team = pool.create_group([worker_1, worker_2])
         fan = pool.get_agent("fan")
         progress = CheerProgress()
 
+        # we pass a callback to keep the fan up-to-date. CheerProgress is our state object
         await fan.run_continuous(progress.create_prompt)
         progress.update("Sequential downloads starting - let's see how they do!")
 

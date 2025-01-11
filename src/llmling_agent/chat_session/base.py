@@ -165,17 +165,6 @@ class AgentPoolView:
         target_agent = self._pool.get_agent(target)
         self._agent.stop_passing_results_to(target_agent)
 
-    def get_connections(self) -> list[tuple[str, bool]]:
-        """Get current connections.
-
-        Returns:
-            List of (agent_name, waits_for_completion) tuples
-        """
-        return [
-            (agent.name, self.wait_chain)
-            for agent in self._agent.connections.get_targets()
-        ]
-
     def _ensure_initialized(self):
         """Check if session is initialized."""
         if not self._initialized:
