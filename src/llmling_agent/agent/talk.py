@@ -22,6 +22,8 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from toprompt import AnyPromptType
+
     from llmling_agent.agent import Agent, AnyAgent, StructuredAgent
     from llmling_agent.delegation.callbacks import DecisionCallback
 
@@ -118,7 +120,7 @@ class Talk[TDeps, TResult]:
         self,
         from_agents: Team[TDeps] | AgentPool | Sequence[AnyAgent[TDeps, Any]],
         task: str,
-        prompt: str | None = None,
+        prompt: AnyPromptType | None = None,
     ) -> AnyAgent[TDeps, Any]:
         """Pick most suitable agent for a task.
 

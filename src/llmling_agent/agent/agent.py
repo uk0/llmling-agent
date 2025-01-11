@@ -1016,8 +1016,7 @@ class Agent[TDeps]:
 
     def run_sync(
         self,
-        prompt: str,
-        *,
+        *prompt: AnyPromptType,
         deps: TDeps | None = None,
         model: ModelType = None,
     ) -> ChatMessage[TResult]:
