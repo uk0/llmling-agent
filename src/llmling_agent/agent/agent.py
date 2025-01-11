@@ -1175,7 +1175,6 @@ class Agent[TDeps]:
                         else to_prompt(prompt)
                     )
                     await self.run(current_prompt, **kwargs)
-                    await self.run(current_prompt, **kwargs)
                     count += 1
                     await asyncio.sleep(interval)
                 except asyncio.CancelledError:
