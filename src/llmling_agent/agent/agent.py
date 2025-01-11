@@ -31,6 +31,7 @@ from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
+from llmling_agent.models.mcp_server import MCPServerConfig, StdioMCPServer
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
@@ -103,6 +104,7 @@ class Agent[TDeps]:
         name: str = "llmling-agent",
         description: str | None = None,
         tools: Sequence[ToolType] | None = None,
+        mcp_servers: list[str | MCPServerConfig] | None = None,
         retries: int = 1,
         result_retries: int | None = None,
         tool_choice: bool | str | list[str] = True,
@@ -125,6 +127,7 @@ class Agent[TDeps]:
             name: Name of the agent for logging
             description: Description of the Agent ("what it can do")
             tools: List of tools to register with the agent
+            mcp_servers: MCP servers to connect to
             retries: Default number of retries for failed operations
             result_retries: Max retries for result validation (defaults to retries)
             tool_choice: Ability to set a fixed tool or temporarily disable tools usage.
@@ -138,7 +141,16 @@ class Agent[TDeps]:
         """
         self._debug = debug
         self._result_type = None
+
+        # save some stuff for asnyc init
         self._owns_runtime = False
+        self._mcp_servers = [
+            StdioMCPServer(command=s.split()[0], args=s.split()[1:])
+            if isinstance(s, str)
+            else s
+            for s in (mcp_servers or [])
+        ]
+
         # prepare context
         ctx = context or AgentContext[TDeps].create_default(name)
         ctx.confirmation_callback = confirmation_callback
@@ -250,7 +262,11 @@ class Agent[TDeps]:
                 self._owns_runtime = True
                 await runtime_ref.__aenter__()
 
-            # Then setup MCP servers if configured
+            # Then setup constructor MCP servers
+            if self._mcp_servers:
+                await self.tools.setup_mcp_servers(self._mcp_servers)
+
+            # Then setup config MCP servers if any
             if self.context and self.context.config and self.context.config.mcp_servers:
                 await self.tools.setup_mcp_servers(self.context.config.get_mcp_servers())
         except Exception as e:
