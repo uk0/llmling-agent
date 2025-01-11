@@ -4,18 +4,19 @@ from __future__ import annotations
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.agent import Agent
+from llmling_agent.agent.structured import StructuredAgent
+
+type AnyAgent[TDeps, TResult] = Agent[TDeps] | StructuredAgent[TDeps, TResult]
+
 from llmling_agent.agent.agent_logger import AgentLogger
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.agent.container import AgentContainer
-from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.agent.slashed_agent import SlashedAgent
+from llmling_agent.agent.talk import Interactions
 
 
 TDeps = TypeVar("TDeps")
 TResult = TypeVar("TResult", default=str)
-
-
-type AnyAgent[TDeps, TResult] = Agent[TDeps] | StructuredAgent[TDeps, TResult]
 
 
 __all__ = [
@@ -24,6 +25,7 @@ __all__ = [
     "AgentLogger",
     "AnyAgent",
     "ConversationManager",
+    "Interactions",
     "SlashedAgent",
     "StructuredAgent",
 ]
