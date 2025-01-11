@@ -311,7 +311,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         event = self.ToolStateReset(old_tools, new_tools)
         self.tool_states_reset.emit(event)
 
-    async def setup_mcp_servers(self, servers: list[MCPServerConfig]) -> None:
+    async def setup_mcp_servers(self, servers: list[MCPServerConfig]):
         """Set up multiple MCP server integrations.
 
         Args:
@@ -361,7 +361,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             logger.exception(msg, exc_info=e)
             raise RuntimeError(msg) from e
 
-    async def cleanup(self) -> None:
+    async def cleanup(self):
         """Clean up resources including all MCP clients."""
         try:
             # Store tools to remove
