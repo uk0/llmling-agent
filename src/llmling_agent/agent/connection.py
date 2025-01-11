@@ -132,12 +132,12 @@ class Talk:
         if self._filter and not self._filter(message):
             return
         # Only update stats and forward if connection is active
+        totals = message.cost_info.token_usage["total"] if message.cost_info else 0
         self._stats = TalkStats(
             message_count=self._stats.message_count + 1,
             start_time=self._stats.start_time,
             last_message_time=datetime.now(),
-            token_count=self._stats.token_count
-            + (message.cost_info.token_usage["total"] if message.cost_info else 0),
+            token_count=self._stats.token_count + totals,
             byte_count=self._stats.byte_count + len(str(message.content).encode()),
             source_name=self._stats.source_name,
             target_names=self._stats.target_names,
