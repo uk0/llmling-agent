@@ -1,11 +1,6 @@
 """Agent chat session management."""
 
 from llmling_agent.chat_session.base import AgentPoolView
-from llmling_agent.chat_session.models import ChatSessionMetadata
 from llmling_agent.chat_session.exceptions import ChatSessionError
 
-__all__ = [
-    "AgentPoolView",
-    "ChatSessionError",
-    "ChatSessionMetadata",
-]
+__all__ = ["AgentPoolView", "ChatSessionError"]

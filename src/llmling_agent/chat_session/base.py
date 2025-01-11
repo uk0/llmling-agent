@@ -16,7 +16,7 @@ from slashed import CommandError, CommandStore, DefaultOutputWriter, ExitCommand
 from llmling_agent.agent import Agent, AnyAgent
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
-from llmling_agent.chat_session.models import ChatSessionMetadata, SessionState
+from llmling_agent.chat_session.models import SessionState
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.tools.base import ToolInfo
@@ -26,7 +26,6 @@ from llmling_agent_commands import get_commands
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from pydantic_ai import messages
     from slashed import OutputWriter
 
     from llmling_agent.delegation.pool import AgentPool
@@ -205,16 +204,6 @@ class AgentPoolView:
             current_session_only=current_session_only,
         )
 
-    @property
-    def metadata(self) -> ChatSessionMetadata:
-        """Get current session metadata."""
-        return ChatSessionMetadata(
-            session_id=str(self._agent.conversation.id),
-            agent_name=self._agent.name,
-            model=self._agent.model_name,
-            tool_states=self.tools.list_tools(),
-        )
-
     async def clear(self):
         """Clear chat history."""
         self._agent.conversation.clear()
@@ -382,8 +371,3 @@ class AgentPoolView:
     def tools(self) -> ToolManager:
         """Get current tool states."""
         return self._agent.tools
-
-    @property
-    def history(self) -> list[messages.ModelMessage]:
-        """Get conversation history."""
-        return self._agent.conversation._current_history

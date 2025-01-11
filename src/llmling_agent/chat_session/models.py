@@ -6,8 +6,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, Field
-
 from llmling_agent.log import get_logger
 
 
@@ -16,16 +14,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
-
-class ChatSessionMetadata(BaseModel):
-    """Configuration and state of an agent chat session."""
-
-    session_id: str
-    agent_name: str
-    model: str | None = None
-    tool_states: dict[str, bool]
-    start_time: datetime = Field(default_factory=datetime.now)
 
 
 @dataclass
