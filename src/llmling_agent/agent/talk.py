@@ -10,12 +10,7 @@ from typing_extensions import TypeVar
 from llmling_agent.delegation.agentgroup import Team
 from llmling_agent.delegation.controllers import interactive_controller
 from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.delegation.router import (
-    AgentRouter,
-    CallbackRouter,
-    ChatMessage,
-    Decision,
-)
+from llmling_agent.delegation.router import CallbackRouter
 from llmling_agent.log import get_logger
 
 
@@ -26,6 +21,11 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import Agent, AnyAgent, StructuredAgent
     from llmling_agent.delegation.callbacks import DecisionCallback
+    from llmling_agent.delegation.router import (
+        AgentRouter,
+        ChatMessage,
+        Decision,
+    )
 
 
 logger = get_logger(__name__)
@@ -33,7 +33,7 @@ TResult = TypeVar("TResult")
 TDeps = TypeVar("TDeps")
 
 
-class Talk[TDeps, TResult]:
+class Interactions[TDeps, TResult]:
     """Manages agent communication patterns."""
 
     def __init__(self, agent: AnyAgent[TDeps, TResult]):

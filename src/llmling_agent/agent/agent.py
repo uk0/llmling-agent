@@ -49,6 +49,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.structured import StructuredAgent
+    from llmling_agent.agent.talk import Interactions
     from llmling_agent.common_types import ModelType, SessionIdType, StrPath, ToolType
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.models.context import ConfirmationCallback
@@ -84,6 +85,7 @@ class Agent[TDeps]:
     # this fixes weird mypy issue
     conversation: ConversationManager
     connections: TalkManager
+    talk: Interactions
     description: str | None
 
     message_received = Signal(ChatMessage[str])  # Always string
@@ -218,9 +220,11 @@ class Agent[TDeps]:
         logger.debug(msg, self.name, model)
 
         from llmling_agent.agent import AgentLogger
+        from llmling_agent.agent.talk import Interactions
         from llmling_agent.events import EventManager
 
         self.connections = TalkManager(self)
+        self.talk = Interactions(self)
 
         self._logger = AgentLogger(self, enable_db_logging=enable_db_logging)
         self._events = EventManager(self, enable_events=True)
