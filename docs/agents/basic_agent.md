@@ -73,10 +73,9 @@ Agents can communicate with each other:
 
 ```python
 # Direct communication
-response = await agent1.talk_to(
+response = await agent1.talk.ask(
     "agent2",
     "What do you think?",
-    get_answer=True,
     include_history=True
 )
 

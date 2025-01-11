@@ -18,7 +18,13 @@ agents:
     model: openai:gpt-4o-mini
     system_prompts:
       - You are Alice, known for sharing office gossip. You love talking about coworkers.
-
+    knowledge:
+        resources:
+            - type: text
+            - text: |
+             Hey Bob, did you hear? I saw Dave from Engineering walking into
+             the CEO's office yesterday with a huge smile! And this morning
+             he was cleaning out his desk! 👀
   bob:
     name: "Bob from HR"
     model: openai:gpt-4o-mini
@@ -43,19 +49,13 @@ async def main(config_path: str):
 
         # Alice tells Bob about Dave's "promotion"
         # This just appends a message to Bob's conversation history
-        await alice.talk_to(
-            bob,
-            "Hey Bob, did you hear? I saw Dave from Engineering walking into "
-            "the CEO's office yesterday with a huge smile! And this morning "
-            "he was cleaning out his desk! 👀",
-        )
+        await alice.share(bob, resources=["resource_name"])
 
         # Carol asks Bob what Alice said (expects response)
-        response = await carol.talk_to(
+        response = await carol.talk.ask(
             bob,
             "Hey Bob, I saw Alice talking to you earlier. "
             "Any interesting office updates? 😊",
-            get_answer=True,
         )
         print(f"\nCarol got the gossip:\n{response.data}")
 
