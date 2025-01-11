@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import datetime
 import time
-from typing import TYPE_CHECKING, Any, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
 from psygnal.containers import EventedList
+from pydantic_ai.result import StreamedRunResult
 
 from llmling_agent.agent.connection import TalkManager, TeamTalk
 from llmling_agent.delegation import interactive_controller
@@ -14,17 +16,21 @@ from llmling_agent.delegation.router import (
     AgentRouter,
     AwaitResponseDecision,
     CallbackRouter,
-    Decision,
     EndDecision,
     RouteDecision,
 )
+from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 
 
+logger = get_logger(__name__)
+
 if TYPE_CHECKING:
-    from llmling_agent.agent import Agent, AnyAgent
-    from llmling_agent.agent.structured import StructuredAgent
+    from collections.abc import AsyncIterator
+
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.callbacks import DecisionCallback
+    from llmling_agent.models.context import AgentContext
 
 
 TDeps = TypeVar("TDeps")
@@ -227,46 +233,131 @@ class Team[TDeps]:
 
         return TeamResponse(results, start_time)
 
-    @overload
-    async def controlled_talk[TResult](
+    async def chain(
         self,
-        agent: StructuredAgent[TDeps, TResult],
-        message: TResult,
-        *,
-        decision_callback: DecisionCallback[TResult],
-    ) -> tuple[ChatMessage[TResult], Decision]: ...
-
-    @overload
-    async def controlled_talk(
-        self,
-        agent: Agent[TDeps],
-        message: str,
-        *,
-        decision_callback: DecisionCallback[str] = interactive_controller,
-    ) -> tuple[ChatMessage[str], Decision]: ...
-
-    async def controlled_talk(
-        self,
-        agent: AnyAgent[TDeps, Any],
         message: Any,
         *,
-        decision_callback: DecisionCallback[Any] = interactive_controller,
-        router: AgentRouter | None = None,
-    ) -> tuple[ChatMessage[Any], Decision]:
-        """Get one response with control decision.
+        require_all: bool = True,
+    ) -> ChatMessage:
+        """Pass message through the chain of team members.
+
+        Each agent processes the result of the previous one.
 
         Args:
-            agent: Agent to use
-            message: Message to send
-            decision_callback: Callback for routing decision
-            router: Optional router to use
+            message: Initial message to process
+            require_all: If True, all agents must succeed
 
         Returns:
-            Tuple of (response message, routing decision)
+            Final processed message
+
+        Raises:
+            ValueError: If chain breaks and require_all=True
         """
-        # Use existing router system
-        assert agent.context.pool
-        router = router or CallbackRouter(agent.context.pool, decision_callback)
-        response = await agent.run(message)
-        decision = await router.decide(response.content)
-        return response, decision
+        current_message = message
+
+        for agent in self.agents:
+            try:
+                result = await agent.run(current_message)
+                current_message = result.content
+            except Exception as e:
+                if require_all:
+                    msg = f"Chain broken at {agent.name}: {e}"
+                    raise ValueError(msg) from e
+                logger.warning("Chain handler %s failed: %s", agent.name, e)
+
+        return result
+
+    @asynccontextmanager
+    async def chain_stream(
+        self,
+        message: Any,
+        *,
+        require_all: bool = True,
+    ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], str]]:
+        """Stream results through chain of team members."""
+        from llmling_agent.models.context import AgentContext
+
+        async with AsyncExitStack() as stack:
+            streams: list[StreamedRunResult[AgentContext[TDeps], str]] = []
+            current_message = message
+
+            # Set up all streams
+            for agent in self.agents:
+                try:
+                    stream = await stack.enter_async_context(
+                        agent.run_stream(current_message)
+                    )
+                    streams.append(stream)
+                    # Wait for complete response for next agent
+                    async for chunk in stream.stream():
+                        current_message = chunk
+                        if stream.is_complete:
+                            current_message = stream.formatted_content  # type: ignore
+                            break
+                except Exception as e:
+                    if require_all:
+                        msg = f"Chain broken at {agent.name}: {e}"
+                        raise ValueError(msg) from e
+                    logger.warning("Chain handler %s failed: %s", agent.name, e)
+
+            # Create a stream-like interface for the chain
+            class ChainStream(StreamedRunResult[AgentContext[TDeps], str]):
+                def __init__(self):
+                    self.streams = streams
+                    self.current_stream_idx = 0
+                    self.is_final = False
+
+                async def stream(self) -> AsyncIterator[str]:
+                    for idx, stream in enumerate(self.streams):
+                        self.current_stream_idx = idx
+                        async for chunk in stream.stream():
+                            yield chunk
+                            if idx == len(self.streams) - 1 and stream.is_complete:
+                                self.is_final = True
+
+            yield ChainStream()
+
+    @overload
+    async def broadcast(
+        self,
+        message: str,
+        *,
+        wait_for_responses: Literal[True],
+    ) -> list[ChatMessage[str]]: ...
+
+    @overload
+    async def broadcast(
+        self,
+        message: str,
+        *,
+        wait_for_responses: Literal[False] = False,
+    ) -> None: ...
+
+    async def broadcast[TOtherResult](
+        self,
+        message: str | TOtherResult,
+        *,
+        wait_for_responses: bool = False,
+    ) -> list[ChatMessage[TOtherResult]] | None:
+        """Send message to all team members.
+
+        Args:
+            message: Message to broadcast
+            wait_for_responses: Whether to wait for and collect responses
+
+        Returns:
+            List of responses if wait_for_responses=True, None otherwise
+        """
+        if not wait_for_responses:
+            for agent in self.agents:
+                await agent.conversation.add_context_message(
+                    str(message), source="team_broadcast"
+                )
+            return None
+
+        responses = []
+        for agent in self.agents:
+            result = await agent.run(message)
+            responses.append(result)
+
+        return responses
