@@ -103,7 +103,7 @@ async def disconnect_all_command(
     kwargs: dict[str, str],
 ):
     """Disconnect from all agents."""
-    if not ctx.context.has_chain():
+    if not ctx.context._agent.connections.get_targets():
         await ctx.output.print("No active connections")
         return
 
@@ -117,7 +117,7 @@ async def list_connections(
     kwargs: dict[str, str],
 ):
     """List current connections."""
-    if not ctx.context.has_chain():
+    if not ctx.context._agent.connections.get_targets():
         await ctx.output.print("No active connections")
         return
 

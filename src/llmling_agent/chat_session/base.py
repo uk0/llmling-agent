@@ -11,13 +11,7 @@ from uuid import uuid4
 
 from platformdirs import user_data_dir
 from psygnal import Signal
-from slashed import (
-    BaseCommand,
-    CommandError,
-    CommandStore,
-    DefaultOutputWriter,
-    ExitCommandError,
-)
+from slashed import CommandError, CommandStore, DefaultOutputWriter, ExitCommandError
 
 from llmling_agent.agent import Agent, AnyAgent
 from llmling_agent.agent.conversation import ConversationManager
@@ -239,10 +233,6 @@ class AgentPoolView:
         )
         self.session_reset.emit(event)
 
-    def register_command(self, command: BaseCommand):
-        """Register additional command."""
-        self.commands.register_command(command)
-
     async def handle_command(
         self,
         command_str: str,
@@ -388,14 +378,6 @@ class AgentPoolView:
 
             yield final_msg
 
-    def has_chain(self) -> bool:
-        """Check if agent has any connections."""
-        return bool(self._agent.connections.get_targets())
-
-    def is_processing_chain(self) -> bool:
-        """Check if chain is currently processing."""
-        return any(a._pending_tasks for a in self._agent.connections.get_targets())
-
     @property
     def tools(self) -> ToolManager:
         """Get current tool states."""
@@ -405,7 +387,3 @@ class AgentPoolView:
     def history(self) -> list[messages.ModelMessage]:
         """Get conversation history."""
         return self._agent.conversation._current_history
-
-    def get_status(self) -> SessionState:
-        """Get current session status."""
-        return self._state
