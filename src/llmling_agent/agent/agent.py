@@ -164,8 +164,6 @@ class Agent[TDeps]:
 
         # Initialize tool manager
         all_tools = list(tools or [])
-        all_tools.extend(ctx.runtime.tools.values())  # Add runtime tools directly
-        logger.debug("Runtime tools: %s", list(ctx.runtime.tools.keys()))
         self._tool_manager = ToolManager(all_tools, tool_choice=tool_choice, context=ctx)
 
         # set up conversation manager
@@ -255,6 +253,12 @@ class Agent[TDeps]:
             if runtime_ref and not runtime_ref._initialized:
                 self._owns_runtime = True
                 await runtime_ref.__aenter__()
+                runtime_tools = runtime_ref.tools.values()
+                logger.debug(
+                    "Registering runtime tools: %s", [t.name for t in runtime_tools]
+                )
+                for tool in runtime_tools:
+                    self.tools.register_tool(tool, source="runtime")
 
             # Then setup constructor MCP servers
             if self._mcp_servers:
