@@ -185,7 +185,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
     def create_group[TDeps](
         self,
-        agents: Sequence[str | AnyAgent[TDeps, Any]],
+        agents: Sequence[str | AnyAgent[TDeps, Any]] | None = None,
         *,
         model_override: str | None = None,
         environment_override: StrPath | Config | None = None,
@@ -195,13 +195,16 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         """Create a group from agent names or instances.
 
         Args:
-            agents: List of agent names or instances
+            agents: List of agent names or instances (all if None)
             model_override: Optional model to use for all agents
             environment_override: Optional environment for all agents
             shared_prompt: Optional prompt for all agents
             shared_deps: Optional shared dependencies
         """
         from llmling_agent.delegation.agentgroup import Team
+
+        if agents is None:
+            agents = list(self.agents.keys())
 
         # First resolve/configure agents
         resolved_agents: list[AnyAgent[TDeps, Any]] = []
