@@ -16,12 +16,10 @@ from llmling_agent.tools.base import ToolInfo
 
 if TYPE_CHECKING:
     from llmling import RuntimeConfig
-    from mcp.types import Tool as MCPTool
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
-    from llmling_agent.mcp_server.client import MCPClient
     from llmling_agent.models.agents import AgentConfig, AgentsManifest
 
 
@@ -122,23 +120,6 @@ ConfirmationCallback = Callable[
     [RunContext[AgentContext] | AgentContext, ToolInfo, dict[str, Any]],
     ConfirmationResult | Awaitable[ConfirmationResult],
 ]
-
-
-def create_mcp_tool_callable(
-    mcp_client: MCPClient,
-    tool: MCPTool,
-) -> Callable[[RunContext[AgentContext]], Any]:
-    """Create a callable that forwards to MCP tool."""
-
-    async def call_mcp_tool(ctx: RunContext[AgentContext], **kwargs: Any) -> str:
-        """Forward call to MCP server."""
-        return await mcp_client.call_tool(tool.name, kwargs)
-
-    # Set metadata for LLMCallableTool creation
-    call_mcp_tool.__name__ = tool.name
-    call_mcp_tool.__doc__ = tool.description
-
-    return call_mcp_tool
 
 
 async def simple_confirmation(

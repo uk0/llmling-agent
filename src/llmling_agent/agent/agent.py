@@ -174,11 +174,7 @@ class Agent[TDeps]:
             all_prompts.append(system_prompt)
         else:
             all_prompts.extend(system_prompt)
-        self.conversation = ConversationManager(
-            self,
-            initial_prompts=all_prompts,
-            session=session,
-        )
+        self.conversation = ConversationManager(self, session, all_prompts)
 
         # Initialize provider based on type
         match agent_type:
@@ -245,10 +241,8 @@ class Agent[TDeps]:
             f"Type: {self._provider.__class__.__name__}",
             f"Model: {self.model_name or 'default'}",
         ]
-
         if self.description:
             parts.append(f"Description: {self.description}")
-
         parts.extend([self.tools.__prompt__(), self.conversation.__prompt__()])
 
         return "\n".join(parts)

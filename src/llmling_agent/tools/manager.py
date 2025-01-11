@@ -327,13 +327,9 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                         # Create client with stdio mode
                         client = MCPClient(stdio_mode=True)
                         client = await self.exit_stack.enter_async_context(client)
-
-                        await client.connect(
-                            command=server.command,
-                            args=server.args,
-                            env=server.environment,
-                        )
-
+                        env = server.environment or {}
+                        env["PYTHONIOENCODING"] = "utf-8"
+                        await client.connect(server.command, args=server.args, env=env)
                         # Store client
                         client_id = f"{server.command}_{' '.join(server.args)}"
                         self._mcp_clients[client_id] = client
