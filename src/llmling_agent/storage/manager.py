@@ -247,3 +247,28 @@ class StorageManager:
             limit=limit,
             current_session_only=current_session_only,
         )
+
+    def log_conversation_sync(self, **kwargs) -> None:
+        """Sync wrapper for log_conversation."""
+        for provider in self.providers:
+            provider.log_conversation_sync(**kwargs)
+
+    def log_tool_call_sync(self, **kwargs) -> None:
+        """Sync wrapper for log_tool_call."""
+        for provider in self.providers:
+            provider.log_tool_call_sync(**kwargs)
+
+    def log_command_sync(self, **kwargs) -> None:
+        """Sync wrapper for log_command."""
+        for provider in self.providers:
+            provider.log_command_sync(**kwargs)
+
+    def get_commands_sync(self, **kwargs) -> list[str]:
+        """Sync wrapper for get_commands."""
+        provider = self._get_history_provider()
+        return provider.get_commands_sync(**kwargs)
+
+    def filter_messages_sync(self, **kwargs) -> list[ChatMessage[str]]:
+        """Sync wrapper for filter_messages."""
+        provider = self._get_history_provider()
+        return provider.filter_messages_sync(**kwargs)

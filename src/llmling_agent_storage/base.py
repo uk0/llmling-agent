@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
+
+from llmling_agent.utils.tasks import TaskManagerMixin
 
 
 if TYPE_CHECKING:
@@ -10,8 +12,10 @@ if TYPE_CHECKING:
     from llmling_agent.models.messages import ChatMessage, TokenCost
     from llmling_agent.models.session import SessionQuery
 
+T = TypeVar("T")
 
-class StorageProvider:
+
+class StorageProvider(TaskManagerMixin):
     """Base class for storage providers."""
 
     can_load_history: bool = False
@@ -25,6 +29,7 @@ class StorageProvider:
         log_tool_calls: bool = True,
         log_commands: bool = True,
     ) -> None:
+        super().__init__()
         self.log_messages = log_messages
         self.log_conversations = log_conversations
         self.log_tool_calls = log_tool_calls
@@ -93,3 +98,28 @@ class StorageProvider:
         """Get command history (if supported)."""
         msg = f"{self.__class__.__name__} does not support retrieving commands"
         raise NotImplementedError(msg)
+
+    # Sync wrappers for all async methods
+    def log_message_sync(self, **kwargs) -> None:
+        """Sync wrapper for log_message."""
+        self.fire_and_forget(self.log_message(**kwargs))
+
+    def log_conversation_sync(self, **kwargs) -> None:
+        """Sync wrapper for log_conversation."""
+        self.fire_and_forget(self.log_conversation(**kwargs))
+
+    def log_tool_call_sync(self, **kwargs) -> None:
+        """Sync wrapper for log_tool_call."""
+        self.fire_and_forget(self.log_tool_call(**kwargs))
+
+    def log_command_sync(self, **kwargs) -> None:
+        """Sync wrapper for log_command."""
+        self.fire_and_forget(self.log_command(**kwargs))
+
+    def get_commands_sync(self, **kwargs) -> list[str]:
+        """Sync wrapper for get_commands."""
+        return self.run_sync(self.get_commands(**kwargs))
+
+    def filter_messages_sync(self, **kwargs) -> list[ChatMessage[str]]:
+        """Sync wrapper for filter_messages."""
+        return self.run_sync(self.filter_messages(**kwargs))
