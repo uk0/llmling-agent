@@ -170,6 +170,7 @@ class PydanticAIProvider(AgentProvider):
         *,
         result_type: type[Any] | None = None,
         model: ModelType = None,
+        store_history: bool = True,
     ) -> ProviderResponse:
         """Generate response using pydantic-ai.
 
@@ -178,7 +179,8 @@ class PydanticAIProvider(AgentProvider):
             message_id: ID to assign to the response and tool calls
             result_type: Optional type for structured responses
             model: Optional model override for this call
-
+            store_history: Whether the message exchange should be added to the
+                           context window
         Returns:
             Response message with optional structured content
         """
@@ -203,9 +205,9 @@ class PydanticAIProvider(AgentProvider):
             for call in tool_calls:
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
-
-            self._conversation._last_messages = list(new_msgs)
-            self._conversation.set_history(result.all_messages())
+            if store_history:
+                self._conversation._last_messages = list(new_msgs)
+                self._conversation.set_history(result.all_messages())
             resolved_model = (
                 use_model.name() if isinstance(use_model, Model) else str(use_model)
             )
@@ -298,6 +300,7 @@ class PydanticAIProvider(AgentProvider):
         *,
         result_type: type[Any] | None = None,
         model: ModelType = None,
+        store_history: bool = True,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response using pydantic-ai."""
         self._update_tools()
@@ -340,8 +343,9 @@ class PydanticAIProvider(AgentProvider):
 
                     # Update conversation history
                     messages = stream_result.new_messages()
-                    self._conversation._last_messages = list(messages)
-                    self._conversation.set_history(stream_result.all_messages())
+                    if store_history:
+                        self._conversation._last_messages = list(messages)
+                        self._conversation.set_history(stream_result.all_messages())
 
                     # Extract and update tool calls
                     tool_calls = get_tool_calls(messages, dict(self._tool_manager._items))

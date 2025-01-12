@@ -89,6 +89,7 @@ class AgentProvider[TDeps]:
         *,
         result_type: type[Any] | None = None,
         model: ModelType = None,
+        store_history: bool = True,
     ) -> ProviderResponse:
         """Generate a response. Must be implemented by providers."""
         raise NotImplementedError
@@ -100,6 +101,7 @@ class AgentProvider[TDeps]:
         *,
         result_type: type[Any] | None = None,
         model: ModelType = None,
+        store_history: bool = True,
     ) -> AbstractAsyncContextManager[StreamedRunResult]:  # type: ignore[type-var]
         """Stream a response. Must be implemented by providers."""
         raise NotImplementedError

@@ -756,6 +756,7 @@ class Agent[TDeps]:
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         model: ModelType = None,
+        store_history: bool = True,
     ) -> ChatMessage[TResult]:
         """Run agent with prompt and get response.
 
@@ -764,6 +765,8 @@ class Agent[TDeps]:
             result_type: Optional type for structured responses
             deps: Optional dependencies for the agent
             model: Optional model override
+            store_history: Whether the message exchange should be added to the
+                           context window
 
         Returns:
             Result containing response and run information
@@ -789,7 +792,11 @@ class Agent[TDeps]:
             message_id = str(uuid4())
             start_time = time.perf_counter()
             result = await self._provider.generate_response(
-                final_prompt, message_id, result_type=result_type, model=model
+                final_prompt,
+                message_id,
+                result_type=result_type,
+                model=model,
+                store_history=store_history,
             )
 
             # Get cost info for assistant response
@@ -889,6 +896,7 @@ class Agent[TDeps]:
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         model: ModelType = None,
+        store_history: bool = True,
     ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], TResult]]:
         """Run agent with prompt and get a streaming response.
 
@@ -897,6 +905,8 @@ class Agent[TDeps]:
             result_type: Optional type for structured responses
             deps: Optional dependencies for the agent
             model: Optional model override
+            store_history: Whether the message exchange should be added to the
+                           context window
 
         Returns:
             A streaming result to iterate over.
@@ -923,6 +933,7 @@ class Agent[TDeps]:
                 message_id,
                 result_type=result_type,
                 model=model,
+                store_history=store_history,
             ) as stream:
                 yield stream  # type: ignore
 
