@@ -390,6 +390,7 @@ List your selections, one per line, followed by your reasoning."""
         text: str,
         as_type: type[T],
         prompt: AnyPromptType | None = None,
+        include_tools: bool = False,
     ) -> T:
         """Extract single instance of type from text."""
         from py2openai import create_constructor_schema
@@ -408,7 +409,13 @@ List your selections, one per line, followed by your reasoning."""
             description_override=schema["description"],
         )
         final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
-        result = await structured.run(final_prompt)
+        with structured.tools.temporary_tools(
+            construct,
+            names=f"add_{as_type.__name__}",
+            descriptions=f"Add a {as_type.__name__} instance",
+            exclusive=not include_tools,
+        ):
+            result = await structured.run(final_prompt)
         return result.content
 
     async def extract_multiple[T](
@@ -419,6 +426,7 @@ List your selections, one per line, followed by your reasoning."""
         min_items: int = 1,
         max_items: int | None = None,
         prompt: AnyPromptType | None = None,
+        include_tools: bool = False,
     ) -> list[T]:
         """Extract multiple instances of type from text."""
         from py2openai import create_constructor_schema
@@ -450,13 +458,13 @@ List your selections, one per line, followed by your reasoning."""
         ])
 
         structured = self.agent.to_structured(as_type)
-        structured.tools.register_tool(
+        with structured.tools.temporary_tools(
             add_instance,
-            name_override=f"add_{as_type.__name__}",
-            description_override=f"Add a {as_type.__name__} instance",
-        )
-
-        await structured.run(prompt or instructions)
+            names=f"add_{as_type.__name__}",
+            descriptions=f"Add a {as_type.__name__} instance",
+            exclusive=not include_tools,
+        ):
+            await structured.run(prompt or instructions)
 
         if len(instances) < min_items:
             msg = f"Found only {len(instances)} instances, need at least {min_items}"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from contextlib import AsyncExitStack, contextmanager
 from dataclasses import dataclass, field, fields
 from datetime import datetime
@@ -18,7 +19,7 @@ from llmling_agent.tools.base import ToolInfo
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Sequence
+    from collections.abc import Callable, Iterator
     from types import TracebackType
 
     from llmling_agent.agent import AnyAgent
@@ -385,28 +386,33 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             raise RuntimeError(msg) from e
 
     @contextmanager
-    def temporary_tool(
+    def temporary_tools(
         self,
-        tool: Callable[..., Any] | LLMCallableTool,
+        tools: Callable[..., Any]
+        | LLMCallableTool
+        | Sequence[Callable[..., Any] | LLMCallableTool],
         *,
-        name: str | None = None,
-        description: str | None = None,
         exclusive: bool = False,
-    ) -> Iterator[ToolInfo]:
-        """Temporarily register a tool.
+    ) -> Iterator[list[ToolInfo]]:
+        """Temporarily register tools.
 
         Args:
-            tool: Tool to register
-            name: Optional name override
-            description: Optional description override
+            tools: Tool(s) to register
             exclusive: Whether to temporarily disable all other tools
 
         Yields:
-            The registered tool
+            List of registered tool infos
+
+        Example:
+            ```python
+            with tool_manager.temporary_tools([tool1, tool2], exclusive=True) as tools:
+                # Only tool1 and tool2 are available
+                await agent.run(prompt)
+            # Original tool states are restored
+            ```
         """
-        tool_name = name or (
-            tool.name if isinstance(tool, LLMCallableTool) else tool.__name__
-        )
+        # Normalize inputs to lists
+        tools_list = [tools] if not isinstance(tools, Sequence) else list(tools)
 
         # Store original tool states if exclusive
         original_states: dict[str, bool] = {}
@@ -416,15 +422,19 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             for t in self.values():
                 t.enabled = False
 
-        tool_info = self.register_tool(
-            tool,
-            name_override=tool_name,
-            description_override=description,
-        )
+        # Register all tools
+        registered_tools: list[ToolInfo] = []
         try:
-            yield tool_info
+            for tool in tools_list:
+                tool_info = self.register_tool(tool)
+                registered_tools.append(tool_info)
+            yield registered_tools
+
         finally:
-            del self[tool_name]
+            # Remove temporary tools
+            for tool_info in registered_tools:
+                del self[tool_info.name]
+
             # Restore original tool states if exclusive
             if exclusive:
                 for name_, was_enabled in original_states.items():
