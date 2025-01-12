@@ -8,6 +8,7 @@ from upath import UPath
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.storage import LogFormat
+from llmling_agent_storage.base import StorageProvider
 
 
 CONVERSATIONS_TEMPLATE = """\
@@ -79,7 +80,7 @@ Result: {{ entry.result }}
 logger = get_logger(__name__)
 
 
-class TextLogProvider:
+class TextLogProvider(StorageProvider):
     """Human-readable text log provider."""
 
     TEMPLATES: ClassVar[dict[LogFormat, str]] = {

@@ -11,6 +11,7 @@ import yamling
 from llmling_agent.common_types import MessageRole
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, TokenCost
+from llmling_agent_storage.base import StorageProvider
 
 
 if TYPE_CHECKING:
@@ -64,7 +65,7 @@ class StorageData(TypedDict):
     commands: list[CommandData]
 
 
-class FileProvider:
+class FileProvider(StorageProvider):
     """File-based storage using various formats.
 
     Automatically detects format from file extension or uses specified format.
@@ -77,6 +78,7 @@ class FileProvider:
         self,
         path: str | Path,
         output_format: yamling.FormatType = "auto",
+        encoding: str = "utf-8",
     ):
         """Initialize file provider.
 
@@ -84,9 +86,11 @@ class FileProvider:
             path: Path to storage file
             output_format: Format to use, either explicit or "auto"
                            or extension-based detection
+            encoding: Encoding to use
         """
         self.path = UPath(path)
         self.format = output_format
+        self.encoding = encoding
         self._data: StorageData = {
             "messages": [],
             "conversations": [],

@@ -11,6 +11,7 @@ from sqlmodel import Session, select
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, TokenCost
+from llmling_agent_storage.base import StorageProvider
 
 
 if TYPE_CHECKING:
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class SQLModelProvider:
+class SQLModelProvider(StorageProvider):
     """Storage provider using SQLModel.
 
     Can work with any database supported by SQLAlchemy/SQLModel.
