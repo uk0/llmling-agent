@@ -149,15 +149,6 @@ class AgentPoolView:
         if wait is not None:
             self.wait_chain = wait
 
-    async def disconnect_from(self, target: str):
-        """Disconnect from a target agent."""
-        if not self._pool:
-            msg = "No agent pool available"
-            raise ValueError(msg)
-
-        target_agent = self._pool.get_agent(target)
-        self._agent.stop_passing_results_to(target_agent)
-
     def _ensure_initialized(self):
         """Check if session is initialized."""
         if not self._initialized:
