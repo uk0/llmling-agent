@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from functools import cached_property
 import json
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any, Literal
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig, AgentsManifest
+    from llmling_agent.storage.manager import StorageManager
 
 
 TDeps = TypeVar("TDeps", default=Any)
@@ -93,6 +95,15 @@ class AgentContext[TDeps]:
         if not self.pool or not self.agent_name:
             return None
         return self.pool.get_agent(self.agent_name)
+
+    @cached_property
+    def storage(self) -> StorageManager:
+        """Storage manager from pool or config."""
+        from llmling_agent.storage.manager import StorageManager
+
+        if self.pool:
+            return self.pool.storage
+        return StorageManager(self.definition.storage)
 
     async def handle_confirmation(
         self,

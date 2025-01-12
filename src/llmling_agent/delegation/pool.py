@@ -96,10 +96,12 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         """
         super().__init__()
         from llmling_agent.models.context import AgentContext
+        from llmling_agent.storage.manager import StorageManager
 
         self.manifest = manifest
         self._confirmation_callback = confirmation_callback
         self.exit_stack = AsyncExitStack()
+        self.storage = StorageManager(manifest.storage)
 
         # Validate requested agents exist
         to_load = set(agents_to_load) if agents_to_load else set(manifest.agents)
