@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from contextlib import AsyncExitStack
+from contextlib import AsyncExitStack, contextmanager
 from dataclasses import dataclass, field, fields
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, Self
@@ -18,7 +18,7 @@ from llmling_agent.tools.base import ToolInfo
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Iterator, Sequence
     from types import TracebackType
 
     from llmling_agent.agent import AnyAgent
@@ -383,3 +383,50 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             msg = "Error during tool manager cleanup"
             logger.exception(msg, exc_info=e)
             raise RuntimeError(msg) from e
+
+    @contextmanager
+    def temporary_tool(
+        self,
+        tool: Callable[..., Any] | LLMCallableTool,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        exclusive: bool = False,
+    ) -> Iterator[ToolInfo]:
+        """Temporarily register a tool.
+
+        Args:
+            tool: Tool to register
+            name: Optional name override
+            description: Optional description override
+            exclusive: Whether to temporarily disable all other tools
+
+        Yields:
+            The registered tool
+        """
+        tool_name = name or (
+            tool.name if isinstance(tool, LLMCallableTool) else tool.__name__
+        )
+
+        # Store original tool states if exclusive
+        original_states: dict[str, bool] = {}
+        if exclusive:
+            original_states = {name: tool.enabled for name, tool in self.items()}
+            # Disable all existing tools
+            for t in self.values():
+                t.enabled = False
+
+        tool_info = self.register_tool(
+            tool,
+            name_override=tool_name,
+            description_override=description,
+        )
+        try:
+            yield tool_info
+        finally:
+            del self[tool_name]
+            # Restore original tool states if exclusive
+            if exclusive:
+                for name_, was_enabled in original_states.items():
+                    if t := self.get(name_):
+                        t.enabled = was_enabled

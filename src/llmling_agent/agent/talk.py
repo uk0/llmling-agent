@@ -407,10 +407,8 @@ List your selections, one per line, followed by your reasoning."""
             name_override=schema["name"],
             description_override=schema["description"],
         )
-
-        result = await structured.run(
-            prompt or f"Extract {as_type.__name__} from: {text}"
-        )
+        final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
+        result = await structured.run(final_prompt)
         return result.content
 
     async def extract_multiple[T](
