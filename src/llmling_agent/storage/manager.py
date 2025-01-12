@@ -8,10 +8,12 @@ from llmling_agent.log import get_logger
 from llmling_agent.models.storage import (
     BaseStorageProviderConfig,
     FileStorageConfig,
+    MemoryStorageConfig,
     SQLStorageConfig,
     TextLogConfig,
 )
 from llmling_agent_storage.file_provider import FileProvider
+from llmling_agent_storage.memory_provider import MemoryStorageProvider
 from llmling_agent_storage.sql_provider import SQLModelProvider
 from llmling_agent_storage.text_log_provider import TextLogProvider
 
@@ -91,6 +93,8 @@ class StorageManager:
                     encoding=config.encoding,
                     **common_settings,
                 )
+            case MemoryStorageConfig():
+                return MemoryStorageProvider(**common_settings)
             case _:
                 msg = f"Unknown provider type: {config}"
                 raise ValueError(msg)

@@ -65,8 +65,15 @@ class FileStorageConfig(BaseStorageProviderConfig):
     """File encoding"""
 
 
+class MemoryStorageConfig(BaseStorageProviderConfig):
+    """In-memory storage configuration for testing."""
+
+    type: Literal["memory"] = Field("memory", init=False)
+
+
 StorageProviderConfig = Annotated[
-    SQLStorageConfig | FileStorageConfig | TextLogConfig, Field(discriminator="type")
+    SQLStorageConfig | FileStorageConfig | TextLogConfig | MemoryStorageConfig,
+    Field(discriminator="type"),
 ]
 
 
