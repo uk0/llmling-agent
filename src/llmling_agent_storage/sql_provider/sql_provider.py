@@ -283,7 +283,7 @@ class SQLModelProvider(StorageProvider):
         """Get filtered conversations using SQL queries."""
         from sqlmodel import select
 
-        from llmling_agent_storage.sql_provider.models import Conversation, Message
+        from llmling_agent.storage.models import Conversation, Message
 
         with Session(self.engine) as session:
             # Explicitly type our results list
@@ -361,7 +361,7 @@ class SQLModelProvider(StorageProvider):
         """Get statistics using SQL aggregations."""
         from sqlmodel import select
 
-        from llmling_agent_storage.sql_provider.models import Conversation, Message
+        from llmling_agent.storage.models import Conversation, Message
 
         with Session(self.engine) as session:
             # Base query for stats
