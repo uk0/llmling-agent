@@ -1224,15 +1224,13 @@ class Agent[TDeps]:
             RuntimeError: If runtime not available for resources
         """
         # Share tools if requested
-        if tools:
-            for name in tools:
-                if tool := self.tools.get(name):
-                    target.tools.register_tool(
-                        tool.callable, metadata={"shared_from": self.name}
-                    )
-                else:
-                    msg = f"Tool not found: {name}"
-                    raise ValueError(msg)
+        for name in tools or []:
+            if tool := self.tools.get(name):
+                meta = {"shared_from": self.name}
+                target.tools.register_tool(tool.callable, metadata=meta)
+            else:
+                msg = f"Tool not found: {name}"
+                raise ValueError(msg)
 
         # Share resources if requested
         if resources:
