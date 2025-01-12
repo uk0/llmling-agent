@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar
+from collections import defaultdict
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from llmling_agent.utils.tasks import TaskManagerMixin
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from datetime import datetime
 
+    from llmling_agent.history.models import ConversationData, QueryFilters, StatsFilters
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.messages import ChatMessage, TokenCost
     from llmling_agent.models.session import SessionQuery
@@ -117,6 +120,92 @@ class StorageProvider(TaskManagerMixin):
             model=model,
         )
 
+    async def get_conversations(
+        self,
+        filters: QueryFilters,
+    ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
+        """Get filtered conversations with their messages.
+
+        Args:
+            filters: Query filters to apply
+        """
+        msg = f"{self.__class__.__name__} does not support conversation queries"
+        raise NotImplementedError(msg)
+
+    async def get_filtered_conversations(
+        self,
+        agent_name: str | None = None,
+        period: str | None = None,
+        since: datetime | None = None,
+        query: str | None = None,
+        model: str | None = None,
+        limit: int | None = None,
+        *,
+        compact: bool = False,
+        include_tokens: bool = False,
+    ) -> list[ConversationData]:
+        """Get filtered conversations with formatted output.
+
+        Args:
+            agent_name: Filter by agent name
+            period: Time period to include (e.g. "1h", "2d")
+            since: Only show conversations after this time
+            query: Search in message content
+            model: Filter by model used
+            limit: Maximum number of conversations
+            compact: Only show first/last message of each conversation
+            include_tokens: Include token usage statistics
+        """
+        msg = f"{self.__class__.__name__} does not support filtered conversations"
+        raise NotImplementedError(msg)
+
+    async def get_conversation_stats(
+        self,
+        filters: StatsFilters,
+    ) -> dict[str, dict[str, Any]]:
+        """Get conversation statistics grouped by specified criterion.
+
+        Args:
+            filters: Filters for statistics query
+        """
+        msg = f"{self.__class__.__name__} does not support statistics"
+        raise NotImplementedError(msg)
+
+    def aggregate_stats(
+        self,
+        rows: Sequence[tuple[str | None, str | None, datetime, TokenCost | None]],
+        group_by: Literal["agent", "model", "hour", "day"],
+    ) -> dict[str, dict[str, Any]]:
+        """Aggregate statistics data by specified grouping.
+
+        Args:
+            rows: Raw stats data (model, agent, timestamp, token_usage)
+            group_by: How to group the statistics
+        """
+        stats: dict[str, dict[str, Any]] = defaultdict(
+            lambda: {"total_tokens": 0, "messages": 0, "models": set()}
+        )
+
+        for model, agent, timestamp, token_usage in rows:
+            match group_by:
+                case "agent":
+                    key = agent or "unknown"
+                case "model":
+                    key = model or "unknown"
+                case "hour":
+                    key = timestamp.strftime("%Y-%m-%d %H:00")
+                case "day":
+                    key = timestamp.strftime("%Y-%m-%d")
+
+            entry = stats[key]
+            entry["messages"] += 1
+            if token_usage:
+                entry["total_tokens"] += token_usage.token_usage.get("total", 0)
+            if model:
+                entry["models"].add(model)
+
+        return stats
+
     # Sync wrapper
     def log_context_message_sync(self, **kwargs):
         """Sync wrapper for log_context_message."""
@@ -146,3 +235,14 @@ class StorageProvider(TaskManagerMixin):
     def filter_messages_sync(self, **kwargs) -> list[ChatMessage[str]]:
         """Sync wrapper for filter_messages."""
         return self.run_sync(self.filter_messages(**kwargs))
+
+    def get_conversations_sync(
+        self, **kwargs
+    ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
+        return self.run_sync(self.get_conversations(**kwargs))
+
+    def get_filtered_conversations_sync(self, **kwargs) -> list[ConversationData]:
+        return self.run_sync(self.get_filtered_conversations(**kwargs))
+
+    def get_conversation_stats_sync(self, **kwargs) -> dict[str, dict[str, Any]]:
+        return self.run_sync(self.get_conversation_stats(**kwargs))

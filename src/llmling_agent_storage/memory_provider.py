@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from llmling_agent.history.models import ConversationData, QueryFilters, StatsFilters
+from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent_storage.base import StorageProvider
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from tokonomics.toko_types import TokenUsage
+
     from llmling_agent.models.agents import ToolCallInfo
-    from llmling_agent.models.messages import ChatMessage, TokenCost
     from llmling_agent.models.session import SessionQuery
 
 
@@ -143,3 +148,111 @@ class MemoryStorageProvider(StorageProvider):
             if limit and len(filtered) >= limit:
                 break
         return filtered
+
+    async def get_conversations(
+        self,
+        filters: QueryFilters,
+    ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
+        """Get filtered conversations from memory."""
+        results = []
+
+        # First get matching conversations
+        convs = {}
+        for conv in self.conversations:
+            if filters.agent_name and conv["agent_name"] != filters.agent_name:
+                continue
+            if filters.since and conv["start_time"] < filters.since:
+                continue
+            convs[conv["id"]] = conv
+
+        # Then get messages for each conversation
+        for conv_id, conv in convs.items():
+            conv_messages = []
+            for msg in self.messages:
+                if msg["conversation_id"] != conv_id:
+                    continue
+                if filters.query and filters.query not in msg["content"]:
+                    continue
+                if filters.model and msg["model"] != filters.model:
+                    continue
+
+                cost_info = None
+                if msg["cost_info"]:
+                    cost_info = TokenCost(
+                        token_usage=msg["cost_info"],
+                        total_cost=msg.get("cost", 0.0),
+                    )
+
+                chat_msg = ChatMessage(
+                    content=msg["content"],
+                    role=msg["role"],
+                    name=msg["name"],
+                    model=msg["model"],
+                    cost_info=cost_info,
+                    response_time=msg["response_time"],
+                    forwarded_from=msg["forwarded_from"],
+                    timestamp=msg["timestamp"],
+                )
+                conv_messages.append(chat_msg)
+
+            # Skip if no matching messages for content filter
+            if filters.query and not conv_messages:
+                continue
+
+            # Create conversation data
+            conv_data = ConversationData(
+                id=conv_id,
+                agent=conv["agent_name"],
+                start_time=conv["start_time"].isoformat(),
+                messages=conv_messages,
+                token_usage=self._aggregate_token_usage(conv_messages),
+            )
+            results.append((conv_data, conv_messages))
+
+            if filters.limit and len(results) >= filters.limit:
+                break
+
+        return results
+
+    async def get_conversation_stats(
+        self,
+        filters: StatsFilters,
+    ) -> dict[str, dict[str, Any]]:
+        """Get statistics from memory."""
+        # Collect raw data
+        rows = []
+        for msg in self.messages:
+            if msg["timestamp"] <= filters.cutoff:
+                continue
+            if filters.agent_name and msg["name"] != filters.agent_name:
+                continue
+
+            cost_info = None
+            if msg["cost_info"]:
+                cost_info = TokenCost(
+                    token_usage=msg["cost_info"],
+                    total_cost=msg.get("cost", 0.0),
+                )
+
+            rows.append((
+                msg["model"],
+                msg["name"],
+                msg["timestamp"],
+                cost_info,
+            ))
+
+        # Use base class aggregation
+        return self.aggregate_stats(rows, filters.group_by)
+
+    def _aggregate_token_usage(
+        self,
+        messages: Sequence[ChatMessage[Any]],
+    ) -> TokenUsage:
+        """Sum up tokens from a sequence of messages."""
+        total = prompt = completion = 0
+        for msg in messages:
+            if msg.cost_info:
+                total += msg.cost_info.token_usage.get("total", 0)
+                prompt += msg.cost_info.token_usage.get("prompt", 0)
+                completion += msg.cost_info.token_usage.get("completion", 0)
+        return {"total": total, "prompt": prompt, "completion": completion}
