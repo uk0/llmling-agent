@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Literal, cast, get_args
+from typing import TYPE_CHECKING, Any, Literal, get_args
 
 from llmling import Config
 
@@ -74,36 +74,19 @@ async def get_structured[T](
         ValueError: If constructor schema cannot be created
         Exception: If LLM call fails and no error_handler recovers
     """
-    # Create constructor tool
-    from py2openai import create_constructor_schema
-
-    schema = create_constructor_schema(response_type).model_dump_openai()["function"]
-
-    async def construct(**kwargs: Any) -> T:
-        """Construct instance from LLM-provided arguments."""
-        return response_type(**kwargs)
-
+    """Get structured output from LLM using function calling."""
     async with Agent[Any].open(
-        result_type=response_type,
         model=model,
         system_prompt=system_prompt or [],
         name="structured",
         retries=max_retries,
     ) as agent:
-        # Register constructor as only tool
-        agent.tools.register_tool(
-            construct,
-            name_override=schema["name"],
-            description_override=schema["description"],
-        )
         try:
-            result = await agent.run(prompt)
+            return await agent.talk.extract(prompt, response_type)
         except Exception as e:
             if error_handler and (err_result := error_handler(e)):
                 return err_result
             raise
-        else:
-            return cast(T, result.data)
 
 
 async def get_structured_multiple[T](
@@ -112,53 +95,11 @@ async def get_structured_multiple[T](
     model: models.Model | models.KnownModelName,
 ) -> list[T]:
     """Extract multiple structured instances from text."""
-    instances: list[T] = []
-    import inspect
-
-    async def add_instance(**kwargs: Any) -> str:
-        """Add an extracted instance."""
-        instance = target(**kwargs)
-        instances.append(instance)
-        return f"Added {instance}"
-
-    # Get class and init documentation
-    class_doc = inspect.getdoc(target) or f"A {target.__name__}"
-    init_doc = inspect.getdoc(target.__init__) or "Create a new instance."
-    type_info = (
-        f"\nInstance type information:\n{class_doc}\n\nInitialization:\n{init_doc}"
-    )
-
-    system_prompts = [
-        f"You are an expert at extracting {target.__name__} instances from text.",
-        "IMPORTANT: You must use the provided add_instance function for EACH instance.",
-        "DO NOT just describe what you found - you must CALL add_instance.",
-        "",
-        "Process:",
-        "1. Find an instance",
-        "2. Call add_instance with its properties",
-        "3. Continue until no more instances can be found",
-        "",
-        "Example:",
-        "I found John Smith, calling add_instance...",
-        "[call add_instance with first_name='John', last_name='Smith']",
-        "Looking for more...",
-        "",
-        type_info,
-    ]
-
     async with Agent[Any].open(
-        Config(),
         model=model,
-        system_prompt=system_prompts,
         name="structured",
-        tool_choice=f"add_{target.__name__}",  # Force using our tool
     ) as agent:
-        agent.tools.register_tool(add_instance, enabled=True, source="dynamic")
-        logger.debug("Running extraction with prompt: %s", prompt)
-        prompt = f"Extract ALL {target.__name__} instances from this text: {prompt}"
-        await agent.run(prompt)
-        logger.debug("Found %d instances", len(instances))
-        return instances
+        return await agent.talk.extract_multiple(prompt, target)
 
 
 async def pick_one[T](
