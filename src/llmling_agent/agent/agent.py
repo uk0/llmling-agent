@@ -20,7 +20,6 @@ from llmling.prompts.models import FilePrompt
 from llmling.utils.importing import import_callable
 import logfire
 from psygnal import Signal
-from psygnal.containers import EventedDict
 from pydantic_ai import RunContext  # noqa: TC002
 from tokonomics import TokenLimits, get_model_limits
 from toprompt import AnyPromptType, to_prompt
@@ -970,6 +969,7 @@ class Agent[TDeps]:
         *prompt: AnyPromptType,
         deps: TDeps | None = None,
         model: ModelType = None,
+        store_history: bool = True,
     ) -> ChatMessage[TResult]:
         """Run agent synchronously (convenience wrapper).
 
@@ -977,12 +977,15 @@ class Agent[TDeps]:
             prompt: User query or instruction
             deps: Optional dependencies for the agent
             model: Optional model override
-
+            store_history: Whether the message exchange should be added to the
+                           context window
         Returns:
             Result containing response and run information
         """
         try:
-            return asyncio.run(self.run(prompt, deps=deps, model=model))
+            return asyncio.run(
+                self.run(prompt, deps=deps, model=model, store_history=store_history)
+            )
         except KeyboardInterrupt:
             raise
         except Exception:
@@ -1013,13 +1016,17 @@ class Agent[TDeps]:
         task: AgentTask[TDeps, TResult],
         *,
         result_type: type[TResult] | None = None,
+        store_history: bool = True,
+        include_agent_tools: bool = True,
     ) -> ChatMessage[TResult]:
         """Execute a pre-defined task.
 
         Args:
             task: Task configuration to execute
             result_type: Optional override for task result type
-
+            store_history: Whether the message exchange should be added to the
+                           context window
+            include_agent_tools: Whether to include agent tools
         Returns:
             Task execution result
 
@@ -1030,6 +1037,7 @@ class Agent[TDeps]:
         from llmling_agent.tasks import TaskError
 
         self.set_result_type(result_type)
+
         # Load task knowledge
         if task.knowledge:
             # Add knowledge sources to context
@@ -1044,36 +1052,32 @@ class Agent[TDeps]:
                 else:
                     await self.conversation.load_context_source(prompt)
 
-        # Register task tools
-        original_tools = dict(self.tools._items)  # Store original tools
         try:
-            for tool_config in task.tool_configs:
-                callable_obj = import_callable(tool_config.import_path)
-                # Create LLMCallableTool with optional overrides
-                llm_tool = LLMCallableTool.from_callable(
-                    callable_obj,
-                    name_override=tool_config.name,
-                    description_override=tool_config.description,
+            # Register task tools temporarily
+            tools = [import_callable(cfg.import_path) for cfg in task.tool_configs]
+            names = [cfg.name for cfg in task.tool_configs]
+            descriptions = [cfg.description for cfg in task.tool_configs]
+            tools = [
+                LLMCallableTool.from_callable(
+                    tool, name_override=name, description_override=description
                 )
+                for tool, name, description in zip(tools, names, descriptions)
+            ]
+            with self.tools.temporary_tools(tools, exclusive=not include_agent_tools):
+                # Execute task with task-specific tools
+                from llmling_agent.tasks.strategies import DirectStrategy
 
-                # Register with ToolManager
-                meta = {"import_path": tool_config.import_path}
-                self.tools.register_tool(llm_tool, source="task", metadata=meta)
-            # Execute task with default strategy
-            from llmling_agent.tasks.strategies import DirectStrategy
-
-            strategy = DirectStrategy[TDeps, TResult]()
-            agent = cast(Agent[TDeps], self)
-            return await strategy.execute(task=task, agent=agent)
+                strategy = DirectStrategy[TDeps, TResult]()
+                return await strategy.execute(
+                    task=task,
+                    agent=self,
+                    store_history=store_history,
+                )
 
         except Exception as e:
             msg = f"Task execution failed: {e}"
             logger.exception(msg)
             raise TaskError(msg) from e
-
-        finally:
-            # Restore original tools
-            self.tools._items = EventedDict(original_tools)
 
     async def run_continuous(
         self,

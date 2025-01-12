@@ -49,9 +49,10 @@ class DirectStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
         self,
         task: AgentTask[TDeps, TResult],
         agent: Agent[TDeps],
+        store_history: bool = True,
     ) -> ChatMessage[TResult]:
         """Direct execution of task prompt."""
-        return await agent.run(task.prompt)
+        return await agent.run(task.prompt, store_history=store_history)
 
 
 class StepByStepStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
@@ -75,12 +76,17 @@ class StepByStepStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
         self,
         task: AgentTask[TDeps, TResult],
         agent: Agent[TDeps],
+        store_history: bool = True,
     ) -> ChatMessage[TResult]:
         # Get step breakdown using configurable prompt
         planning_prompt = self.planning_prompt_template.format(
             prompt=task.prompt, max_steps=self.max_steps
         )
-        msg = await agent.run(planning_prompt, result_type=list[str])
+        msg = await agent.run(
+            planning_prompt,
+            result_type=list[str],
+            store_history=store_history,
+        )
 
         # Execute each step
         results = []
@@ -95,7 +101,7 @@ class StepByStepStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
         combine_prompt = self.combination_prompt_template.format(
             results="\n".join(str(r) for r in results), prompt=task.prompt
         )
-        return await agent.run(combine_prompt)
+        return await agent.run(combine_prompt, store_history=store_history)
 
 
 class CustomStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
@@ -108,6 +114,7 @@ class CustomStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
         self,
         task: AgentTask[TDeps, TResult],
         agent: Agent[TDeps],
+        store_history: bool = True,
     ) -> ChatMessage[TResult]:
         """Execute using imported function."""
         from llmling.utils.importing import import_callable
@@ -135,6 +142,7 @@ class ResearchStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
         self,
         task: AgentTask[TDeps, TResult],
         agent: Agent[TDeps],
+        store_history: bool = True,
     ) -> ChatMessage[TResult]:
         # Research phase
         research_prompt = self.research_prompt_template.format(prompt=task.prompt)
@@ -144,7 +152,7 @@ class ResearchStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
             research=research.content,
             prompt=task.prompt,
         )
-        return await agent.run(execution_prompt)
+        return await agent.run(execution_prompt, store_history=store_history)
 
 
 # Register all strategies in type union
