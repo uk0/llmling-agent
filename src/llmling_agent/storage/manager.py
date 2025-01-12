@@ -49,7 +49,7 @@ class StorageManager:
             self._create_provider(cfg) for cfg in self.config.effective_providers
         ]
 
-    def cleanup(self) -> None:
+    def cleanup(self):
         """Clean up all providers."""
         for provider in self.providers:
             try:
@@ -60,18 +60,28 @@ class StorageManager:
 
     def _create_provider(self, config: BaseStorageProviderConfig) -> StorageProvider:
         """Create provider instance from configuration."""
+        # Extract common settings from BaseStorageProviderConfig
+        common_settings = {
+            "log_messages": config.log_messages,
+            "log_conversations": config.log_conversations,
+            "log_tool_calls": config.log_tool_calls,
+            "log_commands": config.log_commands,
+            "log_context": config.log_context,
+        }
+
         match config:
             case SQLStorageConfig():
                 from sqlmodel import create_engine
 
                 engine = create_engine(config.url, pool_size=config.pool_size)
-                return SQLModelProvider(engine)
+                return SQLModelProvider(engine, **common_settings)
 
             case FileStorageConfig():
                 return FileProvider(
                     config.path,
                     output_format=config.format,
                     encoding=config.encoding,
+                    **common_settings,
                 )
 
             case TextLogConfig():
@@ -79,6 +89,7 @@ class StorageManager:
                     config.path,
                     template=config.template,
                     encoding=config.encoding,
+                    **common_settings,
                 )
             case _:
                 msg = f"Unknown provider type: {config}"
@@ -155,7 +166,7 @@ class StorageManager:
         model: str | None = None,
         response_time: float | None = None,
         forwarded_from: list[str] | None = None,
-    ) -> None:
+    ):
         """Log message to all providers."""
         if not self.config.log_messages:
             return
@@ -181,7 +192,7 @@ class StorageManager:
         conversation_id: str,
         agent_name: str,
         start_time: datetime | None = None,
-    ) -> None:
+    ):
         """Log conversation to all providers."""
         if not self.config.log_conversations:
             return
@@ -202,7 +213,7 @@ class StorageManager:
         conversation_id: str,
         message_id: str,
         tool_call: ToolCallInfo,
-    ) -> None:
+    ):
         """Log tool call to all providers."""
         if not self.config.log_tool_calls:
             return
@@ -217,13 +228,7 @@ class StorageManager:
             except Exception:
                 logger.exception("Error logging tool call to provider: %r", provider)
 
-    async def log_command(
-        self,
-        *,
-        agent_name: str,
-        session_id: str,
-        command: str,
-    ) -> None:
+    async def log_command(self, *, agent_name: str, session_id: str, command: str):
         """Log command to all providers."""
         if not self.config.log_commands:
             return
@@ -259,17 +264,41 @@ class StorageManager:
             current_session_only=current_session_only,
         )
 
-    def log_conversation_sync(self, **kwargs) -> None:
+    async def log_context_message(
+        self,
+        *,
+        conversation_id: str,
+        content: str,
+        role: str,
+        name: str | None = None,
+        model: str | None = None,
+    ):
+        """Log context message to all providers."""
+        for provider in self.providers:
+            try:
+                await provider.log_context_message(
+                    conversation_id=conversation_id,
+                    content=content,
+                    role=role,
+                    name=name,
+                    model=model,
+                )
+            except Exception:
+                logger.exception(
+                    "Error logging context message to provider: %r", provider
+                )
+
+    def log_conversation_sync(self, **kwargs):
         """Sync wrapper for log_conversation."""
         for provider in self.providers:
             provider.log_conversation_sync(**kwargs)
 
-    def log_tool_call_sync(self, **kwargs) -> None:
+    def log_tool_call_sync(self, **kwargs):
         """Sync wrapper for log_tool_call."""
         for provider in self.providers:
             provider.log_tool_call_sync(**kwargs)
 
-    def log_command_sync(self, **kwargs) -> None:
+    def log_command_sync(self, **kwargs):
         """Sync wrapper for log_command."""
         for provider in self.providers:
             provider.log_command_sync(**kwargs)
@@ -283,3 +312,8 @@ class StorageManager:
         """Sync wrapper for filter_messages."""
         provider = self._get_history_provider()
         return provider.filter_messages_sync(**kwargs)
+
+    def log_context_message_sync(self, **kwargs):
+        """Sync wrapper for log_context_message."""
+        for provider in self.providers:
+            provider.log_context_message_sync(**kwargs)

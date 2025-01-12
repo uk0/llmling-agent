@@ -95,7 +95,17 @@ class TextLogProvider(StorageProvider):
         *,
         template: str | PathLike[str] | None = None,
         encoding: str = "utf-8",
+        **kwargs: Any,
     ):
+        """Initialize text log provider.
+
+        Args:
+            path: Path to log file
+            template: Template to use, or "chronological" or "conversations"
+            encoding: Encoding to use
+            kwargs: Additional arguments to pass to StorageProvider
+        """
+        super().__init__(**kwargs)
         self.path = UPath(path)
         self.encoding = encoding
         self.template = self._load_template(template)
@@ -118,7 +128,7 @@ class TextLogProvider(StorageProvider):
                 template_str = f.read()
         return Template(template_str)
 
-    async def log_message(self, **kwargs) -> None:
+    async def log_message(self, **kwargs):
         """Store message and update log."""
         self._entries.append({
             "type": "message",
@@ -133,7 +143,7 @@ class TextLogProvider(StorageProvider):
         conversation_id: str,
         agent_name: str,
         start_time: datetime | None = None,
-    ) -> None:
+    ):
         """Store conversation start and update log."""
         self._entries.append({
             "type": "conversation_start",
@@ -149,7 +159,7 @@ class TextLogProvider(StorageProvider):
         conversation_id: str,
         message_id: str,
         tool_call: ToolCallInfo,
-    ) -> None:
+    ):
         """Store tool call and update log."""
         self._entries.append({
             "type": "tool_call",
@@ -162,13 +172,7 @@ class TextLogProvider(StorageProvider):
         })
         self._write()
 
-    async def log_command(
-        self,
-        *,
-        agent_name: str,
-        session_id: str,
-        command: str,
-    ) -> None:
+    async def log_command(self, *, agent_name: str, session_id: str, command: str):
         """Store command and update log."""
         self._entries.append({
             "type": "command",
@@ -179,7 +183,7 @@ class TextLogProvider(StorageProvider):
         })
         self._write()
 
-    def _write(self) -> None:
+    def _write(self):
         """Write current state to file."""
         try:
             context = {"entries": self._entries}

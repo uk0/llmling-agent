@@ -33,18 +33,20 @@ class SQLModelProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, engine: Engine):
+    def __init__(self, engine: Engine, **kwargs: Any):
         """Initialize provider with database engine.
 
         Args:
             engine: SQLModel engine instance
+            kwargs: Additional arguments to pass to StorageProvider
         """
         from llmling_agent.storage.models import SQLModel
 
+        super().__init__(**kwargs)
         self.engine = engine
         SQLModel.metadata.create_all(self.engine)
 
-    def cleanup(self) -> None:
+    def cleanup(self):
         """Clean up database resources."""
         self.engine.dispose()
 
@@ -69,7 +71,7 @@ class SQLModelProvider(StorageProvider):
         model: str | None = None,
         response_time: float | None = None,
         forwarded_from: list[str] | None = None,
-    ) -> None:
+    ):
         """Log message to database."""
         from llmling_agent.storage.models import Message
 
@@ -102,7 +104,7 @@ class SQLModelProvider(StorageProvider):
         conversation_id: str,
         agent_name: str,
         start_time: datetime | None = None,
-    ) -> None:
+    ):
         """Log conversation to database."""
         from llmling_agent.storage.models import Conversation
 
@@ -121,7 +123,7 @@ class SQLModelProvider(StorageProvider):
         conversation_id: str,
         message_id: str,
         tool_call: ToolCallInfo,
-    ) -> None:
+    ):
         """Log tool call to database."""
         from llmling_agent.storage.models import ToolCall
 
@@ -138,13 +140,7 @@ class SQLModelProvider(StorageProvider):
             session.add(call)
             session.commit()
 
-    async def log_command(
-        self,
-        *,
-        agent_name: str,
-        session_id: str,
-        command: str,
-    ) -> None:
+    async def log_command(self, *, agent_name: str, session_id: str, command: str):
         """Log command to database."""
         from llmling_agent.storage.models import CommandHistory
 

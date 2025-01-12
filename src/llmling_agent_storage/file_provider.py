@@ -79,6 +79,7 @@ class FileProvider(StorageProvider):
         path: str | Path,
         output_format: yamling.FormatType = "auto",
         encoding: str = "utf-8",
+        **kwargs: Any,
     ):
         """Initialize file provider.
 
@@ -87,7 +88,9 @@ class FileProvider(StorageProvider):
             output_format: Format to use, either explicit or "auto"
                            or extension-based detection
             encoding: Encoding to use
+            kwargs: Additional arguments to pass to StorageProvider
         """
+        super().__init__(**kwargs)
         self.path = UPath(path)
         self.format = output_format
         self.encoding = encoding
@@ -99,7 +102,7 @@ class FileProvider(StorageProvider):
         }
         self._load()
 
-    def _load(self) -> None:
+    def _load(self):
         """Load data from file if it exists."""
         if self.path.exists():
             self._data = yamling.load_file(
@@ -109,12 +112,12 @@ class FileProvider(StorageProvider):
             )
         self._save()
 
-    def _save(self) -> None:
+    def _save(self):
         """Save current data to file."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         yamling.dump_file(self._data, self.path, mode=self.format)  # pyright: ignore
 
-    def cleanup(self) -> None:
+    def cleanup(self):
         """Save final state."""
         self._save()
 
@@ -187,7 +190,7 @@ class FileProvider(StorageProvider):
         model: str | None = None,
         response_time: float | None = None,
         forwarded_from: list[str] | None = None,
-    ) -> None:
+    ):
         """Log a new message."""
         self._data["messages"].append({
             "conversation_id": conversation_id,
@@ -209,7 +212,7 @@ class FileProvider(StorageProvider):
         conversation_id: str,
         agent_name: str,
         start_time: datetime | None = None,
-    ) -> None:
+    ):
         """Log a new conversation."""
         conversation: ConversationData = {
             "id": conversation_id,
@@ -225,7 +228,7 @@ class FileProvider(StorageProvider):
         conversation_id: str,
         message_id: str,
         tool_call: ToolCallInfo,
-    ) -> None:
+    ):
         """Log a tool call."""
         call: ToolCallData = {
             "conversation_id": conversation_id,
@@ -238,13 +241,7 @@ class FileProvider(StorageProvider):
         self._data["tool_calls"].append(call)
         self._save()
 
-    async def log_command(
-        self,
-        *,
-        agent_name: str,
-        session_id: str,
-        command: str,
-    ) -> None:
+    async def log_command(self, *, agent_name: str, session_id: str, command: str):
         """Log a command execution."""
         cmd: CommandData = {
             "agent_name": agent_name,

@@ -19,7 +19,9 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import ModelType
+    from llmling_agent.models.context import AgentContext
     from llmling_agent.models.messages import ChatMessage
+    from llmling_agent.tools.manager import ToolManager
 
 
 logger = get_logger(__name__)
@@ -135,12 +137,16 @@ class StructuredAgent[TDeps, TResult]:
         return getattr(self._agent, name)
 
     @property
-    def context(self) -> Any:
+    def context(self) -> AgentContext[TDeps]:
         return self._agent.context
 
     @context.setter
     def context(self, value: Any):
         self._agent.context = value
+
+    @property
+    def tools(self) -> ToolManager:
+        return self._agent.tools
 
     @overload
     def to_structured(

@@ -411,8 +411,6 @@ List your selections, one per line, followed by your reasoning."""
         final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
         with structured.tools.temporary_tools(
             construct,
-            names=f"add_{as_type.__name__}",
-            descriptions=f"Add a {as_type.__name__} instance",
             exclusive=not include_tools,
         ):
             result = await structured.run(final_prompt)
@@ -460,8 +458,6 @@ List your selections, one per line, followed by your reasoning."""
         structured = self.agent.to_structured(as_type)
         with structured.tools.temporary_tools(
             add_instance,
-            names=f"add_{as_type.__name__}",
-            descriptions=f"Add a {as_type.__name__} instance",
             exclusive=not include_tools,
         ):
             await structured.run(prompt or instructions)
