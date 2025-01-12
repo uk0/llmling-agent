@@ -194,6 +194,12 @@
           "description": "Session configuration for conversation recovery.",
           "title": "Session"
         },
+        "enable_db_logging": {
+          "default": true,
+          "description": "Enable session database logging.",
+          "title": "Enable Db Logging",
+          "type": "boolean"
+        },
         "result_type": {
           "anyOf": [
             {
@@ -1223,6 +1229,83 @@
       "title": "FilePrompt",
       "type": "object"
     },
+    "FileStorageConfig": {
+      "description": "File storage configuration.",
+      "properties": {
+        "type": {
+          "const": "file",
+          "default": "file",
+          "title": "Type",
+          "type": "string"
+        },
+        "log_messages": {
+          "default": true,
+          "description": "Whether to log messages",
+          "title": "Log Messages",
+          "type": "boolean"
+        },
+        "log_conversations": {
+          "default": true,
+          "description": "Whether to log conversations",
+          "title": "Log Conversations",
+          "type": "boolean"
+        },
+        "log_tool_calls": {
+          "default": true,
+          "description": "Whether to log tool calls",
+          "title": "Log Tool Calls",
+          "type": "boolean"
+        },
+        "log_commands": {
+          "default": true,
+          "description": "Whether to log command executions",
+          "title": "Log Commands",
+          "type": "boolean"
+        },
+        "log_context": {
+          "default": true,
+          "description": "Whether to log context messages.",
+          "title": "Log Context",
+          "type": "boolean"
+        },
+        "path": {
+          "description": "Path to storage file (extension determines format unless specified)",
+          "title": "Path",
+          "type": "string"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "enum": [
+                "yaml",
+                "toml",
+                "json",
+                "ini"
+              ],
+              "type": "string"
+            },
+            {
+              "const": "auto",
+              "type": "string"
+            }
+          ],
+          "default": "auto",
+          "description": "Storage format (auto=detect from extension)",
+          "title": "Format"
+        },
+        "encoding": {
+          "default": "utf-8",
+          "description": "File encoding",
+          "title": "Encoding",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "FileStorageConfig",
+      "type": "object"
+    },
     "FileTarget": {
       "description": "Save messages to a file.",
       "properties": {
@@ -2085,6 +2168,49 @@
       "title": "ManualTriggerConfig",
       "type": "object"
     },
+    "MemoryStorageConfig": {
+      "description": "In-memory storage configuration for testing.",
+      "properties": {
+        "type": {
+          "const": "memory",
+          "default": "memory",
+          "title": "Type",
+          "type": "string"
+        },
+        "log_messages": {
+          "default": true,
+          "description": "Whether to log messages",
+          "title": "Log Messages",
+          "type": "boolean"
+        },
+        "log_conversations": {
+          "default": true,
+          "description": "Whether to log conversations",
+          "title": "Log Conversations",
+          "type": "boolean"
+        },
+        "log_tool_calls": {
+          "default": true,
+          "description": "Whether to log tool calls",
+          "title": "Log Tool Calls",
+          "type": "boolean"
+        },
+        "log_commands": {
+          "default": true,
+          "description": "Whether to log command executions",
+          "title": "Log Commands",
+          "type": "boolean"
+        },
+        "log_context": {
+          "default": true,
+          "description": "Whether to log context messages.",
+          "title": "Log Context",
+          "type": "boolean"
+        }
+      },
+      "title": "MemoryStorageConfig",
+      "type": "object"
+    },
     "MessageContent": {
       "description": "Content item in a message.",
       "properties": {
@@ -2560,6 +2686,63 @@
       "title": "ResponseField",
       "type": "object"
     },
+    "SQLStorageConfig": {
+      "description": "SQL database storage configuration.",
+      "properties": {
+        "type": {
+          "const": "sql",
+          "default": "sql",
+          "title": "Type",
+          "type": "string"
+        },
+        "log_messages": {
+          "default": true,
+          "description": "Whether to log messages",
+          "title": "Log Messages",
+          "type": "boolean"
+        },
+        "log_conversations": {
+          "default": true,
+          "description": "Whether to log conversations",
+          "title": "Log Conversations",
+          "type": "boolean"
+        },
+        "log_tool_calls": {
+          "default": true,
+          "description": "Whether to log tool calls",
+          "title": "Log Tool Calls",
+          "type": "boolean"
+        },
+        "log_commands": {
+          "default": true,
+          "description": "Whether to log command executions",
+          "title": "Log Commands",
+          "type": "boolean"
+        },
+        "log_context": {
+          "default": true,
+          "description": "Whether to log context messages.",
+          "title": "Log Context",
+          "type": "boolean"
+        },
+        "url": {
+          "description": "Database URL (e.g. sqlite:///history.db)",
+          "title": "Url",
+          "type": "string"
+        },
+        "pool_size": {
+          "default": 5,
+          "description": "Connection pool size",
+          "title": "Pool Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "SQLStorageConfig",
+      "type": "object"
+    },
     "SSEMCPServer": {
       "description": "MCP server using Server-Sent Events transport.\n\nConnects to a server over HTTP with SSE for real-time communication.",
       "properties": {
@@ -2917,6 +3100,82 @@
       "title": "StdioMCPServer",
       "type": "object"
     },
+    "StorageConfig": {
+      "description": "Global storage configuration.",
+      "properties": {
+        "providers": {
+          "anyOf": [
+            {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "file": "#/$defs/FileStorageConfig",
+                    "memory": "#/$defs/MemoryStorageConfig",
+                    "sql": "#/$defs/SQLStorageConfig",
+                    "text_file": "#/$defs/TextLogConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/SQLStorageConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/FileStorageConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/TextLogConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/MemoryStorageConfig"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Providers"
+        },
+        "default_provider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default Provider"
+        },
+        "log_messages": {
+          "default": true,
+          "title": "Log Messages",
+          "type": "boolean"
+        },
+        "log_conversations": {
+          "default": true,
+          "title": "Log Conversations",
+          "type": "boolean"
+        },
+        "log_tool_calls": {
+          "default": true,
+          "title": "Log Tool Calls",
+          "type": "boolean"
+        },
+        "log_commands": {
+          "default": true,
+          "title": "Log Commands",
+          "type": "boolean"
+        }
+      },
+      "title": "StorageConfig",
+      "type": "object"
+    },
     "StringModel": {
       "additionalProperties": false,
       "description": "Wrapper for string model names.",
@@ -3083,6 +3342,93 @@
         }
       },
       "title": "TestModel",
+      "type": "object"
+    },
+    "TextLogConfig": {
+      "description": "Text log configuration.",
+      "properties": {
+        "type": {
+          "const": "text_file",
+          "default": "text_file",
+          "title": "Type",
+          "type": "string"
+        },
+        "log_messages": {
+          "default": true,
+          "description": "Whether to log messages",
+          "title": "Log Messages",
+          "type": "boolean"
+        },
+        "log_conversations": {
+          "default": true,
+          "description": "Whether to log conversations",
+          "title": "Log Conversations",
+          "type": "boolean"
+        },
+        "log_tool_calls": {
+          "default": true,
+          "description": "Whether to log tool calls",
+          "title": "Log Tool Calls",
+          "type": "boolean"
+        },
+        "log_commands": {
+          "default": true,
+          "description": "Whether to log command executions",
+          "title": "Log Commands",
+          "type": "boolean"
+        },
+        "log_context": {
+          "default": true,
+          "description": "Whether to log context messages.",
+          "title": "Log Context",
+          "type": "boolean"
+        },
+        "path": {
+          "description": "Path to log file",
+          "title": "Path",
+          "type": "string"
+        },
+        "format": {
+          "default": "chronological",
+          "description": "Log format template to use",
+          "enum": [
+            "chronological",
+            "conversations"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "enum": [
+                "chronological",
+                "conversations"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "chronological",
+          "description": "Template to use: either predefined name or path to custom template",
+          "title": "Template"
+        },
+        "encoding": {
+          "default": "utf-8",
+          "description": "File encoding",
+          "title": "Encoding",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "TextLogConfig",
       "type": "object"
     },
     "TextResource": {
@@ -3432,6 +3778,10 @@
       "description": "Mapping of agent IDs to their configurations",
       "title": "Agents",
       "type": "object"
+    },
+    "storage": {
+      "$ref": "#/$defs/StorageConfig",
+      "description": "Storage provider configuration."
     },
     "responses": {
       "additionalProperties": {
