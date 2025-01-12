@@ -1,6 +1,7 @@
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+import yamling
 
 
 LogFormat = Literal["chronological", "conversations"]
@@ -8,9 +9,6 @@ LogFormat = Literal["chronological", "conversations"]
 
 class BaseStorageProviderConfig(BaseModel):
     type: str = Field(init=False)
-
-    enabled: bool = True
-    """Whether this provider is active"""
 
     log_messages: bool = True
     """Whether to log messages"""
@@ -23,6 +21,10 @@ class BaseStorageProviderConfig(BaseModel):
 
     log_commands: bool = True
     """Whether to log command executions"""
+
+    log_context: bool = True
+    """Whether to log context messages."""
+
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
 
@@ -57,8 +59,10 @@ class FileStorageConfig(BaseStorageProviderConfig):
     type: Literal["file"] = Field("file", init=False)
     path: str
     """Path to storage file (extension determines format unless specified)"""
-    format: Literal["auto", "yaml", "json", "toml"] = "auto"
+    format: yamling.FormatType = "auto"
     """Storage format (auto=detect from extension)"""
+    encoding: str = "utf-8"
+    """File encoding"""
 
 
 StorageProviderConfig = Annotated[
@@ -69,7 +73,7 @@ StorageProviderConfig = Annotated[
 class StorageConfig(BaseModel):
     """Global storage configuration."""
 
-    providers: list[StorageProviderConfig] = Field(default_factory=list)
+    providers: list[StorageProviderConfig] | None = None
     """List of configured storage providers"""
 
     default_provider: str | None = None
@@ -89,3 +93,17 @@ class StorageConfig(BaseModel):
     """Whether to log command executions."""
 
     model_config = ConfigDict(frozen=True)
+
+    @property
+    def effective_providers(self) -> list[StorageProviderConfig]:
+        """Get effective list of providers.
+
+        Returns:
+            - Default SQLite provider if providers is None
+            - Empty list if providers is empty list
+            - Configured providers otherwise
+        """
+        if self.providers is None:
+            cfg = SQLStorageConfig(url="sqlite:///history.db")
+            return [cfg]
+        return self.providers

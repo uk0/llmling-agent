@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from llmling_agent.log import get_logger
+from llmling_agent.models.storage import (
+    BaseStorageProviderConfig,
+    FileStorageConfig,
+    SQLStorageConfig,
+    TextLogConfig,
+)
 from llmling_agent_storage.file_provider import FileProvider
 from llmling_agent_storage.sql_provider import SQLModelProvider
 from llmling_agent_storage.text_log_provider import TextLogProvider
@@ -40,7 +46,7 @@ class StorageManager:
         """
         self.config = config
         self.providers = [
-            self._create_provider(cfg) for cfg in self.config.providers if cfg.enabled
+            self._create_provider(cfg) for cfg in self.config.effective_providers
         ]
 
     def cleanup(self) -> None:
@@ -52,23 +58,28 @@ class StorageManager:
                 logger.exception("Error cleaning up provider: %r", provider)
         self.providers.clear()
 
-    def _create_provider(self, config: Any) -> StorageProvider:
+    def _create_provider(self, config: BaseStorageProviderConfig) -> StorageProvider:
         """Create provider instance from configuration."""
         match config:
-            case {"type": "sql", "url": url}:
+            case SQLStorageConfig():
                 from sqlmodel import create_engine
 
-                pool_size = config.get("pool_size", 5)
-                engine = create_engine(url, pool_size=pool_size)
+                engine = create_engine(config.url, pool_size=config.pool_size)
                 return SQLModelProvider(engine)
 
-            case {"type": "file", "path": path, "format": format}:
-                encoding = config.get("encoding", "utf-8")
-                return FileProvider(path, output_format=format, encoding=encoding)
+            case FileStorageConfig():
+                return FileProvider(
+                    config.path,
+                    output_format=config.format,
+                    encoding=config.encoding,
+                )
 
-            case {"type": "text", "path": path, "template": template}:
-                encoding = config.get("encoding", "utf-8")
-                return TextLogProvider(path, template=template, encoding=encoding)
+            case TextLogConfig():
+                return TextLogProvider(
+                    config.path,
+                    template=config.template,
+                    encoding=config.encoding,
+                )
             case _:
                 msg = f"Unknown provider type: {config}"
                 raise ValueError(msg)
