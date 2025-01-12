@@ -97,6 +97,7 @@ class FileProvider(StorageProvider):
             "tool_calls": [],
             "commands": [],
         }
+        self._load()
 
     def _load(self) -> None:
         """Load data from file if it exists."""
@@ -113,11 +114,7 @@ class FileProvider(StorageProvider):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         yamling.dump_file(self._data, self.path, mode=self.format)  # pyright: ignore
 
-    async def initialize(self) -> None:
-        """Load initial data."""
-        self._load()
-
-    async def cleanup(self) -> None:
+    def cleanup(self) -> None:
         """Save final state."""
         self._save()
 

@@ -39,15 +39,12 @@ class SQLModelProvider(StorageProvider):
         Args:
             engine: SQLModel engine instance
         """
-        self.engine = engine
-
-    async def initialize(self) -> None:
-        """Create database tables."""
         from llmling_agent.storage.models import SQLModel
 
+        self.engine = engine
         SQLModel.metadata.create_all(self.engine)
 
-    async def cleanup(self) -> None:
+    def cleanup(self) -> None:
         """Clean up database resources."""
         self.engine.dispose()
 

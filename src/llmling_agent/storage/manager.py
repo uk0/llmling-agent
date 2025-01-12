@@ -1,0 +1,249 @@
+"""Storage manager for handling multiple providers."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+from llmling_agent.log import get_logger
+from llmling_agent_storage.file_provider import FileProvider
+from llmling_agent_storage.sql_provider import SQLModelProvider
+from llmling_agent_storage.text_log_provider import TextLogProvider
+
+
+if TYPE_CHECKING:
+    from datetime import datetime
+
+    from llmling_agent.models.agents import ToolCallInfo
+    from llmling_agent.models.messages import ChatMessage, TokenCost
+    from llmling_agent.models.session import SessionQuery
+    from llmling_agent.models.storage import StorageConfig
+    from llmling_agent_storage.base import StorageProvider
+
+logger = get_logger(__name__)
+
+
+class StorageManager:
+    """Manages multiple storage providers.
+
+    Handles:
+    - Provider initialization and cleanup
+    - Message distribution to providers
+    - History loading from capable providers
+    - Global logging filters
+    """
+
+    def __init__(self, config: StorageConfig):
+        """Initialize storage manager.
+
+        Args:
+            config: Storage configuration including providers and filters
+        """
+        self.config = config
+        self.providers = [
+            self._create_provider(cfg) for cfg in self.config.providers if cfg.enabled
+        ]
+
+    def cleanup(self) -> None:
+        """Clean up all providers."""
+        for provider in self.providers:
+            try:
+                provider.cleanup()
+            except Exception:
+                logger.exception("Error cleaning up provider: %r", provider)
+        self.providers.clear()
+
+    def _create_provider(self, config: Any) -> StorageProvider:
+        """Create provider instance from configuration."""
+        match config:
+            case {"type": "sql", "url": url}:
+                from sqlmodel import create_engine
+
+                pool_size = config.get("pool_size", 5)
+                engine = create_engine(url, pool_size=pool_size)
+                return SQLModelProvider(engine)
+
+            case {"type": "file", "path": path, "format": format}:
+                encoding = config.get("encoding", "utf-8")
+                return FileProvider(path, output_format=format, encoding=encoding)
+
+            case {"type": "text", "path": path, "template": template}:
+                encoding = config.get("encoding", "utf-8")
+                return TextLogProvider(path, template=template, encoding=encoding)
+            case _:
+                msg = f"Unknown provider type: {config}"
+                raise ValueError(msg)
+
+    def _get_history_provider(self, preferred: str | None = None) -> StorageProvider:
+        """Get provider for loading history.
+
+        Args:
+            preferred: Optional preferred provider name
+
+        Returns:
+            First capable provider based on priority:
+            1. Preferred provider if specified and capable
+            2. Default provider if specified and capable
+            3. First capable provider
+            4. Raises error if no capable provider found
+        """
+
+        # Function to find capable provider by name
+        def find_provider(name: str) -> StorageProvider | None:
+            for p in self.providers:
+                if (
+                    not getattr(p, "write_only", False)
+                    and p.can_load_history
+                    and p.__class__.__name__.lower() == name.lower()
+                ):
+                    return p
+            return None
+
+        # Try preferred provider
+        if preferred and (provider := find_provider(preferred)):
+            return provider
+
+        # Try default provider
+        if self.config.default_provider:
+            if provider := find_provider(self.config.default_provider):
+                return provider
+            logger.warning(
+                "Default provider %s not found or not capable of loading history",
+                self.config.default_provider,
+            )
+
+        # Find first capable provider
+        for provider in self.providers:
+            if not getattr(provider, "write_only", False) and provider.can_load_history:
+                return provider
+
+        msg = "No capable provider found for loading history"
+        raise RuntimeError(msg)
+
+    async def filter_messages(
+        self,
+        query: SessionQuery,
+        preferred_provider: str | None = None,
+    ) -> list[ChatMessage[str]]:
+        """Get messages matching query.
+
+        Args:
+            query: Filter criteria
+            preferred_provider: Optional preferred provider to use
+        """
+        provider = self._get_history_provider(preferred_provider)
+        return await provider.filter_messages(query)
+
+    async def log_message(
+        self,
+        *,
+        conversation_id: str,
+        content: str,
+        role: str,
+        name: str | None = None,
+        cost_info: TokenCost | None = None,
+        model: str | None = None,
+        response_time: float | None = None,
+        forwarded_from: list[str] | None = None,
+    ) -> None:
+        """Log message to all providers."""
+        if not self.config.log_messages:
+            return
+
+        for provider in self.providers:
+            try:
+                await provider.log_message(
+                    conversation_id=conversation_id,
+                    content=content,
+                    role=role,
+                    name=name,
+                    cost_info=cost_info,
+                    model=model,
+                    response_time=response_time,
+                    forwarded_from=forwarded_from,
+                )
+            except Exception:
+                logger.exception("Error logging message to provider: %r", provider)
+
+    async def log_conversation(
+        self,
+        *,
+        conversation_id: str,
+        agent_name: str,
+        start_time: datetime | None = None,
+    ) -> None:
+        """Log conversation to all providers."""
+        if not self.config.log_conversations:
+            return
+
+        for provider in self.providers:
+            try:
+                await provider.log_conversation(
+                    conversation_id=conversation_id,
+                    agent_name=agent_name,
+                    start_time=start_time,
+                )
+            except Exception:
+                logger.exception("Error logging conversation to provider: %r", provider)
+
+    async def log_tool_call(
+        self,
+        *,
+        conversation_id: str,
+        message_id: str,
+        tool_call: ToolCallInfo,
+    ) -> None:
+        """Log tool call to all providers."""
+        if not self.config.log_tool_calls:
+            return
+
+        for provider in self.providers:
+            try:
+                await provider.log_tool_call(
+                    conversation_id=conversation_id,
+                    message_id=message_id,
+                    tool_call=tool_call,
+                )
+            except Exception:
+                logger.exception("Error logging tool call to provider: %r", provider)
+
+    async def log_command(
+        self,
+        *,
+        agent_name: str,
+        session_id: str,
+        command: str,
+    ) -> None:
+        """Log command to all providers."""
+        if not self.config.log_commands:
+            return
+
+        for provider in self.providers:
+            try:
+                await provider.log_command(
+                    agent_name=agent_name,
+                    session_id=session_id,
+                    command=command,
+                )
+            except Exception:
+                logger.exception("Error logging command to provider: %r", provider)
+
+    async def get_commands(
+        self,
+        agent_name: str,
+        session_id: str,
+        *,
+        limit: int | None = None,
+        current_session_only: bool = False,
+        preferred_provider: str | None = None,
+    ) -> list[str]:
+        """Get command history."""
+        if not self.config.log_commands:
+            return []
+
+        provider = self._get_history_provider(preferred_provider)
+        return await provider.get_commands(
+            agent_name=agent_name,
+            session_id=session_id,
+            limit=limit,
+            current_session_only=current_session_only,
+        )

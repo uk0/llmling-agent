@@ -30,11 +30,8 @@ class StorageProvider:
         self.log_tool_calls = log_tool_calls
         self.log_commands = log_commands
 
-    async def initialize(self) -> None:
-        """Initialize storage if needed."""
-
-    async def cleanup(self) -> None:
-        """Clean up resources if needed."""
+    def cleanup(self):
+        """Clean up resources."""
 
     async def filter_messages(
         self,

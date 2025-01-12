@@ -8,6 +8,28 @@ from llmling_agent.common_types import MessageRole  # noqa: TC001
 from llmling_agent.history.filters import parse_time_period
 
 
+class MemoryConfig(BaseModel):
+    """Configuration for agent memory and history handling."""
+
+    enable: bool = True
+    """Whether to enable history tracking."""
+
+    max_tokens: int | None = None
+    """Maximum number of tokens to keep in context window."""
+
+    max_messages: int | None = None
+    """Maximum number of messages to keep in context window."""
+
+    session: SessionQuery | None = None
+    """Query configuration for loading previous session."""
+
+    provider: str | None = None
+    """Override default storage provider for this agent.
+    If None, uses manifest's default provider or first available."""
+
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+
+
 class SessionQuery(BaseModel):
     """Query configuration for session recovery."""
 

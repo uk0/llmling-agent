@@ -30,6 +30,7 @@ from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, StdioMCPServer
 from llmling_agent.models.session import SessionQuery
+from llmling_agent.models.storage import StorageConfig
 from llmling_agent.models.task import AgentTask  # noqa: TC001
 from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
 
@@ -416,6 +417,9 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
 
     agents: dict[str, AgentConfig] = Field(default_factory=dict)
     """Mapping of agent IDs to their configurations"""
+
+    storage: StorageConfig = Field(default_factory=StorageConfig)
+    """Storage provider configuration."""
 
     responses: dict[str, ResponseDefinition] = Field(default_factory=dict)
     """Mapping of response names to their definitions"""

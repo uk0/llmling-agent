@@ -100,9 +100,6 @@ class TextLogProvider(StorageProvider):
         self.encoding = encoding
         self.template = self._load_template(template)
         self._entries: list[dict[str, Any]] = []
-
-    async def initialize(self) -> None:
-        """Create log file if it doesn't exist."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._write()  # Create initial empty file
 
