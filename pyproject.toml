@@ -11,6 +11,7 @@ packages = [
     "src/llmling_agent_tools",
     "src/llmling_agent_commands",
     "src/llmling_agent_providers",
+    "src/llmling_agent_storage",
     "src/llmling_agent_functional",
 ]
 
