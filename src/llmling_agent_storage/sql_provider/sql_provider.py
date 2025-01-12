@@ -3,19 +3,28 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import JSON, Column, Engine, and_, or_
 from sqlalchemy.sql import expression
-from sqlmodel import Session, select
+from sqlmodel import Session, desc, select
 
+from llmling_agent.history.models import (
+    ConversationData,
+    MessageData,
+    QueryFilters,
+    StatsFilters,
+)
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent_storage.base import StorageProvider
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from sqlmodel.sql.expression import SelectOfScalar
+    from tokonomics.toko_types import TokenUsage
 
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.session import SessionQuery
@@ -266,3 +275,140 @@ class SQLModelProvider(StorageProvider):
             return "meta", name
 
         return None, name
+
+    async def get_conversations(
+        self,
+        filters: QueryFilters,
+    ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
+        """Get filtered conversations using SQL queries."""
+        from sqlmodel import select
+
+        from llmling_agent_storage.sql_provider.models import Conversation, Message
+
+        with Session(self.engine) as session:
+            # Explicitly type our results list
+            results: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
+
+            # Build conversation query
+            conv_stmt = select(Conversation).order_by(desc(Conversation.start_time))
+            if filters.agent_name:
+                conv_stmt = conv_stmt.where(Conversation.agent_name == filters.agent_name)
+            if filters.since:
+                conv_stmt = conv_stmt.where(Conversation.start_time >= filters.since)
+            if filters.limit:
+                conv_stmt = conv_stmt.limit(filters.limit)
+
+            for conv in session.exec(conv_stmt):
+                # Get messages for this conversation
+                msg_stmt = (
+                    select(Message)
+                    .where(Message.conversation_id == conv.id)
+                    .order_by(Message.timestamp)  # type: ignore[arg-type]
+                )
+
+                if filters.query:
+                    msg_stmt = msg_stmt.where(Message.content.contains(filters.query))  # type: ignore[attr-defined]
+                if filters.model:
+                    msg_stmt = msg_stmt.where(Message.model_name == filters.model)
+
+                messages = session.exec(msg_stmt).all()
+
+                # Skip conversations with no matching messages if content filtered
+                if filters.query and not messages:
+                    continue
+
+                # Convert to ChatMessages
+                chat_messages = [self._to_chat_message(msg) for msg in messages]
+
+                # Convert messages to MessageData with proper typing
+                message_data: list[MessageData] = [
+                    cast(
+                        "MessageData",
+                        {
+                            "role": msg.role,
+                            "content": msg.content,
+                            "timestamp": msg.timestamp.isoformat(),
+                            "model": msg.model,
+                            "name": msg.name,
+                            "token_usage": msg.cost_info.token_usage
+                            if msg.cost_info
+                            else None,
+                            "cost": msg.cost_info.total_cost if msg.cost_info else None,
+                            "response_time": msg.response_time,
+                        },
+                    )
+                    for msg in chat_messages
+                ]
+
+                # Create ConversationData
+                conv_data = ConversationData(
+                    id=conv.id,
+                    agent=conv.agent_name,
+                    start_time=conv.start_time.isoformat(),
+                    messages=message_data,
+                    token_usage=self._aggregate_token_usage(messages)
+                    if messages
+                    else None,
+                )
+                results.append((conv_data, chat_messages))
+
+            return results
+
+    async def get_conversation_stats(
+        self,
+        filters: StatsFilters,
+    ) -> dict[str, dict[str, Any]]:
+        """Get statistics using SQL aggregations."""
+        from sqlmodel import select
+
+        from llmling_agent_storage.sql_provider.models import Conversation, Message
+
+        with Session(self.engine) as session:
+            # Base query for stats
+            query = (
+                select(  # type: ignore[call-overload]
+                    Message.model,
+                    Conversation.agent_name,
+                    Message.timestamp,
+                    Message.total_tokens,
+                    Message.prompt_tokens,
+                    Message.completion_tokens,
+                )
+                .join(Conversation, Message.conversation_id == Conversation.id)
+                .where(Message.timestamp > filters.cutoff)
+            )
+
+            if filters.agent_name:
+                query = query.where(Conversation.agent_name == filters.agent_name)
+
+            # Execute query and get raw data
+            rows = [
+                (
+                    model,
+                    agent,
+                    timestamp,
+                    TokenCost(
+                        token_usage={
+                            "total": total or 0,
+                            "prompt": prompt or 0,
+                            "completion": completion or 0,
+                        },
+                        total_cost=0.0,  # We don't store this in DB
+                    )
+                    if total or prompt or completion
+                    else None,
+                )
+                for model, agent, timestamp, total, prompt, completion in session.exec(
+                    query
+                )
+            ]
+
+            # Use base class aggregation
+            return self.aggregate_stats(rows, filters.group_by)
+
+    def _aggregate_token_usage(self, messages: Sequence[Any]) -> TokenUsage:
+        """Sum up tokens from a sequence of messages."""
+        total = sum(msg.total_tokens or 0 for msg in messages)
+        prompt = sum(msg.prompt_tokens or 0 for msg in messages)
+        completion = sum(msg.completion_tokens or 0 for msg in messages)
+        return {"total": total, "prompt": prompt, "completion": completion}

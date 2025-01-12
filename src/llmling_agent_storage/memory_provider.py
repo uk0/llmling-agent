@@ -154,7 +154,11 @@ class MemoryStorageProvider(StorageProvider):
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
         """Get filtered conversations from memory."""
-        results = []
+        from typing import cast
+
+        from llmling_agent.history.models import MessageData
+
+        results: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
 
         # First get matching conversations
         convs = {}
@@ -167,7 +171,7 @@ class MemoryStorageProvider(StorageProvider):
 
         # Then get messages for each conversation
         for conv_id, conv in convs.items():
-            conv_messages = []
+            conv_messages: list[ChatMessage[str]] = []
             for msg in self.messages:
                 if msg["conversation_id"] != conv_id:
                     continue
@@ -183,7 +187,7 @@ class MemoryStorageProvider(StorageProvider):
                         total_cost=msg.get("cost", 0.0),
                     )
 
-                chat_msg = ChatMessage(
+                chat_msg = ChatMessage[str](
                     content=msg["content"],
                     role=msg["role"],
                     name=msg["name"],
@@ -199,12 +203,32 @@ class MemoryStorageProvider(StorageProvider):
             if filters.query and not conv_messages:
                 continue
 
-            # Create conversation data
+            # Convert ChatMessages to MessageData format for ConversationData
+            message_data: list[MessageData] = [
+                cast(
+                    "MessageData",
+                    {
+                        "role": msg.role,
+                        "content": msg.content,
+                        "timestamp": msg.timestamp.isoformat(),
+                        "model": msg.model,
+                        "name": msg.name,
+                        "token_usage": msg.cost_info.token_usage
+                        if msg.cost_info
+                        else None,
+                        "cost": msg.cost_info.total_cost if msg.cost_info else None,
+                        "response_time": msg.response_time,
+                    },
+                )
+                for msg in conv_messages
+            ]
+
+            # Create conversation data with proper MessageData
             conv_data = ConversationData(
                 id=conv_id,
                 agent=conv["agent_name"],
                 start_time=conv["start_time"].isoformat(),
-                messages=conv_messages,
+                messages=message_data,  # Now using properly typed MessageData
                 token_usage=self._aggregate_token_usage(conv_messages),
             )
             results.append((conv_data, conv_messages))
