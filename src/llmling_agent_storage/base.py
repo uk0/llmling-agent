@@ -206,6 +206,38 @@ class StorageProvider(TaskManagerMixin):
 
         return stats
 
+    async def reset(
+        self,
+        *,
+        agent_name: str | None = None,
+        hard: bool = False,
+    ) -> tuple[int, int]:
+        """Reset storage, optionally for specific agent only.
+
+        Args:
+            agent_name: Only reset data for this agent
+            hard: Whether to completely reset storage (e.g., recreate tables)
+
+        Returns:
+            Tuple of (conversations deleted, messages deleted)
+        """
+        raise NotImplementedError
+
+    async def get_conversation_counts(
+        self,
+        *,
+        agent_name: str | None = None,
+    ) -> tuple[int, int]:
+        """Get counts of conversations and messages.
+
+        Args:
+            agent_name: Only count data for this agent
+
+        Returns:
+            Tuple of (conversation count, message count)
+        """
+        raise NotImplementedError
+
     # Sync wrapper
     def log_context_message_sync(self, **kwargs):
         """Sync wrapper for log_context_message."""

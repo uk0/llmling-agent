@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import JSON, Column, Engine, and_, or_
 from sqlalchemy.sql import expression
-from sqlmodel import Session, desc, select
+from sqlmodel import Session, SQLModel, desc, select
 
 from llmling_agent.history.models import (
     ConversationData,
@@ -462,3 +462,76 @@ class SQLModelProvider(StorageProvider):
         prompt = sum(msg.prompt_tokens or 0 for msg in messages)
         completion = sum(msg.completion_tokens or 0 for msg in messages)
         return {"total": total, "prompt": prompt, "completion": completion}
+
+    async def reset(
+        self,
+        *,
+        agent_name: str | None = None,
+        hard: bool = False,
+    ) -> tuple[int, int]:
+        """Reset database storage."""
+        from sqlalchemy import text
+
+        from llmling_agent_storage.sql_provider.queries import (
+            DELETE_AGENT_CONVERSATIONS,
+            DELETE_AGENT_MESSAGES,
+            DELETE_ALL_CONVERSATIONS,
+            DELETE_ALL_MESSAGES,
+        )
+
+        with Session(self.engine) as session:
+            if hard:
+                if agent_name:
+                    msg = "Hard reset cannot be used with agent_name"
+                    raise ValueError(msg)
+                # Drop and recreate all tables
+                SQLModel.metadata.drop_all(self.engine)
+                session.commit()
+                # Recreate schema
+                self._init_database()
+                return 0, 0
+
+            # Get counts first
+            conv_count, msg_count = await self.get_conversation_counts(
+                agent_name=agent_name
+            )
+
+            # Delete data
+            if agent_name:
+                session.execute(text(DELETE_AGENT_MESSAGES), {"agent": agent_name})
+                session.execute(text(DELETE_AGENT_CONVERSATIONS), {"agent": agent_name})
+            else:
+                session.execute(text(DELETE_ALL_MESSAGES))
+                session.execute(text(DELETE_ALL_CONVERSATIONS))
+
+            session.commit()
+            return conv_count, msg_count
+
+    async def get_conversation_counts(
+        self,
+        *,
+        agent_name: str | None = None,
+    ) -> tuple[int, int]:
+        """Get conversation and message counts."""
+        from sqlmodel import select
+
+        from llmling_agent_storage.sql_provider import Conversation, Message
+
+        with Session(self.engine) as session:
+            if agent_name:
+                conv_query = select(Conversation).where(
+                    Conversation.agent_name == agent_name
+                )
+                msg_query = (
+                    select(Message)
+                    .join(Conversation)
+                    .where(Conversation.agent_name == agent_name)
+                )
+            else:
+                conv_query = select(Conversation)
+                msg_query = select(Message)
+
+            conv_count = len(session.exec(conv_query).all())
+            msg_count = len(session.exec(msg_query).all())
+
+            return conv_count, msg_count
