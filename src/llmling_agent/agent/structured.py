@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, Self, get_type_hints, overload
 
 from typing_extensions import TypeVar
 
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.tools.manager import ToolManager
+    from llmling_agent_providers.callback import ProcessorCallback
 
 
 logger = get_logger(__name__)
@@ -190,3 +191,69 @@ class StructuredAgent[TDeps, TResult]:
             tool_name=tool_name,
             tool_description=tool_description,
         )
+
+    @classmethod
+    def from_callback(
+        cls,
+        callback: ProcessorCallback[TResult],
+        *,
+        deps: TDeps | None = None,
+        name: str | None = None,
+        debug: bool = False,
+    ) -> StructuredAgent[TDeps, TResult]:
+        """Create a structured agent from a processing callback.
+
+        Args:
+            callback: Function to process messages. Can be:
+                - sync or async
+                - with or without context
+                - with explicit return type
+            deps: Optional dependencies for the agent
+            name: Optional name for the agent
+            debug: Whether to enable debug mode
+
+        Example:
+            ```python
+            class AnalysisResult(BaseModel):
+                sentiment: float
+                topics: list[str]
+
+            def analyze(msg: str) -> AnalysisResult:
+                return AnalysisResult(sentiment=0.8, topics=["tech"])
+
+            analyzer = StructuredAgent.from_callback(analyze)
+            ```
+        """
+        from llmling_agent.agent.agent import Agent
+        from llmling_agent.models.messages import ChatMessage
+        from llmling_agent_providers.callback import CallbackProvider
+
+        provider = CallbackProvider[TDeps](
+            callback,
+            name=name or getattr(callback, "__name__", "processor"),  # type: ignore
+            debug=debug,
+        )
+        agent = Agent[TDeps](agent_type=provider)
+        if deps is not None:
+            agent.context.data = deps
+
+        # Get return type from signature for validation
+        hints = get_type_hints(callback)
+        return_type = hints.get("return")
+
+        # If async, unwrap from Awaitable
+        if return_type and hasattr(return_type, "__origin__"):
+            from collections.abc import Awaitable
+
+            if return_type.__origin__ is Awaitable:
+                return_type = return_type.__args__[0]
+
+        # If ChatMessage, get its type parameter
+        if (
+            return_type
+            and hasattr(return_type, "__origin__")
+            and return_type.__origin__ is ChatMessage
+        ):
+            return_type = return_type.__args__[0]
+
+        return cls(agent, return_type or str)  # type: ignore

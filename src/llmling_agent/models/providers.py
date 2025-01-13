@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ImportString
 from pydantic_ai.agent import EndStrategy  # noqa: TC002
 
 
 if TYPE_CHECKING:
     from llmling_agent_providers.base import AgentProvider
+    from llmling_agent_providers.callback import CallbackProvider
+
+type ProcessorCallback[TResult] = Callable[..., TResult | Awaitable[TResult]]
 
 
 class BaseProviderConfig(BaseModel):
@@ -134,9 +138,34 @@ class HumanProviderConfig(BaseProviderConfig):
         )
 
 
+class CallbackProviderConfig[TResult](BaseProviderConfig):
+    """Configuration for callback-based provider.
+
+    Allows defining processor functions through:
+    - Import path to callback function
+    - Generic type for result validation
+    """
+
+    type: Literal["callback"] = Field("callback", init=False)
+    """Type discriminator for callback provider."""
+
+    callback: ImportString[ProcessorCallback[TResult]]
+    """Import path to processor callback."""
+
+    def get_provider(self) -> CallbackProvider:
+        """Create callback provider instance."""
+        from llmling_agent_providers.callback import CallbackProvider
+
+        name = self.name or self.callback.__name__
+        return CallbackProvider(self.callback, name=name)
+
+
 # The union type used in AgentConfig
 ProviderConfig = Annotated[
-    AIProviderConfig | HumanProviderConfig | LiteLLMProviderConfig,
+    AIProviderConfig
+    | HumanProviderConfig
+    | LiteLLMProviderConfig
+    | CallbackProviderConfig,
     Field(discriminator="type"),
 ]
 
