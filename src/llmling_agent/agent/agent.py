@@ -1035,7 +1035,6 @@ class Agent[TDeps](TaskManagerMixin):
         self,
         task: AgentTask[TDeps, TResult],
         *,
-        result_type: type[TResult] | None = None,
         store_history: bool = True,
         include_agent_tools: bool = True,
     ) -> ChatMessage[TResult]:
@@ -1043,7 +1042,6 @@ class Agent[TDeps](TaskManagerMixin):
 
         Args:
             task: Task configuration to execute
-            result_type: Optional override for task result type
             store_history: Whether the message exchange should be added to the
                            context window
             include_agent_tools: Whether to include agent tools
@@ -1056,7 +1054,9 @@ class Agent[TDeps](TaskManagerMixin):
         """
         from llmling_agent.tasks import TaskError
 
-        self.set_result_type(result_type)
+        original_result_type = self._result_type
+
+        self.set_result_type(task.result_type)
 
         # Load task knowledge
         if task.knowledge:
@@ -1098,6 +1098,8 @@ class Agent[TDeps](TaskManagerMixin):
             msg = f"Task execution failed: {e}"
             logger.exception(msg)
             raise TaskError(msg) from e
+        finally:
+            self.set_result_type(original_result_type)
 
     async def run_continuous(
         self,
