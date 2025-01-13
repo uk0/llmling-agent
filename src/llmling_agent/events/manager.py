@@ -35,7 +35,6 @@ class EventManager:
         self.agent = agent
         self.enabled = enable_events
         self._sources: dict[str, EventSource] = {}
-        self._tasks: set[asyncio.Task[Any]] = set()
 
     def create_source(self, config: EventConfig) -> EventSource:
         """Create an event source from configuration.
@@ -88,10 +87,7 @@ class EventManager:
 
             # Start processing events
             name = f"event_processor_{config.name}"
-            task = asyncio.create_task(self._process_events(source), name=name)
-            self._tasks.add(task)
-            task.add_done_callback(self._tasks.discard)
-
+            self.agent.create_task(self._process_events(source), name=name)
             logger.debug("Added event source: %s", config.name)
 
         except Exception as e:
@@ -145,14 +141,6 @@ class EventManager:
         """Clean up all event sources and tasks."""
         self.enabled = False
 
-        # Cancel all tasks
-        for task in self._tasks:
-            if not task.done():
-                task.cancel()
-        if self._tasks:
-            await asyncio.wait(self._tasks)
-
-        # Disconnect all sources
         for name in list(self._sources):
             await self.remove_source(name)
 

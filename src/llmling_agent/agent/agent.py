@@ -274,6 +274,9 @@ class Agent[TDeps](TaskManagerMixin):
                 for tool in runtime_tools:
                     self.tools.register_tool(tool, source="runtime")
 
+            # Initialize events
+            await self._events.__aenter__()
+
             # Then setup constructor MCP servers
             if self._mcp_servers:
                 await self.tools.setup_mcp_servers(self._mcp_servers)
@@ -298,7 +301,13 @@ class Agent[TDeps](TaskManagerMixin):
     ):
         """Exit async context."""
         try:
+            # First cleanup events
+            await self._events.cleanup()
+
             await self.tools.cleanup()
+
+            # Then cleanup tasks
+            await self.cleanup_tasks()
         finally:
             if self._owns_runtime and self.context.runtime:
                 await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)
