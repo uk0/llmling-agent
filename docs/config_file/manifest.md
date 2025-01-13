@@ -1,0 +1,180 @@
+# Agent Manifest
+
+The agent manifest is a YAML file that defines your complete agent setup. Let's look at a complete, correctly structured example:
+
+```yaml
+# Root level configuration
+agents:
+  analyzer:  # Agent name (key in agents dict)
+    # Basic configuration
+    type: "ai"  # "ai" | "human" | "litellm" | custom provider config
+    name: "analyzer"  # Optional override for agent name
+    inherits: "base_agent"  # Optional parent config to inherit from
+    description: "Code analysis specialist"
+    model: "openai:gpt-4"  # or structured model definition
+    debug: false
+
+    # Provider behavior
+    retries: 1
+    end_strategy: "early"  # "early" | "complete" | "confirm"
+    enable_db_logging: true
+
+    # Structured output
+    result_type:
+      type: "inline"  # or "import" for Python types
+      fields:
+        success:
+          type: "bool"
+          description: "Whether analysis succeeded"
+    result_tool_name: "final_result"  # Name for result validation tool
+    result_tool_description: "Create final response"  # Optional description
+    result_retries: 3  # Validation retry count
+
+    # Agent behavior
+    system_prompts: ["You are a code analyzer..."]
+    user_prompts: ["Example query..."]  # Default queries
+    include_role_prompts: true
+    model_settings: {}  # Additional model parameters
+
+    # State management
+    session: "session_name"  # or SessionQuery object
+    avatar: "path/to/avatar.png"  # Optional UI avatar
+
+    # Capabilities
+    capabilities:
+      can_delegate_tasks: true
+      can_load_resources: true
+      history_access: "own"  # "none" | "own" | "all"
+      # ... other capability settings
+
+    # Environment & Resources
+    environment:
+      type: "file"  # or "inline"
+      uri: "environments/analyzer.yml"
+
+    # Knowledge configuration
+    knowledge:
+      paths: ["docs/**/*.md"]
+      resources:
+        - type: "repository"
+          url: "https://github.com/user/repo"
+      prompts:
+        - type: "file"
+          path: "prompts/analysis.txt"
+
+    # MCP integration
+    mcp_servers:
+      - type: "stdio"
+        command: "python"
+        args: ["-m", "mcp_server"]
+      - "python -m other_server"  # shorthand syntax
+
+    # Agent relationships
+    workers:
+      - name: "formatter"
+        reset_history_on_run: true
+        pass_message_history: false
+        share_context: false
+      - "linter"  # shorthand syntax
+
+    # Message routing
+    forward_to:
+      - type: "agent"
+        name: "reporter"
+        connection_type: "run"  # "run" | "context" | "forward"
+        wait_for_completion: true
+
+    # Event handling
+    triggers:
+      - type: "file"
+        name: "code_change"
+        paths: ["src/**/*.py"]
+        extensions: [".py"]
+        recursive: true
+
+  # Additional agents...
+  planner:
+    type: "human"
+    # ... configuration for planner agent
+
+# Shared response definitions
+responses:
+  AnalysisResult:
+    type: "inline"
+    fields:
+      severity:
+        type: "str"
+        description: "Issue severity"
+  CodeMetrics:
+    type: "import"
+    import_path: "myapp.types.CodeMetrics"
+
+# Storage configuration
+storage:
+  providers:
+    - type: "sql"
+      url: "sqlite:///history.db"
+      pool_size: 5
+    - type: "text_file"
+      path: "logs/chat.log"
+      format: "chronological"
+  log_messages: true
+  log_conversations: true
+  log_commands: true
+
+# Pre-defined tasks
+tasks:
+  analyze_code:
+    prompt: "Analyze this code: {code}"
+    result_type: "AnalysisResult"
+    knowledge:
+      paths: ["src/**/*.py"]
+    tools:
+      - "analyze_complexity"
+      - import_path: "myapp.tools.analyze_security"
+```
+
+ ## Key Concepts
+
+ ### Agent Configuration
+ Each agent entry defines:
+ - Provider type and model
+ - Response formatting
+ - Capabilities and permissions
+ - Environment and knowledge sources
+ - Connections to other agents
+
+ ### Response Types
+ Define structured output formats either:
+ - Inline in the YAML (`type: "inline"`)
+ - By importing Python types (`type: "import"`)
+
+ ### Storage
+ Configure how agent interactions are stored:
+ - SQL databases
+ - Text logs
+ - File storage
+ - Memory storage (for testing)
+
+ ### Tasks
+ Predefine common operations with:
+ - Prompt templates
+ - Required knowledge
+ - Expected response types
+ - Tool configurations
+
+ ## Usage
+
+ Load a manifest in your code:
+ ```python
+ from llmling_agent import AgentPool
+
+ async with AgentPool.open("agents.yml") as pool:
+     agent = pool.get_agent("analyzer")
+     result = await agent.run("Analyze this code...")
+ ```
+
+ ## Next Steps
+ - [Environment Configuration](environment.md) for detailed tool/resource setup
+ - [Response Types](responses.md) for structured output configuration
+ - [Storage Configuration](storage.md) for history and logging options
