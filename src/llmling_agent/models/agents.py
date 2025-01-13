@@ -29,6 +29,7 @@ from llmling_agent.environment import AgentEnvironment, FileEnvironment, InlineE
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, StdioMCPServer
+from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
 from llmling_agent.models.session import SessionQuery
 from llmling_agent.models.storage import StorageConfig
 from llmling_agent.models.task import AgentTask  # noqa: TC001
@@ -41,6 +42,7 @@ if TYPE_CHECKING:
     from llmling_agent import AgentPool
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import StrPath
+    from llmling_agent_providers.base import AgentProvider
 
 
 TDeps = TypeVar("TDeps", default=Any)
@@ -97,8 +99,8 @@ class AgentConfig(BaseModel):
     The configuration can be loaded from YAML or created programmatically.
     """
 
-    type: Literal["ai", "human"] = "ai"
-    """Type of agent to create (AI-powered or human-in-the-loop)"""
+    type: ProviderConfig | Literal["ai", "human", "litellm"] = "ai"
+    """Provider configuration or shorthand type"""
 
     name: str | None = None
     """Name of the agent"""
@@ -260,6 +262,36 @@ class AgentConfig(BaseModel):
         if isinstance(self.session, str):
             return SessionQuery(name=self.session)
         return self.session
+
+    def get_provider(self) -> AgentProvider:
+        """Get resolved provider instance.
+
+        Creates provider instance based on configuration:
+        - Full provider config: Use as-is
+        - Shorthand type: Create default provider config
+        """
+        # If string shorthand is used, convert to default provider config
+        from llmling_agent.models.providers import (
+            AIProviderConfig,
+            HumanProviderConfig,
+            LiteLLMProviderConfig,
+        )
+
+        provider_config = self.type
+        if isinstance(provider_config, str):
+            match provider_config:
+                case "ai":
+                    provider_config = AIProviderConfig()
+                case "human":
+                    provider_config = HumanProviderConfig()
+                case "litellm":
+                    provider_config = LiteLLMProviderConfig()
+                case _:
+                    msg = f"Invalid provider type: {provider_config}"
+                    raise ValueError(msg)
+
+        # Create provider instance from config
+        return provider_config.get_provider()
 
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.

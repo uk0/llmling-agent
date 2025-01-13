@@ -5,14 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic_ai.agent import EndStrategy  # noqa: TC002
 
 
 if TYPE_CHECKING:
-    from pydantic_ai.agent import EndStrategy
-
-    from llmling_agent.agent.conversation import ConversationManager
-    from llmling_agent.models.context import AgentContext
-    from llmling_agent.tools.manager import ToolManager
     from llmling_agent_providers.base import AgentProvider
 
 
@@ -70,13 +66,7 @@ class AIProviderConfig(BaseProviderConfig):
     allow_text_fallback: bool = True
     """Whether to accept plain text when structured output fails."""
 
-    def get_provider(
-        self,
-        *,
-        context: AgentContext[Any],
-        tools: ToolManager,
-        conversation: ConversationManager,
-    ) -> AgentProvider:
+    def get_provider(self) -> AgentProvider:
         """Create PydanticAI provider instance."""
         from llmling_agent_providers.pydanticai import PydanticAIProvider
 
@@ -109,13 +99,7 @@ class LiteLLMProviderConfig(BaseProviderConfig):
     model_settings: dict[str, Any] = Field(default_factory=dict)
     """Additional model-specific settings passed to PydanticAI."""
 
-    def get_provider(
-        self,
-        *,
-        context: AgentContext[Any],
-        tools: ToolManager,
-        conversation: ConversationManager,
-    ) -> AgentProvider:
+    def get_provider(self) -> AgentProvider:
         """Create PydanticAI provider instance."""
         from llmling_agent_providers.litellm_provider import LiteLLMProvider
 
@@ -142,13 +126,7 @@ class HumanProviderConfig(BaseProviderConfig):
     show_context: bool = True
     """Whether to show conversation context to human."""
 
-    def get_provider(
-        self,
-        *,
-        context: AgentContext[Any],
-        tools: ToolManager,
-        conversation: ConversationManager,
-    ) -> AgentProvider:
+    def get_provider(self) -> AgentProvider:
         """Create human provider instance."""
         from llmling_agent_providers.human import HumanProvider
 
