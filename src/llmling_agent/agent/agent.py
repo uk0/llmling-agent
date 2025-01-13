@@ -194,7 +194,7 @@ class Agent[TDeps](TaskManagerMixin):
 
                     assert isinstance(model, models.Model)
                 self._provider: AgentProvider = PydanticAIProvider(
-                    model=model,  # pyright: ignore
+                    model=model,
                     system_prompt=system_prompt,
                     retries=retries,
                     end_strategy=end_strategy,

@@ -28,12 +28,12 @@ from llmling_agent_providers.base import AgentProvider, ProviderResponse
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 
-    from pydantic_ai.agent import EndStrategy, models
+    from pydantic_ai.agent import EndStrategy
     from pydantic_ai.result import StreamedRunResult
     from pydantic_ai.tools import RunContext
 
     from llmling_agent.agent.conversation import ConversationManager
-    from llmling_agent.common_types import ModelType
+    from llmling_agent.common_types import ModelProtocol, ModelType
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -48,7 +48,7 @@ class PydanticAIProvider(AgentProvider):
     def __init__(
         self,
         *,
-        model: str | models.Model | None = None,
+        model: str | ModelProtocol | None = None,
         system_prompt: str | Sequence[str] = (),
         name: str = "agent",
         retries: int = 1,
