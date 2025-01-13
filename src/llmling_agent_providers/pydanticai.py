@@ -71,7 +71,7 @@ class PydanticAIProvider(AgentProvider):
             debug: Whether to enable debug mode
             kwargs: Additional arguments for PydanticAI agent
         """
-        super().__init__(model=model)
+        super().__init__(model=model, system_prompt=system_prompt)
         self._debug = debug
         self._agent: PydanticAgent[Any, Any] = PydanticAgent(
             model=model,  # type: ignore

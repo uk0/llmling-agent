@@ -12,14 +12,14 @@ from llmling_agent.models.agents import ToolCallInfo
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from contextlib import AbstractAsyncContextManager
 
-    from pydantic_ai.models import Model
     from pydantic_ai.result import StreamedRunResult
     from tokonomics import Usage as TokonomicsUsage
 
     from llmling_agent.agent.conversation import ConversationManager
-    from llmling_agent.common_types import ModelType
+    from llmling_agent.common_types import ModelProtocol, ModelType
     from llmling_agent.models.context import AgentContext
     from llmling_agent.tools.manager import ToolManager
 
@@ -47,13 +47,18 @@ class AgentProvider[TDeps]:
     def __init__(
         self,
         *,
-        model: str | Model | None = None,
+        model: str | ModelProtocol | None = None,
         name: str = "agent",
         debug: bool = False,
+        system_prompt: str | Sequence[str] = (),
     ):
         self._name = name
         self._model = model
         self._agent: Any = None
+
+        self.system_prompt = (
+            system_prompt if isinstance(system_prompt, str) else "\n".join(system_prompt)
+        )
         self._tool_manager: ToolManager | None = None
         self._context: AgentContext[TDeps] | None = None
         self._conversation: ConversationManager | None = None

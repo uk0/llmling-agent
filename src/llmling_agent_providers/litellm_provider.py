@@ -72,7 +72,7 @@ class LiteLLMProvider(AgentProvider[Any]):
 
         try:
             # Create messages list from history and new prompt
-            messages = []
+            messages = [{"role": "system", "content": self.system_prompt}]
             if store_history:
                 for msg in self.conversation.get_history():
                     messages.extend(self._convert_message_to_chat(msg))
@@ -125,9 +125,11 @@ class LiteLLMProvider(AgentProvider[Any]):
             return override.name()
         if isinstance(override, str):
             return override
+        if isinstance(self._model, ModelProtocol):
+            return self._model.name()
         if self._model:
             return self._model
-        return "gpt-4"  # Default
+        return "openai/gpt-4o-mini"
 
     def _convert_message_to_chat(self, message: Any) -> list[dict[str, str]]:
         """Convert message to chat format."""
