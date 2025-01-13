@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from typing import Any
 
 from pydantic_ai.messages import (
@@ -13,6 +14,7 @@ from pydantic_ai.usage import Usage
 
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
+from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent_providers.base import AgentProvider, ProviderResponse
 
 
@@ -77,7 +79,7 @@ class LiteLLMProvider(AgentProvider[Any]):
                 for msg in self.conversation.get_history():
                     messages.extend(self._convert_message_to_chat(msg))
             messages.append({"role": "user", "content": prompt})
-
+            schemas = [tool.callable.get_schema() for tool in self.tool_manager.values()]
             # Get completion
             response = await acompletion(
                 stream=False,
@@ -85,10 +87,29 @@ class LiteLLMProvider(AgentProvider[Any]):
                 messages=messages,
                 response_format=result_type,
                 num_retries=self.num_retries,
+                tools=schemas,
+                tool_choice=self.get_tool_choice(),
                 **kwargs,
             )
             assert isinstance(response, ModelResponse)
             assert isinstance(response.choices[0], Choices)
+            calls: list[ToolCallInfo] = []
+
+            for tool_call in response.choices[0].message.tool_calls or []:
+                function_name = tool_call.function.name
+                if not function_name:
+                    continue
+                tool = self.tool_manager.get(function_name)
+                function_args = json.loads(tool_call.function.arguments)
+                function_response = tool.callable.callable(**function_args)
+                info = ToolCallInfo(
+                    tool_name=tool.name,
+                    args=function_args,
+                    result=function_response,
+                    tool_call_id=tool_call.id,
+                )
+                calls.append(info)
+
             # Extract content
             content = response.choices[0].message.content
 
@@ -109,7 +130,7 @@ class LiteLLMProvider(AgentProvider[Any]):
 
             return ProviderResponse(
                 content=content,
-                tool_calls=[],  # TODO: Add tool call handling
+                tool_calls=calls,
                 model_name=model_name,
                 usage=usage,
             )
@@ -130,6 +151,17 @@ class LiteLLMProvider(AgentProvider[Any]):
         if self._model:
             return self._model
         return "openai/gpt-4o-mini"
+
+    def get_tool_choice(self) -> str:
+        match self.tool_manager.tool_choice:
+            case True:
+                return "auto"
+            case False:
+                return "none"
+            case str():
+                return self.tool_manager.tool_choice
+            case list():
+                return "auto"
 
     def _convert_message_to_chat(self, message: Any) -> list[dict[str, str]]:
         """Convert message to chat format."""
