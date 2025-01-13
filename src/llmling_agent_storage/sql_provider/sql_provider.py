@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, Column, Engine, and_, or_
 from sqlalchemy.sql import expression
@@ -11,13 +11,13 @@ from sqlmodel import Session, SQLModel, desc, select
 
 from llmling_agent.history.models import (
     ConversationData,
-    MessageData,
     QueryFilters,
     StatsFilters,
 )
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent_storage.base import StorageProvider
+from llmling_agent_storage.sql_provider.utils import db_message_to_chat_message
 
 
 if TYPE_CHECKING:
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.session import SessionQuery
+    from llmling_agent_storage.sql_provider.models import Conversation, Message
 
 
 logger = get_logger(__name__)
@@ -369,37 +370,9 @@ class SQLModelProvider(StorageProvider):
 
                 # Convert to ChatMessages
                 chat_messages = [self._to_chat_message(msg) for msg in messages]
-
-                # Convert messages to MessageData with proper typing
-                message_data: list[MessageData] = [
-                    cast(
-                        "MessageData",
-                        {
-                            "role": msg.role,
-                            "content": msg.content,
-                            "timestamp": msg.timestamp.isoformat(),
-                            "model": msg.model,
-                            "name": msg.name,
-                            "token_usage": msg.cost_info.token_usage
-                            if msg.cost_info
-                            else None,
-                            "cost": msg.cost_info.total_cost if msg.cost_info else None,
-                            "response_time": msg.response_time,
-                        },
-                    )
-                    for msg in chat_messages
-                ]
-
                 # Create ConversationData
-                conv_data = ConversationData(
-                    id=conv.id,
-                    agent=conv.agent_name,
-                    start_time=conv.start_time.isoformat(),
-                    messages=message_data,
-                    token_usage=self._aggregate_token_usage(messages)
-                    if messages
-                    else None,
-                )
+                conv_data = self._format_conversation(conv, messages)
+                chat_messages = [db_message_to_chat_message(msg) for msg in messages]
                 results.append((conv_data, chat_messages))
 
             return results
@@ -536,3 +509,38 @@ class SQLModelProvider(StorageProvider):
             msg_count = len(session.exec(msg_query).all())
 
             return conv_count, msg_count
+
+    def _format_conversation(
+        self,
+        conv: Conversation,
+        messages: Sequence[Message],
+        *,
+        include_tokens: bool = False,
+        compact: bool = False,
+    ) -> ConversationData:
+        """Format SQL conversation model to ConversationData."""
+        msgs = list(messages)
+        if compact and len(msgs) > 1:
+            msgs = [msgs[0], msgs[-1]]
+
+        chat_messages = [db_message_to_chat_message(msg) for msg in msgs]
+
+        return ConversationData(
+            id=conv.id,
+            agent=conv.agent_name,
+            start_time=conv.start_time.isoformat(),
+            messages=[
+                {
+                    "role": msg.role,
+                    "content": msg.content,
+                    "timestamp": msg.timestamp.isoformat(),
+                    "model": msg.model,
+                    "name": msg.name,
+                    "token_usage": msg.cost_info.token_usage if msg.cost_info else None,
+                    "cost": msg.cost_info.total_cost if msg.cost_info else None,
+                    "response_time": msg.response_time,
+                }
+                for msg in chat_messages
+            ],
+            token_usage=self._aggregate_token_usage(messages) if include_tokens else None,
+        )

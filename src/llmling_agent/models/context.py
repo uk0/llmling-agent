@@ -121,7 +121,7 @@ class AgentContext[TDeps]:
             return "allow"
         result = self.confirmation_callback(ctx, tool, args)
         if isinstance(result, str):
-            return result
+            return result  # pyright: ignore
         return await result
 
 
