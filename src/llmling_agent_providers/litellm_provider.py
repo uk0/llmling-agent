@@ -109,7 +109,12 @@ class LiteLLMProvider(AgentProvider[Any]):
                     tool_call_id=tool_call.id,
                 )
                 calls.append(info)
-
+                messages.append({
+                    "tool_call_id": tool_call.id,
+                    "role": "tool",
+                    "name": function_name,
+                    "content": function_response,
+                })
             # Extract content
             content = response.choices[0].message.content
 
