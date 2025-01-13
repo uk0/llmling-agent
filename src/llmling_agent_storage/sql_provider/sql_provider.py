@@ -42,11 +42,12 @@ class SQLModelProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, engine: Engine, **kwargs: Any):
+    def __init__(self, engine: Engine, *, auto_migrate: bool = False, **kwargs: Any):
         """Initialize provider with database engine.
 
         Args:
             engine: SQLModel engine instance
+            auto_migrate: Whether to automatically add missing columns
             kwargs: Additional arguments to pass to StorageProvider
         """
         from llmling_agent.storage.models import SQLModel
@@ -54,6 +55,55 @@ class SQLModelProvider(StorageProvider):
         super().__init__(**kwargs)
         self.engine = engine
         SQLModel.metadata.create_all(self.engine)
+        self._init_database(auto_migrate=auto_migrate)
+
+    def _init_database(self, auto_migrate: bool = True):
+        """Initialize database tables and optionally migrate columns.
+
+        Args:
+            auto_migrate: Whether to automatically add missing columns
+        """
+        from sqlalchemy import inspect
+        from sqlalchemy.sql import text
+
+        from llmling_agent.storage.models import SQLModel
+
+        # Create tables if they don't exist
+        SQLModel.metadata.create_all(self.engine)
+
+        # Optionally add missing columns
+        if auto_migrate:
+            with self.engine.connect() as conn:
+                inspector = inspect(self.engine)
+
+                # For each table in our models
+                for table_name, table in SQLModel.metadata.tables.items():
+                    existing = {col["name"] for col in inspector.get_columns(table_name)}
+
+                    # For each column in model that doesn't exist in DB
+                    for col in table.columns:
+                        if col.name not in existing:
+                            # Create ALTER TABLE statement based on column type
+                            type_sql = col.type.compile(self.engine.dialect)
+                            nullable = "" if col.nullable else " NOT NULL"
+                            default = self._get_column_default(col)
+                            sql = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {type_sql}{nullable}{default}"  # noqa: E501
+                            conn.execute(text(sql))
+
+                conn.commit()
+
+    @staticmethod
+    def _get_column_default(column: Any) -> str:
+        """Get SQL DEFAULT clause for column."""
+        if column.default is None:
+            return ""
+        if hasattr(column.default, "arg"):
+            # Simple default value
+            return f" DEFAULT {column.default.arg}"
+        if hasattr(column.default, "sqltext"):
+            # Computed default
+            return f" DEFAULT {column.default.sqltext}"
+        return ""
 
     def cleanup(self):
         """Clean up database resources."""
