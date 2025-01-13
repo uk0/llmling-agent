@@ -1,10 +1,24 @@
-from typing import Annotated, Literal
+from typing import Annotated, Final, Literal
 
+from platformdirs import user_data_dir
 from pydantic import BaseModel, ConfigDict, Field
+from upath import UPath
 import yamling
 
 
 LogFormat = Literal["chronological", "conversations"]
+
+APP_NAME: Final = "llmling-agent"
+APP_AUTHOR: Final = "llmling"
+DATA_DIR: Final = UPath(user_data_dir(APP_NAME, APP_AUTHOR))
+DEFAULT_DB_NAME: Final = "history.db"
+
+
+def get_database_path() -> str:
+    """Get the database file path, creating directories if needed."""
+    db_path = DATA_DIR / DEFAULT_DB_NAME
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    return f"sqlite:///{db_path}"
 
 
 class BaseStorageProviderConfig(BaseModel):
@@ -32,7 +46,7 @@ class SQLStorageConfig(BaseStorageProviderConfig):
     """SQL database storage configuration."""
 
     type: Literal["sql"] = Field("sql", init=False)
-    url: str
+    url: str = Field(default_factory=get_database_path)
     """Database URL (e.g. sqlite:///history.db)"""
     pool_size: int = 5
     """Connection pool size"""
