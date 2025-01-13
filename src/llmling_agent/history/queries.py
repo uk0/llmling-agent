@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.messages import TokenUsage
 
 
-def build_conversation_query(filters: QueryFilters) -> SelectOfScalar[Conversation]:
+def _build_conversation_query(filters: QueryFilters) -> SelectOfScalar[Conversation]:
     """Build base conversation query with filters."""
     stmt = select(Conversation).order_by(desc(Conversation.start_time))  # type: ignore[arg-type]
     if filters.agent_name:
@@ -34,7 +34,7 @@ def build_conversation_query(filters: QueryFilters) -> SelectOfScalar[Conversati
     return stmt  # type: ignore[return-value]
 
 
-def build_message_query(
+def _build_message_query(
     conversation_id: str,
     filters: QueryFilters,
 ) -> SelectOfScalar[Message]:
@@ -58,12 +58,12 @@ def get_conversations(
 ) -> list[tuple[Conversation, Sequence[Message]]]:
     """Get filtered conversations with their messages."""
     with Session(engine) as session:
-        conv_stmt = build_conversation_query(filters)
+        conv_stmt = _build_conversation_query(filters)
         conversations = session.exec(conv_stmt).all()
         results = []
 
         for conv in conversations:
-            msg_stmt = build_message_query(conv.id, filters)
+            msg_stmt = _build_message_query(conv.id, filters)
             msgs = session.exec(msg_stmt).all()
 
             # Skip conversations with no matching messages if content filtered

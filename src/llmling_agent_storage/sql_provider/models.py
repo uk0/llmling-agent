@@ -12,6 +12,11 @@ from sqlalchemy.sql import expression
 from sqlmodel import JSON, Field, Session, SQLModel, select
 from sqlmodel.main import SQLModelConfig
 
+from llmling_agent_storage.sql_provider.utils import (
+    db_message_to_chat_message,
+    parse_model_info,
+)
+
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -181,38 +186,6 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
 
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
-    @staticmethod
-    def _parse_model_info(model: str | None) -> tuple[str | None, str | None]:
-        """Parse model string into provider and name.
-
-        Args:
-            model: Full model string (e.g., "openai:gpt-4", "anthropic/claude-2")
-
-        Returns:
-            Tuple of (provider, name)
-        """
-        if not model:
-            return None, None
-
-        # Try splitting by ':' or '/'
-        parts = model.split(":") if ":" in model else model.split("/")
-
-        if len(parts) == 2:  # noqa: PLR2004
-            provider, name = parts
-            return provider.lower(), name
-
-        # No provider specified, try to infer
-        name = parts[0]
-        if name.startswith(("gpt-", "text-", "dall-e")):
-            return "openai", name
-        if name.startswith("claude"):
-            return "anthropic", name
-        if name.startswith(("llama", "mistral")):
-            return "meta", name
-        # Add more provider inference rules as needed
-
-        return None, name
-
     @classmethod
     def log(
         cls,
@@ -229,7 +202,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         """Log a message with complete information."""
         from llmling_agent.storage import engine
 
-        provider, model_name = cls._parse_model_info(model)
+        provider, model_name = parse_model_info(model)
 
         with Session(engine) as session:
             msg = cls(
@@ -338,18 +311,42 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
             include_forwarded: Include messages forwarded between agents
             limit: Max number of messages
         """
-        from llmling_agent.pydantic_ai_utils import convert_model_message
+        from sqlmodel import JSON, Column, and_, or_, select
 
-        messages = cls.to_pydantic_ai_messages(
-            conversation_id,
-            since=since,
-            until=until,
-            roles=roles,
-            agents=agents,
-            include_forwarded=include_forwarded,
-            limit=limit,
-        )
-        return [convert_model_message(msg) for msg in messages]
+        from llmling_agent.storage import engine
+
+        with Session(engine) as session:
+            stmt = select(cls).order_by(cls.timestamp)  # type: ignore
+
+            # Handle single ID or sequence
+            if isinstance(conversation_id, str):
+                stmt = stmt.where(cls.conversation_id == conversation_id)
+            else:
+                stmt = stmt.where(cls.conversation_id.in_(conversation_id))  # type: ignore
+
+            if since:
+                stmt = stmt.where(cls.timestamp >= since)
+            if until:
+                stmt = stmt.where(cls.timestamp <= until)
+            if roles:
+                stmt = stmt.where(cls.role.in_(roles))  # type: ignore
+            if agents:
+                agent_conditions = [Column("name").in_(agents)]
+                if include_forwarded:
+                    agent_conditions.append(
+                        and_(
+                            Column("forwarded_from").isnot(None),
+                            expression.cast(Column("forwarded_from"), JSON).contains(
+                                list(agents)
+                            ),  # type: ignore
+                        )
+                    )
+                stmt = stmt.where(or_(*agent_conditions))
+            if limit:
+                stmt = stmt.limit(limit)
+
+            messages = session.exec(stmt).all()
+            return [db_message_to_chat_message(msg) for msg in messages]
 
     @classmethod
     def get_messages_by_query(
@@ -357,14 +354,11 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         query: SessionQuery,
         *,
         session: Session | None = None,
-    ) -> list[ModelMessage]:
+    ) -> list[ChatMessage[str]]:
         """Get messages matching query configuration."""
         from sqlmodel import JSON, Column, and_, or_, select
 
         from llmling_agent.storage import engine
-        from llmling_agent_storage.sql_provider.utils import (
-            db_message_to_pydantic_ai_message,
-        )
 
         stmt = select(cls).order_by(cls.timestamp)  # type: ignore
 
@@ -401,7 +395,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         session = session or Session(engine)
         try:
             messages = session.exec(stmt).all()
-            return [db_message_to_pydantic_ai_message(msg) for msg in messages]
+            return [db_message_to_chat_message(msg) for msg in messages]
         finally:
             if should_close:
                 session.close()
