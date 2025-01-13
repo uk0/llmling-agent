@@ -1,18 +1,117 @@
 {
   "$defs": {
+    "AIProviderConfig": {
+      "description": "Configuration for PydanticAI-based provider.\n\nThis provider uses PydanticAI for handling model interactions, tool calls,\nand structured outputs. It provides fine-grained control over model behavior\nand validation.",
+      "properties": {
+        "type": {
+          "const": "ai",
+          "default": "ai",
+          "description": "Type discriminator for AI provider.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the provider instance.",
+          "title": "Name"
+        },
+        "end_strategy": {
+          "default": "early",
+          "description": "How to handle tool calls when final result found:\n- early: Stop when valid result found\n- complete: Run all requested tools\n- confirm: Ask user what to do",
+          "enum": [
+            "early",
+            "exhaustive"
+          ],
+          "title": "End Strategy",
+          "type": "string"
+        },
+        "result_retries": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum retries for result validation.\nNone means use the global retry setting.",
+          "title": "Result Retries"
+        },
+        "defer_model_check": {
+          "default": false,
+          "description": "Whether to defer model evaluation until first run.\nTrue can speed up initialization but might fail later.",
+          "title": "Defer Model Check",
+          "type": "boolean"
+        },
+        "model_settings": {
+          "description": "Additional model-specific settings passed to PydanticAI.",
+          "title": "Model Settings",
+          "type": "object"
+        },
+        "validation_enabled": {
+          "default": true,
+          "description": "Whether to validate model outputs against schemas.",
+          "title": "Validation Enabled",
+          "type": "boolean"
+        },
+        "allow_text_fallback": {
+          "default": true,
+          "description": "Whether to accept plain text when structured output fails.",
+          "title": "Allow Text Fallback",
+          "type": "boolean"
+        }
+      },
+      "title": "AIProviderConfig",
+      "type": "object"
+    },
     "AgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\ncapabilities, and behavior settings. Each agent can have its own:\n- Language model configuration\n- Environment setup (tools and resources)\n- Response type definitions\n- System prompts and default user prompts\n- Role-based capabilities\n\nThe configuration can be loaded from YAML or created programmatically.",
       "properties": {
         "type": {
-          "default": "ai",
-          "description": "Type of agent to create (AI-powered or human-in-the-loop)",
-          "enum": [
-            "ai",
-            "human"
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "ai": "#/$defs/AIProviderConfig",
+                  "human": "#/$defs/HumanProviderConfig",
+                  "litellm": "#/$defs/LiteLLMProviderConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/AIProviderConfig"
+                },
+                {
+                  "$ref": "#/$defs/HumanProviderConfig"
+                },
+                {
+                  "$ref": "#/$defs/LiteLLMProviderConfig"
+                }
+              ]
+            },
+            {
+              "enum": [
+                "ai",
+                "human",
+                "litellm"
+              ],
+              "type": "string"
+            }
           ],
-          "title": "Type",
-          "type": "string"
+          "default": "ai",
+          "description": "Provider configuration or shorthand type",
+          "title": "Type"
         },
         "name": {
           "anyOf": [
@@ -429,6 +528,37 @@
           "description": "Name of target agent.",
           "title": "Name",
           "type": "string"
+        },
+        "connection_type": {
+          "default": "run",
+          "description": "How messages should be handled by the target agent.",
+          "enum": [
+            "run",
+            "context",
+            "forward"
+          ],
+          "title": "Connection Type",
+          "type": "string"
+        },
+        "priority": {
+          "default": 0,
+          "description": "Priority of the task. Lower = higher priority.",
+          "title": "Priority",
+          "type": "integer"
+        },
+        "delay": {
+          "anyOf": [
+            {
+              "format": "duration",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Delay before running the task.",
+          "title": "Delay"
         }
       },
       "required": [
@@ -1498,6 +1628,52 @@
       "title": "GlobalSettings",
       "type": "object"
     },
+    "HumanProviderConfig": {
+      "description": "Configuration for human-in-the-loop provider.\n\nThis provider enables direct human interaction for responses and decisions.\nUseful for testing, training, and oversight of agent operations.",
+      "properties": {
+        "type": {
+          "const": "human",
+          "default": "human",
+          "description": "Type discriminator for human provider.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the provider instance.",
+          "title": "Name"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Timeout in seconds for human response. None means wait indefinitely.",
+          "title": "Timeout"
+        },
+        "show_context": {
+          "default": true,
+          "description": "Whether to show conversation context to human.",
+          "title": "Show Context",
+          "type": "boolean"
+        }
+      },
+      "title": "HumanProviderConfig",
+      "type": "object"
+    },
     "ImportModel": {
       "additionalProperties": false,
       "description": "Model that imports and delegates to other models.",
@@ -2121,6 +2297,57 @@
       "title": "LLMCapabilitiesConfig",
       "type": "object"
     },
+    "LiteLLMProviderConfig": {
+      "description": "Configuration for LiteLLM-based provider.\n\nThis provider uses LiteLLM for handling model interactions, tool calls,\nand structured outputs. It provides fine-grained control over model behavior\nand validation.",
+      "properties": {
+        "type": {
+          "const": "litellm",
+          "default": "litellm",
+          "description": "Type discriminator for AI provider.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the provider instance.",
+          "title": "Name"
+        },
+        "retries": {
+          "default": 1,
+          "description": "Maximum retries for model calls.",
+          "title": "Retries",
+          "type": "integer"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional model name to use. If not specified, uses default model.",
+          "title": "Model"
+        },
+        "model_settings": {
+          "description": "Additional model-specific settings passed to PydanticAI.",
+          "title": "Model Settings",
+          "type": "object"
+        }
+      },
+      "title": "LiteLLMProviderConfig",
+      "type": "object"
+    },
     "ManualTriggerConfig": {
       "description": "Manual trigger configuration.\n\nDefines actions that can be triggered directly by users through CLI for example.\n\nUnlike other triggers, these don't activate automatically but provide\na way to define reusable agent interactions.",
       "properties": {
@@ -2737,9 +2964,6 @@
           "type": "integer"
         }
       },
-      "required": [
-        "url"
-      ],
       "title": "SQLStorageConfig",
       "type": "object"
     },
