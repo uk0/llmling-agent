@@ -112,12 +112,12 @@ class AgentProvider[TDeps]:
     @property
     def name(self) -> str:
         """Get agent name."""
-        return self._agent.name or "agent"
+        return self._name or "agent"
 
     @name.setter
     def name(self, value: str | None):
         """Set agent name."""
-        self._agent.name = value
+        self._name = value or "agent"
 
     async def generate_response(
         self,

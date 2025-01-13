@@ -249,9 +249,9 @@ class PydanticAIProvider(AgentProvider):
         """
         old_name = self.model_name
         if isinstance(model, str):
-            model = infer_model(model)
+            model = infer_model(model)  # type: ignore
         self._model = model
-        self._agent.model = model
+        self._agent.model = model  # type: ignore
         self.model_changed.emit(model)
         logger.debug("Changed model from %s to %s", old_name, self.model_name)
 
