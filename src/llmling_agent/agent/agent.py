@@ -41,6 +41,7 @@ from llmling_agent_providers import AgentProvider, HumanProvider, PydanticAIProv
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
+    from datetime import timedelta
     from types import TracebackType
 
     from llmling.config.models import Resource
@@ -721,6 +722,8 @@ class Agent[TDeps](TaskManagerMixin):
         other: AnyAgent[Any, Any] | str,
         prompt: str | None = None,
         connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
     ) -> Talk: ...
 
     @overload
@@ -729,6 +732,8 @@ class Agent[TDeps](TaskManagerMixin):
         other: Team[Any],
         prompt: str | None = None,
         connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
     ) -> TeamTalk: ...
 
     def pass_results_to(
@@ -736,9 +741,16 @@ class Agent[TDeps](TaskManagerMixin):
         other: AnyAgent[Any, Any] | Team[Any] | str,
         prompt: str | None = None,
         connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
     ) -> Talk | TeamTalk:
         """Forward results to another agent or all agents in a team."""
-        return self.connections.connect_agent_to(other, connection_type=connection_type)
+        return self.connections.connect_agent_to(
+            other,
+            connection_type=connection_type,
+            priority=priority,
+            delay=delay,
+        )
 
     def stop_passing_results_to(self, other: AnyAgent[Any, Any]):
         """Stop forwarding results to another agent."""

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.models.context import AgentContext
+    from llmling_agent.models.forward_targets import ConnectionType
 
 
 TDeps = TypeVar("TDeps")
@@ -118,7 +119,13 @@ class Team[TDeps]:
         """
         return self.pass_results_to(other)
 
-    def pass_results_to(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> TeamTalk:
+    def pass_results_to(
+        self,
+        other: AnyAgent[Any, Any] | Team[Any] | str,
+        connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
+    ) -> TeamTalk:
         match other:
             case str():
                 if not self.agents[0].context.pool:
@@ -126,10 +133,13 @@ class Team[TDeps]:
                     raise ValueError(msg)
                 resolved = self.agents[0].context.pool.get_agent(other)
                 return self.pass_results_to(resolved)
-            case Team():
-                return self.connections.connect_group_to(other)
             case _:
-                return self.connections.connect_group_to(other)
+                return self.connections.connect_group_to(
+                    other,
+                    connection_type=connection_type,
+                    priority=priority,
+                    delay=delay,
+                )
 
     async def run_parallel(
         self, prompt: str | None = None, deps: TDeps | None = None

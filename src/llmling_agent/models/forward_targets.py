@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -38,6 +38,12 @@ class AgentTarget(ForwardTarget):
 
     connection_type: ConnectionType = "run"
     """How messages should be handled by the target agent."""
+
+    priority: int = 0
+    """Priority of the task. Lower = higher priority."""
+
+    delay: timedelta | None = None
+    """Delay before running the task."""
 
 
 class FileTarget(ForwardTarget):

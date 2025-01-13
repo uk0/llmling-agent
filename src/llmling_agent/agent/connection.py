@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Self, overload
 
@@ -116,11 +116,16 @@ class Talk:
         source: AnyAgent[Any, Any],
         targets: list[AnyAgent[Any, Any]],
         group: TeamTalk | None = None,
+        *,
         connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
     ):
         self.source = source
         self.targets = targets
         self.group = group
+        self.priority = priority
+        self.delay = delay
         self.active = True
         self.connection_type = connection_type
         names = {t.name for t in targets}
@@ -162,28 +167,40 @@ class Talk:
                     prompts = [str(message.content)]
                     if prompt:
                         prompts.append(prompt)
-                    target.run_background(target.run(*prompts))
+                    target.run_background(
+                        target.run(*prompts), priority=self.priority, delay=self.delay
+                    )
 
             case "context":
                 for target in self.targets:
-                    target.run_background(
-                        target.conversation.add_context_message(
-                            str(message.content),
-                            source=self.source.name,
-                            metadata={
-                                "type": "forwarded_message",
-                                "role": message.role,
-                                "model": message.model,
-                                "cost_info": message.cost_info,
-                                "timestamp": message.timestamp.isoformat(),
-                                "prompt": prompt,  # Include original prompt in metadata
-                            },
-                        )
+                    coro = target.conversation.add_context_message(
+                        str(message.content),
+                        source=self.source.name,
+                        metadata={
+                            "type": "forwarded_message",
+                            "role": message.role,
+                            "model": message.model,
+                            "cost_info": message.cost_info,
+                            "timestamp": message.timestamp.isoformat(),
+                            "prompt": prompt,  # Include original prompt in metadata
+                        },
                     )
+                    target.run_background(coro, priority=self.priority, delay=self.delay)
 
             case "forward":
                 for target in self.targets:
-                    target.outbox.emit(message, prompt)  # Pass through the prompt
+                    if self.delay is not None or self.priority != 0:
+
+                        async def delayed_emit(target=target):
+                            target.outbox.emit(message, prompt)
+
+                        target.run_background(
+                            delayed_emit(),
+                            priority=self.priority,
+                            delay=self.delay,
+                        )
+                    else:
+                        target.outbox.emit(message, prompt)
 
         self.message_forwarded.emit(message)
 
@@ -306,6 +323,8 @@ class TalkManager:
         self,
         other: AnyAgent[Any, Any] | Team[Any] | str,
         connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
         **kwargs: Any,
     ) -> Talk | TeamTalk:
         """Handle single agent connections."""
@@ -319,14 +338,26 @@ class TalkManager:
         targets = self._resolve_targets(other)
         if isinstance(other, Team):
             conns = [
-                Talk(self.owner, [target], connection_type=connection_type)
+                Talk(
+                    self.owner,
+                    [target],
+                    connection_type=connection_type,
+                    priority=priority,
+                    delay=delay,
+                )
                 for target in targets
             ]
             connections = TeamTalk(conns)
             self._connections.extend(connections)
             return connections
 
-        connection = Talk(self.owner, targets, connection_type=connection_type)
+        connection = Talk(
+            self.owner,
+            targets,
+            connection_type=connection_type,
+            priority=priority,
+            delay=delay,
+        )
         self._connections.append(connection)
         return connection
 
@@ -334,6 +365,8 @@ class TalkManager:
         self,
         other: AnyAgent[Any, Any] | Team[Any] | str,
         connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
         **kwargs: Any,
     ) -> TeamTalk:
         """Handle group connections."""
@@ -345,7 +378,13 @@ class TalkManager:
 
         targets = self._resolve_targets(other)
         conns = [
-            Talk(src, [t], connection_type=connection_type)
+            Talk(
+                src,
+                [t],
+                connection_type=connection_type,
+                priority=priority,
+                delay=delay,
+            )
             for src in self.owner.agents
             for t in targets
         ]
