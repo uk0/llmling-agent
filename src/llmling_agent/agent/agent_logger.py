@@ -6,9 +6,6 @@ import logging
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from llmling_agent.storage import Conversation, Message
-from llmling_agent.storage.models import ToolCall
-
 
 if TYPE_CHECKING:
     from llmling_agent import Agent
@@ -60,10 +57,14 @@ class AgentLogger:
 
     def init_conversation(self):
         """Create initial conversation record."""
+        from llmling_agent_storage.sql_provider import Conversation
+
         Conversation.log(conversation_id=self.conversation_id, name=self.agent.name)
 
     def log_message(self, message: ChatMessage):
         """Handle message from chat signal."""
+        from llmling_agent_storage.sql_provider import Message
+
         self.message_history.append(message)
 
         if not self.enable_db_logging:
@@ -82,6 +83,8 @@ class AgentLogger:
 
     def log_tool_call(self, tool_call: ToolCallInfo):
         """Handle tool usage signal."""
+        from llmling_agent_storage.sql_provider import ToolCall
+
         self.toolcall_history.append(tool_call)
 
         if not self.enable_db_logging:

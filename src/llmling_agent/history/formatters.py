@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.history.models import ConversationData, MessageData
     from llmling_agent.models.messages import TokenUsage
-    from llmling_agent.storage import Conversation, Message
+    from llmling_agent_storage.sql_provider import Conversation, Message
 
 
 def is_conversation_data(data: Any) -> TypeGuard[ConversationData]:

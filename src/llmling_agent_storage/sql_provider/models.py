@@ -277,8 +277,10 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         """
         from sqlmodel import JSON, Column, and_, or_, select
 
-        from llmling_agent.pydantic_ai_utils import db_message_to_pydantic_ai_message
         from llmling_agent.storage import engine
+        from llmling_agent_storage.sql_provider.utils import (
+            db_message_to_pydantic_ai_message,
+        )
 
         with Session(engine) as session:
             stmt = select(cls).order_by(cls.timestamp)  # type: ignore
@@ -359,8 +361,10 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
         """Get messages matching query configuration."""
         from sqlmodel import JSON, Column, and_, or_, select
 
-        from llmling_agent.pydantic_ai_utils import db_message_to_pydantic_ai_message
         from llmling_agent.storage import engine
+        from llmling_agent_storage.sql_provider.utils import (
+            db_message_to_pydantic_ai_message,
+        )
 
         stmt = select(cls).order_by(cls.timestamp)  # type: ignore
 

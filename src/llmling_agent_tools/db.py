@@ -87,7 +87,7 @@ class DatabaseQueryTool:
 if __name__ == "__main__":
     from sqlmodel import create_engine
 
-    from llmling_agent.storage.models import CommandHistory
+    from llmling_agent_storage.sql_provider.models import CommandHistory
 
     # Create tool
     engine = create_engine("sqlite:///blog.db")

@@ -50,7 +50,7 @@ class SQLModelProvider(StorageProvider):
             auto_migrate: Whether to automatically add missing columns
             kwargs: Additional arguments to pass to StorageProvider
         """
-        from llmling_agent.storage.models import SQLModel
+        from llmling_agent_storage.sql_provider.models import SQLModel
 
         super().__init__(**kwargs)
         self.engine = engine
@@ -66,7 +66,7 @@ class SQLModelProvider(StorageProvider):
         from sqlalchemy import inspect
         from sqlalchemy.sql import text
 
-        from llmling_agent.storage.models import SQLModel
+        from llmling_agent_storage.sql_provider.models import SQLModel
 
         # Create tables if they don't exist
         SQLModel.metadata.create_all(self.engine)
@@ -132,7 +132,7 @@ class SQLModelProvider(StorageProvider):
         forwarded_from: list[str] | None = None,
     ):
         """Log message to database."""
-        from llmling_agent.storage.models import Message
+        from llmling_agent_storage.sql_provider.models import Message
 
         provider, model_name = self._parse_model_info(model)
 
@@ -165,7 +165,7 @@ class SQLModelProvider(StorageProvider):
         start_time: datetime | None = None,
     ):
         """Log conversation to database."""
-        from llmling_agent.storage.models import Conversation
+        from llmling_agent_storage.sql_provider.models import Conversation
 
         with Session(self.engine) as session:
             conversation = Conversation(
@@ -184,7 +184,7 @@ class SQLModelProvider(StorageProvider):
         tool_call: ToolCallInfo,
     ):
         """Log tool call to database."""
-        from llmling_agent.storage.models import ToolCall
+        from llmling_agent_storage.sql_provider.models import ToolCall
 
         with Session(self.engine) as session:
             call = ToolCall(
@@ -201,7 +201,7 @@ class SQLModelProvider(StorageProvider):
 
     async def log_command(self, *, agent_name: str, session_id: str, command: str):
         """Log command to database."""
-        from llmling_agent.storage.models import CommandHistory
+        from llmling_agent_storage.sql_provider.models import CommandHistory
 
         with Session(self.engine) as session:
             history = CommandHistory(
@@ -223,7 +223,7 @@ class SQLModelProvider(StorageProvider):
         """Get command history from database."""
         from sqlalchemy import desc
 
-        from llmling_agent.storage.models import CommandHistory
+        from llmling_agent_storage.sql_provider.models import CommandHistory
 
         with Session(self.engine) as session:
             query = select(CommandHistory)
@@ -243,7 +243,7 @@ class SQLModelProvider(StorageProvider):
         query: SessionQuery,
     ) -> SelectOfScalar:
         """Build SQLModel query from SessionQuery."""
-        from llmling_agent.storage.models import Message
+        from llmling_agent_storage.sql_provider.models import Message
 
         stmt = select(Message).order_by(Message.timestamp)  # type: ignore
 
@@ -333,7 +333,7 @@ class SQLModelProvider(StorageProvider):
         """Get filtered conversations using SQL queries."""
         from sqlmodel import select
 
-        from llmling_agent.storage.models import Conversation, Message
+        from llmling_agent_storage.sql_provider.models import Conversation, Message
 
         with Session(self.engine) as session:
             # Explicitly type our results list
@@ -411,7 +411,7 @@ class SQLModelProvider(StorageProvider):
         """Get statistics using SQL aggregations."""
         from sqlmodel import select
 
-        from llmling_agent.storage.models import Conversation, Message
+        from llmling_agent_storage.sql_provider.models import Conversation, Message
 
         with Session(self.engine) as session:
             # Base query for stats

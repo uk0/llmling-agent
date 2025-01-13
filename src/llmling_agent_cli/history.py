@@ -134,13 +134,13 @@ def reset_history(
     from sqlmodel import Session, select
 
     from llmling_agent.storage import engine, init_database
-    from llmling_agent.storage.models import Conversation, Message, SQLModel
     from llmling_agent.storage.queries import (
         DELETE_AGENT_CONVERSATIONS,
         DELETE_AGENT_MESSAGES,
         DELETE_ALL_CONVERSATIONS,
         DELETE_ALL_MESSAGES,
     )
+    from llmling_agent_storage.sql_provider.models import Conversation, Message, SQLModel
 
     if hard:
         if agent_name:

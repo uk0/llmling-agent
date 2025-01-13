@@ -39,7 +39,7 @@ def init_database():
     import sqlalchemy as sa
     from sqlalchemy import inspect
 
-    from llmling_agent.storage.models import SQLModel
+    from llmling_agent_storage.sql_provider.models import SQLModel
 
     # Create tables if they don't exist
     SQLModel.metadata.create_all(engine)

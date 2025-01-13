@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from llmling_agent.models.messages import TokenUsage
-    from llmling_agent.storage.models import Message
+    from llmling_agent_storage.sql_provider.models import Message
 
 
 def aggregate_token_usage(messages: Sequence[Message]) -> TokenUsage:

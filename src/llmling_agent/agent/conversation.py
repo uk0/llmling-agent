@@ -79,7 +79,7 @@ class ConversationManager:
             initial_prompts: Initial system prompts that start each conversation
             resources: Optional paths to load as context
         """
-        from llmling_agent.storage.models import Message
+        from llmling_agent_storage.sql_provider.models import Message
 
         self._agent = agent
         self._initial_prompts: list[BasePrompt] = []
@@ -154,7 +154,7 @@ class ConversationManager:
         from sqlmodel import Session
 
         from llmling_agent.storage import engine
-        from llmling_agent.storage.models import Conversation, Message
+        from llmling_agent_storage.sql_provider.models import Conversation, Message
 
         match key:
             case int():
@@ -278,7 +278,7 @@ class ConversationManager:
             roles: Only include messages with these roles (override)
             limit: Maximum number of messages to return (override)
         """
-        from llmling_agent.storage.models import Message
+        from llmling_agent_storage.sql_provider.models import Message
 
         match session:
             case SessionQuery() as query:

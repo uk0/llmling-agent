@@ -34,8 +34,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from llmling_agent.common_types import MessageRole
-    from llmling_agent.storage.models import Message
     from llmling_agent.tools.base import ToolInfo
+    from llmling_agent_storage.sql_provider.models import Message
 
 
 logger = get_logger(__name__)
