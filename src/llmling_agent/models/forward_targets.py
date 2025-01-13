@@ -9,6 +9,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from upath import UPath
 
 
+ConnectionType = Literal["run", "context", "forward"]
+
+
 class ForwardTarget(BaseModel):
     """Base model for message forwarding targets."""
 
@@ -32,6 +35,9 @@ class AgentTarget(ForwardTarget):
 
     name: str
     """Name of target agent."""
+
+    connection_type: ConnectionType = "run"
+    """How messages should be handled by the target agent."""
 
 
 class FileTarget(ForwardTarget):

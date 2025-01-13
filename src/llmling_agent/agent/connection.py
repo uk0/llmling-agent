@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Literal, Self, overload
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from psygnal import Signal
 from typing_extensions import TypeVar
@@ -19,11 +19,11 @@ from llmling_agent.models.messages import ChatMessage
 if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.agentgroup import Team
+    from llmling_agent.models.forward_targets import ConnectionType
 
 TContent = TypeVar("TContent")
 FilterFn = Callable[[ChatMessage[Any]], bool]
 TransformFn = Callable[[ChatMessage[TContent]], ChatMessage[TContent]]
-ConnectionType = Literal["run", "context", "forward"]
 
 logger = get_logger(__name__)
 
@@ -163,20 +163,6 @@ class Talk:
                     if prompt:
                         prompts.append(prompt)
                     target.run_background(target.run(*prompts))
-
-            # for target in self.context.config.forward_to:
-            #     match target:
-            #         case AgentTarget():
-            #             # Create task for agent forwarding
-            #             loop = asyncio.get_event_loop()
-            #             task = loop.create_task(self.run(str(message.content), deps=))
-            #             self._pending_tasks.add(task)
-            #             task.add_done_callback(self._pending_tasks.discard)
-
-            #         case FileTarget():
-            #             path = target.resolve_path({"agent": self.name})
-            #             path.parent.mkdir(parents=True, exist_ok=True)
-            #             path.write_text(str(message.content))
 
             case "context":
                 for target in self.targets:
@@ -319,6 +305,7 @@ class TalkManager:
     def connect_agent_to(
         self,
         other: AnyAgent[Any, Any] | Team[Any] | str,
+        connection_type: ConnectionType = "run",
         **kwargs: Any,
     ) -> Talk | TeamTalk:
         """Handle single agent connections."""
@@ -331,18 +318,22 @@ class TalkManager:
 
         targets = self._resolve_targets(other)
         if isinstance(other, Team):
-            conns = [Talk(self.owner, [target]) for target in targets]
+            conns = [
+                Talk(self.owner, [target], connection_type=connection_type)
+                for target in targets
+            ]
             connections = TeamTalk(conns)
             self._connections.extend(connections)
             return connections
 
-        connection = Talk(self.owner, targets)
+        connection = Talk(self.owner, targets, connection_type=connection_type)
         self._connections.append(connection)
         return connection
 
     def connect_group_to(
         self,
         other: AnyAgent[Any, Any] | Team[Any] | str,
+        connection_type: ConnectionType = "run",
         **kwargs: Any,
     ) -> TeamTalk:
         """Handle group connections."""
@@ -353,7 +344,11 @@ class TalkManager:
             raise TypeError(msg)
 
         targets = self._resolve_targets(other)
-        conns = [Talk(src, [t]) for src in self.owner.agents for t in targets]
+        conns = [
+            Talk(src, [t], connection_type=connection_type)
+            for src in self.owner.agents
+            for t in targets
+        ]
         connections = TeamTalk(conns)
         ## using extend() here flattens the list
         self._connections.extend(connections)

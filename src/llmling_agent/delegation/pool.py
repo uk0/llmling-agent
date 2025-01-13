@@ -302,7 +302,10 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
                         msg = f"Forward target {target.name} not loaded for {name}"
                         raise ValueError(msg)
                     target_agent = self.agents[target.name]
-                    agent.pass_results_to(target_agent)
+                    agent.pass_results_to(
+                        target_agent,
+                        connection_type=target.connection_type,
+                    )
 
     async def create_agent(
         self,

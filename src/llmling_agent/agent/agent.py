@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import ModelType, SessionIdType, StrPath, ToolType
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.models.context import ConfirmationCallback
+    from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import AgentTask
     from llmling_agent.responses.models import ResponseDefinition
@@ -719,6 +720,7 @@ class Agent[TDeps](TaskManagerMixin):
         self,
         other: AnyAgent[Any, Any] | str,
         prompt: str | None = None,
+        connection_type: ConnectionType = "run",
     ) -> Talk: ...
 
     @overload
@@ -726,15 +728,17 @@ class Agent[TDeps](TaskManagerMixin):
         self,
         other: Team[Any],
         prompt: str | None = None,
+        connection_type: ConnectionType = "run",
     ) -> TeamTalk: ...
 
     def pass_results_to(
         self,
         other: AnyAgent[Any, Any] | Team[Any] | str,
         prompt: str | None = None,
+        connection_type: ConnectionType = "run",
     ) -> Talk | TeamTalk:
         """Forward results to another agent or all agents in a team."""
-        return self.connections.connect_agent_to(other)
+        return self.connections.connect_agent_to(other, connection_type=connection_type)
 
     def stop_passing_results_to(self, other: AnyAgent[Any, Any]):
         """Stop forwarding results to another agent."""
