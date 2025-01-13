@@ -268,10 +268,8 @@ class MemoryStorageProvider(StorageProvider):
         # Use base class aggregation
         return self.aggregate_stats(rows, filters.group_by)
 
-    def _aggregate_token_usage(
-        self,
-        messages: Sequence[ChatMessage[Any]],
-    ) -> TokenUsage:
+    @staticmethod
+    def _aggregate_token_usage(messages: Sequence[ChatMessage[Any]]) -> TokenUsage:
         """Sum up tokens from a sequence of messages."""
         total = prompt = completion = 0
         for msg in messages:
@@ -280,3 +278,67 @@ class MemoryStorageProvider(StorageProvider):
                 prompt += msg.cost_info.token_usage.get("prompt", 0)
                 completion += msg.cost_info.token_usage.get("completion", 0)
         return {"total": total, "prompt": prompt, "completion": completion}
+
+    async def reset(
+        self,
+        *,
+        agent_name: str | None = None,
+        hard: bool = False,
+    ) -> tuple[int, int]:
+        """Reset stored data."""
+        # Get counts first
+        conv_count, msg_count = await self.get_conversation_counts(agent_name=agent_name)
+
+        if hard:
+            if agent_name:
+                msg = "Hard reset cannot be used with agent_name"
+                raise ValueError(msg)
+            # Clear everything
+            self.cleanup()
+            return conv_count, msg_count
+
+        if agent_name:
+            # Filter out data for specific agent
+            self.conversations = [
+                c for c in self.conversations if c["agent_name"] != agent_name
+            ]
+            self.messages = [
+                m
+                for m in self.messages
+                if m["conversation_id"]
+                not in {
+                    c["id"] for c in self.conversations if c["agent_name"] == agent_name
+                }
+            ]
+        else:
+            # Clear all
+            self.messages.clear()
+            self.conversations.clear()
+            self.tool_calls.clear()
+            self.commands.clear()
+
+        return conv_count, msg_count
+
+    async def get_conversation_counts(
+        self,
+        *,
+        agent_name: str | None = None,
+    ) -> tuple[int, int]:
+        """Get conversation and message counts."""
+        if agent_name:
+            conv_count = sum(
+                1 for c in self.conversations if c["agent_name"] == agent_name
+            )
+            msg_count = sum(
+                1
+                for m in self.messages
+                if any(
+                    c["id"] == m["conversation_id"] and c["agent_name"] == agent_name
+                    for c in self.conversations
+                )
+            )
+        else:
+            conv_count = len(self.conversations)
+            msg_count = len(self.messages)
+
+        return conv_count, msg_count

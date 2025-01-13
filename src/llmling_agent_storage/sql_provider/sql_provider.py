@@ -456,7 +456,8 @@ class SQLModelProvider(StorageProvider):
             # Use base class aggregation
             return self.aggregate_stats(rows, filters.group_by)
 
-    def _aggregate_token_usage(self, messages: Sequence[Any]) -> TokenUsage:
+    @staticmethod
+    def _aggregate_token_usage(messages: Sequence[Any]) -> TokenUsage:
         """Sum up tokens from a sequence of messages."""
         total = sum(msg.total_tokens or 0 for msg in messages)
         prompt = sum(msg.prompt_tokens or 0 for msg in messages)

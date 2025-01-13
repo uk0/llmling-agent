@@ -271,3 +271,78 @@ class FileProvider(StorageProvider):
             if limit and len(commands) >= limit:
                 break
         return commands
+
+    async def reset(
+        self,
+        *,
+        agent_name: str | None = None,
+        hard: bool = False,
+    ) -> tuple[int, int]:
+        """Reset stored data."""
+        # Get counts first
+        conv_count, msg_count = await self.get_conversation_counts(agent_name=agent_name)
+
+        if hard:
+            if agent_name:
+                msg = "Hard reset cannot be used with agent_name"
+                raise ValueError(msg)
+            # Clear everything
+            self._data = {
+                "messages": [],
+                "conversations": [],
+                "tool_calls": [],
+                "commands": [],
+            }
+            self._save()
+            return conv_count, msg_count
+
+        if agent_name:
+            # Filter out data for specific agent
+            self._data["conversations"] = [
+                c for c in self._data["conversations"] if c["agent_name"] != agent_name
+            ]
+            self._data["messages"] = [
+                m
+                for m in self._data["messages"]
+                if m["conversation_id"]
+                not in {
+                    c["id"]
+                    for c in self._data["conversations"]
+                    if c["agent_name"] == agent_name
+                }
+            ]
+        else:
+            # Clear all
+            self._data["messages"].clear()
+            self._data["conversations"].clear()
+            self._data["tool_calls"].clear()
+            self._data["commands"].clear()
+
+        self._save()
+        return conv_count, msg_count
+
+    async def get_conversation_counts(
+        self,
+        *,
+        agent_name: str | None = None,
+    ) -> tuple[int, int]:
+        """Get conversation and message counts."""
+        if agent_name:
+            conv_count = sum(
+                1 for c in self._data["conversations"] if c["agent_name"] == agent_name
+            )
+            msg_count = sum(
+                1
+                for m in self._data["messages"]
+                if m["conversation_id"]
+                in {
+                    c["id"]
+                    for c in self._data["conversations"]
+                    if c["agent_name"] == agent_name
+                }
+            )
+        else:
+            conv_count = len(self._data["conversations"])
+            msg_count = len(self._data["messages"])
+
+        return conv_count, msg_count

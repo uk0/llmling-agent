@@ -12,6 +12,7 @@ from llmling_agent.models.storage import (
     SQLStorageConfig,
     TextLogConfig,
 )
+from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_storage.file_provider import FileProvider
 from llmling_agent_storage.memory_provider import MemoryStorageProvider
 from llmling_agent_storage.sql_provider import SQLModelProvider
@@ -30,7 +31,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class StorageManager:
+class StorageManager(TaskManagerMixin):
     """Manages multiple storage providers.
 
     Handles:
@@ -291,6 +292,44 @@ class StorageManager:
                 logger.exception(
                     "Error logging context message to provider: %r", provider
                 )
+
+    async def reset(
+        self,
+        *,
+        agent_name: str | None = None,
+        hard: bool = False,
+    ) -> tuple[int, int]:
+        """Reset storage in all providers.
+
+        Returns counts from primary provider.
+        """
+        counts = (0, 0)
+        for provider in self.providers:
+            try:
+                counts = await provider.reset(agent_name=agent_name, hard=hard)
+            except Exception:
+                logger.exception(
+                    "Error resetting provider: %r", provider.__class__.__name__
+                )
+        return counts
+
+    async def get_conversation_counts(
+        self,
+        *,
+        agent_name: str | None = None,
+    ) -> tuple[int, int]:
+        """Get counts from primary provider."""
+        provider = self._get_history_provider()
+        return await provider.get_conversation_counts(agent_name=agent_name)
+
+    # Sync wrappers
+    def reset_sync(self, **kwargs) -> tuple[int, int]:
+        """Sync wrapper for reset."""
+        return self.run_task_sync(self.reset(**kwargs))
+
+    def get_conversation_counts_sync(self, **kwargs) -> tuple[int, int]:
+        """Sync wrapper for get_conversation_counts."""
+        return self.run_task_sync(self.get_conversation_counts(**kwargs))
 
     def log_conversation_sync(self, **kwargs):
         """Sync wrapper for log_conversation."""

@@ -35,7 +35,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import MessageRole
     from llmling_agent.tools.base import ToolInfo
-    from llmling_agent_storage.sql_provider.models import Message
 
 
 logger = get_logger(__name__)
@@ -360,16 +359,3 @@ def prepare_audio_url(content: ContentSource) -> str:
         case _:
             msg = f"Unsupported audio content type: {type(content)}"
             raise ValueError(msg)
-
-
-def db_message_to_pydantic_ai_message(msg: Message) -> ModelMessage:
-    """Convert a database message to a pydantic-ai message."""
-    match msg.role:
-        case "user":
-            return ModelRequest(parts=[UserPromptPart(content=msg.content)])
-        case "assistant":
-            return ModelResponse(parts=[TextPart(content=msg.content)])
-        case "system":
-            return ModelRequest(parts=[SystemPromptPart(content=msg.content)])
-    error_msg = f"Unknown message role: {msg.role}"
-    raise ValueError(error_msg)
