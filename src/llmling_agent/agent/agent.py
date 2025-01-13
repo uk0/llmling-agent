@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from os import PathLike
 import time
 from typing import TYPE_CHECKING, Any, Literal, Self, cast, overload
 from uuid import uuid4
@@ -99,7 +100,7 @@ class Agent[TDeps](TaskManagerMixin):
 
     def __init__(
         self,
-        runtime: RuntimeConfig | None = None,
+        runtime: RuntimeConfig | Config | StrPath | None = None,
         *,
         context: AgentContext[TDeps] | None = None,
         agent_type: AgentType = "ai",
@@ -160,10 +161,15 @@ class Agent[TDeps](TaskManagerMixin):
         # prepare context
         ctx = context or AgentContext[TDeps].create_default(name)
         ctx.confirmation_callback = confirmation_callback
-        if runtime:
-            ctx.runtime = runtime
-        else:
-            ctx.runtime = RuntimeConfig.from_config(Config())
+        match runtime:
+            case None:
+                ctx.runtime = RuntimeConfig.from_config(Config())
+            case Config():
+                ctx.runtime = RuntimeConfig.from_config(runtime)
+            case str() | PathLike():
+                ctx.runtime = RuntimeConfig.from_config(Config.from_file(runtime))
+            case RuntimeConfig():
+                ctx.runtime = runtime
         # connect signals
         self.message_sent.connect(self._forward_message)
 
