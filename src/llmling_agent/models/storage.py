@@ -125,6 +125,6 @@ class StorageConfig(BaseModel):
             - Configured providers otherwise
         """
         if self.providers is None:
-            cfg = SQLStorageConfig(url="sqlite:///history.db")
+            cfg = SQLStorageConfig()
             return [cfg]
         return self.providers
