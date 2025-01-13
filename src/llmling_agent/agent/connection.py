@@ -298,6 +298,20 @@ class TalkManager:
         self.owner = owner
         self._connections: list[Talk | TeamTalk] = []
 
+    async def wait_for_chain(self, _seen: set[str] | None = None):
+        """Wait for this agent and all connected agents to complete their tasks."""
+        # Track seen agents to avoid cycles
+        seen = _seen or {self.owner.name}
+
+        # Wait for our own tasks
+        await self.owner.complete_tasks()
+
+        # Wait for connected agents
+        for agent in self.get_targets():
+            if agent.name not in seen:
+                seen.add(agent.name)
+                await agent.connections.wait_for_chain(seen)
+
     def _route_message(self, message: ChatMessage[Any], prompt: str | None):
         # Each Talk already knows its targets
         for talk in self._connections:

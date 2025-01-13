@@ -21,6 +21,7 @@ from llmling_agent.delegation.router import (
 )
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
+from llmling_agent.utils.tasks import TaskManagerMixin
 
 
 logger = get_logger(__name__)
@@ -94,7 +95,7 @@ class TeamResponse(list[AgentResponse[Any]]):
         )
 
 
-class Team[TDeps]:
+class Team[TDeps](TaskManagerMixin):
     """Group of agents that can execute together."""
 
     def __init__(
@@ -103,10 +104,12 @@ class Team[TDeps]:
         *,
         shared_prompt: str | None = None,
         shared_deps: TDeps | None = None,
+        name: str | None = None,
     ):
         self.agents = EventedList(agents)
         self.shared_prompt = shared_prompt
         self.shared_deps = shared_deps
+        self.name = name or " & ".join([i.name for i in agents])
         self.connections = TalkManager(self)
         self.team_talk = TeamTalk.from_agents(self.agents)
 
