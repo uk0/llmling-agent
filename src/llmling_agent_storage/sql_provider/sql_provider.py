@@ -155,6 +155,7 @@ class SQLModelProvider(StorageProvider):
                 else None,
                 cost=cost_info.total_cost if cost_info else None,
                 forwarded_from=forwarded_from,
+                timestamp=datetime.now(),
             )
             session.add(msg)
             session.commit()
@@ -369,45 +370,43 @@ class SQLModelProvider(StorageProvider):
         """Get filtered conversations using SQL queries."""
         from sqlmodel import select
 
-        from llmling_agent_storage.sql_provider.models import Conversation, Message
-
         with Session(self.engine) as session:
-            # Explicitly type our results list
             results: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
 
-            # Build conversation query
-            conv_stmt = select(Conversation).order_by(desc(Conversation.start_time))
-            if filters.agent_name:
-                conv_stmt = conv_stmt.where(Conversation.agent_name == filters.agent_name)
-            if filters.since:
-                conv_stmt = conv_stmt.where(Conversation.start_time >= filters.since)
-            if filters.limit:
-                conv_stmt = conv_stmt.limit(filters.limit)
+            # Base conversation query
+            conv_query = select(Conversation)
 
-            for conv in session.exec(conv_stmt):
-                # Get messages for this conversation
-                msg_stmt = (
-                    select(Message)
-                    .where(Message.conversation_id == conv.id)
-                    .order_by(Message.timestamp)  # type: ignore[arg-type]
+            if filters.agent_name:
+                conv_query = conv_query.where(
+                    Conversation.agent_name == filters.agent_name
                 )
 
+            if filters.since:
+                # Changed: Gets conversations that STARTED after the cutoff time
+                conv_query = conv_query.where(Conversation.start_time >= filters.since)
+
+            conv_query = conv_query.order_by(desc(Conversation.start_time))  # type: ignore
+            if filters.limit:
+                conv_query = conv_query.limit(filters.limit)
+
+            conversations = session.exec(conv_query).all()
+
+            for conv in conversations:
+                msg_query = select(Message).where(Message.conversation_id == conv.id)
+
                 if filters.query:
-                    msg_stmt = msg_stmt.where(Message.content.contains(filters.query))  # type: ignore[attr-defined]
+                    msg_query = msg_query.where(Message.content.contains(filters.query))  # type: ignore
                 if filters.model:
-                    msg_stmt = msg_stmt.where(Message.model_name == filters.model)
+                    msg_query = msg_query.where(Message.model_name == filters.model)
 
-                messages = session.exec(msg_stmt).all()
+                msg_query = msg_query.order_by(Message.timestamp.asc())  # type: ignore
+                messages = session.exec(msg_query).all()
 
-                # Skip conversations with no matching messages if content filtered
-                if filters.query and not messages:
+                if not messages:
                     continue
 
-                # Convert to ChatMessages
-                chat_messages = [self._to_chat_message(msg) for msg in messages]
-                # Create ConversationData
-                conv_data = self._format_conversation(conv, messages)
                 chat_messages = [db_message_to_chat_message(msg) for msg in messages]
+                conv_data = self._format_conversation(conv, messages)
                 results.append((conv_data, chat_messages))
 
             return results
@@ -575,7 +574,11 @@ class SQLModelProvider(StorageProvider):
                 "start_time": conv.start_time.isoformat(),
             }
         else:
-            conv_dict = conv
+            conv_dict = {
+                "id": conv["id"],
+                "agent": conv["agent"],
+                "start_time": conv["start_time"],
+            }
 
         # Convert messages to ChatMessage format if needed
         chat_messages = [
