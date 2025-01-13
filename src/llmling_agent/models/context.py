@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig, AgentsManifest
-    from llmling_agent.storage.manager import StorageManager
+    from llmling_agent.storage import StorageManager
 
 
 TDeps = TypeVar("TDeps", default=Any)
@@ -99,7 +99,7 @@ class AgentContext[TDeps]:
     @cached_property
     def storage(self) -> StorageManager:
         """Storage manager from pool or config."""
-        from llmling_agent.storage.manager import StorageManager
+        from llmling_agent.storage import StorageManager
 
         if self.pool:
             return self.pool.storage

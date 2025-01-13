@@ -96,7 +96,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         """
         super().__init__()
         from llmling_agent.models.context import AgentContext
-        from llmling_agent.storage.manager import StorageManager
+        from llmling_agent.storage import StorageManager
 
         self.manifest = manifest
         self._confirmation_callback = confirmation_callback
