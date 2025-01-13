@@ -3,30 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, DateTime
-from sqlalchemy.sql import expression
-from sqlmodel import JSON, Field, Session, SQLModel, select
+from sqlmodel import JSON, Field, SQLModel
 from sqlmodel.main import SQLModelConfig
-
-from llmling_agent_storage.sql_provider.utils import (
-    db_message_to_chat_message,
-    parse_model_info,
-)
-
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from pydantic_ai.messages import ModelMessage
-
-    from llmling_agent.common_types import MessageRole
-    from llmling_agent.models.agents import ToolCallInfo
-    from llmling_agent.models.messages import ChatMessage, TokenCost
-    from llmling_agent.models.session import SessionQuery
 
 
 class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
@@ -50,48 +32,6 @@ class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
     """When the command was executed"""
 
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
-
-    @classmethod
-    def log(
-        cls,
-        *,
-        agent_name: str,
-        session_id: str,
-        command: str,
-    ):
-        from llmling_agent.storage import engine
-
-        with Session(engine) as session:
-            history = cls(session_id=session_id, agent_name=agent_name, command=command)
-            session.add(history)
-            session.commit()
-
-    @classmethod
-    def get_commands(
-        cls,
-        agent_name: str,
-        session_id: str,
-        *,
-        limit: int | None = None,
-        current_session_only: bool = False,
-    ) -> list[str]:
-        """Get command history ordered by newest first."""
-        from sqlalchemy import desc
-
-        from llmling_agent.storage import engine
-
-        with Session(engine) as session:
-            query = select(cls)
-            if current_session_only:
-                query = query.where(cls.session_id == str(session_id))
-            else:
-                query = query.where(cls.agent_name == agent_name)
-
-            # Use the column reference from the model class
-            query = query.order_by(desc(cls.timestamp))  # type: ignore
-            if limit:
-                query = query.limit(limit)
-            return [h.command for h in session.exec(query)]
 
 
 class MessageLog(BaseModel):
@@ -186,219 +126,6 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
 
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
-    @classmethod
-    def log(
-        cls,
-        *,
-        conversation_id: str,
-        content: str,
-        role: MessageRole,
-        name: str | None = None,
-        cost_info: TokenCost | None = None,
-        model: str | None = None,
-        response_time: float | None = None,
-        forwarded_from: list[str] | None = None,
-    ):
-        """Log a message with complete information."""
-        from llmling_agent.storage import engine
-
-        provider, model_name = parse_model_info(model)
-
-        with Session(engine) as session:
-            msg = cls(
-                conversation_id=conversation_id,
-                role=role,
-                name=name,
-                content=content,
-                model=model,  # Keep original for backwards compatibility
-                model_provider=provider,
-                model_name=model_name,
-                response_time=response_time,
-                total_tokens=cost_info.token_usage["total"] if cost_info else None,
-                prompt_tokens=cost_info.token_usage["prompt"] if cost_info else None,
-                completion_tokens=cost_info.token_usage["completion"]
-                if cost_info
-                else None,
-                cost=cost_info.total_cost if cost_info else None,
-                forwarded_from=forwarded_from,
-            )
-            session.add(msg)
-            session.commit()
-
-    @classmethod
-    def to_pydantic_ai_messages(
-        cls,
-        conversation_id: str | Sequence[str],
-        *,
-        since: datetime | None = None,
-        until: datetime | None = None,
-        roles: set[MessageRole] | None = None,
-        agents: set[str] | None = None,  # changed from agent: str
-        include_forwarded: bool = True,
-        limit: int | None = None,
-    ) -> list[ModelMessage]:
-        """Get messages as pydantic-ai format.
-
-        Args:
-            conversation_id: ID(s) of conversation(s) to load
-            since: Only messages after this time
-            until: Only messages before this time
-            roles: Only messages with these roles
-            agents: Only messages from these agents
-            include_forwarded: Include messages forwarded between agents
-            limit: Max number of messages
-        """
-        from sqlmodel import JSON, Column, and_, or_, select
-
-        from llmling_agent.storage import engine
-        from llmling_agent_storage.sql_provider.utils import (
-            db_message_to_pydantic_ai_message,
-        )
-
-        with Session(engine) as session:
-            stmt = select(cls).order_by(cls.timestamp)  # type: ignore
-
-            # Handle single ID or sequence
-            if isinstance(conversation_id, str):
-                stmt = stmt.where(cls.conversation_id == conversation_id)
-            else:
-                stmt = stmt.where(cls.conversation_id.in_(conversation_id))  # type: ignore
-
-            if since:
-                stmt = stmt.where(cls.timestamp >= since)
-            if until:
-                stmt = stmt.where(cls.timestamp <= until)
-            if roles:
-                stmt = stmt.where(cls.role.in_(roles))  # type: ignore
-            if agents:
-                agent_conditions = [Column("name").in_(agents)]
-                if include_forwarded:
-                    agent_conditions.append(
-                        and_(
-                            Column("forwarded_from").isnot(None),
-                            expression.cast(Column("forwarded_from"), JSON).contains(
-                                list(agents)
-                            ),  # type: ignore
-                        )
-                    )
-                stmt = stmt.where(or_(*agent_conditions))
-            if limit:
-                stmt = stmt.limit(limit)
-
-            messages = session.exec(stmt).all()
-            return [db_message_to_pydantic_ai_message(msg) for msg in messages]
-
-    @classmethod
-    def to_chat_messages(
-        cls,
-        conversation_id: str | Sequence[str],
-        *,
-        since: datetime | None = None,
-        until: datetime | None = None,
-        roles: set[MessageRole] | None = None,
-        agents: set[str] | None = None,
-        include_forwarded: bool = True,
-        limit: int | None = None,
-    ) -> list[ChatMessage[str]]:
-        """Get messages as ChatMessage format.
-
-        Args:
-            conversation_id: ID(s) of conversation(s) to load
-            since: Only messages after this time
-            until: Only messages before this time
-            roles: Only messages with these roles
-            agents: Only messages from/to these agents
-            include_forwarded: Include messages forwarded between agents
-            limit: Max number of messages
-        """
-        from sqlmodel import JSON, Column, and_, or_, select
-
-        from llmling_agent.storage import engine
-
-        with Session(engine) as session:
-            stmt = select(cls).order_by(cls.timestamp)  # type: ignore
-
-            # Handle single ID or sequence
-            if isinstance(conversation_id, str):
-                stmt = stmt.where(cls.conversation_id == conversation_id)
-            else:
-                stmt = stmt.where(cls.conversation_id.in_(conversation_id))  # type: ignore
-
-            if since:
-                stmt = stmt.where(cls.timestamp >= since)
-            if until:
-                stmt = stmt.where(cls.timestamp <= until)
-            if roles:
-                stmt = stmt.where(cls.role.in_(roles))  # type: ignore
-            if agents:
-                agent_conditions = [Column("name").in_(agents)]
-                if include_forwarded:
-                    agent_conditions.append(
-                        and_(
-                            Column("forwarded_from").isnot(None),
-                            expression.cast(Column("forwarded_from"), JSON).contains(
-                                list(agents)
-                            ),  # type: ignore
-                        )
-                    )
-                stmt = stmt.where(or_(*agent_conditions))
-            if limit:
-                stmt = stmt.limit(limit)
-
-            messages = session.exec(stmt).all()
-            return [db_message_to_chat_message(msg) for msg in messages]
-
-    @classmethod
-    def get_messages_by_query(
-        cls,
-        query: SessionQuery,
-        *,
-        session: Session | None = None,
-    ) -> list[ChatMessage[str]]:
-        """Get messages matching query configuration."""
-        from sqlmodel import JSON, Column, and_, or_, select
-
-        from llmling_agent.storage import engine
-
-        stmt = select(cls).order_by(cls.timestamp)  # type: ignore
-
-        conditions = []
-        if query.name:
-            conditions.append(cls.conversation_id == query.name)
-        if query.agents:
-            agent_conditions = [Column("name").in_(query.agents)]
-            if query.include_forwarded:
-                agent_conditions.append(
-                    and_(
-                        Column("forwarded_from").isnot(None),
-                        expression.cast(Column("forwarded_from"), JSON).contains(
-                            list(query.agents)
-                        ),  # type: ignore
-                    )
-                )
-            conditions.append(or_(*agent_conditions))
-        if query.since and (cutoff := query.get_time_cutoff()):
-            conditions.append(cls.timestamp >= cutoff)
-        if query.until and (cutoff := query.get_time_cutoff()):
-            conditions.append(cls.timestamp <= cutoff)
-        if query.contains:
-            conditions.append(cls.content.contains(query.contains))  # type: ignore
-        if query.roles:
-            conditions.append(cls.role.in_(query.roles))  # type: ignore
-
-        if conditions:
-            stmt = stmt.where(and_(*conditions))
-        if query.limit:
-            stmt = stmt.limit(query.limit)
-
-        should_close = session is None
-        session = session or Session(engine)
-        try:
-            messages = session.exec(stmt).all()
-            return [db_message_to_chat_message(msg) for msg in messages]
-        finally:
-            if should_close:
-                session.close()
 
 
 class ToolCall(SQLModel, table=True):  # type: ignore[call-arg]
@@ -430,30 +157,6 @@ class ToolCall(SQLModel, table=True):  # type: ignore[call-arg]
 
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
-    @classmethod
-    def log(
-        cls,
-        *,
-        conversation_id: str,
-        message_id: str,
-        tool_call: ToolCallInfo,
-    ):
-        """Log a tool call to the database."""
-        from llmling_agent.storage import engine
-
-        with Session(engine) as session:
-            call = cls(
-                conversation_id=conversation_id,
-                message_id=message_id,
-                tool_call_id=tool_call.tool_call_id,
-                timestamp=tool_call.timestamp,
-                tool_name=tool_call.tool_name,
-                args=tool_call.args,
-                result=str(tool_call.result),  # Convert result to string
-            )
-            session.add(call)
-            session.commit()
-
 
 class Conversation(SQLModel, table=True):  # type: ignore[call-arg]
     """Database model for conversations."""
@@ -476,17 +179,3 @@ class Conversation(SQLModel, table=True):  # type: ignore[call-arg]
     """Total cost of this conversation in USD"""
 
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
-
-    @classmethod
-    def log(
-        cls,
-        *,
-        conversation_id: str,
-        name: str,
-    ):
-        from llmling_agent.storage import engine
-
-        with Session(engine) as session:
-            convo = cls(id=conversation_id, agent_name=name)
-            session.add(convo)
-            session.commit()

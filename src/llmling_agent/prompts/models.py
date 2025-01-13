@@ -39,7 +39,7 @@ class PromptTemplate(BaseModel):
 
         # Format template, create temporary pydantic agent to generate prompt.
         content = self.template.format(**template_vars) if self.template else goal
-        agent = PydanticAiAgent(model=model, system_prompt=self.system)
+        agent = PydanticAiAgent(model=model, system_prompt=self.system)  # type: ignore
         result = await agent.run(content)
         return str(result.data)
 

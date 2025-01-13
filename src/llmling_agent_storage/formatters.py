@@ -6,15 +6,9 @@ from typing import TYPE_CHECKING, Any, Literal, TypeGuard
 from rich.console import Console
 from rich.markdown import Markdown
 
-from llmling_agent.storage.utils import aggregate_token_usage
-
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from llmling_agent.history.models import ConversationData, MessageData
-    from llmling_agent.models.messages import TokenUsage
-    from llmling_agent_storage.sql_provider import Conversation, Message
+    from llmling_agent_storage.models import ConversationData
 
 
 def is_conversation_data(data: Any) -> TypeGuard[ConversationData]:
@@ -26,65 +20,6 @@ def is_conversation_data(data: Any) -> TypeGuard[ConversationData]:
         and "agent" in data
         and "start_time" in data
     )
-
-
-def format_message(msg: Message) -> MessageData:
-    """Format a message for display."""
-    # Construct token usage if any token counts exist
-    token_usage: TokenUsage | None = None
-    if (
-        msg.total_tokens is not None
-        or msg.prompt_tokens is not None
-        or msg.completion_tokens is not None
-    ):
-        token_usage = {
-            "total": msg.total_tokens or 0,
-            "prompt": msg.prompt_tokens or 0,
-            "completion": msg.completion_tokens or 0,
-        }
-
-    return {
-        "role": msg.role,
-        "content": msg.content,
-        "timestamp": msg.timestamp.isoformat(),
-        "model": msg.model,
-        "name": msg.name,  # Add name field
-        "token_usage": token_usage,
-        "cost": msg.cost,  # Add cost field
-        "response_time": msg.response_time,  # Add response time
-    }
-
-
-def format_conversation(
-    conversation: Conversation,
-    messages: Sequence[Message],
-    *,
-    include_tokens: bool = False,
-    compact: bool = False,
-) -> ConversationData:
-    """Format a conversation and its messages for display.
-
-    Args:
-        conversation: Conversation to format
-        messages: Messages in the conversation
-        include_tokens: Whether to include token usage statistics
-        compact: Whether to only include first/last message
-    """
-    msgs = list(messages)
-    if compact and len(msgs) > 1:
-        msgs = [msgs[0], msgs[-1]]
-
-    result: ConversationData = {
-        "id": conversation.id,
-        "agent": conversation.agent_name,
-        "start_time": conversation.start_time.isoformat(),
-        "messages": [format_message(msg) for msg in msgs],
-        "token_usage": None,
-    }
-
-    if include_tokens:
-        result["token_usage"] = aggregate_token_usage(messages)
-    return result
 
 
 def format_output(

@@ -306,20 +306,19 @@ class Capabilities(EventedModel):
         limit: int = 5,
     ) -> str:
         """Search conversation history."""
-        from llmling_agent.history.formatters import format_output
-        from llmling_agent.history.queries import get_filtered_conversations
+        from llmling_agent_storage.formatters import format_output
 
         if ctx.deps.capabilities.history_access == "none":
             msg = "No permission to access history"
             raise ToolError(msg)
 
-        results = get_filtered_conversations(
+        provider = ctx.deps.storage.get_history_provider()
+        results = await provider.get_filtered_conversations(
             query=query,
             period=f"{hours}h",
             limit=limit,
-            include_tokens=True,
         )
-        return format_output(results, output_format="text")
+        return format_output(results)
 
     @staticmethod
     async def show_statistics(
@@ -328,9 +327,8 @@ class Capabilities(EventedModel):
         hours: int = 24,
     ) -> str:
         """Show usage statistics for conversations."""
-        from llmling_agent.history.formatters import format_output, format_stats
-        from llmling_agent.history.models import StatsFilters
-        from llmling_agent.history.stats import get_conversation_stats
+        from llmling_agent_storage.formatters import format_output
+        from llmling_agent_storage.models import StatsFilters
 
         if ctx.deps.capabilities.stats_access == "none":
             msg = "No permission to view statistics"
@@ -338,9 +336,26 @@ class Capabilities(EventedModel):
 
         cutoff = datetime.now() - timedelta(hours=hours)
         filters = StatsFilters(cutoff=cutoff, group_by=group_by)
-        stats = get_conversation_stats(filters)
-        formatted = format_stats(stats, f"{hours}h", group_by)
-        return format_output(formatted, output_format="text")
+
+        provider = ctx.deps.storage.get_history_provider()
+        stats = await provider.get_conversation_stats(filters)
+
+        return format_output(
+            {
+                "period": f"{hours}h",
+                "group_by": group_by,
+                "entries": [
+                    {
+                        "name": key,
+                        "messages": data["messages"],
+                        "total_tokens": data["total_tokens"],
+                        "models": sorted(data["models"]),
+                    }
+                    for key, data in stats.items()
+                ],
+            },
+            output_format="text",
+        )
 
     @staticmethod
     async def execute_python(ctx: RunContext[AgentContext], code: str) -> str:

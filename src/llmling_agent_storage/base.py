@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from llmling_agent.utils.tasks import TaskManagerMixin
@@ -10,12 +11,38 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
 
-    from llmling_agent.history.models import ConversationData, QueryFilters, StatsFilters
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.messages import ChatMessage, TokenCost
     from llmling_agent.models.session import SessionQuery
+    from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
 
 T = TypeVar("T")
+
+
+class StoredMessage:
+    """Base class for stored message data."""
+
+    id: str
+    conversation_id: str
+    timestamp: datetime
+    role: str
+    content: str
+    name: str | None = None
+    model: str | None = None
+    token_usage: dict[str, int] | None = None
+    cost: float | None = None
+    response_time: float | None = None
+    forwarded_from: list[str] | None = None
+
+
+class StoredConversation:
+    """Base class for stored conversation data."""
+
+    id: str
+    agent_name: str
+    start_time: datetime
+    total_tokens: int = 0
+    total_cost: float = 0.0
 
 
 class StorageProvider(TaskManagerMixin):

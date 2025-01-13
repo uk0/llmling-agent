@@ -9,14 +9,16 @@ from sqlalchemy import JSON, Column, Engine, and_, or_
 from sqlalchemy.sql import expression
 from sqlmodel import Session, SQLModel, desc, select
 
-from llmling_agent.history.models import (
+from llmling_agent.log import get_logger
+from llmling_agent.models.messages import ChatMessage, TokenCost
+from llmling_agent.utils.parse_time import parse_time_period
+from llmling_agent_storage.base import StorageProvider
+from llmling_agent_storage.models import (
     ConversationData,
     QueryFilters,
     StatsFilters,
 )
-from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage, TokenCost
-from llmling_agent_storage.base import StorageProvider
+from llmling_agent_storage.sql_provider.models import Conversation, Message
 from llmling_agent_storage.sql_provider.utils import db_message_to_chat_message
 
 
@@ -28,7 +30,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.session import SessionQuery
-    from llmling_agent_storage.sql_provider.models import Conversation, Message
 
 
 logger = get_logger(__name__)
@@ -213,6 +214,41 @@ class SQLModelProvider(StorageProvider):
             session.add(history)
             session.commit()
 
+    async def get_filtered_conversations(
+        self,
+        agent_name: str | None = None,
+        period: str | None = None,
+        since: datetime | None = None,
+        query: str | None = None,
+        model: str | None = None,
+        limit: int | None = None,
+        *,
+        compact: bool = False,
+        include_tokens: bool = False,
+    ) -> list[ConversationData]:
+        """Get filtered conversations with formatted output."""
+        # Convert period to since if provided
+        if period:
+            since = datetime.now() - parse_time_period(period)
+
+        # Create filters
+        filters = QueryFilters(
+            agent_name=agent_name,
+            since=since,
+            query=query,
+            model=model,
+            limit=limit,
+        )
+
+        # Use existing get_conversations method
+        conversations = await self.get_conversations(filters)
+        return [
+            self._format_conversation(
+                conv, msgs, compact=compact, include_tokens=include_tokens
+            )
+            for conv, msgs in conversations
+        ]
+
     async def get_commands(
         self,
         agent_name: str,
@@ -281,7 +317,8 @@ class SQLModelProvider(StorageProvider):
 
     def _to_chat_message(self, db_message: Any) -> ChatMessage[str]:
         """Convert database message to ChatMessage."""
-        if db_message.cost_info:
+        cost_info = None
+        if db_message.total_tokens is not None:
             cost_info = TokenCost(
                 token_usage={
                     "total": db_message.total_tokens or 0,
@@ -290,8 +327,6 @@ class SQLModelProvider(StorageProvider):
                 },
                 total_cost=db_message.cost or 0.0,
             )
-        else:
-            cost_info = None
 
         return ChatMessage[str](
             content=db_message.content,
@@ -430,11 +465,20 @@ class SQLModelProvider(StorageProvider):
             return self.aggregate_stats(rows, filters.group_by)
 
     @staticmethod
-    def _aggregate_token_usage(messages: Sequence[Any]) -> TokenUsage:
+    def _aggregate_token_usage(
+        messages: Sequence[Message | ChatMessage[str]],
+    ) -> TokenUsage:
         """Sum up tokens from a sequence of messages."""
-        total = sum(msg.total_tokens or 0 for msg in messages)
-        prompt = sum(msg.prompt_tokens or 0 for msg in messages)
-        completion = sum(msg.completion_tokens or 0 for msg in messages)
+        total = prompt = completion = 0
+        for msg in messages:
+            if isinstance(msg, Message):
+                total += msg.total_tokens or 0
+                prompt += msg.prompt_tokens or 0
+                completion += msg.completion_tokens or 0
+            elif msg.cost_info:
+                total += msg.cost_info.token_usage.get("total", 0)
+                prompt += msg.cost_info.token_usage.get("prompt", 0)
+                completion += msg.cost_info.token_usage.get("completion", 0)
         return {"total": total, "prompt": prompt, "completion": completion}
 
     async def reset(
@@ -512,8 +556,8 @@ class SQLModelProvider(StorageProvider):
 
     def _format_conversation(
         self,
-        conv: Conversation,
-        messages: Sequence[Message],
+        conv: Conversation | ConversationData,
+        messages: Sequence[Message | ChatMessage[str]],
         *,
         include_tokens: bool = False,
         compact: bool = False,
@@ -523,12 +567,26 @@ class SQLModelProvider(StorageProvider):
         if compact and len(msgs) > 1:
             msgs = [msgs[0], msgs[-1]]
 
-        chat_messages = [db_message_to_chat_message(msg) for msg in msgs]
+        # Convert both Conversation and ConversationData to dict format
+        if isinstance(conv, Conversation):
+            conv_dict = {
+                "id": conv.id,
+                "agent": conv.agent_name,
+                "start_time": conv.start_time.isoformat(),
+            }
+        else:
+            conv_dict = conv
+
+        # Convert messages to ChatMessage format if needed
+        chat_messages = [
+            msg if isinstance(msg, ChatMessage) else db_message_to_chat_message(msg)
+            for msg in msgs
+        ]
 
         return ConversationData(
-            id=conv.id,
-            agent=conv.agent_name,
-            start_time=conv.start_time.isoformat(),
+            id=conv_dict["id"],
+            agent=conv_dict["agent"],
+            start_time=conv_dict["start_time"],
             messages=[
                 {
                     "role": msg.role,

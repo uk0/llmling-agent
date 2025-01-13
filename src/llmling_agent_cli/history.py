@@ -3,23 +3,52 @@
 from __future__ import annotations
 
 from datetime import datetime
+import logging
+from typing import Any
 
 from llmling.cli.constants import output_format_opt
+from llmling.cli.utils import format_output
 import typer as t
 
+from llmling_agent.models import AgentsManifest
+from llmling_agent.storage.manager import StorageManager
+from llmling_agent.utils.parse_time import parse_time_period
+from llmling_agent_cli import resolve_agent_config
+from llmling_agent_storage.formatters import format_stats
+from llmling_agent_storage.models import StatsFilters
+
+
+logger = logging.getLogger(__name__)
 
 help_text = "Conversation history management"
 history_cli = t.Typer(name="history", help=help_text, no_args_is_help=True)
+
 AGENT_NAME_HELP = "Agent name (shows all if not provided)"
 SINCE_HELP = "Show conversations since (YYYY-MM-DD or YYYY-MM-DD HH:MM)"
 PERIOD_HELP = "Show conversations from last period (1h, 2d, 1w, 1m)"
 COMPACT_HELP = "Show only first/last message of conversations"
 TOKEN_HELP = "Include token usage statistics"
+CONFIG_HELP = "Override agent config path"
+
+
+def get_history_provider(config_path: str):
+    """Get history provider from manifest config.
+
+    Args:
+        config_path: Path to agent configuration file
+
+    Returns:
+        Storage provider configured for history operations
+    """
+    manifest = AgentsManifest[Any, Any].from_file(config_path)
+    storage = StorageManager(manifest.storage)
+    return storage.get_history_provider()
 
 
 @history_cli.command(name="show")
 def show_history(
     agent_name: str | None = t.Argument(None, help=AGENT_NAME_HELP),
+    config: str | None = t.Option(None, "--config", "-c", help=CONFIG_HELP),
     # Time-based filtering
     since: datetime | None = t.Option(None, "--since", "-s", help=SINCE_HELP),  # noqa: B008
     period: str | None = t.Option(None, "--period", "-p", help=PERIOD_HELP),
@@ -53,25 +82,34 @@ def show_history(
         # Compact view of recent conversations
         llmling-agent history show --period 1d --compact
     """
-    from llmling_agent.history import get_filtered_conversations
-    from llmling_agent.history.formatters import format_output
+    try:
+        # Resolve config and get provider
+        config_path = resolve_agent_config(config)
+        provider = get_history_provider(config_path)
 
-    results = get_filtered_conversations(
-        agent_name=agent_name,
-        period=period,
-        since=since,
-        query=query,
-        model=model,
-        limit=limit,
-        compact=compact,
-        include_tokens=tokens,
-    )
-    print(format_output(results, output_format))  # type: ignore
+        results = provider.run_task_sync(
+            provider.get_filtered_conversations(
+                agent_name=agent_name,
+                period=period,
+                since=since,
+                query=query,
+                model=model,
+                limit=limit,
+                compact=compact,
+                include_tokens=tokens,
+            )
+        )
+        print(format_output(results, output_format))
+
+    except Exception as e:
+        logger.exception("Failed to show history")
+        raise t.Exit(1) from e
 
 
 @history_cli.command(name="stats")
 def show_stats(
     agent_name: str | None = t.Argument(None, help=AGENT_NAME_HELP),
+    config: str | None = t.Option(None, "--config", "-c", help=CONFIG_HELP),
     period: str = t.Option(
         "1d", "--period", "-p", help="Time period (1h, 1d, 1w, 1m, 1y)"
     ),
@@ -92,24 +130,34 @@ def show_stats(
         # Show model usage for last week
         llmling-agent history stats --period 1w --group-by model
     """
-    from llmling_agent.history import StatsFilters, format_stats, get_conversation_stats
-    from llmling_agent.history.formatters import format_output
-    from llmling_agent.utils.parse_time import parse_time_period
+    try:
+        # Resolve config and get provider
+        config_path = resolve_agent_config(config)
+        provider = get_history_provider(config_path)
 
-    cutoff = datetime.now() - parse_time_period(period)
-    filters = StatsFilters(cutoff=cutoff, group_by=group_by, agent_name=agent_name)  # type: ignore
-    stats = get_conversation_stats(filters)
-    formatted = format_stats(stats, period, group_by)
-    print(format_output(formatted, output_format))  # type: ignore
+        # Create filters
+        cutoff = datetime.now() - parse_time_period(period)
+        filters = StatsFilters(
+            cutoff=cutoff,
+            group_by=group_by,  # type: ignore
+            agent_name=agent_name,
+        )
+
+        stats = provider.run_task_sync(provider.get_conversation_stats(filters))
+        formatted = format_stats(stats, period, group_by)
+        print(format_output(formatted, output_format))
+
+    except Exception as e:
+        logger.exception("Failed to show stats")
+        raise t.Exit(1) from e
 
 
 @history_cli.command(name="reset")
 def reset_history(
-    confirm: bool = t.Option(
-        False, "--confirm", "-y", help="Confirm deletion without prompting"
-    ),
+    config: str | None = t.Option(None, "--config", "-c", help=CONFIG_HELP),
+    confirm: bool = t.Option(False, "--confirm", "-y", help="Confirm deletion"),
     agent_name: str | None = t.Option(
-        None, "--agent", "-a", help="Only delete history for specific agent"
+        None, "--agent", "-a", help="Only delete for specific agent"
     ),
     hard: bool = t.Option(
         False, "--hard", help="Drop and recreate tables (for schema changes)"
@@ -130,81 +178,25 @@ def reset_history(
         # Drop and recreate tables (for schema changes)
         llmling-agent history reset --hard --confirm
     """
-    from sqlalchemy import text
-    from sqlmodel import Session, select
-
-    from llmling_agent.storage import engine, init_database
-    from llmling_agent_storage.sql_provider.models import Conversation, Message, SQLModel
-    from llmling_agent_storage.sql_provider.queries import (
-        DELETE_AGENT_CONVERSATIONS,
-        DELETE_AGENT_MESSAGES,
-        DELETE_ALL_CONVERSATIONS,
-        DELETE_ALL_MESSAGES,
-    )
-
-    if hard:
-        if agent_name:
-            print("--hard flag cannot be used with --agent")
-            raise t.Exit(1)
+    try:
+        # Resolve config and get provider
+        config_path = resolve_agent_config(config)
+        provider = get_history_provider(config_path)
 
         if not confirm:
-            msg = "This will DROP ALL TABLES and recreate them. Are you sure? [y/N] "
+            what = f" for {agent_name}" if agent_name else ""
+            msg = f"This will delete all history{what}. Are you sure? [y/N] "
             if input(msg).lower() != "y":
                 print("Operation cancelled.")
                 return
 
-        # Drop all tables and recreate them
-        with Session(engine) as session:
-            SQLModel.metadata.drop_all(engine)
-            session.commit()
+        conv_count, msg_count = provider.run_task_sync(
+            provider.reset(agent_name=agent_name, hard=hard)
+        )
 
-        print("Tables dropped. Recreating schema...")
-        init_database()
-        print("Database schema reset complete.")
-        return
+        what = f" for {agent_name}" if agent_name else ""
+        print(f"Deleted {conv_count} conversations and {msg_count} messages{what}.")
 
-    # Regular deletion logic continues...
-    with Session(engine) as session:
-        # Get count before deletion
-        if agent_name:
-            conv_query = select(Conversation).where(Conversation.agent_name == agent_name)
-            msg_query = (
-                select(Message)
-                .join(Conversation)
-                .where(Conversation.agent_name == agent_name)
-            )
-        else:
-            conv_query = select(Conversation)
-            msg_query = select(Message)
-
-        conv_count = len(session.exec(conv_query).all())
-        msg_count = len(session.exec(msg_query).all())
-
-        if not conv_count:
-            print("No conversations to delete.")
-            return
-
-        # Ask for confirmation if needed
-        if not confirm:
-            agent_str = f" for agent {agent_name!r}" if agent_name else ""
-            msg = (
-                f"This will delete {conv_count} conversations and {msg_count} messages"
-                f"{agent_str}.\nAre you sure? [y/N] "
-            )
-            if input(msg).lower() != "y":
-                print("Operation cancelled.")
-                return
-
-        # Delete messages first (foreign key constraint)
-        if agent_name:
-            session.execute(text(DELETE_AGENT_MESSAGES), {"agent": agent_name})
-            session.execute(text(DELETE_AGENT_CONVERSATIONS), {"agent": agent_name})
-        else:
-            # Delete all
-            session.execute(text(DELETE_ALL_MESSAGES))
-            session.execute(text(DELETE_ALL_CONVERSATIONS))
-
-        session.commit()
-
-        agent_str = f" for {agent_name}" if agent_name else ""
-        print(f"Deleted {conv_count} conversations and {msg_count} messages{agent_str}.")
+    except Exception as e:
+        logger.exception("Failed to reset history")
+        raise t.Exit(1) from e

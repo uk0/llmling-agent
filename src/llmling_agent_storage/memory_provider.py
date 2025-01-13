@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from llmling_agent.history.models import ConversationData, QueryFilters, StatsFilters
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent_storage.base import StorageProvider
+from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
 
 
 if TYPE_CHECKING:
@@ -156,7 +156,7 @@ class MemoryStorageProvider(StorageProvider):
         """Get filtered conversations from memory."""
         from typing import cast
 
-        from llmling_agent.history.models import MessageData
+        from llmling_agent_storage.models import MessageData
 
         results: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
 

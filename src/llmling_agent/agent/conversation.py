@@ -22,6 +22,7 @@ from llmling_agent.pydantic_ai_utils import (
     convert_model_message,
     format_part,
     get_message_role,
+    to_model_message,
 )
 
 
@@ -79,8 +80,6 @@ class ConversationManager:
             initial_prompts: Initial system prompts that start each conversation
             resources: Optional paths to load as context
         """
-        from llmling_agent_storage.sql_provider.models import Message
-
         self._agent = agent
         self._initial_prompts: list[BasePrompt] = []
         self._current_history: list[ModelMessage] = []
@@ -91,14 +90,18 @@ class ConversationManager:
         self.id = str(uuid4())
 
         if session is not None:
+            storage = self._agent.context.storage
             match session:
                 case SessionQuery():
-                    self._current_history = Message.get_messages_by_query(session)
+                    messages = storage.filter_messages_sync(session)
+                    self._current_history = [to_model_message(msg) for msg in messages]
                     if session.name:
                         self.id = session.name
                 case _:  # SessionIdType
                     self.id = str(session)
-                    self._current_history = Message.to_pydantic_ai_messages(self.id)
+                    query = SessionQuery(name=self.id)
+                    messages = storage.filter_messages_sync(query)
+                    self._current_history = [to_model_message(msg) for msg in messages]
 
         # Add initial prompts
         if not initial_prompts:
@@ -151,35 +154,14 @@ class ConversationManager:
                 - Slice for message range
                 - Agent name for conversation history with that agent
         """
-        from sqlmodel import Session
-
-        from llmling_agent.storage import engine
-        from llmling_agent_storage.sql_provider.models import Conversation, Message
-
         match key:
             case int():
                 return convert_model_message(self._current_history[key])
             case slice():
                 return [convert_model_message(msg) for msg in self._current_history[key]]
             case str():
-                from sqlmodel import or_, select
-
-                # First get all relevant conversation IDs
-                stmt = select(Conversation.id).where(
-                    or_(
-                        Conversation.agent_name == self._agent.name,
-                        Conversation.agent_name == key,
-                    )
-                )
-
-                with Session(engine) as session:
-                    conv_ids = session.exec(stmt).all()
-                    if not conv_ids:
-                        return []  # No conversations found
-
-                    # Now works with sequence of IDs
-                    messages = Message.to_pydantic_ai_messages(conv_ids)
-                    return [convert_model_message(msg) for msg in messages]
+                query = SessionQuery(name=key)
+                return self._agent.context.storage.filter_messages_sync(query=query)
 
     def __contains__(self, item: Any) -> bool:
         """Check if item is in history."""
@@ -278,8 +260,7 @@ class ConversationManager:
             roles: Only include messages with these roles (override)
             limit: Maximum number of messages to return (override)
         """
-        from llmling_agent_storage.sql_provider.models import Message
-
+        storage = self._agent.context.storage
         match session:
             case SessionQuery() as query:
                 # Override query params if provided
@@ -292,27 +273,32 @@ class ConversationManager:
                             "limit": limit,
                         }
                     )
-                self._current_history = Message.get_messages_by_query(query)
+                messages = storage.filter_messages_sync(query)
+                self._current_history = [to_model_message(msg) for msg in messages]
                 if query.name:
                     self.id = query.name
             case str() | UUID():
                 self.id = str(session)
-                self._current_history = Message.to_pydantic_ai_messages(
-                    self.id,
-                    since=since,
-                    until=until,
+                query = SessionQuery(
+                    name=self.id,
+                    since=since.isoformat() if since else None,
+                    until=until.isoformat() if until else None,
                     roles=roles,
                     limit=limit,
                 )
+                messages = storage.filter_messages_sync(query)
+                self._current_history = [to_model_message(msg) for msg in messages]
             case None:
                 # Use current session ID
-                self._current_history = Message.to_pydantic_ai_messages(
-                    self.id,
-                    since=since,
-                    until=until,
+                query = SessionQuery(
+                    name=self.id,
+                    since=since.isoformat() if since else None,
+                    until=until.isoformat() if until else None,
                     roles=roles,
                     limit=limit,
                 )
+                messages = storage.filter_messages_sync(query)
+                self._current_history = [to_model_message(msg) for msg in messages]
 
     def add_prompt(self, prompt: PromptInput):
         """Add a system prompt.

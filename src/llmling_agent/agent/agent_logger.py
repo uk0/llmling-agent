@@ -57,20 +57,18 @@ class AgentLogger:
 
     def init_conversation(self):
         """Create initial conversation record."""
-        from llmling_agent_storage.sql_provider import Conversation
-
-        Conversation.log(conversation_id=self.conversation_id, name=self.agent.name)
+        self.agent.context.storage.log_conversation_sync(
+            conversation_id=self.conversation_id,
+            agent_name=self.agent.name,
+        )
 
     def log_message(self, message: ChatMessage):
         """Handle message from chat signal."""
-        from llmling_agent_storage.sql_provider import Message
-
         self.message_history.append(message)
 
         if not self.enable_db_logging:
             return
-
-        Message.log(
+        self.agent.context.storage.log_message_sync(
             conversation_id=self.conversation_id,
             content=str(message.content),
             role=message.role,
@@ -83,14 +81,11 @@ class AgentLogger:
 
     def log_tool_call(self, tool_call: ToolCallInfo):
         """Handle tool usage signal."""
-        from llmling_agent_storage.sql_provider import ToolCall
-
         self.toolcall_history.append(tool_call)
 
         if not self.enable_db_logging:
             return
-
-        ToolCall.log(
+        self.agent.context.storage.log_tool_call_sync(
             conversation_id=self.conversation_id,
             message_id=tool_call.message_id or "",
             tool_call=tool_call,

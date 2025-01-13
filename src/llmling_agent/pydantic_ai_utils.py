@@ -359,3 +359,16 @@ def prepare_audio_url(content: ContentSource) -> str:
         case _:
             msg = f"Unsupported audio content type: {type(content)}"
             raise ValueError(msg)
+
+
+def to_model_message(message: ChatMessage[str]) -> ModelMessage:
+    """Convert ChatMessage to pydantic-ai ModelMessage."""
+    match message.role:
+        case "user":
+            return ModelRequest(parts=[UserPromptPart(content=message.content)])
+        case "system":
+            return ModelRequest(parts=[SystemPromptPart(content=message.content)])
+        case "assistant":
+            return ModelRequest(parts=[UserPromptPart(content=message.content)])
+    msg = f"Unknown message role: {message.role}"
+    raise ValueError(msg)
