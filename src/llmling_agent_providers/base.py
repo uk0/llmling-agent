@@ -52,6 +52,7 @@ class AgentProvider[TDeps]:
         conversation: ConversationManager,
         model: str | Model | None = None,
         name: str = "agent",
+        debug: bool = False,
     ):
         self._name = name
         self._model = model
@@ -59,7 +60,7 @@ class AgentProvider[TDeps]:
         self._tool_manager = tools
         self._context = context
         self._conversation = conversation
-        self._debug = False
+        self._debug = debug
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(model={self.model_name})"
