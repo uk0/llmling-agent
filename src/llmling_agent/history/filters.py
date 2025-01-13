@@ -4,9 +4,6 @@ from __future__ import annotations
 
 from datetime import timedelta
 import re
-from typing import cast
-
-from llmling_agent.history.models import GroupBy
 
 
 # Time units with their patterns
@@ -93,21 +90,3 @@ def parse_time_period(period: str) -> timedelta:
 
     msg = f"Unsupported time format: {period}"
     raise ValueError(msg)
-
-
-def validate_group_by(value: str) -> GroupBy:
-    """Validate and convert group by parameter.
-
-    Args:
-        value: Group by value to validate
-
-    Returns:
-        Validated GroupBy literal
-
-    Raises:
-        ValueError: If value is not a valid grouping
-    """
-    if value not in ("agent", "model", "hour", "day"):
-        msg = f"Invalid group_by: {value}"
-        raise ValueError(msg)
-    return cast(GroupBy, value)
