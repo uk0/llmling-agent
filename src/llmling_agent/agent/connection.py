@@ -301,7 +301,7 @@ class TalkManager:
     async def wait_for_chain(self, _seen: set[str] | None = None):
         """Wait for this agent and all connected agents to complete their tasks."""
         # Track seen agents to avoid cycles
-        seen = _seen or {self.owner.name}
+        seen: set[str] = _seen or {self.owner.name}
 
         # Wait for our own tasks
         await self.owner.complete_tasks()
