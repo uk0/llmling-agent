@@ -7,11 +7,12 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, overload
 
 from psygnal import Signal
 from typing_extensions import TypeVar
 
+from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 
 
@@ -22,6 +23,9 @@ if TYPE_CHECKING:
 TContent = TypeVar("TContent")
 FilterFn = Callable[[ChatMessage[Any]], bool]
 TransformFn = Callable[[ChatMessage[TContent]], ChatMessage[TContent]]
+ConnectionType = Literal["run", "context", "forward"]
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -112,26 +116,34 @@ class Talk:
         source: AnyAgent[Any, Any],
         targets: list[AnyAgent[Any, Any]],
         group: TeamTalk | None = None,
+        connection_type: ConnectionType = "run",
     ):
         self.source = source
         self.targets = targets
         self.group = group
         self.active = True
-        self._stats = TalkStats(
-            source_name=source.name, target_names={t.name for t in targets}
-        )
+        self.connection_type = connection_type
+        names = {t.name for t in targets}
+        self._stats = TalkStats(source_name=source.name, target_names=names)
         self._filter: FilterFn | None = None
         self._transformer: TransformFn | None = None
         source.outbox.connect(self._handle_message)
 
     def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None):
-        # We always receive a message
-        self.message_received.emit(message)
+        # logger.debug(
+        #     "Message from %s to %s: %r (type: %s) (prompt: %s)",
+        #     self.source.name,
+        #     [t.name for t in self.targets],
+        #     message.content,
+        #     self.connection_type,
+        #     prompt,
+        # )
         if not self.active or (self.group and not self.group.active):
             return
         if self._filter and not self._filter(message):
             return
-        # Only update stats and forward if connection is active
+
+        # Update stats
         totals = message.cost_info.token_usage["total"] if message.cost_info else 0
         self._stats = TalkStats(
             message_count=self._stats.message_count + 1,
@@ -143,8 +155,50 @@ class Talk:
             target_names=self._stats.target_names,
         )
 
-        for target in self.targets:
-            target._handle_message(message, prompt)
+        # Handle message based on connection type
+        match self.connection_type:
+            case "run":
+                for target in self.targets:
+                    prompts = [str(message.content)]
+                    if prompt:
+                        prompts.append(prompt)
+                    target.run_background(target.run(*prompts))
+
+            # for target in self.context.config.forward_to:
+            #     match target:
+            #         case AgentTarget():
+            #             # Create task for agent forwarding
+            #             loop = asyncio.get_event_loop()
+            #             task = loop.create_task(self.run(str(message.content), deps=))
+            #             self._pending_tasks.add(task)
+            #             task.add_done_callback(self._pending_tasks.discard)
+
+            #         case FileTarget():
+            #             path = target.resolve_path({"agent": self.name})
+            #             path.parent.mkdir(parents=True, exist_ok=True)
+            #             path.write_text(str(message.content))
+
+            case "context":
+                for target in self.targets:
+                    target.run_background(
+                        target.conversation.add_context_message(
+                            str(message.content),
+                            source=self.source.name,
+                            metadata={
+                                "type": "forwarded_message",
+                                "role": message.role,
+                                "model": message.model,
+                                "cost_info": message.cost_info,
+                                "timestamp": message.timestamp.isoformat(),
+                                "prompt": prompt,  # Include original prompt in metadata
+                            },
+                        )
+                    )
+
+            case "forward":
+                for target in self.targets:
+                    target.outbox.emit(message, prompt)  # Pass through the prompt
+
         self.message_forwarded.emit(message)
 
     def when(self, condition: FilterFn) -> Self:

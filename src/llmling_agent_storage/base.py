@@ -230,19 +230,19 @@ class StorageProvider(TaskManagerMixin):
 
     def get_commands_sync(self, **kwargs) -> list[str]:
         """Sync wrapper for get_commands."""
-        return self.run_sync(self.get_commands(**kwargs))
+        return self.run_task_sync(self.get_commands(**kwargs))
 
     def filter_messages_sync(self, **kwargs) -> list[ChatMessage[str]]:
         """Sync wrapper for filter_messages."""
-        return self.run_sync(self.filter_messages(**kwargs))
+        return self.run_task_sync(self.filter_messages(**kwargs))
 
     def get_conversations_sync(
         self, **kwargs
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
-        return self.run_sync(self.get_conversations(**kwargs))
+        return self.run_task_sync(self.get_conversations(**kwargs))
 
     def get_filtered_conversations_sync(self, **kwargs) -> list[ConversationData]:
-        return self.run_sync(self.get_filtered_conversations(**kwargs))
+        return self.run_task_sync(self.get_filtered_conversations(**kwargs))
 
     def get_conversation_stats_sync(self, **kwargs) -> dict[str, dict[str, Any]]:
-        return self.run_sync(self.get_conversation_stats(**kwargs))
+        return self.run_task_sync(self.get_conversation_stats(**kwargs))

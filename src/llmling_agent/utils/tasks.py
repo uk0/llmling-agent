@@ -47,7 +47,7 @@ class TaskManagerMixin:
             finally:
                 loop.close()
 
-    def run_sync(self, coro: Coroutine[Any, Any, T]) -> T:
+    def run_task_sync(self, coro: Coroutine[Any, Any, T]) -> T:
         """Run coroutine synchronously."""
         try:
             loop = asyncio.get_running_loop()
@@ -62,8 +62,24 @@ class TaskManagerMixin:
             finally:
                 loop.close()
 
+    def run_background(self, coro: Coroutine[Any, Any, Any]) -> None:
+        """Run a coroutine in the background and track it."""
+        try:
+            loop = asyncio.get_running_loop()
+            task = loop.create_task(coro)
+            self._pending_tasks.add(task)
+            task.add_done_callback(self._pending_tasks.discard)
+        except RuntimeError:
+            # No running loop - use fire_and_forget
+            self.fire_and_forget(coro)
+
     async def cleanup_tasks(self) -> None:
         """Wait for all pending tasks to complete."""
         if self._pending_tasks:
             await asyncio.gather(*self._pending_tasks, return_exceptions=True)
         self._pending_tasks.clear()
+
+    async def complete_tasks(self):
+        """Wait for all pending tasks to complete."""
+        if self._pending_tasks:
+            await asyncio.wait(self._pending_tasks)

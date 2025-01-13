@@ -35,6 +35,7 @@ from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context
+from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_providers import AgentProvider, HumanProvider, PydanticAIProvider
 
 
@@ -66,7 +67,7 @@ AgentType = Literal["ai", "human"] | AgentProvider
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
 
-class Agent[TDeps]:
+class Agent[TDeps](TaskManagerMixin):
     """Agent for AI-powered interaction with LLMling resources and tools.
 
     Generically typed with: LLMLingAgent[Type of Dependencies, Type of Result]
@@ -141,6 +142,7 @@ class Agent[TDeps]:
             confirmation_callback: Callback for confirmation prompts
             debug: Whether to enable debug mode
         """
+        super().__init__()
         self._debug = debug
         self._result_type = None
 
@@ -228,7 +230,6 @@ class Agent[TDeps]:
         self._logger = AgentLogger(self, enable_db_logging=enable_db_logging)
         self._events = EventManager(self, enable_events=True)
 
-        self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._background_task: asyncio.Task[Any] | None = None
 
     def __repr__(self) -> str:
@@ -992,11 +993,6 @@ class Agent[TDeps]:
             logger.exception("Sync agent run failed")
             raise
 
-    async def complete_tasks(self):
-        """Wait for all pending tasks to complete."""
-        if self._pending_tasks:
-            await asyncio.wait(self._pending_tasks)
-
     async def wait_for_chain(self, _seen: set[str] | None = None):
         """Wait for this agent and all connected agents to complete their tasks."""
         # Track seen agents to avoid cycles
@@ -1155,37 +1151,6 @@ class Agent[TDeps]:
         self._logger.clear_state()
         self.conversation.clear()
         logger.debug("Cleared history and reset tool state")
-
-    def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None):
-        """Handle a message and optional prompt forwarded from another agent."""
-        if not message.forwarded_from:
-            msg = "Message received in _handle_message without sender information"
-            raise RuntimeError(msg)
-
-        sender = message.forwarded_from[-1]
-        msg = "_handle_message called on %s from %s with message %s"
-        logger.debug(msg, self.name, sender, message.content)
-
-        loop = asyncio.get_event_loop()
-        prompts = [str(message.content)]
-        if prompt:
-            prompts.append(prompt)
-        task = loop.create_task(self.run(*prompts))
-        self._pending_tasks.add(task)
-        task.add_done_callback(self._pending_tasks.discard)
-        # for target in self.context.config.forward_to:
-        #     match target:
-        #         case AgentTarget():
-        #             # Create task for agent forwarding
-        #             loop = asyncio.get_event_loop()
-        #             task = loop.create_task(self.run(str(message.content), deps=source))
-        #             self._pending_tasks.add(task)
-        #             task.add_done_callback(self._pending_tasks.discard)
-
-        #         case FileTarget():
-        #             path = target.resolve_path({"agent": self.name})
-        #             path.parent.mkdir(parents=True, exist_ok=True)
-        #             path.write_text(str(message.content))
 
     async def get_token_limits(self) -> TokenLimits | None:
         """Get token limits for the current model."""
