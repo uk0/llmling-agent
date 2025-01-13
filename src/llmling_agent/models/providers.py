@@ -103,11 +103,8 @@ class LiteLLMProviderConfig(BaseProviderConfig):
         """Create PydanticAI provider instance."""
         from llmling_agent_providers.litellm_provider import LiteLLMProvider
 
-        return LiteLLMProvider(
-            name=self.name or "ai-agent",
-            model=self.model,
-            retries=self.retries,
-        )
+        name = self.name or "ai-agent"
+        return LiteLLMProvider(name=name, model=self.model, retries=self.retries)
 
 
 class HumanProviderConfig(BaseProviderConfig):

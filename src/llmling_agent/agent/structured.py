@@ -145,6 +145,14 @@ class StructuredAgent[TDeps, TResult]:
         self._agent.context = value
 
     @property
+    def name(self) -> str:
+        return self._agent.name
+
+    @name.setter
+    def name(self, value: str):
+        self._agent.name = value
+
+    @property
     def tools(self) -> ToolManager:
         return self._agent.tools
 
