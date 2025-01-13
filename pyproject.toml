@@ -74,6 +74,7 @@ ui = ["gradio>=5.8.0"]
 clipboard = ["pyperclip>=1.8.0"]
 markdown = ["markitdown"]
 textual = ["textual>=1.0.0"]
+litellm = ["litellm"]
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]

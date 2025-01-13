@@ -90,6 +90,7 @@ class HumanProvider(AgentProvider):
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
+        **kwargs: Any,
     ) -> ProviderResponse:
         """Get response through human input.
 
@@ -100,6 +101,7 @@ class HumanProvider(AgentProvider):
             model: Model override (unused for human)
             store_history: Whether the message exchange should be added to the
                            context window
+            kwargs: Additional arguments for human (unused)
         """
         if self._show_context:
             history = await self.conversation.format_history(
@@ -137,6 +139,7 @@ class HumanProvider(AgentProvider):
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
+        **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response keystroke by keystroke."""
         print(f"\n{prompt}")

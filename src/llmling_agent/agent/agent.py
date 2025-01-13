@@ -183,6 +183,10 @@ class Agent[TDeps](TaskManagerMixin):
         # Initialize provider based on type
         match agent_type:
             case "ai":
+                if model and not isinstance(model, str):
+                    from pydantic_ai import models
+
+                    assert isinstance(model, models.Model)
                 self._provider: AgentProvider = PydanticAIProvider(
                     model=model,
                     system_prompt=system_prompt,
@@ -195,6 +199,10 @@ class Agent[TDeps](TaskManagerMixin):
                 )
             case "human":
                 self._provider = HumanProvider(name=name, debug=debug)
+            case "litellm":
+                from llmling_agent_providers.litellm_provider import LiteLLMProvider
+
+                self._provider = LiteLLMProvider(name=name, debug=debug, retries=retries)
             case AgentProvider():
                 self._provider = agent_type
             case _:

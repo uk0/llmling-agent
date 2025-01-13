@@ -81,14 +81,48 @@ class AIProviderConfig(BaseProviderConfig):
         from llmling_agent_providers.pydanticai import PydanticAIProvider
 
         return PydanticAIProvider(
-            context=context,
-            tools=tools,
-            conversation=conversation,
             name=self.name or "ai-agent",
             end_strategy=self.end_strategy,
             result_retries=self.result_retries,
             defer_model_check=self.defer_model_check,
             model_settings=self.model_settings,
+        )
+
+
+class LiteLLMProviderConfig(BaseProviderConfig):
+    """Configuration for LiteLLM-based provider.
+
+    This provider uses LiteLLM for handling model interactions, tool calls,
+    and structured outputs. It provides fine-grained control over model behavior
+    and validation.
+    """
+
+    type: Literal["litellm"] = Field("litellm", init=False)
+    """Type discriminator for AI provider."""
+
+    retries: int = 1
+    """Maximum retries for model calls."""
+
+    model: str | None = None
+    """Optional model name to use. If not specified, uses default model."""
+
+    model_settings: dict[str, Any] = Field(default_factory=dict)
+    """Additional model-specific settings passed to PydanticAI."""
+
+    def get_provider(
+        self,
+        *,
+        context: AgentContext[Any],
+        tools: ToolManager,
+        conversation: ConversationManager,
+    ) -> AgentProvider:
+        """Create PydanticAI provider instance."""
+        from llmling_agent_providers.litellm_provider import LiteLLMProvider
+
+        return LiteLLMProvider(
+            name=self.name or "ai-agent",
+            model=self.model,
+            retries=self.retries,
         )
 
 
@@ -119,9 +153,6 @@ class HumanProviderConfig(BaseProviderConfig):
         from llmling_agent_providers.human import HumanProvider
 
         return HumanProvider(
-            context=context,
-            tools=tools,
-            conversation=conversation,
             name=self.name or "human-agent",
             timeout=self.timeout,
             show_context=self.show_context,
@@ -130,7 +161,7 @@ class HumanProviderConfig(BaseProviderConfig):
 
 # The union type used in AgentConfig
 ProviderConfig = Annotated[
-    AIProviderConfig | HumanProviderConfig,
+    AIProviderConfig | HumanProviderConfig | LiteLLMProviderConfig,
     Field(discriminator="type"),
 ]
 
@@ -138,5 +169,6 @@ __all__ = [
     "AIProviderConfig",
     "BaseProviderConfig",
     "HumanProviderConfig",
+    "LiteLLMProviderConfig",
     "ProviderConfig",
 ]
