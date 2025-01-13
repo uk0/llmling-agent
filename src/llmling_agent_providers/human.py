@@ -21,8 +21,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelType
-    from llmling_agent.models.context import AgentContext
-    from llmling_agent.tools.manager import ToolManager
 
 
 logger = get_logger(__name__)
@@ -68,21 +66,13 @@ class HumanProvider(AgentProvider):
     def __init__(
         self,
         *,
-        conversation: ConversationManager,
-        context: AgentContext[Any],
-        tools: ToolManager,
         name: str = "human",
         timeout: int | None = None,
         show_context: bool = True,
         debug: bool = False,
     ):
         """Initialize human provider."""
-        super().__init__(
-            tools=tools,
-            conversation=conversation,
-            model=None,
-            context=context,
-        )
+        super().__init__(model=None)
         self.name = name or "human"
         self._debug = debug
         self._timeout = timeout
@@ -112,7 +102,7 @@ class HumanProvider(AgentProvider):
                            context window
         """
         if self._show_context:
-            history = await self._conversation.format_history(
+            history = await self.conversation.format_history(
                 format_template="[{agent}] {content}\n",  # Optionally customize format
                 include_system=False,  # Skip system messages for cleaner output
             )

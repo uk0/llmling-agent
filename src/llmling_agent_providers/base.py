@@ -47,9 +47,6 @@ class AgentProvider[TDeps]:
     def __init__(
         self,
         *,
-        context: AgentContext[TDeps],
-        tools: ToolManager,
-        conversation: ConversationManager,
         model: str | Model | None = None,
         name: str = "agent",
         debug: bool = False,
@@ -57,9 +54,9 @@ class AgentProvider[TDeps]:
         self._name = name
         self._model = model
         self._agent: Any = None
-        self._tool_manager = tools
-        self._context = context
-        self._conversation = conversation
+        self._tool_manager: ToolManager | None = None
+        self._context: AgentContext[TDeps] | None = None
+        self._conversation: ConversationManager | None = None
         self._debug = debug
 
     def __repr__(self) -> str:
@@ -67,6 +64,45 @@ class AgentProvider[TDeps]:
 
     def set_model(self, model: ModelType):
         """Default no-op implementation for setting model."""
+
+    @property
+    def tool_manager(self) -> ToolManager:
+        """Get tool manager."""
+        if self._tool_manager is None:
+            msg = "Tool manager not set"
+            raise RuntimeError(msg)
+        return self._tool_manager
+
+    @tool_manager.setter
+    def tool_manager(self, value: ToolManager):
+        """Set tool manager."""
+        self._tool_manager = value
+
+    @property
+    def context(self) -> AgentContext[TDeps]:
+        """Get context."""
+        if self._context is None:
+            msg = "Context not set"
+            raise RuntimeError(msg)
+        return self._context
+
+    @context.setter
+    def context(self, value: AgentContext[TDeps]):
+        """Set context."""
+        self._context = value
+
+    @property
+    def conversation(self) -> ConversationManager:
+        """Get conversation manager."""
+        if self._conversation is None:
+            msg = "Conversation manager not set"
+            raise RuntimeError(msg)
+        return self._conversation
+
+    @conversation.setter
+    def conversation(self, value: ConversationManager):
+        """Set conversation manager."""
+        self._conversation = value
 
     @property
     def model_name(self) -> str | None:
@@ -106,13 +142,3 @@ class AgentProvider[TDeps]:
     ) -> AbstractAsyncContextManager[StreamedRunResult]:  # type: ignore[type-var]
         """Stream a response. Must be implemented by providers."""
         raise NotImplementedError
-
-    @property
-    def context(self) -> AgentContext[TDeps]:
-        """Get provider context."""
-        return self._context
-
-    @context.setter
-    def context(self, value: AgentContext[TDeps]):
-        """Set provider context."""
-        self._context = value

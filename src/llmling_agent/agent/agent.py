@@ -186,29 +186,23 @@ class Agent[TDeps](TaskManagerMixin):
                 self._provider: AgentProvider = PydanticAIProvider(
                     model=model,
                     system_prompt=system_prompt,
-                    tools=self._tool_manager,
-                    conversation=self.conversation,
                     retries=retries,
                     end_strategy=end_strategy,
                     result_retries=result_retries,
                     defer_model_check=defer_model_check,
-                    context=ctx,
                     debug=debug,
                     **kwargs,
                 )
             case "human":
-                self._provider = HumanProvider(
-                    conversation=self.conversation,
-                    context=ctx,
-                    tools=self._tool_manager,
-                    name=name,
-                    debug=debug,
-                )
+                self._provider = HumanProvider(name=name, debug=debug)
             case AgentProvider():
                 self._provider = agent_type
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
+        self._provider.tool_manager = self._tool_manager
+        self._provider.context = ctx
+        self._provider.conversation = self.conversation
         ctx.capabilities.register_capability_tools(self)
 
         # Forward provider signals

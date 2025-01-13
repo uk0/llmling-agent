@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelType
     from llmling_agent.tools.base import ToolInfo
-    from llmling_agent.tools.manager import ToolManager
 
 
 logger = get_logger(__name__)
@@ -49,11 +48,8 @@ class PydanticAIProvider(AgentProvider):
     def __init__(
         self,
         *,
-        context: AgentContext[Any],
         model: str | models.Model | None = None,
         system_prompt: str | Sequence[str] = (),
-        tools: ToolManager,
-        conversation: ConversationManager,
         name: str = "agent",
         retries: int = 1,
         result_retries: int | None = None,
@@ -67,23 +63,15 @@ class PydanticAIProvider(AgentProvider):
         Args:
             model: Model to use for responses
             system_prompt: Initial system instructions
-            tools: Available tools
-            conversation: Conversation manager
             name: Agent name
             retries: Number of retries for failed operations
             result_retries: Max retries for result validation
             end_strategy: How to handle tool calls with final result
             defer_model_check: Whether to defer model validation
-            context: Optional agent context
             debug: Whether to enable debug mode
             kwargs: Additional arguments for PydanticAI agent
         """
-        super().__init__(
-            tools=tools,
-            conversation=conversation,
-            model=model,
-            context=context,
-        )
+        super().__init__(model=model)
         self._debug = debug
         self._agent: PydanticAgent[Any, Any] = PydanticAgent(
             model=model,  # type: ignore
@@ -185,7 +173,7 @@ class PydanticAIProvider(AgentProvider):
             Response message with optional structured content
         """
         self._update_tools()
-        message_history = self._conversation.get_history()
+        message_history = self.conversation.get_history()
         use_model = model or self.model
         if isinstance(use_model, str):
             use_model = infer_model(use_model)  # type: ignore
@@ -201,13 +189,13 @@ class PydanticAIProvider(AgentProvider):
 
             # Extract tool calls and set message_id
             new_msgs = result.new_messages()
-            tool_calls = get_tool_calls(new_msgs, dict(self._tool_manager._items))
+            tool_calls = get_tool_calls(new_msgs, dict(self.tool_manager._items))
             for call in tool_calls:
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
             if store_history:
-                self._conversation._last_messages = list(new_msgs)
-                self._conversation.set_history(result.all_messages())
+                self.conversation._last_messages = list(new_msgs)
+                self.conversation.set_history(result.all_messages())
             resolved_model = (
                 use_model.name() if isinstance(use_model, Model) else str(use_model)
             )
@@ -238,7 +226,7 @@ class PydanticAIProvider(AgentProvider):
     def _update_tools(self):
         """Update pydantic-ai-agent tools."""
         self._agent._function_tools.clear()
-        tools = [t for t in self._tool_manager.values() if t.enabled]
+        tools = [t for t in self.tool_manager.values() if t.enabled]
         for tool in tools:
             wrapped = (
                 self.wrap_tool(tool, self._context)
@@ -304,7 +292,7 @@ class PydanticAIProvider(AgentProvider):
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response using pydantic-ai."""
         self._update_tools()
-        message_history = self._conversation.get_history()
+        message_history = self.conversation.get_history()
 
         use_model = model or self.model
         if isinstance(use_model, str):
@@ -344,11 +332,11 @@ class PydanticAIProvider(AgentProvider):
                     # Update conversation history
                     messages = stream_result.new_messages()
                     if store_history:
-                        self._conversation._last_messages = list(messages)
-                        self._conversation.set_history(stream_result.all_messages())
+                        self.conversation._last_messages = list(messages)
+                        self.conversation.set_history(stream_result.all_messages())
 
                     # Extract and update tool calls
-                    tool_calls = get_tool_calls(messages, dict(self._tool_manager._items))
+                    tool_calls = get_tool_calls(messages, dict(self.tool_manager._items))
                     for call in tool_calls:
                         call.message_id = message_id
                         call.context_data = self._context.data if self._context else None
