@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 import pytest
 from sqlmodel import Session, select
 
-from llmling_agent.history.filters import parse_time_period
 from llmling_agent.history.models import QueryFilters, StatsFilters
 from llmling_agent.history.queries import get_conversations, get_stats_data
 from llmling_agent.storage import Conversation, Message, engine
+from llmling_agent.utils.parse_time import parse_time_period
 
 
 # Reference time for all tests

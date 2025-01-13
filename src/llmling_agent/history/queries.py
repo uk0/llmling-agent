@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING
 from sqlalchemy import desc
 from sqlmodel import Session, select
 
-from llmling_agent.history.filters import parse_time_period
 from llmling_agent.history.formatters import format_conversation
 from llmling_agent.history.models import ConversationData, QueryFilters, StatsFilters
 from llmling_agent.storage import Conversation, Message, engine
+from llmling_agent.utils.parse_time import parse_time_period
 
 
 if TYPE_CHECKING:

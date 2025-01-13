@@ -92,13 +92,9 @@ def show_stats(
         # Show model usage for last week
         llmling-agent history stats --period 1w --group-by model
     """
-    from llmling_agent.history import (
-        StatsFilters,
-        format_stats,
-        get_conversation_stats,
-        parse_time_period,
-    )
+    from llmling_agent.history import StatsFilters, format_stats, get_conversation_stats
     from llmling_agent.history.formatters import format_output
+    from llmling_agent.utils.parse_time import parse_time_period
 
     cutoff = datetime.now() - parse_time_period(period)
     filters = StatsFilters(cutoff=cutoff, group_by=group_by, agent_name=agent_name)  # type: ignore

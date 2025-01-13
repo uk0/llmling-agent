@@ -5,7 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from llmling_agent.common_types import MessageRole  # noqa: TC001
-from llmling_agent.history.filters import parse_time_period
+from llmling_agent.utils.parse_time import parse_time_period
 
 
 class MemoryConfig(BaseModel):

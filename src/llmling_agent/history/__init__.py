@@ -1,6 +1,5 @@
 """History management functionality for LLMling agent."""
 
-from llmling_agent.history.filters import parse_time_period
 from llmling_agent.history.formatters import (
     format_conversation,
     format_message,
@@ -29,5 +28,4 @@ __all__ = [
     "get_conversation_stats",
     "get_conversations",
     "get_filtered_conversations",
-    "parse_time_period",
 ]
