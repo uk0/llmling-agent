@@ -113,9 +113,7 @@ class ConversationManager:
             self._initial_prompts.append(obj)
         # Add context loading tasks to agent
         for source in resources:
-            task = asyncio.create_task(self.load_context_source(source))
-            self._agent._pending_tasks.add(task)
-            task.add_done_callback(self._agent._pending_tasks.discard)
+            self._agent.create_task(self.load_context_source(source))
 
     def __bool__(self) -> bool:
         return bool(self._pending_messages) or bool(self._current_history)

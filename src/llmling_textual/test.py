@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -13,6 +12,7 @@ from textual.widgets import Header
 
 from llmling_agent import Agent
 from llmling_agent.models import ChatMessage
+from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_commands import get_commands
 from llmling_textual.widget import ChatView
 
@@ -24,12 +24,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ChatApp(App):
+class ChatApp(App, TaskManagerMixin):
     """Chat application with command support."""
 
     def __init__(self):
         super().__init__()
-        self._pending_tasks: set[asyncio.Task[None]] = set()
         self._agent: AnyAgent[Any, Any] | None = None
         self._agent_cm: Any = None
 
@@ -55,33 +54,18 @@ class ChatApp(App):
 
     async def on_unmount(self):
         """Clean up tasks and agent."""
-        for task in self._pending_tasks:
-            task.cancel()
-        if self._pending_tasks:
-            await asyncio.wait(self._pending_tasks)
+        await self.complete_tasks(cancel=True)
 
         if self._agent_cm is not None:
             await self._agent_cm.__aexit__(None, None, None)
-
-    def _create_task(self, coro: Any):
-        """Create and track a task."""
-        task = asyncio.create_task(coro)
-        logger.debug("Created task: %s", task.get_name())
-
-        def _done_callback(t: asyncio.Task[None]):
-            logger.debug("Task completed: %s", t.get_name())
-            self._pending_tasks.discard(t)
-            if t.exception():
-                logger.error("Task failed with error: %s", t.exception())
-
-        task.add_done_callback(_done_callback)
-        self._pending_tasks.add(task)
 
     @logfire.instrument("Got input: {event.text}")
     @on(CommandInput.InputSubmitted)
     async def handle_submit(self, event: CommandInput.InputSubmitted):
         """Handle regular input submission."""
-        self._create_task(self.handle_chat_message(event.text))
+        self.create_task(
+            self.handle_chat_message(event.text), name=f"chat_message_{event.text[:10]}"
+        )
 
     @logfire.instrument("Processing message: {text}")
     async def handle_chat_message(self, text: str):

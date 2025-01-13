@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -13,6 +12,7 @@ from upath import UPath
 import yamling
 
 from llmling_agent.log import LogCapturer
+from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_web.handlers import AgentHandler
 from llmling_agent_web.type_utils import ChatHistory, validate_chat_message
 
@@ -71,7 +71,7 @@ class UIUpdate(BaseModel):
         return updates
 
 
-class UIState:
+class UIState(TaskManagerMixin):
     """Maintains UI state and handles updates."""
 
     def __init__(self):
@@ -81,7 +81,6 @@ class UIState:
         self.handler: AgentHandler | None = None
         self._agent: Agent[Any] | None = None
         self._slashed_agent: SlashedAgent | None = None
-        self._pending_tasks: set[asyncio.Task[Any]] = set()
 
     def _connect_signals(self):
         """Connect to agent signals."""
@@ -94,27 +93,19 @@ class UIState:
 
     def _handle_tool_added(self, name: str, tool: ToolInfo):
         """Handle tool addition."""
-        task = asyncio.create_task(self.update_tool_states({name: tool.enabled}))
-        self._pending_tasks.add(task)
-        task.add_done_callback(self._pending_tasks.discard)
+        self.create_task(self.update_tool_states({name: tool.enabled}))
 
     def _handle_tool_removed(self, name: str):
         """Handle tool removal."""
-        task = asyncio.create_task(self.update_tool_states({}))
-        self._pending_tasks.add(task)
-        task.add_done_callback(self._pending_tasks.discard)
+        self.create_task(self.update_tool_states({}))
 
     def _handle_tool_changed(self, name: str, tool: ToolInfo):
         """Handle tool state changes."""
-        task = asyncio.create_task(self.update_tool_states({name: tool.enabled}))
-        self._pending_tasks.add(task)
-        task.add_done_callback(self._pending_tasks.discard)
+        self.create_task(self.update_tool_states({name: tool.enabled}))
 
     async def cleanup(self):
         """Clean up pending tasks."""
-        if self._pending_tasks:
-            await asyncio.gather(*self._pending_tasks, return_exceptions=True)
-            self._pending_tasks.clear()
+        await self.cleanup_tasks()
         if self.handler:
             await self.handler.cleanup()
             self.handler = None
