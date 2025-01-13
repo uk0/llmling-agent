@@ -984,6 +984,7 @@ class Agent[TDeps](TaskManagerMixin):
     def run_sync(
         self,
         *prompt: AnyPromptType,
+        result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -992,6 +993,7 @@ class Agent[TDeps](TaskManagerMixin):
 
         Args:
             prompt: User query or instruction
+            result_type: Optional type for structured responses
             deps: Optional dependencies for the agent
             model: Optional model override
             store_history: Whether the message exchange should be added to the
@@ -1001,7 +1003,13 @@ class Agent[TDeps](TaskManagerMixin):
         """
         try:
             return asyncio.run(
-                self.run(prompt, deps=deps, model=model, store_history=store_history)
+                self.run(
+                    prompt,
+                    deps=deps,
+                    model=model,
+                    store_history=store_history,
+                    result_type=result_type,
+                )
             )
         except KeyboardInterrupt:
             raise
