@@ -177,18 +177,17 @@ class AgentPoolView:
         """Add command to history."""
         if not command.strip():
             return
-        from llmling_agent_storage.sql_provider.models import CommandHistory
 
         id_ = str(self._agent.conversation.id)
-        CommandHistory.log(agent_name=self._agent.name, session_id=id_, command=command)
+        self._agent.context.storage.log_command_sync(
+            agent_name=self._agent.name, session_id=id_, command=command
+        )
 
     def get_commands(
         self, limit: int | None = None, current_session_only: bool = False
     ) -> list[str]:
         """Get command history ordered by newest first."""
-        from llmling_agent_storage.sql_provider.models import CommandHistory
-
-        return CommandHistory.get_commands(
+        return self._agent.context.storage.get_commands_sync(
             agent_name=self._agent.name,
             session_id=str(self._agent.conversation.id),
             limit=limit,
