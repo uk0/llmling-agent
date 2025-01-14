@@ -453,3 +453,29 @@ class TalkManager:
     def stats(self) -> TeamTalkStats:
         """Get aggregated statistics for all connections."""
         return TeamTalkStats(stats=[conn.stats for conn in self._connections])
+
+    def get_connections(self, recursive: bool = True) -> list[Talk]:
+        """Get all Talk connections, flattening TeamTalks.
+
+        Args:
+            recursive: Whether to include connections from nested TeamTalks
+
+        Returns:
+            List of all individual Talk connections
+        """
+
+        def _collect_talks(item: Talk | TeamTalk) -> list[Talk]:
+            match item:
+                case Talk():
+                    return [item]
+                case TeamTalk():
+                    talks = []
+                    for subitem in item:
+                        talks.extend(_collect_talks(subitem))
+                    return talks
+
+        talks: list[Talk] = []
+        for conn in self._connections:
+            talks.extend(_collect_talks(conn))
+
+        return talks
