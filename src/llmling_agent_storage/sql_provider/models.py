@@ -127,7 +127,6 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
 
-
 class ToolCall(SQLModel, table=True):  # type: ignore[call-arg]
     """Record of a tool being called during a conversation."""
 
