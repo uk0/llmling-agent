@@ -178,6 +178,11 @@ tasks:
      result = await agent.run("Analyze this code...")
  ```
 
+!!! note
+    You can get linter support by adding this line at the top of your YAML:
+    `# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json`
+    Versioned config files will arrive soon!
+
  ## Next Steps
  - [Environment Configuration](environment.md) for detailed tool/resource setup
  - [Response Types](responses.md) for structured output configuration

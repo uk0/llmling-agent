@@ -1,0 +1,133 @@
+# Task Configuration
+
+Tasks define reusable operations that agents can execute. They can be defined in YAML and include:
+- Prompt templates
+- Required tools
+- Knowledge sources
+- Result type validation
+
+## Basic Task
+Simple task with prompt and result type:
+
+```yaml
+tasks:
+  analyze_code:
+    prompt: "Analyze the code in src directory for potential improvements"
+    result_type: "myapp.types.AnalysisResult"
+    description: "Analyze code quality and suggest improvements"
+```
+
+## Knowledge Sources
+Tasks can load context from various sources:
+
+```yaml
+tasks:
+  summarize_docs:
+    prompt: "Summarize the documentation changes"
+    result_type: "myapp.types.DocSummary"
+    knowledge:
+      # Simple file paths
+      paths:
+        - "docs/**/*.md"
+        - "README.md"
+
+      # Rich resource definitions
+      resources:
+        - type: "cli"
+          command: "git diff --name-only"
+        - type: "repository"
+          url: "https://github.com/user/repo"
+          paths: ["docs/"]
+
+      # Context prompts
+      prompts:
+        - "Consider the project's documentation standards..."
+```
+
+## Required Tools
+Specify tools needed for the task:
+
+```yaml
+tasks:
+  security_audit:
+    prompt: "Perform security audit on the codebase"
+    result_type: "myapp.types.AuditReport"
+    tools:
+      - "analyze_dependencies"
+      - "check_vulnerabilities"
+      - name: "custom_scanner"
+        import_path: "myapp.tools.security.scan_code"
+        description: "Custom security scanner"
+```
+
+## Dependencies and Context
+Tasks can require specific data:
+
+```yaml
+tasks:
+  review_pr:
+    prompt: "Review the pull request changes"
+    result_type: "myapp.types.ReviewResult"
+    deps: "myapp.types.PRContext"  # Type hint for required context
+    min_context_tokens: 1000       # Minimum context window size
+```
+
+## Using Tasks
+Execute tasks through the API or CLI:
+
+```python
+# Python API
+result = await agent.run_task("analyze_code")
+
+# CLI
+llmling-agent task run analyze_code --agent my-agent
+```
+
+## Complete Example
+Complex task with all features:
+
+```yaml
+tasks:
+  deep_code_review:
+    description: "Perform comprehensive code review"
+    prompt: "Review the code changes focusing on:"
+    result_type: "myapp.types.ReviewResult"
+    deps: "myapp.types.CodeContext"
+
+    # Required knowledge
+    knowledge:
+      paths: ["src/**/*.py"]
+      resources:
+        - type: "cli"
+          command: "git diff main"
+        - type: "repository"
+          url: "https://github.com/user/repo"
+      prompts:
+        - "Consider these coding standards..."
+        - "Focus on performance aspects..."
+
+    # Required tools
+    tools:
+      - "analyze_complexity"
+      - "check_style"
+      - name: "custom_metrics"
+        import_path: "myapp.tools.metrics"
+
+    # Context requirements
+    min_context_tokens: 2000
+```
+
+## Task Registry
+All tasks are available through the agent pool:
+
+```python
+# Get task definition
+task = pool.get_task("analyze_code")
+
+# Register new task
+pool.register_task("new_task", task_definition)
+
+# List available tasks
+tasks = pool.list_tasks()
+```
+```
