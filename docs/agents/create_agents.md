@@ -1,0 +1,149 @@
+# Creating Agents
+
+There are several ways to create and initialize agents. Since agents can have complex setup requirements (MCP servers, runtime configuration, etc.), proper initialization is important.
+
+## Main Approach: AgentPool
+The recommended way to create agents is through `AgentPool`:
+
+```python
+async with AgentPool.open("agents.yml") as pool:
+    # Get basic agent
+    agent = pool.get_agent("analyzer")
+
+    # Get agent with model override
+    agent = pool.get_agent("analyzer", model_override="gpt-4")
+
+    # Get agent with dependencies
+    agent = pool.get_agent("reviewer", deps=pr_context)
+
+    # Get structured agent
+    agent = pool.get_agent("validator", return_type=ValidationResult)
+```
+
+This ensures:
+- Proper async initialization of all components
+- MCP server setup
+- Runtime configuration
+- Agent interconnections
+- Resource loading
+
+## Direct Agent Creation
+For simpler cases, agents can be created directly:
+
+```python
+# Basic async context
+async with Agent.open("config.yml") as agent:
+    result = await agent.run("Hello!")
+
+# With specific configuration
+async with Agent.open_agent(manifest, "agent_name") as agent:
+    result = await agent.run("Hello!")
+
+# Manual instantiation (requires more setup)
+agent = Agent(runtime=runtime, context=context)
+async with agent:
+    result = await agent.run("Hello!")
+```
+
+## Advanced Pool Creation
+`AgentPool` offers additional creation methods:
+
+```python
+# Create from manifest
+manifest = AgentsManifest.from_file("agents.yml")
+pool = AgentPool(manifest)
+
+# Create with specific agents
+pool = AgentPool(manifest, agents_to_load=["analyzer", "summarizer"])
+
+# Create with manual configuration
+pool = AgentPool(manifest, connect_agents=False)
+
+# Create with confirmation callback
+pool = AgentPool(manifest, confirmation_callback=my_callback)
+```
+
+## Importance of Async Initialization
+Agents require proper async initialization for:
+1. MCP server setup and tool registration
+2. Runtime configuration loading
+3. Resource initialization
+4. Connection setup
+
+Always use async context managers:
+```python
+# ❌ Wrong - missing async init
+agent = Agent.from_config("config.yml")
+result = await agent.run("Hello")
+
+# ✅ Correct - proper async initialization
+async with Agent.open("config.yml") as agent:
+    result = await agent.run("Hello")
+```
+
+## Dynamic Agent Creation
+Agents can be created dynamically in several ways:
+
+### CLI Creation
+The CLI can create agents on-the-fly:
+```bash
+# Create and run agent from template
+llmling-agent quickstart code-reviewer
+
+# Add agent from file
+llmling-agent add reviewer.yml
+```
+
+### Ephemeral Agents via Capabilities
+Agents with `can_create_delegates` capability can spawn temporary agents:
+
+```yaml
+agents:
+  orchestrator:
+    capabilities:
+      can_create_delegates: true
+    # ...
+
+# In Python
+await agent.spawn_delegate(
+    task="Research this topic",
+    system_prompt="You are a research specialist...",
+    model="gpt-4",
+    connect_back=True  # Send results back to creator
+)
+```
+
+### Worker Agents
+Agents can be registered as tools for other agents:
+
+```python
+# Register agent as tool
+parent.register_worker(
+    worker,
+    name="research_tool",
+    reset_history_on_run=True,
+    pass_message_history=False
+)
+
+# In YAML config
+agents:
+  parent:
+    workers:
+      - name: "researcher"
+        reset_history_on_run: true
+```
+
+## Best Practices
+1. Use `AgentPool` for managing multiple agents
+2. Always use async context managers
+3. Consider using templates for common agent types
+4. Use proper cleanup through context managers
+5. Configure MCP servers at the pool level when possible
+```
+
+Would you like me to:
+1. Add more examples for specific use cases?
+2. Add details about agent configuration options?
+3. Expand on agent capabilities and limitations?
+4. Include more CLI examples?
+5. Add troubleshooting section?
