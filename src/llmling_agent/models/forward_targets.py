@@ -12,7 +12,7 @@ from upath import UPath
 ConnectionType = Literal["run", "context", "forward"]
 
 
-class ForwardTarget(BaseModel):
+class ConnectionConfig(BaseModel):
     """Base model for message forwarding targets."""
 
     type: str = Field(init=False)
@@ -27,7 +27,7 @@ class ForwardTarget(BaseModel):
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
 
-class AgentTarget(ForwardTarget):
+class AgentConnectionConfig(ConnectionConfig):
     """Forward messages to another agent."""
 
     type: Literal["agent"] = Field("agent", init=False)
@@ -46,7 +46,7 @@ class AgentTarget(ForwardTarget):
     """Delay before running the task."""
 
 
-class FileTarget(ForwardTarget):
+class FileConnectionConfig(ConnectionConfig):
     """Save messages to a file."""
 
     type: Literal["file"] = Field("file", init=False)
@@ -65,4 +65,6 @@ class FileTarget(ForwardTarget):
         return UPath(self.path.format(**variables))
 
 
-ForwardingTarget = Annotated[AgentTarget | FileTarget, Field(discriminator="type")]
+ForwardingTarget = Annotated[
+    AgentConnectionConfig | FileConnectionConfig, Field(discriminator="type")
+]

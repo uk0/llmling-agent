@@ -82,7 +82,7 @@ agents:
       - "linter"  # shorthand syntax
 
     # Message routing
-    forward_to:
+    connections:
       - type: "agent"
         name: "reporter"
         connection_type: "run"  # "run" | "context" | "forward"

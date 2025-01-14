@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -16,14 +16,14 @@ agents:
     agent1:
         model: openai:gpt-4o-mini
         name: TestAgent 1
-        forward_to:
+        connections:
             - type: agent
               name: agent2
 
     agent2:
         model: openai:gpt-4o-mini
         name: TestAgent 2
-        forward_to:
+        connections:
             - type: agent
               name: agent3
 
@@ -38,7 +38,7 @@ agents:
     agent1:
         model: openai:gpt-4o-mini
         name: TestAgent
-        forward_to:
+        connections:
             - type: agent
               name: nonexistent
 """
@@ -49,7 +49,7 @@ agents:
     agent1:
         model: openai:gpt-4o-mini
         name: TestAgent 1
-        forward_to:
+        connections:
             - type: agent
               name: agent2
 
@@ -85,7 +85,7 @@ def invalid_config(tmp_path: Path) -> Path:
 
 async def test_agent_forwarding(basic_config: Path):
     """Test that messages get forwarded through the agent chain."""
-    manifest = AgentsManifest.from_file(basic_config)
+    manifest = AgentsManifest[Any, Any].from_file(basic_config)
 
     async with AgentPool.open(manifest) as pool:
         agent1 = pool.get_agent("agent1")
@@ -119,7 +119,7 @@ async def test_agent_forwarding(basic_config: Path):
 
 async def test_partial_chain(partial_config: Path):
     """Test forwarding with only some agents loaded."""
-    manifest = AgentsManifest.from_file(partial_config)
+    manifest = AgentsManifest[Any, Any].from_file(partial_config)
 
     async with AgentPool.open(manifest) as pool:
         agent1 = pool.get_agent("agent1")
@@ -136,7 +136,7 @@ async def test_partial_chain(partial_config: Path):
 
 async def test_invalid_forward_target(invalid_config: Path):
     """Test error when forwarding to non-existent agent."""
-    manifest = AgentsManifest.from_file(invalid_config)
+    manifest = AgentsManifest[Any, Any].from_file(invalid_config)
 
     with pytest.raises(ValueError, match="Forward target.*not loaded"):
         async with AgentPool.open(manifest):

@@ -274,14 +274,14 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
     def _setup_connections(self):
         """Set up forwarding connections between agents."""
-        from llmling_agent.models.forward_targets import AgentTarget
+        from llmling_agent.models.forward_targets import AgentConnectionConfig
 
         for name, config in self.manifest.agents.items():
             if name not in self.agents:
                 continue
             agent = self.agents[name]
-            for target in config.forward_to:
-                if isinstance(target, AgentTarget):
+            for target in config.connections:
+                if isinstance(target, AgentConnectionConfig):
                     if target.name not in self.agents:
                         msg = f"Forward target {target.name} not loaded for {name}"
                         raise ValueError(msg)
@@ -290,14 +290,14 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
     def _connect_signals(self):
         """Set up forwarding connections between agents."""
-        from llmling_agent.models.forward_targets import AgentTarget
+        from llmling_agent.models.forward_targets import AgentConnectionConfig
 
         for name, config in self.manifest.agents.items():
             if name not in self.agents:
                 continue
             agent = self.agents[name]
-            for target in config.forward_to:
-                if isinstance(target, AgentTarget):
+            for target in config.connections:
+                if isinstance(target, AgentConnectionConfig):
                     if target.name not in self.agents:
                         msg = f"Forward target {target.name} not loaded for {name}"
                         raise ValueError(msg)

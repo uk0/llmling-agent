@@ -181,7 +181,7 @@ class AgentConfig(BaseModel):
     knowledge: Knowledge | None = None
     """Knowledge sources for this agent."""
 
-    forward_to: list[ForwardingTarget] = Field(default_factory=list)
+    connections: list[ForwardingTarget] = Field(default_factory=list)
     """Targets to forward results to."""
 
     workers: list[WorkerConfig] = Field(default_factory=list)
