@@ -87,9 +87,7 @@ class HumanProvider(AgentProvider):
             self.commands.register_command(cmd)
         # create dummy AgentPoolView until tht part is untangled
         assert self.context.agent
-        self._view = AgentPoolView(
-            self.context.agent, pool=self.context.pool, wait_chain=True
-        )
+        self._view = AgentPoolView(self.context.agent, pool=self.context.pool)
 
     def __repr__(self) -> str:
         return f"Human({self.name!r})"

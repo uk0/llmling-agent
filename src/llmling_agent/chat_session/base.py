@@ -71,19 +71,17 @@ class AgentPoolView:
         agent: AnyAgent[Any, Any],
         *,
         pool: AgentPool | None = None,
-        wait_chain: bool = True,
     ):
         """Initialize chat session.
 
         Args:
             agent: The LLMling agent to use
             pool: Optional agent pool for multi-agent interactions
-            wait_chain: Whether to wait for chain completion
         """
         # Basic setup that doesn't need async
         self._agent = agent
         self._pool = pool
-        self.wait_chain = wait_chain
+        self.wait_chain = True
         # forward ToolManager signals to ours
         self._agent.tools.events.added.connect(self.tool_added.emit)
         self._agent.tools.events.removed.connect(self.tool_removed.emit)
@@ -101,19 +99,17 @@ class AgentPoolView:
         agent: Agent[Any],
         *,
         pool: AgentPool | None = None,
-        wait_chain: bool = True,
     ) -> AgentPoolView:
         """Create and initialize a new agent pool view.
 
         Args:
             agent: The primary agent to interact with
             pool: Optional agent pool for multi-agent interactions
-            wait_chain: Whether to wait for chain completion
 
         Returns:
             Initialized AgentPoolView
         """
-        view = cls(agent, pool=pool, wait_chain=wait_chain)
+        view = cls(agent, pool=pool)
         await view.initialize()
         return view
 

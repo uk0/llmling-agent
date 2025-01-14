@@ -36,7 +36,6 @@ class InteractiveSession:
         agent: Agent[Any],
         *,
         pool: AgentPool | None = None,
-        wait_chain: bool = True,
         show_log_in_chat: bool = False,
         stream: bool = False,
         render_markdown: bool = False,
@@ -46,7 +45,6 @@ class InteractiveSession:
         Args:
             agent: The LLMling agent to use
             pool: Optional agent pool for multi-agent interactions
-            wait_chain: Whether to wait for chain completion
             show_log_in_chat: Whether to show logs in chat
             stream: Whether to use streaming mode
             render_markdown: Whether to render markdown in responses
@@ -63,7 +61,6 @@ class InteractiveSession:
         self._chat_session: AgentPoolView | None = None
         self._prompt: PromptSession | None = None
         self._pool = pool
-        self._wait_chain = wait_chain
         self._completer: PromptToolkitCompleter | None = None
 
     def _connect_signals(self):
@@ -210,11 +207,7 @@ class InteractiveSession:
     async def start(self):
         """Start interactive session."""
         try:
-            self._chat_session = await AgentPoolView.create(
-                self.agent,
-                pool=self._pool,
-                wait_chain=self._wait_chain,
-            )
+            self._chat_session = await AgentPoolView.create(self.agent, pool=self._pool)
             self._connect_signals()
             self._setup_prompt()
 
@@ -255,9 +248,8 @@ async def start_interactive_session(
     agent: Agent[Any],
     *,
     pool: AgentPool | None = None,
-    wait_chain: bool = True,
     stream: bool = False,
 ):
     """Start an interactive chat session."""
-    session = InteractiveSession(agent, pool=pool, wait_chain=wait_chain, stream=stream)
+    session = InteractiveSession(agent, pool=pool, stream=stream)
     await session.start()

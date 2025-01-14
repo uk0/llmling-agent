@@ -33,7 +33,6 @@ def chat_command(
     model: str | None = t.Option(None, "--model", "-m", help="Override agent's model"),
     stream: bool = t.Option(True, STREAM_CMD, help=STREAM_HELP),
     connections: list[str] = t.Option(None, "--forward-to", "-f", help=FORWARD_HELP),  # noqa: B008
-    wait_chain: bool = t.Option(True, "--wait-chain", help="Wait for chain completion"),
     log_level: str = t.Option(
         "WARNING",
         "--log-level",
@@ -86,12 +85,7 @@ def chat_command(
                         target_agent = pool.get_agent(target)
                         agent.pass_results_to(target_agent)
 
-                await start_interactive_session(
-                    agent,
-                    pool=pool,
-                    stream=stream,
-                    wait_chain=wait_chain,
-                )
+                await start_interactive_session(agent, pool=pool, stream=stream)
 
         show_logs = False
         output = DefaultOutputWriter() if show_logs else None
