@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
+from py2openai import create_constructor_schema
 from pydantic import BaseModel
 from toprompt import to_prompt
 from typing_extensions import TypeVar
@@ -14,6 +15,7 @@ from llmling_agent.delegation.controllers import interactive_controller
 from llmling_agent.delegation.pool import AgentPool
 from llmling_agent.delegation.router import CallbackRouter
 from llmling_agent.log import get_logger
+from llmling_agent.utils.basemodel_convert import get_ctor_basemodel
 
 
 if TYPE_CHECKING:
@@ -33,6 +35,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 TResult = TypeVar("TResult")
 TDeps = TypeVar("TDeps")
+ExtractionMode = Literal["structured", "tool_calls"]
 
 
 class LLMPick(BaseModel):
@@ -389,19 +392,45 @@ List your selections, one per line, followed by your reasoning."""
         self,
         text: str,
         as_type: type[T],
+        *,
+        mode: ExtractionMode = "structured",
         prompt: AnyPromptType | None = None,
         include_tools: bool = False,
     ) -> T:
-        """Extract single instance of type from text."""
-        from py2openai import create_constructor_schema
+        """Extract single instance of type from text.
 
+        Args:
+            text: Text to extract from
+            as_type: Type to extract
+            mode: Extraction approach:
+                - "structured": Use Pydantic models (more robust)
+                - "tool_calls": Use tool calls (more flexible)
+            prompt: Optional custom prompt
+            include_tools: Whether to include other tools (tool_calls mode only)
+        """
+        if mode == "structured":
+            # Create model for single instance
+            item_model = get_ctor_basemodel(as_type)
+
+            # Create extraction prompt
+            final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
+
+            class Extraction(BaseModel):
+                instance: item_model  # type: ignore
+                # explanation: str | None = None
+
+            result = await self.agent.to_structured(Extraction).run(final_prompt)
+
+            # Convert model instance to actual type
+            return as_type(**result.content.instance.model_dump())  # type: ignore
+
+        # Legacy tool-calls approach
         schema = create_constructor_schema(as_type).model_dump_openai()["function"]
 
         async def construct(**kwargs: Any) -> T:
             """Construct instance from extracted data."""
             return as_type(**kwargs)
 
-        # Use structured agent for extraction
         structured = self.agent.to_structured(as_type)
         structured.tools.register_tool(
             construct,
@@ -413,54 +442,96 @@ List your selections, one per line, followed by your reasoning."""
             construct,
             exclusive=not include_tools,
         ):
-            result = await structured.run(final_prompt)
-        return result.content
+            result = await structured.run(final_prompt)  # type: ignore
+        return result.content  # type: ignore
 
     async def extract_multiple[T](
         self,
         text: str,
         as_type: type[T],
         *,
+        mode: ExtractionMode = "structured",
         min_items: int = 1,
         max_items: int | None = None,
         prompt: AnyPromptType | None = None,
         include_tools: bool = False,
     ) -> list[T]:
-        """Extract multiple instances of type from text."""
-        from py2openai import create_constructor_schema
+        """Extract multiple instances of type from text.
 
+        Args:
+            text: Text to extract from
+            as_type: Type to extract
+            mode: Extraction approach:
+                - "structured": Use Pydantic models (more robust)
+                - "tool_calls": Use tool calls (more flexible)
+            min_items: Minimum number of instances to extract
+            max_items: Maximum number of instances (None=unlimited)
+            prompt: Optional custom prompt
+            include_tools: Whether to include other tools (tool_calls mode only)
+        """
+        if mode == "structured":
+            # Create model for individual instance
+            item_model = get_ctor_basemodel(as_type)
+
+            # Create extraction prompt
+            final_prompt = prompt or "\n".join([
+                f"Extract {as_type.__name__} instances from text.",
+                "Requirements:",
+                f"- Extract at least {min_items} instances",
+                f"- Extract at most {max_items} instances" if max_items else "",
+                "\nText to analyze:",
+                text,
+            ])
+
+            class Extraction(BaseModel):
+                instances: list[item_model]  # type: ignore
+                # explanation: str | None = None
+
+            result = await self.agent.to_structured(Extraction).run(final_prompt)
+
+            # Validate counts
+            num_instances = len(result.content.instances)
+            if len(result.content.instances) < min_items:
+                msg = f"Found only {num_instances} instances, need {min_items}"
+                raise ValueError(msg)
+
+            if max_items and num_instances > max_items:
+                msg = f"Found {num_instances} instances, max is {max_items}"
+                raise ValueError(msg)
+
+            # Convert model instances to actual type
+            return [
+                as_type(**instance.model_dump())  # type: ignore
+                for instance in result.content.instances
+            ]
+
+        # Legacy tool-calls approach
         instances: list[T] = []
+        schema = create_constructor_schema(as_type).model_dump_openai()["function"]
 
         async def add_instance(**kwargs: Any) -> str:
             """Add an extracted instance."""
-            instance = as_type(**kwargs)
             if max_items and len(instances) >= max_items:
                 msg = f"Maximum number of items ({max_items}) reached"
                 raise ValueError(msg)
+            instance = as_type(**kwargs)
             instances.append(instance)
             return f"Added {instance}"
 
-        # Get class and init documentation for better prompting
-        schema = create_constructor_schema(as_type).model_dump_openai()["function"]
-
-        instructions = "\n".join([
-            f"You are an expert at extracting {as_type.__name__} instances from text.",
-            "You must:",
-            f"1. Extract at least {min_items} instances",
-            f"2. Extract at most {max_items} instances" if max_items else "",
-            "3. Use add_instance for EACH instance found",
-            "",
-            f"Type information:\n{schema['description']}",
-            "\nText to process:",
-            text,
-        ])
-
         structured = self.agent.to_structured(as_type)
-        with structured.tools.temporary_tools(
-            add_instance,
-            exclusive=not include_tools,
-        ):
-            await structured.run(prompt or instructions)
+        with structured.tools.temporary_tools(add_instance, exclusive=not include_tools):
+            # Create extraction prompt
+            final_prompt = prompt or "\n".join([
+                f"Extract {as_type.__name__} instances from text.",
+                "You must:",
+                f"1. Extract at least {min_items} instances",
+                f"2. Extract at most {max_items} instances" if max_items else "",
+                "3. Use add_instance for EACH instance found",
+                f"\nType information:\n{schema['description']}",
+                "\nText to analyze:",
+                text,
+            ])
+            await structured.run(final_prompt)
 
         if len(instances) < min_items:
             msg = f"Found only {len(instances)} instances, need at least {min_items}"
