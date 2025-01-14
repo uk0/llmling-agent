@@ -127,26 +127,11 @@ class AgentPoolView:
         Raises:
             ValueError: If target agent not found or pool not available
         """
-        logger.debug("Connecting to %s (wait=%s)", target, wait)
-        if not self._pool:
-            msg = "No agent pool available"
-            raise ValueError(msg)
-
-        try:
-            target_agent = self._pool.get_agent(target)
-        except KeyError as e:
-            msg = f"Target agent not found: {target}"
-            raise ValueError(msg) from e
-
+        assert self._pool
+        target_agent = self._pool.get_agent(target)
         self._agent.pass_results_to(target_agent)
         if wait is not None:
             self.wait_chain = wait
-
-    def _ensure_initialized(self):
-        """Check if session is initialized."""
-        if not self._initialized:
-            msg = "Session not initialized. Call initialize() first."
-            raise RuntimeError(msg)
 
     async def initialize(self):
         """Initialize async resources and load data."""
@@ -218,7 +203,6 @@ class AgentPoolView:
             output: Output writer implementation
             metadata: Optional interface-specific metadata
         """
-        self._ensure_initialized()
         meta = metadata or {}
         ctx = self.commands.create_context(self, output_writer=output, metadata=meta)
         await self.commands.execute_command(command_str, ctx)
@@ -269,7 +253,6 @@ class AgentPoolView:
         metadata: dict[str, Any] | None = None,
     ) -> ChatMessage[str] | AsyncIterator[ChatMessage[str]]:
         """Send a message and get response(s)."""
-        self._ensure_initialized()
         if not content.strip():
             msg = "Message cannot be empty"
             raise ValueError(msg)
