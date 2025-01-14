@@ -207,7 +207,7 @@ if __name__ == "__main__":
 
     # Create agent with LiteLLM provider
     agent = Agent[Any](
-        agent_type=provider,
+        provider=provider,
         model="openai/gpt-3.5-turbo",  # or any model supported by LiteLLM
         name="litellm-test",
         debug=True,

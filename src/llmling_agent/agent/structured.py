@@ -233,7 +233,7 @@ class StructuredAgent[TDeps, TResult]:
             name=name or getattr(callback, "__name__", "processor"),  # type: ignore
             debug=debug,
         )
-        agent = Agent[TDeps](agent_type=provider)
+        agent = Agent[TDeps](provider=provider)
         if deps is not None:
             agent.context.data = deps
 

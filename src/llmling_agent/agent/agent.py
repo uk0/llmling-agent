@@ -6,7 +6,7 @@ import asyncio
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from os import PathLike
 import time
-from typing import TYPE_CHECKING, Any, Literal, Self, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, cast, overload
 from uuid import uuid4
 
 from llmling import (
@@ -70,6 +70,37 @@ AgentType = Literal["ai", "human", "litellm"] | AgentProvider
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
 
+class AgentKwargs(TypedDict, total=False):
+    # Core Identity
+    description: str | None  # What it does
+
+    # Model Configuration
+    model: ModelType  # Which model to use
+    system_prompt: str | Sequence[str]  # How it should behave
+    model_settings: dict[str, Any]  # Model-specific settings
+
+    # Runtime Environment
+    runtime: RuntimeConfig | Config | StrPath | None  # Resources and tools
+    tools: Sequence[ToolType] | None  # Available tools
+    mcp_servers: list[str | MCPServerConfig] | None  # External tool servers
+
+    # Execution Settings
+    retries: int  # Operation retry count
+    result_retries: int | None  # Validation retry count
+    tool_choice: bool | str | list[str]  # Tool usage control
+    end_strategy: EndStrategy  # Tool call handling
+    defer_model_check: bool  # Lazy model validation
+
+    # Context & State
+    context: AgentContext[Any] | None  # Custom context/deps
+    session: SessionIdType | SessionQuery  # Conversation recovery
+
+    # Behavior Control
+    enable_db_logging: bool  # History logging
+    confirmation_callback: ConfirmationCallback | None  # Tool confirmation
+    debug: bool  # Debug output
+
+
 class Agent[TDeps](TaskManagerMixin):
     """Agent for AI-powered interaction with LLMling resources and tools.
 
@@ -100,14 +131,14 @@ class Agent[TDeps](TaskManagerMixin):
 
     def __init__(
         self,
-        runtime: RuntimeConfig | Config | StrPath | None = None,
-        *,
-        context: AgentContext[TDeps] | None = None,
-        agent_type: AgentType = "ai",
-        session: SessionIdType | SessionQuery = None,
-        model: ModelType = None,
-        system_prompt: str | Sequence[str] = (),
         name: str = "llmling-agent",
+        provider: AgentType = "ai",
+        *,
+        model: ModelType = None,
+        runtime: RuntimeConfig | Config | StrPath | None = None,
+        context: AgentContext[TDeps] | None = None,
+        session: SessionIdType | SessionQuery = None,
+        system_prompt: str | Sequence[str] = (),
         description: str | None = None,
         tools: Sequence[ToolType] | None = None,
         mcp_servers: list[str | MCPServerConfig] | None = None,
@@ -126,7 +157,7 @@ class Agent[TDeps](TaskManagerMixin):
         Args:
             runtime: Runtime configuration providing access to resources/tools
             context: Agent context with capabilities and configuration
-            agent_type: Agent type to use (ai: PydanticAIProvider, human: HumanProvider)
+            provider: Agent type to use (ai: PydanticAIProvider, human: HumanProvider)
             session: Optional id or Session query to recover a conversation
             model: The default model to use (defaults to GPT-4)
             system_prompt: Static system prompts to use for this agent
@@ -187,7 +218,7 @@ class Agent[TDeps](TaskManagerMixin):
         self.conversation = ConversationManager(self, session, all_prompts)
 
         # Initialize provider based on type
-        match agent_type:
+        match provider:
             case "ai":
                 if model and not isinstance(model, str):
                     from pydantic_ai import models
@@ -210,7 +241,7 @@ class Agent[TDeps](TaskManagerMixin):
 
                 self._provider = LiteLLMProvider(name=name, debug=debug, retries=retries)
             case AgentProvider():
-                self._provider = agent_type
+                self._provider = provider
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)

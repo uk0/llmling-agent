@@ -350,7 +350,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
             # Create agent with runtime and context
             agent = Agent[Any](
-                agent_type=config.get_provider(),
+                provider=config.get_provider(),
                 runtime=runtime,
                 context=context,
                 result_type=None,  # type: ignore[arg-type]

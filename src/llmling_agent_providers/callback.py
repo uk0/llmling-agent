@@ -116,7 +116,7 @@ if __name__ == "__main__":
         from llmling_agent.agent.agent import Agent
 
         uppercase = Agent[Any](
-            agent_type=CallbackProvider[Any](str.upper, name="uppercase")
+            provider=CallbackProvider[Any](str.upper, name="uppercase")
         )
 
         # Normal usage
