@@ -327,11 +327,21 @@ class TalkManager:
 
     @overload
     def connect_agent_to(
-        self, other: AnyAgent[Any, Any] | str, **kwargs: Any
+        self,
+        other: AnyAgent[Any, Any] | str,
+        connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
     ) -> Talk: ...
 
     @overload
-    def connect_agent_to(self, other: Team[Any], **kwargs: Any) -> TeamTalk: ...
+    def connect_agent_to(
+        self,
+        other: Team[Any],
+        connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
+    ) -> TeamTalk: ...
 
     def connect_agent_to(
         self,
@@ -339,7 +349,6 @@ class TalkManager:
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
-        **kwargs: Any,
     ) -> Talk | TeamTalk:
         """Handle single agent connections."""
         from llmling_agent.agent import Agent, StructuredAgent
