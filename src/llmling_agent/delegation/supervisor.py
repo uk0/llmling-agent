@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Protocol
 
-from slashed import CommandContext, CommandStore, DefaultOutputWriter, SlashedCommand
+from slashed import CommandContext, CommandStore, QueueOutputWriter, SlashedCommand
 
 from llmling_agent.chat_session.base import AgentPoolView
 from llmling_agent.log import get_logger
@@ -86,16 +86,6 @@ class OutputHandler(Protocol):
             message: Text to display
         """
         ...
-
-
-class QueueOutputWriter(DefaultOutputWriter):
-    """Output writer that puts messages in queue."""
-
-    def __init__(self, queue: asyncio.Queue[str]):
-        self.queue = queue
-
-    async def print(self, message: str):
-        await self.queue.put(message)
 
 
 class ConsoleInputHandler:
