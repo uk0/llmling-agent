@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from asyncio import Event
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
@@ -28,12 +28,12 @@ CHANGE_TO_TYPE: dict[Change, ChangeType] = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class EventData:
     """Base class for event data."""
 
     source: str
-    timestamp: datetime
+    timestamp: datetime = field(default_factory=datetime.now)
 
     @classmethod
     def create(cls, source: str, **kwargs: Any) -> Self:
@@ -45,7 +45,7 @@ class EventData:
         """Convert event to agent prompt."""
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class FileEvent(EventData):
     """File system event."""
 
@@ -54,6 +54,40 @@ class FileEvent(EventData):
 
     def to_prompt(self) -> str:
         return f"File {self.type}: {self.path}"
+
+
+@dataclass(frozen=True, kw_only=True)
+class UIEvent(EventData):
+    """Event triggered through UI interaction."""
+
+    type: Literal["command", "message", "agent_command", "agent_message"]
+    """Type of UI interaction that triggered this event."""
+
+    content: str
+    """The actual content (command string, voice command, etc.)."""
+
+    args: list[str] = field(default_factory=list)
+    """Additional arguments for the interaction."""
+
+    kwargs: dict[str, Any] = field(default_factory=dict)
+    """Additional options/parameters."""
+
+    agent_name: str | None = None
+    """Target agent for @agent messages/commands."""
+
+    def to_prompt(self) -> str:
+        """Convert event to agent prompt."""
+        match self.type:
+            case "command":
+                args_str = " ".join(self.args)
+                kwargs_str = " ".join(f"--{k}={v}" for k, v in self.kwargs.items())
+                return f"UI Command: /{self.content} {args_str} {kwargs_str}"
+            case "shortcut" | "gesture":
+                return f"UI Action: {self.content}"
+            case "voice":
+                return f"Voice Command: {self.content}"
+            case _:
+                raise ValueError(self.type)
 
 
 class EventSourceConfig(BaseModel):
@@ -123,28 +157,7 @@ class WebhookConfig(EventSourceConfig):
     """Optional secret for request validation."""
 
 
-class ManualTriggerConfig(EventSourceConfig):
-    """Manual trigger configuration.
-
-    Defines actions that can be triggered directly by users through CLI for example.
-
-    Unlike other triggers, these don't activate automatically but provide
-    a way to define reusable agent interactions.
-    """
-
-    type: Literal["manual"] = Field("manual", init=False)
-    """Type discriminator for manual triggers."""
-
-    prompt: str
-    """Prompt to send to the agent when triggered."""
-
-    description: str | None = None
-    """Human-readable description of what this trigger does."""
-
-
-EventConfig = Annotated[
-    FileWatchConfig | WebhookConfig | ManualTriggerConfig, Field(discriminator="type")
-]
+EventConfig = Annotated[FileWatchConfig | WebhookConfig, Field(discriminator="type")]
 
 
 class ExtensionFilter:

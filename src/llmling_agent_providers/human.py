@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from llmling import ToolError
 import logfire
+from slashed import CommandStore, DefaultOutputWriter, parse_command
 
 from llmling_agent.log import get_logger
 from llmling_agent_providers import AgentProvider
@@ -69,14 +70,26 @@ class HumanProvider(AgentProvider):
         name: str = "human",
         timeout: int | None = None,
         show_context: bool = True,
+        command_store: CommandStore | None = None,
         debug: bool = False,
     ):
         """Initialize human provider."""
+        from llmling_agent.chat_session.base import AgentPoolView
+        from llmling_agent_commands import get_commands
+
         super().__init__(model=None)
         self.name = name or "human"
         self._debug = debug
         self._timeout = timeout
         self._show_context = show_context
+        self.commands = command_store or CommandStore()
+        for cmd in get_commands():
+            self.commands.register_command(cmd)
+        # create dummy AgentPoolView until tht part is untangled
+        assert self.context.agent
+        self._view = AgentPoolView(
+            self.context.agent, pool=self.context.pool, wait_chain=True
+        )
 
     def __repr__(self) -> str:
         return f"Human({self.name!r})"
@@ -201,3 +214,71 @@ class HumanProvider(AgentProvider):
         finally:
             # Cleanup if needed
             stream_result.is_complete = True
+
+    async def handle_input(self, content: str) -> None:
+        """Handle all human input."""
+        from llmling_agent.events.sources import UIEvent
+
+        if not content.strip():
+            return
+
+        # Store for generate_response if needed
+        self._last_response = content
+
+        try:
+            if content.startswith("/"):
+                # Regular command
+                parsed = parse_command(content[1:])
+                _event = UIEvent(
+                    source=self.name,
+                    type="command",
+                    content=parsed.name,
+                    args=parsed.args.args,
+                    kwargs=parsed.args.kwargs,
+                )
+                await self.commands.execute_command_with_context(
+                    parsed.name, context=self._view, output_writer=DefaultOutputWriter()
+                )
+
+            elif content.startswith("@"):
+                # Agent-specific interaction
+                agent_name, message = content[1:].split(maxsplit=1)
+                if not self.context.pool:
+                    logger.error("No agent pool available")
+                    return
+
+                agent = self.context.pool.get_agent(agent_name)
+                if message.startswith("/"):
+                    # Command for specific agent
+                    parsed = parse_command(message[1:])
+                    _event = UIEvent(
+                        source=self.name,
+                        type="agent_command",
+                        content=parsed.name,
+                        args=parsed.args.args,
+                        kwargs=parsed.args.kwargs,
+                        agent_name=agent_name,
+                    )
+                    await self.commands.execute_command_with_context(
+                        parsed.name,
+                        context=agent.context,
+                        output_writer=DefaultOutputWriter(),
+                    )
+                else:
+                    # Message for specific agent
+                    _event = UIEvent(
+                        source=self.name,
+                        type="agent_message",
+                        content=message,
+                        agent_name=agent_name,
+                    )
+                    await agent.run(message)
+
+            else:
+                # Regular message
+                _event = UIEvent(source=self.name, type="message", content=content)
+
+            # self.agent.message_received.emit(event)
+
+        except Exception:
+            logger.exception("Failed to handle input")
