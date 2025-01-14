@@ -225,12 +225,11 @@ class StructuredAgent[TDeps, TResult]:
             ```
         """
         from llmling_agent.agent.agent import Agent
-        from llmling_agent.models.messages import ChatMessage
         from llmling_agent_providers.callback import CallbackProvider
 
         provider = CallbackProvider[TDeps](
             callback,
-            name=name or getattr(callback, "__name__", "processor"),  # type: ignore
+            name=name or callback.__name__ or "processor",
             debug=debug,
         )
         agent = Agent[TDeps](provider=provider)
@@ -247,13 +246,4 @@ class StructuredAgent[TDeps, TResult]:
 
             if return_type.__origin__ is Awaitable:
                 return_type = return_type.__args__[0]
-
-        # If ChatMessage, get its type parameter
-        if (
-            return_type
-            and hasattr(return_type, "__origin__")
-            and return_type.__origin__ is ChatMessage
-        ):
-            return_type = return_type.__args__[0]
-
         return cls(agent, return_type or str)  # type: ignore

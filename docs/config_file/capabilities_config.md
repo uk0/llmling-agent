@@ -12,6 +12,7 @@ agents:
       can_list_agents: true        # Discover other available agents
       can_delegate_tasks: true     # Delegate tasks to other agents
       can_observe_agents: false    # Monitor other agents' activities
+      can_ask_agents: true    # Can ask other agents in the pool
 
       # History & Statistics Access
       history_access: "own"        # "none" | "own" | "all"
@@ -34,6 +35,7 @@ agents:
       # Agent Creation
       can_create_workers: true    # Create worker agents as tools
       can_create_delegates: true  # Spawn temporary delegate agents
+      can_add_agents: true  # Create new persistent agents in the pool
 ```
 
 ## Capability Details
@@ -42,6 +44,7 @@ agents:
 - `can_list_agents`: Allows discovering other agents in the pool
 - `can_delegate_tasks`: Enables sending tasks to other agents
 - `can_observe_agents`: Permits monitoring of other agents' activities
+- `can_ask_agents`: Can ask other agents in the pool
 
 ### History & Statistics Access
 - `history_access`: Controls access to conversation history
@@ -73,6 +76,7 @@ agents:
 ### Agent Creation
 - `can_create_workers`: Allows creating worker agents as tools
 - `can_create_delegates`: Enables spawning temporary delegate agents
+- `can_add_agents`: Allows creating new persistent agents in the pool
 
 ## Default Configuration
 By default, all capabilities are set to `false` or `"none"` for security. Enable only the capabilities that your agent needs.

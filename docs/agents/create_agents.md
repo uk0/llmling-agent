@@ -137,13 +137,4 @@ agents:
 1. Use `AgentPool` for managing multiple agents
 2. Always use async context managers
 3. Consider using templates for common agent types
-4. Use proper cleanup through context managers
-5. Configure MCP servers at the pool level when possible
 ```
-
-Would you like me to:
-1. Add more examples for specific use cases?
-2. Add details about agent configuration options?
-3. Expand on agent capabilities and limitations?
-4. Include more CLI examples?
-5. Add troubleshooting section?

@@ -3,10 +3,17 @@
 ## Core Components
 
 ### Agents
-An Agent in LLMling-agent is best thought of as an "agent framework" or "agent container" rather than an agent itself. It provides the infrastructure and orchestration for agent-like behavior, but delegates the actual "thinking" to providers.
+An Agent in LLMling-agent is best thought of as an "agent framework" or "agent container" rather than an agent itself.
+It provides the infrastructure and orchestration for agent-like behavior, but delegates the actual "thinking" to providers.
+Currently LLMling-Agents are backed by 4 possible providers:
+
+- AI Provider: Uses pydantic-ai and language models
+- Human Provider: Gets responses through human input
+- Callback Provider: Uses Python functions to process prompts to output
+- LiteLLM Provider: Uses LiteLLM for model access
 
 Key aspects:
-- Manages infrastructure (tools, history, connections)
+- Manages infrastructure (tools, history, connections, events, resources)
 - Handles message routing and tool execution
 - Provides type safety and validation
 - Integrates with storage and events
@@ -30,11 +37,24 @@ agents:
     ...
 ```
 
+Compared to other Frameworks, the YAML schema is a different beast and the capabilites to define agents statically are way more extensive.
+It is possible to:
+
+- Assign tools as well as special tools and capabilities
+- Connect the agent to other agents with different "Connection types"
+- Define and assign respone types for structured output in YAML
+- Define and activate event triggers in YAML
+- Set up (multiple) storage providers to write the conversations, tool calls, commands and much more to databases as well as files (pretty-printed or structured)
+- Load previous conversations and even describe the Queries in the yaml file using simple syntax
+- Assign agents to other agents for agent-as-a-tool-usage
+- Assign agents to other agents as a resource (which gets evaluated on start. Also works nested to define pipeline-like patterns in easy ways)
+
+
 The hierarchy is:
 - **AgentsManifest**: Top-level configuration (YAML file)
   - Defines available agents
   - Sets up shared resources
-  - Configures storage
+  - Configures storage providers
   - Defines response types
 - **AgentConfig**: Per-agent configuration (YAML section)
   - Sets model/provider
@@ -54,7 +74,7 @@ Providers implement the actual "agent behavior". The Agent class provides the fr
 - **AI Provider**: Uses pydantic-ai and language models
 - **Human Provider**: Gets responses through human input
 - **Callback Provider**: Uses Python functions
-- **LiteLLM Provider**: Uses LiteLLM for model access
+- **LiteLLM Provider**: Uses LiteLLM for model access. (still prototype-ish)
 
 ### Pools
 A Pool is a collection of agents that can:
@@ -96,36 +116,12 @@ Tasks are pre-defined operations that agents can execute. They include:
 ## Mental Model
 
 ### Message Flow
-1. User/system sends message to agent
+1. User/system sends message to agent (run call)
 2. Agent processes via provider
 3. Provider may use tools
 4. Response is generated
-5. Message may be forwarded via connections
-6. Results are collected and returned
+5. Message gets returned and possibly also forwarded via connections, which in turn may invoke other run calls
 
-### Component Relationships
-```mermaid
-graph TD
-    Pool -->|contains| Agent
-    Agent -->|uses| Provider
-    Agent -->|has| Tools
-    Agent -->|joins| Team
-    Agent -->|connects to| Agent
-    Agent -->|executes| Task
-    Provider -->|generates| Response
-    Task -->|requires| Tools
-    Task -->|produces| Response
-```
-
-### Lifecycle
-1. Pool initialization
-2. Agent creation and configuration
-3. Connection setup
-4. Message processing
-5. Tool execution
-6. Response handling
-7. Optional forwarding
-8. History storage
 
 ## Key Patterns
 
