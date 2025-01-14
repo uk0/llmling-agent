@@ -307,6 +307,8 @@ class TeamTalk(list["Talk | TeamTalk"]):
 class TalkManager:
     """Manages connections for both Agents and Teams."""
 
+    agent_connected = Signal(object)  # Agent
+
     def __init__(self, owner: AnyAgent[Any, Any] | Team[Any]):
         self.owner = owner
         self._connections: list[Talk | TeamTalk] = []
@@ -396,6 +398,9 @@ class TalkManager:
             raise TypeError(msg)
 
         targets = self._resolve_targets(other)
+        for target in targets:
+            self.agent_connected.emit(target)
+
         if isinstance(other, Team):
             conns = [
                 Talk(
@@ -437,6 +442,9 @@ class TalkManager:
             raise TypeError(msg)
 
         targets = self._resolve_targets(other)
+        for target in targets:
+            self.agent_connected.emit(target)
+
         conns = [
             Talk(
                 src,
