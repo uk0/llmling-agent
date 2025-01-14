@@ -138,9 +138,8 @@ class TaskManagerMixin:
                 # Running loop - use thread pool
                 import concurrent.futures
 
-                logger.debug(
-                    "Running coroutine in ThreadPoolExecutor due to active event loop"
-                )
+                msg = "Running coroutine %r in Executor due to active event loop"
+                logger.debug(msg, coro.__name__)
                 with concurrent.futures.ThreadPoolExecutor() as pool:
                     future = pool.submit(lambda: asyncio.run(coro))
                     return future.result()
