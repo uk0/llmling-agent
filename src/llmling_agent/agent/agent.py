@@ -72,6 +72,7 @@ JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
 class AgentKwargs(TypedDict, total=False):
     # Core Identity
+    provider: AgentType
     description: str | None  # What it does
 
     # Model Configuration

@@ -79,6 +79,12 @@ class Capabilities(EventedModel):
     can_create_delegates: bool = False
     """Whether the agent can spawn temporary delegate agents."""
 
+    can_add_agents: bool = False
+    """Whether the agent can add aother agents to the pool."""
+
+    can_ask_agents: bool = False
+    """Whether the agent can ask other agents of the pool."""
+
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
     def __contains__(self, required: Capabilities) -> bool:
@@ -192,6 +198,18 @@ class Capabilities(EventedModel):
             enabled=self.stats_access != "none",
             source="builtin",
             requires_capability="stats_access",
+        )
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(self.add_agent),
+            enabled=self.can_add_agents,
+            source="builtin",
+            requires_capability="can_add_agents",
+        )
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(self.ask_agent),
+            enabled=self.can_ask_agents,
+            source="builtin",
+            requires_capability="can_ask_agents",
         )
 
     # IMPLEMENTATIONS
@@ -388,3 +406,66 @@ class Capabilities(EventedModel):
             return stdout.decode() or stderr.decode() or "Command completed"
         except Exception as e:  # noqa: BLE001
             return f"Error executing command: {e}"
+
+    @staticmethod
+    async def add_agent(  # noqa: D417
+        ctx: RunContext[AgentContext],
+        name: str,
+        system_prompt: str,
+        model: str | None = None,
+        tools: list[str] | None = None,
+        session: str | None = None,
+        result_type: str | None = None,
+    ) -> str:
+        """Add a new agent to the pool.
+
+        Args:
+            name: Name for the new agent
+            system_prompt: System prompt defining agent's role/behavior
+            model: Optional model override (uses default if not specified)
+            tools: Names of tools to enable for this agent
+            session: Session ID to recover conversation state from
+            result_type: Name of response type from manifest (for structured output)
+
+        Returns:
+            Confirmation message about the created agent
+        """
+        assert ctx.deps.pool, "No agent pool available"
+        agent = await ctx.deps.pool.add_agent(
+            name=name,
+            system_prompt=system_prompt,
+            model=model,
+            tools=tools,
+            result_type=result_type,
+            session=session,
+        )
+        return f"Created agent {agent.name} using model {agent.model_name}"
+
+    @staticmethod
+    async def ask_agent(  # noqa: D417
+        ctx: RunContext[AgentContext],
+        agent_name: str,
+        message: str,
+        *,
+        model: str | None = None,
+        store_history: bool = True,
+    ) -> str:
+        """Send a message to a specific agent and get their response.
+
+        Args:
+            agent_name: Name of the agent to interact with
+            message: Message to send to the agent
+            model: Optional temporary model override
+            store_history: Whether to store this exchange in history
+
+        Returns:
+            The agent's response
+        """
+        assert ctx.deps.pool, "No agent pool available"
+        agent = ctx.deps.pool.get_agent(agent_name)
+        result = await agent.run(
+            message,
+            model=model,
+            store_history=store_history,
+        )
+        return str(result.content)

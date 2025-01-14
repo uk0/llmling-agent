@@ -6,7 +6,7 @@ import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from os import PathLike
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, Self, Unpack, overload
 
 from llmling import BaseRegistry, Config, LLMLingError, RuntimeConfig
 from typing_extensions import TypeVar
@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
     from psygnal.containers import EventedDict
 
+    from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.callbacks import DecisionCallback
@@ -34,6 +35,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import AgentTask
+    from llmling_agent.responses.models import ResponseDefinition
 
 
 logger = get_logger(__name__)
@@ -606,6 +608,56 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
     def register_task(self, name: str, task: AgentTask[Any, Any]):
         self._tasks.register(name, task)
+
+    @overload
+    async def add_agent(
+        self,
+        name: str,
+        *,
+        result_type: None = None,
+        **kwargs: Unpack[AgentKwargs],
+    ) -> Agent[Any]: ...
+
+    @overload
+    async def add_agent[TResult](
+        self,
+        name: str,
+        *,
+        result_type: type[TResult] | str | ResponseDefinition,
+        **kwargs: Unpack[AgentKwargs],
+    ) -> StructuredAgent[Any, TResult]: ...
+
+    async def add_agent(
+        self,
+        name: str,
+        *,
+        result_type: type[Any] | str | ResponseDefinition | None = None,
+        **kwargs: Unpack[AgentKwargs],
+    ) -> Agent[Any] | StructuredAgent[Any, Any]:
+        """Add a new permanent agent to the pool.
+
+        Args:
+            name: Name for the new agent
+            result_type: Optional type for structured responses:
+                - None: Regular unstructured agent
+                - type: Python type for validation
+                - str: Name of response definition
+                - ResponseDefinition: Complete response definition
+            **kwargs: Additional agent configuration
+
+        Returns:
+            Either a regular Agent or StructuredAgent depending on result_type
+        """
+        agent = Agent(name=name, **kwargs)
+        agent = await self.exit_stack.enter_async_context(agent)
+
+        # Register in pool
+        self.agents[name] = agent
+
+        # Convert to structured if needed
+        if result_type is not None:
+            return agent.to_structured(result_type)
+        return agent
 
     async def controlled_conversation(
         self,
