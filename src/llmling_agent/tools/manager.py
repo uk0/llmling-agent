@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from contextlib import AsyncExitStack, contextmanager
 from dataclasses import dataclass, field, fields
 from datetime import datetime
+import os
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling import BaseRegistry, LLMCallableTool, ToolError
@@ -334,7 +335,11 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                         # Create client with stdio mode
                         client = MCPClient(stdio_mode=True)
                         client = await self.exit_stack.enter_async_context(client)
-                        env = server.environment or {}
+                        env = os.environ.copy()
+                        # Update with server-specific environment if provided
+                        if server.environment:
+                            env.update(server.environment)
+                        # Ensure UTF-8 encoding
                         env["PYTHONIOENCODING"] = "utf-8"
                         await client.connect(server.command, args=server.args, env=env)
                         # Store client

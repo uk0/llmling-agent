@@ -7,7 +7,7 @@ from llmling_agent import Agent
 async def test_pick_from_options():
     """Test picking from a list of options."""
     # Create agent for making decisions
-    decider = Agent(
+    decider = Agent[None](
         model="openai:gpt-4o-mini",
         system_prompt="You are an expert at making clear decisions.",
     )
@@ -32,12 +32,12 @@ async def test_pick_from_options():
 async def test_pick_from_agents():
     """Test picking from a team of agents."""
     # Create a team of specialized agents
-    analyzer = Agent(
+    analyzer = Agent[None](
         name="code_analyzer",
         model="openai:gpt-4o-mini",
         description="Specializes in code analysis and best practices",
     )
-    reviewer = Agent(
+    reviewer = Agent[None](
         name="security_expert",
         model="openai:gpt-4o-mini",
         description="Focuses on security vulnerabilities",
@@ -45,7 +45,7 @@ async def test_pick_from_agents():
     team = [analyzer, reviewer]
 
     # Create decision maker
-    decider = Agent(
+    decider = Agent[None](
         model="openai:gpt-4o-mini",
         system_prompt="You are an expert at delegating tasks.",
     )
@@ -64,11 +64,11 @@ async def test_pick_from_agents():
 @pytest.mark.asyncio
 async def test_pick_multiple():
     """Test picking multiple options with constraints."""
-    decider = Agent(model="openai:gpt-4o-mini")
+    decider = Agent[None](model="openai:gpt-4o-mini")
 
     decision = await decider.talk.pick_multiple(
-        ["A", "B", "C"],  # simple sequence
-        task="Pick A and B.",
+        ["A", "B", "C"],
+        task="Pick A and B. Always pick both!.",
         min_picks=2,
         max_picks=2,
     )

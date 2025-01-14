@@ -9,8 +9,8 @@ Agents defined in your YAML configuration are automatically available as functio
 
 ```python
 async def analyze_code(
-    analyzer: Agent[Any],
-    reviewer: Agent[Any],
+    analyzer: Agent[None],
+    reviewer: Agent[None],
     code: str,
 ) -> CodeAnalysis:
     """Analyze and review code using two agents."""
@@ -42,7 +42,7 @@ The `agent_function` decorator marks functions for automatic execution and provi
 ```python
 @agent_function
 async def gather_data(
-    researcher: Agent[Any],
+    researcher: Agent[None],
     topic: str,
 ) -> list[str]:  # Return type is enforced
     """Gather research data."""
@@ -51,7 +51,7 @@ async def gather_data(
 
 @agent_function(depends_on="gather_data")
 async def analyze_data(
-    analyst: Agent[Any],
+    analyst: Agent[None],
     gather_data: list[str],  # Type must match return type of gather_data
 ) -> str:
     """Analyze the gathered data."""
@@ -70,14 +70,14 @@ Functions can depend on the results of other functions:
 ```python
 @agent_function
 async def research_topic(
-    researcher: Agent[Any],
+    researcher: Agent[None],
     topic: str,
 ) -> str:
     return await researcher.run(f"Research: {topic}")
 
 @agent_function(depends_on="research_topic")
 async def write_article(
-    writer: Agent[Any],
+    writer: Agent[None],
     research_topic: str,  # Gets typed result from research_topic
 ) -> str:
     return await writer.run(f"Write article based on:\n{research_topic}")
@@ -90,14 +90,14 @@ Functions without dependencies can run in parallel:
 ```python
 @agent_function
 async def expert1_review(
-    expert1: Agent[Any],
+    expert1: Agent[None],
     document: str,
 ) -> str:
     return await expert1.run(f"Review: {document}")
 
 @agent_function
 async def expert2_review(
-    expert2: Agent[Any],
+    expert2: Agent[None],
     document: str,
 ) -> str:
     return await expert2.run(f"Review: {document}")
@@ -118,9 +118,9 @@ Register agents as tools for other agents:
 ```python
 @agent_function
 async def improve_code(
-    manager: Agent[Any],
-    formatter: Agent[Any],
-    type_checker: Agent[Any],
+    manager: Agent[None],
+    formatter: Agent[None],
+    type_checker: Agent[None],
     code: str,
 ) -> str:
     # Register specialists as tools for manager
@@ -136,9 +136,9 @@ Use Team for interactive or rule-based agent interaction:
 ```python
 @agent_function
 async def collaborative_task(
-    coordinator: Agent[Any],
-    specialist1: Agent[Any],
-    specialist2: Agent[Any],
+    coordinator: Agent[None],
+    specialist1: Agent[None],
+    specialist2: Agent[None],
     task: str,
 ) -> str:
     team = Team([coordinator, specialist1, specialist2])
@@ -158,13 +158,13 @@ The system provides comprehensive type checking:
 # Type mismatch between functions
 @agent_function
 async def get_numbers(
-    agent: Agent[Any],
+    agent: Agent[None],
 ) -> list[int]:
     return [1, 2, 3]
 
 @agent_function(depends_on="get_numbers")
 async def process_data(
-    agent: Agent[Any],
+    agent: Agent[None],
     get_numbers: str,  # Wrong type! Expected list[int]
 ) -> str:
     ...  # Raises: TypeError: Type mismatch in process_data: dependency 'get_numbers' is typed as str, but get_numbers returns list[int]
@@ -172,7 +172,7 @@ async def process_data(
 # Runtime type checking
 @agent_function
 async def validate_data(
-    agent: Agent[Any],
+    agent: Agent[None],
 ) -> list[str]:
     return 42  # Wrong return type!
     # Raises: TypeError: Type error in validate_data: return value expected list[str], got int
@@ -192,8 +192,8 @@ Set up agents for continuous operation:
 ```python
 @agent_function
 async def monitor_system(
-    watcher: Agent[Any],
-    alerter: Agent[Any],
+    watcher: Agent[None],
+    alerter: Agent[None],
 ):
     await watcher.run_continuous(
         "Check system status",
@@ -211,14 +211,14 @@ The system provides clear error messages for common issues:
 # Missing agent in pool
 @agent_function
 async def missing_agent(
-    nonexistent: Agent[Any],
+    nonexistent: Agent[None],
 ) -> str:
     ...  # Raises: AgentInjectionError: No agent named 'nonexistent' found in pool
 
 # Duplicate agent parameter
 @agent_function
 async def duplicate_agent(
-    analyst: Agent[Any],
+    analyst: Agent[None],
 ) -> str:
     ...
 # This raises: AgentInjectionError: Cannot inject agent 'analyst': Parameter already provided
@@ -227,12 +227,12 @@ result = await duplicate_agent(analyst=some_agent)
 
 ## Tips and Best Practices
 
-1. **Type Hints**: Always use `Agent[Any]` or appropriate generic type for proper typing.
+1. **Type Hints**: Always use `Agent[None]` or appropriate generic type for proper typing.
 
-2. **Default Values**: Use `Agent[Any] | None = None` when agent is optional:
+2. **Default Values**: Use `Agent[None] | None = None` when agent is optional:
 ```python
 async def optional_review(
-    reviewer: Agent[Any] | None = None,
+    reviewer: Agent[None] | None = None,
     text: str,
 ) -> str:
     if reviewer:
@@ -290,8 +290,8 @@ async def main():
         # 3. Connect injection system via decorator
         @with_agents(pool)
         async def research_and_write(
-            researcher: Agent[Any],  # Will get "researcher" from pool
-            writer: Agent[Any],      # Will get "writer" from pool
+            researcher: Agent[None],  # Will get "researcher" from pool
+            writer: Agent[None],      # Will get "writer" from pool
             topic: str,
         ) -> str:
             research = await researcher.run(f"Research: {topic}")

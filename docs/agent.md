@@ -173,7 +173,7 @@ async def get_prompt(ctx: RunContext[AgentContext]) -> str:
 The agent can handle runtime events:
 
 ```python
-class MyAgent(Agent[Any]):
+class MyAgent(Agent[None]):
     async def handle_event(self, event: Event):
         """Handle runtime events."""
         match event.type:
