@@ -80,7 +80,7 @@ class AgentPoolView:
         # Basic setup that doesn't need async
         self._agent = agent
         self._pool = pool
-        self.wait_chain = True
+        self.connection_states: dict[tuple[str, str], bool] = {}
         # forward ToolManager signals to ours
         self._agent.tools.events.added.connect(self.tool_added.emit)
         self._agent.tools.events.removed.connect(self.tool_removed.emit)
@@ -130,8 +130,9 @@ class AgentPoolView:
         assert self._pool
         target_agent = self._pool.get_agent(target)
         self._agent.pass_results_to(target_agent)
-        if wait is not None:
-            self.wait_chain = wait
+        # Store wait state for this connection
+        connection_key = (self._agent.name, target)
+        self.connection_states[connection_key] = wait if wait is not None else True
 
     async def initialize(self):
         """Initialize async resources and load data."""
@@ -271,7 +272,11 @@ class AgentPoolView:
 
     async def _send_normal(self, content: str) -> ChatMessage[str]:
         """Send message and get single response."""
-        result = await self._agent.run(content)
+        should_wait = any(
+            (self._agent.name, target.name) in self.connection_states
+            for target in self._agent.connections.get_targets()
+        )
+        result = await self._agent.run(content, wait_for_connections=should_wait)
         text_message = result.to_text_message()
 
         # Update session state metrics
@@ -281,16 +286,17 @@ class AgentPoolView:
             self._state.total_cost = float(text_message.cost_info.total_cost)
         if text_message.response_time:
             self._state.last_response_time = text_message.response_time
-
-        # Add chain waiting if enabled
-        if self.wait_chain and self._pool:
-            await self._agent.wait_for_connections()
-
         return text_message
 
     async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage[str]]:
         """Send message and stream responses."""
-        async with self._agent.run_stream(content) as stream_result:
+        should_wait = any(
+            (self._agent.name, target.name) in self.connection_states
+            for target in self._agent.connections.get_targets()
+        )
+        async with self._agent.run_stream(
+            content, wait_for_connections=should_wait
+        ) as stream_result:
             # Stream intermediate chunks
             async for response in stream_result.stream():
                 yield ChatMessage[str](content=str(response), role="assistant")
@@ -322,10 +328,6 @@ class AgentPoolView:
             # Update session state
             self._state.message_count += 2  # User and assistant messages
             self._state.update_tokens(final_msg)
-
-            # Add chain waiting if enabled
-            if self.wait_chain and self._pool:
-                await self._agent.wait_for_connections()
 
             yield final_msg
 
