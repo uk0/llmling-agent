@@ -134,16 +134,25 @@ class TaskManagerMixin:
         """Run coroutine synchronously."""
         try:
             loop = asyncio.get_running_loop()
+            if loop.is_running():
+                # Running loop - use thread pool
+                import concurrent.futures
+
+                logger.debug(
+                    "Running coroutine in ThreadPoolExecutor due to active event loop"
+                )
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(lambda: asyncio.run(coro))
+                    return future.result()
+
+            # Existing but not running loop - use task tracking
             task = loop.create_task(coro)
             self._pending_tasks.add(task)
             task.add_done_callback(self._pending_tasks.discard)
             return loop.run_until_complete(task)
         except RuntimeError:
-            loop = asyncio.new_event_loop()
-            try:
-                return loop.run_until_complete(coro)
-            finally:
-                loop.close()
+            # No loop - create new one
+            return asyncio.run(coro)
 
     def run_background(
         self,
