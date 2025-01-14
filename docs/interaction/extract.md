@@ -1,0 +1,262 @@
+# Extracting Data with extract() and extract_multiple()
+
+The extraction methods provide powerful ways to parse structured data from text, constructing typed objects from natural language descriptions. These methods can work with any Python class that has a proper constructor.
+
+## Basic Usage
+
+### Single Instance Extraction
+```python
+class Person:
+    def __init__(self, name: str, age: int | None = None):
+        self.name = name
+        self.age = age
+
+text = "John is a 30-year-old software developer."
+person = await agent.talk.extract(text, as_type=Person)
+print(f"Found: {person.name}, {person.age}")  # "John", 30
+```
+
+### Multiple Instances
+```python
+text = """
+Team members:
+- Alice (25) leads development
+- Bob (32) handles testing
+- Carol (28) manages deployment
+"""
+team = await agent.talk.extract_multiple(text, as_type=Person)
+for member in team:
+    print(f"Member: {member.name}, {member.age}")
+```
+
+## Extraction Modes
+
+Both methods support two extraction modes:
+
+### Structured Mode (Default)
+```python
+# More robust, single-round extraction
+result = await agent.talk.extract(
+    text,
+    as_type=Person,
+    mode="structured"  # default
+)
+```
+
+### Tool Calls Mode
+```python
+# Legacy mode, might be useful for experimentation
+result = await agent.talk.extract(
+    text,
+    as_type=Person,
+    mode="tool_calls"
+)
+```
+
+## Working with Complex Types
+
+### Nested Objects
+```python
+class Address:
+    def __init__(self, street: str, city: str):
+        self.street = street
+        self.city = city
+
+class Employee:
+    def __init__(self, name: str, address: Address):
+        self.name = name
+        self.address = address
+
+text = "Alice lives at 123 Main St in New York"
+employee = await agent.talk.extract(text, as_type=Employee)
+```
+
+
+## Custom Prompts
+
+You can provide custom prompts for more specific extraction:
+
+```python
+result = await agent.talk.extract(
+    text,
+    as_type=Person,
+    prompt="""
+    Extract person information focusing on:
+    1. Full name (first and last)
+    2. Exact age if mentioned
+    3. Ignore titles or honorifics
+    """
+)
+```
+
+For multiple extraction:
+```python
+results = await agent.talk.extract_multiple(
+    text,
+    as_type=Person,
+    prompt="""
+    Extract all team members mentioned.
+    Look for:
+    - Names in any format
+    - Ages if provided
+    - Skip generic references
+    """
+)
+```
+
+## Technical Details: How It Works
+
+### Structured Mode (Default)
+
+The structured mode works by converting the target class's constructor into a Pydantic model and using it for validation:
+
+1. **Constructor Analysis**
+```python
+# Your class
+class Person:
+    def __init__(self, name: str, age: int | None = None):
+        self.name = name
+        self.age = age
+
+# Internally converted to Pydantic model
+class PersonModel(BaseModel):
+    name: str
+    age: int | None = None
+```
+
+2. **Response Container**
+```python
+# For single extraction
+class Extraction(BaseModel):
+    instance: PersonModel
+
+# For multiple extraction
+class Extraction(BaseModel):
+    instances: list[PersonModel]
+```
+
+3. **LLM Interaction**
+   - Single structured response from LLM
+   - LLM sees complete schema upfront
+   - Natural mapping of fields
+   - One-shot validation through Pydantic
+
+4. **Instance Creation**
+```python
+# Convert validated model to target class
+result = as_type(**model_instance.model_dump())
+```
+
+Benefits:
+- Single round-trip to LLM
+- Clear schema validation
+- Better handling of complex types
+- More robust extraction
+
+### Tool Calls Mode (Legacy)
+
+The tool calls mode uses function calling to construct objects:
+
+1. **Constructor to Function Schema**
+```python
+# Your class
+class Person:
+    def __init__(self, name: str, age: int | None = None):
+        self.name = name
+        self.age = age
+
+# Converted to OpenAI function schema
+{
+    "name": "Person",
+    "description": "Create a Person instance",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "age": {"type": "integer", "nullable": true}
+        },
+        "required": ["name"]
+    }
+}
+```
+
+2. **Constructor Tool**
+```python
+async def construct(**kwargs: Any) -> T:
+    """Dynamic constructor tool."""
+    return as_type(**kwargs)
+```
+
+3. **LLM Interaction**
+   - LLM makes function calls
+   - For multiple: Repeated calls to add instances
+   - Each call validated separately
+   - State maintained between calls
+
+4. **Instance Creation**
+   - Through tool call execution
+   - One instance per call
+   - Results collected in list (for multiple)
+
+Trade-offs:
+- More flexible but less robust
+- Multiple round-trips for multiple instances
+- Harder to maintain complex state
+- More points of potential failure
+
+### Comparison Example
+
+Given this input:
+```python
+text = """
+Team:
+- Alice (25) from Engineering
+- Bob (32) from QA
+"""
+```
+
+#### Structured Mode
+```python
+# Single prompt with complete schema
+result = await agent.run(f"""
+Extract team members. Output format:
+{{
+    "instances": [
+        {{"name": "...", "age": ...}},
+        {{"name": "...", "age": ...}}
+    ]
+}}
+
+Text: {text}
+""")
+
+# Direct conversion to instances
+instances = [Person(**d) for d in result.instances]
+```
+
+#### Tool Calls Mode
+```python
+# Multiple interactions
+> "Extract first person..."
+Tool call: create_person(name="Alice", age=25)
+> "Extract next person..."
+Tool call: create_person(name="Bob", age=32)
+> "Any more people?"
+"No more people found."
+```
+
+### When to Use Which
+
+Use **Structured Mode** (default) when:
+- Extracting multiple instances
+- Working with complex nested types
+- Need robust validation
+- Want better performance
+
+Consider **Tool Calls Mode** when:
+- Experimenting with different approaches
+- Need more flexible extraction logic
+- Want to see how tool calls work
+- Testing LLM capabilities
+
+The structured mode is generally preferred as it provides better reliability and performance while maintaining the same flexibility.
