@@ -83,6 +83,7 @@
               "discriminator": {
                 "mapping": {
                   "ai": "#/$defs/AIProviderConfig",
+                  "callback": "#/$defs/CallbackProviderConfig",
                   "human": "#/$defs/HumanProviderConfig",
                   "litellm": "#/$defs/LiteLLMProviderConfig"
                 },
@@ -97,6 +98,9 @@
                 },
                 {
                   "$ref": "#/$defs/LiteLLMProviderConfig"
+                },
+                {
+                  "$ref": "#/$defs/CallbackProviderConfig"
                 }
               ]
             },
@@ -468,26 +472,26 @@
           "default": null,
           "description": "Knowledge sources for this agent."
         },
-        "forward_to": {
+        "connections": {
           "description": "Targets to forward results to.",
           "items": {
             "discriminator": {
               "mapping": {
-                "agent": "#/$defs/AgentTarget",
-                "file": "#/$defs/FileTarget"
+                "agent": "#/$defs/AgentConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig"
               },
               "propertyName": "type"
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/AgentTarget"
+                "$ref": "#/$defs/AgentConnectionConfig"
               },
               {
-                "$ref": "#/$defs/FileTarget"
+                "$ref": "#/$defs/FileConnectionConfig"
               }
             ]
           },
-          "title": "Forward To",
+          "title": "Connections",
           "type": "array"
         },
         "workers": {
@@ -508,7 +512,7 @@
       "title": "AgentConfig",
       "type": "object"
     },
-    "AgentTarget": {
+    "AgentConnectionConfig": {
       "description": "Forward messages to another agent.",
       "properties": {
         "type": {
@@ -564,7 +568,7 @@
       "required": [
         "name"
       ],
-      "title": "AgentTarget",
+      "title": "AgentConnectionConfig",
       "type": "object"
     },
     "AgentTask": {
@@ -858,6 +862,40 @@
         "import_path"
       ],
       "title": "CallableResource",
+      "type": "object"
+    },
+    "CallbackProviderConfig": {
+      "description": "Configuration for callback-based provider.\n\nAllows defining processor functions through:\n- Import path to callback function\n- Generic type for result validation",
+      "properties": {
+        "type": {
+          "const": "callback",
+          "default": "callback",
+          "description": "Type discriminator for callback provider.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the provider instance.",
+          "title": "Name"
+        },
+        "callback": {
+          "description": "Import path to processor callback.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "callback"
+      ],
+      "title": "CallbackProviderConfig",
       "type": "object"
     },
     "Capabilities": {
@@ -1245,6 +1283,33 @@
       "title": "FallbackMultiModel",
       "type": "object"
     },
+    "FileConnectionConfig": {
+      "description": "Save messages to a file.",
+      "properties": {
+        "type": {
+          "const": "file",
+          "default": "file",
+          "title": "Type",
+          "type": "string"
+        },
+        "wait_for_completion": {
+          "default": true,
+          "description": "Whether to wait for the result before continuing.\n\nIf True, message processing will wait for the target to complete.\nIf False, message will be forwarded asynchronously.",
+          "title": "Wait For Completion",
+          "type": "boolean"
+        },
+        "path": {
+          "description": "Path to output file. Supports variables: {date}, {time}, {agent}",
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "FileConnectionConfig",
+      "type": "object"
+    },
     "FileEnvironment": {
       "description": "File-based environment configuration.\n\nLoads environment settings from external YAML files, supporting:\n- Reusable environment configurations\n- Separation of concerns\n- Environment sharing between agents\n- Version control of environment settings",
       "properties": {
@@ -1434,33 +1499,6 @@
         "path"
       ],
       "title": "FileStorageConfig",
-      "type": "object"
-    },
-    "FileTarget": {
-      "description": "Save messages to a file.",
-      "properties": {
-        "type": {
-          "const": "file",
-          "default": "file",
-          "title": "Type",
-          "type": "string"
-        },
-        "wait_for_completion": {
-          "default": true,
-          "description": "Whether to wait for the result before continuing.\n\nIf True, message processing will wait for the target to complete.\nIf False, message will be forwarded asynchronously.",
-          "title": "Wait For Completion",
-          "type": "boolean"
-        },
-        "path": {
-          "description": "Path to output file. Supports variables: {date}, {time}, {agent}",
-          "title": "Path",
-          "type": "string"
-        }
-      },
-      "required": [
-        "path"
-      ],
-      "title": "FileTarget",
       "type": "object"
     },
     "FileWatchConfig": {
