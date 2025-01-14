@@ -317,9 +317,33 @@ class TalkManager:
         for talk in self._connections:
             talk._handle_message(message, prompt)
 
-    def get_targets(self) -> set[AnyAgent[Any, Any]]:
-        """Get all currently connected target agents."""
-        return {t for conn in self._connections for t in conn.targets if conn.active}
+    def get_targets(
+        self, recursive: bool = False, _seen: set[str] | None = None
+    ) -> set[AnyAgent[Any, Any]]:
+        """Get all currently connected target agents.
+
+        Args:
+            recursive: Whether to include targets of targets
+        """
+        # Get direct targets
+        targets = {t for conn in self._connections for t in conn.targets if conn.active}
+
+        if not recursive:
+            return targets
+
+        # Track seen agents to prevent cycles
+        seen = _seen or {self.owner.name}
+        all_targets = set()
+
+        for target in targets:
+            if target.name not in seen:
+                _targets = target.connections.get_targets(recursive=True, _seen=seen)
+                seen.add(target.name)
+                all_targets.add(target)
+                # Get recursive targets
+                all_targets.update(_targets)
+
+        return all_targets
 
     def has_connection_to(self, target: AnyAgent[Any, Any]) -> bool:
         """Check if target is connected."""
