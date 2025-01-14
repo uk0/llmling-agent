@@ -37,19 +37,6 @@ HISTORY_DIR = pathlib.Path(user_data_dir("llmling", "llmling")) / "cli_history"
 
 
 class AgentPoolView:
-    """User's view and control point for interacting with an agent in a pool.
-
-    This class provides a focused way to interact with one primary agent that is part
-    of a larger agent pool. Through this view, users can:
-    1. Interact with the primary agent directly
-    2. Manage connections to other agents in the pool
-    3. Control tool availability and settings
-    4. Handle commands and responses
-
-    Think of it as looking at the agent pool through the lens of one specific agent,
-    while still being able to utilize the pool's collaborative capabilities.
-    """
-
     @dataclass(frozen=True)
     class SessionReset:
         """Emitted when session is reset."""

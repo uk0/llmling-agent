@@ -129,6 +129,7 @@ class Agent[TDeps](TaskManagerMixin):
     model_changed = Signal(object)  # Model | None
     chunk_streamed = Signal(str, str)  # (chunk, message_id)
     outbox = Signal(ChatMessage[Any], str)  # message, prompt
+    run_failed = Signal(str, Exception)
 
     def __init__(
         self,
@@ -259,8 +260,7 @@ class Agent[TDeps](TaskManagerMixin):
 
         self.name = name
         self.description = description
-        msg = "Initialized %s (model=%s)"
-        logger.debug(msg, self.name, model)
+        logger.debug("Initialized %s (model=%s)", self.name, model)
 
         from llmling_agent.agent import AgentLogger
         from llmling_agent.agent.talk import Interactions
@@ -280,11 +280,9 @@ class Agent[TDeps](TaskManagerMixin):
         return f"Agent({self._provider!r}{desc}{tools})"
 
     def __prompt__(self) -> str:
-        parts = [
-            f"Agent: {self.name}",
-            f"Type: {self._provider.__class__.__name__}",
-            f"Model: {self.model_name or 'default'}",
-        ]
+        typ = self._provider.__class__.__name__
+        model = self.model_name or "default"
+        parts = [f"Agent: {self.name}", f"Type: {typ}", f"Model: {model}"]
         if self.description:
             parts.append(f"Description: {self.description}")
         parts.extend([self.tools.__prompt__(), self.conversation.__prompt__()])
@@ -300,9 +298,8 @@ class Agent[TDeps](TaskManagerMixin):
                 self._owns_runtime = True
                 await runtime_ref.__aenter__()
                 runtime_tools = runtime_ref.tools.values()
-                logger.debug(
-                    "Registering runtime tools: %s", [t.name for t in runtime_tools]
-                )
+                names = [t.name for t in runtime_tools]
+                logger.debug("Registering runtime tools: %s", names)
                 for tool in runtime_tools:
                     self.tools.register_tool(tool, source="runtime")
 
@@ -333,12 +330,8 @@ class Agent[TDeps](TaskManagerMixin):
     ):
         """Exit async context."""
         try:
-            # First cleanup events
             await self._events.cleanup()
-
             await self.tools.cleanup()
-
-            # Then cleanup tasks
             await self.cleanup_tasks()
         finally:
             if self._owns_runtime and self.context.runtime:
@@ -893,8 +886,9 @@ class Agent[TDeps](TaskManagerMixin):
 
             self.message_sent.emit(assistant_msg)
 
-        except Exception:
+        except Exception as e:
             logger.exception("Agent run failed")
+            self.run_failed.emit("Agent run failed", e)
             raise
 
         else:
@@ -1029,8 +1023,9 @@ class Agent[TDeps](TaskManagerMixin):
                 )
                 self.message_sent.emit(assistant_msg)
 
-        except Exception:
+        except Exception as e:
             logger.exception("Agent stream failed")
+            self.run_failed.emit("Agent stream failed", e)
             raise
         else:
             if wait_for_connections:
@@ -1056,21 +1051,15 @@ class Agent[TDeps](TaskManagerMixin):
         Returns:
             Result containing response and run information
         """
-        try:
-            return asyncio.run(
-                self.run(
-                    prompt,
-                    deps=deps,
-                    model=model,
-                    store_history=store_history,
-                    result_type=result_type,
-                )
+        return self.run_task_sync(
+            self.run(
+                *prompt,
+                deps=deps,
+                model=model,
+                store_history=store_history,
+                result_type=result_type,
             )
-        except KeyboardInterrupt:
-            raise
-        except Exception:
-            logger.exception("Sync agent run failed")
-            raise
+        )
 
     async def wait_for_connections(self, _seen: set[str] | None = None):
         """Wait for this agent and all connected agents to complete their tasks."""
