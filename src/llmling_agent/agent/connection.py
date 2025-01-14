@@ -121,6 +121,19 @@ class Talk:
         priority: int = 0,
         delay: timedelta | None = None,
     ):
+        """Initialize talk connection.
+
+        Args:
+            source: Agent sending messages
+            targets: Agents receiving messages
+            group: Optional group this talk belongs to
+            connection_type: How to handle messages:
+                - "run": Execute message as a new run in target
+                - "context": Add message as context to target
+                - "forward": Forward message to target's outbox
+            priority: Task priority (lower = higher priority)
+            delay: Optional delay before processing
+        """
         self.source = source
         self.targets = targets
         self.group = group
