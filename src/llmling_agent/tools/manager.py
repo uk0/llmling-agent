@@ -225,7 +225,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
     def register_tool(
         self,
-        tool: LLMCallableTool | Callable[..., Any],
+        tool: LLMCallableTool | Callable[..., Any] | str,
         *,
         name_override: str | None = None,
         description_override: str | None = None,
@@ -239,7 +239,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         """Register a new tool with custom settings.
 
         Args:
-            tool: Tool to register (callable, LLMCallableTool, or config dict)
+            tool: Tool to register (callable, LLMCallableTool, or import path)
             enabled: Whether tool is initially enabled
             name_override: Optional name override for the tool
             description_override: Optional description override for the tool
@@ -253,16 +253,18 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             Created ToolInfo instance
         """
         # First convert to basic ToolInfo
-        if not isinstance(tool, LLMCallableTool):
-            llm_tool = LLMCallableTool.from_callable(
-                tool,
-                name_override=name_override,
-                description_override=description_override,
-            )
-        else:
-            llm_tool = tool
-            llm_tool.name = name_override or llm_tool.name
-            llm_tool.description = description_override or llm_tool.description
+        match tool:
+            case LLMCallableTool():
+                llm_tool = tool
+                llm_tool.name = name_override or llm_tool.name
+                llm_tool.description = description_override or llm_tool.description
+            case _:
+                llm_tool = LLMCallableTool.from_callable(
+                    tool,
+                    name_override=name_override,
+                    description_override=description_override,
+                )
+
         if llm_tool.description and len(llm_tool.description) > MAX_LEN_DESCRIPTION:
             msg = f"Too long description for {tool}"
             raise ToolError(msg)
