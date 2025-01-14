@@ -4,10 +4,11 @@ import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import datetime, timedelta
 import time
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
+from typing import TYPE_CHECKING, Any
 
 from psygnal.containers import EventedList
 from pydantic_ai.result import StreamedRunResult
+from typing_extensions import TypeVar
 
 from llmling_agent.agent.connection import TalkManager, TeamTalk
 from llmling_agent.delegation import interactive_controller
@@ -36,6 +37,7 @@ if TYPE_CHECKING:
 
 
 TDeps = TypeVar("TDeps")
+ResultData = TypeVar("ResultData", default=str)
 
 
 class TeamResponse(list[AgentResponse[Any]]):
@@ -330,47 +332,35 @@ class Team[TDeps](TaskManagerMixin):
 
             yield ChainStream()
 
-    @overload
-    async def broadcast(
+    async def distribute(
         self,
-        message: str,
+        content: str,
         *,
-        wait_for_responses: Literal[True],
-    ) -> list[ChatMessage[str]]: ...
+        tools: list[str] | None = None,
+        resources: list[str] | None = None,
+    ) -> None:
+        """Distribute content and capabilities to all team members.
 
-    @overload
-    async def broadcast(
-        self,
-        message: str,
-        *,
-        wait_for_responses: Literal[False] = False,
-    ) -> None: ...
-
-    async def broadcast[TOtherResult](
-        self,
-        message: str | TOtherResult,
-        *,
-        wait_for_responses: bool = False,
-    ) -> list[ChatMessage[TOtherResult]] | None:
-        """Send message to all team members.
+        This method provides content and optional capabilities to every agent in the team.
 
         Args:
-            message: Message to broadcast
-            wait_for_responses: Whether to wait for and collect responses
+            content: Text content to add as context for all agents
+            tools: Optional list of tools to register with each agent.
+                  Can be import paths or callables.
+            resources: Optional list of resources to load into each agent's context.
+                      Can be paths, URLs, or resource configurations.
 
-        Returns:
-            List of responses if wait_for_responses=True, None otherwise
         """
-        if not wait_for_responses:
-            for agent in self.agents:
-                await agent.conversation.add_context_message(
-                    str(message), source="team_broadcast"
-                )
-            return None
-
-        responses = []
         for agent in self.agents:
-            result = await agent.run(message)
-            responses.append(result)
+            # Add context message
+            await agent.conversation.add_context_message(content, source="distribution")
 
-        return responses
+            # Register tools if provided
+            if tools:
+                for tool in tools:
+                    agent.tools.register_tool(tool)
+
+            # Load resources if provided
+            if resources:
+                for resource in resources:
+                    await agent.conversation.load_context_source(resource)
