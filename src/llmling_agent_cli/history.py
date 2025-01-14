@@ -99,7 +99,7 @@ def show_history(
                 include_tokens=tokens,
             )
         )
-        print(format_output(results, output_format))
+        format_output(results, output_format)
 
     except Exception as e:
         logger.exception("Failed to show history")
@@ -145,7 +145,7 @@ def show_stats(
 
         stats = provider.run_task_sync(provider.get_conversation_stats(filters))
         formatted = format_stats(stats, period, group_by)
-        print(format_output(formatted, output_format))
+        format_output(formatted, output_format)
 
     except Exception as e:
         logger.exception("Failed to show stats")

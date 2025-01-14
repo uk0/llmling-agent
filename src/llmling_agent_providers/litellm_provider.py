@@ -142,8 +142,8 @@ class LiteLLMProvider(AgentProvider[Any]):
 
         except Exception as e:
             logger.exception("LiteLLM completion failed")
-            msg = f"LiteLLM completion failed: {e}"
-            raise RuntimeError(msg) from e
+            error_msg = f"LiteLLM completion failed: {e}"
+            raise RuntimeError(error_msg) from e
 
     def _get_model_name(self, override: ModelProtocol | str | None = None) -> str:
         """Get effective model name."""
