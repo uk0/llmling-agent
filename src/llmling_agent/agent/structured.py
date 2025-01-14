@@ -108,6 +108,7 @@ class StructuredAgent[TDeps, TResult]:
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         model: ModelType = None,
+        wait_for_connections: bool = False,
     ) -> ChatMessage[TResult]:
         """Run with fixed result type.
 
@@ -118,12 +119,17 @@ class StructuredAgent[TDeps, TResult]:
                 - Name of response definition in manifest
                 - Complete response definition instance
             deps: Optional dependencies for the agent
-            message_history: Optional previous messages for context
             model: Optional model override
-            usage: Optional usage tracking
+            wait_for_connections: Whether to wait for all connections to complete
         """
         typ = result_type or self._result_type
-        return await self._agent.run(*prompt, result_type=typ, deps=deps, model=model)
+        return await self._agent.run(
+            *prompt,
+            result_type=typ,
+            deps=deps,
+            model=model,
+            wait_for_connections=wait_for_connections,
+        )
 
     def __repr__(self) -> str:
         type_name = getattr(self._result_type, "__name__", str(self._result_type))
