@@ -28,7 +28,7 @@ async def clear_command(
     kwargs: dict[str, str],
 ):
     """Clear chat history."""
-    await ctx.context.clear()
+    ctx.context._agent.conversation.clear()
 
 
 async def reset_command(

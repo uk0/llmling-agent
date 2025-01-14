@@ -172,10 +172,6 @@ class AgentPoolView:
             current_session_only=current_session_only,
         )
 
-    async def clear(self):
-        """Clear chat history."""
-        self._agent.conversation.clear()
-
     async def reset(self):
         """Reset session state."""
         old_tools = self.tools.list_tools()
