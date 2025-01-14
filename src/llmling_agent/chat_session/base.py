@@ -312,7 +312,7 @@ class AgentPoolView:
 
         # Add chain waiting if enabled
         if self.wait_chain and self._pool:
-            await self._agent.wait_for_chain()
+            await self._agent.wait_for_connections()
 
         return text_message
 
@@ -353,7 +353,7 @@ class AgentPoolView:
 
             # Add chain waiting if enabled
             if self.wait_chain and self._pool:
-                await self._agent.wait_for_chain()
+                await self._agent.wait_for_connections()
 
             yield final_msg
 

@@ -822,6 +822,7 @@ class Agent[TDeps](TaskManagerMixin):
         deps: TDeps | None = None,
         model: ModelType = None,
         store_history: bool = True,
+        wait_for_connections: bool = False,
     ) -> ChatMessage[TResult]:
         """Run agent with prompt and get response.
 
@@ -832,6 +833,7 @@ class Agent[TDeps](TaskManagerMixin):
             model: Optional model override
             store_history: Whether the message exchange should be added to the
                            context window
+            wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
             Result containing response and run information
@@ -846,7 +848,6 @@ class Agent[TDeps](TaskManagerMixin):
             self.context.data = deps
         self.context.current_prompt = final_prompt
         self.set_result_type(result_type)
-        wait_for_chain = False  # TODO
 
         try:
             # Create and emit user message
@@ -897,8 +898,8 @@ class Agent[TDeps](TaskManagerMixin):
             raise
 
         else:
-            if wait_for_chain:
-                await self.wait_for_chain()
+            if wait_for_connections:
+                await self.wait_for_connections()
             return assistant_msg
 
     def to_agent_tool(
@@ -962,6 +963,7 @@ class Agent[TDeps](TaskManagerMixin):
         deps: TDeps | None = None,
         model: ModelType = None,
         store_history: bool = True,
+        wait_for_connections: bool = False,
     ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], TResult]]:
         """Run agent with prompt and get a streaming response.
 
@@ -972,6 +974,7 @@ class Agent[TDeps](TaskManagerMixin):
             model: Optional model override
             store_history: Whether the message exchange should be added to the
                            context window
+            wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
             A streaming result to iterate over.
@@ -1029,6 +1032,9 @@ class Agent[TDeps](TaskManagerMixin):
         except Exception:
             logger.exception("Agent stream failed")
             raise
+        else:
+            if wait_for_connections:
+                await self.wait_for_connections()
 
     def run_sync(
         self,
@@ -1066,7 +1072,7 @@ class Agent[TDeps](TaskManagerMixin):
             logger.exception("Sync agent run failed")
             raise
 
-    async def wait_for_chain(self, _seen: set[str] | None = None):
+    async def wait_for_connections(self, _seen: set[str] | None = None):
         """Wait for this agent and all connected agents to complete their tasks."""
         # Track seen agents to avoid cycles
         seen = _seen or {self.name}
@@ -1078,7 +1084,7 @@ class Agent[TDeps](TaskManagerMixin):
         for agent in self.connections.get_targets():
             if agent.name not in seen:
                 seen.add(agent.name)
-                await agent.wait_for_chain(seen)
+                await agent.wait_for_connections(seen)
 
     async def run_task[TResult](
         self,

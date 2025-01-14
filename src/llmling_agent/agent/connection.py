@@ -332,7 +332,7 @@ class TalkManager:
             return targets
 
         # Track seen agents to prevent cycles
-        seen = _seen or {self.owner.name}
+        seen = _seen or {self.owner.name}  # type: ignore
         all_targets = set()
 
         for target in targets:
