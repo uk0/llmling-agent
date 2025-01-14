@@ -9,6 +9,7 @@ from llmling_agent.chat_session.base import AgentPoolView
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage
+from llmling_agent.utils.tasks import TaskManagerMixin
 
 
 if TYPE_CHECKING:
@@ -107,7 +108,7 @@ class QueueOutputHandler:
         await self.queue.put(message)
 
 
-class PoolSupervisor:
+class PoolSupervisor(TaskManagerMixin):
     """Handles human supervision of agent pool activities."""
 
     def __init__(
@@ -121,7 +122,6 @@ class PoolSupervisor:
         self.human_messages: asyncio.Queue[str] = asyncio.Queue()
         self.status_updates: asyncio.Queue[str] = asyncio.Queue()
         self._running = False
-        self._tasks: set[asyncio.Task] = set()
 
         # Set up handlers (with defaults)
         self.input_handler = input_handler or ConsoleInputHandler()
@@ -140,9 +140,8 @@ class PoolSupervisor:
         self._running = True
 
         # Start monitoring tasks
-        self._tasks.add(asyncio.create_task(self._monitor_human_input()))
-        self._tasks.add(asyncio.create_task(self._print_status()))
-
+        self.create_task(self._monitor_human_input(), name="input_monitor", priority=0)
+        self.create_task(self._print_status(), name="status_printer", priority=1)
         # Connect to pool's agents
         for agent in self.pool.agents.values():
             agent.message_sent.connect(self._handle_message)
@@ -166,11 +165,7 @@ class PoolSupervisor:
             agent.tool_used.disconnect(self._handle_tool)
 
         # Cancel tasks
-        for task in self._tasks:
-            task.cancel()
-        if self._tasks:
-            await asyncio.gather(*self._tasks, return_exceptions=True)
-        self._tasks.clear()
+        await self.cleanup_tasks()
 
     async def _handle_message(self, message: ChatMessage):
         """Handle messages from supervised agents."""
