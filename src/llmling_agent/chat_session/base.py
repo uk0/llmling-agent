@@ -13,7 +13,6 @@ from platformdirs import user_data_dir
 from psygnal import Signal
 from slashed import CommandError, CommandStore, DefaultOutputWriter, ExitCommandError
 
-from llmling_agent.agent import Agent, AnyAgent
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import SessionState
@@ -28,6 +27,7 @@ if TYPE_CHECKING:
 
     from slashed import OutputWriter
 
+    from llmling_agent.agent import Agent, AnyAgent
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.tools.manager import ToolManager
 
@@ -64,7 +64,6 @@ class AgentPoolView:
     tool_added = Signal(str, ToolInfo)
     tool_removed = Signal(str)  # tool_name
     tool_changed = Signal(str, ToolInfo)  # name, new_info
-    agent_connected = Signal(Agent)
 
     def __init__(
         self,
@@ -140,8 +139,6 @@ class AgentPoolView:
             raise ValueError(msg) from e
 
         self._agent.pass_results_to(target_agent)
-        self.agent_connected.emit(target_agent)
-
         if wait is not None:
             self.wait_chain = wait
 
