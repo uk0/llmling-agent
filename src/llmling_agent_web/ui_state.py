@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 import gradio as gr
 from llmling import ConfigStore
 from pydantic import BaseModel, model_validator
+from slashed import CommandStore
 from upath import UPath
 import yamling
 
@@ -19,7 +20,6 @@ from llmling_agent_web.type_utils import ChatHistory, validate_chat_message
 
 if TYPE_CHECKING:
     from llmling_agent import Agent
-    from llmling_agent.agent.slashed_agent import SlashedAgent
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -80,7 +80,8 @@ class UIState(TaskManagerMixin):
         self.debug_mode = False
         self.handler: AgentHandler | None = None
         self._agent: Agent[Any] | None = None
-        self._slashed_agent: SlashedAgent | None = None
+        self.context: Any = None
+        self.store = CommandStore()
 
     def _connect_signals(self):
         """Connect to agent signals."""
@@ -177,7 +178,7 @@ class UIState(TaskManagerMixin):
 
             # Update available files and load agents
             files = [str(UPath(p)) for _, p in store.list_configs()]
-            data = yamling.load_yaml_file(str(file_path), verify_type=dict)
+            data = yamling.load_yaml_file(str(file_path), verify_type=dict)  # type: ignore
             agents = list(data.get("agents", {}).keys())
             msg = f"Loaded {len(agents)} agents from {file_path.name}"
             logs = self.get_debug_logs()
@@ -210,12 +211,9 @@ class UIState(TaskManagerMixin):
             # Create temporary AgentPoolView just for command context
             from llmling_agent.chat_session.base import AgentPoolView
 
-            view = await AgentPoolView.create(self._agent, pool=self.handler.state.pool)
-
-            # Create SlashedAgent with the view
-            from llmling_agent.agent import SlashedAgent
-
-            self._slashed_agent = SlashedAgent(self._agent, command_context=view)
+            self.context = await AgentPoolView.create(
+                self._agent, pool=self.handler.state.pool
+            )
 
             # Connect signals
             self._connect_signals()
@@ -248,7 +246,7 @@ class UIState(TaskManagerMixin):
             logs = self.get_debug_logs()
             return UIUpdate(message_box="", status="Message is empty", debug_logs=logs)
 
-        if not self._agent or not self._slashed_agent:
+        if not self._agent:
             return UIUpdate(
                 message_box=message,
                 chat_history=history,
@@ -260,8 +258,8 @@ class UIState(TaskManagerMixin):
             messages = list(history)
             messages.append({"content": message, "role": "user"})
 
-            # Use slashed agent instead of direct agent
-            result = await self._slashed_agent.run(message)
+            # TODO: commands here
+            result = await self._agent.run(message)
             messages.append({"content": str(result.content), "role": "assistant"})
 
             return UIUpdate(

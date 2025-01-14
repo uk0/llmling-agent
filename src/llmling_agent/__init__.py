@@ -1,7 +1,7 @@
 """Agent configuration and creation."""
 
 from llmling_agent.models import AgentsManifest, SystemPrompt, AgentConfig
-from llmling_agent.agent import Agent, StructuredAgent, SlashedAgent
+from llmling_agent.agent import Agent, StructuredAgent
 from llmling_agent_functional import (
     run_with_model,
     run_with_model_sync,
@@ -42,7 +42,6 @@ __all__ = [
     "EndDecision",
     "RouteDecision",
     "RuleRouter",
-    "SlashedAgent",
     "StructuredAgent",
     "SystemPrompt",
     "get_structured",
