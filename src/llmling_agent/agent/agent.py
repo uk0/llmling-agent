@@ -727,7 +727,7 @@ class Agent[TDeps](TaskManagerMixin):
                         # Yield structured agent with correct typing
                         from llmling_agent.agent.structured import StructuredAgent
 
-                        yield StructuredAgent[TDeps, TResult](  # Use TDeps and TResult
+                        yield StructuredAgent[TDeps, TResult](
                             base_agent,
                             resolved_type,
                             tool_description=result_tool_description,

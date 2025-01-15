@@ -90,8 +90,8 @@ async def disconnect_command(
 
     target = args[0]
     try:
-        assert ctx.context._pool
-        target_agent = ctx.context._pool.get_agent(target)
+        assert ctx.context.pool
+        target_agent = ctx.context.pool.get_agent(target)
         ctx.context._agent.connections.disconnect(target_agent)
         await ctx.output.print(f"Stopped forwarding messages to {target}")
     except Exception as e:

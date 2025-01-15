@@ -66,7 +66,7 @@ class AgentPoolView:
         """
         # Basic setup that doesn't need async
         self._agent = agent
-        self._pool = pool
+        self.pool = pool
         self.connection_states: dict[tuple[str, str], bool] = {}
         # forward ToolManager signals to ours
         self._agent.tools.events.added.connect(self.tool_added.emit)
@@ -99,11 +99,6 @@ class AgentPoolView:
         await view.initialize()
         return view
 
-    @property
-    def pool(self) -> AgentPool | None:
-        """Get the agent pool if available."""
-        return self._pool
-
     async def connect_to(self, target: str, wait: bool | None = None):
         """Connect to another agent.
 
@@ -114,8 +109,8 @@ class AgentPoolView:
         Raises:
             ValueError: If target agent not found or pool not available
         """
-        assert self._pool
-        target_agent = self._pool.get_agent(target)
+        assert self.pool
+        target_agent = self.pool.get_agent(target)
         self._agent.pass_results_to(target_agent)
         # Store wait state for this connection
         connection_key = (self._agent.name, target)
@@ -136,7 +131,7 @@ class AgentPoolView:
 
     async def cleanup(self):
         """Clean up session resources."""
-        if self._pool:
+        if self.pool:
             await self._agent.disconnect_all()
 
     def add_command(self, command: str):

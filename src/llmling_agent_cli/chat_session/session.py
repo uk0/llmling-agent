@@ -60,7 +60,7 @@ class InteractiveSession:
         # Setup session management
         self._chat_session: AgentPoolView | None = None
         self._prompt: PromptSession | None = None
-        self._pool = pool
+        self.pool = pool
         self._completer: PromptToolkitCompleter | None = None
 
     def _connect_signals(self):
@@ -209,7 +209,7 @@ class InteractiveSession:
     async def start(self):
         """Start interactive session."""
         try:
-            self._chat_session = await AgentPoolView.create(self.agent, pool=self._pool)
+            self._chat_session = await AgentPoolView.create(self.agent, pool=self.pool)
             self._connect_signals()
             self._setup_prompt()
 
