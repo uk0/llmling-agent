@@ -315,8 +315,14 @@ class TalkManager:
     def __init__(self, owner: AnyAgent[Any, Any] | Team[Any]):
         self.owner = owner
         self._connections: list[Talk | TeamTalk] = []
+        self._wait_states: dict[str, bool] = {}
 
-    async def wait_for_chain(self, _seen: set[str] | None = None):
+    def set_wait_state(self, target: AnyAgent[Any, Any] | str, wait: bool = True):
+        """Set waiting behavior for target."""
+        target_name = target if isinstance(target, str) else target.name
+        self._wait_states[target_name] = wait
+
+    async def wait_for_connections(self, _seen: set[str] | None = None):
         """Wait for this agent and all connected agents to complete their tasks."""
         # Track seen agents to avoid cycles
         seen: set[str] = _seen or {self.owner.name}  # type: ignore
@@ -328,7 +334,7 @@ class TalkManager:
         for agent in self.get_targets():
             if agent.name not in seen:
                 seen.add(agent.name)
-                await agent.connections.wait_for_chain(seen)
+                await agent.connections.wait_for_connections(seen)
 
     def get_targets(
         self, recursive: bool = False, _seen: set[str] | None = None
