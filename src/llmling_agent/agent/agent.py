@@ -204,7 +204,6 @@ class Agent[TDeps](TaskManagerMixin):
             case RuntimeConfig():
                 ctx.runtime = runtime
         # connect signals
-        self.message_sent.connect(self._forward_message)
 
         # Initialize tool manager
         all_tools = list(tools or [])
@@ -729,14 +728,6 @@ class Agent[TDeps](TaskManagerMixin):
                 else:
                     yield base_agent
 
-    def _forward_message(self, message: ChatMessage[Any]):
-        """Forward sent messages."""
-        msg = "forwarding message from %s: %r (type: %s) to %d connected agents"
-        num_targets = len(self.connections.get_targets())
-        logger.debug(msg, self.name, message.content, type(message.content), num_targets)
-        message.forwarded_from.append(self.name)
-        self.outbox.emit(message, None)
-
     async def disconnect_all(self):
         """Disconnect from all agents."""
         for target in list(self.connections.get_targets()):
@@ -853,7 +844,7 @@ class Agent[TDeps](TaskManagerMixin):
             )
 
             # Create final message with all metrics
-            assistant_msg = ChatMessage[TResult](
+            response_msg = ChatMessage[TResult](
                 content=result.content,
                 role="assistant",
                 name=self.name,
@@ -866,9 +857,10 @@ class Agent[TDeps](TaskManagerMixin):
             if self._debug:
                 import devtools
 
-                devtools.debug(assistant_msg)
+                devtools.debug(response_msg)
 
-            self.message_sent.emit(assistant_msg)
+            self.message_sent.emit(response_msg)
+            await self.connections.route_message(response_msg)
 
         except Exception as e:
             logger.exception("Agent run failed")
@@ -878,7 +870,7 @@ class Agent[TDeps](TaskManagerMixin):
         else:
             if wait_for_connections:
                 await self.wait_for_connections()
-            return assistant_msg
+            return response_msg
 
     def to_agent_tool(
         self,
@@ -993,7 +985,7 @@ class Agent[TDeps](TaskManagerMixin):
                         final_prompt,
                         str(stream.formatted_content),  # type: ignore
                     )
-                assistant_msg = ChatMessage[TResult](
+                response_msg = ChatMessage[TResult](
                     content=cast(TResult, stream.formatted_content),  # type: ignore
                     role="assistant",
                     name=self.name,
@@ -1002,7 +994,8 @@ class Agent[TDeps](TaskManagerMixin):
                     cost_info=cost_info,
                     response_time=time.perf_counter() - start_time,
                 )
-                self.message_sent.emit(assistant_msg)
+                self.message_sent.emit(response_msg)
+                await self.connections.route_message(response_msg)
 
         except Exception as e:
             logger.exception("Agent stream failed")

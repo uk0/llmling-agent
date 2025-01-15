@@ -148,17 +148,19 @@ class Talk:
         self._stats = TalkStats(source_name=source.name, target_names=names)
         self._filter: FilterFn | None = None
         self._transformer: TransformFn | None = None
-        source.outbox.connect(self._handle_message)
 
-    def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None):
-        # logger.debug(
-        #     "Message from %s to %s: %r (type: %s) (prompt: %s)",
-        #     self.source.name,
-        #     [t.name for t in self.targets],
-        #     message.content,
-        #     self.connection_type,
-        #     prompt,
-        # )
+    async def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None):
+        logger.debug(
+            "Message from %s to %s: %r (type: %s) (prompt: %s)",
+            self.source.name,
+            [t.name for t in self.targets],
+            message.content,
+            self.connection_type,
+            prompt,
+        )
+        message.forwarded_from.append(self.source.name)
+        self.source.outbox.emit(message, None)
+
         if not self.active or (self.group and not self.group.active):
             return
         if self._filter and not self._filter(message):
@@ -183,8 +185,9 @@ class Talk:
                     prompts = [str(message.content)]
                     if prompt:
                         prompts.append(prompt)
-                    coro = target.run(*prompts)
-                    target.run_background(coro, priority=self.priority, delay=self.delay)
+                    response = await target.run(*prompts)
+                    response.forwarded_from.append(target.name)
+                    target.outbox.emit(response, None)
 
             case "context":
                 for target in self.targets:
@@ -235,7 +238,6 @@ class Talk:
 
     def disconnect(self):
         """Permanently disconnect the connection."""
-        self.source.outbox.disconnect(self._handle_message)
         self.active = False
 
     @property
@@ -257,9 +259,9 @@ class TeamTalk(list["Talk | TeamTalk"]):
         """Get all targets from all connections."""
         return [t for talk in self for t in talk.targets]
 
-    def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None):
+    async def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None):
         for talk in self:
-            talk._handle_message(message, prompt)
+            await talk._handle_message(message, prompt)
 
     @classmethod
     def from_agents(
@@ -328,11 +330,6 @@ class TalkManager:
             if agent.name not in seen:
                 seen.add(agent.name)
                 await agent.connections.wait_for_chain(seen)
-
-    def _route_message(self, message: ChatMessage[Any], prompt: str | None):
-        # Each Talk already knows its targets
-        for talk in self._connections:
-            talk._handle_message(message, prompt)
 
     def get_targets(
         self, recursive: bool = False, _seen: set[str] | None = None
@@ -548,3 +545,14 @@ class TalkManager:
             talks.extend(_collect_talks(conn))
 
         return talks
+
+    async def route_message(self, message: ChatMessage[Any]):
+        """Handle message for all connections."""
+        logger.debug(
+            "TalkManager routing message from %s to %d connections",
+            message.content,
+            len(self._connections),
+        )
+        # Each Talk/TeamTalk handles its own message logic
+        for talk in self._connections:
+            await talk._handle_message(message, None)  # No prompt needed anymore
