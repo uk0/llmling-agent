@@ -869,7 +869,7 @@ class Agent[TDeps](TaskManagerMixin):
 
         else:
             if wait_for_connections:
-                await self.wait_for_connections()
+                await self.connections.wait_for_connections()
             return response_msg
 
     def to_agent_tool(
@@ -1003,7 +1003,7 @@ class Agent[TDeps](TaskManagerMixin):
             raise
         else:
             if wait_for_connections:
-                await self.wait_for_connections()
+                await self.connections.wait_for_connections()
 
     def run_sync(
         self,
@@ -1034,20 +1034,6 @@ class Agent[TDeps](TaskManagerMixin):
                 result_type=result_type,
             )
         )
-
-    async def wait_for_connections(self, _seen: set[str] | None = None):
-        """Wait for this agent and all connected agents to complete their tasks."""
-        # Track seen agents to avoid cycles
-        seen = _seen or {self.name}
-
-        # Wait for our own tasks
-        await self.complete_tasks()
-
-        # Wait for connected agents
-        for agent in self.connections.get_targets():
-            if agent.name not in seen:
-                seen.add(agent.name)
-                await agent.wait_for_connections(seen)
 
     async def run_task[TResult](
         self,

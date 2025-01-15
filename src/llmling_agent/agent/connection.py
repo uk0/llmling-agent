@@ -555,7 +555,7 @@ class TalkManager:
         """Handle message for all connections."""
         msg = "TalkManager routing message from %s to %d connections"
         logger.debug(msg, message.content, len(self._connections))
-        forwarded_from = [*message.forwarded_from, self.owner.name]
+        forwarded_from = [*message.forwarded_from, self.owner.name]  # type: ignore[has-type]
         message_copy = replace(message, forwarded_from=forwarded_from)
         for talk in self._connections:
             await talk._handle_message(message_copy, None)
