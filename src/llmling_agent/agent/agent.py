@@ -734,8 +734,6 @@ class Agent[TDeps](TaskManagerMixin):
         msg = "forwarding message from %s: %r (type: %s) to %d connected agents"
         num_targets = len(self.connections.get_targets())
         logger.debug(msg, self.name, message.content, type(message.content), num_targets)
-        # update = {"forwarded_from": [*message.forwarded_from, self.name]}
-        # forwarded_msg = message.model_copy(update=update)
         message.forwarded_from.append(self.name)
         self.outbox.emit(message, None)
 
