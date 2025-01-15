@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from dataclasses import dataclass, field
+from datetime import datetime
 from os import PathLike
 import time
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, cast, overload
@@ -117,6 +119,15 @@ class Agent[TDeps](TaskManagerMixin):
     - Database logging
     """
 
+    @dataclass(frozen=True)
+    class AgentReset:
+        """Emitted when agent is reset."""
+
+        agent_name: str
+        previous_tools: dict[str, bool]
+        new_tools: dict[str, bool]
+        timestamp: datetime = field(default_factory=datetime.now)
+
     # this fixes weird mypy issue
     conversation: ConversationManager
     connections: TalkManager
@@ -130,6 +141,7 @@ class Agent[TDeps](TaskManagerMixin):
     chunk_streamed = Signal(str, str)  # (chunk, message_id)
     outbox = Signal(ChatMessage[Any], str)  # message, prompt
     run_failed = Signal(str, Exception)
+    agent_reset = Signal(AgentReset)
 
     def __init__(
         self,
@@ -1275,6 +1287,20 @@ class Agent[TDeps](TaskManagerMixin):
             model_changed signal with the new model
         """
         self._provider.set_model(model)
+
+    def reset(self):
+        """Reset agent state (conversation history and tool states)."""
+        old_tools = self.tools.list_tools()
+        self.conversation.clear()  # This emits history_cleared
+        self.tools.reset_states()
+        new_tools = self.tools.list_tools()
+
+        event = self.AgentReset(
+            agent_name=self.name,
+            previous_tools=old_tools,
+            new_tools=new_tools,
+        )
+        self.agent_reset.emit(event)
 
     @property
     def runtime(self) -> RuntimeConfig:
