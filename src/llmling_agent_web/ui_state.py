@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import gradio as gr
 from llmling import ConfigStore
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field
 from slashed import CommandStore
 from upath import UPath
 import yamling
@@ -15,12 +15,12 @@ import yamling
 from llmling_agent.log import LogCapturer
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_web.handlers import AgentHandler
-from llmling_agent_web.type_utils import ChatHistory, validate_chat_message
 
 
 if TYPE_CHECKING:
     from llmling_agent import Agent
     from llmling_agent.tools.base import ToolInfo
+    from llmling_agent_web.type_utils import ChatHistory
 
 
 logger = logging.getLogger(__name__)
@@ -30,20 +30,12 @@ class UIUpdate(BaseModel):
     """State updates for the UI components."""
 
     message_box: str | None = None
-    chat_history: ChatHistory | None = None
+    chat_history: ChatHistory = Field(default_factory=list)
     status: str | None = None
     debug_logs: str | None = None
     agent_choices: list[str] | None = None
     file_choices: list[str] | None = None
-    tool_states: list[tuple[str, bool]] | None = None
-
-    @model_validator(mode="after")
-    def validate_chat_history(self) -> UIUpdate:
-        """Validate chat history format."""
-        if self.chat_history is not None:
-            for msg in self.chat_history:
-                validate_chat_message(msg)
-        return self
+    tool_states: list[tuple[str, bool]] = Field(default_factory=list)
 
     def to_updates(self, outputs: list[gr.components.Component]) -> list[Any]:
         """Convert to list of gradio updates matching output components."""
@@ -122,13 +114,8 @@ class UIState(TaskManagerMixin):
 
         # Clear conversation
         self._agent.conversation.clear()
-
-        return UIUpdate(
-            chat_history=[],
-            tool_states=tool_states,
-            status="Session reset",
-            debug_logs=self.get_debug_logs(),
-        )
+        logs = self.get_debug_logs()
+        return UIUpdate(tool_states=tool_states, status="Session reset", debug_logs=logs)
 
     def toggle_debug(self, enabled: bool) -> UIUpdate:
         """Toggle debug mode."""
@@ -217,14 +204,10 @@ class UIState(TaskManagerMixin):
             self._connect_signals()
 
             # Get tool states for UI
-            tool_states = [(t.name, t.enabled) for t in self._agent.tools.values()]
-
-            return UIUpdate(
-                status=f"Agent {agent_name} ready",
-                chat_history=[],
-                tool_states=tool_states,
-                debug_logs=self.get_debug_logs(),
-            )
+            states = [(t.name, t.enabled) for t in self._agent.tools.values()]
+            msg = f"Agent {agent_name} ready"
+            logs = self.get_debug_logs()
+            return UIUpdate(status=msg, tool_states=states, debug_logs=logs)
 
         except Exception as e:
             logger.exception("Failed to initialize agent")
