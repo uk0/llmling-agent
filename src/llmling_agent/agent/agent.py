@@ -790,7 +790,7 @@ class Agent[TDeps](TaskManagerMixin):
         deps: TDeps | None = None,
         model: ModelType = None,
         store_history: bool = True,
-        wait_for_connections: bool = False,
+        wait_for_connections: bool | None = None,
     ) -> ChatMessage[TResult]:
         """Run agent with prompt and get response.
 
@@ -860,16 +860,13 @@ class Agent[TDeps](TaskManagerMixin):
                 devtools.debug(response_msg)
 
             self.message_sent.emit(response_msg)
-            await self.connections.route_message(response_msg)
+            await self.connections.route_message(response_msg, wait=wait_for_connections)
 
         except Exception as e:
             logger.exception("Agent run failed")
             self.run_failed.emit("Agent run failed", e)
             raise
-
         else:
-            if wait_for_connections:
-                await self.connections.wait_for_connections()
             return response_msg
 
     def to_agent_tool(
@@ -933,7 +930,7 @@ class Agent[TDeps](TaskManagerMixin):
         deps: TDeps | None = None,
         model: ModelType = None,
         store_history: bool = True,
-        wait_for_connections: bool = False,
+        wait_for_connections: bool | None = None,
     ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], TResult]]:
         """Run agent with prompt and get a streaming response.
 
@@ -995,15 +992,15 @@ class Agent[TDeps](TaskManagerMixin):
                     response_time=time.perf_counter() - start_time,
                 )
                 self.message_sent.emit(response_msg)
-                await self.connections.route_message(response_msg)
+                await self.connections.route_message(
+                    response_msg,
+                    wait=wait_for_connections,
+                )
 
         except Exception as e:
             logger.exception("Agent stream failed")
             self.run_failed.emit("Agent stream failed", e)
             raise
-        else:
-            if wait_for_connections:
-                await self.connections.wait_for_connections()
 
     def run_sync(
         self,

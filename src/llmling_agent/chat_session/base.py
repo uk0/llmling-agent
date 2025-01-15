@@ -66,7 +66,6 @@ class AgentPoolView:
         """
         self._agent = agent
         self.pool = pool
-        self.connection_states: dict[str, bool] = {}
         self._agent.tools.events.added.connect(self.tool_added.emit)
         self._agent.tools.events.removed.connect(self.tool_removed.emit)
         self._agent.tools.events.changed.connect(self.tool_changed.emit)
@@ -89,8 +88,8 @@ class AgentPoolView:
         assert self.pool
         target_agent = self.pool.get_agent(target)
         self._agent.pass_results_to(target_agent)
+        self._agent.connections.set_wait_state(target, wait if wait is not None else True)
         # Store wait state for this connection
-        self.connection_states[target] = wait if wait is not None else True
         self.commands._initialize_sync()
         for cmd in get_commands():
             self.commands.register_command(cmd)
@@ -124,16 +123,12 @@ class AgentPoolView:
 
     async def reset(self):
         """Reset session state."""
-        old_tools = self.tools.list_tools()
+        old = self.tools.list_tools()
         self._agent.conversation.clear()
         self.tools.reset_states()
-        new_tools = self.tools.list_tools()
-
-        event = self.SessionReset(
-            session_id=str(self._agent.conversation.id),
-            previous_tools=old_tools,
-            new_tools=new_tools,
-        )
+        new = self.tools.list_tools()
+        id_ = str(self._agent.conversation.id)
+        event = self.SessionReset(session_id=id_, previous_tools=old, new_tools=new)
         self.session_reset.emit(event)
 
     async def handle_command(
@@ -221,9 +216,7 @@ class AgentPoolView:
 
     async def _send_normal(self, content: str) -> ChatMessage[str]:
         """Send message and get single response."""
-        targets = self._agent.connections.get_targets()
-        should_wait = any(t.name in self.connection_states for t in targets)
-        result = await self._agent.run(content, wait_for_connections=should_wait)
+        result = await self._agent.run(content)
         text_message = result.to_text_message()
 
         # Update session state metrics
@@ -237,11 +230,7 @@ class AgentPoolView:
 
     async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage[str]]:
         """Send message and stream responses."""
-        targets = self._agent.connections.get_targets()
-        should_wait = any(t.name in self.connection_states for t in targets)
-        async with self._agent.run_stream(
-            content, wait_for_connections=should_wait
-        ) as stream_result:
+        async with self._agent.run_stream(content) as stream_result:
             # Stream intermediate chunks
             async for response in stream_result.stream():
                 yield ChatMessage[str](content=str(response), role="assistant")

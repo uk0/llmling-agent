@@ -551,11 +551,27 @@ class TalkManager:
 
         return talks
 
-    async def route_message(self, message: ChatMessage[Any]):
-        """Handle message for all connections."""
+    async def route_message(self, message: ChatMessage[Any], wait: bool | None = None):
+        """Route message to all connections.
+
+        Args:
+            message: Message to route
+            wait: Override default waiting behavior
+                 None = use configured states from _wait_states
+                 True/False = override for this message
+        """
+        if wait is not None:
+            should_wait = wait
+        else:
+            # Use configured states as fallback
+            should_wait = any(
+                self._wait_states.get(t.name, False) for t in self.get_targets()
+            )
         msg = "TalkManager routing message from %s to %d connections"
         logger.debug(msg, message.content, len(self._connections))
         forwarded_from = [*message.forwarded_from, self.owner.name]  # type: ignore[has-type]
         message_copy = replace(message, forwarded_from=forwarded_from)
         for talk in self._connections:
             await talk._handle_message(message_copy, None)
+        if should_wait:
+            await self.wait_for_connections()
