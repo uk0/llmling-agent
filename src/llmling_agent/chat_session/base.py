@@ -67,7 +67,7 @@ class AgentPoolView:
         # Basic setup that doesn't need async
         self._agent = agent
         self.pool = pool
-        self.connection_states: dict[tuple[str, str], bool] = {}
+        self.connection_states: dict[str, bool] = {}
         # forward ToolManager signals to ours
         self._agent.tools.events.added.connect(self.tool_added.emit)
         self._agent.tools.events.removed.connect(self.tool_removed.emit)
@@ -92,8 +92,7 @@ class AgentPoolView:
         target_agent = self.pool.get_agent(target)
         self._agent.pass_results_to(target_agent)
         # Store wait state for this connection
-        connection_key = (self._agent.name, target)
-        self.connection_states[connection_key] = wait if wait is not None else True
+        self.connection_states[target] = wait if wait is not None else True
         self.commands._initialize_sync()
         for cmd in get_commands():
             self.commands.register_command(cmd)
@@ -224,10 +223,8 @@ class AgentPoolView:
 
     async def _send_normal(self, content: str) -> ChatMessage[str]:
         """Send message and get single response."""
-        should_wait = any(
-            (self._agent.name, target.name) in self.connection_states
-            for target in self._agent.connections.get_targets()
-        )
+        targets = self._agent.connections.get_targets()
+        should_wait = any(t.name in self.connection_states for t in targets)
         result = await self._agent.run(content, wait_for_connections=should_wait)
         text_message = result.to_text_message()
 
@@ -242,10 +239,8 @@ class AgentPoolView:
 
     async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage[str]]:
         """Send message and stream responses."""
-        should_wait = any(
-            (self._agent.name, target.name) in self.connection_states
-            for target in self._agent.connections.get_targets()
-        )
+        targets = self._agent.connections.get_targets()
+        should_wait = any(t.name in self.connection_states for t in targets)
         async with self._agent.run_stream(
             content, wait_for_connections=should_wait
         ) as stream_result:

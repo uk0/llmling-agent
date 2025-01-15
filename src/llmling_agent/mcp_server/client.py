@@ -90,13 +90,13 @@ class MCPClient(AbstractAsyncContextManager["MCPClient"]):
         session = ClientSession(stdio, write)
         self.session = await self.exit_stack.enter_async_context(session)
         assert self.session
-        await self.session.initialize()
-
+        init_result = await self.session.initialize()
+        info = init_result.serverInfo
         # Get available tools
         result = await self.session.list_tools()
         self._available_tools = result.tools
-        msg = "Connected to MCP server with tools: %s"
-        logger.info(msg, [t.name for t in self._available_tools])
+        logger.info("Connected to MCP server %s (%s)", info.name, info.version)
+        logger.info("Available tools: %s", len(self._available_tools))
 
     def get_tools(self) -> list[dict]:
         """Get tools in OpenAI function format."""
