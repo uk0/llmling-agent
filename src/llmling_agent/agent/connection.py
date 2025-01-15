@@ -118,6 +118,7 @@ class Talk:
         group: TeamTalk | None = None,
         *,
         connection_type: ConnectionType = "run",
+        wait_for_connections: bool = False,
         priority: int = 0,
         delay: timedelta | None = None,
     ):
@@ -131,6 +132,7 @@ class Talk:
                 - "run": Execute message as a new run in target
                 - "context": Add message as context to target
                 - "forward": Forward message to target's outbox
+            wait_for_connections: Whether to wait for all targets to complete
             priority: Task priority (lower = higher priority)
             delay: Optional delay before processing
         """
@@ -141,6 +143,7 @@ class Talk:
         self.delay = delay
         self.active = True
         self.connection_type = connection_type
+        self.wait_for_connections = wait_for_connections
         names = {t.name for t in targets}
         self._stats = TalkStats(source_name=source.name, target_names=names)
         self._filter: FilterFn | None = None
@@ -180,9 +183,8 @@ class Talk:
                     prompts = [str(message.content)]
                     if prompt:
                         prompts.append(prompt)
-                    target.run_background(
-                        target.run(*prompts), priority=self.priority, delay=self.delay
-                    )
+                    coro = target.run(*prompts)
+                    target.run_background(coro, priority=self.priority, delay=self.delay)
 
             case "context":
                 for target in self.targets:
@@ -214,7 +216,6 @@ class Talk:
                         )
                     else:
                         target.outbox.emit(message, prompt)
-
         self.message_forwarded.emit(message)
 
     def when(self, condition: FilterFn) -> Self:
@@ -308,6 +309,7 @@ class TalkManager:
     """Manages connections for both Agents and Teams."""
 
     agent_connected = Signal(object)  # Agent
+    connection_added = Signal(Talk)  # Agent
 
     def __init__(self, owner: AnyAgent[Any, Any] | Team[Any]):
         self.owner = owner
@@ -403,7 +405,7 @@ class TalkManager:
 
         if isinstance(other, Team):
             conns = [
-                Talk(
+                self.add_connection(
                     self.owner,
                     [target],
                     connection_type=connection_type,
@@ -412,17 +414,33 @@ class TalkManager:
                 )
                 for target in targets
             ]
-            connections = TeamTalk(conns)
-            self._connections.extend(connections)
-            return connections
+            return TeamTalk(conns)
 
-        connection = Talk(
+        return self.add_connection(
             self.owner,
             targets,
             connection_type=connection_type,
             priority=priority,
             delay=delay,
         )
+
+    def add_connection(
+        self,
+        source: AnyAgent[Any, Any],
+        targets: list[AnyAgent[Any, Any]],
+        connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
+    ) -> Talk:
+        """Add a connection to the manager."""
+        connection = Talk(
+            source,
+            targets,
+            connection_type=connection_type,
+            priority=priority,
+            delay=delay,
+        )
+        self.connection_added.emit(connection)
         self._connections.append(connection)
         return connection
 
@@ -446,7 +464,7 @@ class TalkManager:
             self.agent_connected.emit(target)
 
         conns = [
-            Talk(
+            self.add_connection(
                 src,
                 [t],
                 connection_type=connection_type,
@@ -456,10 +474,7 @@ class TalkManager:
             for src in self.owner.agents
             for t in targets
         ]
-        connections = TeamTalk(conns)
-        ## using extend() here flattens the list
-        self._connections.extend(connections)
-        return connections
+        return TeamTalk(conns)
 
     def _resolve_targets(
         self, other: AnyAgent[Any, Any] | Team[Any] | str
