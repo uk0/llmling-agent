@@ -65,7 +65,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=str)
-TDeps = TypeVar("TDeps", default=Any)
+TDeps = TypeVar("TDeps", default=None)
 AgentType = Literal["ai", "human", "litellm"] | AgentProvider
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 

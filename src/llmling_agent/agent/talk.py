@@ -33,8 +33,8 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-TResult = TypeVar("TResult")
-TDeps = TypeVar("TDeps")
+TResult = TypeVar("TResult", default=str)
+TDeps = TypeVar("TDeps", default=None)
 ExtractionMode = Literal["structured", "tool_calls"]
 
 

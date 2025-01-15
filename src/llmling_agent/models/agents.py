@@ -45,7 +45,7 @@ if TYPE_CHECKING:
     from llmling_agent_providers.base import AgentProvider
 
 
-TDeps = TypeVar("TDeps", default=Any)
+TDeps = TypeVar("TDeps", default=None)
 TResult = TypeVar("TResult", default=Any)
 TResultOverride = TypeVar("TResultOverride")
 

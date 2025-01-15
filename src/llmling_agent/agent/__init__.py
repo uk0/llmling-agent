@@ -7,7 +7,7 @@ from llmling_agent.agent.agent import Agent
 from llmling_agent.agent.structured import StructuredAgent
 
 
-TDeps = TypeVar("TDeps")
+TDeps = TypeVar("TDeps", default=None)
 TResult = TypeVar("TResult", default=str)
 
 type AnyAgent[TDeps, TResult] = Agent[TDeps] | StructuredAgent[TDeps, TResult]
