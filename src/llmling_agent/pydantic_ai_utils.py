@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic_ai import messages as _messages, models
+from pydantic_ai import messages as _messages
 from pydantic_ai.messages import (
     ArgsDict,
     ModelMessage,
@@ -31,8 +31,6 @@ from llmling_agent.models.messages import ChatMessage
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from llmling_agent.common_types import MessageRole
     from llmling_agent.tools.base import ToolInfo
 
@@ -79,25 +77,6 @@ def format_part(  # noqa: PLR0911
             return f"Validation errors:\n{response.content}"
         case _:
             return str(response)
-
-
-def find_last_assistant_message(messages: Sequence[ModelMessage]) -> str | None:
-    """Find the last assistant message in history."""
-    for msg in reversed(messages):
-        if isinstance(msg, ModelResponse):
-            for part in msg.parts:
-                match part:
-                    case TextPart():
-                        return part.content
-                    case ToolCallPart() as tool_call:
-                        # Format tool calls nicely
-                        args = (
-                            tool_call.args.args_dict
-                            if isinstance(tool_call.args, ArgsDict)
-                            else json.loads(tool_call.args.args_json)
-                        )
-                        return f"Tool: {tool_call.tool_name}\nArgs: {args}"
-    return None
 
 
 def get_tool_calls(
@@ -234,22 +213,6 @@ def convert_model_message(
         case _:
             msg = f"Unsupported message type: {type(message)}"
             raise ValueError(msg)
-
-
-def models_equal(
-    self, a: str | models.Model | None, b: str | models.Model | None
-) -> bool:
-    """Compare models by their string representation."""
-    match (a, b):
-        case (None, None):
-            return True
-        case (None, _) | (_, None):
-            return False
-        case _:
-            # Compare string representations (using model.name() for Model objects)
-            name_a = a if isinstance(a, str | None) else a.name()
-            name_b = b if isinstance(b, str | None) else b.name()
-            return name_a == name_b
 
 
 def get_message_role(msg: ModelMessage) -> str:

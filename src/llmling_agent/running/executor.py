@@ -6,6 +6,7 @@ import asyncio
 import importlib.util
 import inspect
 from pathlib import Path
+import sys
 from typing import TYPE_CHECKING, Any, get_type_hints
 
 from llmling_agent.delegation import AgentPool, with_agents
@@ -39,7 +40,6 @@ def discover_functions(path: StrPath) -> list[AgentFunction]:
     """
     if str(path) == "__main__":
         # Get the actual file being run
-        import sys
 
         path = sys.modules["__main__"].__file__  # type: ignore
         if not path:
@@ -51,10 +51,7 @@ def discover_functions(path: StrPath) -> list[AgentFunction]:
         raise ValueError(msg)
 
     # Import module
-    spec = importlib.util.spec_from_file_location(
-        path_obj.stem,
-        path_obj,
-    )
+    spec = importlib.util.spec_from_file_location(path_obj.stem, path_obj)
     if not spec or not spec.loader:
         msg = f"Could not load module: {path}"
         raise ImportError(msg)

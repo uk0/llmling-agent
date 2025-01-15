@@ -265,14 +265,13 @@ class ConversationManager:
             case SessionQuery() as query:
                 # Override query params if provided
                 if since is not None or until is not None or roles or limit:
-                    query = query.model_copy(
-                        update={
-                            "since": since.isoformat() if since else None,
-                            "until": until.isoformat() if until else None,
-                            "roles": roles,
-                            "limit": limit,
-                        }
-                    )
+                    update = {
+                        "since": since.isoformat() if since else None,
+                        "until": until.isoformat() if until else None,
+                        "roles": roles,
+                        "limit": limit,
+                    }
+                    query = query.model_copy(update=update)
                 messages = storage.filter_messages_sync(query)
                 self._current_history = [to_model_message(msg) for msg in messages]
                 if query.name:
