@@ -150,11 +150,11 @@ class LiteLLMProvider(AgentProvider[Any]):
         if isinstance(override, ModelProtocol):
             return override.name()
         if isinstance(override, str):
-            return override
+            return override.replace(":", "/")
         if isinstance(self._model, ModelProtocol):
             return self._model.name()
         if self._model:
-            return self._model
+            return self._model.replace(":", "/")
         return "openai/gpt-4o-mini"
 
     def get_tool_choice(self) -> str:
