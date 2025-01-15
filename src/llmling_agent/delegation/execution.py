@@ -42,13 +42,50 @@ class TeamExecutionStats:
     """Statistics about a team execution."""
 
     start_time: datetime
-    active_agents: list[str]
-    total_tokens: int
-    total_cost: float
-    tool_usage: dict[str, int]  # agent -> tool call count
-    message_counts: dict[str, int]  # agent -> message count
+    received_messages: dict[str, list[ChatMessage]]  # agent -> messages
+    sent_messages: dict[str, list[ChatMessage]]  # agent -> messages
+    tool_calls: dict[str, list[ToolCallInfo]]  # agent -> tool calls
     error_log: list[tuple[str, str, datetime]]  # (agent, error, timestamp)
-    duration: float  # seconds
+    duration: float
+
+    @property
+    def active_agents(self) -> list[str]:
+        """Get currently active agents."""
+        return [
+            name
+            for name in self.received_messages
+            if len(self.received_messages[name]) > len(self.sent_messages[name])
+        ]
+
+    @property
+    def message_counts(self) -> dict[str, int]:
+        """Get message count per agent."""
+        return {name: len(messages) for name, messages in self.sent_messages.items()}
+
+    @property
+    def total_tokens(self) -> int:
+        """Get total token usage across all agents."""
+        return sum(
+            msg.cost_info.token_usage["total"]
+            for messages in self.sent_messages.values()
+            for msg in messages
+            if msg.cost_info
+        )
+
+    @property
+    def total_cost(self) -> float:
+        """Get total cost across all agents."""
+        return sum(
+            float(msg.cost_info.total_cost)
+            for messages in self.sent_messages.values()
+            for msg in messages
+            if msg.cost_info
+        )
+
+    @property
+    def tool_counts(self) -> dict[str, int]:
+        """Get tool usage count per agent."""
+        return {name: len(calls) for name, calls in self.tool_calls.items()}
 
     @property
     def is_active(self) -> bool:
@@ -127,43 +164,11 @@ class TeamExecutionMonitor:
     @property
     def stats(self) -> TeamExecutionStats:
         """Get current execution statistics."""
-        # Active agents = received > sent messages
-        active_agents = [
-            name
-            for name in self._received_messages
-            if len(self._received_messages[name]) > len(self._sent_messages[name])
-        ]
-
-        # Aggregate token usage and costs
-        total_tokens = sum(
-            msg.cost_info.token_usage["total"]
-            for messages in self._sent_messages.values()
-            for msg in messages
-            if msg.cost_info
-        )
-
-        total_cost = sum(
-            float(msg.cost_info.total_cost)
-            for messages in self._sent_messages.values()
-            for msg in messages
-            if msg.cost_info
-        )
-
-        # Tool usage stats
-        tool_usage = {name: len(calls) for name, calls in self._tool_calls.items()}
-
-        # Message counts per agent
-        message_counts = {
-            name: len(self._sent_messages[name]) for name in self._sent_messages
-        }
-
         return TeamExecutionStats(
             start_time=self.start_time,
-            active_agents=active_agents,
-            total_tokens=total_tokens,
-            total_cost=total_cost,
-            tool_usage=tool_usage,
-            message_counts=message_counts,
+            received_messages=self._received_messages,
+            sent_messages=self._sent_messages,
+            tool_calls=self._tool_calls,
             error_log=[
                 (name, err, ts)
                 for name, errors in self._errors.items()
@@ -290,14 +295,12 @@ class TeamExecution[TDeps](TaskManagerMixin):
     def stats(self) -> TeamExecutionStats:
         """Get current execution statistics."""
         if not self._monitor:
-            # Return empty/initial stats if not monitoring
+            # Return empty stats if not monitoring
             return TeamExecutionStats(
                 start_time=datetime.now(),
-                active_agents=[],
-                total_tokens=0,
-                total_cost=0.0,
-                tool_usage={},
-                message_counts={},
+                received_messages={agent.name: [] for agent in self.team.agents},
+                sent_messages={agent.name: [] for agent in self.team.agents},
+                tool_calls={agent.name: [] for agent in self.team.agents},
                 error_log=[],
                 duration=0.0,
             )
