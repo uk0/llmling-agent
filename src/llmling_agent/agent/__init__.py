@@ -14,13 +14,11 @@ type AnyAgent[TDeps, TResult] = Agent[TDeps] | StructuredAgent[TDeps, TResult]
 
 from llmling_agent.agent.agent_logger import AgentLogger
 from llmling_agent.agent.conversation import ConversationManager
-from llmling_agent.agent.container import AgentContainer
 from llmling_agent.agent.talk import Interactions
 
 
 __all__ = [
     "Agent",
-    "AgentContainer",
     "AgentLogger",
     "AnyAgent",
     "ConversationManager",
