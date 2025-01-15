@@ -67,7 +67,7 @@ class InteractiveSession:
         """Connect to chat session signals."""
         assert self._chat_session is not None
         self._chat_session.history_cleared.connect(self._on_history_cleared)
-        self._chat_session.session_reset.connect(self._on_session_reset)
+        self._chat_session._agent.agent_reset.connect(self._on_session_reset)
         self._chat_session.tool_added.connect(self._on_tool_added)
         self._chat_session.tool_removed.connect(self._on_tool_removed)
         self._chat_session.tool_changed.connect(self._on_tool_changed)
@@ -120,7 +120,7 @@ class InteractiveSession:
         """Handle history cleared event."""
         self.console.print("\nChat history cleared")
 
-    def _on_session_reset(self, event: AgentPoolView.SessionReset):
+    def _on_session_reset(self, event: Agent.AgentReset):
         """Handle session reset event."""
         self.console.print("\nSession reset. Tools restored to default state.")
 

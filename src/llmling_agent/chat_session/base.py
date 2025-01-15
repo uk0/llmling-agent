@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from datetime import datetime
 import pathlib
 import time
@@ -37,17 +36,7 @@ HISTORY_DIR = pathlib.Path(user_data_dir("llmling", "llmling")) / "cli_history"
 
 
 class AgentPoolView:
-    @dataclass(frozen=True)
-    class SessionReset:
-        """Emitted when session is reset."""
-
-        session_id: str
-        previous_tools: dict[str, bool]
-        new_tools: dict[str, bool]
-        timestamp: datetime = field(default_factory=datetime.now)
-
     history_cleared = Signal(ConversationManager.HistoryCleared)
-    session_reset = Signal(SessionReset)
     tool_added = Signal(str, ToolInfo)
     tool_removed = Signal(str)  # tool_name
     tool_changed = Signal(str, ToolInfo)  # name, new_info
@@ -120,16 +109,6 @@ class AgentPoolView:
             limit=limit,
             current_session_only=current_session_only,
         )
-
-    async def reset(self):
-        """Reset session state."""
-        old = self.tools.list_tools()
-        self._agent.conversation.clear()
-        self.tools.reset_states()
-        new = self.tools.list_tools()
-        id_ = str(self._agent.conversation.id)
-        event = self.SessionReset(session_id=id_, previous_tools=old, new_tools=new)
-        self.session_reset.emit(event)
 
     async def handle_command(
         self,

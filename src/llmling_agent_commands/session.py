@@ -37,7 +37,7 @@ async def reset_command(
     kwargs: dict[str, str],
 ):
     """Reset session state."""
-    await ctx.context.reset()
+    ctx.context._agent.reset()
 
 
 clear_cmd = Command(

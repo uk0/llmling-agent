@@ -65,8 +65,7 @@ async def main(config_path: str):
 
         # Setup async chain: scanner -> writer -> console output
         scanner.pass_results_to(writer)
-        writer.outbox.connect(lambda msg, _: print(f"Documentation:\n{msg.content}"))
-
+        writer.message_sent.connect(lambda msg: print(f"Documentation:\n{msg.content}"))
         # Start async docs generation (the writer will start working in async fashion)
         await scanner.run('List all Python files in "src/llmling_agent/agent"')
 
