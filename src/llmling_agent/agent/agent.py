@@ -560,14 +560,8 @@ class Agent[TDeps](TaskManagerMixin):
                 result_type=result_type,
                 **kwargs,
             )
-            try:
-                async with agent:
-                    yield (
-                        agent if result_type is None else agent.to_structured(result_type)
-                    )
-            finally:
-                # Any cleanup if needed
-                pass
+            async with agent:
+                yield (agent if result_type is None else agent.to_structured(result_type))
 
     @classmethod
     @overload
@@ -721,33 +715,25 @@ class Agent[TDeps](TaskManagerMixin):
                 system_prompt=system_prompt or [],
                 enable_db_logging=enable_db_logging,
             )
-            try:
-                async with base_agent:
-                    if resolved_type is not None and resolved_type is not str:
-                        # Yield structured agent with correct typing
-                        from llmling_agent.agent.structured import StructuredAgent
+            async with base_agent:
+                if resolved_type is not None and resolved_type is not str:
+                    # Yield structured agent with correct typing
+                    from llmling_agent.agent.structured import StructuredAgent
 
-                        yield StructuredAgent[TDeps, TResult](
-                            base_agent,
-                            resolved_type,
-                            tool_description=result_tool_description,
-                            tool_name=result_tool_name,
-                        )
-                    else:
-                        yield base_agent
-            finally:
-                # Any cleanup if needed
-                pass
+                    yield StructuredAgent[TDeps, TResult](
+                        base_agent,
+                        resolved_type,
+                        tool_description=result_tool_description,
+                        tool_name=result_tool_name,
+                    )
+                else:
+                    yield base_agent
 
     def _forward_message(self, message: ChatMessage[Any]):
         """Forward sent messages."""
-        logger.debug(
-            "forwarding message from %s: %s (type: %s) to %d connected agents",
-            self.name,
-            repr(message.content),
-            type(message.content),
-            len(self.connections.get_targets()),
-        )
+        msg = "forwarding message from %s: %r (type: %s) to %d connected agents"
+        num_targets = len(self.connections.get_targets())
+        logger.debug(msg, self.name, message.content, type(message.content), num_targets)
         # update = {"forwarded_from": [*message.forwarded_from, self.name]}
         # forwarded_msg = message.model_copy(update=update)
         message.forwarded_from.append(self.name)
@@ -1001,17 +987,14 @@ class Agent[TDeps](TaskManagerMixin):
 
                 # After streaming is done, create and emit final message
                 usage = stream.usage()
-                cost_info = (
-                    await TokenCost.from_usage(
+                cost_info = None
+                if self.model_name:
+                    cost_info = await TokenCost.from_usage(
                         usage,
                         stream.model_name,  # type: ignore
                         final_prompt,
                         str(stream.formatted_content),  # type: ignore
                     )
-                    if self.model_name
-                    else None
-                )
-
                 assistant_msg = ChatMessage[TResult](
                     content=cast(TResult, stream.formatted_content),  # type: ignore
                     role="assistant",
