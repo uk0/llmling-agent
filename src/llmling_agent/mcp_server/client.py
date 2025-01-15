@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from contextlib import AbstractAsyncContextManager, AsyncExitStack
-import inspect
 import sys
 from typing import TYPE_CHECKING, Any, Self, TextIO
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.types import EmbeddedResource, ImageContent, Tool as MCPTool
+from py2openai.functionschema import FunctionSchema
 
 from llmling_agent.log import get_logger
 
@@ -21,6 +21,11 @@ if TYPE_CHECKING:
     from mcp.types import Tool
 
 logger = get_logger(__name__)
+
+
+def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
+    desc = tool.description or "No description provided"
+    return {"name": tool.name, "description": desc, "parameters": tool.inputSchema}
 
 
 class MCPClient(AbstractAsyncContextManager["MCPClient"]):
@@ -101,53 +106,15 @@ class MCPClient(AbstractAsyncContextManager["MCPClient"]):
     def get_tools(self) -> list[dict]:
         """Get tools in OpenAI function format."""
         return [
-            {
-                "type": "function",
-                "function": {
-                    "name": tool.name,
-                    "description": tool.description or "No description provided",
-                    "parameters": tool.inputSchema,
-                },
-            }
+            {"type": "function", "function": mcp_tool_to_fn_schema(tool)}
             for tool in self._available_tools
         ]
 
     def create_tool_callable(self, tool: MCPTool) -> Callable[..., Awaitable[str]]:
         """Create a properly typed callable from MCP tool schema."""
-        schema = tool.inputSchema
-        parameters = schema.get("properties", {})
-        required = schema.get("required", [])
-
-        # Create parameter annotations dict for the function
-        annotations = {
-            # Map JSON schema types to Python types
-            param: str
-            if details.get("type") == "string"
-            else int
-            if details.get("type") == "integer"
-            else float
-            if details.get("type") == "number"
-            else bool
-            if details.get("type") == "boolean"
-            else Any
-            for param, details in parameters.items()
-        }
-        annotations["return"] = str  # Return type is always str
-
-        # Build signature parts for all parameters
-        params = [
-            inspect.Parameter(
-                name=name,
-                kind=inspect.Parameter.KEYWORD_ONLY,  # Make all params keyword-only
-                annotation=typ,
-                default=... if name in required else None,
-            )
-            for name, typ in annotations.items()
-            if name != "return"
-        ]
-
-        # Create the signature
-        sig = inspect.Signature(params, return_annotation=str)
+        schema = mcp_tool_to_fn_schema(tool)
+        fn_schema = FunctionSchema.from_dict(schema)
+        sig = fn_schema.to_python_signature()
 
         async def tool_callable(**kwargs: Any) -> str:
             """Dynamically generated MCP tool wrapper."""
@@ -155,10 +122,9 @@ class MCPClient(AbstractAsyncContextManager["MCPClient"]):
 
         # Set proper signature and docstring
         tool_callable.__signature__ = sig  # type: ignore
-        tool_callable.__annotations__ = annotations
+        tool_callable.__annotations__ = fn_schema.get_annotations()
         tool_callable.__name__ = tool.name
         tool_callable.__doc__ = tool.description or "No description provided."
-
         return tool_callable
 
     async def call_tool(self, name: str, arguments: dict | None = None) -> str:
