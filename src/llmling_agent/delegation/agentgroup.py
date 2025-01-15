@@ -1,25 +1,16 @@
 from __future__ import annotations
 
-import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import datetime, timedelta
-import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from psygnal.containers import EventedList
 from pydantic_ai.result import StreamedRunResult
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.connection import TalkManager, TeamTalk
-from llmling_agent.delegation import interactive_controller
+from llmling_agent.delegation.execution import TeamExecution
 from llmling_agent.delegation.pool import AgentResponse
-from llmling_agent.delegation.router import (
-    AgentRouter,
-    AwaitResponseDecision,
-    CallbackRouter,
-    EndDecision,
-    RouteDecision,
-)
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.utils.tasks import TaskManagerMixin
@@ -32,6 +23,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.callbacks import DecisionCallback
+    from llmling_agent.delegation.router import AgentRouter
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
 
@@ -151,25 +143,21 @@ class Team[TDeps](TaskManagerMixin):
                     delay=delay,
                 )
 
+    def monitored(
+        self,
+        mode: Literal["parallel", "sequential", "controlled"],
+    ) -> TeamExecution[TDeps]:
+        """Create a monitored execution."""
+        return TeamExecution(self, mode)
+
     async def run_parallel(
-        self, prompt: str | None = None, deps: TDeps | None = None
+        self,
+        prompt: str | None = None,
+        deps: TDeps | None = None,
     ) -> TeamResponse:
         """Run all agents in parallel."""
-        start_time = datetime.now()
-
-        async def run_agent(agent: AnyAgent[TDeps, Any]) -> AgentResponse[Any]:
-            try:
-                start = time.perf_counter()
-                actual_prompt = prompt or self.shared_prompt
-                message = await agent.run(actual_prompt, deps=deps or self.shared_deps)
-                timing = time.perf_counter() - start
-                return AgentResponse(agent.name, message=message, timing=timing)
-            except Exception as e:  # noqa: BLE001
-                msg = ChatMessage(content="", role="assistant")
-                return AgentResponse(agent_name=agent.name, message=msg, error=str(e))
-
-        responses = await asyncio.gather(*[run_agent(a) for a in self.agents])
-        return TeamResponse(responses, start_time)
+        execution = TeamExecution(self, "parallel")
+        return await execution.run(prompt, deps)
 
     async def run_sequential(
         self,
@@ -177,24 +165,8 @@ class Team[TDeps](TaskManagerMixin):
         deps: TDeps | None = None,
     ) -> TeamResponse:
         """Run agents one after another."""
-        start_time = datetime.now()
-        results = []
-        for agent in self.agents:
-            try:
-                start = time.perf_counter()
-                message = await agent.run(
-                    prompt or self.shared_prompt, deps=deps or self.shared_deps
-                )
-                timing = time.perf_counter() - start
-                res = AgentResponse[str](
-                    agent_name=agent.name, message=message, timing=timing
-                )
-                results.append(res)
-            except Exception as e:  # noqa: BLE001
-                msg = ChatMessage(content="", role="assistant")
-                res = AgentResponse[str](agent_name=agent.name, message=msg, error=str(e))
-                results.append(res)
-        return TeamResponse(results, start_time)
+        execution = TeamExecution(self, "sequential")
+        return await execution.run(prompt, deps)
 
     async def run_controlled(
         self,
@@ -202,56 +174,11 @@ class Team[TDeps](TaskManagerMixin):
         deps: TDeps | None = None,
         *,
         initial_agent: str | AnyAgent[TDeps, Any] | None = None,
-        decision_callback: DecisionCallback = interactive_controller,
+        decision_callback: DecisionCallback | None = None,
         router: AgentRouter | None = None,
     ) -> TeamResponse:
-        results = []
-        actual_prompt = prompt or self.shared_prompt
-        actual_deps = deps or self.shared_deps
-        start_time = datetime.now()
-
-        # Resolve initial agent
-        current_agent = (
-            next(a for a in self.agents if a.name == initial_agent)
-            if isinstance(initial_agent, str)
-            else initial_agent or self.agents[0]
-        )
-
-        # Create router for decisions
-        assert current_agent.context.pool
-        router = router or CallbackRouter(current_agent.context.pool, decision_callback)
-        current_message = actual_prompt
-        while True:
-            # Get response from current agent
-            now = time.perf_counter()
-            message = await current_agent.run(current_message, deps=actual_deps)
-            duration = time.perf_counter() - now
-            response = AgentResponse(current_agent.name, message, timing=duration)
-            results.append(response)
-
-            # Get next decision
-            assert response.message
-            decision = await router.decide(response.message.content)
-
-            # Execute the decision
-            assert current_agent.context.pool
-            await decision.execute(
-                response.message, current_agent, current_agent.context.pool
-            )
-
-            match decision:
-                case EndDecision():
-                    break
-                case RouteDecision():
-                    continue
-                case AwaitResponseDecision():
-                    current_agent = next(
-                        (a for a in self.agents if a.name == decision.target_agent),
-                        current_agent,
-                    )
-                    current_message = str(response.message.content)
-
-        return TeamResponse(results, start_time)
+        execution = TeamExecution(self, "controlled")
+        return await execution.run(prompt, deps)
 
     async def chain(
         self,
