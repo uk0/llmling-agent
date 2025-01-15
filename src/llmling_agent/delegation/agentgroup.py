@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.forward_targets import ConnectionType
 
 
-TDeps = TypeVar("TDeps")
+TDeps = TypeVar("TDeps", default=None)
 ResultData = TypeVar("ResultData", default=str)
 
 
