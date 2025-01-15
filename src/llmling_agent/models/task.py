@@ -36,7 +36,7 @@ class AgentTask[TDeps, TResult](BaseModel):
     prompt: str | ImportString[str]
     """The task instruction/prompt."""
 
-    result_type: ImportString[type[TResult]] = "str"  # type: ignore
+    result_type: ImportString[type[TResult]] = Field(default="str", validate_default=True)  # type: ignore
     """Expected type of the task result."""
 
     deps: TDeps | None = None
