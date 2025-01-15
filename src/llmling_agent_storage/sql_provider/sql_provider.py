@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from sqlmodel.sql.expression import SelectOfScalar
     from tokonomics.toko_types import TokenUsage
 
+    from llmling_agent.common_types import JsonValue
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.session import SessionQuery
 
@@ -202,7 +203,15 @@ class SQLModelProvider(StorageProvider):
             session.add(call)
             session.commit()
 
-    async def log_command(self, *, agent_name: str, session_id: str, command: str):
+    async def log_command(
+        self,
+        *,
+        agent_name: str,
+        session_id: str,
+        command: str,
+        context_type: type | None = None,
+        metadata: dict[str, JsonValue] | None = None,
+    ) -> None:
         """Log command to database."""
         from llmling_agent_storage.sql_provider.models import CommandHistory
 
@@ -211,6 +220,8 @@ class SQLModelProvider(StorageProvider):
                 session_id=session_id,
                 agent_name=agent_name,
                 command=command,
+                context_type=context_type.__name__ if context_type else None,
+                context_metadata=metadata or {},
             )
             session.add(history)
             session.commit()

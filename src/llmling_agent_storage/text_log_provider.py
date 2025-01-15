@@ -5,6 +5,7 @@ from typing import Any, ClassVar
 from jinja2 import Template
 from upath import UPath
 
+from llmling_agent.common_types import JsonValue
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.storage import LogFormat
@@ -172,7 +173,15 @@ class TextLogProvider(StorageProvider):
         })
         self._write()
 
-    async def log_command(self, *, agent_name: str, session_id: str, command: str):
+    async def log_command(
+        self,
+        *,
+        agent_name: str,
+        session_id: str,
+        command: str,
+        context_type: type | None = None,
+        metadata: dict[str, JsonValue] | None = None,
+    ):
         """Store command and update log."""
         self._entries.append({
             "type": "command",
@@ -180,6 +189,8 @@ class TextLogProvider(StorageProvider):
             "agent_name": agent_name,
             "session_id": session_id,
             "command": command,
+            "context_type": context_type.__name__ if context_type else None,
+            "metadata": metadata,
         })
         self._write()
 

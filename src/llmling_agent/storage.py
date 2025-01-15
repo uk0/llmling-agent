@@ -22,6 +22,7 @@ from llmling_agent_storage.text_log_provider import TextLogProvider
 if TYPE_CHECKING:
     from datetime import datetime
 
+    from llmling_agent.common_types import JsonValue
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.messages import ChatMessage, TokenCost
     from llmling_agent.models.session import SessionQuery
@@ -235,7 +236,15 @@ class StorageManager(TaskManagerMixin):
             except Exception:
                 logger.exception("Error logging tool call to provider: %r", provider)
 
-    async def log_command(self, *, agent_name: str, session_id: str, command: str):
+    async def log_command(
+        self,
+        *,
+        agent_name: str,
+        session_id: str,
+        command: str,
+        context_type: type | None = None,
+        metadata: dict[str, JsonValue] | None = None,
+    ):
         """Log command to all providers."""
         if not self.config.log_commands:
             return
@@ -246,6 +255,8 @@ class StorageManager(TaskManagerMixin):
                     agent_name=agent_name,
                     session_id=session_id,
                     command=command,
+                    context_type=context_type,
+                    metadata=metadata,
                 )
             except Exception:
                 logger.exception("Error logging command to provider: %r", provider)

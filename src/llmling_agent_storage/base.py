@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
 
+    from llmling_agent.common_types import JsonValue
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.messages import ChatMessage, TokenCost
     from llmling_agent.models.session import SessionQuery
@@ -110,7 +111,15 @@ class StorageProvider(TaskManagerMixin):
     ):
         """Log a tool call (if supported)."""
 
-    async def log_command(self, *, agent_name: str, session_id: str, command: str):
+    async def log_command(
+        self,
+        *,
+        agent_name: str,
+        session_id: str,
+        command: str,
+        context_type: type | None = None,
+        metadata: dict[str, JsonValue] | None = None,
+    ):
         """Log a command (if supported)."""
 
     async def get_commands(

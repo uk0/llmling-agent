@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
     from tokonomics.toko_types import TokenUsage
 
+    from llmling_agent.common_types import JsonValue
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.session import SessionQuery
 
@@ -120,6 +121,8 @@ class MemoryStorageProvider(StorageProvider):
         agent_name: str,
         session_id: str,
         command: str,
+        context_type: type | None = None,
+        metadata: dict[str, JsonValue] | None = None,
     ) -> None:
         """Store command in memory."""
         self.commands.append({
@@ -127,6 +130,8 @@ class MemoryStorageProvider(StorageProvider):
             "session_id": session_id,
             "command": command,
             "timestamp": datetime.now(),
+            "context_type": context_type.__name__ if context_type else None,
+            "metadata": metadata or {},
         })
 
     async def get_commands(

@@ -8,7 +8,7 @@ from tokonomics.toko_types import TokenUsage
 from upath import UPath
 import yamling
 
-from llmling_agent.common_types import MessageRole
+from llmling_agent.common_types import JsonValue, MessageRole
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent_storage.base import StorageProvider
@@ -56,6 +56,8 @@ class CommandData(TypedDict):
     session_id: str
     command: str
     timestamp: str
+    context_type: str | None
+    metadata: dict[str, JsonValue]
 
 
 class StorageData(TypedDict):
@@ -241,12 +243,22 @@ class FileProvider(StorageProvider):
         self._data["tool_calls"].append(call)
         self._save()
 
-    async def log_command(self, *, agent_name: str, session_id: str, command: str):
+    async def log_command(
+        self,
+        *,
+        agent_name: str,
+        session_id: str,
+        command: str,
+        context_type: type | None = None,
+        metadata: dict[str, JsonValue] | None = None,
+    ):
         """Log a command execution."""
         cmd: CommandData = {
             "agent_name": agent_name,
             "session_id": session_id,
             "command": command,
+            "context_type": context_type.__name__ if context_type else None,
+            "metadata": metadata or {},
             "timestamp": datetime.now().isoformat(),
         }
         self._data["commands"].append(cmd)

@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, DateTime
 from sqlmodel import JSON, Field, SQLModel
 from sqlmodel.main import SQLModelConfig
+
+
+if TYPE_CHECKING:
+    from llmling_agent.common_types import JsonValue
 
 
 class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
@@ -25,6 +30,14 @@ class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
 
     command: str
     """The command that was executed"""
+
+    context_type: str | None = Field(default=None, index=True)
+    """Type of the command context (e.g. 'AgentContext', 'PoolSupervisor', etc.)"""
+
+    context_metadata: dict[str, JsonValue] = Field(
+        default_factory=dict, sa_column=Column(JSON)
+    )
+    """Additional context information about command execution"""
 
     timestamp: datetime = Field(
         sa_column=Column(DateTime, default=datetime.now), default_factory=datetime.now
