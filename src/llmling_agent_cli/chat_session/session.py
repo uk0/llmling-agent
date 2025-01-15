@@ -209,7 +209,7 @@ class InteractiveSession:
     async def start(self):
         """Start interactive session."""
         try:
-            self._chat_session = await AgentPoolView.create(self.agent, pool=self.pool)
+            self._chat_session = AgentPoolView(self.agent, pool=self.pool)
             self._connect_signals()
             self._setup_prompt()
 

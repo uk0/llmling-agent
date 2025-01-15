@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
     from slashed import OutputWriter
 
-    from llmling_agent.agent import Agent, AnyAgent
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.tools.manager import ToolManager
 
@@ -73,31 +73,10 @@ class AgentPoolView:
         self._agent.tools.events.removed.connect(self.tool_removed.emit)
         self._agent.tools.events.changed.connect(self.tool_changed.emit)
         self._agent.conversation.history_cleared.connect(self.history_cleared.emit)
-        self._initialized = False  # Track initialization state
         file_path = HISTORY_DIR / f"{agent.name}.history"
         self.commands = CommandStore(history_file=file_path, enable_system_commands=True)
         self.start_time = datetime.now()
         self._state = SessionState(current_model=self._agent.model_name)
-
-    @classmethod
-    async def create(
-        cls,
-        agent: Agent[Any],
-        *,
-        pool: AgentPool | None = None,
-    ) -> AgentPoolView:
-        """Create and initialize a new agent pool view.
-
-        Args:
-            agent: The primary agent to interact with
-            pool: Optional agent pool for multi-agent interactions
-
-        Returns:
-            Initialized AgentPoolView
-        """
-        view = cls(agent, pool=pool)
-        await view.initialize()
-        return view
 
     async def connect_to(self, target: str, wait: bool | None = None):
         """Connect to another agent.
@@ -115,18 +94,9 @@ class AgentPoolView:
         # Store wait state for this connection
         connection_key = (self._agent.name, target)
         self.connection_states[connection_key] = wait if wait is not None else True
-
-    async def initialize(self):
-        """Initialize async resources and load data."""
-        if self._initialized:
-            return
-
-        # Load command history
-        await self.commands.initialize()
+        self.commands._initialize_sync()
         for cmd in get_commands():
             self.commands.register_command(cmd)
-
-        self._initialized = True
         logger.debug("Initialized chat session for agent %r", self._agent.name)
 
     async def cleanup(self):

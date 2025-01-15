@@ -23,7 +23,6 @@ async def test_basic_message_response():
     model = TestModel(custom_result_text="Test response")
     async with Agent[None].open(model=model, name="test-agent") as agent:
         session = AgentPoolView(agent)
-        await session.initialize()
 
         response = await session.send_message(TEST_MESSAGE)
 
@@ -44,7 +43,6 @@ async def test_streaming_response():
     model = TestModel(custom_result_text="Hello world")
     async with Agent[None].open(name="test-agent", model=model) as agent:
         session = AgentPoolView(agent)
-        await session.initialize()
 
         # Get streaming response
         response_stream = await session.send_message(TEST_MESSAGE, stream=True)
@@ -79,7 +77,6 @@ async def test_agent_forwarding():
 
         # Create session and connect agents
         session = AgentPoolView(main_agent, pool=pool)
-        await session.initialize()
         await session.connect_to("helper")
 
         # Track messages from both agents
@@ -109,7 +106,6 @@ async def test_error_handling():
     model = TestModel(custom_result_text="Test")
     async with Agent[None].open(model=model, name="test-agent") as agent:
         session = AgentPoolView(agent)
-        await session.initialize()
 
         # Test empty message
         with pytest.raises(ValueError, match="Message cannot be empty"):
