@@ -51,3 +51,31 @@ async def test_message_chain(test_agent: Agent[Any]):
         assert forwarded[1][0] == agent_b.name
         assert "Response from B" in forwarded[1][1].content
         assert forwarded[1][2] is None  # no prompt
+
+
+@pytest.mark.asyncio
+async def test_run_result_not_modified_by_connections():
+    """Test that the message returned by run() isn't modified by connections."""
+    # Create two agents
+    model = TestModel(custom_result_text="Response from B")
+    async with Agent[None](name="agent-a", model=model) as agent_a:  # noqa: SIM117
+        async with Agent[None](name="agent-b", model=model) as agent_b:
+            # Connect A to B
+            agent_a.pass_results_to(agent_b)
+
+            # When A runs
+            result = await agent_a.run("Test message")
+
+            # Then the returned message should only contain A as source
+            assert result.forwarded_from == [], (
+                "run() result should have empty forwarded_from"
+            )
+            # or possibly just [agent_a.name] if we decide that's the expected behavior
+
+            # While messages received by B should have the full chain
+            def collect_b(msg: ChatMessage[Any], _prompt: str | None = None):
+                assert msg.forwarded_from == ["agent-a"], (
+                    "Forwarded message should contain chain"
+                )
+
+            agent_b.outbox.connect(collect_b)

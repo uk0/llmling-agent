@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Self, overload
@@ -158,7 +158,6 @@ class Talk:
             self.connection_type,
             prompt,
         )
-        message.forwarded_from.append(self.source.name)
         self.source.outbox.emit(message, None)
 
         if not self.active or (self.group and not self.group.active):
@@ -548,11 +547,9 @@ class TalkManager:
 
     async def route_message(self, message: ChatMessage[Any]):
         """Handle message for all connections."""
-        logger.debug(
-            "TalkManager routing message from %s to %d connections",
-            message.content,
-            len(self._connections),
-        )
-        # Each Talk/TeamTalk handles its own message logic
+        msg = "TalkManager routing message from %s to %d connections"
+        logger.debug(msg, message.content, len(self._connections))
+        forwarded_from = [*message.forwarded_from, self.owner.name]
+        message_copy = replace(message, forwarded_from=forwarded_from)
         for talk in self._connections:
-            await talk._handle_message(message, None)  # No prompt needed anymore
+            await talk._handle_message(message_copy, None)
