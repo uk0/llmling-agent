@@ -45,7 +45,7 @@ class SQLModelProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, engine: Engine, *, auto_migrate: bool = False, **kwargs: Any):
+    def __init__(self, engine: Engine, *, auto_migrate: bool = True, **kwargs: Any):
         """Initialize provider with database engine.
 
         Args:
@@ -112,10 +112,7 @@ class SQLModelProvider(StorageProvider):
         """Clean up database resources."""
         self.engine.dispose()
 
-    async def filter_messages(
-        self,
-        query: SessionQuery,
-    ) -> list[ChatMessage[str]]:
+    async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages using SQL queries."""
         with Session(self.engine) as session:
             stmt = self._build_message_query(query)
@@ -211,7 +208,7 @@ class SQLModelProvider(StorageProvider):
         command: str,
         context_type: type | None = None,
         metadata: dict[str, JsonValue] | None = None,
-    ) -> None:
+    ):
         """Log command to database."""
         from llmling_agent_storage.sql_provider.models import CommandHistory
 
@@ -270,8 +267,6 @@ class SQLModelProvider(StorageProvider):
         current_session_only: bool = False,
     ) -> list[str]:
         """Get command history from database."""
-        from sqlalchemy import desc
-
         from llmling_agent_storage.sql_provider.models import CommandHistory
 
         with Session(self.engine) as session:
@@ -379,8 +374,6 @@ class SQLModelProvider(StorageProvider):
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
         """Get filtered conversations using SQL queries."""
-        from sqlmodel import select
-
         with Session(self.engine) as session:
             results: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
 
@@ -427,8 +420,6 @@ class SQLModelProvider(StorageProvider):
         filters: StatsFilters,
     ) -> dict[str, dict[str, Any]]:
         """Get statistics using SQL aggregations."""
-        from sqlmodel import select
-
         from llmling_agent_storage.sql_provider.models import Conversation, Message
 
         with Session(self.engine) as session:
@@ -541,8 +532,6 @@ class SQLModelProvider(StorageProvider):
         agent_name: str | None = None,
     ) -> tuple[int, int]:
         """Get conversation and message counts."""
-        from sqlmodel import select
-
         from llmling_agent_storage.sql_provider import Conversation, Message
 
         with Session(self.engine) as session:

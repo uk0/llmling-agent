@@ -71,10 +71,7 @@ class StorageProvider(TaskManagerMixin):
     def cleanup(self):
         """Clean up resources."""
 
-    async def filter_messages(
-        self,
-        query: SessionQuery,
-    ) -> list[ChatMessage[str]]:
+    async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Get messages matching query (if supported)."""
         msg = f"{self.__class__.__name__} does not support loading history"
         raise NotImplementedError(msg)

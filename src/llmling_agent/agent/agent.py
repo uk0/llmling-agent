@@ -1222,7 +1222,7 @@ class Agent[TDeps](TaskManagerMixin):
         resources: list[str] | None = None,
         history: bool | int | None = None,  # bool or number of messages
         token_limit: int | None = None,
-    ) -> None:
+    ):
         """Share capabilities and knowledge with another agent.
 
         Args:

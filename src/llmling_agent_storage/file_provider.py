@@ -1,4 +1,3 @@
-# llmling_agent/storage/yaml_provider.py
 from __future__ import annotations
 
 from datetime import datetime
@@ -123,10 +122,7 @@ class FileProvider(StorageProvider):
         """Save final state."""
         self._save()
 
-    async def filter_messages(
-        self,
-        query: SessionQuery,
-    ) -> list[ChatMessage[str]]:
+    async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages based on query."""
         messages = []
         for msg in self._data["messages"]:
@@ -158,23 +154,20 @@ class FileProvider(StorageProvider):
             # Convert to ChatMessage
             cost_info = None
             if msg["token_usage"]:
-                cost_info = TokenCost(
-                    token_usage=cast(TokenUsage, msg["token_usage"]),
-                    total_cost=msg["cost"] or 0.0,
-                )
+                usage = cast(TokenUsage, msg["token_usage"])
+                cost_info = TokenCost(token_usage=usage, total_cost=msg["cost"] or 0.0)
 
-            messages.append(
-                ChatMessage[str](
-                    content=msg["content"],
-                    role=cast(MessageRole, msg["role"]),
-                    name=msg["name"],
-                    model=msg["model"],
-                    cost_info=cost_info,
-                    response_time=msg["response_time"],
-                    forwarded_from=msg["forwarded_from"] or [],
-                    timestamp=datetime.fromisoformat(msg["timestamp"]),
-                )
+            chat_message = ChatMessage[str](
+                content=msg["content"],
+                role=cast(MessageRole, msg["role"]),
+                name=msg["name"],
+                model=msg["model"],
+                cost_info=cost_info,
+                response_time=msg["response_time"],
+                forwarded_from=msg["forwarded_from"] or [],
+                timestamp=datetime.fromisoformat(msg["timestamp"]),
             )
+            messages.append(chat_message)
 
             if query.limit and len(messages) >= query.limit:
                 break

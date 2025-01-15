@@ -110,7 +110,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Exit async context."""
         try:
             # Clean up MCP clients through exit stack

@@ -64,11 +64,9 @@ class AgentPoolView:
             agent: The LLMling agent to use
             pool: Optional agent pool for multi-agent interactions
         """
-        # Basic setup that doesn't need async
         self._agent = agent
         self.pool = pool
         self.connection_states: dict[str, bool] = {}
-        # forward ToolManager signals to ours
         self._agent.tools.events.added.connect(self.tool_added.emit)
         self._agent.tools.events.removed.connect(self.tool_removed.emit)
         self._agent.tools.events.changed.connect(self.tool_changed.emit)

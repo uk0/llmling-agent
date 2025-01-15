@@ -64,7 +64,7 @@ class TaskManagerMixin:
             "Created task: %s (priority=%d, delay=%s)", task.get_name(), priority, delay
         )
 
-        def _done_callback(t: asyncio.Task[Any]) -> None:
+        def _done_callback(t: asyncio.Task[Any]):
             logger.debug("Task completed: %s", t.get_name())
             self._pending_tasks.discard(t)
             if t.exception():
@@ -115,7 +115,7 @@ class TaskManagerMixin:
         finally:
             self._scheduler_task = None
 
-    def fire_and_forget(self, coro: Coroutine[Any, Any, Any]) -> None:
+    def fire_and_forget(self, coro: Coroutine[Any, Any, Any]):
         """Run coroutine without waiting for result."""
         try:
             loop = asyncio.get_running_loop()
@@ -159,7 +159,7 @@ class TaskManagerMixin:
         name: str | None = None,
         priority: int = 0,
         delay: timedelta | None = None,
-    ) -> None:
+    ):
         """Run a coroutine in the background and track it."""
         try:
             self.create_task(coro, name=name, priority=priority, delay=delay)
@@ -168,7 +168,7 @@ class TaskManagerMixin:
             # No running loop - use fire_and_forget
             self.fire_and_forget(coro)
 
-    async def cleanup_tasks(self) -> None:
+    async def cleanup_tasks(self):
         """Wait for all pending tasks to complete."""
         if self._pending_tasks:
             await asyncio.gather(*self._pending_tasks, return_exceptions=True)

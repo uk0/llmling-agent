@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent_storage.base import StorageProvider
@@ -37,26 +37,67 @@ class MemoryStorageProvider(StorageProvider):
         self.tool_calls.clear()
         self.commands.clear()
 
-    async def filter_messages(
-        self,
-        query: SessionQuery,
-    ) -> list[ChatMessage[str]]:
+    async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages from memory."""
         from llmling_agent.models.messages import ChatMessage
 
         filtered = []
         for msg in self.messages:
+            # Skip if conversation ID doesn't match
             if query.name and msg["conversation_id"] != query.name:
                 continue
-            # ... apply other filters ...
-            filtered.append(
-                ChatMessage(
-                    content=msg["content"],
-                    role=msg["role"],
-                    name=msg["name"],
-                    model=msg["model"],
+
+            # Skip if agent name doesn't match
+            if query.agents and not (
+                msg["name"] in query.agents
+                or (
+                    query.include_forwarded
+                    and msg["forwarded_from"]
+                    and any(a in query.agents for a in msg["forwarded_from"])
                 )
+            ):
+                continue
+
+            # Skip if before cutoff time
+            if query.since and (cutoff := query.get_time_cutoff()):  # noqa: SIM102
+                if msg["timestamp"] < cutoff:
+                    continue
+
+            # Skip if after until time
+            if query.until and msg["timestamp"] > datetime.fromisoformat(query.until):
+                continue
+
+            # Skip if content doesn't match search
+            if query.contains and query.contains not in msg["content"]:
+                continue
+
+            # Skip if role doesn't match
+            if query.roles and msg["role"] not in query.roles:
+                continue
+
+            # Convert cost info
+            cost_info = None
+            if msg["cost_info"]:
+                total = msg.get("cost", 0.0)
+                cost_info = TokenCost(token_usage=msg["cost_info"], total_cost=total)
+
+            # Create ChatMessage
+            chat_message = ChatMessage(
+                content=msg["content"],
+                role=msg["role"],
+                name=msg["name"],
+                model=msg["model"],
+                cost_info=cost_info,
+                response_time=msg["response_time"],
+                forwarded_from=msg["forwarded_from"] or [],
+                timestamp=msg["timestamp"],
             )
+            filtered.append(chat_message)
+
+            # Apply limit if specified
+            if query.limit and len(filtered) >= query.limit:
+                break
+
         return filtered
 
     async def log_message(
@@ -70,7 +111,7 @@ class MemoryStorageProvider(StorageProvider):
         model: str | None = None,
         response_time: float | None = None,
         forwarded_from: list[str] | None = None,
-    ) -> None:
+    ):
         """Store message in memory."""
         self.messages.append({
             "conversation_id": conversation_id,
@@ -90,7 +131,7 @@ class MemoryStorageProvider(StorageProvider):
         conversation_id: str,
         agent_name: str,
         start_time: datetime | None = None,
-    ) -> None:
+    ):
         """Store conversation in memory."""
         self.conversations.append({
             "id": conversation_id,
@@ -104,7 +145,7 @@ class MemoryStorageProvider(StorageProvider):
         conversation_id: str,
         message_id: str,
         tool_call: ToolCallInfo,
-    ) -> None:
+    ):
         """Store tool call in memory."""
         self.tool_calls.append({
             "conversation_id": conversation_id,
@@ -123,7 +164,7 @@ class MemoryStorageProvider(StorageProvider):
         command: str,
         context_type: type | None = None,
         metadata: dict[str, JsonValue] | None = None,
-    ) -> None:
+    ):
         """Store command in memory."""
         self.commands.append({
             "agent_name": agent_name,
@@ -159,8 +200,6 @@ class MemoryStorageProvider(StorageProvider):
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
         """Get filtered conversations from memory."""
-        from typing import cast
-
         from llmling_agent_storage.models import MessageData
 
         results: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
@@ -187,10 +226,8 @@ class MemoryStorageProvider(StorageProvider):
 
                 cost_info = None
                 if msg["cost_info"]:
-                    cost_info = TokenCost(
-                        token_usage=msg["cost_info"],
-                        total_cost=msg.get("cost", 0.0),
-                    )
+                    total = msg.get("cost", 0.0)
+                    cost_info = TokenCost(token_usage=msg["cost_info"], total_cost=total)
 
                 chat_msg = ChatMessage[str](
                     content=msg["content"],
@@ -258,17 +295,10 @@ class MemoryStorageProvider(StorageProvider):
 
             cost_info = None
             if msg["cost_info"]:
-                cost_info = TokenCost(
-                    token_usage=msg["cost_info"],
-                    total_cost=msg.get("cost", 0.0),
-                )
+                total = msg.get("cost", 0.0)
+                cost_info = TokenCost(token_usage=msg["cost_info"], total_cost=total)
 
-            rows.append((
-                msg["model"],
-                msg["name"],
-                msg["timestamp"],
-                cost_info,
-            ))
+            rows.append((msg["model"], msg["name"], msg["timestamp"], cost_info))
 
         # Use base class aggregation
         return self.aggregate_stats(rows, filters.group_by)

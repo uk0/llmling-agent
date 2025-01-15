@@ -213,7 +213,7 @@ class HumanProvider(AgentProvider):
             # Cleanup if needed
             stream_result.is_complete = True
 
-    async def handle_input(self, content: str) -> None:
+    async def handle_input(self, content: str):
         """Handle all human input."""
         from llmling_agent.events.sources import UIEvent
 
