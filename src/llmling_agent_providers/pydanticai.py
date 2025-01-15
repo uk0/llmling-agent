@@ -5,13 +5,14 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from functools import wraps
 import inspect
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from llmling import ToolError
 import logfire
 from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import Model, infer_model
+from pydantic_ai.result import StreamedRunResult
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
@@ -29,7 +30,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 
     from pydantic_ai.agent import EndStrategy
-    from pydantic_ai.result import StreamedRunResult
     from pydantic_ai.tools import RunContext
 
     from llmling_agent.agent.conversation import ConversationManager
@@ -317,23 +317,20 @@ class PydanticAIProvider(AgentProvider):
             model=model or self.model,  # type: ignore
             result_type=result_type or str,
         ) as stream_result:
+            stream_result = cast(StreamedRunResult[AgentContext[Any], Any], stream_result)
             original_stream = stream_result.stream
 
             async def wrapped_stream(*args, **kwargs):
+                last_content = None
                 async for chunk in original_stream(*args, **kwargs):
-                    self.chunk_streamed.emit(str(chunk), message_id)
-                    yield chunk
+                    # Only emit if content has changed
+                    if chunk != last_content:
+                        self.chunk_streamed.emit(str(chunk), message_id)
+                        last_content = chunk
+                        yield chunk
 
                 if stream_result.is_complete:
                     self.chunk_streamed.emit("", message_id)
-                    # Handle structured responses
-                    if stream_result.is_structured:
-                        message = stream_result._stream_response.get(final=True)
-                        if not isinstance(message, ModelResponse):
-                            msg = "Expected ModelResponse for structured output"
-                            raise TypeError(msg)
-
-                    # Update conversation history
                     messages = stream_result.new_messages()
                     if store_history:
                         self.conversation._last_messages = list(messages)
