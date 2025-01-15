@@ -14,7 +14,6 @@ from psygnal import Signal
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.client import MCPClient
-from llmling_agent.mcp_server.tools import register_mcp_tools
 from llmling_agent.models.mcp_server import MCPServerConfig, SSEMCPServer, StdioMCPServer
 from llmling_agent.tools.base import ToolInfo
 
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
 MAX_LEN_DESCRIPTION = 1000
 
 
@@ -349,7 +349,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                         self._mcp_clients[client_id] = client
 
                         # Register tools
-                        register_mcp_tools(self, client)
+                        self.register_mcp_tools(client)
 
                     case SSEMCPServer():
                         # SSE client without stdio mode
@@ -368,7 +368,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                         self._mcp_clients[client_id] = client
 
                         # Register tools
-                        register_mcp_tools(self, client)
+                        self.register_mcp_tools(client)
 
         except Exception as e:
             msg = "Failed to setup MCP servers"
@@ -453,3 +453,25 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 for name_, was_enabled in original_states.items():
                     if t := self.get(name_):
                         t.enabled = was_enabled
+
+    def register_mcp_tools(
+        self,
+        mcp_client: MCPClient,
+    ) -> list[ToolInfo]:
+        """Register MCP tools with tool manager."""
+        registered = []
+
+        for mcp_tool in mcp_client._available_tools:
+            # Create properly typed callable from schema
+            tool_callable = mcp_client.create_tool_callable(mcp_tool)
+
+            # The function already has proper typing, so no schema override needed
+            llm_tool = LLMCallableTool.from_callable(tool_callable)
+
+            metadata = {"mcp_tool": mcp_tool.name}
+            tool_info = self.register_tool(llm_tool, source="mcp", metadata=metadata)
+            registered.append(tool_info)
+
+            logger.debug("Registered MCP tool: %s", mcp_tool.name)
+
+        return registered
