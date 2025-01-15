@@ -31,8 +31,8 @@ async def main():
     ):
         # Connect reporter to both interpreters and get Talk objects
         team_talk = reporter >> (activist | skeptic)
-        activist.outbox.connect(print)
-        skeptic.outbox.connect(print)
+        activist.message_sent.connect(print)
+        skeptic.message_sent.connect(print)
         # Send the news and monitor the connections
         result = await reporter.run(TASK)
     print(result)
