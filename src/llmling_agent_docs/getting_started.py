@@ -8,25 +8,30 @@ import mknodes as mk
 nav = mk.MkNav("Getting Started")
 
 
-@nav.route.page("Installation", icon="octicons:download-16")
+@nav.route.page("Welcome to LLMling-Agent", hide=["toc", "nav"], is_homepage=True)
+def _(page: mk.MkPage):
+    page += mk.MkTemplate("docs/home.md")
+
+
+@nav.route.page("Installation", icon="octicon:download-16")
 def _(page: mk.MkPage):
     """Installation instructions."""
     page += mk.MkTemplate("docs/getting_started/installation.md")
 
 
-@nav.route.page("Basic Concepts", icon="octicons:book-16")
+@nav.route.page("Basic Concepts", icon="octicon:book-16")
 def _(page: mk.MkPage):
     """Core concepts and architecture overview."""
     page += mk.MkTemplate("docs/getting_started/basic_concepts.md")
 
 
-@nav.route.page("Quickstart", icon="octicons:rocket-16")
+@nav.route.page("Quickstart", icon="octicon:rocket-16")
 def _(page: mk.MkPage):
     """Quick introduction to using LLMling-agent."""
     page += mk.MkTemplate("docs/getting_started/quickstart.md")
 
 
-@nav.route.page("Creating Agents", icon="octicons:tools-16")
+@nav.route.page("Creating Agents", icon="octicon:tools-16")
 def _(page: mk.MkPage):
     """Guide to creating and configuring agents."""
     page += mk.MkTemplate("docs/agents/create_agents.md")

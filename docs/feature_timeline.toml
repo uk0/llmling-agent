@@ -1,0 +1,247 @@
+[step_1]
+label = "### Easy Agent Configuration"
+content = """
+LLMling-agent excels at static YAML-based agent configuration:
+
+agents:
+  analyzer:
+    model: openai:gpt-4
+    system_prompts: ["You analyze code..."]
+    capabilities:
+      can_load_resources: true
+    environment:
+      type: inline
+      tools: {...}
+
+Features:
+- Complete agent definition in YAML
+- Extensive schema validation and linting support
+- Environment/tools/resource configuration
+- Capability-based permission system
+- Type-safe structured responses
+"""
+
+[step_2]
+label = "### True Async Framework"
+content = """
+Built for modern async Python from the ground up:
+
+```python
+async with Agent.open_agent("config.yml", "analyzer") as agent:
+    result = await agent.run("Analyze this code")
+
+async with agent.run_stream("Long analysis...") as stream:
+    async for chunk in stream:
+        print(chunk)
+```
+
+Features:
+- Proper async context management
+- Non-blocking operations
+- Streaming responses
+- Resource cleanup
+- Background task handling
+"""
+
+[step_3]
+label = "### Type-Safe Communication"
+content = """
+Rich typed communication between agents:
+
+```python
+# Direct routing
+analyzer >> planner  # Forward results
+
+# Parallel team
+team = analyzer & planner & executor
+result = await team.run_parallel("Process this")
+
+# Agent selection
+expert = await coordinator.talk.pick(
+    pool.agents,
+    task="Choose specialist"
+)
+```
+
+Features:
+- Type-safe message passing
+- Team operations
+- Agent selection patterns
+- Flexible routing options
+"""
+
+[step_4]
+label = "### Built-in Event System"
+content = """
+React to changes and automate workflows:
+
+```yaml
+agents:
+  watcher:
+    triggers:
+      - type: "file"
+        paths: ["src/**/*.py"]
+        debounce: 1600
+      - type: "webhook"
+        port: 8000
+        path: "/github"
+```
+
+Features:
+- File system monitoring
+- Webhook endpoints
+- Event filtering
+- Custom trigger types
+- Automatic loading of context
+"""
+
+[step_5]
+label = "### Complete Command System"
+content = """
+Rich command system across all interfaces:
+
+```bash
+/list-tools              # Show available tools
+/enable-tool <name>      # Enable specific tool
+/show-resource <name>    # View resource content
+/register-tool <path>    # Add new tool
+/set-model <model>       # Change model
+/history show           # View conversation
+```
+
+Features:
+- Consistent across interfaces
+- Tool management
+- Resource inspection
+- Runtime configuration
+- History access
+"""
+
+[step_6]
+label = "### Database Logging"
+content = """
+Comprehensive interaction tracking:
+
+```yaml
+storage:
+  providers:
+    - type: "sql"
+      url: "sqlite:///history.db"
+    - type: "text_file"
+      path: "logs/chat.log"
+
+  log_messages: true
+  log_conversations: true
+  log_tool_calls: true
+```
+
+Features:
+- Multiple storage providers
+- Message history
+- Tool usage tracking
+- Cost monitoring
+- Query capabilities
+"""
+
+[step_7]
+label = "### Structured Extraction"
+content = """
+Extract structured data from text:
+
+```python
+class Person:
+    def __init__(self, name: str, age: int | None = None):
+        self.name = name
+        self.age = age
+
+text = "John is 30 years old"
+person = await agent.talk.extract(text, as_type=Person)
+print(f"Found: {person.name}, {person.age}")
+```
+
+Features:
+- Type-safe extraction
+- Multiple extraction modes
+- Complex type support
+- Custom prompts
+- Validation handling
+"""
+
+[step_8]
+label = "### Decision Making"
+content = """
+Let agents make informed choices:
+
+```python
+decision = await agent.talk.pick(
+    selections=team.agents,
+    task="Who should handle this task?"
+)
+print(f"Selected {decision.selection.name}")
+print(f"Because: {decision.reason}")
+
+# Multiple selections
+team = await agent.talk.pick_multiple(
+    pool.agents,
+    task="Form a team",
+    min_picks=2,
+    max_picks=4
+)
+```
+
+Features:
+- Single or multiple selection
+- Type-safe results
+- Reasoning included
+- Flexible input types
+- Constraint handling
+"""
+
+[step_9]
+label = "### Extensive Monitoring"
+content = """
+Rich monitoring capabilities:
+
+```python
+execution = team.monitored("parallel")
+execution.monitor(on_stats_update)
+execution.start_background("Task to execute")
+
+stats = execution.stats
+print(f"Active: {stats.active_agents}")
+print(f"Messages: {stats.message_counts}")
+print(f"Tokens: {stats.total_tokens}")
+```
+
+Features:
+- Real-time statistics
+- Cost tracking
+- Token usage
+- Tool monitoring
+- Error logging
+"""
+
+[step_10]
+label = "### Multiple Interfaces"
+content = """
+Multiple ways to interact:
+
+```bash
+# CLI chat
+llmling-agent chat analyzer
+
+# Web interface
+llmling-agent launch
+
+# Python API
+async with Agent.open_agent("config.yml", "analyzer") as agent:
+    result = await agent.run("Analyze this")
+```
+
+Features:
+- CLI interface
+- Web UI (Gradio)
+- Terminal UI (Textual)
+- Python API
+- Consistent experience
+"""
