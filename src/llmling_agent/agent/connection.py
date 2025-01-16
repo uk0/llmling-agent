@@ -541,31 +541,48 @@ class TalkManager:
         """Get aggregated statistics for all connections."""
         return TeamTalkStats(stats=[conn.stats for conn in self._connections])
 
-    def get_connections(self, recursive: bool = True) -> list[Talk]:
+    def get_connections(self, recursive: bool = False) -> list[Talk]:
         """Get all Talk connections, flattening TeamTalks.
 
         Args:
-            recursive: Whether to include connections from nested TeamTalks
+            recursive: Whether to include connections from nested TeamTalks.
+                    If True, follows TeamTalks through their targets' connections.
 
         Returns:
             List of all individual Talk connections
         """
 
-        def _collect_talks(item: Talk | TeamTalk) -> list[Talk]:
+        def _collect_talks(
+            item: Talk | TeamTalk, seen: set[str] | None = None
+        ) -> list[Talk]:
             match item:
                 case Talk():
                     return [item]
                 case TeamTalk():
+                    if not recursive:
+                        return [
+                            talk for subitem in item for talk in _collect_talks(subitem)
+                        ]
+
+                    # Handle recursive case
+                    seen = seen or {self.owner.name}  # type: ignore[has-type]
                     talks = []
+
+                    # First get direct talks from this TeamTalk
                     for subitem in item:
                         talks.extend(_collect_talks(subitem))
+
+                    # Then recursively get talks from targets if not seen
+                    for target in item.targets:
+                        if target.name not in seen:
+                            seen.add(target.name)
+                            talks.extend(
+                                target.connections.get_connections(recursive=True)
+                            )
+
                     return talks
 
-        talks: list[Talk] = []
-        for conn in self._connections:
-            talks.extend(_collect_talks(conn))
-
-        return talks
+        return [talk for conn in self._connections for talk in _collect_talks(conn)]
 
     async def route_message(self, message: ChatMessage[Any], wait: bool | None = None):
         """Route message to all connections.
