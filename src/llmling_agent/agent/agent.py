@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -43,7 +44,7 @@ from llmling_agent_providers import AgentProvider, HumanProvider, PydanticAIProv
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Callable, Sequence
+    from collections.abc import AsyncIterator, Sequence
     from datetime import timedelta
     from types import TracebackType
 
@@ -54,11 +55,17 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.agent.talk import Interactions
-    from llmling_agent.common_types import ModelType, SessionIdType, StrPath, ToolType
+    from llmling_agent.common_types import (
+        ModelType,
+        SessionIdType,
+        StrPath,
+        ToolType,
+    )
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.execution import TeamRun
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.forward_targets import ConnectionType
+    from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import AgentTask
     from llmling_agent.responses.models import ResponseDefinition
@@ -365,18 +372,29 @@ class Agent[TDeps](TaskManagerMixin):
         """
         return self.pass_results_to(other)
 
-    def __and__(self, other: AnyAgent[Any, Any] | Team[Any]) -> Team[TDeps]:
+    def __and__(
+        self, other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[TResult]
+    ) -> Team[TDeps]:
         """Create agent group using | operator.
 
         Example:
             group = analyzer & planner & executor  # Create group of 3
             group = analyzer & existing_group  # Add to existing group
         """
+        from llmling_agent.agent import StructuredAgent
         from llmling_agent.delegation.agentgroup import Team
 
-        if isinstance(other, Team):
-            return Team([self, *other.agents])
-        return Team([self, other])
+        match other:
+            case Team():
+                return Team([self, *other.agents])
+            case Callable():
+                agent_2 = StructuredAgent[Any, TResult].from_callback(other)
+                return Team([self, agent_2])
+            case Agent() | StructuredAgent():
+                return Team([self, other])
+            case _:
+                msg = f"Invalid agent type: {type(other)}"
+                raise ValueError(msg)
 
     def __or__(self, other: Agent | Callable | Team | TeamRun) -> TeamRun:
         # Create new execution with sequential mode (for piping)
