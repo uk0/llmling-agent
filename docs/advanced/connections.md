@@ -91,7 +91,7 @@ Connections support:
 
 ```python
 # Set up connection with control
-agent.pass_results_to(
+talk = agent.pass_results_to(
     target,
     priority=1,
     delay=timedelta(seconds=5)
@@ -147,15 +147,12 @@ planner = Agent(name="planner")
 executor = Agent(name="executor")
 
 # Create team
-planning_team = planner | executor
+planning_team = planner & executor
 
-# Set up pipeline
-analyzer.pass_results_to(planning_team, connection_type="run")
+# Set up connection
+talk =analyzer.pass_results_to(planning_team, connection_type="run")
 
-# Add filtering
-for talk in planning_team.get_connections():
-    talk.when(lambda msg: msg.metadata.get("priority") == "high")
+talk.when(lambda msg: msg.metadata.get("priority") == "high")
 
 # Monitor
-stats = planning_team.stats
-print(f"Processed {stats.message_count} messages")
+print(f"Processed {talk.stats.message_count} messages")
