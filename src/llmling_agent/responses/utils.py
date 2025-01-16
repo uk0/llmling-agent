@@ -59,7 +59,7 @@ def to_type(result_type, context: AgentContext | None = None) -> type:
             return resolve_response_type(result_type, None)
         case None:
             return str
-        case type() as model if issubclass(model, BaseModel):
+        case type() as model if issubclass(model, BaseModel | str):
             return model
         case _:
             msg = f"Invalid result_type: {type(result_type)}"
