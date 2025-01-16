@@ -5,15 +5,14 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from functools import wraps
 import inspect
-import os
 from typing import TYPE_CHECKING, Any, cast
 
 from llmling import ToolError
+from llmling_models import infer_model
 import logfire
 from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.messages import ModelResponse
-from pydantic_ai.models import Model, infer_model as infer_model_
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models import Model
 from pydantic_ai.result import StreamedRunResult
 
 from llmling_agent.log import get_logger
@@ -40,31 +39,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
-
-def infer_model(model) -> Model:
-    """Extended infer_model from pydantic-ai."""
-    if not isinstance(model, str):
-        return model
-    if model.startswith("openrouter:"):
-        return OpenAIModel(
-            model.removeprefix("openrouter:").replace(":", "/"),
-            base_url="https://openrouter.ai/api/v1",
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-        )
-    if model.startswith("grok:"):
-        return OpenAIModel(
-            model.removeprefix("grok:"),
-            base_url="https://api.x.ai/v1",
-            api_key=os.getenv("X_AI_API_KEY") or os.getenv("GROK_API_KEY"),
-        )
-    if model.startswith("deepseek:"):
-        return OpenAIModel(
-            model.removeprefix("deepseek:"),
-            base_url="https://api.deepseek.com",
-            api_key=os.getenv("DEEPSEEK_API_KEY"),
-        )
-    return infer_model_(model)  # type: ignore
 
 
 class PydanticAIProvider(AgentProvider):
@@ -240,7 +214,7 @@ class PydanticAIProvider(AgentProvider):
             if model:
                 original = self.model
                 if isinstance(original, str):
-                    original = infer_model(original)  # type: ignore
+                    original = infer_model(original)
                 self.model_changed.emit(original)
 
     @property
@@ -279,7 +253,7 @@ class PydanticAIProvider(AgentProvider):
         """
         old_name = self.model_name
         if isinstance(model, str):
-            model = infer_model(model)  # type: ignore
+            model = infer_model(model)
         self._model = model
         self._agent.model = model  # type: ignore
         self.model_changed.emit(model)
@@ -327,7 +301,7 @@ class PydanticAIProvider(AgentProvider):
 
         use_model = model or self.model
         if isinstance(use_model, str):
-            use_model = infer_model(use_model)  # type: ignore
+            use_model = infer_model(use_model)
 
         if model:
             self.model_changed.emit(use_model)
@@ -385,7 +359,7 @@ class PydanticAIProvider(AgentProvider):
             if model:
                 original = self.model
                 if isinstance(original, str):
-                    original = infer_model(original)  # type: ignore
+                    original = infer_model(original)
                 self.model_changed.emit(original)
 
             stream_result.stream = wrapped_stream  # type: ignore
