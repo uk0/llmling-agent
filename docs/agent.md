@@ -28,13 +28,12 @@ from llmling_agent import Agent
 from pydantic import BaseModel
 
 
-async with RuntimeConfig.open("config.yml") as runtime:
     # Create agent with string output. It will have all resources and tools available from the config.
-    basic_agent = Agent(
-        runtime,
+async with Agent(
+        runtime="config.yml",
         model="openai:gpt-4",
         system_prompt="You are a helpful assistant."
-    )
+    ) as basic_agent:
     await basic_agent.run("Open google for me.")  # Uses tool to open browser
     # Create agent with structured output
 

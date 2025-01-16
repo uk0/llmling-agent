@@ -313,11 +313,14 @@ class Agent[TDeps](TaskManagerMixin):
     async def __aenter__(self) -> Self:
         """Enter async context and set up MCP servers."""
         try:
-            # First initialize runtime
+            # First initialize runtime if needed
             runtime_ref = self.context.runtime
             if runtime_ref and not runtime_ref._initialized:
                 self._owns_runtime = True
                 await runtime_ref.__aenter__()
+
+            # Register runtime tools if we have a runtime (regardless of who initialized)
+            if runtime_ref:
                 runtime_tools = runtime_ref.tools.values()
                 names = [t.name for t in runtime_tools]
                 logger.debug("Registering runtime tools: %s", names)
@@ -610,8 +613,6 @@ class Agent[TDeps](TaskManagerMixin):
         **kwargs: Any,
     ) -> AsyncIterator[Agent[TDeps] | StructuredAgent[TDeps, TResult]]:
         """Open and configure an agent with an auto-managed runtime configuration.
-
-        This is a convenience method that combines RuntimeConfig.open with agent creation.
 
         Args:
             config_path: Path to the runtime configuration file or a Config instance
