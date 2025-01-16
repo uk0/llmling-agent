@@ -581,6 +581,42 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
     #             raise ValueError(msg)
     #     return self
 
+    def get_agent[TAgentDeps](
+        self, name: str, deps: TAgentDeps | None = None
+    ) -> AnyAgent[TAgentDeps, Any]:
+        from llmling import RuntimeConfig
+
+        from llmling_agent import Agent, AgentContext
+
+        config = self.agents[name]
+        # Create runtime without async context
+        cfg = config.get_config()
+        runtime = RuntimeConfig.from_config(cfg)
+
+        # Create context with config path and capabilities
+        context = AgentContext[Any](
+            agent_name=name,
+            capabilities=config.capabilities,
+            definition=self,
+            config=config,
+            # pool=self,
+            # confirmation_callback=confirmation_callback,
+        )
+
+        # Create agent with runtime and context
+        agent: AnyAgent[Any, Any] = Agent[Any](
+            runtime=runtime,
+            context=context,
+            model=config.model,
+            provider=config.get_provider(),
+            system_prompt=config.system_prompts,
+            name=config.name or name,
+            enable_db_logging=config.enable_db_logging,
+        )
+        if result_type := manifest.get_result_type(name):
+            return agent.to_structured(result_type)
+        return agent
+
     @classmethod
     def from_file(cls, path: StrPath) -> Self:
         """Load agent configuration from YAML file.
@@ -736,3 +772,10 @@ class ToolCallInfo(BaseModel):
     """If this tool is agent-based, the name of that agent."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
+
+
+if __name__ == "__main__":
+    model = {"type": "input"}
+    agent_cfg = AgentConfig(name="test_agent", model=model)
+    manifest = AgentsManifest[Any, Any](agents=dict(test_agent=agent_cfg))
+    print(manifest.agents["test_agent"].model)
