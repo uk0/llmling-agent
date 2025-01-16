@@ -1,4 +1,7 @@
-# Using LLMling Models
+# Provider models
+
+While LLMling-agent supports both LiteLLM as well as pydantic-ai, choosing pydantic-ai
+as the provider will give you a lot more features and flexibility.
 
 In addition to the regular pydantic-ai models,
 LLMling-agent supports all model types from [llmling-models](https://github.com/phil65/llmling-models) through YAML configuration. Each model is identified by its `type` field.
@@ -168,5 +171,14 @@ agents:
       name: optional_name          # Custom name for the model
       description: "Description"   # Model description
 ```
+
+## Setting pydantic-ai models by identifier
+
+LLMling-agent also extends pydantic-ai functionality by allowing to define more models via simple
+string identifiers. These providers are
+
+- OpenRouter (`openrouter:provider/model-name`, requires `OPENROUTER_API_KEY` env var)
+- Grok (X) (`grok:grok-2-1212`, requires `X_AI_API_KEY` env var)
+- DeepSeek (`deepsek:deepsek-chat`, requires `DEEPSEEK_API_KEY` env var)
 
 For detailed model documentation and features, see the [llmling-models repository](https://github.com/phil65/llmling-models).
