@@ -378,7 +378,6 @@ classDiagram
         +
         +responses: dict[str, ResponseDefinition]
         +agents: dict[str, AgentConfig]
-        +create_pool()
         +open_agent()
     }
 

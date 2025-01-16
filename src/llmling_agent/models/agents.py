@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import datetime
+from functools import cached_property
 import logging
 from typing import TYPE_CHECKING, Any, Literal, Self
 
@@ -647,30 +648,16 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
             msg = f"Failed to load agent config from {path}"
             raise ValueError(msg) from exc
 
-    async def create_pool(
-        self,
-        *,
-        agents_to_load: list[str] | None = None,
-        connect_agents: bool = True,
-        session_id: SessionIdType = None,
-    ) -> AgentPool:
+    @cached_property
+    def pool(self) -> AgentPool:
         """Create an agent pool from this manifest.
-
-        Args:
-            agents_to_load: Optional list of agents to initialize
-            connect_agents: Whether to set up forwarding connections
-            session_id: Optional session ID for conversation recovery
 
         Returns:
             Configured agent pool
         """
         from llmling_agent.delegation import AgentPool
 
-        return AgentPool(
-            manifest=self,
-            agents_to_load=agents_to_load,
-            connect_agents=connect_agents,
-        )
+        return AgentPool(manifest=self)
 
     @asynccontextmanager
     async def open_agent(
