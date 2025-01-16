@@ -428,12 +428,9 @@ class Agent[TDeps](TaskManagerMixin):
         """
         from llmling_agent_providers.callback import CallbackProvider
 
-        provider = CallbackProvider[Any](
-            callback,
-            name=name or callback.__name__ or "processor",
-            debug=debug,
-        )
-        agent = cls(provider=provider, **kwargs)
+        name = name or callback.__name__ or "processor"
+        provider = CallbackProvider[Any](callback, name=name, debug=debug)
+        agent = cls(provider=provider, name=name, **kwargs)
         if deps is not None:
             agent.context.data = deps
         return agent
@@ -476,7 +473,7 @@ class Agent[TDeps](TaskManagerMixin):
             tool_name: Optional override for tool name
             tool_description: Optional override for tool description
         """
-        logger.debug("Setting result type to: %s", result_type)
+        logger.debug("Setting result type to: %s for %r", result_type, self.name)
         self._result_type = to_type(result_type)  # to_type?
 
     @property
@@ -1219,8 +1216,8 @@ class Agent[TDeps](TaskManagerMixin):
 
         async def _continuous():
             count = 0
-            msg = "%s: Starting continuous run (max_count=%s, interval=%s)"
-            logger.debug(msg, self.name, max_count, interval)
+            msg = "%s: Starting continuous run (max_count=%s, interval=%s) for %r"
+            logger.debug(msg, self.name, max_count, interval, self.name)
             while max_count is None or count < max_count:
                 try:
                     current_prompt = (

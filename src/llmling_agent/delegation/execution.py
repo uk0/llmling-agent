@@ -103,6 +103,7 @@ class TeamRunMonitor:
     def __init__(self, team: Team):
         self.team = team
         self.start_time = datetime.now()
+        self._stop_event = asyncio.Event()
 
         # Raw event collection
         self._received_messages: dict[str, list[ChatMessage]] = {
@@ -124,6 +125,8 @@ class TeamRunMonitor:
     def start(self):
         """Start monitoring."""
         # Connect signals for all agents
+        logger.debug("TeamRunMonitor starting")
+        self._stop_event.clear()
         for agent in self.team.agents:
             # Message tracking
             self._signal_connections.extend([
@@ -156,6 +159,8 @@ class TeamRunMonitor:
 
     def stop(self):
         """Stop monitoring and cleanup signals."""
+        logger.debug("TeamRunMonitor stopping")
+        self._stop_event.set()
         for signal, handler in self._signal_connections:
             signal.disconnect(handler)
         self._signal_connections.clear()
@@ -216,28 +221,54 @@ class TeamRun[TDeps](TaskManagerMixin):
         self,
         prompt: str | None = None,
         deps: Any | None = None,
+        monitor_callback: Callable[[TeamRunStats], Any] | None = None,
+        monitor_interval: float = 0.1,
         **kwargs: Any,
     ) -> TeamResponse:
-        """Start execution with monitoring enabled."""
+        """Start execution with optional monitoring."""
         self._monitor = TeamRunMonitor(self.team)
         self._monitor.start()
-        try:
-            return await self._execute(prompt, deps, **kwargs)
-        finally:
-            self._monitor.stop()
+
+        if monitor_callback:
+
+            async def _monitor():
+                logger.debug("Monitor task starting")
+                assert self._monitor
+                while not self._monitor._stop_event.is_set():
+                    logger.debug("Monitor checking stats")
+                    stats = self.stats
+                    logger.debug("Stats: active_agents=%s", stats.active_agents)
+                    if inspect.iscoroutinefunction(monitor_callback):
+                        await monitor_callback(stats)
+                    else:
+                        monitor_callback(stats)
+                    await asyncio.sleep(monitor_interval)
+                logger.debug("Monitor task stopping")
+
+            self.create_task(_monitor(), name="stats_monitor")
+
+        return await self._execute(prompt, deps, **kwargs)
 
     def start_background(
         self,
         prompt: str | None = None,
         deps: TDeps | None = None,
+        monitor_callback: Callable[[TeamRunStats], Any] | None = None,
+        monitor_interval: float = 0.1,
         **kwargs: Any,
     ) -> None:
-        """Start execution in background."""
         if self._main_task:
             msg = "Execution already running"
             raise RuntimeError(msg)
         self._main_task = self.create_task(
-            self.start(prompt, deps, **kwargs), name="main_execution"
+            self.start(
+                prompt,
+                deps,
+                monitor_callback=monitor_callback,
+                monitor_interval=monitor_interval,
+                **kwargs,
+            ),
+            name="main_execution",
         )
 
     def monitor(
@@ -269,13 +300,14 @@ class TeamRun[TDeps](TaskManagerMixin):
         return bool(self._main_task and not self._main_task.done())
 
     async def wait(self) -> TeamResponse:
-        """Wait for execution to complete and return results."""
         if not self._main_task:
             msg = "No execution running"
             raise RuntimeError(msg)
         try:
             return await self._main_task
         finally:
+            if self._monitor:
+                self._monitor.stop()
             await self.cleanup_tasks()
 
     async def cancel(self) -> None:
@@ -300,16 +332,21 @@ class TeamRun[TDeps](TaskManagerMixin):
         **kwargs: Any,
     ) -> TeamResponse:
         """Common execution logic."""
-        match self.mode:
-            case "parallel":
-                return await self._run_parallel(prompt, deps)
-            case "sequential":
-                return await self._run_sequential(prompt, deps)
-            case "controlled":
-                return await self._run_controlled(prompt, deps, **kwargs)
-            case _:
-                msg = f"Invalid execution mode: {self.mode}"
-                raise ValueError(msg)
+        self._monitor = TeamRunMonitor(self.team)
+        self._monitor.start()
+        try:
+            match self.mode:
+                case "parallel":
+                    return await self._run_parallel(prompt, deps)
+                case "sequential":
+                    return await self._run_sequential(prompt, deps)
+                case "controlled":
+                    return await self._run_controlled(prompt, deps, **kwargs)
+                case _:
+                    msg = f"Invalid mode: {self.mode}"
+                    raise ValueError(msg)
+        finally:
+            self._monitor.stop()
 
     @property
     def stats(self) -> TeamRunStats:
