@@ -63,6 +63,11 @@ class AgentPoolView:
         self.commands = CommandStore(history_file=file_path, enable_system_commands=True)
         self.start_time = datetime.now()
         self._state = SessionState(current_model=self._agent.model_name)
+        # Store wait state for this connection
+        self.commands._initialize_sync()
+        for cmd in get_commands():
+            self.commands.register_command(cmd)
+        logger.debug("Initialized chat session for agent %r", self._agent.name)
 
     async def connect_to(self, target: str, wait: bool | None = None):
         """Connect to another agent.
@@ -78,11 +83,6 @@ class AgentPoolView:
         target_agent = self.pool.get_agent(target)
         self._agent.pass_results_to(target_agent)
         self._agent.connections.set_wait_state(target, wait if wait is not None else True)
-        # Store wait state for this connection
-        self.commands._initialize_sync()
-        for cmd in get_commands():
-            self.commands.register_command(cmd)
-        logger.debug("Initialized chat session for agent %r", self._agent.name)
 
     async def cleanup(self):
         """Clean up session resources."""
