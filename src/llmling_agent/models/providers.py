@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
+from llmling_models.model_types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 from pydantic_ai.agent import EndStrategy  # noqa: TC002
 
@@ -51,6 +52,9 @@ class AIProviderConfig(BaseProviderConfig):
     - confirm: Ask user what to do
     """
 
+    model: str | AnyModel | None = None  # pyright: ignore[reportInvalidTypeForm]
+    """Optional model name to use. If not specified, uses default model."""
+
     result_retries: int | None = None
     """Maximum retries for result validation.
     None means use the global retry setting.
@@ -75,6 +79,7 @@ class AIProviderConfig(BaseProviderConfig):
         from llmling_agent_providers.pydanticai import PydanticAIProvider
 
         return PydanticAIProvider(
+            model=self.model,
             name=self.name or "ai-agent",
             end_strategy=self.end_strategy,
             result_retries=self.result_retries,
