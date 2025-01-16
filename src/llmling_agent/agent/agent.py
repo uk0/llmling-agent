@@ -1342,7 +1342,7 @@ class Agent[TDeps](TaskManagerMixin):
                 max_tokens=token_limit,
                 num_messages=history if isinstance(history, int) else None,
             )
-            await target.conversation.add_context_message(
+            target.conversation.add_context_message(
                 history_text, source=self.name, metadata={"type": "shared_history"}
             )
 

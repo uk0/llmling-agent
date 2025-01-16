@@ -387,7 +387,7 @@ class Team[TDeps](TaskManagerMixin):
         """
         for agent in self.agents:
             # Add context message
-            await agent.conversation.add_context_message(content, source="distribution")
+            agent.conversation.add_context_message(content, source="distribution")
 
             # Register tools if provided
             if tools:

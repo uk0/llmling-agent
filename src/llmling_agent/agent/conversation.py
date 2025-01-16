@@ -374,7 +374,7 @@ class ConversationManager:
         """Get messages from the last run converted to our format."""
         return [convert_model_message(msg) for msg in self._last_messages]
 
-    async def add_context_message(
+    def add_context_message(
         self,
         content: str,
         source: str | None = None,
@@ -455,7 +455,7 @@ class ConversationManager:
                 msg = f"Failed to read {path_obj}: {e}"
                 raise ValueError(msg) from e
 
-        await self.add_context_message(content, source=source, **metadata)
+        self.add_context_message(content, source=source, **metadata)
 
     async def add_context_from_resource(self, resource: Resource | str):
         """Add content from a LLMling resource."""
@@ -465,7 +465,7 @@ class ConversationManager:
 
         if isinstance(resource, str):
             content = await self._agent.runtime.load_resource(resource)
-            await self.add_context_message(
+            self.add_context_message(
                 str(content.content),
                 source=f"Resource {resource}",
                 mime_type=content.metadata.mime_type,
@@ -474,7 +474,7 @@ class ConversationManager:
         else:
             loader = self._agent.runtime._loader_registry.get_loader(resource)
             async for content in loader.load(resource):
-                await self.add_context_message(
+                self.add_context_message(
                     str(content.content),
                     source=f"{resource.type}:{resource.uri}",
                     mime_type=content.metadata.mime_type,
@@ -500,7 +500,7 @@ class ConversationManager:
             # Extract text content from all messages
             content = "\n\n".join(msg.get_text_content() for msg in messages)
 
-            await self.add_context_message(
+            self.add_context_message(
                 content,
                 source=f"prompt:{prompt.name or prompt.type}",
                 prompt_args=kwargs,

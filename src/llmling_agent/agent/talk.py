@@ -141,7 +141,7 @@ class Interactions[TDeps, TResult]:
 
         if include_history:
             history = await self.agent.conversation.format_history(max_tokens=max_tokens)
-            await target_agent.conversation.add_context_message(
+            target_agent.conversation.add_context_message(
                 history, source=self.agent.name, metadata={"type": "conversation_history"}
             )
 

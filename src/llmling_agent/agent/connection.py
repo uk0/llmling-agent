@@ -196,19 +196,29 @@ class Talk[TTransmittedData]:
 
             case "context":
                 for target in self.targets:
-                    coro = target.conversation.add_context_message(
-                        str(message.content),
-                        source=self.source.name,
-                        metadata={
-                            "type": "forwarded_message",
-                            "role": message.role,
-                            "model": message.model,
-                            "cost_info": message.cost_info,
-                            "timestamp": message.timestamp.isoformat(),
-                            "prompt": prompt,  # Include original prompt in metadata
-                        },
-                    )
-                    target.run_background(coro, priority=self.priority, delay=self.delay)
+
+                    async def add_context(target=target):
+                        target.conversation.add_context_message(
+                            str(message.content),
+                            source=self.source.name,
+                            metadata={
+                                "type": "forwarded_message",
+                                "role": message.role,
+                                "model": message.model,
+                                "cost_info": message.cost_info,
+                                "timestamp": message.timestamp.isoformat(),
+                                "prompt": prompt,
+                            },
+                        )
+
+                    if self.delay is not None or self.priority != 0:
+                        target.run_background(
+                            add_context(),
+                            priority=self.priority,
+                            delay=self.delay,
+                        )
+                    else:
+                        target.run_task_sync(add_context())
 
             case "forward":
                 for target in self.targets:
