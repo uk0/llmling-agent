@@ -19,6 +19,8 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import ModelType
+    from llmling_agent.delegation.agentgroup import Team
+    from llmling_agent.delegation.execution import TeamRun
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.tools.manager import ToolManager
@@ -101,6 +103,14 @@ class StructuredAgent[TDeps, TResult]:
     ):
         """Exit async context."""
         await self._agent.__aexit__(exc_type, exc_val, exc_tb)
+
+    def __and__(
+        self, other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[TResult]
+    ) -> Team[TDeps]:
+        return self._agent.__and__(other)
+
+    def __or__(self, other: Agent | ProcessorCallback | Team | TeamRun) -> TeamRun:
+        return self._agent.__or__(other)
 
     async def run(
         self,
