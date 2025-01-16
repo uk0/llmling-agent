@@ -48,7 +48,7 @@ agent_a.pass_results_to("agent_b")
 Connect an agent to multiple targets:
 ```python
 # Create team
-team = agent_b | agent_c | agent_d
+team = agent_b & agent_c & agent_d
 
 # Connect agent to team
 agent_a.pass_results_to(team)
@@ -57,8 +57,8 @@ agent_a.pass_results_to(team)
 ### Team-to-Team
 Connect groups of agents:
 ```python
-team_a = agent_1 | agent_2
-team_b = agent_3 | agent_4
+team_a = agent_1 & agent_2
+team_b = agent_3 & agent_4
 team_a.pass_results_to(team_b)
 ```
 

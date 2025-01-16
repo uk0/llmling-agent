@@ -37,7 +37,7 @@ result = await execution.wait()
 
 ### The Monitor Object
 
-Similar to how Talk objects manage agent connections, the TeamExecutionMonitor tracks execution progress through agent signals. It:
+Similar to how Talk objects manage agent connections, the TeamRunMonitor tracks execution progress through agent signals. It:
 - Captures message exchanges
 - Records tool usage
 - Tracks errors
@@ -48,7 +48,7 @@ This happens asynchronously without blocking the main execution.
 
 ### Stats Object
 
-The TeamExecutionStats object provides a complete view of the execution state:
+The TeamRunStats object provides a complete view of the execution state:
 
 ```python
 stats = execution.stats
@@ -90,7 +90,7 @@ await execution.cancel()          # Cancel execution
 ### Example: Progress Monitoring
 
 ```python
-async def on_stats_update(stats: TeamExecutionStats):
+async def on_stats_update(stats: TeamRunStats):
     print(f"Active agents: {stats.active_agents}")
     print(f"Messages processed: {stats.message_counts}")
     print(f"Tools used: {stats.tool_counts}")

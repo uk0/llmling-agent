@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 import inspect
@@ -24,13 +25,11 @@ from llmling_agent.utils.tasks import TaskManagerMixin
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from psygnal import SignalInstance
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.delegation.agentgroup import Team, TeamResponse
-    from llmling_agent.delegation.callbacks import DecisionCallback
+    from llmling_agent.agent.agent import Agent
+    from llmling_agent.delegation import DecisionCallback, Team, TeamResponse
     from llmling_agent.models.agents import ToolCallInfo
 
 
@@ -38,7 +37,7 @@ logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
-class TeamExecutionStats:
+class TeamRunStats:
     """Statistics about a team execution."""
 
     start_time: datetime
@@ -98,7 +97,7 @@ class TeamExecutionStats:
         return bool(self.error_log)
 
 
-class TeamExecutionMonitor:
+class TeamRunMonitor:
     """Monitors team execution through agent signals."""
 
     def __init__(self, team: Team):
@@ -162,9 +161,9 @@ class TeamExecutionMonitor:
         self._signal_connections.clear()
 
     @property
-    def stats(self) -> TeamExecutionStats:
+    def stats(self) -> TeamRunStats:
         """Get current execution statistics."""
-        return TeamExecutionStats(
+        return TeamRunStats(
             start_time=self.start_time,
             received_messages=self._received_messages,
             sent_messages=self._sent_messages,
@@ -178,7 +177,7 @@ class TeamExecutionMonitor:
         )
 
 
-class TeamExecution[TDeps](TaskManagerMixin):
+class TeamRun[TDeps](TaskManagerMixin):
     """Handles team operations with optional monitoring."""
 
     def __init__(
@@ -189,8 +188,31 @@ class TeamExecution[TDeps](TaskManagerMixin):
         super().__init__()
         self.team = team
         self.mode = mode
-        self._monitor: TeamExecutionMonitor | None = None
+        self._monitor: TeamRunMonitor | None = None
         self._main_task: asyncio.Task[TeamResponse] | None = None
+
+    def __or__(self, other: Agent | Callable | Team | TeamRun) -> TeamRun:
+        from llmling_agent import Agent, Team
+        from llmling_agent_providers.callback import CallbackProvider
+
+        match other:
+            case Agent():
+                self.team.agents[-1].pass_results_to(other)
+                self.team.agents.append(other)
+            case Callable():
+                provider = CallbackProvider(other)
+                new_agent = Agent(provider=provider)
+                self.team.agents[-1].pass_results_to(new_agent)
+                self.team.agents.append(new_agent)
+            case Team():
+                # Flatten team
+                self.team.agents[-1].pass_results_to(other.agents[0])
+                self.team.agents.extend(other.agents)
+            case TeamRun():
+                # Merge executions
+                self.team.agents[-1].pass_results_to(other.team.agents[0])
+                self.team.agents.extend(other.team.agents)
+        return self
 
     async def start(
         self,
@@ -199,7 +221,7 @@ class TeamExecution[TDeps](TaskManagerMixin):
         **kwargs: Any,
     ) -> TeamResponse:
         """Start execution with monitoring enabled."""
-        self._monitor = TeamExecutionMonitor(self.team)
+        self._monitor = TeamRunMonitor(self.team)
         self._monitor.start()
         try:
             return await self._execute(prompt, deps, **kwargs)
@@ -222,7 +244,7 @@ class TeamExecution[TDeps](TaskManagerMixin):
 
     def monitor(
         self,
-        callback: Callable[[TeamExecutionStats], Any],
+        callback: Callable[[TeamRunStats], Any],
         interval: float = 0.1,
     ) -> None:
         """Monitor execution with callback.
@@ -292,11 +314,11 @@ class TeamExecution[TDeps](TaskManagerMixin):
                 raise ValueError(msg)
 
     @property
-    def stats(self) -> TeamExecutionStats:
+    def stats(self) -> TeamRunStats:
         """Get current execution statistics."""
         if not self._monitor:
             # Return empty stats if not monitoring
-            return TeamExecutionStats(
+            return TeamRunStats(
                 start_time=datetime.now(),
                 received_messages={agent.name: [] for agent in self.team.agents},
                 sent_messages={agent.name: [] for agent in self.team.agents},
@@ -317,10 +339,17 @@ class TeamExecution[TDeps](TaskManagerMixin):
 
         start_time = datetime.now()
 
+        # Combine shared prompt with user prompt if both exist
+        final_prompt = None
+        if self.team.shared_prompt and prompt:
+            final_prompt = f"{self.team.shared_prompt}\n\n{prompt}"
+        else:
+            final_prompt = self.team.shared_prompt or prompt
+
         async def run_agent(agent: AnyAgent[TDeps, Any]) -> AgentResponse[Any]:
             try:
                 start = perf_counter()
-                message = await agent.run(prompt, deps=deps)
+                message = await agent.run(final_prompt, deps=deps)
                 timing = perf_counter() - start
                 return AgentResponse(agent.name, message=message, timing=timing)
             except Exception as e:  # noqa: BLE001
@@ -343,11 +372,17 @@ class TeamExecution[TDeps](TaskManagerMixin):
 
         start_time = datetime.now()
         results = []
+        # Combine shared prompt with user prompt if both exist
+        final_prompt = None
+        if self.team.shared_prompt and prompt:
+            final_prompt = f"{self.team.shared_prompt}\n\n{prompt}"
+        else:
+            final_prompt = self.team.shared_prompt or prompt
 
         for agent in self.team.agents:
             try:
                 start = perf_counter()
-                message = await agent.run(prompt, deps=deps)
+                message = await agent.run(final_prompt, deps=deps)
                 timing = perf_counter() - start
                 res = AgentResponse[str](
                     agent_name=agent.name, message=message, timing=timing
@@ -376,6 +411,13 @@ class TeamExecution[TDeps](TaskManagerMixin):
         """
         from llmling_agent.delegation.agentgroup import TeamResponse
 
+        # Combine shared prompt with user prompt if both exist
+        final_prompt = None
+        if self.team.shared_prompt and prompt:
+            final_prompt = f"{self.team.shared_prompt}\n\n{prompt}"
+        else:
+            final_prompt = self.team.shared_prompt or prompt
+
         results = []
         start_time = datetime.now()
         if not decision_callback:
@@ -390,7 +432,7 @@ class TeamExecution[TDeps](TaskManagerMixin):
         # Create router for decisions
         assert current_agent.context.pool
         router = router or CallbackRouter(current_agent.context.pool, decision_callback)
-        current_message = prompt
+        current_message = final_prompt
 
         while True:
             # Get response from current agent
@@ -430,7 +472,7 @@ if __name__ == "__main__":
 
     from llmling_agent.delegation import AgentPool
 
-    async def on_stats_update(stats: TeamExecutionStats):
+    async def on_stats_update(stats: TeamRunStats):
         """Handle stats updates."""
         print(
             f"\rActive: {stats.active_agents} | Messages: {stats.message_counts}", end=""

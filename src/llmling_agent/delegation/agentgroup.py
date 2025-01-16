@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 from psygnal.containers import EventedList
 from pydantic_ai.result import StreamedRunResult
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.connection import TalkManager, TeamTalk
-from llmling_agent.delegation.execution import TeamExecution
+from llmling_agent.delegation.execution import TeamRun
 from llmling_agent.delegation.pool import AgentResponse
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
@@ -107,6 +108,79 @@ class Team[TDeps](TaskManagerMixin):
         self.connections = TalkManager(self)
         self.team_talk = TeamTalk.from_agents(self.agents)
 
+    @overload
+    def __and__(self, other: Team[None]) -> Team[None]: ...
+
+    @overload
+    def __and__(self, other: Team[TDeps]) -> Team[list[TDeps]]: ...
+
+    @overload
+    def __and__(self, other: Team[Any]) -> Team[list[Any]]: ...
+
+    def __and__(self, other: Team[Any]) -> Team[Any]:
+        """Combine teams, preserving type safety for same types."""
+        # Combine agents
+        combined_agents = [*self.agents, *other.agents]
+
+        # Handle deps
+        if self.shared_deps is None and other.shared_deps is None:
+            combined_deps = None
+        else:
+            combined_deps = []
+            if self.shared_deps is not None:
+                combined_deps.append(self.shared_deps)
+            if other.shared_deps is not None:
+                combined_deps.append(other.shared_deps)
+
+        # Combine prompts with line break
+        combined_prompts = []
+        if self.shared_prompt:
+            combined_prompts.append(self.shared_prompt)
+        if other.shared_prompt:
+            combined_prompts.append(other.shared_prompt)
+
+        return Team(
+            agents=combined_agents,
+            shared_deps=combined_deps,
+            shared_prompt="\n".join(combined_prompts) if combined_prompts else None,
+        )
+
+    def __or__(self, other: AnyAgent[Any, Any] | Callable | Team[Any]) -> TeamRun[TDeps]:
+        """Create a pipeline using | operator.
+
+        Example:
+            pipeline = team | transform | other_team  # Sequential processing
+        """
+        from llmling_agent.agent import Agent, StructuredAgent
+
+        match other:
+            case Team():
+                # Create sequential execution with all agents
+                execution = TeamRun(
+                    Team([*self.agents, *other.agents]), mode="sequential"
+                )
+            case Callable():
+                # Convert callable to agent and add to pipeline
+                from llmling_agent import Agent
+                from llmling_agent_providers.callback import CallbackProvider
+
+                provider = CallbackProvider(other)
+                new_agent = Agent(provider=provider)
+                execution = TeamRun(Team([*self.agents, new_agent]), mode="sequential")
+            case Agent() | StructuredAgent():  # Agent case
+                execution = TeamRun(Team([*self.agents, other]), mode="sequential")
+            case _:
+                msg = f"Invalid pipeline element: {other}"
+                raise ValueError(msg)
+
+        # Setup connections for sequential processing
+        for i in range(len(execution.team.agents) - 1):
+            current = execution.team.agents[i]
+            next_agent = execution.team.agents[i + 1]
+            current.pass_results_to(next_agent)
+
+        return execution
+
     def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> TeamTalk:
         """Connect group to target agent(s).
 
@@ -146,9 +220,9 @@ class Team[TDeps](TaskManagerMixin):
     def monitored(
         self,
         mode: Literal["parallel", "sequential", "controlled"],
-    ) -> TeamExecution[TDeps]:
+    ) -> TeamRun[TDeps]:
         """Create a monitored execution."""
-        return TeamExecution(self, mode)
+        return TeamRun(self, mode)
 
     async def run_parallel(
         self,
@@ -156,7 +230,7 @@ class Team[TDeps](TaskManagerMixin):
         deps: TDeps | None = None,
     ) -> TeamResponse:
         """Run all agents in parallel."""
-        execution = TeamExecution(self, "parallel")
+        execution = TeamRun(self, "parallel")
         return await execution.run(prompt, deps)
 
     async def run_sequential(
@@ -165,7 +239,7 @@ class Team[TDeps](TaskManagerMixin):
         deps: TDeps | None = None,
     ) -> TeamResponse:
         """Run agents one after another."""
-        execution = TeamExecution(self, "sequential")
+        execution = TeamRun(self, "sequential")
         return await execution.run(prompt, deps)
 
     async def run_controlled(
@@ -177,7 +251,7 @@ class Team[TDeps](TaskManagerMixin):
         decision_callback: DecisionCallback | None = None,
         router: AgentRouter | None = None,
     ) -> TeamResponse:
-        execution = TeamExecution(self, "controlled")
+        execution = TeamRun(self, "controlled")
         return await execution.run(prompt, deps)
 
     async def chain(

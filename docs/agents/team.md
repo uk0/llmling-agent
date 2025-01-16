@@ -106,7 +106,7 @@ agent >> team  # All team members receive results
 team >> other_agent
 
 # Create complex routing
-(team1 | team2) >> coordinator  # Union of teams
+(team1 & team2) >> coordinator  # Union of teams
 
 # Using pass_results_to
 agent.pass_results_to(
@@ -165,17 +165,17 @@ message = team_response.to_chat_message()
 
 ## Team Composition
 
-Teams can be composed using the `|` operator:
+Teams can be composed using the `&` operator:
 
 ```python
 # Create combined team
-analysis_team = analyzer | researcher | summarizer
+analysis_team = analyzer & researcher & summarizer
 
 # Compose existing teams
-full_team = analysis_team | review_team
+full_team = analysis_team & review_team
 
 # Create groups inline
-(analyzer | researcher) >> reviewer
+(analyzer & researcher) >> reviewer
 ```
 
 ## Routing Control

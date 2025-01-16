@@ -109,7 +109,7 @@ async def test_group_stats_aggregation():
         Agent[str](model="test", name="target2") as target2,
     ):
         # Create team connection
-        team = target1 | target2
+        team = target1 & target2
         team_talk = source.pass_results_to(team)
 
         # Send message

@@ -43,7 +43,7 @@ from llmling_agent_providers import AgentProvider, HumanProvider, PydanticAIProv
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncIterator, Callable, Sequence
     from datetime import timedelta
     from types import TracebackType
 
@@ -56,6 +56,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.talk import Interactions
     from llmling_agent.common_types import ModelType, SessionIdType, StrPath, ToolType
     from llmling_agent.delegation.agentgroup import Team
+    from llmling_agent.delegation.execution import TeamRun
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.session import SessionQuery
@@ -359,23 +360,31 @@ class Agent[TDeps](TaskManagerMixin):
 
         Example:
             agent >> other_agent  # Connect to single agent
-            agent >> (agent2 | agent3)  # Connect to group
+            agent >> (agent2 & agent3)  # Connect to group
             agent >> "other_agent"  # Connect by name (needs pool)
         """
         return self.pass_results_to(other)
 
-    def __or__(self, other: AnyAgent[Any, Any] | Team[Any]) -> Team[TDeps]:
+    def __and__(self, other: AnyAgent[Any, Any] | Team[Any]) -> Team[TDeps]:
         """Create agent group using | operator.
 
         Example:
-            group = analyzer | planner | executor  # Create group of 3
-            group = analyzer | existing_group  # Add to existing group
+            group = analyzer & planner & executor  # Create group of 3
+            group = analyzer & existing_group  # Add to existing group
         """
         from llmling_agent.delegation.agentgroup import Team
 
         if isinstance(other, Team):
             return Team([self, *other.agents])
         return Team([self, other])
+
+    def __or__(self, other: Agent | Callable | Team | TeamRun) -> TeamRun:
+        # Create new execution with sequential mode (for piping)
+        from llmling_agent.delegation.agentgroup import Team
+        from llmling_agent.delegation.execution import TeamRun
+
+        execution = TeamRun(Team([self]), mode="sequential")
+        return execution | other
 
     @property
     def name(self) -> str:

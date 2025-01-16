@@ -16,6 +16,10 @@ from llmling_agent.delegation import (
     RouteDecision,
     AwaitResponseDecision,
     interactive_controller,
+    Team,
+    TeamRun,
+    TeamRunStats,
+    TeamRunMonitor,
 )
 from llmling_agent.delegation.callbacks import DecisionCallback
 from llmling_agent.delegation.router import AgentRouter, RuleRouter, CallbackRouter
@@ -44,6 +48,10 @@ __all__ = [
     "RuleRouter",
     "StructuredAgent",
     "SystemPrompt",
+    "Team",
+    "TeamRun",
+    "TeamRunMonitor",
+    "TeamRunStats",
     "get_structured",
     "interactive_controller",
     "run_agent_pipeline",

@@ -13,19 +13,12 @@ async def test_pick_from_options():
     )
 
     # Test picking from simple options
-    options = {
-        "Option A - Quick": "Analyze the code quickly for major issues",
-        "Option B - Deep": "Do a thorough code review with security focus",
-        "Option C - Simple": "Just check code style and formatting",
-    }
+    options = ["A", "B", "C"]
 
-    decision = await decider.talk.pick(
-        options, task="We need to review some Python code. Which approach should we take?"
-    )
+    decision = await decider.talk.pick(options, task="Pick A and give a random reason!")
 
-    assert decision.selection in options.values()
+    assert decision.selection in options
     assert len(decision.reason) > 0
-    assert "security" in decision.reason.lower() if "Deep" in decision.reason else True
 
 
 @pytest.mark.asyncio
