@@ -193,7 +193,7 @@ class Team[TDeps](TaskManagerMixin):
                 from llmling_agent_providers.callback import CallbackProvider
 
                 provider = CallbackProvider(other)
-                new_agent = Agent(provider=provider)
+                new_agent = Agent(provider=provider, name=other.__name__)
                 execution = TeamRun(Team([*self.agents, new_agent]), mode="sequential")
             case Agent() | StructuredAgent():  # Agent case
                 execution = TeamRun(Team([*self.agents, other]), mode="sequential")

@@ -200,7 +200,9 @@ class TeamRun[TDeps](TaskManagerMixin):
                 self.team.agents.append(other)
             case Callable():
                 provider = CallbackProvider(other)
-                new_agent = Agent(provider=provider)
+                position = len(self.team.agents) + 1
+                name = f"{other.__name__}_{position}"
+                new_agent = Agent(provider=provider, name=name)
                 self.team.agents.append(new_agent)
             case Team():
                 # Flatten team

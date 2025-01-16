@@ -245,7 +245,7 @@ class StructuredAgent[TDeps, TResult]:
 
         name = name or callback.__name__ or "processor"
         provider = CallbackProvider[TDeps](callback, name=name)
-        agent = Agent[TDeps](provider=provider, **kwargs)
+        agent = Agent[TDeps](provider=provider, name=name, **kwargs)
         if deps is not None:
             agent.context.data = deps
         # Get return type from signature for validation
