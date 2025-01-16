@@ -12,6 +12,8 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
+    from llmling_agent.common_types import AnyCallable
+
 logger = get_logger(__name__)
 
 
@@ -19,7 +21,7 @@ logger = get_logger(__name__)
 class AgentFunction:
     """Metadata for a function that uses agents."""
 
-    func: Callable[..., Any]
+    func: AnyCallable
     """The actual function to execute."""
 
     depends_on: list[str] = field(default_factory=list)

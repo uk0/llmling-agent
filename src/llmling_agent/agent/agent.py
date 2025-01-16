@@ -40,7 +40,12 @@ from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context
 from llmling_agent.utils.tasks import TaskManagerMixin
-from llmling_agent_providers import AgentProvider, HumanProvider, PydanticAIProvider
+from llmling_agent_providers import (
+    AgentProvider,
+    CallbackProvider,
+    HumanProvider,
+    PydanticAIProvider,
+)
 
 
 if TYPE_CHECKING:
@@ -257,6 +262,8 @@ class Agent[TDeps](TaskManagerMixin):
                 )
             case "human":
                 self._provider = HumanProvider(name=name, debug=debug)
+            case Callable():
+                self._provider = CallbackProvider(provider, name=name, debug=debug)
             case "litellm":
                 from llmling_agent_providers.litellm_provider import LiteLLMProvider
 
@@ -429,8 +436,8 @@ class Agent[TDeps](TaskManagerMixin):
         from llmling_agent_providers.callback import CallbackProvider
 
         name = name or callback.__name__ or "processor"
-        provider = CallbackProvider[Any](callback, name=name, debug=debug)
-        agent = cls(provider=provider, name=name, **kwargs)
+        provider = CallbackProvider[Any](callback, name=name)
+        agent = cls(provider=provider, name=name, debug=debug, **kwargs)
         if deps is not None:
             agent.context.data = deps
         return agent
