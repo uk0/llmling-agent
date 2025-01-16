@@ -257,7 +257,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         """Error class for agent operations."""
         return LLMLingError
 
-    def _validate_item(self, item: Agent[Any] | Any) -> Agent[Any]:
+    def _validate_item(self, item: AnyAgent[Any, Any] | Any) -> AnyAgent[Any, Any]:
         """Validate and convert items before registration.
 
         Args:
@@ -269,7 +269,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         Raises:
             LLMlingError: If item is not a valid agent
         """
-        if not isinstance(item, Agent):
+        if not isinstance(item, Agent | StructuredAgent):
             msg = f"Item must be Agent, got {type(item)}"
             raise self._error_class(msg)
         return item
