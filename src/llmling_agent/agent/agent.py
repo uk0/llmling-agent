@@ -330,13 +330,23 @@ class Agent[TDeps](TaskManagerMixin):
             # Initialize events
             await self._events.__aenter__()
 
-            # Then setup constructor MCP servers
+            # Setup constructor MCP servers
             if self._mcp_servers:
                 await self.tools.setup_mcp_servers(self._mcp_servers)
 
-            # Then setup config MCP servers if any
+            # Setup config MCP servers if any
             if self.context and self.context.config and self.context.config.mcp_servers:
                 await self.tools.setup_mcp_servers(self.context.config.get_mcp_servers())
+
+            # Load any configured knowledge/resources
+            if self.context.config.knowledge:
+                for source in (
+                    self.context.config.knowledge.paths
+                    + self.context.config.knowledge.resources
+                    + self.context.config.knowledge.prompts
+                ):
+                    await self.conversation.load_context_source(source)
+
         except Exception as e:
             # Clean up in reverse order
             if self._owns_runtime and runtime_ref and self.context.runtime == runtime_ref:

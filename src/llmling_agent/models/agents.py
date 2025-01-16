@@ -666,21 +666,11 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         """
         from llmling_agent.delegation import AgentPool
 
-        pool = AgentPool(
+        return AgentPool(
             manifest=self,
             agents_to_load=agents_to_load,
             connect_agents=connect_agents,
         )
-
-        # Initialize agents with knowledge
-        for name, agent in pool.agents.items():
-            if (cfg := self.agents.get(name)) and cfg.knowledge:
-                for source in (
-                    cfg.knowledge.paths + cfg.knowledge.resources + cfg.knowledge.prompts
-                ):
-                    await agent.conversation.load_context_source(source)  # type: ignore
-
-        return pool
 
     @asynccontextmanager
     async def open_agent(
