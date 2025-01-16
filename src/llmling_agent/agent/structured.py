@@ -12,16 +12,19 @@ from llmling_agent.responses.utils import to_type
 
 
 if TYPE_CHECKING:
+    from datetime import timedelta
     from types import TracebackType
 
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
+    from llmling_agent.agent.connection import Talk, TeamTalk
     from llmling_agent.common_types import ModelType
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.execution import TeamRun
     from llmling_agent.models.context import AgentContext
+    from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.tools.manager import ToolManager
     from llmling_agent_providers.callback import ProcessorCallback
@@ -259,3 +262,39 @@ class StructuredAgent[TDeps, TResult]:
             if return_type.__origin__ is Awaitable:
                 return_type = return_type.__args__[0]
         return cls(agent, return_type or str)  # type: ignore
+
+    @overload
+    def pass_results_to(
+        self,
+        other: AnyAgent[Any, Any] | str,
+        prompt: str | None = None,
+        connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
+    ) -> Talk[TResult]: ...
+
+    @overload
+    def pass_results_to(
+        self,
+        other: Team[Any],
+        prompt: str | None = None,
+        connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
+    ) -> TeamTalk: ...
+
+    def pass_results_to(
+        self,
+        other: AnyAgent[Any, Any] | Team[Any] | str,
+        prompt: str | None = None,
+        connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
+    ) -> Talk[TResult] | TeamTalk:
+        """Forward results to another agent or all agents in a team."""
+        return self._agent.connections.connect_agent_to(
+            other,
+            connection_type=connection_type,
+            priority=priority,
+            delay=delay,
+        )

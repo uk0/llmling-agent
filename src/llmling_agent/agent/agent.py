@@ -841,7 +841,7 @@ class Agent[TDeps](TaskManagerMixin):
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
-    ) -> Talk: ...
+    ) -> Talk[str]: ...
 
     @overload
     def pass_results_to(
@@ -860,7 +860,7 @@ class Agent[TDeps](TaskManagerMixin):
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
-    ) -> Talk | TeamTalk:
+    ) -> Talk[str] | TeamTalk:
         """Forward results to another agent or all agents in a team."""
         return self.connections.connect_agent_to(
             other,
