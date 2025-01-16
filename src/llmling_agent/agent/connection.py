@@ -105,15 +105,15 @@ class TeamTalkStats:
         return {name for s in self.stats for name in s.target_names}
 
 
-class Talk:
+class Talk[TTransmittedData]:
     """Manages message flow between agents/groups."""
 
-    message_received = Signal(ChatMessage[Any])  # Original message
+    message_received = Signal(ChatMessage[TTransmittedData])  # Original message
     message_forwarded = Signal(ChatMessage[Any])  # After any transformation
 
     def __init__(
         self,
-        source: AnyAgent[Any, Any],
+        source: AnyAgent[Any, TTransmittedData],
         targets: list[AnyAgent[Any, Any]],
         group: TeamTalk | None = None,
         *,
@@ -149,7 +149,11 @@ class Talk:
         self._filter: FilterFn | None = None
         self._transformer: TransformFn | None = None
 
-    async def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None):
+    async def _handle_message(
+        self,
+        message: ChatMessage[TTransmittedData],
+        prompt: str | None = None,
+    ):
         logger.debug(
             "Message from %s to %s: %r (type: %s) (prompt: %s)",
             self.source.name,
