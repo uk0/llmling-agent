@@ -1,6 +1,6 @@
 """Agent configuration and creation."""
 
-from llmling_agent.models import AgentsManifest, SystemPrompt, AgentConfig
+from llmling_agent.models import AgentsManifest, SystemPrompt, AgentConfig, AgentContext
 from llmling_agent.agent import Agent, StructuredAgent
 from llmling_agent_functional import (
     run_with_model,
@@ -34,6 +34,7 @@ load_dotenv()
 __all__ = [
     "Agent",
     "AgentConfig",
+    "AgentContext",
     "AgentPool",
     "AgentPoolView",
     "AgentRouter",
