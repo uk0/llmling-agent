@@ -81,7 +81,7 @@ logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=None)
-AgentType = Literal["ai", "human", "litellm"] | AgentProvider
+AgentType = Literal["ai", "human", "litellm"] | AgentProvider | Callable[..., Any]
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
 
