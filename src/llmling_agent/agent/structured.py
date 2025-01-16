@@ -215,7 +215,7 @@ class StructuredAgent[TDeps, TResult]:
         *,
         deps: TDeps | None = None,
         name: str | None = None,
-        debug: bool = False,
+        **kwargs: Any,
     ) -> StructuredAgent[TDeps, TResult]:
         """Create a structured agent from a processing callback.
 
@@ -224,9 +224,9 @@ class StructuredAgent[TDeps, TResult]:
                 - sync or async
                 - with or without context
                 - with explicit return type
-            deps: Optional dependencies for the agent
             name: Optional name for the agent
-            debug: Whether to enable debug mode
+            deps: Optional dependencies for the agent
+            **kwargs: Additional arguments for agent
 
         Example:
             ```python
@@ -243,15 +243,11 @@ class StructuredAgent[TDeps, TResult]:
         from llmling_agent.agent.agent import Agent
         from llmling_agent_providers.callback import CallbackProvider
 
-        provider = CallbackProvider[TDeps](
-            callback,
-            name=name or callback.__name__ or "processor",
-            debug=debug,
-        )
-        agent = Agent[TDeps](provider=provider)
+        name = name or callback.__name__ or "processor"
+        provider = CallbackProvider[TDeps](callback, name=name)
+        agent = Agent[TDeps](provider=provider, **kwargs)
         if deps is not None:
             agent.context.data = deps
-
         # Get return type from signature for validation
         hints = get_type_hints(callback)
         return_type = hints.get("return")

@@ -433,7 +433,10 @@ class Agent[TDeps](TaskManagerMixin):
             name=name or callback.__name__ or "processor",
             debug=debug,
         )
-        return cls(provider=provider, deps=deps, **kwargs)
+        agent = cls(provider=provider, **kwargs)
+        if deps is not None:
+            agent.context.data = deps
+        return agent
 
     @property
     def name(self) -> str:
