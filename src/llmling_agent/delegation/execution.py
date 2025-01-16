@@ -197,20 +197,16 @@ class TeamRun[TDeps](TaskManagerMixin):
 
         match other:
             case Agent():
-                self.team.agents[-1].pass_results_to(other)
                 self.team.agents.append(other)
             case Callable():
                 provider = CallbackProvider(other)
                 new_agent = Agent(provider=provider)
-                self.team.agents[-1].pass_results_to(new_agent)
                 self.team.agents.append(new_agent)
             case Team():
                 # Flatten team
-                self.team.agents[-1].pass_results_to(other.agents[0])
                 self.team.agents.extend(other.agents)
             case TeamRun():
                 # Merge executions
-                self.team.agents[-1].pass_results_to(other.team.agents[0])
                 self.team.agents.extend(other.team.agents)
         return self
 
@@ -378,11 +374,12 @@ class TeamRun[TDeps](TaskManagerMixin):
             final_prompt = f"{self.team.shared_prompt}\n\n{prompt}"
         else:
             final_prompt = self.team.shared_prompt or prompt
-
+        current_input = final_prompt
         for agent in self.team.agents:
             try:
                 start = perf_counter()
-                message = await agent.run(final_prompt, deps=deps)
+                message = await agent.run(current_input, deps=deps)
+                current_input = str(message.data)
                 timing = perf_counter() - start
                 res = AgentResponse[str](
                     agent_name=agent.name, message=message, timing=timing
