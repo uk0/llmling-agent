@@ -418,6 +418,29 @@ class Agent[TDeps](TaskManagerMixin):
         logger.debug("Setting result type to: %s", result_type)
         self._result_type = to_type(result_type)  # to_type?
 
+    @property
+    def provider(self) -> AgentProvider:
+        """Get the underlying provider."""
+        return self._provider
+
+    @provider.setter
+    def provider(self, value: AgentProvider, model: ModelType = None):
+        """Set the underlying provider."""
+        match value:
+            case AgentProvider():
+                self._provider = value
+            case "ai":
+                self._provider = PydanticAIProvider(model=model)
+            case "human":
+                self._provider = HumanProvider()
+            case "litellm":
+                from llmling_agent_providers.litellm_provider import LiteLLMProvider
+
+                self._provider = LiteLLMProvider(model=model)
+            case _:
+                msg = f"Invalid agent type: {type}"
+                raise ValueError(msg)
+
     @overload
     def to_structured(
         self,

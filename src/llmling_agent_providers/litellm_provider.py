@@ -47,7 +47,7 @@ class LiteLLMProvider(AgentProvider[Any]):
     def __init__(
         self,
         name: str,
-        model: str | None = None,
+        model: str | ModelProtocol | None = None,
         *,
         debug: bool = False,
         retries: int = 1,
