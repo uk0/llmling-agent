@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Self
 
 from llmling_agent.events.sources import (
     EventConfig,
+    EventData,
     EventSource,
     FileSystemEventSource,
     FileWatchConfig,
@@ -17,24 +19,71 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.events.sources import EventData
 
 logger = get_logger(__name__)
+
+
+type EventCallback = Callable[[EventData], None | Awaitable[None]]
 
 
 class EventManager:
     """Manages multiple event sources and their lifecycles."""
 
-    def __init__(self, agent: AnyAgent[Any, Any], enable_events: bool = True):
+    def __init__(
+        self,
+        agent: AnyAgent[Any, Any],
+        enable_events: bool = True,
+        auto_run: bool = True,
+    ):
         """Initialize event manager.
 
         Args:
             agent: Agent to manage events for
             enable_events: Whether to enable event processing
+            auto_run: Whether to automatically call run() for event callbacks
         """
         self.agent = agent
         self.enabled = enable_events
         self._sources: dict[str, EventSource] = {}
+        self._callbacks: list[EventCallback] = []
+        self.auto_run = auto_run
+
+    async def _default_handler(self, event: EventData) -> None:
+        """Default event handler that converts events to agent runs."""
+        prompt = event.to_prompt()
+        if prompt:  # Only run if event provides a prompt
+            await self.agent.run(prompt)
+
+    async def add_callback(self, callback: EventCallback) -> None:
+        """Register an event callback."""
+        self._callbacks.append(callback)
+
+    async def remove_callback(self, callback: EventCallback) -> None:
+        """Remove a previously registered callback."""
+        self._callbacks.remove(callback)
+
+    async def emit_event(self, event: EventData) -> None:
+        """Emit event to all callbacks and optionally handle via agent."""
+        if not self.enabled:
+            return
+
+        # Run custom callbacks
+        for callback in self._callbacks:
+            try:
+                result = callback(event)
+                if isinstance(result, Awaitable):
+                    await result
+            except Exception:
+                logger.exception("Error in event callback %r", callback.__name__)
+
+        # Run default handler if enabled
+        if self.auto_run:
+            try:
+                prompt = event.to_prompt()
+                if prompt:
+                    await self.agent.run(prompt)
+            except Exception:
+                logger.exception("Error in default event handler")
 
     def create_source(self, config: EventConfig) -> EventSource:
         """Create an event source from configuration.
@@ -116,7 +165,7 @@ class EventManager:
             async for event in source.events():
                 if not self.enabled:
                     break
-                await self._handle_event(event)
+                await self.emit_event(event)
 
         except asyncio.CancelledError:
             logger.debug("Event processing cancelled")
@@ -124,18 +173,6 @@ class EventManager:
 
         except Exception:
             logger.exception("Error processing events")
-
-    async def _handle_event(self, event: EventData):
-        """Handle a single event.
-
-        This is a placeholder - in the actual implementation this would
-        dispatch events to the appropriate handlers/agents.
-
-        Args:
-            event: Event to handle
-        """
-        prompt = event.to_prompt()
-        await self.agent.run(prompt)
 
     async def cleanup(self):
         """Clean up all event sources and tasks."""
