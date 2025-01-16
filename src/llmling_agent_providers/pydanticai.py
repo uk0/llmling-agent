@@ -5,13 +5,15 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from functools import wraps
 import inspect
+import os
 from typing import TYPE_CHECKING, Any, cast
 
 from llmling import ToolError
 import logfire
 from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.messages import ModelResponse
-from pydantic_ai.models import Model, infer_model
+from pydantic_ai.models import Model, infer_model as infer_model_
+from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.result import StreamedRunResult
 
 from llmling_agent.log import get_logger
@@ -38,6 +40,31 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+def infer_model(model) -> Model:
+    """Extended infer_model from pydantic-ai."""
+    if not isinstance(model, str):
+        return model
+    if model.startswith("openrouter:"):
+        return OpenAIModel(
+            model.removeprefix("openrouter:").replace(":", "/"),
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+        )
+    if model.startswith("grok:"):
+        return OpenAIModel(
+            model.removeprefix("grok:"),
+            base_url="https://api.x.ai/v1",
+            api_key=os.getenv("X_AI_API_KEY") or os.getenv("GROK_API_KEY"),
+        )
+    if model.startswith("deepseek:"):
+        return OpenAIModel(
+            model.removeprefix("deepseek:"),
+            base_url="https://api.deepseek.com",
+            api_key=os.getenv("DEEPSEEK_API_KEY"),
+        )
+    return infer_model_(model)  # type: ignore
 
 
 class PydanticAIProvider(AgentProvider):
