@@ -198,19 +198,17 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         state: Literal["all", "enabled", "disabled"] = "all",
     ) -> list[LLMCallableTool]:
         """Get tool objects based on filters."""
-        filtered_tools = list(self.values())
+        tools = list(self.values())
         match self.tool_choice:
-            case True:
-                filtered_tools = filtered_tools
-            case False:
-                filtered_tools = []
             case str():
-                filtered_tools = [self[self.tool_choice]]
+                tools = [self[self.tool_choice]]
             case list():
-                filtered_tools = [self[name] for name in self.tool_choice]
-        filtered_tools = [
-            info.callable for info in filtered_tools if info.matches_filter(state)
-        ]
+                tools = [self[name] for name in self.tool_choice]
+            case True | None:
+                tools = tools
+            case _:
+                tools = []
+        filtered_tools = [info.callable for info in tools if info.matches_filter(state)]
         # Sort by priority (if any have non-default priority)
         if any(self[t.name].priority != 100 for t in filtered_tools):  # noqa: PLR2004
             filtered_tools.sort(key=lambda t: self[t.name].priority)

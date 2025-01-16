@@ -18,6 +18,7 @@ from llmling_agent.models.context import AgentContext  # noqa: TC001
 
 
 if TYPE_CHECKING:
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
 
 
@@ -431,7 +432,7 @@ class Capabilities(EventedModel):
             Confirmation message about the created agent
         """
         assert ctx.deps.pool, "No agent pool available"
-        agent = await ctx.deps.pool.add_agent(
+        agent: AnyAgent[Any, Any] = await ctx.deps.pool.add_agent(
             name=name,
             system_prompt=system_prompt,
             model=model,

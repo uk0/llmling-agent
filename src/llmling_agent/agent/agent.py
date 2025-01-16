@@ -1266,7 +1266,7 @@ class Agent[TDeps](TaskManagerMixin):
                 raise RuntimeError(msg)
             for name in resources:
                 if resource := self.runtime.get_resource(name):
-                    await target.conversation.load_context_source(resource)
+                    await target.conversation.load_context_source(resource)  # type: ignore
                 else:
                     msg = f"Resource not found: {name}"
                     raise ValueError(msg)

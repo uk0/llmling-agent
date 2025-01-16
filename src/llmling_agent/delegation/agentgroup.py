@@ -254,7 +254,7 @@ class Team[TDeps](TaskManagerMixin):
                     self.current_stream_idx = 0
                     self.is_final = False
 
-                async def stream(self) -> AsyncIterator[str]:
+                async def stream(self) -> AsyncIterator[str]:  # type: ignore
                     for idx, stream in enumerate(self.streams):
                         self.current_stream_idx = idx
                         async for chunk in stream.stream():
