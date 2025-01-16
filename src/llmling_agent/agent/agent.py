@@ -60,12 +60,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.agent.talk import Interactions
-    from llmling_agent.common_types import (
-        ModelType,
-        SessionIdType,
-        StrPath,
-        ToolType,
-    )
+    from llmling_agent.common_types import ModelType, SessionIdType, StrPath, ToolType
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.execution import TeamRun
     from llmling_agent.models.context import ConfirmationCallback
@@ -643,24 +638,21 @@ class Agent[TDeps](TaskManagerMixin):
                 print(result.data)
             ```
         """
-        if config_path is None:
-            config_path = Config()
-        async with RuntimeConfig.open(config_path) as runtime:
-            agent = cls(
-                runtime=runtime,
-                model=model,
-                session=session,
-                system_prompt=system_prompt,
-                name=name,
-                retries=retries,
-                end_strategy=end_strategy,
-                result_retries=result_retries,
-                defer_model_check=defer_model_check,
-                result_type=result_type,
-                **kwargs,
-            )
-            async with agent:
-                yield (agent if result_type is None else agent.to_structured(result_type))
+        agent = cls(
+            runtime=config_path,
+            model=model,
+            session=session,
+            system_prompt=system_prompt,
+            name=name,
+            retries=retries,
+            end_strategy=end_strategy,
+            result_retries=result_retries,
+            defer_model_check=defer_model_check,
+            result_type=result_type,
+            **kwargs,
+        )
+        async with agent:
+            yield (agent if result_type is None else agent.to_structured(result_type))
 
     @classmethod
     @overload
@@ -789,7 +781,7 @@ class Agent[TDeps](TaskManagerMixin):
             raise ValueError(msg)
 
         # Create context
-        context = AgentContext[TDeps](  # Use TDeps here
+        context = AgentContext[TDeps](
             agent_name=agent_name,
             capabilities=agent_config.capabilities,
             definition=agent_def,
@@ -799,34 +791,32 @@ class Agent[TDeps](TaskManagerMixin):
 
         # Set up runtime
         cfg = agent_config.get_config()
-        async with RuntimeConfig.open(cfg) as runtime:
-            # Create base agent with correct typing
-            base_agent = cls(  # cls is Agent[TDeps]
-                runtime=runtime,
-                context=context,
-                model=actual_model,  # type: ignore[arg-type]
-                retries=retries,
-                session=session,
-                result_retries=result_retries,
-                end_strategy=end_strategy,
-                tool_choice=tool_choice,
-                tools=tools,
-                system_prompt=system_prompt or [],
-                enable_db_logging=enable_db_logging,
-            )
-            async with base_agent:
-                if resolved_type is not None and resolved_type is not str:
-                    # Yield structured agent with correct typing
-                    from llmling_agent.agent.structured import StructuredAgent
+        base_agent = cls(
+            runtime=cfg,
+            context=context,
+            model=actual_model,
+            retries=retries,
+            session=session,
+            result_retries=result_retries,
+            end_strategy=end_strategy,
+            tool_choice=tool_choice,
+            tools=tools,
+            system_prompt=system_prompt or [],
+            enable_db_logging=enable_db_logging,
+        )
+        async with base_agent:
+            if resolved_type is not None and resolved_type is not str:
+                # Yield structured agent with correct typing
+                from llmling_agent.agent.structured import StructuredAgent
 
-                    yield StructuredAgent[TDeps, TResult](
-                        base_agent,
-                        resolved_type,
-                        tool_description=result_tool_description,
-                        tool_name=result_tool_name,
-                    )
-                else:
-                    yield base_agent
+                yield StructuredAgent[TDeps, TResult](
+                    base_agent,
+                    resolved_type,
+                    tool_description=result_tool_description,
+                    tool_name=result_tool_name,
+                )
+            else:
+                yield base_agent
 
     async def disconnect_all(self):
         """Disconnect from all agents."""
@@ -1407,17 +1397,20 @@ class Agent[TDeps](TaskManagerMixin):
 
 
 if __name__ == "__main__":
-    import logging
+    # import logging
 
     from llmling_agent import config_resources
 
-    logging.basicConfig(level=logging.INFO)
+    # logging.basicConfig(level=logging.DEBUG)
 
     sys_prompt = "Open browser with google, please"
     path = config_resources.OPEN_BROWSER
 
     async def main():
-        async with Agent[None].open(path, model="openai:gpt-4o-mini") as agent:
+        async with Agent[None].open(
+            path, model="openai:gpt-4o-mini", debug=True
+        ) as agent:
+            print(agent.tools.list_items())
             result = await agent.run(sys_prompt)
             print(result.data)
 
