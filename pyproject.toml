@@ -13,6 +13,7 @@ packages = [
     "src/llmling_agent_providers",
     "src/llmling_agent_storage",
     "src/llmling_agent_functional",
+    "src/llmling_agent_docs",
 ]
 
 [build-system]
