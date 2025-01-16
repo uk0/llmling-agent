@@ -17,6 +17,8 @@ from llmling_agent.models.messages import ChatMessage
 
 
 if TYPE_CHECKING:
+    from toprompt import AnyPromptType
+
     from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.models.forward_targets import ConnectionType
@@ -185,7 +187,7 @@ class Talk[TTransmittedData]:
         match self.connection_type:
             case "run":
                 for target in self.targets:
-                    prompts = [str(message.content)]
+                    prompts: list[AnyPromptType] = [message.content]
                     if prompt:
                         prompts.append(prompt)
                     response = await target.run(*prompts)
