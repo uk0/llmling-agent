@@ -204,59 +204,9 @@ Trade-offs:
 - Harder to maintain complex state
 - More points of potential failure
 
-### Comparison Example
-
-Given this input:
-```python
-text = """
-Team:
-- Alice (25) from Engineering
-- Bob (32) from QA
-"""
-```
-
-#### Structured Mode
-```python
-# Single prompt with complete schema
-result = await agent.run(f"""
-Extract team members. Output format:
-{{
-    "instances": [
-        {{"name": "...", "age": ...}},
-        {{"name": "...", "age": ...}}
-    ]
-}}
-
-Text: {text}
-""")
-
-# Direct conversion to instances
-instances = [Person(**d) for d in result.instances]
-```
-
-#### Tool Calls Mode
-```python
-# Multiple interactions
-> "Extract first person..."
-Tool call: create_person(name="Alice", age=25)
-> "Extract next person..."
-Tool call: create_person(name="Bob", age=32)
-> "Any more people?"
-"No more people found."
-```
 
 ### When to Use Which
 
-Use **Structured Mode** (default) when:
-- Extracting multiple instances
-- Working with complex nested types
-- Need robust validation
-- Want better performance
-
-Consider **Tool Calls Mode** when:
-- Experimenting with different approaches
-- Need more flexible extraction logic
-- Want to see how tool calls work
-- Testing LLM capabilities
-
-The structured mode is generally preferred as it provides better reliability and performance while maintaining the same flexibility.
+This is a tough question. The Tool call mechanism was implemented first by [MarvinAI](https://askmarvin.ai), but seems less robust
+compared to our new StructuredResponse approach. It doesnt include a sequence of tool calls and will use the validation capabilites of Pydantic-AI
+in case that is the provider chosen.

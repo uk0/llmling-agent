@@ -43,9 +43,6 @@ agents:
         - type: "dynamic"       # From Python function
           import_path: "myapp.prompts:generate_context"
 
-        - type: "template"      # Jinja template
-          content: "Context for {{ agent.name }}"
-
       # Global Settings
       convert_to_markdown: true  # Convert content when possible
 ```
@@ -85,8 +82,6 @@ knowledge:
     - type: "dynamic"
       import_path: "myapp.prompts:generate"
 
-    - type: "template"
-      content: "{{ context }}"
 ```
 
 ## Key Differences to Environment

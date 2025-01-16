@@ -64,32 +64,74 @@ plugins:
             type: MkText
             text: "{{ metadata.description }}"
             is_index: true
-          - Concepts:
+
+          - Getting Started:
               - type: MkTemplate
-                title: General
-                template: docs/agent.md
+                title: Installation
+                template: docs/getting_started/installation.md
               - type: MkTemplate
-                title: Configuration
-                template: docs/agent_config.md
-              - type: MkTemplate
-                title: Commands
-                template: docs/commands.md
-              - type: MkTemplate
-                title: Examples
-                template: docs/examples.md
-              - type: MkTemplate
-                title: Key concepts
-                template: docs/key_concepts.md
+                title: Basic Concepts
+                template: docs/getting_started/basic_concepts.md
               - type: MkTemplate
                 title: Quickstart
                 template: docs/getting_started/quickstart.md
               - type: MkTemplate
-                title: Running agents
+                title: Creating Agents
+                template: docs/agents/create_agents.md
+
+          - YAML Configuration:
+              - type: MkTemplate
+                title: Manifest Overview
+                template: docs/config_file/manifest.md
+              - type: MkTemplate
+                title: Environment Setup
+                template: docs/config_file/env_config.md
+              - type: MkTemplate
+                title: Provider Configuration
+                template: docs/config_file/provider_config.md
+              - type: MkTemplate
+                title: Model Configuration
+                template: docs/config_file/model_config.md
+              - type: MkTemplate
+                title: Capabilities
+                template: docs/config_file/capabilities_config.md
+              - type: MkTemplate
+                title: Worker Configuration
+                template: docs/config_file/worker_config.md
+              - type: MkTemplate
+                title: Response Types
+                template: docs/config_file/response_config.md
+              - type: MkTemplate
+                title: Knowledge Sources
+                template: docs/config_file/knowledge_config.md
+              - type: MkTemplate
+                title: Message Forwarding
+                template: docs/config_file/forward_config.md
+              - type: MkTemplate
+                title: Storage Configuration
+                template: docs/config_file/storage_config.md
+              - type: MkTemplate
+                title: Event Configuration
+                template: docs/config_file/events_config.md
+              - type: MkTemplate
+                title: MCP Server Setup
+                template: docs/config_file/mcp_config.md
+
+          - Agent Interaction:
+              - type: MkTemplate
+                title: Running Agents
                 template: docs/running_agents.md
               - type: MkTemplate
-                title: WebUI
-                template: docs/webui.md
-          - The Agents:
+                title: Multi-Agent Systems
+                template: docs/multi_agent.md
+              - type: MkTemplate
+                title: Decision Making
+                template: docs/interaction/pick.md
+              - type: MkTemplate
+                title: Data Extraction
+                template: docs/interaction/extract.md
+
+          - Advanced Features:
               - type: MkTemplate
                 title: Basic Agent
                 template: docs/agents/basic_agent.md
@@ -97,11 +139,24 @@ plugins:
                 title: Structured Agent
                 template: docs/agents/structured_agent.md
               - type: MkTemplate
-                title: Slashed Agent
-                template: docs/agents/structured_agent.md
+                title: Teams
+                template: docs/agents/team.md
               - type: MkTemplate
-                title: Slashed Agent
-                template: docs/agents/structured_agent.md
+                title: Capabilities System
+                template: docs/advanced/capabilities.md
+              - type: MkTemplate
+                title: Connections
+                template: docs/advanced/connections.md
+              - type: MkTemplate
+                title: Agent Injection
+                template: docs/advanced/injection.md
+              - type: MkTemplate
+                title: Event System
+                template: docs/advanced/events.md
+              - type: MkTemplate
+                title: Database Integration
+                template: docs/advanced/db.md
+
           - title: API
             type: MkDoc
             section_name: "API"
