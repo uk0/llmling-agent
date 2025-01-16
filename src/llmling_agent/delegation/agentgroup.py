@@ -117,33 +117,61 @@ class Team[TDeps](TaskManagerMixin):
     @overload
     def __and__(self, other: Team[Any]) -> Team[list[Any]]: ...
 
-    def __and__(self, other: Team[Any]) -> Team[Any]:
+    @overload
+    def __and__(self, other: AnyAgent[TDeps, Any]) -> Team[TDeps]: ...
+
+    @overload
+    def __and__(self, other: AnyAgent[Any, Any]) -> Team[list[Any]]: ...
+
+    def __and__(self, other: Team[Any] | AnyAgent[Any, Any]) -> Team[Any]:
         """Combine teams, preserving type safety for same types."""
         # Combine agents
-        combined_agents = [*self.agents, *other.agents]
+        from llmling_agent.agent import Agent, StructuredAgent
 
-        # Handle deps
-        if self.shared_deps is None and other.shared_deps is None:
-            combined_deps = None
-        else:
-            combined_deps = []
-            if self.shared_deps is not None:
-                combined_deps.append(self.shared_deps)
-            if other.shared_deps is not None:
-                combined_deps.append(other.shared_deps)
+        match other:
+            case Team():
+                # Combine agents
+                combined_agents = [*self.agents, *other.agents]
 
-        # Combine prompts with line break
-        combined_prompts = []
-        if self.shared_prompt:
-            combined_prompts.append(self.shared_prompt)
-        if other.shared_prompt:
-            combined_prompts.append(other.shared_prompt)
+                # Handle deps
+                if self.shared_deps is None and other.shared_deps is None:
+                    combined_deps = None
+                else:
+                    combined_deps = []
+                    if self.shared_deps is not None:
+                        combined_deps.append(self.shared_deps)
+                    if other.shared_deps is not None:
+                        combined_deps.append(other.shared_deps)
 
-        return Team(
-            agents=combined_agents,
-            shared_deps=combined_deps,
-            shared_prompt="\n".join(combined_prompts) if combined_prompts else None,
-        )
+                # Combine prompts with line break
+                combined_prompts = []
+                if self.shared_prompt:
+                    combined_prompts.append(self.shared_prompt)
+                if other.shared_prompt:
+                    combined_prompts.append(other.shared_prompt)
+
+                return Team(
+                    agents=combined_agents,
+                    shared_deps=combined_deps,
+                    shared_prompt="\n".join(combined_prompts)
+                    if combined_prompts
+                    else None,
+                )
+            case _:  # AnyAgent case
+                # Keep same deps if types match
+                deps = (
+                    self.shared_deps
+                    if isinstance(other, Agent | StructuredAgent)
+                    and other.context.data == self.shared_deps
+                    else [self.shared_deps]
+                    if self.shared_deps is not None
+                    else None
+                )
+                return Team(
+                    agents=[*self.agents, other],
+                    shared_deps=deps,
+                    shared_prompt=self.shared_prompt,
+                )
 
     def __or__(self, other: AnyAgent[Any, Any] | Callable | Team[Any]) -> TeamRun[TDeps]:
         """Create a pipeline using | operator.

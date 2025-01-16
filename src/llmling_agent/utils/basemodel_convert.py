@@ -18,9 +18,9 @@ from llmling_agent.utils.docstrings import get_docstring_info
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from pydantic.fields import FieldInfo
+
+    from llmling_agent.common_types import AnyCallable
 
 
 def get_union_args(tp: Any) -> tuple[Any, ...]:
@@ -35,7 +35,7 @@ def get_union_args(tp: Any) -> tuple[Any, ...]:
 
 
 def get_function_model(
-    func: Callable[..., Any],
+    func: AnyCallable,
     *,
     name: str | None = None,
 ) -> type[BaseModel]:

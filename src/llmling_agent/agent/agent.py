@@ -165,7 +165,7 @@ class Agent[TDeps](TaskManagerMixin):
         enable_db_logging: bool = True,
         confirmation_callback: ConfirmationCallback | None = None,
         debug: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ):
         """Initialize agent with runtime configuration.
 

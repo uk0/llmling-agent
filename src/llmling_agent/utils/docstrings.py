@@ -5,14 +5,15 @@ from __future__ import annotations as _annotations
 from contextlib import contextmanager
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from griffe import Docstring, DocstringSectionKind, Object as GriffeObject
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from inspect import Signature
+
+    from llmling_agent.common_types import AnyCallable
 
 
 DocstringStyle = Literal["google", "numpy", "sphinx"]
@@ -20,7 +21,7 @@ DocstringFormat = Literal["google", "numpy", "sphinx", "auto"]
 
 
 def get_docstring_info(
-    func: Callable[..., Any],
+    func: AnyCallable,
     sig: Signature,
     *,
     docstring_format: DocstringFormat = "auto",

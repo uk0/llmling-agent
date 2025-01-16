@@ -7,13 +7,14 @@ from typing import TYPE_CHECKING, Any, TypeVar
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from llmling_agent.common_types import AnyCallable
     from llmling_agent.models import AgentContext
 
 
 T = TypeVar("T")
 
 
-def has_argument_type(func: Callable[..., Any], arg_type: str | type) -> bool:
+def has_argument_type(func: AnyCallable, arg_type: str | type) -> bool:
     """Checks whether any argument of func is of type arg_type."""
     sig = inspect.signature(func)
     arg_str = arg_type if isinstance(arg_type, str) else arg_type.__name__

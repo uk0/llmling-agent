@@ -19,11 +19,11 @@ from llmling_agent.tools.base import ToolInfo
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Iterator
     from types import TracebackType
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.common_types import ToolSource, ToolType
+    from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
     from llmling_agent.models.context import AgentContext
 
 
@@ -223,7 +223,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
     def register_tool(
         self,
-        tool: LLMCallableTool | Callable[..., Any] | str,
+        tool: LLMCallableTool | AnyCallable | str,
         *,
         name_override: str | None = None,
         description_override: str | None = None,
@@ -399,9 +399,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
     @contextmanager
     def temporary_tools(
         self,
-        tools: Callable[..., Any]
-        | LLMCallableTool
-        | Sequence[Callable[..., Any] | LLMCallableTool],
+        tools: AnyCallable | LLMCallableTool | Sequence[AnyCallable | LLMCallableTool],
         *,
         exclusive: bool = False,
     ) -> Iterator[list[ToolInfo]]:

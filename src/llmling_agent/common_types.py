@@ -22,8 +22,6 @@ type JsonValue = JsonPrimitive | JsonArray | JsonObject
 type JsonObject = dict[str, JsonValue]
 type JsonArray = list[JsonValue]
 
-type ToolType = str | Callable[..., Any] | LLMCallableTool
-
 type StrPath = str | os.PathLike[str]
 type SessionIdType = str | UUID | None
 MessageRole = Literal["user", "assistant", "system"]
@@ -31,9 +29,11 @@ PartType = Literal["text", "image", "audio", "video"]
 ModelType = ModelProtocol | str | None
 EnvironmentType = Literal["file", "inline"]
 ToolSource = Literal["runtime", "agent", "builtin", "dynamic", "task", "mcp"]
-
+AnyCallable = Callable[..., Any]
 T = TypeVar("T")
 type OptionalAwaitable[T] = T | Awaitable[T]
+
+type ToolType = str | AnyCallable | LLMCallableTool
 
 # P = ParamSpec("P")
 # SyncAsync = Callable[P, OptionalAwaitable[T]]

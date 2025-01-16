@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
     from pydantic_ai.agent import models
 
+    from llmling_agent.common_types import AnyCallable
+
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -45,7 +47,7 @@ def auto_callable(
     *,
     system_prompt: str | None = None,
     retries: int = 3,
-) -> Callable[..., Any]:
+) -> AnyCallable:
     """Use function signature as schema for LLM responses.
 
     This decorator uses the function's:

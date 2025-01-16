@@ -56,7 +56,7 @@ class PydanticAIProvider(AgentProvider):
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         debug: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ):
         """Initialize pydantic-ai backend.
 
@@ -292,7 +292,7 @@ class PydanticAIProvider(AgentProvider):
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response using pydantic-ai."""
         self._update_tools()
