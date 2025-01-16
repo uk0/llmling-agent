@@ -404,6 +404,37 @@ class Agent[TDeps](TaskManagerMixin):
         execution = TeamRun(Team([self]), mode="sequential")
         return execution | other
 
+    @classmethod
+    def from_callback(
+        cls,
+        callback: ProcessorCallback[str],
+        *,
+        name: str | None = None,
+        deps: TDeps | None = None,
+        debug: bool = False,
+        **kwargs: Any,
+    ) -> Agent[TDeps]:
+        """Create an agent from a processing callback.
+
+        Args:
+            callback: Function to process messages. Can be:
+                - sync or async
+                - with or without context
+                - must return str for pipeline compatibility
+            name: Optional name for the agent
+            deps: Optional dependencies for the agent
+            debug: Whether to enable debug mode
+            kwargs: Additional arguments for agent
+        """
+        from llmling_agent_providers.callback import CallbackProvider
+
+        provider = CallbackProvider[Any](
+            callback,
+            name=name or callback.__name__ or "processor",
+            debug=debug,
+        )
+        return cls(provider=provider, deps=deps, **kwargs)
+
     @property
     def name(self) -> str:
         """Get agent name."""
