@@ -168,16 +168,13 @@ class TeamRunMonitor:
     @property
     def stats(self) -> TeamRunStats:
         """Get current execution statistics."""
+        log = [(n, err, ts) for n, errors in self._errors.items() for err, ts in errors]
         return TeamRunStats(
             start_time=self.start_time,
             received_messages=self._received_messages,
             sent_messages=self._sent_messages,
             tool_calls=self._tool_calls,
-            error_log=[
-                (name, err, ts)
-                for name, errors in self._errors.items()
-                for err, ts in errors
-            ],
+            error_log=log,
             duration=(datetime.now() - self.start_time).total_seconds(),
         )
 
@@ -260,16 +257,14 @@ class TeamRun[TDeps](TaskManagerMixin):
         if self._main_task:
             msg = "Execution already running"
             raise RuntimeError(msg)
-        self._main_task = self.create_task(
-            self.start(
-                prompt,
-                deps,
-                monitor_callback=monitor_callback,
-                monitor_interval=monitor_interval,
-                **kwargs,
-            ),
-            name="main_execution",
+        coro = self.start(
+            prompt,
+            deps,
+            monitor_callback=monitor_callback,
+            monitor_interval=monitor_interval,
+            **kwargs,
         )
+        self._main_task = self.create_task(coro, name="main_execution")
 
     def monitor(
         self,

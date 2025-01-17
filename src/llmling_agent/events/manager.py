@@ -50,8 +50,7 @@ class EventManager:
 
     async def _default_handler(self, event: EventData) -> None:
         """Default event handler that converts events to agent runs."""
-        prompt = event.to_prompt()
-        if prompt:  # Only run if event provides a prompt
+        if prompt := event.to_prompt():  # Only run if event provides a prompt
             await self.agent.run(prompt)
 
     async def add_callback(self, callback: EventCallback) -> None:
