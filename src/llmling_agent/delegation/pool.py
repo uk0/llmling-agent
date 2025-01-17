@@ -7,7 +7,7 @@ from contextlib import AsyncExitStack
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Self, Unpack, overload
 
-from llmling import BaseRegistry, LLMLingError, RuntimeConfig
+from llmling import BaseRegistry, LLMLingError
 from typing_extensions import TypeVar
 
 from llmling_agent.agent import Agent, AnyAgent
@@ -312,74 +312,75 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
                         connection_type=target.connection_type,
                     )
 
+    @overload
     async def create_agent(
         self,
         name: str,
         config: AgentConfig,
         *,
         temporary: bool = True,
-    ) -> Agent[Any]:
-        """Create and register a new agent in the pool.
+    ) -> Agent[TPoolDeps]: ...
 
-        Args:
-            name: Name of the new agent
-            config: Agent configuration
-            temporary: If True, agent won't be added to manifest
+    @overload
+    async def create_agent[TDeps, TResult](
+        self,
+        name: str,
+        config: AgentConfig,
+        *,
+        deps: TDeps,
+        return_type: type[TResult],
+        temporary: bool = True,
+    ) -> StructuredAgent[TDeps, TResult]: ...
 
-        Returns:
-            Created and initialized agent
+    @overload
+    async def create_agent[TDeps](
+        self,
+        name: str,
+        config: AgentConfig,
+        *,
+        deps: TDeps,
+        temporary: bool = True,
+    ) -> Agent[TDeps]: ...
 
-        Raises:
-            ValueError: If agent name already exists
-            RuntimeError: If agent initialization fails
-        """
-        from llmling_agent.models.context import AgentContext
+    @overload
+    async def create_agent[TResult](
+        self,
+        name: str,
+        config: AgentConfig,
+        *,
+        return_type: type[TResult],
+        temporary: bool = True,
+    ) -> StructuredAgent[TPoolDeps, TResult]: ...
 
+    async def create_agent[TDeps](
+        self,
+        name: str,
+        config: AgentConfig,
+        *,
+        deps: TDeps | None = None,
+        return_type: Any | None = None,
+        temporary: bool = True,
+    ) -> AnyAgent[TDeps, Any]:
+        """Create and register a new agent in the pool."""
         if name in self.agents:
             msg = f"Agent {name} already exists"
             raise ValueError(msg)
 
-        try:
-            # Create runtime from agent's config
-            cfg = config.get_config()
-            runtime = RuntimeConfig.from_config(cfg)
+        # Use get_agent with provided deps and return_type
+        agent = self.manifest.get_agent(name, deps=deps)
+        if return_type:
+            agent = agent.to_structured(return_type)
+        # Enter agent's async context through pool's exit stack
+        agent = await self.exit_stack.enter_async_context(agent)
 
-            # Create context with config path and capabilities
-            context = AgentContext[Any](
-                agent_name=name,
-                capabilities=config.capabilities,
-                definition=self.manifest,
-                config=config,
-                pool=self,
-            )
+        # Set up workers if defined
+        if config.workers:
+            self.setup_agent_workers(agent, config.workers)
 
-            # Create agent with runtime and context
-            agent = Agent[Any](
-                provider=config.get_provider(),
-                runtime=runtime,
-                context=context,
-                result_type=None,  # type: ignore[arg-type]
-                model=config.model,  # type: ignore[arg-type]
-                system_prompt=config.system_prompts,
-                name=name,
-            )
+        # Register in pool
+        self.agents[name] = agent
 
-            # Enter agent's async context through pool's exit stack
-            agent = await self.exit_stack.enter_async_context(agent)
-
-            # Set up workers if defined
-            if config.workers:
-                self.setup_agent_workers(agent, config.workers)
-
-            # Register in pool and optionally manifest
-            self.agents[name] = agent
-            if not temporary:
-                self.manifest.agents[name] = config
-        except Exception as e:
-            msg = f"Failed to create agent {name}"
-            raise RuntimeError(msg) from e
-        else:
-            return agent
+        return agent
 
     @overload
     async def clone_agent[TDeps](
