@@ -56,7 +56,7 @@ custom_structured = pool.get_agent(
 )  # StructuredAgent[CustomDeps, AnalysisResult]
 
 # Group creation preserves types when possible
-group1 = pool.create_group([basic, basic.clone()])  # Team[GlobalDeps]
+group1 = pool.create_group([basic, pool.clone_agent(basic)])  # Team[GlobalDeps]
 group2 = pool.create_group([basic, custom])  # Team[Any]
 ```
 
