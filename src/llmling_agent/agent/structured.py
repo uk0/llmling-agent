@@ -139,7 +139,6 @@ class StructuredAgent[TDeps, TResult]:
         return await self._agent.run(
             *prompt,
             result_type=typ,
-            deps=deps,
             model=model,
             wait_for_connections=wait_for_connections,
         )

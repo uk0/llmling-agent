@@ -98,12 +98,10 @@ class Team[TDeps](TaskManagerMixin):
         agents: list[AnyAgent[TDeps, Any]],
         *,
         shared_prompt: str | None = None,
-        shared_deps: TDeps | None = None,
         name: str | None = None,
     ):
         self.agents = EventedList(agents)
         self.shared_prompt = shared_prompt
-        self.shared_deps = shared_deps
         self.name = name or " & ".join([i.name for i in agents])
         self.connections = TalkManager(self)
         self.team_talk = TeamTalk.from_agents(self.agents)
@@ -112,36 +110,25 @@ class Team[TDeps](TaskManagerMixin):
     def __and__(self, other: Team[None]) -> Team[None]: ...
 
     @overload
-    def __and__(self, other: Team[TDeps]) -> Team[list[TDeps]]: ...
+    def __and__(self, other: Team[TDeps]) -> Team[TDeps]: ...
 
     @overload
-    def __and__(self, other: Team[Any]) -> Team[list[Any]]: ...
+    def __and__(self, other: Team[Any]) -> Team[Any]: ...
 
     @overload
     def __and__(self, other: AnyAgent[TDeps, Any]) -> Team[TDeps]: ...
 
     @overload
-    def __and__(self, other: AnyAgent[Any, Any]) -> Team[list[Any]]: ...
+    def __and__(self, other: AnyAgent[Any, Any]) -> Team[Any]: ...
 
     def __and__(self, other: Team[Any] | AnyAgent[Any, Any]) -> Team[Any]:
         """Combine teams, preserving type safety for same types."""
         # Combine agents
-        from llmling_agent.agent import Agent, StructuredAgent
 
         match other:
             case Team():
                 # Combine agents
                 combined_agents = [*self.agents, *other.agents]
-
-                # Handle deps
-                if self.shared_deps is None and other.shared_deps is None:
-                    combined_deps = None
-                else:
-                    combined_deps = []
-                    if self.shared_deps is not None:
-                        combined_deps.append(self.shared_deps)
-                    if other.shared_deps is not None:
-                        combined_deps.append(other.shared_deps)
 
                 # Combine prompts with line break
                 combined_prompts = []
@@ -152,26 +139,14 @@ class Team[TDeps](TaskManagerMixin):
 
                 return Team(
                     agents=combined_agents,
-                    shared_deps=combined_deps,
                     shared_prompt="\n".join(combined_prompts)
                     if combined_prompts
                     else None,
                 )
             case _:  # AnyAgent case
                 # Keep same deps if types match
-                deps = (
-                    self.shared_deps
-                    if isinstance(other, Agent | StructuredAgent)
-                    and other.context.data == self.shared_deps
-                    else [self.shared_deps]
-                    if self.shared_deps is not None
-                    else None
-                )
-                return Team(
-                    agents=[*self.agents, other],
-                    shared_deps=deps,
-                    shared_prompt=self.shared_prompt,
-                )
+                agents = [*self.agents, other]
+                return Team(agents=agents, shared_prompt=self.shared_prompt)
 
     def __or__(self, other: AnyAgent[Any, Any] | Callable | Team[Any]) -> TeamRun[TDeps]:
         """Create a pipeline using | operator.
@@ -184,9 +159,8 @@ class Team[TDeps](TaskManagerMixin):
         match other:
             case Team():
                 # Create sequential execution with all agents
-                execution = TeamRun(
-                    Team([*self.agents, *other.agents]), mode="sequential"
-                )
+                team = Team([*self.agents, *other.agents])
+                execution = TeamRun(team, mode="sequential")
             case Callable():
                 # Convert callable to agent and add to pipeline
                 from llmling_agent import Agent

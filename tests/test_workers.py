@@ -129,24 +129,17 @@ async def test_context_sharing(tmp_path: Path):
     config_path = write_config(WORKERS_WITH_SHARING, tmp_path)
     manifest = AgentsManifest[Any, Any].from_file(config_path)
     async with AgentPool[None](manifest) as pool:
-        main_agent = pool.get_agent("main")
+        main_agent = pool.get_agent("main", deps={"important_value": 123})
         specialist = pool.get_agent("specialist")
 
         # Configure test models
-        main_model = TestModel(
-            call_tools=["ask_specialist"],  # Only call specialist
-        )
-        specialist_model = TestModel(
-            custom_result_text="I can see context value: 123"  # Indicate context access
-        )
+        main_model = TestModel(call_tools=["ask_specialist"])
+        specialist_model = TestModel(custom_result_text="I can see context value: 123")
 
         main_agent.set_model(main_model)
         specialist.set_model(specialist_model)
-
-        context_data = {"important_value": 123}
-        result = await main_agent.run(
-            "Ask specialist: What's in the context?", deps=context_data
-        )
+        prompt = "Ask specialist: What's in the context?"
+        result = await main_agent.run(prompt)
         assert "123" in result.data
 
 

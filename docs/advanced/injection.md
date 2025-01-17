@@ -258,10 +258,7 @@ async def shared_analysis(
     analyzer2: Agent[Context],
     context: Context,
 ):
-    group = Team[Context](
-        [analyzer1, analyzer2],
-        shared_deps=context,
-    )
+    group = Team[Context]([analyzer1, analyzer2])
     return await group.run_parallel("Analyze using shared context")
 ```
 

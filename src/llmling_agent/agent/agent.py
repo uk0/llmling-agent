@@ -888,7 +888,6 @@ class Agent[TDeps](TaskManagerMixin):
         self,
         *prompt: AnyPromptType,
         result_type: type[TResult] | None = None,
-        deps: TDeps | None = None,
         model: ModelType = None,
         store_history: bool = True,
         wait_for_connections: bool | None = None,
@@ -898,7 +897,6 @@ class Agent[TDeps](TaskManagerMixin):
         Args:
             prompt: User query or instruction
             result_type: Optional type for structured responses
-            deps: Optional dependencies for the agent
             model: Optional model override
             store_history: Whether the message exchange should be added to the
                            context window
@@ -913,8 +911,6 @@ class Agent[TDeps](TaskManagerMixin):
         """Run agent with prompt and get response."""
         prompts = [await to_prompt(p) for p in prompt]
         final_prompt = "\n\n".join(prompts)
-        if deps is not None:
-            self.context.data = deps
         self.context.current_prompt = final_prompt
         self.set_result_type(result_type)
 
@@ -999,12 +995,11 @@ class Agent[TDeps](TaskManagerMixin):
                 self.conversation.clear()
 
             history = None
-            deps = ctx.deps.data if share_context else None
             if pass_message_history and parent:
                 history = parent.conversation.get_history()
                 old = self.conversation.get_history()
                 self.conversation.set_history(history)
-            result = await self.run(prompt, deps=deps, result_type=self._result_type)
+            result = await self.run(prompt, result_type=self._result_type)
             if history:
                 self.conversation.set_history(old)
             return result.data
@@ -1028,7 +1023,6 @@ class Agent[TDeps](TaskManagerMixin):
         self,
         *prompt: AnyPromptType,
         result_type: type[TResult] | None = None,
-        deps: TDeps | None = None,
         model: ModelType = None,
         store_history: bool = True,
         wait_for_connections: bool | None = None,
@@ -1038,7 +1032,6 @@ class Agent[TDeps](TaskManagerMixin):
         Args:
             prompt: User query or instruction
             result_type: Optional type for structured responses
-            deps: Optional dependencies for the agent
             model: Optional model override
             store_history: Whether the message exchange should be added to the
                            context window
@@ -1053,9 +1046,6 @@ class Agent[TDeps](TaskManagerMixin):
         prompts = [await to_prompt(p) for p in prompt]
         final_prompt = "\n\n".join(prompts)
         self.set_result_type(result_type)
-
-        if deps is not None:
-            self.context.data = deps
         self.context.current_prompt = final_prompt
         try:
             # Create and emit user message
@@ -1126,7 +1116,6 @@ class Agent[TDeps](TaskManagerMixin):
         return self.run_task_sync(
             self.run(
                 *prompt,
-                deps=deps,
                 model=model,
                 store_history=store_history,
                 result_type=result_type,

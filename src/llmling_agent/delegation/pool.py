@@ -190,7 +190,6 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
-        shared_deps: Any = None,
     ) -> Team[TDeps]: ...
 
     @overload
@@ -200,7 +199,6 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
-        shared_deps: Any = None,
     ) -> Team[Any]: ...  # Fallback for mixed agent dep types
 
     def create_group(
@@ -209,7 +207,6 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
-        shared_deps: Any = None,
     ) -> Team[Any]:
         """Create a group from agent names or instances.
 
@@ -217,7 +214,6 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
             agents: List of agent names or instances (all if None)
             model_override: Optional model to use for all agents
             shared_prompt: Optional prompt for all agents
-            shared_deps: Optional shared dependencies
         """
         from llmling_agent.delegation.agentgroup import Team
 
@@ -231,12 +227,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
                 agent = self.get_agent(agent, model_override=model_override)
             resolved_agents.append(agent)
 
-        return Team(
-            agents=resolved_agents,
-            # pool=self,
-            shared_prompt=shared_prompt,
-            shared_deps=shared_deps,
-        )
+        return Team(agents=resolved_agents, shared_prompt=shared_prompt)
 
     def start_supervision(self) -> OptionalAwaitable[None]:
         """Start supervision interface.

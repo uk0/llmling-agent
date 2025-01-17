@@ -19,7 +19,6 @@ from llmling_agent.delegation import Team
 team = Team(
     agents=[agent1, agent2, agent3],
     shared_prompt="Team objective",
-    shared_deps=dependencies,
     name="analysis_team"
 )
 ```
@@ -33,7 +32,6 @@ team = pool.create_group(
     model_override="gpt-4",               # Override model for all agents
     environment_override="env.yml",        # Override environment
     shared_prompt="Team objective",        # Common prompt
-    shared_deps=shared_context            # Shared dependencies
 )
 ```
 
@@ -45,10 +43,7 @@ All team members work simultaneously:
 
 ```python
 # Run all agents in parallel
-team_response = await team.run_parallel(
-    prompt="Analyze this code",
-    deps=context_data
-)
+team_response = await team.run_parallel(prompt="Analyze this code")
 
 # Access results
 for response in team_response:
@@ -67,10 +62,7 @@ Agents execute one after another:
 
 ```python
 # Run agents in sequence
-results = await team.run_sequential(
-    prompt="Review this PR",
-    deps=context_data
-)
+results = await team.run_sequential(prompt="Review this PR")
 
 # Access ordered results
 for response in results:
@@ -213,7 +205,6 @@ print(f"Total tokens: {stats.token_count}")
 # Create specialized team
 analysis_team = pool.create_group(
     ["analyzer", "reviewer", "summarizer"],
-    shared_deps=analysis_context
 )
 
 # Connect to result handler

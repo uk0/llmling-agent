@@ -247,7 +247,7 @@ class TeamRun[TDeps](TaskManagerMixin):
 
             self.create_task(_monitor(), name="stats_monitor")
 
-        return await self._execute(prompt, deps, **kwargs)
+        return await self._execute(prompt, **kwargs)
 
     def start_background(
         self,
@@ -323,25 +323,20 @@ class TeamRun[TDeps](TaskManagerMixin):
         **kwargs: Any,
     ) -> TeamResponse:
         """Execute directly without monitoring."""
-        return await self._execute(prompt, deps, **kwargs)
+        return await self._execute(prompt, **kwargs)
 
-    async def _execute(
-        self,
-        prompt: str | None = None,
-        deps: TDeps | None = None,
-        **kwargs: Any,
-    ) -> TeamResponse:
+    async def _execute(self, prompt: str | None = None, **kwargs: Any) -> TeamResponse:
         """Common execution logic."""
         self._monitor = TeamRunMonitor(self.team)
         self._monitor.start()
         try:
             match self.mode:
                 case "parallel":
-                    return await self._run_parallel(prompt, deps)
+                    return await self._run_parallel(prompt)
                 case "sequential":
-                    return await self._run_sequential(prompt, deps)
+                    return await self._run_sequential(prompt)
                 case "controlled":
-                    return await self._run_controlled(prompt, deps, **kwargs)
+                    return await self._run_controlled(prompt, **kwargs)
                 case _:
                     msg = f"Invalid mode: {self.mode}"
                     raise ValueError(msg)
@@ -363,9 +358,7 @@ class TeamRun[TDeps](TaskManagerMixin):
             )
         return self._monitor.stats
 
-    async def _run_parallel(
-        self, prompt: str | None = None, deps: TDeps | None = None
-    ) -> TeamResponse:
+    async def _run_parallel(self, prompt: str | None = None) -> TeamResponse:
         """Execute in parallel mode.
 
         All agents run simultaneously and independently.
@@ -384,7 +377,7 @@ class TeamRun[TDeps](TaskManagerMixin):
         async def run_agent(agent: AnyAgent[TDeps, Any]) -> AgentResponse[Any]:
             try:
                 start = perf_counter()
-                message = await agent.run(final_prompt, deps=deps)
+                message = await agent.run(final_prompt)
                 timing = perf_counter() - start
                 return AgentResponse(agent.name, message=message, timing=timing)
             except Exception as e:  # noqa: BLE001
@@ -394,11 +387,7 @@ class TeamRun[TDeps](TaskManagerMixin):
         responses = await asyncio.gather(*[run_agent(a) for a in self.team.agents])
         return TeamResponse(responses, start_time)
 
-    async def _run_sequential(
-        self,
-        prompt: str | None = None,
-        deps: TDeps | None = None,
-    ) -> TeamResponse:
+    async def _run_sequential(self, prompt: str | None = None) -> TeamResponse:
         """Execute in sequential mode.
 
         Agents run one after another, in order.
@@ -417,7 +406,7 @@ class TeamRun[TDeps](TaskManagerMixin):
         for agent in self.team.agents:
             try:
                 start = perf_counter()
-                message = await agent.run(current_input, deps=deps)
+                message = await agent.run(current_input)
                 current_input = str(message.data)
                 timing = perf_counter() - start
                 res = AgentResponse[str](
@@ -434,7 +423,6 @@ class TeamRun[TDeps](TaskManagerMixin):
     async def _run_controlled(
         self,
         prompt: str | None = None,
-        deps: TDeps | None = None,
         *,
         initial_agent: str | AnyAgent[TDeps, Any] | None = None,
         decision_callback: DecisionCallback | None = None,
@@ -473,7 +461,7 @@ class TeamRun[TDeps](TaskManagerMixin):
         while True:
             # Get response from current agent
             now = perf_counter()
-            message = await current_agent.run(current_message, deps=deps)
+            message = await current_agent.run(current_message)
             duration = perf_counter() - now
             response = AgentResponse(current_agent.name, message, timing=duration)
             results.append(response)
