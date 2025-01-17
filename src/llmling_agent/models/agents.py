@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
 from datetime import datetime
 from functools import cached_property
 import logging
@@ -24,7 +23,6 @@ from typing_extensions import TypeVar
 from upath.core import UPath
 import yamling
 
-from llmling_agent.common_types import SessionIdType  # noqa: TC001
 from llmling_agent.config import Capabilities, Knowledge
 from llmling_agent.environment import AgentEnvironment, FileEnvironment, InlineEnvironment
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
@@ -38,8 +36,6 @@ from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-
     from llmling_agent import AgentPool
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import StrPath
@@ -663,47 +659,6 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         from llmling_agent.delegation import AgentPool
 
         return AgentPool(manifest=self)
-
-    @asynccontextmanager
-    async def open_agent(
-        self,
-        agent_name: str,
-        *,
-        model: str | None = None,
-        session: SessionIdType | SessionQuery = None,
-    ) -> AsyncIterator[AnyAgent[TDeps, Any]]:
-        """Open and configure a specific agent from configuration.
-
-        Creates the agent in the context of a single-agent pool.
-
-        Args:
-            agent_name: Name of the agent to load
-            model: Optional model override
-            session: Optional ID or SessionQuery to recover a previous state
-
-        Example:
-            manifest = AgentsManifest[Any, str].from_file("agents.yml")
-            async with manifest.open_agent("my-agent") as agent:
-                result = await agent.run("Hello!")
-        """
-        from llmling_agent import Agent
-        from llmling_agent.delegation import AgentPool
-
-        # Create empty pool just for context
-        pool = AgentPool[TDeps](manifest=self, agents_to_load=[], connect_agents=False)
-        try:
-            async with Agent[TDeps].open_agent(  # type: ignore
-                self,
-                agent_name,
-                model=model,
-                session=session,
-            ) as agent:
-                if agent.context:
-                    agent.context.pool = pool
-                pool.agents[agent_name] = agent
-                yield agent
-        finally:
-            await pool.cleanup()
 
     def get_result_type(self, agent_name: str) -> type[Any] | None:
         """Get the resolved result type for an agent.
