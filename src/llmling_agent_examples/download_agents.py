@@ -40,6 +40,7 @@ class CheerProgress:
 
     def update(self, situation: str):
         self.situation = situation
+        print(situation)
 
 
 AGENT_CONFIG = """\
@@ -126,7 +127,7 @@ async def run(config_path: str):
         # Create second agent by cloning. Both do the same job, so same prompt & tools.
         worker_2 = await pool.clone_agent(worker_1, new_name="file_getter_2")
 
-        team = pool.create_group([worker_1, worker_2])
+        team = worker_1 & worker_2
         fan = pool.get_agent("fan")
         progress = CheerProgress()
 
@@ -135,27 +136,16 @@ async def run(config_path: str):
         # now lets do some downloading. After each sequence, we tell the fan about the
         # duration so he can adapt his cheering to the current happenings.
         progress.update("Sequential downloads starting - let's see how they do!")
-
-        print("Sequential downloads:")
         sequential = await team.run_sequential(TEAM_PROMPT)
-        print(f"Sequential time: {sequential.duration:.2f} seconds")
         progress.update(f"Downloads completed in {sequential.duration:.2f} secs!")
-
-        print("\nParallel downloads:")
         parallel = await team.run_parallel(TEAM_PROMPT)
         progress.update(f"Downloads completed in {parallel.duration:.2f} secs!")
-        print(f"Parallel time: {parallel.duration:.2f} seconds")
-        print(f"\nParallel was {sequential.duration / parallel.duration:.1f}x faster")
-
-        print("Same task, different strategy: Boss lists agents and delegates the work.")
         overseer: Agent[None] = pool.get_agent("overseer")
         # this call will make the overseer use his ability to list pool agents
         # and to delegate a task to them. See the capabilities of the overseer
         result = await overseer.run(OVERSEER_PROMPT)
+        progress.update(f"\nOverseer's report: {result.data}")
         await fan.stop()  # End of joy.
-
-        print("\nOverseer's report:")
-        print(result.data)
 
 
 if __name__ == "__main__":
