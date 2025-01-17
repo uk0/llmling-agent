@@ -173,6 +173,7 @@ class Agent[TDeps](TaskManagerMixin):
         defer_model_check: bool = False,
         enable_db_logging: bool = True,
         confirmation_callback: ConfirmationCallback | None = None,
+        parallel_init: bool = True,
         debug: bool = False,
         **kwargs: Any,
     ):
@@ -198,6 +199,7 @@ class Agent[TDeps](TaskManagerMixin):
             kwargs: Additional arguments for PydanticAI agent
             enable_db_logging: Whether to enable logging for the agent
             confirmation_callback: Callback for confirmation prompts
+            parallel_init: Whether to initialize resources in parallel
             debug: Whether to enable debug mode
         """
         super().__init__()
@@ -216,6 +218,7 @@ class Agent[TDeps](TaskManagerMixin):
         # prepare context
         ctx = context or AgentContext[TDeps].create_default(name)
         ctx.confirmation_callback = confirmation_callback
+        self.parallel_init = parallel_init
         match runtime:
             case None:
                 ctx.runtime = RuntimeConfig.from_config(Config())
@@ -315,40 +318,48 @@ class Agent[TDeps](TaskManagerMixin):
     async def __aenter__(self) -> Self:
         """Enter async context and set up MCP servers."""
         try:
-            # First initialize runtime if needed
+            # Collect all coroutines that need to be run
+            coros = []
+
+            # Runtime initialization if needed
             runtime_ref = self.context.runtime
             if runtime_ref and not runtime_ref._initialized:
                 self._owns_runtime = True
-                await runtime_ref.__aenter__()
+                coros.append(runtime_ref.__aenter__())
 
-            # Register runtime tools if we have a runtime (regardless of who initialized)
-            if runtime_ref:
-                runtime_tools = runtime_ref.tools.values()
-                names = [t.name for t in runtime_tools]
-                logger.debug("Registering runtime tools: %s", names)
-                for tool in runtime_tools:
-                    self.tools.register_tool(tool, source="runtime")
+            # Events initialization
+            coros.append(self._events.__aenter__())
 
-            # Initialize events
-            await self._events.__aenter__()
-
-            # Setup constructor MCP servers
+            # MCP server setup
             if self._mcp_servers:
-                await self.tools.setup_mcp_servers(self._mcp_servers)
+                coros.append(self.tools.setup_mcp_servers(self._mcp_servers))
 
-            # Setup config MCP servers if any
             if self.context and self.context.config and self.context.config.mcp_servers:
-                await self.tools.setup_mcp_servers(self.context.config.get_mcp_servers())
+                coros.append(
+                    self.tools.setup_mcp_servers(self.context.config.get_mcp_servers())
+                )
 
-            # Load any configured knowledge/resources
+            # Knowledge loading
             if self.context.config.knowledge:
                 for source in (
                     self.context.config.knowledge.paths
                     + self.context.config.knowledge.resources
                     + self.context.config.knowledge.prompts
                 ):
-                    await self.conversation.load_context_source(source)
+                    coros.append(self.conversation.load_context_source(source))  # noqa: PERF401
 
+            # Execute coroutines either in parallel or sequentially
+            if self.parallel_init and coros:
+                await asyncio.gather(*coros)
+            else:
+                for coro in coros:
+                    await coro
+            if runtime_ref:
+                runtime_tools = runtime_ref.tools.values()
+                names = [t.name for t in runtime_tools]
+                logger.debug("Registering runtime tools: %s", names)
+                for tool in runtime_tools:
+                    self.tools.register_tool(tool, source="runtime")
         except Exception as e:
             # Clean up in reverse order
             if self._owns_runtime and runtime_ref and self.context.runtime == runtime_ref:
