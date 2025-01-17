@@ -368,6 +368,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
 
         # Use get_agent with provided deps and return_type
         agent = self.manifest.get_agent(name, deps=deps)
+        agent.context.pool = self
         if return_type:
             agent = agent.to_structured(return_type)
         # Enter agent's async context through pool's exit stack
@@ -566,6 +567,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
 
         # Use custom deps if provided, otherwise use shared deps
         base.context.data = deps if deps is not None else self.shared_deps
+        # base.context.pool = self
 
         # Apply overrides
         if model_override:
