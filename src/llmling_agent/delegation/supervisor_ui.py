@@ -2,15 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from slashed import OutputWriter
 from textual.app import App
 from textual.widgets import Input, RichLog
 
 from llmling_agent.delegation.commands import ListAgentsCommand
-from llmling_agent.delegation.supervisor import (
-    InputHandler,
-    OutputHandler,
-    PoolSupervisor,
-)
+from llmling_agent.delegation.supervisor import InputHandler, PoolSupervisor
 from llmling_agent.log import get_logger
 
 
@@ -32,13 +29,13 @@ class TextualInputHandler(InputHandler):
         return self.app.input.value
 
 
-class TextualOutputHandler(OutputHandler):
+class TextualOutputHandler(OutputWriter):
     """Output handler using Textual RichLog."""
 
     def __init__(self, app: SupervisorApp):
         self.app = app
 
-    async def display(self, message: str):
+    async def print(self, message: str):
         """Display message in RichLog."""
         self.app.call_later(self.app.output.write, message)
 
@@ -101,29 +98,15 @@ if __name__ == "__main__":
     import sys
 
     from llmling_agent.delegation.pool import AgentPool
-    from llmling_agent.models.agents import AgentConfig
+
+    model = "openai:gpt-4o-mini"
 
     async def main():
-        # Create a pool with some example agents
         async with AgentPool[None]() as pool:
-            # Create a couple of agents
-            analyzer = await pool.create_agent(
-                "analyzer",
-                AgentConfig(
-                    name="analyzer",
-                    model="openai:gpt-4o-mini",
-                    system_prompts=["You are a pirate."],
-                ),
-            )
-
-            _planner = await pool.create_agent(
-                "planner",
-                AgentConfig(
-                    name="planner",
-                    model="openai:gpt-4o-mini",
-                    system_prompts=["You are a hippie."],
-                ),
-            )
+            prompt = "You are a pirate."
+            analyzer = await pool.add_agent("analyzer", model=model, system_prompt=prompt)
+            prompt = "You are a hippie."
+            _planner = await pool.add_agent("planner", model=model, system_prompt=prompt)
             await analyzer.run_continuous("Tell a joke", max_count=5, interval=10)
             pool.start_supervision()
 

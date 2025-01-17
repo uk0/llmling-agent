@@ -3,7 +3,13 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Protocol
 
-from slashed import CommandContext, CommandStore, QueueOutputWriter, SlashedCommand
+from slashed import (
+    CommandContext,
+    CommandStore,
+    OutputWriter,
+    QueueOutputWriter,
+    SlashedCommand,
+)
 
 from llmling_agent.chat_session.base import AgentPoolView
 from llmling_agent.log import get_logger
@@ -77,35 +83,12 @@ class InputHandler(Protocol):
         ...
 
 
-class OutputHandler(Protocol):
-    """Protocol for handling output display."""
-
-    async def display(self, message: str):
-        """Display a message to the user.
-
-        Args:
-            message: Text to display
-        """
-        ...
-
-
 class ConsoleInputHandler:
     """Default input handler using stdlib input()."""
 
     async def get_input(self, prompt: str) -> str:
         """Get input using standard input() in thread."""
         return await asyncio.to_thread(input, prompt)
-
-
-class QueueOutputHandler:
-    """Default output handler using asyncio.Queue."""
-
-    def __init__(self, queue: asyncio.Queue[str]):
-        self.queue = queue
-
-    async def display(self, message: str):
-        """Put message in queue."""
-        await self.queue.put(message)
 
 
 class PoolSupervisor(TaskManagerMixin):
@@ -116,7 +99,7 @@ class PoolSupervisor(TaskManagerMixin):
         pool: AgentPool,
         *,
         input_handler: InputHandler | None = None,
-        output_handler: OutputHandler | None = None,
+        output_handler: OutputWriter | None = None,
     ):
         self.pool = pool
         self.human_messages: asyncio.Queue[str] = asyncio.Queue()
@@ -125,7 +108,7 @@ class PoolSupervisor(TaskManagerMixin):
 
         # Set up handlers (with defaults)
         self.input_handler = input_handler or ConsoleInputHandler()
-        self.output_handler = output_handler or QueueOutputHandler(self.status_updates)
+        self.output_handler = output_handler or QueueOutputWriter(self.status_updates)
 
         # Set up command system
         self.output = QueueOutputWriter(self.status_updates)
@@ -147,7 +130,7 @@ class PoolSupervisor(TaskManagerMixin):
             agent.message_sent.connect(self._handle_message)
             agent.tool_used.connect(self._handle_tool)
 
-        await self.output_handler.display(
+        await self.output_handler.print(
             "Supervision started.\n"
             "Usage:\n"
             "  @agent /command      - Execute command for specific agent\n"
@@ -169,28 +152,28 @@ class PoolSupervisor(TaskManagerMixin):
 
     async def _handle_message(self, message: ChatMessage):
         """Handle messages from supervised agents."""
-        await self.output_handler.display(f"Agent {message.name}: {message.content}")
+        await self.output_handler.print(f"Agent {message.name}: {message.content}")
 
     async def _handle_tool(self, tool_call: ToolCallInfo):
         """Handle tool usage from supervised agents."""
-        await self.output_handler.display(
+        await self.output_handler.print(
             f"Tool used: {tool_call.tool_name}({tool_call.args})"
         )
 
     async def _handle_command(self, cmd: str):
         """Handle agent commands and messages."""
         if not cmd.startswith("@"):
-            await self.output_handler.display("Usage: @agent <message or /command>")
+            await self.output_handler.print("Usage: @agent <message or /command>")
             return
 
         parts = cmd[1:].split(maxsplit=1)
         if len(parts) < 2:  # noqa: PLR2004
-            await self.output_handler.display("Usage: @agent_name <message or /command>")
+            await self.output_handler.print("Usage: @agent_name <message or /command>")
             return
 
         agent_name, message = parts
         if agent_name not in self.pool.agents:
-            await self.output_handler.display(f"Agent {agent_name} not found")
+            await self.output_handler.print(f"Agent {agent_name} not found")
             return
 
         agent = self.pool.get_agent(agent_name)
@@ -208,7 +191,7 @@ class PoolSupervisor(TaskManagerMixin):
                 # Regular message to agent
                 await agent.run(message)
         except Exception as e:  # noqa: BLE001
-            await self.output_handler.display(f"Error: {e}")
+            await self.output_handler.print(f"Error: {e}")
 
     async def _monitor_human_input(self):
         """Monitor for human input."""

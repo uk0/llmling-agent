@@ -75,19 +75,13 @@ class TeamResponse(list[AgentResponse[Any]]):
             for response in self
             if response.message
         )
-
-        # Create a message that represents the group's output
-        return ChatMessage(
-            content=content,
-            role="assistant",
-            # Could include additional metadata about the group execution
-            metadata={
-                "type": "team_response",
-                "agents": [r.agent_name for r in self],
-                "duration": self.duration,
-                "success_count": len(self.successful),
-            },
-        )
+        meta = {
+            "type": "team_response",
+            "agents": [r.agent_name for r in self],
+            "duration": self.duration,
+            "success_count": len(self.successful),
+        }
+        return ChatMessage(content=content, role="assistant", metadata=meta)
 
 
 class Team[TDeps](TaskManagerMixin):

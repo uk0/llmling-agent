@@ -560,9 +560,7 @@ class TalkManager:
                     return [item]
                 case TeamTalk():
                     if not recursive:
-                        return [
-                            talk for subitem in item for talk in _collect_talks(subitem)
-                        ]
+                        return [t for subitem in item for t in _collect_talks(subitem)]
 
                     # Handle recursive case
                     seen = seen or {self.owner.name}  # type: ignore[has-type]
@@ -576,10 +574,8 @@ class TalkManager:
                     for target in item.targets:
                         if target.name not in seen:
                             seen.add(target.name)
-                            talks.extend(
-                                target.connections.get_connections(recursive=True)
-                            )
-
+                            conns = target.connections.get_connections(recursive=True)
+                            talks.extend(conns)
                     return talks
 
         return [talk for conn in self._connections for talk in _collect_talks(conn)]
