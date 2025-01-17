@@ -101,7 +101,7 @@ async def test_agent_pool_validation():
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
     cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
     agents = {"test_agent": cfg}
-    agent_def = AgentsManifest[Any, Any](responses={"BasicResult": defn}, agents=agents)
+    agent_def = AgentsManifest[Any](responses={"BasicResult": defn}, agents=agents)
 
     # Test initialization with non-existent agent
     with pytest.raises(ValueError, match="Unknown agents"):
@@ -120,7 +120,7 @@ async def test_agent_pool_team_errors(test_model):
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
     cfg = AgentConfig(name="Test Agent", model=test_model, result_type="BasicResult")
     agents = {"test_agent": cfg}
-    agent_def = AgentsManifest[Any, Any](responses={"BasicResult": defn}, agents=agents)
+    agent_def = AgentsManifest[Any](responses={"BasicResult": defn}, agents=agents)
 
     async with AgentPool[None](agent_def, agents_to_load=["test_agent"]) as pool:
         # Test with non-existent team member
@@ -135,7 +135,7 @@ async def test_agent_pool_cleanup():
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
     cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
     agents = {"test_agent": cfg}
-    agent_def = AgentsManifest[Any, Any](responses={"BasicResult": defn}, agents=agents)
+    agent_def = AgentsManifest[Any](responses={"BasicResult": defn}, agents=agents)
 
     # Use context manager to ensure proper cleanup
     async with AgentPool[None](agent_def) as pool:
@@ -163,7 +163,7 @@ async def test_agent_pool_context_cleanup():
     defn = InlineResponseDefinition(description="Basic test result", fields=fields)
     cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
     agents = {"test_agent": cfg}
-    agent_def = AgentsManifest[Any, Any](responses={"BasicResult": defn}, agents=agents)
+    agent_def = AgentsManifest[Any](responses={"BasicResult": defn}, agents=agents)
 
     runtime_ref = None
 

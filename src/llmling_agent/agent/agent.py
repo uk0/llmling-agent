@@ -1126,14 +1126,13 @@ class Agent[TDeps](TaskManagerMixin):
         Returns:
             Result containing response and run information
         """
-        return self.run_task_sync(
-            self.run(
-                *prompt,
-                model=model,
-                store_history=store_history,
-                result_type=result_type,
-            )
+        coro = self.run(
+            *prompt,
+            model=model,
+            store_history=store_history,
+            result_type=result_type,
         )
+        return self.run_task_sync(coro)
 
     async def run_task[TResult](
         self,

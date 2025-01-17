@@ -42,7 +42,7 @@ class AgentState:
         """
         try:
             logger.debug("Loading agent definition from: %s", file_path)
-            agent_def = AgentsManifest[Any, Any].from_file(file_path)
+            agent_def = AgentsManifest[Any].from_file(file_path)
             return cls(agent_def=agent_def)
         except Exception as e:
             error_msg = f"Failed to load agent file: {e}"

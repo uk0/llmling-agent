@@ -82,7 +82,7 @@ def task_command(
         # Load manifest
         from llmling_agent.models import AgentsManifest
 
-        manifest = AgentsManifest[Any, Any].from_file(config_path)
+        manifest = AgentsManifest[Any].from_file(config_path)
 
         # Execute task
         result = asyncio.run(execute_task(agent_name, task_name, manifest, prompt=prompt))

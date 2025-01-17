@@ -40,7 +40,7 @@ def get_history_provider(config_path: str):
     Returns:
         Storage provider configured for history operations
     """
-    manifest = AgentsManifest[Any, Any].from_file(config_path)
+    manifest = AgentsManifest[Any].from_file(config_path)
     storage = StorageManager(manifest.storage)
     return storage.get_history_provider()
 

@@ -419,7 +419,7 @@ async def run_with_model(
         result_type="DefaultResult" if result_type else None,
         environment=agent_environment,
     )
-    manifest = AgentsManifest[Any, Any](responses=responses, agents={"default": cfg})
+    manifest = AgentsManifest[Any](responses=responses, agents={"default": cfg})
 
     if stream:
         return await run_agent_pipeline(

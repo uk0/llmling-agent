@@ -90,7 +90,7 @@ def get_label(item: Any) -> str:
         case Agent() | StructuredAgent():
             return item.name or "unnamed_agent"
         case _:
-            return repr(item)  # More precise than str() for identification
+            return repr(item)
 
 
 class Interactions[TDeps, TResult]:
@@ -195,7 +195,7 @@ class Interactions[TDeps, TResult]:
     @overload
     async def pick[T: AnyPromptType](
         self,
-        selections: Mapping[str, T],  # Changed from dict to Mapping
+        selections: Mapping[str, T],
         task: str,
         prompt: AnyPromptType | None = None,
     ) -> Pick[T]: ...

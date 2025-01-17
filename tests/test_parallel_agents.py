@@ -85,7 +85,7 @@ async def test_parallel_execution():
 @pytest.mark.asyncio
 async def test_sequential_execution():
     """Test sequential execution through agent chain."""
-    manifest: AgentsManifest[Any, Any] = AgentsManifest.from_yaml(TEST_CONFIG)
+    manifest: AgentsManifest[Any] = AgentsManifest.from_yaml(TEST_CONFIG)
 
     async with AgentPool[None](manifest) as pool:
         group: Team[Any] = pool.create_group(["agent_1", "agent_2"])

@@ -43,8 +43,6 @@ if TYPE_CHECKING:
 
 
 TDeps = TypeVar("TDeps", default=None)
-TResult = TypeVar("TResult", default=Any)
-TResultOverride = TypeVar("TResultOverride")
 
 logger = logging.getLogger(__name__)
 
@@ -431,7 +429,7 @@ class AgentConfig(BaseModel):
 
 
 # TODO: python 3.13: set defaults here
-class AgentsManifest[TDeps, TResult](ConfigModel):
+class AgentsManifest[TDeps](ConfigModel):
     """Complete agent configuration manifest defining all available agents.
 
     This is the root configuration that:
@@ -751,5 +749,5 @@ class ToolCallInfo(BaseModel):
 if __name__ == "__main__":
     model = {"type": "input"}
     agent_cfg = AgentConfig(name="test_agent", model=model)
-    manifest = AgentsManifest[Any, Any](agents=dict(test_agent=agent_cfg))
+    manifest = AgentsManifest[Any](agents=dict(test_agent=agent_cfg))
     print(manifest.agents["test_agent"].model)
