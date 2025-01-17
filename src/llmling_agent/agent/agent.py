@@ -1349,7 +1349,7 @@ class Agent[TDeps](TaskManagerMixin):
 
     def register_worker(
         self,
-        worker: Agent[Any],
+        worker: AnyAgent[Any, Any],
         *,
         name: str | None = None,
         reset_history_on_run: bool = True,
