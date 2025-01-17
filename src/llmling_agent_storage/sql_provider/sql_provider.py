@@ -25,6 +25,7 @@ from llmling_agent_storage.sql_provider.utils import db_message_to_chat_message
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from sqlalchemy.sql.elements import ColumnElement
     from sqlmodel.sql.expression import SelectOfScalar
     from tokonomics.toko_types import TokenUsage
 
@@ -291,7 +292,7 @@ class SQLModelProvider(StorageProvider):
 
         stmt = select(Message).order_by(Message.timestamp)  # type: ignore
 
-        conditions = []
+        conditions: list[bool | ColumnElement[bool]] = []
         if query.name:
             conditions.append(Message.conversation_id == query.name)
         if query.agents:
