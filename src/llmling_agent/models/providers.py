@@ -84,7 +84,7 @@ class AIProviderConfig(BaseProviderConfig):
             end_strategy=self.end_strategy,
             result_retries=self.result_retries,
             defer_model_check=self.defer_model_check,
-            model_settings=self.model_settings,
+            model_settings=self.model_settings,  # pyright: ignore
         )
 
 
