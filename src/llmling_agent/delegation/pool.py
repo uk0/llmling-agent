@@ -457,6 +457,8 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
             system_prompt=new_config.system_prompts,
             name=new_name or f"{config.name}_copy_{len(self.agents)}",
         )
+        if isinstance(original_agent, StructuredAgent):
+            new_agent = new_agent.to_structured(original_agent.actual_type)
 
         # Register in pool
         agent_name = new_agent.name
