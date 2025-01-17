@@ -74,7 +74,6 @@ class HumanProvider(AgentProvider):
         debug: bool = False,
     ):
         """Initialize human provider."""
-        from llmling_agent.chat_session.base import AgentPoolView
         from llmling_agent_commands import get_commands
 
         super().__init__(model=None)
@@ -86,8 +85,6 @@ class HumanProvider(AgentProvider):
         for cmd in get_commands():
             self.commands.register_command(cmd)
         # create dummy AgentPoolView until tht part is untangled
-        assert self.context.agent
-        self._view = AgentPoolView(self.context.agent, pool=self.context.pool)
 
     def __repr__(self) -> str:
         return f"Human({self.name!r})"
@@ -215,6 +212,7 @@ class HumanProvider(AgentProvider):
 
     async def handle_input(self, content: str):
         """Handle all human input."""
+        from llmling_agent.chat_session.base import AgentPoolView
         from llmling_agent.events.sources import UIEvent
 
         if not content.strip():
@@ -234,8 +232,10 @@ class HumanProvider(AgentProvider):
                     args=parsed.args.args,
                     kwargs=parsed.args.kwargs,
                 )
+                assert self.context.agent
+                view = AgentPoolView(self.context.agent, pool=self.context.pool)
                 await self.commands.execute_command_with_context(
-                    parsed.name, context=self._view, output_writer=DefaultOutputWriter()
+                    parsed.name, context=view, output_writer=DefaultOutputWriter()
                 )
 
             elif content.startswith("@"):
