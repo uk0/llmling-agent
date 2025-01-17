@@ -618,7 +618,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
             # name=config.name or name,
             enable_db_logging=config.enable_db_logging,
         )
-        if result_type := manifest.get_result_type(name):
+        if result_type := self.get_result_type(name):
             return agent.to_structured(result_type)
         return agent
 

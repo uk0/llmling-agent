@@ -97,7 +97,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             confirmation_callback: Handler callback for tool / step confirmations.
         """
         super().__init__()
-        from llmling_agent.models.context import AgentContext
         from llmling_agent.storage import StorageManager
 
         self.manifest = manifest
@@ -118,31 +117,9 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         self.pool_talk = TeamTalk.from_agents(list(self.agents.values()))
         # Create requested agents immediately using sync initialization
         for name in to_load:
-            config = manifest.agents[name]
-            # Create runtime without async context
-            cfg = config.get_config()
-            runtime = RuntimeConfig.from_config(cfg)
-
-            # Create context with config path and capabilities
-            context = AgentContext[Any](
-                agent_name=name,
-                capabilities=config.capabilities,
-                definition=self.manifest,
-                config=config,
-                pool=self,
-                confirmation_callback=confirmation_callback,
-            )
-
-            # Create agent with runtime and context
-            agent = Agent[Any](
-                runtime=runtime,
-                context=context,
-                result_type=None,  # type: ignore[arg-type]
-                model=config.model,  # type: ignore[arg-type]
-                system_prompt=config.system_prompts,
-                name=name,
-                enable_db_logging=config.enable_db_logging,
-            )
+            agent: AnyAgent[Any, Any] = manifest.get_agent(name)
+            if isinstance(agent, StructuredAgent):
+                agent = agent._agent
             self.register(name, agent)
 
         # Then set up worker relationships
