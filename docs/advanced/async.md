@@ -1,0 +1,167 @@
+# Asynchronous Operations in LLMling
+
+LLMling is built with asyncio at its core to handle concurrent operations efficiently. This guide explains the async patterns and features in the library.
+
+## Basic Usage
+
+```python
+# Single agent
+async with Agent.open("config.yml") as agent:
+    result = await agent.run("What can you do?")
+    print(result.content)
+
+# Multiple agents in a pool
+async with AgentPool[None]("agents.yml") as pool:
+    analyzer = pool.get_agent("analyzer")
+    summarizer = pool.get_agent("summarizer")
+
+    # Run agents concurrently
+    results = await asyncio.gather(
+        analyzer.run("Analyze this text"),
+        summarizer.run("Summarize this text")
+    )
+```
+
+## Agent Connections and Waiting
+
+When agents are connected, messages flow between them asynchronously:
+
+```python
+# Messages flow automatically
+analyzer >> summarizer  # analyzer's outputs go to summarizer
+
+# Optionally wait for connected agents to complete
+await analyzer.run("Analyze", wait_for_connections=True)  # waits for summarizer
+```
+
+By default, connections operate independently. Use `wait_for_connections=True` when you need to ensure all downstream processing is complete.
+
+## Parallel Initialization
+
+Both Agent and AgentPool support parallel initialization of their components:
+
+```python
+# Pool initialization (default: True)
+pool = AgentPool(
+    "agents.yml",
+    parallel_agent_load=True  # agents initialize concurrently
+)
+
+# Agent initialization (default: True)
+agent = Agent(
+    "config.yml",
+    parallel_init=True  # components initialize concurrently
+)
+```
+
+### What Gets Loaded in Parallel
+
+For an Agent, these components can initialize concurrently:
+- Runtime configuration and tools
+- Event system setup
+- MCP server connections
+- Knowledge sources:
+  - File resources
+  - URLs
+  - Dynamic prompts
+  - External resources
+
+For an AgentPool:
+- All agents' async contexts
+- Each agent's individual components
+
+## Performance Considerations
+
+Parallel initialization can significantly speed up startup when you have:
+- Multiple agents in a pool
+- Multiple MCP servers
+- Many knowledge sources
+- External resources to load
+
+However, some operations may have dependencies and will still execute sequentially even in parallel mode.
+
+## Error Handling
+
+All async operations properly handle errors and cleanup:
+```python
+try:
+    async with Agent.open("config.yml") as agent:
+        await agent.run("Task")
+except Exception:
+    # All resources are properly cleaned up
+    # - Runtime shutdown
+    - MCP server connections closed
+    - Event handlers cleaned up
+```
+
+## Background Operations
+
+Some operations can run in the background while maintaining async safety:
+
+```python
+# Continuous background processing
+await agent.run_continuous(
+    "Monitor this",
+    interval=5.0,
+    block=False  # runs in background
+)
+
+# Stop background processing
+await agent.stop()
+```
+
+## Event-Based Operations
+
+LLMling supports event-driven agent operation through file watchers and other triggers. The simplest way to start event-based mode is through the CLI:
+
+```bash
+llmling-agent watch --config agents.yml
+```
+
+This command:
+- Loads all agents from the configuration
+- Sets up their event triggers (file watchers, webhooks, etc.)
+- Keeps them running until interrupted (Ctrl+C)
+
+### Configuration Example
+```yaml
+agents:
+  file_processor:
+    triggers:
+      - type: file
+        name: watch_docs
+        paths: ["docs/**/*.md"]
+        extensions: [".md"]
+        enabled: true
+
+  api_handler:
+    triggers:
+      - type: webhook
+        name: api_endpoint
+        port: 8000
+        path: "/webhook"
+        enabled: true
+```
+
+### Programmatic Usage
+```python
+async with AgentPool(config) as pool:
+    # Events are automatically set up for configured triggers
+    try:
+        # Keep running until interrupted
+        await asyncio.Event().wait()
+    except asyncio.CancelledError:
+        # Clean shutdown when interrupted
+        pass
+```
+
+Events are processed asynchronously, allowing agents to handle multiple triggers concurrently while maintaining their regular capabilities.
+
+
+## Best Practices
+
+1. Always use async context managers (`async with`) to ensure proper cleanup
+2. Consider `wait_for_connections` when agent sequence matters
+3. Use `asyncio.gather` for concurrent agent operations
+4. Keep parallel initialization enabled unless you have specific sequential needs
+5. Handle errors appropriately to ensure resources are cleaned up
