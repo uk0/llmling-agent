@@ -107,3 +107,8 @@ The Talk class is generically typed over the transmitted message content, provid
 While currently primarily serving type hint purposes, this typing lays the groundwork for future "Structured Connections" - a system for type-safe,
 structured communication between agents. (We already do this now already, but since our Agent currently takes any BaseModel input and converts it to LLM-readable form,
 this doesnt yet guarantee "real" type-safe connections based on specific BaseModels subclasses)
+
+
+### And more!
+Response types, small decision / result dataclasses and much more should also preserve types to maxium extent.
+This should provide great help static type checkers.

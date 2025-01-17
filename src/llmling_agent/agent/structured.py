@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Self, get_type_hints, overload
 
 from typing_extensions import TypeVar
@@ -48,7 +49,7 @@ class StructuredAgent[TDeps, TResult]:
 
     def __init__(
         self,
-        agent: AnyAgent[TDeps, TResult],
+        agent: Agent[TDeps] | StructuredAgent[TDeps, TResult] | Callable[..., TResult],
         result_type: type[TResult] | str | ResponseDefinition,
         *,
         tool_name: str | None = None,
@@ -68,11 +69,20 @@ class StructuredAgent[TDeps, TResult]:
         Raises:
             ValueError: If named response type not found in manifest
         """
+        from llmling_agent.agent.agent import Agent
+
         logger.debug("StructuredAgent.run result_type = %s", result_type)
-        if isinstance(agent, StructuredAgent):
-            self._agent: Agent[TDeps] = agent._agent
-        else:
-            self._agent = agent
+        match agent:
+            case StructuredAgent():
+                self._agent: Agent[TDeps] = agent._agent
+            case Callable():
+                self._agent = Agent[TDeps](provider=agent, name=agent.__name__)
+            case Agent():
+                self._agent = agent
+            case _:
+                msg = "Invalid agent type"
+                raise ValueError(msg)
+
         self._result_type = to_type(result_type)
         agent.set_result_type(result_type)
 
