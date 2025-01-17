@@ -37,7 +37,6 @@ agents:
     # Agent behavior
     system_prompts: ["You are a code analyzer..."]
     user_prompts: ["Example query..."]  # Default queries
-    include_role_prompts: true
     model_settings: {}  # Additional model parameters
 
     # State management

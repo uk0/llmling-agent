@@ -161,9 +161,6 @@ class AgentConfig(BaseModel):
     # context_sources: list[ContextSource] = Field(default_factory=list)
     # """Initial context sources to load"""
 
-    include_role_prompts: bool = True
-    """Whether to include default prompts based on the agent's role."""
-
     model_settings: dict[str, Any] = Field(default_factory=dict)
     """Additional settings to pass to the model"""
 
