@@ -48,7 +48,7 @@ def quickstart_command(
             agent_path = tmp_agent.name
 
         async def run_chat():
-            async with AgentPool(agent_path) as pool:
+            async with AgentPool[None](agent_path) as pool:
                 agent = pool.get_agent("quickstart")
                 await start_interactive_session(agent, pool=pool, stream=stream)
 

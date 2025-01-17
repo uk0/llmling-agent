@@ -66,7 +66,7 @@ async def test_parallel_execution():
     """Test parallel execution of multiple agents."""
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
-    async with AgentPool(manifest) as pool:
+    async with AgentPool[None](manifest) as pool:
         group: Team[Any] = pool.create_group(["agent_1", "agent_2"])
 
         prompt = "Test input"
@@ -87,7 +87,7 @@ async def test_sequential_execution():
     """Test sequential execution through agent chain."""
     manifest: AgentsManifest[Any, Any] = AgentsManifest.from_yaml(TEST_CONFIG)
 
-    async with AgentPool(manifest) as pool:
+    async with AgentPool[None](manifest) as pool:
         group: Team[Any] = pool.create_group(["agent_1", "agent_2"])
 
         prompt = "Test input"
@@ -114,7 +114,7 @@ async def test_sequential_execution():
 #     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 #     shared_data = {"key": "shared_value"}
 
-#     async with AgentPool(manifest) as pool:
+#     async with AgentPool[None](manifest) as pool:
 #         # Get agents before group creation
 #         agent1 = pool.get_agent("agent_1")
 #         agent2 = pool.get_agent("agent_2")

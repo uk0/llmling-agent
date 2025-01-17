@@ -41,7 +41,7 @@ PROMPT = "Download this file using both agent tools available to you: http://spe
 
 
 async def run(config_path: str):
-    async with AgentPool(config_path) as pool:
+    async with AgentPool[None](config_path) as pool:
         # Get the boss agent
         boss: Agent[Any] = pool.get_agent("overseer")
 

@@ -67,7 +67,7 @@ def chat_command(
             if connections:
                 agents_to_load.extend(connections)
 
-            async with AgentPool(
+            async with AgentPool[None](
                 config_path,
                 agents_to_load=agents_to_load,
                 connect_agents=False,  # We'll handle connections manually

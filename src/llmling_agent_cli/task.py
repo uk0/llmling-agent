@@ -34,7 +34,7 @@ async def execute_task(
     """Execute task with agent."""
     from llmling_agent.delegation import AgentPool
 
-    async with AgentPool(config) as pool:
+    async with AgentPool[None](config) as pool:
         # Get both agent and task
         agent = pool.get_agent(agent_name)
         task = pool.get_task(task_name)

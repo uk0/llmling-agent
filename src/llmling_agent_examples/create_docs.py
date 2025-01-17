@@ -58,7 +58,7 @@ agents:
 
 
 async def main(config_path: str):
-    async with AgentPool(config_path) as pool:
+    async with AgentPool[None](config_path) as pool:
         scanner = pool.get_agent("file_scanner")
         writer = pool.get_agent("doc_writer")
         checker = pool.get_agent("error_checker")

@@ -60,7 +60,7 @@ class AgentHandler:
         """Initialize with full agent pool."""
         agent_def = AgentsManifest[Any, Any].from_file(self._file_path)
         # Create pool with ALL agents
-        pool = AgentPool(agent_def)
+        pool = AgentPool[None](agent_def)
         self._state = AgentState(agent_def=agent_def, pool=pool)
 
     async def select_agent(

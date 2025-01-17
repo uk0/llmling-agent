@@ -104,7 +104,7 @@ TEAM_PROMPT = f"Download this file: {FILE_URL}"
 
 
 async def run(config_path: str):
-    async with AgentPool(config_path) as pool:
+    async with AgentPool[None](config_path) as pool:
         # we can get agents from the YAML config via get_agent("name")
         worker_1 = pool.get_agent("file_getter_1")
 

@@ -84,7 +84,7 @@ async def test_basic_worker_setup(tmp_path: Path):
     config_path = write_config(BASIC_WORKERS, tmp_path)
     manifest = AgentsManifest[Any, Any].from_file(config_path)
 
-    async with AgentPool(manifest) as pool:
+    async with AgentPool[None](manifest) as pool:
         main_agent: Agent[Any] = pool.get_agent("main")
 
         # Verify workers were registered as tools
@@ -100,7 +100,7 @@ async def test_history_sharing(tmp_path: Path):
     """Test history sharing between agents."""
     config_path = write_config(WORKERS_WITH_SHARING, tmp_path)
     manifest = AgentsManifest[Any, Any].from_file(config_path)
-    async with AgentPool(manifest) as pool:
+    async with AgentPool[None](manifest) as pool:
         main_agent = pool.get_agent("main")
         worker = pool.get_agent("worker")
 
@@ -128,7 +128,7 @@ async def test_context_sharing(tmp_path: Path):
     """Test context sharing between agents."""
     config_path = write_config(WORKERS_WITH_SHARING, tmp_path)
     manifest = AgentsManifest[Any, Any].from_file(config_path)
-    async with AgentPool(manifest) as pool:
+    async with AgentPool[None](manifest) as pool:
         main_agent = pool.get_agent("main")
         specialist = pool.get_agent("specialist")
 
@@ -156,7 +156,7 @@ async def test_invalid_worker(tmp_path: Path):
     manifest = AgentsManifest[Any, Any].from_file(config_path)
 
     with pytest.raises(ValueError, match="Worker agent.*not found"):
-        async with AgentPool(manifest):
+        async with AgentPool[None](manifest):
             pass
 
 
@@ -164,7 +164,7 @@ async def test_worker_independence(tmp_path: Path):
     """Test that workers maintain independent state when not sharing."""
     config_path = write_config(BASIC_WORKERS, tmp_path)
     manifest = AgentsManifest[Any, Any].from_file(config_path)
-    async with AgentPool(manifest) as pool:
+    async with AgentPool[None](manifest) as pool:
         main_agent: Agent[Any] = pool.get_agent("main")
 
         # Create history in main agent
@@ -179,7 +179,7 @@ async def test_multiple_workers_same_prompt(tmp_path: Path):
     """Test using multiple workers with the same prompt."""
     config_path = write_config(BASIC_WORKERS, tmp_path)
     manifest = AgentsManifest[Any, Any].from_file(config_path)
-    async with AgentPool(manifest) as pool:
+    async with AgentPool[None](manifest) as pool:
         main_agent: Agent[Any] = pool.get_agent("main")
         worker: Agent[Any] = pool.get_agent("worker")
         specialist: Agent[Any] = pool.get_agent("specialist")

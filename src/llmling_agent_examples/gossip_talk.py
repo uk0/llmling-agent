@@ -42,7 +42,7 @@ agents:
 
 
 async def main(config_path: str):
-    async with AgentPool(config_path) as pool:
+    async with AgentPool[None](config_path) as pool:
         alice = pool.get_agent("alice")
         bob = pool.get_agent("bob")
         carol = pool.get_agent("carol")
