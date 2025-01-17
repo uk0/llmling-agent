@@ -296,7 +296,7 @@ class Agent[TDeps](TaskManagerMixin):
         self.talk = Interactions(self)
         self._logger = AgentLogger(self, enable_db_logging=enable_db_logging)
         self._events = EventManager(self, enable_events=True)
-        self.sys_prompts = SystemPrompts()
+        self.sys_prompts = SystemPrompts(system_prompt)
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""

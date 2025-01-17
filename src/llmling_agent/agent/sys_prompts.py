@@ -33,12 +33,18 @@ class SystemPrompts:
 
     def __init__(
         self,
-        prompts: list[AnyPromptType] | None = None,
+        prompts: AnyPromptType | list[AnyPromptType] | None = None,
         template: str | None = None,
         dynamic: bool = True,
     ):
         """Initialize prompt manager."""
-        self.prompts = prompts or []
+        match prompts:
+            case list():
+                self.prompts = prompts
+            case None:
+                self.prompts = []
+            case _:
+                self.prompts = [prompts]
         self.template = template
         self.dynamic = dynamic
         self._env = Environment(enable_async=True)
