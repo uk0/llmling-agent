@@ -86,3 +86,23 @@ This seamless integration of callables allows you to:
 - Create lightweight processing steps without full agent overhead
 - Preserve type safety throughout the workflow
 - Gradually convert functions to full agents as needed
+
+
+## Callables for prompts
+
+LLMling-Agent also allows to pass Callables for system and user prompts which can get re-evaluted
+for each run.
+
+```python
+
+def my_system_prompt(ctx: AgentContext) -> str:  # context optional
+    return "You are an AI assistant."
+
+agent = Agent(system_prompts=[my_system_prompt])
+
+agent.run("Hello, how are you?")
+
+# or:
+
+agent.run(my_user_prompt)
+```
