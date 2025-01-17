@@ -5,10 +5,9 @@ from __future__ import annotations
 import asyncio
 from contextlib import AsyncExitStack
 from dataclasses import dataclass
-from os import PathLike
 from typing import TYPE_CHECKING, Any, Self, Unpack, overload
 
-from llmling import BaseRegistry, Config, LLMLingError, RuntimeConfig
+from llmling import BaseRegistry, LLMLingError, RuntimeConfig
 from typing_extensions import TypeVar
 
 from llmling_agent.agent import Agent, AnyAgent
@@ -177,7 +176,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         agents: Sequence[str | AnyAgent[TDeps, Any]] | None = None,
         *,
         model_override: str | None = None,
-        environment_override: StrPath | Config | None = None,
         shared_prompt: str | None = None,
         shared_deps: TDeps | None = None,
     ) -> Team[TDeps]:
@@ -186,7 +184,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         Args:
             agents: List of agent names or instances (all if None)
             model_override: Optional model to use for all agents
-            environment_override: Optional environment for all agents
             shared_prompt: Optional prompt for all agents
             shared_deps: Optional shared dependencies
         """
@@ -199,11 +196,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         resolved_agents: list[AnyAgent[TDeps, Any]] = []
         for agent in agents:
             if isinstance(agent, str):
-                agent = self.get_agent(
-                    agent,
-                    model_override=model_override,
-                    environment_override=environment_override,
-                )
+                agent = self.get_agent(agent, model_override=model_override)
             resolved_agents.append(agent)
 
         return Team(
@@ -452,7 +445,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         return_type: type[TResult],
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
-        environment_override: StrPath | Config | None = None,
     ) -> StructuredAgent[TDeps, TResult]: ...
 
     @overload
@@ -463,7 +455,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         deps: TDeps,
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
-        environment_override: StrPath | Config | None = None,
     ) -> Agent[TDeps]: ...
 
     @overload
@@ -474,7 +465,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         return_type: type[TResult],
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
-        environment_override: StrPath | Config | None = None,
     ) -> StructuredAgent[Any, TResult]: ...
 
     @overload
@@ -484,7 +474,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         *,
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
-        environment_override: StrPath | Config | None = None,
     ) -> Agent[Any]: ...
 
     def get_agent[TDeps, TResult](
@@ -495,7 +484,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         return_type: type[TResult] | None = None,
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
-        environment_override: StrPath | Config | None = None,
     ) -> AnyAgent[TDeps, TResult]:
         """Get or wrap an agent.
 
@@ -505,10 +493,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             return_type: Optional type to make agent structured
             model_override: Optional model override
             session: Optional session ID or Session query to recover conversation
-            environment_override: Optional environment configuration:
-                - Path to environment file
-                - Complete Config instance
-                - None to use agent's default environment
 
         Returns:
             Either regular Agent or StructuredAgent depending on return_type
@@ -529,11 +513,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
         if session:
             base.conversation.load_history_from_database(session=session)
-        match environment_override:
-            case Config():
-                base.context.runtime = RuntimeConfig.from_config(environment_override)
-            case str() | PathLike():
-                base.context.runtime = RuntimeConfig.from_file(environment_override)
 
         # Wrap in StructuredAgent if return_type provided
         if return_type is not None:

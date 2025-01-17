@@ -84,7 +84,6 @@ def run_command(
                     agent: Agent[Any] = pool.get_agent(
                         agent_names[0],
                         model_override=model,
-                        environment_override=environment,
                     )
                     for prompt in prompts:
                         result = await agent.run(prompt)
@@ -97,7 +96,6 @@ def run_command(
                     group: Team[Any] = pool.create_group(
                         agent_names,
                         model_override=model,
-                        environment_override=environment,
                     )
                     for prompt in prompts:
                         responses = await group.run_parallel(prompt)

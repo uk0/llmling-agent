@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from llmling import Config
 import pytest
 
 from llmling_agent.delegation import AgentPool
@@ -101,34 +100,6 @@ async def test_agent_pool_sequential_execution(test_model):
         for response in responses:
             assert response.success
             assert response.response == "Test response"
-
-
-@pytest.mark.asyncio
-async def test_agent_pool_with_environment_override(test_model):
-    """Test AgentPool with environment configuration override."""
-    # Basic agent setup
-    fields = {"message": ResponseField(type="str", description="Test message")}
-    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    cfg = AgentConfig(name="Test Agent", model=test_model, result_type="BasicResult")
-    agents = {"test_agent": cfg}
-    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
-
-    # Create a test environment configuration
-    test_env = Config()
-
-    async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
-        # Create group with environment override
-        group = pool.create_group(
-            ["test_agent"],
-            environment_override=test_env,  # Pass Config instance instead of path
-        )
-        responses = await group.run_parallel("Test prompt")
-
-        assert len(responses) == 1
-        response = responses[0]
-        assert response.success
-        assert response.agent_name == "test_agent"
-        assert response.response == "Test response"
 
 
 @pytest.mark.asyncio
