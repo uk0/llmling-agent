@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from pydantic import BaseModel
 import pytest
 
 from llmling_agent.delegation import AgentPool
@@ -17,28 +18,80 @@ if TYPE_CHECKING:
 MODEL = "openai:gpt-4o-mini"
 
 
-@pytest.mark.asyncio
-async def test_agent_pool_conversation_flow(test_model):
-    """Test conversation flow maintaining history between messages."""
-    fields = {"message": ResponseField(type="str", description="Test message")}
-    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    cfg = AgentConfig(name="Test Agent", model=test_model, result_type="BasicResult")
-    agents = {"test_agent": cfg}
-    agent_def = AgentsManifest[Any, Any](responses={"BasicResult": defn}, agents=agents)
+class ConversationOutput(BaseModel):
+    """Test output for conversation flow."""
 
-    async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
+    message: str
+    conversation_index: int
+
+
+def make_response(prompt: str) -> ConversationOutput:
+    """Callback that tracks conversation order."""
+    # Track what message we're on in the conversation
+    make_response.count = getattr(make_response, "count", 0) + 1  # type: ignore
+    return ConversationOutput(
+        message=f"Response to: {prompt}",
+        conversation_index=make_response.count,  # type: ignore
+    )
+
+
+TEST_CONFIG = f"""\
+responses:
+  ConversationOutput:
+    type: inline
+    description: Output with conversation tracking
+    fields:
+      message:
+        type: str
+        description: Response message
+      conversation_index:
+        type: int
+        description: Position in conversation
+
+agents:
+  test_agent:
+    name: Test Agent
+    description: Agent for testing conversation flow
+    type:
+      type: callback
+      callback: {__name__}.make_response
+    model: test
+    result_type: ConversationOutput
+    system_prompts:
+      - You are a test agent
+"""
+
+
+@pytest.mark.asyncio
+async def test_agent_pool_conversation_flow():
+    """Test conversation flow maintaining history between messages."""
+    manifest = AgentsManifest.from_yaml(TEST_CONFIG)
+
+    async with AgentPool(manifest) as pool:
         # Get agent directly for conversation
-        agent: Agent[Any] = pool.get_agent("test_agent")
+        agent = pool.get_agent("test_agent")
 
         # Run multiple prompts in sequence
         responses = []
+        prompts = ["Hello!", "How are you?"]
 
-        for prompt in ["Hello!", "How are you?"]:
+        for prompt in prompts:
             result = await agent.run(prompt)
             responses.append(result)
 
+        # Verify correct number of responses
         assert len(responses) == 2  # noqa: PLR2004
-        assert all(str(r.data) == "Test response" for r in responses)
+
+        # Verify conversation order was maintained
+        assert responses[0].data.conversation_index == 1
+        assert responses[1].data.conversation_index == 2  # noqa: PLR2004
+
+        # Verify message content
+        assert responses[0].data.message == "Response to: Hello!"
+        assert responses[1].data.message == "Response to: How are you?"
+
+        # Verify agent name
+        assert all(r.name == "test_agent" for r in responses)
 
 
 @pytest.mark.asyncio

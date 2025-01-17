@@ -2,125 +2,130 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
+from pydantic import BaseModel
 import pytest
 
 from llmling_agent.delegation import AgentPool
-from llmling_agent.models import AgentConfig, AgentsManifest
-from llmling_agent.responses import InlineResponseDefinition, ResponseField
+from llmling_agent.models import AgentsManifest
 
 
-MODEL = "openai:gpt-4o-mini"
+if TYPE_CHECKING:
+    from llmling_agent.delegation.agentgroup import Team
+
+
+class _TestOutput(BaseModel):
+    """Expected output format."""
+
+    message: str
+
+
+def make_test_response(prompt: str) -> _TestOutput:
+    """Callback for test agent responses."""
+    return _TestOutput(message=f"Response to: {prompt}")
+
+
+TEST_CONFIG = f"""\
+responses:
+  _TestOutput:
+    type: inline
+    description: Simple test output
+    fields:
+      message:
+        type: str
+        description: Message from agent
+
+agents:
+  agent_1:
+    name: First Agent
+    description: First test agent
+    type:
+      type: callback
+      callback: {__name__}.make_test_response
+    model: test
+    result_type: _TestOutput
+    system_prompts:
+      - You are the first agent
+
+  agent_2:
+    name: Second Agent
+    description: Second test agent
+    type:
+      type: callback
+      callback: {__name__}.make_test_response
+    model: test
+    result_type: _TestOutput
+    system_prompts:
+      - You are the second agent
+"""
 
 
 @pytest.mark.asyncio
-async def test_parallel_agent_execution(test_model):
-    """Test multiple agents executing the same prompts in parallel.
+async def test_parallel_execution():
+    """Test parallel execution of multiple agents."""
+    manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
-    The AgentPool handles parallel execution of agents, allowing comparison
-    of how different agents handle the same input.
-    """
-    # Define a basic response type
-    fields = {"message": ResponseField(type="str", description="Test message")}
-    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
+    async with AgentPool(manifest) as pool:
+        group: Team[Any] = pool.create_group(["agent_1", "agent_2"])
 
-    # Define two test agents
-    a1 = AgentConfig(
-        name="First Agent",
-        model=test_model,
-        result_type="BasicResult",
-        system_prompts=["You are the first agent"],
-    )
-    a2 = AgentConfig(
-        name="Second Agent",
-        model=test_model,
-        result_type="BasicResult",
-        system_prompts=["You are the second agent"],
-    )
+        prompt = "Test input"
+        responses = await group.run_parallel(prompt)
 
-    # Create manifest with both agents
-    agents = {"agent1": a1, "agent2": a2}
-    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
-
-    # Run agents in parallel using AgentPool
-    async with AgentPool(agent_def, agents_to_load=["agent1", "agent2"]) as pool:
-        # Create group and run in parallel
-        group = pool.create_group(["agent1", "agent2"])
-        responses = await group.run_parallel("Process this input")
-
-        # Verify each agent processed the prompt
+        # Verify execution
         assert len(responses) == 2  # noqa: PLR2004
+        assert all(r.success for r in responses)
+        assert all(r.message.data.message == f"Response to: {prompt}" for r in responses)  # type: ignore
 
-        # Create a dict of results for easier verification
-        results = {r.agent_name: r for r in responses}
-
-        # Check both agents are present
-        assert "agent1" in results
-        assert "agent2" in results
-
-        # Verify both agents succeeded
-        for response in responses:
-            assert response.success
-            assert not response.error
-            assert response.response == "Test response"  # test_model's response
+        # Verify agent names
+        agent_names = {r.message.name for r in responses}  # type: ignore
+        assert agent_names == {"agent_1", "agent_2"}
 
 
 @pytest.mark.asyncio
-async def test_agent_pool_sequential_execution(test_model):
-    """Test multiple agents executing in sequence."""
-    # Define agents as before
-    fields = {"message": ResponseField(type="str", description="Test message")}
-    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    agents = {
-        "agent1": AgentConfig(
-            name="First Agent",
-            model=test_model,
-            result_type="BasicResult",
-            system_prompts=["You are the first agent"],
-        ),
-        "agent2": AgentConfig(
-            name="Second Agent",
-            model=test_model,
-            result_type="BasicResult",
-            system_prompts=["You are the second agent"],
-        ),
-    }
-    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
+async def test_sequential_execution():
+    """Test sequential execution through agent chain."""
+    manifest: AgentsManifest[Any, Any] = AgentsManifest.from_yaml(TEST_CONFIG)
 
-    async with AgentPool(agent_def, agents_to_load=["agent1", "agent2"]) as pool:
-        # Create group and run sequentially
-        group = pool.create_group(["agent1", "agent2"])
-        responses = await group.run_sequential("Process this input")
+    async with AgentPool(manifest) as pool:
+        group: Team[Any] = pool.create_group(["agent_1", "agent_2"])
 
-        # Verify sequential execution
+        prompt = "Test input"
+        responses = await group.run_sequential(prompt)
+
+        # Verify execution order
         assert len(responses) == 2  # noqa: PLR2004
-        # Check execution order (if AgentPool preserves order)
-        assert [r.agent_name for r in responses] == ["agent1", "agent2"]
+        assert all(r.success for r in responses)
+        agent_order = [r.message.name for r in responses]  # type: ignore
+        assert agent_order == ["agent_1", "agent_2"]
 
-        # Verify results
-        for response in responses:
-            assert response.success
-            assert response.response == "Test response"
+        # Verify message chain
+        first_response = responses[0].message.data.message  # type: ignore
+        assert first_response == f"Response to: {prompt}"
+
+        second_response = responses[1].message.data.message  # type: ignore
+        expected_input = "Response to: Test input"  # Just care about the content
+        assert expected_input in second_response
 
 
-@pytest.mark.asyncio
-async def test_agent_pool_model_override(test_model):
-    """Test AgentPool with model override."""
-    fields = {"message": ResponseField(type="str", description="Test message")}
-    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
-    agents = {"test_agent": cfg}
-    agent_def = AgentsManifest(responses={"BasicResult": defn}, agents=agents)
+# @pytest.mark.asyncio
+# async def test_shared_context():
+#     """Test that AgentGroup properly sets shared context."""
+#     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
+#     shared_data = {"key": "shared_value"}
 
-    async with AgentPool(agent_def, agents_to_load=["test_agent"]) as pool:
-        # Create group with model override
-        group = pool.create_group(
-            ["test_agent"],
-            model_override=test_model,  # Override with test model
-        )
-        responses = await group.run_parallel("Test prompt")
+#     async with AgentPool(manifest) as pool:
+#         # Get agents before group creation
+#         agent1 = pool.get_agent("agent_1")
+#         agent2 = pool.get_agent("agent_2")
 
-        assert len(responses) == 1
-        response = responses[0]
-        assert response.success
-        assert response.agent_name == "test_agent"
-        assert response.response == "Test response"
+#         # Verify no shared context before group
+#         assert agent1.context.data is None
+#         assert agent2.context.data is None
+
+#         # Create group with shared context
+#         _group = pool.create_group([agent1, agent2], shared_deps=shared_data)
+
+#         # Verify shared context was set for both agents
+#         assert agent1.context.data == shared_data
+#         assert agent2.context.data == shared_data

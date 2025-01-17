@@ -127,8 +127,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         # Create requested agents immediately using sync initialization
         for name in to_load:
             agent: AnyAgent[Any, Any] = self.manifest.get_agent(name)
-            if isinstance(agent, StructuredAgent):
-                agent = agent._agent
             self.register(name, agent)
 
         # Then set up worker relationships
