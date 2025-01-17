@@ -619,6 +619,43 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
             return agent.to_structured(result_type)
         return agent
 
+    def register_agent(
+        self,
+        name: str,
+        *,
+        model: str | None = None,
+        system_prompts: list[str] | None = None,
+        description: str | None = None,
+        temporary: bool = False,
+        **kwargs: Any,
+    ) -> AgentConfig:
+        """Register a new agent configuration.
+
+        Args:
+            name: Name of the new agent
+            model: Model to use
+            system_prompts: System prompts for the agent
+            description: Optional description
+            temporary: If True, won't be added to manifest's agents
+            **kwargs: Additional AgentConfig fields
+        """
+        if name in self.agents:
+            msg = f"Agent {name} already exists"
+            raise ValueError(msg)
+
+        config = AgentConfig(
+            name=name,
+            model=model,
+            system_prompts=system_prompts or [],
+            description=description,
+            **kwargs,
+        )
+
+        if not temporary:
+            self.agents[name] = config
+
+        return config
+
     @classmethod
     def from_file(cls, path: StrPath) -> Self:
         """Load agent configuration from YAML file.
