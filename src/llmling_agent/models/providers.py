@@ -42,7 +42,7 @@ class AIProviderConfig(BaseProviderConfig):
     and validation.
     """
 
-    type: Literal["ai"] = Field("ai", init=False)
+    type: Literal["pydantic_ai"] = Field("pydantic_ai", init=False)
     """Type discriminator for AI provider."""
 
     end_strategy: EndStrategy = "early"

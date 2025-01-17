@@ -9,7 +9,7 @@ The default provider, using pydantic-ai for language model integration.
 agents:
   my-agent:
     type:
-      type: "ai"  # provider discriminator
+      type: "pydantic_ai"  # provider discriminator
       name: "gpt4-agent"  # optional provider instance name
       end_strategy: "early"  # "early" | "complete" | "confirm"
       result_retries: 3  # max retries for result validation
@@ -66,7 +66,7 @@ agents:
 For common providers, you can use string shortcuts instead of full configuration:
 
 ```yaml
-type: "ai"  # Use default AI provider (pydantic-ai
+type: "pydantic_ai"  # Use default AI provider (pydantic-ai
 # or
 type: "human"  # Use default human provider
 # or

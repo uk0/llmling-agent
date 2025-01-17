@@ -4,8 +4,8 @@
       "description": "Configuration for PydanticAI-based provider.\n\nThis provider uses PydanticAI for handling model interactions, tool calls,\nand structured outputs. It provides fine-grained control over model behavior\nand validation.",
       "properties": {
         "type": {
-          "const": "ai",
-          "default": "ai",
+          "const": "pydantic_ai",
+          "default": "pydantic_ai",
           "description": "Type discriminator for AI provider.",
           "title": "Type",
           "type": "string"
@@ -26,10 +26,7 @@
         "end_strategy": {
           "default": "early",
           "description": "How to handle tool calls when final result found:\n- early: Stop when valid result found\n- complete: Run all requested tools\n- confirm: Ask user what to do",
-          "enum": [
-            "early",
-            "exhaustive"
-          ],
+          "enum": ["early", "exhaustive"],
           "title": "End Strategy",
           "type": "string"
         },
@@ -144,7 +141,7 @@
             {
               "discriminator": {
                 "mapping": {
-                  "ai": "#/$defs/AIProviderConfig",
+                  "pydantic_ai": "#/$defs/AIProviderConfig",
                   "callback": "#/$defs/CallbackProviderConfig",
                   "human": "#/$defs/HumanProviderConfig",
                   "litellm": "#/$defs/LiteLLMProviderConfig"
@@ -167,15 +164,11 @@
               ]
             },
             {
-              "enum": [
-                "ai",
-                "human",
-                "litellm"
-              ],
+              "enum": ["pydantic_ai", "human", "litellm"],
               "type": "string"
             }
           ],
-          "default": "ai",
+          "default": "pydantic_ai",
           "description": "Provider configuration or shorthand type",
           "title": "Type"
         },
@@ -436,10 +429,7 @@
         "end_strategy": {
           "default": "early",
           "description": "The strategy for handling multiple tool calls when a final result is found",
-          "enum": [
-            "early",
-            "exhaustive"
-          ],
+          "enum": ["early", "exhaustive"],
           "title": "End Strategy",
           "type": "string"
         },
@@ -594,11 +584,7 @@
         "connection_type": {
           "default": "run",
           "description": "How messages should be handled by the target agent.",
-          "enum": [
-            "run",
-            "context",
-            "forward"
-          ],
+          "enum": ["run", "context", "forward"],
           "title": "Connection Type",
           "type": "string"
         },
@@ -623,9 +609,7 @@
           "title": "Delay"
         }
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "title": "AgentConnectionConfig",
       "type": "object"
     },
@@ -721,9 +705,7 @@
           "title": "Min Context Tokens"
         }
       },
-      "required": [
-        "prompt"
-      ],
+      "required": ["prompt"],
       "title": "AgentTask",
       "type": "object"
     },
@@ -837,9 +819,7 @@
           "title": "Timeout"
         }
       },
-      "required": [
-        "command"
-      ],
+      "required": ["command"],
       "title": "CLIResource",
       "type": "object"
     },
@@ -916,9 +896,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "CallableResource",
       "type": "object"
     },
@@ -950,9 +928,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "callback"
-      ],
+      "required": ["callback"],
       "title": "CallbackProviderConfig",
       "type": "object"
     },
@@ -980,22 +956,14 @@
         "history_access": {
           "default": "none",
           "description": "Level of access to conversation history.",
-          "enum": [
-            "none",
-            "own",
-            "all"
-          ],
+          "enum": ["none", "own", "all"],
           "title": "History Access",
           "type": "string"
         },
         "stats_access": {
           "default": "none",
           "description": "Level of access to usage statistics.",
-          "enum": [
-            "none",
-            "own",
-            "all"
-          ],
+          "enum": ["none", "own", "all"],
           "title": "Stats Access",
           "type": "string"
         },
@@ -1103,18 +1071,12 @@
         "strategy": {
           "default": "best_within_budget",
           "description": "Strategy for model selection.",
-          "enum": [
-            "cheapest_possible",
-            "best_within_budget"
-          ],
+          "enum": ["cheapest_possible", "best_within_budget"],
           "title": "Strategy",
           "type": "string"
         }
       },
-      "required": [
-        "models",
-        "max_input_cost"
-      ],
+      "required": ["models", "max_input_cost"],
       "title": "CostOptimizedMultiModel",
       "type": "object"
     },
@@ -1148,9 +1110,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "CustomToolsetConfig",
       "type": "object"
     },
@@ -1199,11 +1159,7 @@
           "title": "Model Descriptions"
         }
       },
-      "required": [
-        "models",
-        "selector_model",
-        "selection_prompt"
-      ],
+      "required": ["models", "selector_model", "selection_prompt"],
       "title": "DelegationMultiModel",
       "type": "object"
     },
@@ -1284,10 +1240,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "description",
-        "import_path"
-      ],
+      "required": ["description", "import_path"],
       "title": "DynamicPrompt",
       "type": "object"
     },
@@ -1321,9 +1274,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "module"
-      ],
+      "required": ["module"],
       "title": "EntryPointToolsetConfig",
       "type": "object"
     },
@@ -1347,9 +1298,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "models"
-      ],
+      "required": ["models"],
       "title": "FallbackMultiModel",
       "type": "object"
     },
@@ -1374,9 +1323,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "title": "FileConnectionConfig",
       "type": "object"
     },
@@ -1408,9 +1355,7 @@
           "title": "Config File Path"
         }
       },
-      "required": [
-        "uri"
-      ],
+      "required": ["uri"],
       "title": "FileEnvironment",
       "type": "object"
     },
@@ -1465,11 +1410,7 @@
         "format": {
           "default": "text",
           "description": "Format of the file content (text, markdown, or jinja2 template).",
-          "enum": [
-            "text",
-            "markdown",
-            "jinja2"
-          ],
+          "enum": ["text", "markdown", "jinja2"],
           "title": "Format",
           "type": "string"
         },
@@ -1487,10 +1428,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "description",
-        "path"
-      ],
+      "required": ["description", "path"],
       "title": "FilePrompt",
       "type": "object"
     },
@@ -1541,12 +1479,7 @@
         "format": {
           "anyOf": [
             {
-              "enum": [
-                "yaml",
-                "toml",
-                "json",
-                "ini"
-              ],
+              "enum": ["yaml", "toml", "json", "ini"],
               "type": "string"
             },
             {
@@ -1565,9 +1498,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "title": "FileStorageConfig",
       "type": "object"
     },
@@ -1645,10 +1576,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "name",
-        "paths"
-      ],
+      "required": ["name", "paths"],
       "title": "FileWatchConfig",
       "type": "object"
     },
@@ -1714,13 +1642,7 @@
         "log_level": {
           "default": "INFO",
           "description": "Log level for LLMling core.",
-          "enum": [
-            "DEBUG",
-            "INFO",
-            "WARNING",
-            "ERROR",
-            "CRITICAL"
-          ],
+          "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
           "title": "Log Level",
           "type": "string"
         },
@@ -1803,9 +1725,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "model"
-      ],
+      "required": ["model"],
       "title": "ImportModel",
       "type": "object"
     },
@@ -1870,9 +1790,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "ImportedResponseDefinition",
       "type": "object"
     },
@@ -2102,9 +2020,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "fields"
-      ],
+      "required": ["fields"],
       "title": "InlineResponseDefinition",
       "type": "object"
     },
@@ -2227,11 +2143,7 @@
         "newline_sequence": {
           "default": "\n",
           "description": "Sequence that starts a newline (default: '\n').",
-          "enum": [
-            "\n",
-            "\r\n",
-            "\r"
-          ],
+          "enum": ["\n", "\r\n", "\r"],
           "title": "Newline Sequence",
           "type": "string"
         },
@@ -2252,12 +2164,7 @@
         "undefined": {
           "default": "default",
           "description": "Behavior when accessing undefined variables (default, strict, debug, chainable).",
-          "enum": [
-            "default",
-            "strict",
-            "debug",
-            "chainable"
-          ],
+          "enum": ["default", "strict", "debug", "chainable"],
           "title": "Undefined",
           "type": "string"
         },
@@ -2509,12 +2416,7 @@
       "description": "Content item in a message.",
       "properties": {
         "type": {
-          "enum": [
-            "text",
-            "resource",
-            "image_url",
-            "image_base64"
-          ],
+          "enum": ["text", "resource", "image_url", "image_base64"],
           "title": "Type",
           "type": "string"
         },
@@ -2535,10 +2437,7 @@
           "title": "Alt Text"
         }
       },
-      "required": [
-        "type",
-        "content"
-      ],
+      "required": ["type", "content"],
       "title": "MessageContent",
       "type": "object"
     },
@@ -2585,9 +2484,7 @@
           "title": "Base Url"
         }
       },
-      "required": [
-        "spec"
-      ],
+      "required": ["spec"],
       "title": "OpenAPIToolsetConfig",
       "type": "object"
     },
@@ -2667,9 +2564,7 @@
           "title": "Path"
         }
       },
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "title": "PathResource",
       "type": "object"
     },
@@ -2695,9 +2590,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "title": "ProcessingStep",
       "type": "object"
     },
@@ -2760,9 +2653,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "ProcessorConfig",
       "type": "object"
     },
@@ -2770,12 +2661,7 @@
       "description": "A message in a prompt template.",
       "properties": {
         "role": {
-          "enum": [
-            "system",
-            "user",
-            "assistant",
-            "tool"
-          ],
+          "enum": ["system", "user", "assistant", "tool"],
           "title": "Role",
           "type": "string"
         },
@@ -2798,9 +2684,7 @@
           "title": "Content"
         }
       },
-      "required": [
-        "role"
-      ],
+      "required": ["role"],
       "title": "PromptMessage",
       "type": "object"
     },
@@ -2862,9 +2746,7 @@
           "title": "Completion Function"
         }
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "title": "PromptParameter",
       "type": "object"
     },
@@ -2964,9 +2846,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "title": "ResponseField",
       "type": "object"
     },
@@ -3062,9 +2942,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "url"
-      ],
+      "required": ["url"],
       "title": "SSEMCPServer",
       "type": "object"
     },
@@ -3144,11 +3022,7 @@
           "anyOf": [
             {
               "items": {
-                "enum": [
-                  "user",
-                  "assistant",
-                  "system"
-                ],
+                "enum": ["user", "assistant", "system"],
                 "type": "string"
               },
               "type": "array",
@@ -3265,9 +3139,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "SourceResource",
       "type": "object"
     },
@@ -3322,10 +3194,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "description",
-        "messages"
-      ],
+      "required": ["description", "messages"],
       "title": "StaticPrompt",
       "type": "object"
     },
@@ -3375,9 +3244,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "command"
-      ],
+      "required": ["command"],
       "title": "StdioMCPServer",
       "type": "object"
     },
@@ -3472,9 +3339,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "identifier"
-      ],
+      "required": ["identifier"],
       "title": "StringModel",
       "type": "object"
     },
@@ -3616,20 +3481,14 @@
         "format": {
           "default": "chronological",
           "description": "Log format template to use",
-          "enum": [
-            "chronological",
-            "conversations"
-          ],
+          "enum": ["chronological", "conversations"],
           "title": "Format",
           "type": "string"
         },
         "template": {
           "anyOf": [
             {
-              "enum": [
-                "chronological",
-                "conversations"
-              ],
+              "enum": ["chronological", "conversations"],
               "type": "string"
             },
             {
@@ -3650,9 +3509,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "title": "TextLogConfig",
       "type": "object"
     },
@@ -3724,9 +3581,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "content"
-      ],
+      "required": ["content"],
       "title": "TextResource",
       "type": "object"
     },
@@ -3752,17 +3607,12 @@
         "strategy": {
           "default": "efficient",
           "description": "Model selection strategy.",
-          "enum": [
-            "efficient",
-            "maximum_context"
-          ],
+          "enum": ["efficient", "maximum_context"],
           "title": "Strategy",
           "type": "string"
         }
       },
-      "required": [
-        "models"
-      ],
+      "required": ["models"],
       "title": "TokenOptimizedMultiModel",
       "type": "object"
     },
@@ -3802,9 +3652,7 @@
           "title": "Description"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "ToolConfig",
       "type": "object"
     },
@@ -3835,11 +3683,7 @@
           "title": "Outer Typed Dict Key"
         }
       },
-      "required": [
-        "name",
-        "description",
-        "parameters_json_schema"
-      ],
+      "required": ["name", "description", "parameters_json_schema"],
       "title": "ToolDefinition",
       "type": "object"
     },
@@ -3931,11 +3775,7 @@
           "title": "Secret"
         }
       },
-      "required": [
-        "name",
-        "port",
-        "path"
-      ],
+      "required": ["name", "port", "path"],
       "title": "WebhookConfig",
       "type": "object"
     },
@@ -3966,9 +3806,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "title": "WorkerConfig",
       "type": "object"
     },
@@ -3986,9 +3824,7 @@
           "$ref": "#/$defs/TestModel"
         }
       },
-      "required": [
-        "model"
-      ],
+      "required": ["model"],
       "title": "_TestModelWrapper",
       "type": "object"
     }

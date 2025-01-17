@@ -26,21 +26,21 @@ class Ticket(BaseModel):
 AGENT_CONFIG = """
 agents:
   classifier:
-    type: ai
+    type: pydantic_ai
     name: "Classifier"
     model: openai:gpt-4o-mini
     system_prompts:
       - Classify support requests into tech or billing tickets.
 
   tech_support:
-    type: ai
+    type: pydantic_ai
     name: "Tech Support"
     model: openai:gpt-4o-mini
     system_prompts:
       - Handle technical support tickets.
 
   billing_support:
-    type: ai
+    type: pydantic_ai
     name: "Billing Support"
     model: openai:gpt-4o-mini
     system_prompts:

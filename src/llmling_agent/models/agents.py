@@ -96,7 +96,7 @@ class AgentConfig(BaseModel):
     The configuration can be loaded from YAML or created programmatically.
     """
 
-    type: ProviderConfig | Literal["ai", "human", "litellm"] = "ai"
+    type: ProviderConfig | Literal["pydantic_ai", "human", "litellm"] = "pydantic_ai"
     """Provider configuration or shorthand type"""
 
     name: str | None = None
@@ -277,7 +277,7 @@ class AgentConfig(BaseModel):
         provider_config = self.type
         if isinstance(provider_config, str):
             match provider_config:
-                case "ai":
+                case "pydantic_ai":
                     provider_config = AIProviderConfig()
                 case "human":
                     provider_config = HumanProviderConfig()

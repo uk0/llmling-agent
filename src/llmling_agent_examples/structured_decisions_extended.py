@@ -46,7 +46,7 @@ class Resolution(BaseModel):
 AGENT_CONFIG = """
 agents:
   classifier:
-    type: ai
+    type: pydantic_ai
     name: "Ticket Classifier"
     model: openai:gpt-4o-mini
     description: "Analyzes requests and creates structured tickets"
@@ -56,7 +56,7 @@ agents:
         Consider urgency, category, and whether human review is needed.
 
   tech_support:
-    type: ai
+    type: pydantic_ai
     name: "Technical Support"
     model: openai:gpt-4o-mini
     system_prompts:
@@ -65,7 +65,7 @@ agents:
         Provide clear solutions and mark if followup is needed.
 
   billing:
-    type: ai
+    type: pydantic_ai
     name: "Billing Support"
     model: openai:gpt-4o-mini
     system_prompts:

@@ -76,7 +76,9 @@ logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=None)
-AgentType = Literal["ai", "human", "litellm"] | AgentProvider | Callable[..., Any]
+AgentType = (
+    Literal["pydantic_ai", "human", "litellm"] | AgentProvider | Callable[..., Any]
+)
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
 
@@ -154,7 +156,7 @@ class Agent[TDeps](TaskManagerMixin):
     def __init__(
         self,
         name: str = "llmling-agent",
-        provider: AgentType = "ai",
+        provider: AgentType = "pydantic_ai",
         *,
         model: ModelType = None,
         runtime: RuntimeConfig | Config | StrPath | None = None,
@@ -240,7 +242,7 @@ class Agent[TDeps](TaskManagerMixin):
 
         # Initialize provider based on type
         match provider:
-            case "ai":
+            case "pydantic_ai":
                 if model and not isinstance(model, str):
                     from pydantic_ai import models
 
@@ -502,7 +504,7 @@ class Agent[TDeps](TaskManagerMixin):
         match value:
             case AgentProvider():
                 self._provider = value
-            case "ai":
+            case "pydantic_ai":
                 self._provider = PydanticAIProvider(model=model)
             case "human":
                 self._provider = HumanProvider()
