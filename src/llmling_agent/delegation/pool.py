@@ -41,6 +41,7 @@ logger = get_logger(__name__)
 
 
 TResult = TypeVar("TResult", default=Any)
+TPoolDeps = TypeVar("TPoolDeps", default=None)
 
 
 @dataclass
@@ -72,16 +73,23 @@ class AgentResponse[TResult]:
         return self.message.content if self.message else None
 
 
-class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
-    """Pool of initialized agents.
+class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
+    """Pool for managing multiple agents with shared dependencies.
 
-    Each agent maintains its own runtime environment based on its configuration.
+    The pool acts as a central registry and dependency provider for agents.
+    By default, all agents share the pool's dependencies, but individual
+    agents can override with custom dependencies.
+
+    Generic Parameters:
+        TPoolDeps: Type of shared dependencies used across agents.
+                   Can be None if no shared dependencies are needed.
     """
 
     def __init__(
         self,
         manifest: StrPath | AgentsManifest[Any, TResult] | None = None,
         *,
+        shared_deps: TPoolDeps | None = None,
         agents_to_load: list[str] | None = None,
         connect_agents: bool = True,
         confirmation_callback: ConfirmationCallback | None = None,
@@ -90,10 +98,15 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
         Args:
             manifest: Agent configuration manifest
+            shared_deps: Dependencies to share across all agents
             agents_to_load: Optional list of agent names to initialize
                           If None, all agents from manifest are loaded
             connect_agents: Whether to set up forwarding connections
-            confirmation_callback: Handler callback for tool / step confirmations.
+            confirmation_callback: Handler callback for tool / step confirmations
+
+        Raises:
+            ValueError: If manifest contains invalid agent configurations
+            RuntimeError: If agent initialization fails
         """
         super().__init__()
         from llmling_agent.models.agents import AgentsManifest
@@ -109,6 +122,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             case _:
                 msg = f"Invalid config path: {manifest}"
                 raise ValueError(msg)
+        self.shared_deps = shared_deps
         self._confirmation_callback = confirmation_callback
         self.exit_stack = AsyncExitStack()
         self.storage = StorageManager(self.manifest.storage)
@@ -126,7 +140,9 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         self.pool_talk = TeamTalk.from_agents(list(self.agents.values()))
         # Create requested agents immediately using sync initialization
         for name in to_load:
-            agent: AnyAgent[Any, Any] = self.manifest.get_agent(name)
+            agent: AnyAgent[Any, Any] = self.manifest.get_agent(
+                name, deps=self.shared_deps
+            )
             self.register(name, agent)
 
         # Then set up worker relationships
@@ -169,14 +185,34 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         await self.exit_stack.aclose()
         self.clear()
 
+    @overload
     def create_group[TDeps](
         self,
         agents: Sequence[str | AnyAgent[TDeps, Any]] | None = None,
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
-        shared_deps: TDeps | None = None,
-    ) -> Team[TDeps]:
+        shared_deps: Any = None,
+    ) -> Team[TDeps]: ...
+
+    @overload
+    def create_group(
+        self,
+        agents: Sequence[str | AnyAgent[Any, Any]] | None = None,
+        *,
+        model_override: str | None = None,
+        shared_prompt: str | None = None,
+        shared_deps: Any = None,
+    ) -> Team[Any]: ...  # Fallback for mixed agent dep types
+
+    def create_group(
+        self,
+        agents: Sequence[str | AnyAgent[Any, Any]] | None = None,
+        *,
+        model_override: str | None = None,
+        shared_prompt: str | None = None,
+        shared_deps: Any = None,
+    ) -> Team[Any]:
         """Create a group from agent names or instances.
 
         Args:
@@ -191,7 +227,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             agents = list(self.agents.keys())
 
         # First resolve/configure agents
-        resolved_agents: list[AnyAgent[TDeps, Any]] = []
+        resolved_agents: list[AnyAgent[Any, Any]] = []
         for agent in agents:
             if isinstance(agent, str):
                 agent = self.get_agent(agent, model_override=model_override)
@@ -358,13 +394,13 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
     async def clone_agent[TDeps, TResult](
         self,
-        agent: Agent[TDeps] | str,
+        agent: str | AnyAgent[TDeps, TResult],
         new_name: str | None = None,
         *,
         model_override: str | None = None,
         system_prompts: list[str] | None = None,
         template_context: dict[str, Any] | None = None,
-    ) -> Agent[TDeps]:
+    ) -> AnyAgent[TDeps, TResult]:
         """Create a copy of an agent.
 
         Args:
@@ -383,7 +419,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
                 msg = f"Agent {agent} not found"
                 raise KeyError(msg)
             config = self.manifest.agents[agent]
-            original_agent: Agent[TDeps] = self.get_agent(agent)
+            original_agent: AnyAgent[Any, Any] = self.get_agent(agent)
         else:
             config = agent.context.config  # type: ignore
             original_agent = agent
@@ -435,25 +471,13 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
                 raise ValueError(msg) from e
 
     @overload
-    def get_agent[TDeps, TResult](
+    def get_agent(
         self,
         agent: str | Agent[Any],
         *,
-        deps: TDeps,
-        return_type: type[TResult],
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
-    ) -> StructuredAgent[TDeps, TResult]: ...
-
-    @overload
-    def get_agent[TDeps](
-        self,
-        agent: str | Agent[Any],
-        *,
-        deps: TDeps,
-        model_override: str | None = None,
-        session: SessionIdType | SessionQuery = None,
-    ) -> Agent[TDeps]: ...
+    ) -> Agent[TPoolDeps]: ...
 
     @overload
     def get_agent[TResult](
@@ -463,58 +487,82 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
         return_type: type[TResult],
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
-    ) -> StructuredAgent[Any, TResult]: ...
+    ) -> StructuredAgent[TPoolDeps, TResult]: ...
 
     @overload
+    def get_agent[TCustomDeps](
+        self,
+        agent: str | Agent[Any],
+        *,
+        deps: TCustomDeps,
+        model_override: str | None = None,
+        session: SessionIdType | SessionQuery = None,
+    ) -> Agent[TCustomDeps]: ...
+
+    @overload
+    def get_agent[TCustomDeps, TResult](
+        self,
+        agent: str | Agent[Any],
+        *,
+        deps: TCustomDeps,
+        return_type: type[TResult],
+        model_override: str | None = None,
+        session: SessionIdType | SessionQuery = None,
+    ) -> StructuredAgent[TCustomDeps, TResult]: ...
+
     def get_agent(
         self,
         agent: str | Agent[Any],
         *,
+        deps: Any | None = None,
+        return_type: Any | None = None,
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
-    ) -> Agent[Any]: ...
+    ) -> AnyAgent[Any, Any]:
+        """Get or configure an agent from the pool.
 
-    def get_agent[TDeps, TResult](
-        self,
-        agent: str | Agent[Any],
-        *,
-        deps: TDeps | None = None,
-        return_type: type[TResult] | None = None,
-        model_override: str | None = None,
-        session: SessionIdType | SessionQuery = None,
-    ) -> AnyAgent[TDeps, TResult]:
-        """Get or wrap an agent.
+        This method provides flexible agent configuration with dependency injection:
+        - Without deps: Agent uses pool's shared dependencies
+        - With deps: Agent uses provided custom dependencies
+        - With return_type: Returns a StructuredAgent with type validation
 
         Args:
             agent: Either agent name or instance
-            deps: Dependencies for the agent
-            return_type: Optional type to make agent structured
+            deps: Optional custom dependencies (overrides shared deps)
+            return_type: Optional type for structured responses
             model_override: Optional model override
-            session: Optional session ID or Session query to recover conversation
+            session: Optional session ID or query to recover conversation
 
         Returns:
-            Either regular Agent or StructuredAgent depending on return_type
+            Either:
+            - Agent[TPoolDeps] when using pool's shared deps
+            - Agent[TCustomDeps] when custom deps provided
+            - StructuredAgent when return_type provided
 
         Raises:
             KeyError: If agent name not found
-            ValueError: If environment configuration is invalid
+            ValueError: If configuration is invalid
         """
         # Get base agent
         base = agent if isinstance(agent, Agent) else self.agents[agent]
-        if deps is not None:
-            base.context = base.context or AgentContext[TDeps].create_default(base.name)
-            base.context.data = deps
+
+        # Setup context and dependencies
+        if base.context is None:
+            base.context = AgentContext[Any].create_default(base.name)
+
+        # Use custom deps if provided, otherwise use shared deps
+        base.context.data = deps if deps is not None else self.shared_deps
 
         # Apply overrides
         if model_override:
-            base.set_model(model_override)  # type: ignore
+            base.set_model(model_override)
 
         if session:
             base.conversation.load_history_from_database(session=session)
 
-        # Wrap in StructuredAgent if return_type provided
+        # Convert to structured if needed
         if return_type is not None:
-            return StructuredAgent[Any, TResult](base, return_type)
+            return base.to_structured(return_type)
 
         return base
 
@@ -606,7 +654,7 @@ if __name__ == "__main__":
 
     async def main():
         path = "src/llmling_agent/config/resources/agents.yml"
-        async with AgentPool(path) as pool:
+        async with AgentPool[None](path) as pool:
             agent: Agent[Any] = pool.get_agent("overseer")
             print(agent)
 

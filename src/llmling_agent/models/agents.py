@@ -595,8 +595,9 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         runtime = RuntimeConfig.from_config(cfg)
 
         # Create context with config path and capabilities
-        context = AgentContext[Any](
+        context = AgentContext[TAgentDeps](
             agent_name=name,
+            data=deps,
             capabilities=config.capabilities,
             definition=self,
             config=config,
@@ -608,7 +609,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         # set model for provider (the setting should move to provider config soon)
         provider._model = config.model
         # Create agent with runtime and context
-        agent: AnyAgent[Any, Any] = Agent[Any](
+        agent: AnyAgent[TAgentDeps, Any] = Agent[Any](
             runtime=runtime,
             context=context,
             model=config.model,
@@ -689,7 +690,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
         from llmling_agent.delegation import AgentPool
 
         # Create empty pool just for context
-        pool = AgentPool(manifest=self, agents_to_load=[], connect_agents=False)
+        pool = AgentPool[TDeps](manifest=self, agents_to_load=[], connect_agents=False)
         try:
             async with Agent[TDeps].open_agent(  # type: ignore
                 self,
