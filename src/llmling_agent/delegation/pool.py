@@ -302,6 +302,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         if not isinstance(item, Agent | StructuredAgent):
             msg = f"Item must be Agent, got {type(item)}"
             raise self._error_class(msg)
+        item.context.pool = self
         return item
 
     def _setup_connections(self):
@@ -493,8 +494,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         agent_name = new_agent.name
         self.manifest.agents[agent_name] = new_config
         self.agents[agent_name] = new_agent
-
-        return new_agent
+        return await self.exit_stack.enter_async_context(new_agent)
 
     def setup_agent_workers(self, agent: AnyAgent[Any, Any], workers: list[WorkerConfig]):
         """Set up workers for an agent from configuration."""
