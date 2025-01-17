@@ -604,14 +604,18 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
             # confirmation_callback=confirmation_callback,
         )
 
+        provider = config.get_provider()
+        # set model for provider (the setting should move to provider config soon)
+        provider._model = config.model
         # Create agent with runtime and context
         agent: AnyAgent[Any, Any] = Agent[Any](
             runtime=runtime,
             context=context,
             model=config.model,
-            provider=config.get_provider(),
+            provider=provider,
             system_prompt=config.system_prompts,
-            name=config.name or name,
+            name=name,
+            # name=config.name or name,
             enable_db_logging=config.enable_db_logging,
         )
         if result_type := manifest.get_result_type(name):
