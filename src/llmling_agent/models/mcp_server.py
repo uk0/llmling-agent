@@ -35,6 +35,12 @@ class StdioMCPServer(MCPServerBase):
     args: list[str] = Field(default_factory=list)
     """Command arguments (e.g. ["run", "some-server", "--debug"])."""
 
+    @classmethod
+    def from_string(cls, command: str) -> StdioMCPServer:
+        """Create a MCP server from a command string."""
+        cmd, args = command.split(maxsplit=1)
+        return cls(command=cmd, args=args.split())
+
 
 class SSEMCPServer(MCPServerBase):
     """MCP server using Server-Sent Events transport.

@@ -203,22 +203,18 @@ class Agent[TDeps](TaskManagerMixin):
             debug: Whether to enable debug mode
         """
         super().__init__()
-        self._debug = debug
-        self._result_type = None
 
         # save some stuff for asnyc init
         self._owns_runtime = False
         self._mcp_servers = [
-            StdioMCPServer(command=s.split()[0], args=s.split()[1:])
-            if isinstance(s, str)
-            else s
+            StdioMCPServer.from_string(s) if isinstance(s, str) else s
             for s in (mcp_servers or [])
         ]
-
         # prepare context
         ctx = context or AgentContext[TDeps].create_default(name)
         ctx.confirmation_callback = confirmation_callback
-        self.parallel_init = parallel_init
+
+        # Initialize runtime
         match runtime:
             case None:
                 ctx.runtime = RuntimeConfig.from_config(Config())
@@ -228,13 +224,12 @@ class Agent[TDeps](TaskManagerMixin):
                 ctx.runtime = RuntimeConfig.from_config(Config.from_file(runtime))
             case RuntimeConfig():
                 ctx.runtime = runtime
-        # connect signals
 
         # Initialize tool manager
         all_tools = list(tools or [])
         self._tool_manager = ToolManager(all_tools, tool_choice=tool_choice, context=ctx)
 
-        # set up conversation manager
+        # Initialize conversation manager
         config_prompts = ctx.config.system_prompts if ctx else []
         all_prompts = list(config_prompts)
         if isinstance(system_prompt, str):
@@ -243,7 +238,7 @@ class Agent[TDeps](TaskManagerMixin):
             all_prompts.extend(system_prompt)
         self.conversation = ConversationManager(self, session, all_prompts)
 
-        # Initialize provider based on type
+        # Initialize provider
         match provider:
             case "pydantic_ai":
                 if model and not isinstance(model, str):
@@ -278,15 +273,19 @@ class Agent[TDeps](TaskManagerMixin):
         self._provider.conversation = self.conversation
         ctx.capabilities.register_capability_tools(self)
 
+        # init variables
+        self._debug = debug
+        self._result_type = None
+        self.parallel_init = parallel_init
+        self.name = name
+        self.description = description
+        self._background_task: asyncio.Task[Any] | None = None
+
         # Forward provider signals
         self._provider.chunk_streamed.connect(self.chunk_streamed.emit)
         self._provider.model_changed.connect(self.model_changed.emit)
         self._provider.tool_used.connect(self.tool_used.emit)
         self._provider.model_changed.connect(self.model_changed.emit)
-
-        self.name = name
-        self.description = description
-        logger.debug("Initialized %s (model=%s)", self.name, model)
 
         from llmling_agent.agent import AgentLogger
         from llmling_agent.agent.talk import Interactions
@@ -294,11 +293,8 @@ class Agent[TDeps](TaskManagerMixin):
 
         self.connections = TalkManager(self)
         self.talk = Interactions(self)
-
         self._logger = AgentLogger(self, enable_db_logging=enable_db_logging)
         self._events = EventManager(self, enable_events=True)
-
-        self._background_task: asyncio.Task[Any] | None = None
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
@@ -1428,11 +1424,10 @@ if __name__ == "__main__":
 
     sys_prompt = "Open browser with google, please"
     path = config_resources.OPEN_BROWSER
+    model = "openai:gpt-4o-mini"
 
     async def main():
-        async with Agent[None].open(
-            path, model="openai:gpt-4o-mini", debug=True
-        ) as agent:
+        async with Agent[None].open(path, model=model, debug=True) as agent:
             print(agent.tools.list_items())
             result = await agent.run(sys_prompt)
             print(result.data)
