@@ -81,7 +81,7 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
     def __init__(
         self,
-        manifest: AgentsManifest,
+        manifest: StrPath | AgentsManifest[Any, TResult] | None = None,
         *,
         agents_to_load: list[str] | None = None,
         connect_agents: bool = True,
@@ -97,33 +97,43 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
             confirmation_callback: Handler callback for tool / step confirmations.
         """
         super().__init__()
+        from llmling_agent.models.agents import AgentsManifest
         from llmling_agent.storage import StorageManager
 
-        self.manifest = manifest
+        match manifest:
+            case None:
+                self.manifest = AgentsManifest[Any, Any]()
+            case str():
+                self.manifest = AgentsManifest[Any, Any].from_file(manifest)
+            case AgentsManifest():
+                self.manifest = manifest
+            case _:
+                msg = f"Invalid config path: {manifest}"
+                raise ValueError(msg)
         self._confirmation_callback = confirmation_callback
         self.exit_stack = AsyncExitStack()
-        self.storage = StorageManager(manifest.storage)
+        self.storage = StorageManager(self.manifest.storage)
 
         # Validate requested agents exist
-        to_load = set(agents_to_load) if agents_to_load else set(manifest.agents)
-        if invalid := (to_load - set(manifest.agents)):
+        to_load = set(agents_to_load) if agents_to_load else set(self.manifest.agents)
+        if invalid := (to_load - set(self.manifest.agents)):
             msg = f"Unknown agents: {', '.join(invalid)}"
             raise ValueError(msg)
         # register tasks
         self._tasks = TaskRegistry()
         # Register tasks from manifest
-        for name, task in manifest.tasks.items():
+        for name, task in self.manifest.tasks.items():
             self._tasks.register(name, task)
         self.pool_talk = TeamTalk.from_agents(list(self.agents.values()))
         # Create requested agents immediately using sync initialization
         for name in to_load:
-            agent: AnyAgent[Any, Any] = manifest.get_agent(name)
+            agent: AnyAgent[Any, Any] = self.manifest.get_agent(name)
             if isinstance(agent, StructuredAgent):
                 agent = agent._agent
             self.register(name, agent)
 
         # Then set up worker relationships
-        for name, config in manifest.agents.items():
+        for name, config in self.manifest.agents.items():
             if name in self and config.workers:
                 self.setup_agent_workers(self[name], config.workers)
 
