@@ -120,9 +120,9 @@ class LiteLLMProvider(AgentProvider[Any]):
 
             # Create tokonomics usage
             usage = Usage(
-                total_tokens=response.usage.prompt_tokens,  # pyright: ignore
-                request_tokens=response.usage.prompt_tokens,  # pyright: ignore
-                response_tokens=response.usage.completion_tokens,  # pyright: ignore
+                total_tokens=response.usage.prompt_tokens,  # type: ignore
+                request_tokens=response.usage.prompt_tokens,  # type: ignore
+                response_tokens=response.usage.completion_tokens,  # type: ignore
             )
 
             # Store in history if requested
