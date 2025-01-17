@@ -33,6 +33,68 @@
           "title": "End Strategy",
           "type": "string"
         },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "cost-optimized": "#/$defs/CostOptimizedMultiModel",
+                  "delegation": "#/$defs/DelegationMultiModel",
+                  "fallback": "#/$defs/FallbackMultiModel",
+                  "import": "#/$defs/ImportModel",
+                  "input": "#/$defs/InputModel",
+                  "remote-input": "#/$defs/RemoteInputModel",
+                  "remote-proxy": "#/$defs/RemoteProxyModel",
+                  "string": "#/$defs/StringModel",
+                  "test": "#/$defs/_TestModelWrapper",
+                  "token-optimized": "#/$defs/TokenOptimizedMultiModel"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/StringModel"
+                },
+                {
+                  "$ref": "#/$defs/DelegationMultiModel"
+                },
+                {
+                  "$ref": "#/$defs/CostOptimizedMultiModel"
+                },
+                {
+                  "$ref": "#/$defs/TokenOptimizedMultiModel"
+                },
+                {
+                  "$ref": "#/$defs/FallbackMultiModel"
+                },
+                {
+                  "$ref": "#/$defs/InputModel"
+                },
+                {
+                  "$ref": "#/$defs/ImportModel"
+                },
+                {
+                  "$ref": "#/$defs/_TestModelWrapper"
+                },
+                {
+                  "$ref": "#/$defs/RemoteInputModel"
+                },
+                {
+                  "$ref": "#/$defs/RemoteProxyModel"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional model name to use. If not specified, uses default model.",
+          "title": "Model"
+        },
         "result_retries": {
           "anyOf": [
             {
@@ -440,7 +502,6 @@
             "discriminator": {
               "mapping": {
                 "file": "#/$defs/FileWatchConfig",
-                "manual": "#/$defs/ManualTriggerConfig",
                 "webhook": "#/$defs/WebhookConfig"
               },
               "propertyName": "type"
@@ -451,9 +512,6 @@
               },
               {
                 "$ref": "#/$defs/WebhookConfig"
-              },
-              {
-                "$ref": "#/$defs/ManualTriggerConfig"
               }
             ]
           },
@@ -999,6 +1057,18 @@
           "default": false,
           "description": "Whether the agent can spawn temporary delegate agents.",
           "title": "Can Create Delegates",
+          "type": "boolean"
+        },
+        "can_add_agents": {
+          "default": false,
+          "description": "Whether the agent can add aother agents to the pool.",
+          "title": "Can Add Agents",
+          "type": "boolean"
+        },
+        "can_ask_agents": {
+          "default": false,
+          "description": "Whether the agent can ask other agents of the pool.",
+          "title": "Can Ask Agents",
           "type": "boolean"
         }
       },
@@ -1714,7 +1784,7 @@
     },
     "ImportModel": {
       "additionalProperties": false,
-      "description": "Model that imports and delegates to other models.",
+      "description": "Model that imports and delegates to other models.\n\nUseful to allow using \"external\" models via YAML in LLMling-Agent",
       "properties": {
         "type": {
           "const": "import",
@@ -1726,6 +1796,11 @@
           "description": "Model class to import and use.",
           "title": "Model",
           "type": "string"
+        },
+        "kw_args": {
+          "description": "Keyword arguments for the imported model class.",
+          "title": "Kw Args",
+          "type": "object"
         }
       },
       "required": [
@@ -2062,6 +2137,7 @@
           "type": "string"
         },
         "handler": {
+          "default": "llmling_models:DefaultInputHandler",
           "description": "Input handler class to use.",
           "title": "Handler",
           "type": "string"
@@ -2384,53 +2460,6 @@
         }
       },
       "title": "LiteLLMProviderConfig",
-      "type": "object"
-    },
-    "ManualTriggerConfig": {
-      "description": "Manual trigger configuration.\n\nDefines actions that can be triggered directly by users through CLI for example.\n\nUnlike other triggers, these don't activate automatically but provide\na way to define reusable agent interactions.",
-      "properties": {
-        "type": {
-          "const": "manual",
-          "default": "manual",
-          "description": "Type discriminator for manual triggers.",
-          "title": "Type",
-          "type": "string"
-        },
-        "name": {
-          "description": "Unique identifier for this event source.",
-          "title": "Name",
-          "type": "string"
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this event source is active.",
-          "title": "Enabled",
-          "type": "boolean"
-        },
-        "prompt": {
-          "description": "Prompt to send to the agent when triggered.",
-          "title": "Prompt",
-          "type": "string"
-        },
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Human-readable description of what this trigger does.",
-          "title": "Description"
-        }
-      },
-      "required": [
-        "name",
-        "prompt"
-      ],
-      "title": "ManualTriggerConfig",
       "type": "object"
     },
     "MemoryStorageConfig": {
@@ -2841,7 +2870,7 @@
     },
     "RemoteInputModel": {
       "additionalProperties": false,
-      "description": "Model that connects to a remote human operator.\n\nExample YAML configuration:\n    ```yaml\n    models:\n      remote-human:\n        type: remote-input\n        url: ws://localhost:8000/v1/chat/stream  # or http://localhost:8000/v1/chat\n        protocol: websocket  # or rest\n        api_key: your-api-key\n    ```",
+      "description": "Model that connects to a remote human operator.\n\nExample YAML configuration:\n    ```yaml\n    models:\n      remote-human:\n        type: remote-input\n        url: ws://localhost:8000/v1/chat/stream  # or http://localhost:8000/v1/chat\n        api_key: your-api-key\n    ```",
       "properties": {
         "type": {
           "const": "remote-input",
@@ -2851,36 +2880,31 @@
           "type": "string"
         },
         "url": {
+          "default": "ws://localhost:8000/v1/chat/stream",
           "description": "URL of the remote input server.",
           "title": "Url",
           "type": "string"
         },
-        "protocol": {
-          "default": "websocket",
-          "description": "Protocol to use for communication.",
-          "enum": [
-            "rest",
-            "websocket"
-          ],
-          "title": "Protocol",
-          "type": "string"
-        },
         "api_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
           "description": "API key for authentication.",
-          "title": "Api Key",
-          "type": "string"
+          "title": "Api Key"
         }
       },
-      "required": [
-        "url",
-        "api_key"
-      ],
       "title": "RemoteInputModel",
       "type": "object"
     },
     "RemoteProxyModel": {
       "additionalProperties": false,
-      "description": "Model that proxies requests to a remote model server.\n\nExample YAML configuration:\n    ```yaml\n    models:\n      remote-gpt4:\n        type: remote-proxy\n        url: ws://model-server:8000/v1/completion  # or http://\n        protocol: websocket  # or rest\n        api_key: your-api-key\n    ```",
+      "description": "Model that proxies requests to a remote model server.\n\nExample YAML configuration:\n    ```yaml\n    models:\n      remote-gpt4:\n        type: remote-proxy\n        url: ws://model-server:8000/v1/completion  # or http://\n        api_key: your-api-key\n    ```",
       "properties": {
         "type": {
           "const": "remote-proxy",
@@ -2890,30 +2914,25 @@
           "type": "string"
         },
         "url": {
+          "default": "ws://localhost:8000/v1/completion/stream",
           "description": "URL of the remote model server.",
           "title": "Url",
           "type": "string"
         },
-        "protocol": {
-          "default": "websocket",
-          "description": "Protocol to use for communication.",
-          "enum": [
-            "rest",
-            "websocket"
-          ],
-          "title": "Protocol",
-          "type": "string"
-        },
         "api_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
           "description": "API key for authentication.",
-          "title": "Api Key",
-          "type": "string"
+          "title": "Api Key"
         }
       },
-      "required": [
-        "url",
-        "api_key"
-      ],
       "title": "RemoteProxyModel",
       "type": "object"
     },
@@ -3449,62 +3468,6 @@
           "type": "string"
         },
         "identifier": {
-          "enum": [
-            "openai:gpt-4o",
-            "openai:gpt-4o-mini",
-            "openai:gpt-4-turbo",
-            "openai:gpt-4",
-            "openai:o1-preview",
-            "openai:o1-mini",
-            "openai:o1",
-            "openai:gpt-3.5-turbo",
-            "groq:llama-3.3-70b-versatile",
-            "groq:llama-3.1-70b-versatile",
-            "groq:llama3-groq-70b-8192-tool-use-preview",
-            "groq:llama3-groq-8b-8192-tool-use-preview",
-            "groq:llama-3.1-70b-specdec",
-            "groq:llama-3.1-8b-instant",
-            "groq:llama-3.2-1b-preview",
-            "groq:llama-3.2-3b-preview",
-            "groq:llama-3.2-11b-vision-preview",
-            "groq:llama-3.2-90b-vision-preview",
-            "groq:llama3-70b-8192",
-            "groq:llama3-8b-8192",
-            "groq:mixtral-8x7b-32768",
-            "groq:gemma2-9b-it",
-            "groq:gemma-7b-it",
-            "google-gla:gemini-1.5-flash",
-            "google-gla:gemini-1.5-pro",
-            "google-gla:gemini-2.0-flash-exp",
-            "google-vertex:gemini-1.5-flash",
-            "google-vertex:gemini-1.5-pro",
-            "google-vertex:gemini-2.0-flash-exp",
-            "mistral:mistral-small-latest",
-            "mistral:mistral-large-latest",
-            "mistral:codestral-latest",
-            "mistral:mistral-moderation-latest",
-            "ollama:codellama",
-            "ollama:gemma",
-            "ollama:gemma2",
-            "ollama:llama3",
-            "ollama:llama3.1",
-            "ollama:llama3.2",
-            "ollama:llama3.2-vision",
-            "ollama:llama3.3",
-            "ollama:mistral",
-            "ollama:mistral-nemo",
-            "ollama:mixtral",
-            "ollama:phi3",
-            "ollama:qwq",
-            "ollama:qwen",
-            "ollama:qwen2",
-            "ollama:qwen2.5",
-            "ollama:starcoder2",
-            "anthropic:claude-3-5-haiku-latest",
-            "anthropic:claude-3-5-sonnet-latest",
-            "anthropic:claude-3-opus-latest",
-            "test"
-          ],
           "title": "Identifier",
           "type": "string"
         }
