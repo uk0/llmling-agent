@@ -54,7 +54,6 @@ class AgentProvider[TDeps]:
     ):
         self._name = name
         self._model = model
-        self._agent: Any = None
 
         self.system_prompt = (
             system_prompt if isinstance(system_prompt, str) else "\n".join(system_prompt)

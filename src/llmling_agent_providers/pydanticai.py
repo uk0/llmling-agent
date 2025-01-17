@@ -15,6 +15,7 @@ from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import Model
 from pydantic_ai.result import StreamedRunResult
 
+from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
 from llmling_agent.pydantic_ai_utils import format_part, get_tool_calls
@@ -34,7 +35,7 @@ if TYPE_CHECKING:
     from pydantic_ai.tools import RunContext
 
     from llmling_agent.agent.conversation import ConversationManager
-    from llmling_agent.common_types import ModelProtocol, ModelType
+    from llmling_agent.common_types import ModelType
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -74,7 +75,7 @@ class PydanticAIProvider(AgentProvider):
         """
         super().__init__(model=model, system_prompt=system_prompt)
         self._debug = debug
-        self._agent: PydanticAgent[Any, Any] = PydanticAgent(
+        self._kwargs = dict(
             model=model,  # type: ignore
             system_prompt=system_prompt,
             name=name,
@@ -86,6 +87,21 @@ class PydanticAIProvider(AgentProvider):
             deps_type=AgentContext,
             **kwargs,
         )
+
+    def get_agent(self) -> PydanticAgent[Any, Any]:
+        agent = PydanticAgent(**self._kwargs)  # type: ignore
+        tools = [t for t in self.tool_manager.values() if t.enabled]
+        for tool in tools:
+            wrapped = (
+                self.wrap_tool(tool, self._context)
+                if self._context
+                else tool.callable.callable
+            )
+            if has_argument_type(wrapped, "RunContext"):
+                agent.tool(wrapped)
+            else:
+                agent.tool_plain(wrapped)
+        return agent
 
     def __repr__(self) -> str:
         model = f", model={self.model_name}" if self.model_name else ""
@@ -176,14 +192,14 @@ class PydanticAIProvider(AgentProvider):
         Returns:
             Response message with optional structured content
         """
-        self._update_tools()
+        agent = self.get_agent()
         message_history = self.conversation.get_history()
         use_model = model or self.model
         if isinstance(use_model, str):
             use_model = infer_model(use_model)  # type: ignore
             self.model_changed.emit(use_model)
         try:
-            result = await self._agent.run(
+            result = await agent.run(
                 prompt,
                 deps=self._context,  # type: ignore
                 message_history=message_history,
@@ -220,27 +236,12 @@ class PydanticAIProvider(AgentProvider):
     @property
     def name(self) -> str:
         """Get agent name."""
-        return self._agent.name or "agent"
+        return self._kwargs.get("name", "agent")  # type: ignore
 
     @name.setter
     def name(self, value: str | None):
         """Set agent name."""
-        self._agent.name = value
-
-    def _update_tools(self):
-        """Update pydantic-ai-agent tools."""
-        self._agent._function_tools.clear()
-        tools = [t for t in self.tool_manager.values() if t.enabled]
-        for tool in tools:
-            wrapped = (
-                self.wrap_tool(tool, self._context)
-                if self._context
-                else tool.callable.callable
-            )
-            if has_argument_type(wrapped, "RunContext"):
-                self._agent.tool(wrapped)
-            else:
-                self._agent.tool_plain(wrapped)
+        self._kwargs["name"] = value
 
     def set_model(self, model: ModelType):
         """Set the model for this agent.
@@ -255,34 +256,21 @@ class PydanticAIProvider(AgentProvider):
         if isinstance(model, str):
             model = infer_model(model)
         self._model = model
-        self._agent.model = model  # type: ignore
+        self._kwargs["model"] = model
         self.model_changed.emit(model)
         logger.debug("Changed model from %s to %s", old_name, self.model_name)
 
     @property
     def model_name(self) -> str | None:
         """Get the model name in a consistent format."""
-        match self._agent.model:
+        match model := self._kwargs["model"]:
             case str() | None:
-                return self._agent.model
+                return model
+            case ModelProtocol():
+                return model.name()
             case _:
-                return self._agent.model.name()
-
-    def result_validator(self, *args: Any, **kwargs: Any) -> Any:
-        """Register a result validator.
-
-        Validators can access runtime through RunContext[AgentContext].
-
-        Example:
-            ```python
-            @agent.result_validator
-            async def validate(ctx: RunContext[AgentContext], result: str) -> str:
-                if len(result) < 10:
-                    raise ModelRetry("Response too short")
-                return result
-            ```
-        """
-        return self._agent.result_validator(*args, **kwargs)
+                msg = f"Invalid model type: {model}"
+                raise ValueError(msg)
 
     @asynccontextmanager
     async def stream_response(
@@ -296,9 +284,8 @@ class PydanticAIProvider(AgentProvider):
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response using pydantic-ai."""
-        self._update_tools()
         message_history = self.conversation.get_history()
-
+        agent = self.get_agent()
         use_model = model or self.model
         if isinstance(use_model, str):
             use_model = infer_model(use_model)
@@ -309,9 +296,9 @@ class PydanticAIProvider(AgentProvider):
         if self._debug:
             from devtools import debug
 
-            debug(self._agent)
+            debug(agent)
 
-        async with self._agent.run_stream(
+        async with agent.run_stream(
             prompt,
             deps=self._context,  # type: ignore
             message_history=message_history,
