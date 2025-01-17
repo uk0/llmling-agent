@@ -68,7 +68,7 @@ class PromptLibrary(BaseModel):
             ValueError: If file content is invalid
         """
         try:
-            data = yamling.load_yaml_file(path)
+            data = yamling.load_yaml_file(path, resolve_inherit=True)
             return cls.model_validate(data)
         except Exception as e:
             msg = f"Failed to load prompts from {path}"

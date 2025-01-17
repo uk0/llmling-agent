@@ -165,7 +165,11 @@ class UIState(TaskManagerMixin):
 
             # Update available files and load agents
             files = [str(UPath(p)) for _, p in store.list_configs()]
-            data = yamling.load_yaml_file(str(file_path), verify_type=dict)  # type: ignore
+            data = yamling.load_yaml_file(
+                str(file_path),
+                verify_type=dict,  # type: ignore
+                resolve_inherit=True,
+            )
             agents = list(data.get("agents", {}).keys())
             msg = f"Loaded {len(agents)} agents from {file_path.name}"
             logs = self.get_debug_logs()

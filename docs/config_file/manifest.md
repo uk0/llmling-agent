@@ -183,6 +183,10 @@ tasks:
     `# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json`
     Versioned config files will arrive soon!
 
+LLMling-Agent supports the YAML inheritance functionality for the manifest also known from MkDocs, using the
+INHERIT key on the top level. It even supports UPaths (universal-pathlib)
+
+
  ## Next Steps
  - [Environment Configuration](environment.md) for detailed tool/resource setup
  - [Response Types](responses.md) for structured output configuration

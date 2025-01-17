@@ -633,7 +633,7 @@ class AgentsManifest[TDeps, TResult](ConfigModel):
             ValueError: If loading fails
         """
         try:
-            data = yamling.load_yaml_file(path)
+            data = yamling.load_yaml_file(path, resolve_inherit=True)
             # Set identifier as name if not set
             for identifier, config in data["agents"].items():
                 if not config.get("name"):
