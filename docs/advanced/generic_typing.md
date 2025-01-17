@@ -62,7 +62,7 @@ group2 = pool.create_group([basic, custom])  # Team[Any]
 
 Unlike PydanticAI's unified Agent class, LLMling splits these concerns into two classes.
 This separation more has historical reasons since pydantic-ai didnt support per-run return types.
-It might get re-evaluated in the future, but right now I cant spot any bigger downsides doing it.
+It might get re-evaluated in the future, but right now I cant spot any bigger downsides doing it this way.
 
 The bridge between YAML configuration and code is the `get_agent` method, which enables type-safe agent creation:
 
@@ -73,7 +73,7 @@ agent = pool.get_agent("name", return_type=MyResponseType)
 ```
 
 For type safety, programmatic usage with explicit return_type is preferred over YAML response type definitions.
-You will still get a StructuredAgent when you assign a return_type via YAML, but the linter will only recoginize it a as
+You will still get a StructuredAgent when you assign a return_type via YAML, but the linter will only recoginize the return type a as
 a BaseModel since the type is generated dynamically.
 
 ## Multi-Agent Type System
@@ -94,7 +94,8 @@ team = Team[MyDeps]([agent1, agent2])  # all Agent[MyDeps]
 team = Team[Any]([agent1: Agent[Deps1], agent2: Agent[Deps2]])
 ```
 
-Type information is preserved when all team members share the same dependency type. When mixing agents with different dependency types, we must fall back to Any due to the limitations of the type system in representing mixed dependencies.
+Type information is preserved when all team members share the same dependency type. When mixing agents with different dependency types,
+we must fall back to Any due to the limitations of the type system in representing mixed dependencies.
 
 ### Communication Types
 ```python
@@ -102,4 +103,7 @@ class Talk[TTransmittedData]:
     """Type-safe communication channel between agents."""
 ```
 
-The Talk class is generically typed over the transmitted message content, providing IDE support for type checking agent communications. While currently primarily serving type hint purposes, this typing lays the groundwork for future "Structured Connections" - a system for type-safe, structured communication between agents.
+The Talk class is generically typed over the transmitted message content, providing IDE support for type checking agent communications.
+While currently primarily serving type hint purposes, this typing lays the groundwork for future "Structured Connections" - a system for type-safe,
+structured communication between agents. (We already do this now already, but since our Agent currently takes any BaseModel input and converts it to LLM-readable form,
+this doesnt yet guarantee "real" type-safe connections based on specific BaseModels subclasses)
