@@ -8,7 +8,7 @@ from typing import Any
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent.models import AgentConfig, AgentsManifest, SystemPrompt
+from llmling_agent.models import AgentConfig, AgentsManifest
 from llmling_agent.responses import InlineResponseDefinition, ResponseField
 from llmling_agent_functional import run_agent_pipeline, run_agent_pipeline_sync
 
@@ -66,17 +66,6 @@ class TestAgentPipeline:
         assert isinstance(result, str)
         assert result == "Test response"  # From TestModel fixture
 
-    async def test_system_prompt(self, pipeline_manifest: AgentsManifest):
-        """Test using SystemPrompt."""
-        prompt = SystemPrompt(type="text", value="Test instruction")
-        result = await run_agent_pipeline(
-            "test_agent",
-            prompt,
-            pipeline_manifest,
-            output_format="text",
-        )
-        assert result == "Test response"
-
     async def test_multiple_prompts(self, pipeline_manifest: AgentsManifest):
         """Test sequence of prompts."""
         result = await run_agent_pipeline(
@@ -98,20 +87,6 @@ class TestAgentPipeline:
         assert "success" in result
         assert "data" in result
         assert "score" in result
-
-    async def test_streaming(self, pipeline_manifest: AgentsManifest):
-        """Test streaming mode."""
-        chunks = [
-            chunk
-            async for chunk in await run_agent_pipeline(
-                "test_agent",
-                "Hello!",
-                pipeline_manifest,
-                stream=True,
-            )
-        ]
-        assert chunks  # Should have received chunks
-        assert "".join(chunks) == "Test response"
 
     async def test_error_handling_raise(self, pipeline_manifest: AgentsManifest):
         """Test error handling with raise mode."""

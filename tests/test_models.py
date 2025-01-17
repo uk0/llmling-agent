@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import ValidationError
 import pytest
 import yamling
 
-from llmling_agent.models import AgentsManifest, SystemPrompt
+from llmling_agent.models import AgentsManifest
 
 
 if TYPE_CHECKING:
@@ -77,28 +77,6 @@ agents:
 """
 
 
-def test_valid_system_prompt():
-    """Test valid system prompt configurations."""
-    prompts = [
-        SystemPrompt(type="text", value="You are a helpful agent"),
-        SystemPrompt(type="function", value="mymodule.get_prompt"),
-        SystemPrompt(type="template", value="Context: {data}"),
-    ]
-    for prompt in prompts:
-        assert prompt.type in ("text", "function", "template")
-        assert prompt.value
-
-
-def test_invalid_system_prompt():
-    """Test invalid system prompt configurations."""
-    with pytest.raises(ValidationError):
-        SystemPrompt(type="invalid", value="test")  # pyright: ignore
-
-    with pytest.raises(ValidationError):
-        # missing required value
-        SystemPrompt(type="text")  # type: ignore
-
-
 def test_valid_agent_definition():
     """Test valid complete agent configuration."""
     agent_def = AgentsManifest.model_validate(yamling.load_yaml(VALID_AGENT_CONFIG))
@@ -123,7 +101,7 @@ def test_environment_path_resolution(tmp_path: Path):
     config_file.write_text(ENV_AGENT)
 
     # Load the config and verify path resolution
-    agent_def = AgentsManifest.from_file(config_file)
+    agent_def = AgentsManifest[Any].from_file(config_file)
     test_agent = agent_def.agents["test_agent"]
 
     # The environment path should now be resolved

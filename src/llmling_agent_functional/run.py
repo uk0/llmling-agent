@@ -19,7 +19,7 @@ from llmling import Config
 from llmling_agent import Agent
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 from llmling_agent.log import get_logger
-from llmling_agent.models import AgentConfig, AgentsManifest, SystemPrompt
+from llmling_agent.models import AgentConfig, AgentsManifest
 from llmling_agent.responses import InlineResponseDefinition, ResponseField
 
 
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from pydantic_ai.agent import models
+    from toprompt import AnyPromptType
 
     from llmling_agent.common_types import ToolType
     from llmling_agent.environment import AgentEnvironment
@@ -54,7 +55,7 @@ def ensure_str(prompt: str | PromptLike) -> str:
 @overload
 async def run_agent_pipeline(
     agent_name: str,
-    prompt: str | list[str] | SystemPrompt,
+    prompt: AnyPromptType | list[AnyPromptType],
     config: str | AgentsManifest,
     *,
     model: str | None = None,
@@ -62,7 +63,6 @@ async def run_agent_pipeline(
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
     result_type: type[T] | None = None,
-    stream: Literal[False] = False,
     retries: int | None = None,
     capabilities: dict[str, bool] | None = None,
     tool_choice: bool | str | list[str] = True,
@@ -74,15 +74,14 @@ async def run_agent_pipeline(
 @overload
 async def run_agent_pipeline(
     agent_name: str,
-    prompt: str | list[str] | SystemPrompt,
+    prompt: AnyPromptType | list[AnyPromptType],
     config: str | AgentsManifest,
     *,
     model: str | None = None,
-    output_format: Literal["text", "json", "yaml"],
+    output_format: OutputFormat,
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
     result_type: type[T] | None = None,
-    stream: Literal[False] = False,
     retries: int | None = None,
     capabilities: dict[str, bool] | None = None,
     tool_choice: bool | str | list[str] = True,
@@ -91,29 +90,9 @@ async def run_agent_pipeline(
 ) -> str: ...
 
 
-@overload
-async def run_agent_pipeline(
-    agent_name: str,
-    prompt: str | list[str] | SystemPrompt,
-    config: str | AgentsManifest,
-    *,
-    stream: Literal[True],
-    model: str | None = None,
-    output_format: OutputFormat = "text",
-    environment: str | Config | AgentEnvironment | None = None,
-    error_handling: ErrorHandling = "raise",
-    result_type: type[T] | None = None,
-    retries: int | None = None,
-    capabilities: dict[str, bool] | None = None,
-    tool_choice: bool | str | list[str] = True,
-    tools: list[ToolType] | None = None,
-    model_settings: dict[str, Any] | None = None,
-) -> AsyncIterator[str]: ...
-
-
 async def run_agent_pipeline(  # noqa: PLR0911
     agent_name: str,
-    prompt: str | list[str] | SystemPrompt,
+    prompt: AnyPromptType | list[AnyPromptType],
     config: str | AgentsManifest,
     *,
     model: str | None = None,
@@ -121,7 +100,6 @@ async def run_agent_pipeline(  # noqa: PLR0911
     environment: str | Config | AgentEnvironment | None = None,
     error_handling: ErrorHandling = "raise",
     result_type: type[T] | None = None,
-    stream: bool = False,
     retries: int | None = None,
     capabilities: dict[str, bool] | None = None,
     tool_choice: bool | str | list[str] = True,
@@ -152,7 +130,6 @@ async def run_agent_pipeline(  # noqa: PLR0911
             - return: Return error message as string
             - ignore: Return None for errors
         result_type: Expected result type (for validation)
-        stream: Whether to stream responses
         retries: Number of retries for failed operations
         capabilities: Override agent capabilities
         tool_choice: Control tool usage:
@@ -162,10 +139,6 @@ async def run_agent_pipeline(  # noqa: PLR0911
             - list[str]: Allow specific tools
         tools: list of callables or import paths which can be used as tools
         model_settings: Additional model-specific settings
-
-    Returns:
-        - If stream=False: Formatted response or raw result
-        - If stream=True: AsyncIterator yielding response chunks
 
     Raises:
         ValueError: If configuration is invalid
@@ -217,24 +190,8 @@ async def run_agent_pipeline(  # noqa: PLR0911
             model_settings=model_settings or {},
             retries=retries or 1,
         ) as agent:
-            # Handle different prompt types
-            prompts = (
-                [ensure_str(prompt)]
-                if isinstance(prompt, str | PromptLike)
-                else [ensure_str(p) for p in prompt]
-            )
-            if stream:
-                # Streaming mode - yield messages
-                async def stream_prompts() -> AsyncIterator[str]:
-                    for p in prompts:
-                        async with agent.run_stream(p) as result:
-                            async for message in result.stream():
-                                yield str(message)
-
-                # Return the async iterator
-                return stream_prompts()
-            # Non-streaming mode - return final result
-            result = await agent.run("\n".join(prompts))
+            prompt = prompt if isinstance(prompt, list) else [prompt]
+            result = await agent.run(*prompt)
 
             # Format output based on format
             match output_format:
@@ -266,7 +223,7 @@ async def run_agent_pipeline(  # noqa: PLR0911
 
 def run_agent_pipeline_sync(
     agent_name: str,
-    prompt: str | list[str] | SystemPrompt,
+    prompt: AnyPromptType | list[AnyPromptType],
     config: str | AgentsManifest,
     **kwargs: Any,
 ) -> Any:
@@ -281,13 +238,12 @@ def run_agent_pipeline_sync(
 
 @overload
 async def run_with_model(
-    prompt: str | list[str] | SystemPrompt,
+    prompt: AnyPromptType | list[AnyPromptType],
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: None = None,
     system_prompt: str | list[str] | None = None,
     output_format: Literal["text", "json", "yaml"] = "text",
-    stream: Literal[False] = False,
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[ToolType] | None = None,
@@ -298,13 +254,12 @@ async def run_with_model(
 
 @overload
 async def run_with_model(
-    prompt: str | list[str] | SystemPrompt,
+    prompt: AnyPromptType | list[AnyPromptType],
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: type[T],
     system_prompt: str | list[str] | None = None,
     output_format: OutputFormat = "raw",  # Allow any OutputFormat
-    stream: Literal[False] = False,
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[ToolType] | None = None,
@@ -313,31 +268,13 @@ async def run_with_model(
 ) -> T: ...
 
 
-@overload
 async def run_with_model(
-    prompt: str | list[str] | SystemPrompt,
-    model: str | models.Model | models.KnownModelName,
-    *,
-    stream: Literal[True],
-    result_type: type[T] | None = None,
-    system_prompt: str | list[str] | None = None,
-    output_format: OutputFormat = "text",
-    model_settings: dict[str, Any] | None = None,
-    tool_choice: bool | str | list[str] = True,
-    tools: list[ToolType] | None = None,
-    environment: str | Config | AgentEnvironment | None = None,
-    error_handling: ErrorHandling = "raise",
-) -> AsyncIterator[str]: ...
-
-
-async def run_with_model(
-    prompt: str | list[str] | SystemPrompt,
+    prompt: AnyPromptType | list[AnyPromptType],
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: type[T] | None = None,
     system_prompt: str | list[str] | None = None,
     output_format: OutputFormat = "text",
-    stream: bool = False,
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
     tools: list[ToolType] | None = None,
@@ -354,7 +291,6 @@ async def run_with_model(
         result_type: Expected result type for validation
         system_prompt: Optional system prompt(s)
         output_format: Output format (text/json/yaml/raw)
-        stream: Whether to stream responses
         model_settings: Model-specific settings
         tool_choice: Control tool usage:
             - True: Allow all tools
@@ -364,10 +300,6 @@ async def run_with_model(
         tools: list of callables or import paths which can be used as tools
         environment: Optional environment configuration
         error_handling: How to handle errors (raise/return/ignore)
-
-    Returns:
-        - If stream=False: Formatted response or raw result
-        - If stream=True: AsyncIterator yielding response chunks
 
     Examples:
         # Simple text completion
@@ -381,15 +313,6 @@ async def run_with_model(
         ...     system_prompt="You are an expert analyzer",
         ...     output_format="json"
         ... )
-
-        # Streaming with tools
-        >>> async for chunk in await run_with_model(
-        ...     "Help me with task",
-        ...     "gpt-4",
-        ...     stream=True,
-        ...     environment="tools.yml"
-        ... ):
-        ...     print(chunk)
     """
     # Create minimal manifest with optional response type
     responses = {}
@@ -420,26 +343,11 @@ async def run_with_model(
         environment=agent_environment,
     )
     manifest = AgentsManifest[Any](responses=responses, agents={"default": cfg})
-
-    if stream:
-        return await run_agent_pipeline(
-            "default",
-            prompt,
-            manifest,
-            output_format=output_format,
-            stream=True,
-            model_settings=model_settings,
-            tool_choice=tool_choice,
-            tools=tools,
-            error_handling=error_handling,
-            result_type=result_type,
-        )
     return await run_agent_pipeline(
         "default",
         prompt,
         manifest,
         output_format=output_format,
-        stream=False,
         model_settings=model_settings,
         tool_choice=tool_choice,
         tools=tools,
@@ -450,7 +358,7 @@ async def run_with_model(
 
 @overload
 def run_with_model_sync(
-    prompt: str | list[str] | SystemPrompt,
+    prompt: AnyPromptType | list[AnyPromptType],
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: None = None,
@@ -466,7 +374,7 @@ def run_with_model_sync(
 
 @overload
 def run_with_model_sync(
-    prompt: str | list[str] | SystemPrompt,
+    prompt: AnyPromptType | list[AnyPromptType],
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: type[T],
@@ -481,7 +389,7 @@ def run_with_model_sync(
 
 
 def run_with_model_sync(
-    prompt: str | list[str] | SystemPrompt,
+    prompt: AnyPromptType | list[AnyPromptType],
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: type[T] | None = None,
@@ -517,13 +425,12 @@ def run_with_model_sync(
         ... )
     """
     return asyncio.run(
-        run_with_model(  # type: ignore
+        run_with_model(
             prompt=prompt,
             model=model,
-            result_type=result_type,
+            result_type=result_type,  # type: ignore
             system_prompt=system_prompt,
-            output_format=output_format,
-            stream=False,  # type: ignore[arg-type]
+            output_format=output_format,  # type: ignore
             model_settings=model_settings,
             tool_choice=tool_choice,
             tools=tools,
