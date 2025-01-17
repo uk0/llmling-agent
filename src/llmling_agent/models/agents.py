@@ -8,11 +8,14 @@ import logging
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling import (
+    BasePrompt,
     Config,
     ConfigModel,
     ConfigStore,
     GlobalSettings,
     LLMCapabilitiesConfig,
+    PromptMessage,
+    StaticPrompt,
 )
 from llmling_models.model_types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -254,6 +257,24 @@ class AgentConfig(BaseModel):
         if isinstance(self.session, str):
             return SessionQuery(name=self.session)
         return self.session
+
+    def get_system_prompts(self) -> list[BasePrompt]:
+        """Get all system prompts as BasePrompts."""
+        prompts = []
+        for prompt in self.system_prompts:
+            match prompt:
+                case str():
+                    # Convert string to StaticPrompt
+                    prompts.append(
+                        StaticPrompt(
+                            name="system",
+                            description="System prompt",
+                            messages=[PromptMessage(role="system", content=prompt)],
+                        )
+                    )
+                case BasePrompt():
+                    prompts.append(prompt)
+        return prompts
 
     def get_provider(self) -> AgentProvider:
         """Get resolved provider instance.
