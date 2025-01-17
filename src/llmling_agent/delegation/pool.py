@@ -567,7 +567,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
 
         # Use custom deps if provided, otherwise use shared deps
         base.context.data = deps if deps is not None else self.shared_deps
-        # base.context.pool = self
+        base.context.pool = self
 
         # Apply overrides
         if model_override:
