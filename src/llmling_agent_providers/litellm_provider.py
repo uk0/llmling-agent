@@ -64,6 +64,7 @@ class LiteLLMProvider(AgentProvider[Any]):
         result_type: type[Any] | None = None,
         model: ModelProtocol | str | None = None,
         store_history: bool = True,
+        system_prompt: str | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate response using LiteLLM."""
@@ -182,6 +183,8 @@ class LiteLLMProvider(AgentProvider[Any]):
     #     result_type: type[Any] | None = None,
     #     model: LiteLLMModel | str | None = None,
     #     store_history: bool = True,
+    #     system_prompt: str | None = None,
+
     #     **kwargs: Any,
     # ) -> AbstractAsyncContextManager[StreamedRunResult]:  # type: ignore[type-var]
     #     """Stream response from LiteLLM.

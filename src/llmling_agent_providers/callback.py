@@ -51,6 +51,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         message_id: str,
         *,
         result_type: type[TResult] | None = None,
+        system_prompt: str | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Process message through callback."""
@@ -76,6 +77,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         message_id: str,
         *,
         result_type: type[Any] | None = None,
+        system_prompt: str | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:
         """Simulate streaming by yielding complete result as one chunk."""

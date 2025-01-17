@@ -176,6 +176,7 @@ class PydanticAIProvider(AgentProvider):
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
+        system_prompt: str | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate response using pydantic-ai.
@@ -187,6 +188,7 @@ class PydanticAIProvider(AgentProvider):
             model: Optional model override for this call
             store_history: Whether the message exchange should be added to the
                            context window
+            system_prompt: System prompt from SystemPrompts manager
             kwargs: Additional arguments for pydantic-ai (unused)
 
         Returns:
@@ -281,6 +283,7 @@ class PydanticAIProvider(AgentProvider):
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
+        system_prompt: str | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response using pydantic-ai."""

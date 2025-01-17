@@ -98,6 +98,7 @@ class HumanProvider(AgentProvider):
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
+        system_prompt: str | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Get response through human input.
@@ -109,6 +110,7 @@ class HumanProvider(AgentProvider):
             model: Model override (unused for human)
             store_history: Whether the message exchange should be added to the
                            context window
+            system_prompt: System prompt from SystemPrompts manager
             kwargs: Additional arguments for human (unused)
         """
         if self._show_context:
@@ -147,6 +149,7 @@ class HumanProvider(AgentProvider):
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
+        system_prompt: str | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response keystroke by keystroke."""
