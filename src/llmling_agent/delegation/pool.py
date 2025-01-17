@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import AsyncExitStack
 from dataclasses import dataclass
+import signal
 from typing import TYPE_CHECKING, Any, Self, Unpack, overload
 
 from llmling import BaseRegistry, LLMLingError
@@ -93,6 +94,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         agents_to_load: list[str] | None = None,
         connect_agents: bool = True,
         confirmation_callback: ConfirmationCallback | None = None,
+        parallel_agent_load: bool = True,
     ):
         """Initialize agent pool with immediate agent creation.
 
@@ -103,6 +105,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
                           If None, all agents from manifest are loaded
             connect_agents: Whether to set up forwarding connections
             confirmation_callback: Handler callback for tool / step confirmations
+            parallel_agent_load: Whether to load agents in parallel (async)
 
         Raises:
             ValueError: If manifest contains invalid agent configurations
@@ -125,6 +128,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         self.shared_deps = shared_deps
         self._confirmation_callback = confirmation_callback
         self.exit_stack = AsyncExitStack()
+        self.parallel_agent_load = parallel_agent_load
         self.storage = StorageManager(self.manifest.storage)
 
         # Validate requested agents exist
@@ -155,9 +159,19 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     async def __aenter__(self) -> Self:
         """Enter async context and initialize all agents."""
         try:
-            # Enter async context for all agents
-            for agent in self.agents.values():
-                await self.exit_stack.enter_async_context(agent)
+            if self.parallel_agent_load:
+                agents = await asyncio.gather(
+                    *(
+                        self.exit_stack.enter_async_context(agent)
+                        for agent in self.agents.values()
+                    )
+                )
+                # Update references since enter_async_context might return new instances
+                for name, agent in zip(self.agents.keys(), agents):
+                    self.agents[name] = agent
+            else:
+                for agent in self.agents.values():
+                    await self.exit_stack.enter_async_context(agent)
         except Exception as e:
             await self.cleanup()
             msg = "Failed to initialize agent pool"
@@ -228,6 +242,19 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
             resolved_agents.append(agent)
 
         return Team(agents=resolved_agents, shared_prompt=shared_prompt)
+
+    async def run_event_loop(self) -> None:
+        """Run pool in event-watching mode until interrupted."""
+        stop_event = asyncio.Event()
+        loop = asyncio.get_running_loop()
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, stop_event.set)
+
+        logger.info("Starting event watch mode...")
+        logger.info("Active agents: %s", ", ".join(self.list_agents()))
+        logger.info("Press Ctrl+C to stop")
+
+        await stop_event.wait()
 
     def start_supervision(self) -> OptionalAwaitable[None]:
         """Start supervision interface.
