@@ -16,8 +16,8 @@ async def test_basic_injection(pool):
 
     @with_agents(pool)
     async def test_func(
-        agent1: Agent[Any] | None = None,
-        agent2: Agent[Any] | None = None,
+        agent1: Agent[None] | None = None,
+        agent2: Agent[None] | None = None,
         arg: str = "test",
     ) -> str:
         assert isinstance(agent1, Agent)
@@ -34,7 +34,7 @@ async def test_missing_agent(pool):
     """Test error when agent not in pool."""
 
     @with_agents(pool)
-    async def test_func(missing_agent: Agent[Any] | None = None) -> str:
+    async def test_func(missing_agent: Agent[None] | None = None) -> str:
         return "unreachable"
 
     with pytest.raises(AgentInjectionError) as exc:
@@ -47,7 +47,7 @@ async def test_duplicate_parameter(pool):
     """Test error when agent parameter provided explicitly."""
 
     @with_agents(pool)
-    async def test_func(agent1: Agent[Any] | None = None) -> str:
+    async def test_func(agent1: Agent[None] | None = None) -> str:
         return "unreachable"
 
     dummy_agent = pool.get_agent("agent1")
@@ -61,7 +61,7 @@ async def test_non_agent_parameter(pool):
 
     @with_agents(pool)
     async def test_func(
-        agent1: Agent[Any] | None = None,
+        agent1: Agent[None] | None = None,
         normal: str = "test",
         no_hint: Any = 123,
         *,
@@ -80,7 +80,7 @@ async def test_non_agent_parameter(pool):
 async def test_wrapper_usage(pool):
     """Test using as wrapper instead of decorator."""
 
-    async def test_func(agent1: Agent[Any] | None = None, arg: str = "test") -> str:
+    async def test_func(agent1: Agent[None] | None = None, arg: str = "test") -> str:
         assert isinstance(agent1, Agent)
         return arg
 
@@ -94,8 +94,8 @@ async def test_agent_functionality(pool):
 
     @with_agents(pool)
     async def test_func(
-        agent1: Agent[Any] | None = None,
-        agent2: Agent[Any] | None = None,
+        agent1: Agent[None] | None = None,
+        agent2: Agent[None] | None = None,
     ) -> list[str]:
         assert agent1 is not None
         assert agent2 is not None

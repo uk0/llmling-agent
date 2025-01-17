@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 
 from llmling_agent import Agent  # noqa: TC001
@@ -75,13 +73,13 @@ async def test_execution_order(pool):
     executed = []
 
     @agent_function
-    async def first(agent1: Agent[Any]):
+    async def first(agent1: Agent[None]):
         executed.append("first")
         return "first"
 
     @agent_function(depends_on="first")
     async def second(
-        agent1: Agent[Any],
+        agent1: Agent[None],
         first: str,  # Gets result from first
     ):
         assert first == "first"
@@ -104,21 +102,21 @@ async def test_parallel_execution(pool):
     end_times: dict[str, float] = {}
 
     @agent_function
-    async def first(agent1: Agent[Any]):
+    async def first(agent1: Agent[None]):
         start_times["first"] = asyncio.get_event_loop().time()
         await asyncio.sleep(0.1)
         end_times["first"] = asyncio.get_event_loop().time()
         return "first"
 
     @agent_function(depends_on="first")
-    async def second_a(agent1: Agent[Any], first: str):
+    async def second_a(agent1: Agent[None], first: str):
         start_times["second_a"] = asyncio.get_event_loop().time()
         await asyncio.sleep(0.1)
         end_times["second_a"] = asyncio.get_event_loop().time()
         return "second_a"
 
     @agent_function(depends_on="first")
-    async def second_b(agent1: Agent[Any], first: str):
+    async def second_b(agent1: Agent[None], first: str):
         start_times["second_b"] = asyncio.get_event_loop().time()
         await asyncio.sleep(0.1)
         end_times["second_b"] = asyncio.get_event_loop().time()
@@ -145,7 +143,7 @@ async def test_input_handling(pool):
 
     @agent_function
     async def func(
-        agent1: Agent[Any],
+        agent1: Agent[None],
         required: str,
         optional: int = 42,
     ):

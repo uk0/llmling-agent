@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Literal, get_args
+from typing import TYPE_CHECKING, Literal, get_args
 
 from llmling import Config
 
@@ -75,7 +75,7 @@ async def get_structured[T](
         Exception: If LLM call fails and no error_handler recovers
     """
     """Get structured output from LLM using function calling."""
-    async with Agent[Any].open(
+    async with Agent[None].open(
         model=model,
         system_prompt=system_prompt or [],
         name="structured",
@@ -95,10 +95,7 @@ async def get_structured_multiple[T](
     model: models.Model | models.KnownModelName,
 ) -> list[T]:
     """Extract multiple structured instances from text."""
-    async with Agent[Any].open(
-        model=model,
-        name="structured",
-    ) as agent:
+    async with Agent[None].open(model=model, name="structured") as agent:
         return await agent.talk.extract_multiple(prompt, target)
 
 
@@ -135,7 +132,7 @@ async def pick_one[T](
     select_option.__doc__ += f"\nOptions:\n{docs}"
     sys_prompt = "Select the most appropriate option based on the context."
     cfg = Config()
-    async with Agent[Any].open(cfg, model=model, system_prompt=sys_prompt) as agent:
+    async with Agent[None].open(cfg, model=model, system_prompt=sys_prompt) as agent:
         agent.tools.register_tool(select_option, enabled=True)
         agent._tool_manager.tool_choice = "select_option"
 

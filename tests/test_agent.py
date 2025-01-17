@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from pydantic_ai.messages import (
     ModelRequest,
@@ -27,7 +27,7 @@ TEST_RESPONSE = "I am a test response"
 
 
 @pytest.mark.asyncio
-async def test_simple_agent_run(test_agent: Agent[Any]):
+async def test_simple_agent_run(test_agent: Agent[None]):
     """Test basic agent text response."""
     result = await test_agent.run(SIMPLE_PROMPT)
     assert isinstance(result.data, str)
@@ -36,7 +36,7 @@ async def test_simple_agent_run(test_agent: Agent[Any]):
 
 
 @pytest.mark.asyncio
-async def test_agent_message_history(test_agent: Agent[Any]):
+async def test_agent_message_history(test_agent: Agent[None]):
     """Test agent with message history."""
     history = [
         ModelRequest(parts=[UserPromptPart(content="Previous message")]),
@@ -50,7 +50,7 @@ async def test_agent_message_history(test_agent: Agent[Any]):
 
 
 @pytest.mark.asyncio
-async def test_agent_streaming(test_agent: Agent[Any]):
+async def test_agent_streaming(test_agent: Agent[None]):
     """Test agent streaming response."""
     stream_ctx = test_agent.run_stream(SIMPLE_PROMPT)
     async with stream_ctx as stream:
@@ -59,7 +59,7 @@ async def test_agent_streaming(test_agent: Agent[Any]):
 
 
 @pytest.mark.asyncio
-async def test_agent_streaming_with_history(test_agent: Agent[Any]):
+async def test_agent_streaming_with_history(test_agent: Agent[None]):
     """Test streaming with message history."""
     history = [
         ModelRequest(parts=[UserPromptPart(content="Previous message")]),
@@ -88,7 +88,7 @@ async def test_agent_streaming_with_history(test_agent: Agent[Any]):
 
 
 @pytest.mark.asyncio
-async def test_agent_concurrent_runs(test_agent: Agent[Any]):
+async def test_agent_concurrent_runs(test_agent: Agent[None]):
     """Test running multiple prompts concurrently."""
     prompts = ["Hello!", "Hi there!", "Good morning!"]
     tasks = [test_agent.run(prompt) for prompt in prompts]
@@ -113,7 +113,7 @@ async def test_agent_model_override():
         assert result2.data == override_response
 
 
-def test_sync_wrapper(test_agent: Agent[Any]):
+def test_sync_wrapper(test_agent: Agent[None]):
     """Test synchronous wrapper method."""
     result = test_agent.run_sync(SIMPLE_PROMPT)
     assert result.data == TEST_RESPONSE
@@ -131,7 +131,7 @@ async def test_agent_context_manager(tmp_path: Path):
     config_path.write_text(yamling.dump_yaml(config))
     model = TestModel(custom_result_text=TEST_RESPONSE)
 
-    async with Agent[Any].open(config_path, name="test-agent", model=model) as agent:
+    async with Agent[None].open(config_path, name="test-agent", model=model) as agent:
         result = await agent.run(SIMPLE_PROMPT)
         assert result.data == TEST_RESPONSE
 

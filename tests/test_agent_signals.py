@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.asyncio
-async def test_message_chain(test_agent: Agent[Any]):
+async def test_message_chain(test_agent: Agent[None]):
     """Test that messages flow through a chain of connected agents."""
     # Create second agent
     model = TestModel(custom_result_text="Response from B")

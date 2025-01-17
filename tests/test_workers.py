@@ -85,7 +85,7 @@ async def test_basic_worker_setup(tmp_path: Path):
     manifest = AgentsManifest[Any].from_file(config_path)
 
     async with AgentPool[None](manifest) as pool:
-        main_agent: Agent[Any] = pool.get_agent("main")
+        main_agent: Agent[None] = pool.get_agent("main")
 
         # Verify workers were registered as tools
         assert "ask_worker" in main_agent.tools
@@ -158,7 +158,7 @@ async def test_worker_independence(tmp_path: Path):
     config_path = write_config(BASIC_WORKERS, tmp_path)
     manifest = AgentsManifest[Any].from_file(config_path)
     async with AgentPool[None](manifest) as pool:
-        main_agent: Agent[Any] = pool.get_agent("main")
+        main_agent: Agent[None] = pool.get_agent("main")
 
         # Create history in main agent
         await main_agent.run("Remember X equals 42")
@@ -173,9 +173,9 @@ async def test_multiple_workers_same_prompt(tmp_path: Path):
     config_path = write_config(BASIC_WORKERS, tmp_path)
     manifest = AgentsManifest[Any].from_file(config_path)
     async with AgentPool[None](manifest) as pool:
-        main_agent: Agent[Any] = pool.get_agent("main")
-        worker: Agent[Any] = pool.get_agent("worker")
-        specialist: Agent[Any] = pool.get_agent("specialist")
+        main_agent: Agent[None] = pool.get_agent("main")
+        worker: Agent[None] = pool.get_agent("worker")
+        specialist: Agent[None] = pool.get_agent("specialist")
 
         # Configure test models
         main_model = TestModel(

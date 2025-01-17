@@ -24,7 +24,7 @@ agents:
 @pytest.mark.asyncio
 async def test_structured_response():
     manifest = AgentsManifest[Any].model_validate(yamling.load_yaml(AGENT_CONFIG))
-    async with Agent[Any].open_agent(manifest, "summarizer") as agent:
+    async with Agent[None].open_agent(manifest, "summarizer") as agent:
         result = await agent.run("I love this new feature!", result_type=Result)
         summary = result.data
         assert summary.is_positive
