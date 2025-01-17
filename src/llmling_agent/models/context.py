@@ -73,12 +73,16 @@ class AgentContext[TDeps]:
         cls,
         name: str,
         capabilities: Capabilities | None = None,
-    ) -> AgentContext:
+        deps: TDeps | None = None,
+        pool: AgentPool | None = None,
+    ) -> AgentContext[TDeps]:
         """Create a default agent context with minimal privileges.
 
         Args:
             name: Name of the agent
             capabilities: Optional custom capabilities (defaults to minimal access)
+            deps: Optional dependencies for the agent
+            pool:(optional): Optional pool the agent is part of
         """
         from llmling_agent.config.capabilities import Capabilities
         from llmling_agent.models import AgentConfig, AgentsManifest
@@ -86,7 +90,14 @@ class AgentContext[TDeps]:
         caps = capabilities or Capabilities()
         defn = AgentsManifest[Any, Any](agents={})
         cfg = AgentConfig(name=name)
-        return cls(agent_name=name, capabilities=caps, definition=defn, config=cfg)
+        return cls(
+            agent_name=name,
+            capabilities=caps,
+            definition=defn,
+            config=cfg,
+            data=deps,
+            pool=pool,
+        )
 
     # TODO: perhaps add agent directly to context?
     @property
