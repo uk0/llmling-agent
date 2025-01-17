@@ -110,7 +110,7 @@ agent2 = Agent(system_prompt="You are a summarizer.")
 # Create team with shared instructions
 team = Team(
     agents=[agent1, agent2],
-    shared_prompt="Work together to analyze and summarize."
+    shared_prompt="Some information both agents should know."
 )
 
 # When combining teams, shared prompts are combined:
@@ -133,7 +133,7 @@ The shared prompt provides team-level instructions without modifying individual 
 - Setting shared goals
 - Providing context for collaboration
 - Guiding multi-agent interactions
-```
+
 
 ## Usage Examples
 
