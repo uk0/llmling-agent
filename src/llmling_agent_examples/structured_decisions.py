@@ -61,7 +61,7 @@ async def smart_router(ticket: Ticket, pool: AgentPool, router: AgentRouter) -> 
 
 
 async def main(config_path: str):
-    async with AgentPool.open(config_path) as pool:
+    async with AgentPool(config_path) as pool:
         # Get type-safe classifier agent
         classifier = pool.get_agent("classifier", return_type=Ticket)
         # Create controller with pool-aware router

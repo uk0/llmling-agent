@@ -87,7 +87,7 @@ async def test_agent_forwarding(basic_config: Path):
     """Test that messages get forwarded through the agent chain."""
     manifest = AgentsManifest[Any, Any].from_file(basic_config)
 
-    async with AgentPool.open(manifest) as pool:
+    async with AgentPool(manifest) as pool:
         agent1 = pool.get_agent("agent1")
         agent2 = pool.get_agent("agent2")
         agent3 = pool.get_agent("agent3")
@@ -121,7 +121,7 @@ async def test_partial_chain(partial_config: Path):
     """Test forwarding with only some agents loaded."""
     manifest = AgentsManifest[Any, Any].from_file(partial_config)
 
-    async with AgentPool.open(manifest) as pool:
+    async with AgentPool(manifest) as pool:
         agent1 = pool.get_agent("agent1")
         agent2 = pool.get_agent("agent2")
 
@@ -139,5 +139,5 @@ async def test_invalid_forward_target(invalid_config: Path):
     manifest = AgentsManifest[Any, Any].from_file(invalid_config)
 
     with pytest.raises(ValueError, match="Forward target.*not loaded"):
-        async with AgentPool.open(manifest):
+        async with AgentPool(manifest):
             pass

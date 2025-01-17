@@ -515,7 +515,7 @@ if __name__ == "__main__":
         )
 
     async def main():
-        async with AgentPool.open() as pool:
+        async with AgentPool() as pool:
             analyzer = await pool.add_agent(
                 "analyzer",
                 system_prompt="You analyze text in a formal way.",

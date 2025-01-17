@@ -67,9 +67,9 @@ def chat_command(
             if connections:
                 agents_to_load.extend(connections)
 
-            async with AgentPool.open(
+            async with AgentPool(
                 config_path,
-                agents=agents_to_load,
+                agents_to_load=agents_to_load,
                 connect_agents=False,  # We'll handle connections manually
             ) as pool:
                 # Get main agent

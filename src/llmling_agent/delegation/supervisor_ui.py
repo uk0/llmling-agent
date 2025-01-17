@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     async def main():
         # Create a pool with some example agents
-        async with AgentPool.open() as pool:
+        async with AgentPool() as pool:
             # Create a couple of agents
             analyzer = await pool.create_agent(
                 "analyzer",

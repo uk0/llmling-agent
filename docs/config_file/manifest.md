@@ -173,7 +173,7 @@ tasks:
  ```python
  from llmling_agent import AgentPool
 
- async with AgentPool.open("agents.yml") as pool:
+ async with AgentPool("agents.yml") as pool:
      agent = pool.get_agent("analyzer")
      result = await agent.run("Analyze this code...")
  ```

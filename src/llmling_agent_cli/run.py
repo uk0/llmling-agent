@@ -78,7 +78,7 @@ def run_command(
         agent_names = [name.strip() for name in agent_name.split(",")]
 
         async def run():
-            async with AgentPool.open(config_path, agents=agent_names) as pool:
+            async with AgentPool(config_path, agents_to_load=agent_names) as pool:
                 if len(agent_names) == 1:
                     # Single agent execution
                     agent: Agent[Any] = pool.get_agent(

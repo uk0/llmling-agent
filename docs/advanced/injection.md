@@ -286,7 +286,7 @@ agents:
 
 # 2. Create pool from manifest
 async def main():
-    async with AgentPool.open(manifest) as pool:
+    async with AgentPool(manifest) as pool:
         # 3. Connect injection system via decorator
         @with_agents(pool)
         async def research_and_write(

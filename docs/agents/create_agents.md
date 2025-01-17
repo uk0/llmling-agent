@@ -6,7 +6,7 @@ There are several ways to create and initialize agents. Since agents can have co
 The recommended way to create agents is through `AgentPool`:
 
 ```python
-async with AgentPool.open("agents.yml") as pool:
+async with AgentPool("agents.yml") as pool:
     # Get basic agent
     agent = pool.get_agent("analyzer")
 

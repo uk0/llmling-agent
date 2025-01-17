@@ -128,7 +128,7 @@ Tasks are pre-defined operations that agents can execute. They include:
 ### Component Setup
 ```python
 # Create pool from manifest
-async with AgentPool.open("agents.yml") as pool:
+async with AgentPool("agents.yml") as pool:
     # Get agent
     agent = pool.get_agent("analyzer")
     # Create team

@@ -21,7 +21,7 @@ def watch_command(
     """Run agents in event-watching mode."""
 
     async def run_watch():
-        async with AgentPool.open(config) as pool:
+        async with AgentPool(config) as pool:
             # Set up signal handlers
             stop_event = asyncio.Event()
             loop = asyncio.get_running_loop()

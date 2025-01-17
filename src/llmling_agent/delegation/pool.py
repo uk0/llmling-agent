@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import AsyncExitStack, asynccontextmanager
+from contextlib import AsyncExitStack
 from dataclasses import dataclass
 from os import PathLike
 from typing import TYPE_CHECKING, Any, Self, Unpack, overload
@@ -21,7 +21,7 @@ from llmling_agent.tasks import TaskRegistry
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import Sequence
     from types import TracebackType
 
     from psygnal.containers import EventedDict
@@ -541,51 +541,6 @@ class AgentPool(BaseRegistry[str, AnyAgent[Any, Any]]):
 
         return base
 
-    @classmethod
-    @asynccontextmanager
-    async def open[TDeps, TResult](
-        cls,
-        config_path: StrPath | AgentsManifest[TDeps, TResult] | None = None,
-        *,
-        agents: list[str] | None = None,
-        connect_agents: bool = True,
-        confirmation_callback: ConfirmationCallback | None = None,
-    ) -> AsyncIterator[AgentPool]:
-        """Open an agent pool from configuration.
-
-        Args:
-            config_path: Path to agent configuration file or manifest
-            agents: Optional list of agent names to initialize
-            connect_agents: Whether to set up forwarding connections
-            confirmation_callback: Callback to confirm agent tool selection
-
-        Yields:
-            Configured agent pool
-        """
-        from llmling_agent.models import AgentsManifest
-
-        match config_path:
-            case None:
-                manifest = AgentsManifest[Any, Any]()
-            case str():
-                manifest = AgentsManifest[Any, Any].from_file(config_path)
-            case AgentsManifest():
-                manifest = config_path
-            case _:
-                msg = f"Invalid config path: {config_path}"
-                raise ValueError(msg)
-        pool = cls(
-            manifest,
-            agents_to_load=agents,
-            connect_agents=connect_agents,
-            confirmation_callback=confirmation_callback,
-        )
-        try:
-            async with pool:
-                yield pool
-        finally:
-            await pool.cleanup()
-
     def list_agents(self) -> list[str]:
         """List available agent names."""
         return list(self.manifest.agents)
@@ -674,7 +629,7 @@ if __name__ == "__main__":
 
     async def main():
         path = "src/llmling_agent/config/resources/agents.yml"
-        async with AgentPool.open(path) as pool:
+        async with AgentPool(path) as pool:
             agent: Agent[Any] = pool.get_agent("overseer")
             print(agent)
 
