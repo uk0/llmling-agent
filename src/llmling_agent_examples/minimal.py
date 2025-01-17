@@ -30,7 +30,7 @@ async def main():
         Agent[None](model=MODEL, name="Skeptic", system_prompt=SKEPTIC_PROMPT) as skeptic,
     ):
         # Connect reporter to both interpreters and get Talk objects
-        team_talk = reporter >> (activist | skeptic)
+        team_talk = reporter >> (activist & skeptic)
         activist.message_sent.connect(print)
         skeptic.message_sent.connect(print)
         # Send the news and monitor the connections

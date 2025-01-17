@@ -140,9 +140,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         self.pool_talk = TeamTalk.from_agents(list(self.agents.values()))
         # Create requested agents immediately using sync initialization
         for name in to_load:
-            agent: AnyAgent[Any, Any] = self.manifest.get_agent(
-                name, deps=self.shared_deps
-            )
+            agent = self.manifest.get_agent(name, deps=shared_deps)
             self.register(name, agent)
 
         # Then set up worker relationships
@@ -392,15 +390,37 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         else:
             return agent
 
-    async def clone_agent[TDeps, TResult](
+    @overload
+    async def clone_agent[TDeps](
         self,
-        agent: str | AnyAgent[TDeps, TResult],
+        agent: str | Agent[TDeps],
         new_name: str | None = None,
         *,
         model_override: str | None = None,
         system_prompts: list[str] | None = None,
         template_context: dict[str, Any] | None = None,
-    ) -> AnyAgent[TDeps, TResult]:
+    ) -> Agent[TDeps]: ...
+
+    @overload
+    async def clone_agent[TDeps, TResult](
+        self,
+        agent: StructuredAgent[TDeps, TResult],
+        new_name: str | None = None,
+        *,
+        model_override: str | None = None,
+        system_prompts: list[str] | None = None,
+        template_context: dict[str, Any] | None = None,
+    ) -> StructuredAgent[TDeps, TResult]: ...
+
+    async def clone_agent[TDeps, TAgentResult](
+        self,
+        agent: str | AnyAgent[TDeps, TAgentResult],
+        new_name: str | None = None,
+        *,
+        model_override: str | None = None,
+        system_prompts: list[str] | None = None,
+        template_context: dict[str, Any] | None = None,
+    ) -> AnyAgent[TDeps, TAgentResult]:
         """Create a copy of an agent.
 
         Args:
