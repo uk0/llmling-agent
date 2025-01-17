@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import AsyncExitStack, contextmanager
 from dataclasses import dataclass, field, fields
 from datetime import datetime
@@ -471,3 +471,57 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             logger.debug("Registered MCP tool: %s", mcp_tool.name)
 
         return registered
+
+    def tool(
+        self,
+        name: str | None = None,
+        *,
+        description: str | None = None,
+        enabled: bool = True,
+        source: ToolSource = "runtime",
+        priority: int = 100,
+        requires_confirmation: bool = False,
+        requires_capability: str | None = None,
+        metadata: dict[str, str] | None = None,
+    ) -> Callable[[AnyCallable], AnyCallable]:
+        """Decorator to register a function as a tool.
+
+        Args:
+            name: Optional override for tool name (defaults to function name)
+            description: Optional description override
+            enabled: Whether tool is initially enabled
+            source: Tool source type
+            priority: Execution priority (lower = higher)
+            requires_confirmation: Whether tool needs confirmation
+            requires_capability: Optional required capability
+            metadata: Additional tool metadata
+
+        Returns:
+            Decorator function that registers the tool
+
+        Example:
+            @tool_manager.register(
+                name="search_docs",
+                description="Search documentation",
+                requires_confirmation=True
+            )
+            async def search(query: str) -> str:
+                '''Search the docs.'''
+                return "Results..."
+        """
+
+        def decorator(func: AnyCallable) -> AnyCallable:
+            self.register_tool(
+                func,
+                name_override=name,
+                description_override=description,
+                enabled=enabled,
+                source=source,
+                priority=priority,
+                requires_confirmation=requires_confirmation,
+                requires_capability=requires_capability,
+                metadata=metadata,
+            )
+            return func
+
+        return decorator
