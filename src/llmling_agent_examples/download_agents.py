@@ -2,10 +2,11 @@
 
 This example explains:
 - Continouos repetitive tasks
-- Async parallel execution of LLM calls and Input/Output
+- Async parallel execution of LLM calls
 - YAML config definitions
-- Capability use: list other agents
+- Capability use: list other agents and delegate tasks
 - Simple stateful callback mechanism using a class
+- Storage providers: SQLite and pretty-printed text files
 """
 
 import asyncio
@@ -19,6 +20,8 @@ if TYPE_CHECKING:
     from llmling_agent.agent import Agent
 
 
+# we will give this function as a tool to the fan agent. It allows him to cheer
+# andnd show appreciation for the downloaders
 def cheer(slogan: str):
     """🥳🎉 Use this tool to show your apprreciation!"""
     print(slogan)
@@ -28,6 +31,7 @@ class CheerProgress:
     def __init__(self):
         self.situation = "The team is assembling, ready to start the downloads!"
 
+    # this is a callback to update the fan about the current worklow state
     def create_prompt(self) -> str:
         return (
             f"Current situation: {self.situation}\n"
@@ -39,6 +43,17 @@ class CheerProgress:
 
 
 AGENT_CONFIG = """\
+storage:
+  # List of storage providers (can use multiple)
+  providers:
+    # Primary storage using SQLite
+    - type: sql
+      url: "sqlite:///history.db" # Database URL (SQLite, PostgreSQL, etc.)
+    # Also output all messages, tool calls etc as a pretty printed text file
+    - type: text_file
+      path: "logs/chat.log"
+      format: "chronological" # "chronological" or "conversations"
+      template: "chronological"
 agents:
   fan:
     name: "Async Agent Fan"
@@ -117,6 +132,8 @@ async def run(config_path: str):
 
         # we pass a callback to keep the fan up-to-date. CheerProgress is our state object
         await fan.run_continuous(progress.create_prompt)
+        # now lets do some downloading. After each sequence, we tell the fan about the
+        # duration so he can adapt his cheering to the current happenings.
         progress.update("Sequential downloads starting - let's see how they do!")
 
         print("Sequential downloads:")
@@ -132,6 +149,8 @@ async def run(config_path: str):
 
         print("Same task, different strategy: Boss lists agents and delegates the work.")
         overseer: Agent[None] = pool.get_agent("overseer")
+        # this call will make the overseer use his ability to list pool agents
+        # and to delegate a task to them. See the capabilities of the overseer
         result = await overseer.run(OVERSEER_PROMPT)
         await fan.stop()  # End of joy.
 
