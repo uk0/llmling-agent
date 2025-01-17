@@ -15,6 +15,7 @@ type AnyAgent[TDeps, TResult] = Agent[TDeps] | StructuredAgent[TDeps, TResult]
 from llmling_agent.agent.agent_logger import AgentLogger
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.agent.talk import Interactions
+from llmling_agent.agent.sys_prompts import SystemPrompts
 
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "ConversationManager",
     "Interactions",
     "StructuredAgent",
+    "SystemPrompts",
 ]

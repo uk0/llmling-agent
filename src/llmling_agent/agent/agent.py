@@ -202,6 +202,11 @@ class Agent[TDeps](TaskManagerMixin):
             parallel_init: Whether to initialize resources in parallel
             debug: Whether to enable debug mode
         """
+        from llmling_agent.agent import AgentLogger
+        from llmling_agent.agent.sys_prompts import SystemPrompts
+        from llmling_agent.agent.talk import Interactions
+        from llmling_agent.events import EventManager
+
         super().__init__()
 
         # save some stuff for asnyc init
@@ -287,14 +292,11 @@ class Agent[TDeps](TaskManagerMixin):
         self._provider.tool_used.connect(self.tool_used.emit)
         self._provider.model_changed.connect(self.model_changed.emit)
 
-        from llmling_agent.agent import AgentLogger
-        from llmling_agent.agent.talk import Interactions
-        from llmling_agent.events import EventManager
-
         self.connections = TalkManager(self)
         self.talk = Interactions(self)
         self._logger = AgentLogger(self, enable_db_logging=enable_db_logging)
         self._events = EventManager(self, enable_events=True)
+        self.sys_prompts = SystemPrompts()
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
