@@ -389,9 +389,20 @@ class Agent[TDeps](TaskManagerMixin):
         """
         return self.pass_results_to(other)
 
+    @overload
     def __and__(
-        self, other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[TResult]
-    ) -> Team[TDeps]:
+        self, other: Agent[TDeps] | StructuredAgent[TDeps, Any]
+    ) -> Team[TDeps]: ...
+
+    @overload
+    def __and__(self, other: Team[TDeps]) -> Team[TDeps]: ...
+
+    @overload
+    def __and__(self, other: ProcessorCallback[Any]) -> Team[TDeps]: ...
+
+    def __and__(
+        self, other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[Any]
+    ) -> Team[Any]:
         """Create agent group using | operator.
 
         Example:
@@ -405,7 +416,7 @@ class Agent[TDeps](TaskManagerMixin):
             case Team():
                 return Team([self, *other.agents])
             case Callable():
-                agent_2 = StructuredAgent[Any, TResult].from_callback(other)
+                agent_2 = StructuredAgent[TDeps, Any].from_callback(other)
                 return Team([self, agent_2])
             case Agent() | StructuredAgent():
                 return Team([self, other])

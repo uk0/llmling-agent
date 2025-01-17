@@ -81,7 +81,7 @@ class TeamResponse(list[AgentResponse[Any]]):
             "duration": self.duration,
             "success_count": len(self.successful),
         }
-        return ChatMessage(content=content, role="assistant", metadata=meta)
+        return ChatMessage(content=content, role="assistant", metadata=meta)  # type: ignore
 
 
 class Team[TDeps](TaskManagerMixin):
@@ -121,22 +121,14 @@ class Team[TDeps](TaskManagerMixin):
 
         match other:
             case Team():
-                # Combine agents
                 combined_agents = [*self.agents, *other.agents]
-
-                # Combine prompts with line break
                 combined_prompts = []
                 if self.shared_prompt:
                     combined_prompts.append(self.shared_prompt)
                 if other.shared_prompt:
                     combined_prompts.append(other.shared_prompt)
-
-                return Team(
-                    agents=combined_agents,
-                    shared_prompt="\n".join(combined_prompts)
-                    if combined_prompts
-                    else None,
-                )
+                shared = "\n".join(combined_prompts) if combined_prompts else None
+                return Team(agents=combined_agents, shared_prompt=shared)
             case _:  # AnyAgent case
                 # Keep same deps if types match
                 agents = [*self.agents, other]
