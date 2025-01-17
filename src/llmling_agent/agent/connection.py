@@ -597,7 +597,7 @@ class TalkManager:
                 self._wait_states.get(t.name, False) for t in self.get_targets()
             )
         msg = "TalkManager routing message from %s to %d connections"
-        logger.debug(msg, message.content, len(self._connections))
+        logger.debug(msg, message.name, len(self._connections))
         forwarded_from = [*message.forwarded_from, self.owner.name]  # type: ignore[has-type]
         message_copy = replace(message, forwarded_from=forwarded_from)
         for talk in self._connections:
