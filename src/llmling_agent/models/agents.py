@@ -285,16 +285,16 @@ class AgentConfig(BaseModel):
         """
         # If string shorthand is used, convert to default provider config
         from llmling_agent.models.providers import (
-            AIProviderConfig,
             HumanProviderConfig,
             LiteLLMProviderConfig,
+            PydanticAIProviderConfig,
         )
 
         provider_config = self.type
         if isinstance(provider_config, str):
             match provider_config:
                 case "pydantic_ai":
-                    provider_config = AIProviderConfig()
+                    provider_config = PydanticAIProviderConfig()
                 case "human":
                     provider_config = HumanProviderConfig()
                 case "litellm":

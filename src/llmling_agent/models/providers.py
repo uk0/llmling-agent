@@ -34,7 +34,7 @@ class BaseProviderConfig(BaseModel):
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
 
-class AIProviderConfig(BaseProviderConfig):
+class PydanticAIProviderConfig(BaseProviderConfig):
     """Configuration for PydanticAI-based provider.
 
     This provider uses PydanticAI for handling model interactions, tool calls,
@@ -167,17 +167,9 @@ class CallbackProviderConfig[TResult](BaseProviderConfig):
 
 # The union type used in AgentConfig
 ProviderConfig = Annotated[
-    AIProviderConfig
+    PydanticAIProviderConfig
     | HumanProviderConfig
     | LiteLLMProviderConfig
     | CallbackProviderConfig,
     Field(discriminator="type"),
-]
-
-__all__ = [
-    "AIProviderConfig",
-    "BaseProviderConfig",
-    "HumanProviderConfig",
-    "LiteLLMProviderConfig",
-    "ProviderConfig",
 ]
