@@ -169,60 +169,7 @@ Each entry has a `type` field and type-specific data:
     "metadata": dict[str, Any] | None
 }
 ```
-
-##### Template Example
-
-```jinja
-=== Custom Log Format ===
-
-{% for entry in entries|sort(attribute="timestamp") %}
-  {%- if entry.type == "message" %}
-    [{{ entry.timestamp|strftime("%H:%M:%S") }}]
-    {{ entry.name or entry.role }}: {{ entry.content }}
-    {% if entry.cost_info %}
-      💰 ${{ "%.4f"|format(entry.cost_info.total_cost) }}
-      🎯 {{ entry.cost_info.token_usage.total }} tokens
-    {% endif %}
-    {% if entry.response_time %}
-      ⏱️ {{ "%.1f"|format(entry.response_time) }}s
-    {% endif %}
-
-  {%- elif entry.type == "tool_call" %}
-    🔧 {{ entry.tool_name }}({{ entry.args|pprint }})
-    ↪️ {{ entry.result }}
-
-  {%- elif entry.type == "command" %}
-    💻 {{ entry.agent_name }}: {{ entry.command }}
-  {%- endif %}
-{% endfor %}
-```
-
-##### Available Filters
-
-- `strftime(format)`: Format datetime objects
-- `pprint`: Pretty print dicts/lists
-- `join(separator)`: Join list items
-- Standard Jinja2 filters like `format`, `default`, etc.
-
-##### Usage Tips
-
-1. Use `entries|sort(attribute="timestamp")` to ensure chronological order
-2. Group by conversation with:
-   ```jinja
-   {% for conv_id, messages in entries|groupby("conversation_id") %}
-   ```
-3. Filter entries by type:
-   ```jinja
-   {% for msg in entries if msg.type == "message" %}
-   ```
-4. Use conditional blocks for optional data:
-   ```jinja
-   {% if entry.cost_info %}
-     Cost info here...
-   {% endif %}
-   ```
-
-The predefined templates (`CHRONOLOGICAL_TEMPLATE` and `CONVERSATIONS_TEMPLATE`) in the source code provide good examples of how to structure templates.
+Refer to the source for the details, an in-depth explanation will follow.
 
 ### File Storage
 Stores data in structured files (JSON, YAML, etc.).
