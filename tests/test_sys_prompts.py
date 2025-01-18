@@ -34,7 +34,7 @@ def agent():
     return agent
 
 
-class TestPersonality(BaseModel):
+class _TestPersonality(BaseModel):
     role: str = "I am a test agent"
     style: str = "I speak formally"
 
@@ -86,7 +86,7 @@ async def test_agent_info_control(agent):
 @pytest.mark.asyncio
 async def test_structured_prompt():
     """Test using a pydantic model as prompt."""
-    agent = Agent[None](name="structured", system_prompt=TestPersonality())
+    agent = Agent[None](name="structured", system_prompt=_TestPersonality())
     result = await agent.sys_prompts.format_system_prompt(agent)
     assert "I am a test agent" in result
     assert "I speak formally" in result
