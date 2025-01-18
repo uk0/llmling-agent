@@ -74,25 +74,10 @@ For an AgentPool:
 
 Parallel initialization can significantly speed up startup when you have:
 - Multiple agents in a pool
-- Multiple MCP servers
+- Multiple agents using MCP servers
 - Many knowledge sources
 - External resources to load
 
-However, some operations may have dependencies and will still execute sequentially even in parallel mode.
-
-## Error Handling
-
-All async operations properly handle errors and cleanup:
-```python
-try:
-    async with Agent.open("config.yml") as agent:
-        await agent.run("Task")
-except Exception:
-    # All resources are properly cleaned up
-    # - Runtime shutdown
-    - MCP server connections closed
-    - Event handlers cleaned up
-```
 
 ## Background Operations
 
