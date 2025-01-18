@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -239,12 +239,7 @@ class Agent[TDeps](TaskManagerMixin):
         if ctx.config.knowledge:
             resources.extend(ctx.config.knowledge.get_resources())
         self.conversation = ConversationManager(self, session, resources=resources)
-        config_prompts = ctx.config.system_prompts if ctx else []
-        all_prompts = list(config_prompts)
-        if isinstance(system_prompt, str):
-            all_prompts.append(system_prompt)
-        else:
-            all_prompts.extend(system_prompt)
+
         # Initialize provider
         match provider:
             case "pydantic_ai":
@@ -296,7 +291,15 @@ class Agent[TDeps](TaskManagerMixin):
         self.talk = Interactions(self)
         self._logger = AgentLogger(self, enable_db_logging=enable_db_logging)
         self._events = EventManager(self, enable_events=True)
-        self.sys_prompts = SystemPrompts(system_prompt)
+
+        # Set up system prompts
+        config_prompts = ctx.config.system_prompts if ctx else []
+        all_prompts: list[AnyPromptType] = list(config_prompts)
+        if not isinstance(system_prompt, list):
+            all_prompts.append(system_prompt)
+        else:
+            all_prompts.extend(system_prompt)
+        self.sys_prompts = SystemPrompts(all_prompts)
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
@@ -317,7 +320,7 @@ class Agent[TDeps](TaskManagerMixin):
         """Enter async context and set up MCP servers."""
         try:
             # Collect all coroutines that need to be run
-            coros = []
+            coros: list[Coroutine[Any, Any, Any]] = []
 
             # Runtime initialization if needed
             runtime_ref = self.context.runtime

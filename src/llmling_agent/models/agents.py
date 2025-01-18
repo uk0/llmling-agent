@@ -260,7 +260,7 @@ class AgentConfig(BaseModel):
 
     def get_system_prompts(self) -> list[BasePrompt]:
         """Get all system prompts as BasePrompts."""
-        prompts = []
+        prompts: list[BasePrompt] = []
         for prompt in self.system_prompts:
             match prompt:
                 case str():
