@@ -198,9 +198,18 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         self.clear()
 
     @overload
+    def create_team(
+        self,
+        agents: Sequence[str],
+        *,
+        model_override: str | None = None,
+        shared_prompt: str | None = None,
+    ) -> Team[TPoolDeps]: ...
+
+    @overload
     def create_team[TDeps](
         self,
-        agents: Sequence[str | AnyAgent[TDeps, Any]] | None = None,
+        agents: Sequence[AnyAgent[TDeps, Any]],
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
@@ -209,11 +218,11 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     @overload
     def create_team(
         self,
-        agents: Sequence[str | AnyAgent[Any, Any]] | None = None,
+        agents: Sequence[str | AnyAgent[Any, Any]],
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
-    ) -> Team[Any]: ...  # Fallback for mixed agent dep types
+    ) -> Team[Any]: ...
 
     def create_team(
         self,
