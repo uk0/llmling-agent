@@ -1,0 +1,132 @@
+"""Core Concepts section of the LLMling-agent documentation."""
+
+from __future__ import annotations
+
+import mknodes as mk
+
+
+nav = mk.MkNav("Core Concepts")
+
+
+@nav.route.page("Basic Agent", icon="octicon:person-16")
+def _(page: mk.MkPage):
+    """Core Agent implementation and features."""
+    page += mk.MkTemplate("docs/agents/basic_agent.md")
+
+
+@nav.route.page("Structured Agent", icon="octicon:package-16")
+def _(page: mk.MkPage):
+    """Type-safe structured output agents."""
+    page += mk.MkTemplate("docs/agents/structured_agent.md")
+
+
+@nav.route.page("Tools and Tool Management", icon="octicon:tools-16")
+def _(page: mk.MkPage):
+    """Tool management and registration."""
+    page += mk.MkTemplate("docs/agents/tool_manager.md")
+
+
+@nav.route.page("Agent Pool", icon="octicon:database-16")
+def _(page: mk.MkPage):
+    """Agent pool management and features."""
+    page += mk.MkTemplate("docs/concepts/pool.md")
+
+
+@nav.route.page("Team", icon="octicon:people-16")
+def _(page: mk.MkPage):
+    """Working with agent teams and groups."""
+    page += mk.MkTemplate("docs/agents/team.md")
+
+
+@nav.route.page("TeamRun", icon="octicon:play-16")
+def _(page: mk.MkPage):
+    """Team execution and monitoring."""
+    page += mk.MkTemplate("docs/concepts/team_run.md")
+
+
+@nav.route.page("Talk & TeamTalk", icon="octicon:comment-discussion-16")
+def _(page: mk.MkPage):
+    """Agent communication system."""
+    page += mk.MkTemplate("docs/concepts/talk.md")
+
+
+@nav.route.page("Tasks", icon="octicon:tasklist-16")
+def _(page: mk.MkPage):
+    """Task definition and execution."""
+    page += mk.MkTemplate("docs/concepts/tasks.md")
+
+
+@nav.route.page("Connections", icon="octicon:link-16")
+def _(page: mk.MkPage):
+    """Agent connection system."""
+    page += mk.MkTemplate("docs/concepts/connections.md")
+
+
+@nav.route.page("Events", icon="octicon:broadcast-16")
+def _(page: mk.MkPage):
+    """Event system and handlers."""
+    page += mk.MkTemplate("docs/concepts/events.md")
+
+
+@nav.route.page("Providers", icon="octicon:plug-16")
+def _(page: mk.MkPage):
+    """Overview of different provider types."""
+    page += mk.MkTemplate("docs/config_file/provider_config.md")
+
+
+@nav.route.page("Models", icon="octicon:cpu-16")
+def _(page: mk.MkPage):
+    """Language model configuration and types."""
+    page += mk.MkTemplate("docs/config_file/model_config.md")
+
+
+@nav.route.page("Storage System", icon="octicon:database-16")
+def _(page: mk.MkPage):
+    """Storage and persistence system."""
+    page += mk.MkTemplate("docs/concepts/storage.md")
+
+
+@nav.route.page("Knowledge System", icon="octicon:book-16")
+def _(page: mk.MkPage):
+    """Knowledge management and access."""
+    page += mk.MkTemplate("docs/concepts/knowledge.md")
+
+
+@nav.route.page("Capabilities", icon="octicon:shield-check-16")
+def _(page: mk.MkPage):
+    """Agent capabilities system."""
+    page += mk.MkTemplate("docs/concepts/capabilities.md")
+
+
+@nav.route.page("Agent Context", icon="octicon:project-16")
+def _(page: mk.MkPage):
+    """Agent context and state management."""
+    page += mk.MkTemplate("docs/concepts/agent_context.md")
+
+
+@nav.route.page("Conversation Manager", icon="octicon:history-16")
+def _(page: mk.MkPage):
+    """Conversation history and management."""
+    page += mk.MkTemplate("docs/concepts/conversation_manager.md")
+
+
+@nav.route.page("Signal System", icon="octicon:broadcast-16")
+def _(page: mk.MkPage):
+    """Signal and event system."""
+    page += mk.MkTemplate("docs/concepts/signals.md")
+
+
+@nav.route.page("Messages and Responses", icon="octicon:comment-discussion-16")
+def _(page: mk.MkPage):
+    """Message types and response handling."""
+    page += mk.MkTemplate("docs/concepts/messages.md")
+
+
+@nav.route.page("MCP Servers", icon="octicon:server-16")
+def _(page: mk.MkPage):
+    """MCP server integration."""
+    page += mk.MkTemplate("docs/concepts/mcp.md")
+
+
+if __name__ == "__main__":
+    print(nav.to_markdown())

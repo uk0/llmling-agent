@@ -80,5 +80,22 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/config_file/mcp_config.md")
 
 
+@nav.route.page("Session Configuration", icon="octicon:history-16")
+def _(page: mk.MkPage):
+    """Session management and configuration."""
+    page += mk.MkTemplate("docs/config_file/session_config.md")
+
+
+@nav.route.page("Task Configuration", icon="octicon:tasklist-16")
+def _(page: mk.MkPage):
+    """Task definition and configuration."""
+    page += mk.MkTemplate("docs/config_file/task_config.md")
+
+
+# @nav.route.page("Inheritance", icon="octicon:git-merge-16")
+# def _(page: mk.MkPage):
+#     """Configuration inheritance system."""
+#     page += mk.MkTemplate("docs/config_file/inheritance.md")
+
 if __name__ == "__main__":
     print(nav.to_markdown())

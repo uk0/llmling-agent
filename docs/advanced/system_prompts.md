@@ -143,61 +143,16 @@ While rarely needed, you can customize the complete template:
 agent.sys_prompts.template = custom_template
 ```
 
-```jinja2
-{%- if inject_agent_info %}
-Role: {{ agent.name }}
-Background: {{ agent.description }}
-{% endif %}
+In the global spacename, you will have
 
-Available Tools:
-{% for tool in agent.tools.get_tools("enabled") %}
-* {{ tool.name }}: {{ tool.description }}
-{% endfor %}
+- the `agent`
+- the `prompts` in form of `AnyPromptType`.
+- `to_prompt` helper (AnyPromptType -> str)
+- the `dynamic` setting (bool)
+- the `inject_tools` setting (bool)
+- the `tool_usage_style` setting (Literal["suggestive", "strict"])
 
-Instructions:
-{% for prompt in prompts %}
-{{ prompt|to_prompt if dynamic else prompt }}
-{% endfor %}
-```
-`to_prompt` is a helper to convert python objects to prompts which is available in the Environment.
-
-
-## Default templte
-
-The default template looks like this:
-
-```jinja2
-{%- if inject_agent_info and agent.name %}You are {{ agent.name }}{% if agent.description %}. {{ agent.description }}{% endif %}.
-
-{% endif -%}
-{%- if inject_tools != "off" -%}
-{%- set tools = agent.tools.get_tools("enabled") if inject_tools == "all" else agent.tools.get_required_tools() -%}
-{%- if tools %}
-
-{%- if tool_usage_style == "strict" %}
-You MUST use these tools to complete your tasks:
-{%- else %}
-You have access to these tools:
-{%- endif %}
-{% for tool in tools %}
-- {{ tool.name }}{% if tool.description %}: {{ tool.description }}{% endif %}{% if tool.requires_capability %} (requires {{ tool.requires_capability }}){% endif %}
-{%- endfor %}
-
-{%- if tool_usage_style == "strict" %}
-Do not attempt to perform tasks without using appropriate tools.
-{%- else %}
-Use them when appropriate to complete your tasks.
-{%- endif %}
-
-{% endif -%}
-{% endif -%}
-{%- for prompt in prompts %}
-{{ prompt|to_prompt if dynamic else prompt }}
-{%- if not loop.last %}
-
-{% endif %}
-{%- endfor %}
-```
+For further information, check out agent/sys_prompts.py in the codebase.
 
 !!! info "About Prompt Engineering"
     By default, LLMling-Agent does not engage in prompt engineering or manipulation. The features described
