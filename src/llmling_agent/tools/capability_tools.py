@@ -65,8 +65,8 @@ async def list_available_agents(  # noqa: D417
     return agents
 
 
-async def create_worker_agent(
-    ctx: RunContext[AgentContext],
+async def create_worker_agent[TDeps](
+    ctx: RunContext[AgentContext[TDeps]],
     name: str,
     system_prompt: str,
     model: str | None = None,
@@ -76,21 +76,26 @@ async def create_worker_agent(
     The new agent will be available as a tool for delegating specific tasks.
     It inherits the current model unless overridden.
     """
-    from llmling_agent.models.agents import AgentConfig
+    from llmling_agent import Agent
 
     if not ctx.deps.pool:
-        msg = "No agent pool available"
+        msg = "Agent needs to be in a pool to list agents"
         raise ToolError(msg)
+
     model = model or ctx.model.name()
-    config = AgentConfig(name=name, system_prompts=[system_prompt], model=model)
-    worker = await ctx.deps.pool.create_agent(name, config)
+    worker = Agent[TDeps](
+        name=name,
+        model=model,
+        system_prompt=system_prompt,
+        context=ctx.deps,
+    )
     assert ctx.deps.agent
     tool_info = ctx.deps.agent.register_worker(worker)
     return f"Created worker agent and registered as tool: {tool_info.name}"
 
 
-async def spawn_delegate(
-    ctx: RunContext[AgentContext],
+async def spawn_delegate[TDeps](
+    ctx: RunContext[AgentContext[TDeps]],
     task: str,
     system_prompt: str,
     model: str | None = None,
@@ -102,7 +107,7 @@ async def spawn_delegate(
     Creates an ephemeral agent that will execute the task and clean up automatically
     Optionally connects back to receive results.
     """
-    from llmling_agent.models.agents import AgentConfig
+    from llmling_agent import Agent
 
     if not ctx.deps.pool:
         msg = "No agent pool available"
@@ -110,12 +115,17 @@ async def spawn_delegate(
 
     name = f"delegate_{uuid4().hex[:8]}"
     model = model or ctx.model.name()
-    config = AgentConfig(name=name, system_prompts=[system_prompt], model=model)
+    agent = Agent[TDeps](
+        name=name,
+        model=model,
+        system_prompt=system_prompt,
+        context=ctx.deps,
+    )
 
-    agent = await ctx.deps.pool.create_agent(name, config, temporary=True)
     if connect_back:
         assert ctx.deps.agent
         ctx.deps.agent.pass_results_to(agent)
+
     await agent.run(task)
     return f"Spawned delegate {name} for task"
 
