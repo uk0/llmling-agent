@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import JsonValue
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.session import SessionQuery
+    from llmling_agent.models.storage import MemoryStorageConfig
 
 
 class MemoryStorageProvider(StorageProvider):
@@ -23,8 +24,8 @@ class MemoryStorageProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, config: MemoryStorageConfig):
+        super().__init__(config)
         self.messages: list[dict] = []
         self.conversations: list[dict] = []
         self.tool_calls: list[dict] = []

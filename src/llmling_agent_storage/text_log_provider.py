@@ -8,7 +8,7 @@ from upath import UPath
 from llmling_agent.common_types import JsonValue
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.storage import LogFormat
+from llmling_agent.models.storage import LogFormat, TextLogConfig
 from llmling_agent_storage.base import StorageProvider
 
 
@@ -90,26 +90,17 @@ class TextLogProvider(StorageProvider):
     }
     can_load_history = False  # Text logs are write-only
 
-    def __init__(
-        self,
-        path: str | PathLike[str],
-        *,
-        template: str | PathLike[str] | None = None,
-        encoding: str = "utf-8",
-        **kwargs: Any,
-    ):
+    def __init__(self, config: TextLogConfig):
         """Initialize text log provider.
 
         Args:
-            path: Path to log file
-            template: Template to use, or "chronological" or "conversations"
-            encoding: Encoding to use
+            config: Configuration for provider
             kwargs: Additional arguments to pass to StorageProvider
         """
-        super().__init__(**kwargs)
-        self.path = UPath(path)
-        self.encoding = encoding
-        self.template = self._load_template(template)
+        super().__init__(config)
+        self.path = UPath(config.path)
+        self.encoding = config.encoding
+        self.template = self._load_template(config.template)
         self._entries: list[dict[str, Any]] = []
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._write()  # Create initial empty file

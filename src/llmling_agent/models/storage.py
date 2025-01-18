@@ -7,6 +7,7 @@ import yamling
 
 
 LogFormat = Literal["chronological", "conversations"]
+FilterMode = Literal["and", "override"]
 
 APP_NAME: Final = "llmling-agent"
 APP_AUTHOR: Final = "llmling"
@@ -27,6 +28,9 @@ class BaseStorageProviderConfig(BaseModel):
     log_messages: bool = True
     """Whether to log messages"""
 
+    agents: set[str] | None = None
+    """Optional set of agent names to include. If None, logs all agents."""
+
     log_conversations: bool = True
     """Whether to log conversations"""
 
@@ -46,22 +50,31 @@ class SQLStorageConfig(BaseStorageProviderConfig):
     """SQL database storage configuration."""
 
     type: Literal["sql"] = Field("sql", init=False)
+
     url: str = Field(default_factory=get_database_path)
     """Database URL (e.g. sqlite:///history.db)"""
+
     pool_size: int = 5
     """Connection pool size"""
+
+    auto_migration: bool = True
+    """Whether to automatically add missing columns"""
 
 
 class TextLogConfig(BaseStorageProviderConfig):
     """Text log configuration."""
 
     type: Literal["text_file"] = Field("text_file", init=False)
+
     path: str
     """Path to log file"""
+
     format: LogFormat = "chronological"
     """Log format template to use"""
+
     template: Literal["chronological", "conversations"] | str | None = "chronological"  # noqa: PYI051
     """Template to use: either predefined name or path to custom template"""
+
     encoding: str = "utf-8"
     """File encoding"""
 
@@ -71,10 +84,13 @@ class FileStorageConfig(BaseStorageProviderConfig):
     """File storage configuration."""
 
     type: Literal["file"] = Field("file", init=False)
+
     path: str
     """Path to storage file (extension determines format unless specified)"""
+
     format: yamling.FormatType = "auto"
     """Storage format (auto=detect from extension)"""
+
     encoding: str = "utf-8"
     """File encoding"""
 
@@ -101,6 +117,15 @@ class StorageConfig(BaseModel):
     """Name of default provider for history queries.
     If None, uses first configured provider."""
 
+    agents: set[str] | None = None
+    """Global agent filter. Can be overridden by provider-specific filters."""
+
+    filter_mode: FilterMode = "and"
+    """How to combine global and provider agent filters:
+    - "and": Both global and provider filters must allow the agent
+    - "override": Provider filter overrides global filter if set
+    """
+
     log_messages: bool = True
     """Whether to log messages."""
 
@@ -112,6 +137,9 @@ class StorageConfig(BaseModel):
 
     log_commands: bool = True
     """Whether to log command executions."""
+
+    log_context: bool = True
+    """Whether to log additions to the context."""
 
     model_config = ConfigDict(frozen=True)
 

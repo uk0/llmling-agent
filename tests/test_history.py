@@ -6,6 +6,7 @@ import pytest
 from sqlmodel import Session, SQLModel, create_engine, delete, select
 
 from llmling_agent.models.messages import TokenCost
+from llmling_agent.models.storage import SQLStorageConfig
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_storage.models import QueryFilters, StatsFilters
 from llmling_agent_storage.sql_provider import Conversation, Message, SQLModelProvider
@@ -50,7 +51,8 @@ async def sample_data(cleanup_database: None):
         session.commit()
 
         # Create provider for async operations
-        provider = SQLModelProvider(engine)
+        config = SQLStorageConfig(url="sqlite:///:memory:")
+        provider = SQLModelProvider(config, engine)
 
         # Add messages
         test_data = [
@@ -106,7 +108,8 @@ async def sample_data(cleanup_database: None):
 @pytest.fixture
 async def provider():
     """Create SQLModelProvider instance."""
-    return SQLModelProvider(engine)
+    config = SQLStorageConfig(url="sqlite:///:memory:")
+    return SQLModelProvider(config, engine)
 
 
 def test_parse_time_period():
@@ -156,11 +159,9 @@ async def test_get_conversation_stats(provider: SQLModelProvider, sample_data: N
 @pytest.mark.asyncio
 async def test_complex_filtering(provider: SQLModelProvider, sample_data: None):
     """Test combined filtering capabilities."""
+    since = BASE_TIME - timedelta(hours=1.5)
     filters = QueryFilters(
-        agent_name="test_agent",
-        model="gpt-4",
-        since=BASE_TIME - timedelta(hours=1.5),
-        query="Hello",
+        agent_name="test_agent", model="gpt-4", since=since, query="Hello"
     )
     results = await provider.get_conversations(filters)
     assert len(results) == 1

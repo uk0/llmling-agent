@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.messages import ChatMessage, TokenCost
     from llmling_agent.models.session import SessionQuery
+    from llmling_agent.models.storage import BaseStorageProviderConfig
     from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
 
 T = TypeVar("T")
@@ -52,24 +53,21 @@ class StorageProvider(TaskManagerMixin):
     can_load_history: bool = False
     """Whether this provider supports loading history."""
 
-    def __init__(
-        self,
-        *,
-        log_messages: bool = True,
-        log_conversations: bool = True,
-        log_tool_calls: bool = True,
-        log_commands: bool = True,
-        log_context: bool = True,
-    ):
+    def __init__(self, config: BaseStorageProviderConfig):
         super().__init__()
-        self.log_messages = log_messages
-        self.log_conversations = log_conversations
-        self.log_tool_calls = log_tool_calls
-        self.log_commands = log_commands
-        self.log_context = log_context
+        self.config = config
+        self.log_messages = config.log_messages
+        self.log_conversations = config.log_conversations
+        self.log_tool_calls = config.log_tool_calls
+        self.log_commands = config.log_commands
+        self.log_context = config.log_context
 
     def cleanup(self):
         """Clean up resources."""
+
+    def should_log_agent(self, agent_name: str) -> bool:
+        """Check if this provider should log the given agent."""
+        return self.config.agents is None or agent_name in self.config.agents
 
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Get messages matching query (if supported)."""

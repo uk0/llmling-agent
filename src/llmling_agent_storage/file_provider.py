@@ -14,10 +14,9 @@ from llmling_agent_storage.base import StorageProvider
 
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.session import SessionQuery
+    from llmling_agent.models.storage import FileStorageConfig
 
 logger = get_logger(__name__)
 
@@ -75,26 +74,16 @@ class FileProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(
-        self,
-        path: str | Path,
-        output_format: yamling.FormatType = "auto",
-        encoding: str = "utf-8",
-        **kwargs: Any,
-    ):
+    def __init__(self, config: FileStorageConfig):
         """Initialize file provider.
 
         Args:
-            path: Path to storage file
-            output_format: Format to use, either explicit or "auto"
-                           or extension-based detection
-            encoding: Encoding to use
-            kwargs: Additional arguments to pass to StorageProvider
+            config: Configuration for provider
         """
-        super().__init__(**kwargs)
-        self.path = UPath(path)
-        self.format = output_format
-        self.encoding = encoding
+        super().__init__(config)
+        self.path = UPath(config.path)
+        self.format = config.format
+        self.encoding = config.encoding
         self._data: StorageData = {
             "messages": [],
             "conversations": [],

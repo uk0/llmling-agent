@@ -65,42 +65,47 @@ class StorageManager(TaskManagerMixin):
     def _create_provider(self, config: BaseStorageProviderConfig) -> StorageProvider:
         """Create provider instance from configuration."""
         # Extract common settings from BaseStorageProviderConfig
-        common_settings = {
-            "log_messages": config.log_messages,
-            "log_conversations": config.log_conversations,
-            "log_tool_calls": config.log_tool_calls,
-            "log_commands": config.log_commands,
-            "log_context": config.log_context,
-        }
+        match self.config.filter_mode:
+            case "and":
+                if self.config.agents and config.agents:
+                    logged_agents = self.config.agents & config.agents
+                else:
+                    logged_agents = self.config.agents or config.agents or set()
+            case "override":
+                logged_agents = (
+                    config.agents
+                    if config.agents is not None
+                    else self.config.agents or set()
+                )
 
-        match config:
+        provider_config = config.model_copy(
+            update={
+                "log_messages": config.log_messages and self.config.log_messages,
+                "log_conversations": config.log_conversations
+                and self.config.log_conversations,
+                "log_tool_calls": config.log_tool_calls and self.config.log_tool_calls,
+                "log_commands": config.log_commands and self.config.log_commands,
+                "log_context": config.log_context and self.config.log_context,
+                "agents": logged_agents,
+            }
+        )
+
+        match provider_config:
             case SQLStorageConfig():
                 from sqlmodel import create_engine
 
-                # connect_args={"check_same_thread": False},
-                # creator=lambda: sqlite3.connect(str(get_database_path()), check_same_thread=False),  # noqa: E501
-                engine = create_engine(config.url, pool_size=config.pool_size)
-                return SQLModelProvider(engine, **common_settings)
-
+                engine = create_engine(
+                    provider_config.url, pool_size=provider_config.pool_size
+                )
+                return SQLModelProvider(provider_config, engine)
             case FileStorageConfig():
-                return FileProvider(
-                    config.path,
-                    output_format=config.format,
-                    encoding=config.encoding,
-                    **common_settings,
-                )
-
+                return FileProvider(provider_config)
             case TextLogConfig():
-                return TextLogProvider(
-                    config.path,
-                    template=config.template,
-                    encoding=config.encoding,
-                    **common_settings,
-                )
+                return TextLogProvider(provider_config)
             case MemoryStorageConfig():
-                return MemoryStorageProvider(**common_settings)
+                return MemoryStorageProvider(provider_config)
             case _:
-                msg = f"Unknown provider type: {config}"
+                msg = f"Unknown provider type: {provider_config}"
                 raise ValueError(msg)
 
     def get_history_provider(self, preferred: str | None = None) -> StorageProvider:
@@ -178,9 +183,10 @@ class StorageManager(TaskManagerMixin):
         """Log message to all providers."""
         if not self.config.log_messages:
             return
-
         for provider in self.providers:
             try:
+                if not provider.should_log_agent(name or "no name"):
+                    continue
                 await provider.log_message(
                     conversation_id=conversation_id,
                     content=content,

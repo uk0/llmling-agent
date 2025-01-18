@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import JsonValue
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.session import SessionQuery
+    from llmling_agent.models.storage import SQLStorageConfig
 
 
 logger = get_logger(__name__)
@@ -45,20 +46,23 @@ class SQLModelProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, engine: Engine, *, auto_migrate: bool = True, **kwargs: Any):
+    def __init__(
+        self,
+        config: SQLStorageConfig,
+        engine: Engine,
+    ):
         """Initialize provider with database engine.
 
         Args:
+            config: Configuration for provider
             engine: SQLModel engine instance
-            auto_migrate: Whether to automatically add missing columns
-            kwargs: Additional arguments to pass to StorageProvider
         """
         from llmling_agent_storage.sql_provider.models import SQLModel
 
-        super().__init__(**kwargs)
+        super().__init__(config)
         self.engine = engine
         SQLModel.metadata.create_all(self.engine)
-        self._init_database(auto_migrate=auto_migrate)
+        self._init_database(auto_migrate=config.auto_migration)
 
     def _init_database(self, auto_migrate: bool = True):
         """Initialize database tables and optionally migrate columns.
