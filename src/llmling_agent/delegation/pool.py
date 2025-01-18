@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.callbacks import DecisionCallback
-    from llmling_agent.models.agents import AgentConfig, AgentsManifest, WorkerConfig
+    from llmling_agent.models.agents import AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.session import SessionQuery
@@ -350,77 +350,6 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
                     )
 
     @overload
-    async def create_agent(
-        self,
-        name: str,
-        config: AgentConfig,
-        *,
-        temporary: bool = True,
-    ) -> Agent[TPoolDeps]: ...
-
-    @overload
-    async def create_agent[TDeps, TResult](
-        self,
-        name: str,
-        config: AgentConfig,
-        *,
-        deps: TDeps,
-        return_type: type[TResult],
-        temporary: bool = True,
-    ) -> StructuredAgent[TDeps, TResult]: ...
-
-    @overload
-    async def create_agent[TDeps](
-        self,
-        name: str,
-        config: AgentConfig,
-        *,
-        deps: TDeps,
-        temporary: bool = True,
-    ) -> Agent[TDeps]: ...
-
-    @overload
-    async def create_agent[TResult](
-        self,
-        name: str,
-        config: AgentConfig,
-        *,
-        return_type: type[TResult],
-        temporary: bool = True,
-    ) -> StructuredAgent[TPoolDeps, TResult]: ...
-
-    async def create_agent[TDeps](
-        self,
-        name: str,
-        config: AgentConfig,
-        *,
-        deps: TDeps | None = None,
-        return_type: Any | None = None,
-        temporary: bool = True,
-    ) -> AnyAgent[TDeps, Any]:
-        """Create and register a new agent in the pool."""
-        if name in self.agents:
-            msg = f"Agent {name} already exists"
-            raise ValueError(msg)
-
-        # Use get_agent with provided deps and return_type
-        agent = self.manifest.get_agent(name, deps=deps)
-        agent.context.pool = self
-        if return_type:
-            agent = agent.to_structured(return_type)
-        # Enter agent's async context through pool's exit stack
-        agent = await self.exit_stack.enter_async_context(agent)
-
-        # Set up workers if defined
-        if config.workers:
-            self.setup_agent_workers(agent, config.workers)
-
-        # Register in pool
-        self.agents[name] = agent
-
-        return agent
-
-    @overload
     async def clone_agent[TDeps](
         self,
         agent: str | Agent[TDeps],
@@ -504,6 +433,118 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         self.manifest.agents[agent_name] = new_config
         self.agents[agent_name] = new_agent
         return await self.exit_stack.enter_async_context(new_agent)
+
+    @overload
+    async def create_agent(
+        self,
+        name: str,
+        *,
+        session: SessionIdType | SessionQuery = None,
+        name_override: str | None = None,
+        model_override: str | None = None,
+    ) -> Agent[TPoolDeps]: ...
+
+    @overload
+    async def create_agent[TCustomDeps](
+        self,
+        name: str,
+        *,
+        deps: TCustomDeps,
+        session: SessionIdType | SessionQuery = None,
+        name_override: str | None = None,
+        model_override: str | None = None,
+    ) -> Agent[TCustomDeps]: ...
+
+    @overload
+    async def create_agent[TResult](
+        self,
+        name: str,
+        *,
+        return_type: type[TResult],
+        session: SessionIdType | SessionQuery = None,
+        name_override: str | None = None,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+        model_override: str | None = None,
+    ) -> StructuredAgent[TPoolDeps, TResult]: ...
+
+    @overload
+    async def create_agent[TCustomDeps, TResult](
+        self,
+        name: str,
+        *,
+        deps: TCustomDeps,
+        return_type: type[TResult],
+        session: SessionIdType | SessionQuery = None,
+        name_override: str | None = None,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+        model_override: str | None = None,
+    ) -> StructuredAgent[TCustomDeps, TResult]: ...
+
+    async def create_agent(
+        self,
+        name: str,
+        *,
+        deps: Any | None = None,
+        return_type: Any | None = None,
+        session: SessionIdType | SessionQuery = None,
+        name_override: str | None = None,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+        model_override: str | None = None,
+    ) -> AnyAgent[Any, Any]:
+        """Create a new agent instance from configuration.
+
+        Args:
+            name: Name of the agent configuration to use
+            deps: Optional custom dependencies (overrides pool deps)
+            return_type: Optional type for structured responses
+            session: Optional session ID or query to recover conversation
+            name_override: Optional different name for this instance
+            tool_name: Optional name for result validation tool
+            tool_description: Optional description for result validation tool
+            model_override: Optional model override
+
+        Returns:
+            New agent instance with the specified configuration
+
+        Raises:
+            KeyError: If agent configuration not found
+            ValueError: If configuration is invalid
+        """
+        if name not in self.manifest.agents:
+            msg = f"Agent configuration {name!r} not found"
+            raise KeyError(msg)
+
+        # Use Manifest.get_agent for proper initialization
+        final_deps = deps if deps is not None else self.shared_deps
+        agent = self.manifest.get_agent(name, deps=final_deps)
+        if model_override:
+            agent.set_model(model_override)
+        # Override name if requested
+        if name_override:
+            agent.name = name_override
+
+        # Set pool reference
+        agent.context.pool = self
+
+        # Handle session if provided
+        if session:
+            agent.conversation.load_history_from_database(session=session)
+
+        # Initialize agent through exit stack
+        agent = await self.exit_stack.enter_async_context(agent)
+
+        # Override structured configuration if provided
+        if return_type is not None:
+            return agent.to_structured(
+                return_type,
+                tool_name=tool_name,
+                tool_description=tool_description,
+            )
+
+        return agent
 
     def setup_agent_workers(self, agent: AnyAgent[Any, Any], workers: list[WorkerConfig]):
         """Set up workers for an agent from configuration."""
