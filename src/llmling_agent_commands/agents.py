@@ -9,8 +9,6 @@ from slashed.completers import CallbackCompleter
 import yamling
 
 from llmling_agent.agent import Agent, AnyAgent
-from llmling_agent.environment.models import InlineEnvironment
-from llmling_agent.models.agents import AgentConfig
 from llmling_agent_commands.completers import get_available_agents
 
 
@@ -91,25 +89,17 @@ async def create_agent_command(
             msg = "No agent pool available"
             raise CommandError(msg)
 
-        # Copy current agent's configuration with modifications
+        # Get model from args or current agent
         current_agent = ctx.context._agent
-        model = kwargs.get("model") or current_agent.model_name
-
-        config = AgentConfig(
+        # Create and register the new agent
+        await ctx.context.pool.add_agent(
             name=name,
-            model=model,
-            system_prompts=[system_prompt],
+            model=kwargs.get("model") or current_agent.model_name,
+            system_prompt=system_prompt,
             description=kwargs.get("description"),
-            environment=InlineEnvironment(),
-            # config_file_path=current_agent.context.config.config_file_path,
         )
 
-        _agent = await ctx.context.pool.create_agent(name, config, temporary=True)
-
-        if kwargs.get("model"):
-            msg = f"Created agent '{name}' with model {model}"
-        else:
-            msg = f"Created agent '{name}' (using current model: {model})"
+        msg = f"Created agent '{name}'"
         await ctx.output.print(f"{msg}\nUse /connect {name} to forward messages")
 
     except ValueError as e:
