@@ -19,7 +19,6 @@ from llmling_agent_storage.models import (
     StatsFilters,
 )
 from llmling_agent_storage.sql_provider.models import Conversation, Message
-from llmling_agent_storage.sql_provider.utils import db_message_to_chat_message
 
 
 if TYPE_CHECKING:
@@ -326,7 +325,7 @@ class SQLModelProvider(StorageProvider):
 
         return stmt  # type: ignore
 
-    def _to_chat_message(self, db_message: Any) -> ChatMessage[str]:
+    def _to_chat_message(self, db_message: Message) -> ChatMessage[str]:
         """Convert database message to ChatMessage."""
         cost_info = None
         if db_message.total_tokens is not None:
@@ -341,7 +340,7 @@ class SQLModelProvider(StorageProvider):
 
         return ChatMessage[str](
             content=db_message.content,
-            role=db_message.role,
+            role=db_message.role,  # type: ignore
             name=db_message.name,
             model=db_message.model,
             cost_info=cost_info,
@@ -413,7 +412,7 @@ class SQLModelProvider(StorageProvider):
                 if not messages:
                     continue
 
-                chat_messages = [db_message_to_chat_message(msg) for msg in messages]
+                chat_messages = [self._to_chat_message(msg) for msg in messages]
                 conv_data = self._format_conversation(conv, messages)
                 results.append((conv_data, chat_messages))
 
@@ -586,7 +585,7 @@ class SQLModelProvider(StorageProvider):
 
         # Convert messages to ChatMessage format if needed
         chat_messages = [
-            msg if isinstance(msg, ChatMessage) else db_message_to_chat_message(msg)
+            msg if isinstance(msg, ChatMessage) else self._to_chat_message(msg)
             for msg in msgs
         ]
 

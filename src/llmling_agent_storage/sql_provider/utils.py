@@ -13,8 +13,6 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 
-from llmling_agent.models.messages import ChatMessage
-
 
 if TYPE_CHECKING:
     from llmling_agent_storage.sql_provider.models import Message
@@ -31,34 +29,6 @@ def db_message_to_pydantic_ai_message(msg: Message) -> ModelMessage:
             return ModelRequest(parts=[SystemPromptPart(content=msg.content)])
     error_msg = f"Unknown message role: {msg.role}"
     raise ValueError(error_msg)
-
-
-def db_message_to_chat_message(msg: Message) -> ChatMessage[str]:
-    """Convert database message to ChatMessage format."""
-    from llmling_agent.models.messages import TokenCost
-
-    # Create cost info if we have token usage
-    cost_info = None
-    if msg.total_tokens is not None:
-        cost_info = TokenCost(
-            token_usage={
-                "total": msg.total_tokens,
-                "prompt": msg.prompt_tokens or 0,
-                "completion": msg.completion_tokens or 0,
-            },
-            total_cost=msg.cost or 0.0,
-        )
-
-    return ChatMessage[str](
-        content=msg.content,
-        role=msg.role,  # type: ignore
-        name=msg.name,
-        model=msg.model,
-        cost_info=cost_info,
-        response_time=msg.response_time,
-        forwarded_from=msg.forwarded_from or [],
-        timestamp=msg.timestamp,
-    )
 
 
 def parse_model_info(model: str | None) -> tuple[str | None, str | None]:
