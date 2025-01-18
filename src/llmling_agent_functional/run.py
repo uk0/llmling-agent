@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -15,6 +14,7 @@ from typing import (
 )
 
 from llmling import Config
+from toprompt import to_prompt
 
 from llmling_agent import Agent
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
@@ -24,7 +24,7 @@ from llmling_agent.responses import InlineResponseDefinition, ResponseField
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Sequence
 
     from pydantic_ai.agent import models
     from toprompt import AnyPromptType
@@ -242,7 +242,7 @@ async def run_with_model(
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: None = None,
-    system_prompt: str | list[str] | None = None,
+    system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
     output_format: Literal["text", "json", "yaml"] = "text",
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
@@ -258,7 +258,7 @@ async def run_with_model(
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: type[T],
-    system_prompt: str | list[str] | None = None,
+    system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
     output_format: OutputFormat = "raw",  # Allow any OutputFormat
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
@@ -273,7 +273,7 @@ async def run_with_model(
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: type[T] | None = None,
-    system_prompt: str | list[str] | None = None,
+    system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
     output_format: OutputFormat = "text",
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
@@ -322,14 +322,6 @@ async def run_with_model(
         r = InlineResponseDefinition(description="Default result type", fields=fields)
         responses["DefaultResult"] = r
 
-    match system_prompt:
-        case str():
-            sys_prompts = [system_prompt]
-        case Sequence():
-            sys_prompts = list(system_prompt)
-        case _:
-            sys_prompts = []
-
     agent_environment = (
         InlineEnvironment.from_config(environment)
         if isinstance(environment, Config)
@@ -338,7 +330,7 @@ async def run_with_model(
     cfg = AgentConfig(
         name="default",
         model=model,  # type: ignore
-        system_prompts=sys_prompts,
+        system_prompts=[await to_prompt(system_prompt)],
         result_type="DefaultResult" if result_type else None,
         environment=agent_environment,
     )
@@ -362,7 +354,7 @@ def run_with_model_sync(
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: None = None,
-    system_prompt: str | list[str] | None = None,
+    system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
     output_format: Literal["text", "json", "yaml"] = "text",
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
@@ -378,7 +370,7 @@ def run_with_model_sync(
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: type[T],
-    system_prompt: str | list[str] | None = None,
+    system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
     output_format: Literal["raw"] = "raw",
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
@@ -393,7 +385,7 @@ def run_with_model_sync(
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: type[T] | None = None,
-    system_prompt: str | list[str] | None = None,
+    system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
     output_format: OutputFormat = "text",
     model_settings: dict[str, Any] | None = None,
     tool_choice: bool | str | list[str] = True,
