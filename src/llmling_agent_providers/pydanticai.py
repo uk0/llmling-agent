@@ -5,14 +5,14 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from functools import wraps
 import inspect
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, cast, get_args
 
 from llmling import ToolError
-from llmling_models import infer_model
+from llmling_models import AllModels, infer_model
 import logfire
 from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.messages import ModelResponse
-from pydantic_ai.models import Model
+from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.result import StreamedRunResult
 
 from llmling_agent.common_types import ModelProtocol
@@ -84,6 +84,10 @@ class PydanticAIProvider(AgentProvider):
             deps_type=AgentContext,
             **kwargs,
         )
+
+    async def get_model_names(self) -> list[str]:
+        """Get list of all known model names."""
+        return list(get_args(KnownModelName)) + list(get_args(AllModels))
 
     def get_agent(self, system_prompt: str) -> PydanticAgent[Any, Any]:
         agent = PydanticAgent(system_prompt=system_prompt, **self._kwargs)  # type: ignore

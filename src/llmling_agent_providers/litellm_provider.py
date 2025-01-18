@@ -11,6 +11,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from pydantic_ai.usage import Usage
+from tokonomics import get_available_models
 
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
@@ -55,6 +56,10 @@ class LiteLLMProvider(AgentProvider[Any]):
         super().__init__(name=name, debug=debug)
         self._model = model
         self.num_retries = retries
+
+    async def get_model_names(self) -> list[str]:
+        """Get list of all known model names."""
+        return await get_available_models()
 
     async def generate_response(
         self,
@@ -131,9 +136,8 @@ class LiteLLMProvider(AgentProvider[Any]):
             # Store in history if requested
             if store_history:
                 history_msg = ModelRequest(parts=[UserPromptPart(content=prompt)])
-                response_msg = PydanticModelResponse(
-                    parts=[TextPart(content=content or "")]
-                )
+                part = TextPart(content=content or "")
+                response_msg = PydanticModelResponse(parts=[part])
                 self.conversation.set_history([history_msg, response_msg])
 
             return ProviderResponse(
