@@ -67,7 +67,7 @@ async def test_parallel_execution():
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
     async with AgentPool[None](manifest) as pool:
-        group: Team[Any] = pool.create_group(["agent_1", "agent_2"])
+        group: Team[Any] = pool.create_team(["agent_1", "agent_2"])
 
         prompt = "Test input"
         responses = await group.run_parallel(prompt)
@@ -88,7 +88,7 @@ async def test_sequential_execution():
     manifest: AgentsManifest[Any] = AgentsManifest.from_yaml(TEST_CONFIG)
 
     async with AgentPool[None](manifest) as pool:
-        group: Team[Any] = pool.create_group(["agent_1", "agent_2"])
+        group: Team[Any] = pool.create_team(["agent_1", "agent_2"])
 
         prompt = "Test input"
         responses = await group.run_sequential(prompt)
@@ -123,8 +123,8 @@ async def test_sequential_execution():
 #         assert agent1.context.data is None
 #         assert agent2.context.data is None
 
-#         # Create group with shared context
-#         _group = pool.create_group([agent1, agent2], shared_deps=shared_data)
+#         # Create team with shared context
+#         _group = pool.create_team([agent1, agent2], shared_deps=shared_data)
 
 #         # Verify shared context was set for both agents
 #         assert agent1.context.data == shared_data

@@ -510,7 +510,7 @@ if __name__ == "__main__":
                 model="openai:gpt-4o-mini",
             )
 
-            team = pool.create_group([analyzer, summarizer])
+            team = pool.create_team([analyzer, summarizer])
             text = "The quick brown fox jumps over the lazy dog."
 
             print("\n=== Monitored Parallel Execution ===")

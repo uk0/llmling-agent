@@ -198,7 +198,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         self.clear()
 
     @overload
-    def create_group[TDeps](
+    def create_team[TDeps](
         self,
         agents: Sequence[str | AnyAgent[TDeps, Any]] | None = None,
         *,
@@ -207,7 +207,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     ) -> Team[TDeps]: ...
 
     @overload
-    def create_group(
+    def create_team(
         self,
         agents: Sequence[str | AnyAgent[Any, Any]] | None = None,
         *,
@@ -215,7 +215,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         shared_prompt: str | None = None,
     ) -> Team[Any]: ...  # Fallback for mixed agent dep types
 
-    def create_group(
+    def create_team(
         self,
         agents: Sequence[str | AnyAgent[Any, Any]] | None = None,
         *,

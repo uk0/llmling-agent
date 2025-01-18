@@ -93,7 +93,7 @@ def run_command(
                             format_output(result.data, output_format)
                 else:
                     # Multi-agent execution
-                    group: Team[Any] = pool.create_group(
+                    group: Team[Any] = pool.create_team(
                         agent_names,
                         model_override=model,
                     )

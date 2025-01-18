@@ -132,7 +132,7 @@ async with AgentPool("agents.yml") as pool:
     # Get agent
     agent = pool.get_agent("analyzer")
     # Create team
-    team = pool.create_group(["analyzer", "planner"])
+    team = pool.create_team(["analyzer", "planner"])
     # Connect agents
     analyzer >> planner  # Forward results
 ```

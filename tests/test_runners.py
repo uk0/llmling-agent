@@ -125,7 +125,7 @@ async def test_agent_pool_team_errors(test_model):
     async with AgentPool[None](agent_def, agents_to_load=["test_agent"]) as pool:
         # Test with non-existent team member
         with pytest.raises(KeyError, match="nonexistent"):
-            pool.create_group(["test_agent", "nonexistent"])
+            pool.create_team(["test_agent", "nonexistent"])
 
 
 @pytest.mark.asyncio

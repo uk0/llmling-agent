@@ -27,7 +27,7 @@ team = Team(
 
 ```python
 # Create from agent names
-team = pool.create_group(
+team = pool.create_team(
     agents=["analyzer", "planner", "executor"],
     model_override="gpt-4",               # Override model for all agents
     environment_override="env.yml",        # Override environment
@@ -203,7 +203,7 @@ print(f"Total tokens: {stats.token_count}")
 
 ```python
 # Create specialized team
-analysis_team = pool.create_group(
+analysis_team = pool.create_team(
     ["analyzer", "reviewer", "summarizer"],
 )
 
