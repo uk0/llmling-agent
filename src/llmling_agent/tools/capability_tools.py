@@ -59,7 +59,7 @@ async def list_available_agents(  # noqa: D417
         msg = "Agent needs to be in a pool to list agents"
         raise ToolError(msg)
 
-    agents = ctx.deps.pool.list_agents()
+    agents = list(ctx.deps.pool.list_agents())
     if only_idle:
         return [n for n in agents if not ctx.deps.pool.get_agent(n).is_busy()]
     return agents
