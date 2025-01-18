@@ -1,3 +1,7 @@
+---
+render_macros: false
+---
+
 # Storage Configuration
 
 The storage configuration defines how agent interactions, messages, and tool usage are logged. It's defined at the root level of the manifest.
