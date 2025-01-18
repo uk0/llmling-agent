@@ -91,7 +91,7 @@ class AgentKwargs(TypedDict, total=False):
     # Model Configuration
     model: ModelType  # Which model to use
     system_prompt: str | Sequence[str]  # How it should behave
-    model_settings: dict[str, Any]  # Model-specific settings
+    # model_settings: dict[str, Any]  # Model-specific settings
 
     # Runtime Environment
     runtime: RuntimeConfig | Config | StrPath | None  # Resources and tools
