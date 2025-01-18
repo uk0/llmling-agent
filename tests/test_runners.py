@@ -2,20 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 import pytest
 
 from llmling_agent.delegation import AgentPool
-from llmling_agent.models import AgentConfig, AgentsManifest
-from llmling_agent.responses import InlineResponseDefinition, ResponseField
+from llmling_agent.models import AgentsManifest
 
 
 if TYPE_CHECKING:
     from llmling_agent.agent.agent import Agent
-
-MODEL = "openai:gpt-4o-mini"
 
 
 class ConversationOutput(BaseModel):
@@ -59,6 +56,13 @@ agents:
     result_type: ConversationOutput
     system_prompts:
       - You are a test agent
+
+  error_agent:
+    name: Error Agent
+    description: Agent that always raises errors
+    model: test
+    system_prompts:
+      - You are an error agent
 """
 
 
@@ -97,32 +101,24 @@ async def test_agent_pool_conversation_flow():
 @pytest.mark.asyncio
 async def test_agent_pool_validation():
     """Test AgentPool validation and error handling."""
-    fields = {"message": ResponseField(type="str", description="Test message")}
-    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
-    agents = {"test_agent": cfg}
-    agent_def = AgentsManifest[Any](responses={"BasicResult": defn}, agents=agents)
+    manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
     # Test initialization with non-existent agent
     with pytest.raises(ValueError, match="Unknown agents"):
-        AgentPool(agent_def, agents_to_load=["nonexistent"])
+        AgentPool(manifest, agents_to_load=["nonexistent"])
 
     # Test getting non-existent agent
-    async with AgentPool[None](agent_def) as pool:
+    async with AgentPool[None](manifest) as pool:
         with pytest.raises(KeyError, match="nonexistent"):
             pool.get_agent("nonexistent")
 
 
 @pytest.mark.asyncio
-async def test_agent_pool_team_errors(test_model):
+async def test_agent_pool_team_errors():
     """Test error handling in team tasks."""
-    fields = {"message": ResponseField(type="str", description="Test message")}
-    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    cfg = AgentConfig(name="Test Agent", model=test_model, result_type="BasicResult")
-    agents = {"test_agent": cfg}
-    agent_def = AgentsManifest[Any](responses={"BasicResult": defn}, agents=agents)
+    manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
-    async with AgentPool[None](agent_def, agents_to_load=["test_agent"]) as pool:
+    async with AgentPool[None](manifest) as pool:
         # Test with non-existent team member
         with pytest.raises(KeyError, match="nonexistent"):
             pool.create_team(["test_agent", "nonexistent"])
@@ -131,14 +127,10 @@ async def test_agent_pool_team_errors(test_model):
 @pytest.mark.asyncio
 async def test_agent_pool_cleanup():
     """Test proper cleanup of agent resources."""
-    fields = {"message": ResponseField(type="str", description="Test message")}
-    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
-    agents = {"test_agent": cfg}
-    agent_def = AgentsManifest[Any](responses={"BasicResult": defn}, agents=agents)
+    manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
     # Use context manager to ensure proper cleanup
-    async with AgentPool[None](agent_def) as pool:
+    async with AgentPool[None](manifest) as pool:
         # Add some agents
         agent: Agent[None] = pool.get_agent("test_agent")
         assert "test_agent" in pool.agents
@@ -150,24 +142,15 @@ async def test_agent_pool_cleanup():
         # Test manual cleanup
         await pool.cleanup()
         assert not pool.agents  # Should be empty after cleanup
-        # assert runtime._client is None  # Runtime should be shut down
-
-    # Test context manager cleanup
-    assert not pool.agents  # Should still be empty after context exit
 
 
 @pytest.mark.asyncio
 async def test_agent_pool_context_cleanup():
     """Test cleanup through context manager."""
-    fields = {"message": ResponseField(type="str", description="Test message")}
-    defn = InlineResponseDefinition(description="Basic test result", fields=fields)
-    cfg = AgentConfig(name="Test Agent", model=MODEL, result_type="BasicResult")
-    agents = {"test_agent": cfg}
-    agent_def = AgentsManifest[Any](responses={"BasicResult": defn}, agents=agents)
-
+    manifest = AgentsManifest.from_yaml(TEST_CONFIG)
     runtime_ref = None
 
-    async with AgentPool[None](agent_def) as pool:
+    async with AgentPool[None](manifest) as pool:
         agent: Agent[None] = pool.get_agent("test_agent")
         runtime_ref = agent.runtime
         assert "test_agent" in pool.agents
@@ -175,4 +158,3 @@ async def test_agent_pool_context_cleanup():
 
     # After context exit
     assert not pool.agents
-    # assert runtime_ref._client is None  # Runtime should be shut down
