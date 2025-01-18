@@ -6,7 +6,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
 import tempfile
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, overload
 from uuid import UUID, uuid4
 
 from llmling import BasePrompt, PromptMessage, StaticPrompt
@@ -27,7 +27,8 @@ from llmling_agent.pydantic_ai_utils import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Coroutine, Sequence
+    from types import TracebackType
 
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
@@ -68,24 +69,21 @@ class ConversationManager:
         self,
         agent: Agent[Any],
         session: SessionIdType | SessionQuery = None,
-        initial_prompts: str | Sequence[str] | None = None,
         *,
-        resources: Sequence[Resource | str] = (),
+        resources: Sequence[Resource | PromptType | str] = (),
     ):
         """Initialize conversation manager.
 
         Args:
             agent: instance to manage
             session: Optional session ID or query to load and continue conversation
-            initial_prompts: Initial system prompts that start each conversation
             resources: Optional paths to load as context
         """
         self._agent = agent
-        self._initial_prompts: list[BasePrompt] = []
         self._current_history: list[ModelMessage] = []
         self._last_messages: list[ModelMessage] = []
         self._pending_messages: deque[ModelRequest] = deque()
-
+        self._resources = list(resources)  # Store for async loading
         # Generate new ID if none provided
         self.id = str(uuid4())
 
@@ -103,20 +101,26 @@ class ConversationManager:
                     messages = storage.filter_messages_sync(query)
                     self._current_history = [to_model_message(msg) for msg in messages]
 
-        # Add initial prompts
-        if not initial_prompts:
-            return
-        prompts_list = (
-            [initial_prompts] if isinstance(initial_prompts, str) else initial_prompts
-        )
-        for prompt in prompts_list:
-            desc = "Initial system prompt"
-            msg = PromptMessage(role="system", content=prompt)
-            obj = StaticPrompt(name=desc, description=desc, messages=[msg])
-            self._initial_prompts.append(obj)
-        # Add context loading tasks to agent
-        for source in resources:
-            self._agent.create_task(self.load_context_source(source))
+    def get_initialization_tasks(self) -> list[Coroutine[Any, Any, Any]]:
+        """Get all initialization coroutines."""
+        self._resources = []  # Clear so we dont load again on async init
+        return [self.load_context_source(source) for source in self._resources]
+
+    async def __aenter__(self) -> Self:
+        """Initialize when used standalone."""
+        tasks = self.get_initialization_tasks()
+        if tasks:
+            await asyncio.gather(*tasks)
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Clean up any pending messages."""
+        self._pending_messages.clear()
 
     def __bool__(self) -> bool:
         return bool(self._pending_messages) or bool(self._current_history)
@@ -299,29 +303,6 @@ class ConversationManager:
                 messages = storage.filter_messages_sync(query)
                 self._current_history = [to_model_message(msg) for msg in messages]
 
-    def add_prompt(self, prompt: PromptInput):
-        """Add a system prompt.
-
-        Args:
-            prompt: String content or BasePrompt instance to add
-        """
-        self._initial_prompts.append(_to_base_prompt(prompt))
-
-    async def get_all_prompts(self) -> list[str]:
-        """Get all formatted system prompts in order."""
-        result: list[str] = []
-
-        for prompt in self._initial_prompts:
-            try:
-                messages = await prompt.format()
-                result.extend(
-                    msg.get_text_content() for msg in messages if msg.role == "system"
-                )
-            except Exception:
-                logger.exception("Error formatting prompt")
-
-        return result
-
     def get_history(
         self,
         include_pending: bool = True,
@@ -363,7 +344,6 @@ class ConversationManager:
 
     def clear(self):
         """Clear conversation history and prompts."""
-        self._initial_prompts.clear()
         self._current_history = []
         self._last_messages = []
         event = self.HistoryCleared(session_id=str(self.id))

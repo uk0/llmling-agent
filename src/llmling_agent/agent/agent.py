@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from llmling.config.models import Resource
+    from llmling.prompts import PromptType
     from pydantic_ai.agent import EndStrategy
     from pydantic_ai.result import StreamedRunResult
 
@@ -166,6 +167,7 @@ class Agent[TDeps](TaskManagerMixin):
         description: str | None = None,
         tools: Sequence[ToolType] | None = None,
         mcp_servers: list[str | MCPServerConfig] | None = None,
+        resources: Sequence[Resource | PromptType | str] = (),
         retries: int = 1,
         result_retries: int | None = None,
         tool_choice: bool | str | list[str] = True,
@@ -190,6 +192,7 @@ class Agent[TDeps](TaskManagerMixin):
             description: Description of the Agent ("what it can do")
             tools: List of tools to register with the agent
             mcp_servers: MCP servers to connect to
+            resources: Additional resources to load
             retries: Default number of retries for failed operations
             result_retries: Max retries for result validation (defaults to retries)
             tool_choice: Ability to set a fixed tool or temporarily disable tools usage.
@@ -233,16 +236,22 @@ class Agent[TDeps](TaskManagerMixin):
         # Initialize tool manager
         all_tools = list(tools or [])
         self._tool_manager = ToolManager(all_tools, tool_choice=tool_choice, context=ctx)
-
         # Initialize conversation manager
+        resources = list(resources)
+        if ctx.config.knowledge:
+            # Add resources from config
+            resources.extend(
+                ctx.config.knowledge.paths
+                + ctx.config.knowledge.resources
+                + ctx.config.knowledge.prompts
+            )
+        self.conversation = ConversationManager(self, session, resources=resources)
         config_prompts = ctx.config.system_prompts if ctx else []
         all_prompts = list(config_prompts)
         if isinstance(system_prompt, str):
             all_prompts.append(system_prompt)
         else:
             all_prompts.extend(system_prompt)
-        self.conversation = ConversationManager(self, session, all_prompts)
-
         # Initialize provider
         match provider:
             case "pydantic_ai":
@@ -252,7 +261,7 @@ class Agent[TDeps](TaskManagerMixin):
                     assert isinstance(model, models.Model)
                 self._provider: AgentProvider = PydanticAIProvider(
                     model=model,
-                    system_prompt=system_prompt,
+                    system_prompt=all_prompts,
                     retries=retries,
                     end_strategy=end_strategy,
                     result_retries=result_retries,
@@ -337,14 +346,8 @@ class Agent[TDeps](TaskManagerMixin):
                     self.tools.setup_mcp_servers(self.context.config.get_mcp_servers())
                 )
 
-            # Knowledge loading
-            if self.context.config.knowledge:
-                for source in (
-                    self.context.config.knowledge.paths
-                    + self.context.config.knowledge.resources
-                    + self.context.config.knowledge.prompts
-                ):
-                    coros.append(self.conversation.load_context_source(source))  # noqa: PERF401
+            # Get conversation init tasks directly
+            coros.extend(self.conversation.get_initialization_tasks())
 
             # Execute coroutines either in parallel or sequentially
             if self.parallel_init and coros:
