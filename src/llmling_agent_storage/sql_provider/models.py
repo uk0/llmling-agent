@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
@@ -136,6 +136,9 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
 
     response_time: float | None = None
     """Time taken to generate the response in seconds"""
+
+    checkpoint_data: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
+    """A dictionary of checkpoints (name -> metadata)."""
 
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
