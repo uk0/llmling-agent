@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Literal, overload
@@ -89,16 +89,34 @@ class Team[TDeps](TaskManagerMixin):
 
     def __init__(
         self,
-        agents: list[AnyAgent[TDeps, Any]],
+        agents: Sequence[AnyAgent[TDeps, Any]],
         *,
         shared_prompt: str | None = None,
         name: str | None = None,
     ):
-        self.agents = EventedList(agents)
+        self.agents = EventedList(list(agents))
         self.shared_prompt = shared_prompt
         self.name = name or " & ".join([i.name for i in agents])
         self.connections = TalkManager(self)
         self.team_talk = TeamTalk.from_agents(self.agents)
+
+    def __repr__(self) -> str:
+        """Create a readable representation of the team."""
+        members = ", ".join(agent.name for agent in self.agents)
+        name = f" ({self.name})" if self.name else ""
+        return f"Team[{len(self.agents)}]{name}: {members}"
+
+    def __contains__(self, item: Any) -> bool:
+        """Check if an agent is part of the team."""
+        return item in self.agents
+
+    def __iter__(self):
+        """Iterate over team members."""
+        return iter(self.agents)
+
+    def __len__(self) -> int:
+        """Get number of team members."""
+        return len(self.agents)
 
     @overload
     def __and__(self, other: Team[None]) -> Team[None]: ...
