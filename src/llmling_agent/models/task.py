@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from llmling import BasePrompt, LLMCallableTool
 from llmling.config.models import ToolConfig
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 from typing_extensions import TypeVar
@@ -11,35 +12,34 @@ TResult = TypeVar("TResult", default=str)
 
 
 class AgentTask[TDeps, TResult](BaseModel):
-    """Definition of a task that can be executed by an agent.
+    """A task is a piece of work that can be executed by an agent.
 
-    Can be used both programmatically and defined in YAML:
+    Requirements:
+    - The agent must have compatible dependencies (required_dependency)
+    - The agent must produce the specified result type (required_return_type)
 
-    tasks:
-      analyze_code:
-        prompt: "Analyze the code in src directory"
-        result_type: "myapp.types.AnalysisResult"
-        knowledge:
-          paths: ["src/**/*.py"]
-          resources:
-            - type: cli
-              command: "mypy src/"
-        tools: ["analyze_code", "check_types"]
+    Equipment:
+    - The task provides necessary tools for execution (tools)
+    - Tools are temporarily available during task execution
     """
 
-    name: str | None = Field(None, exclude=True)
+    name: str | None = Field(None)
     """Technical identifier (automatically set from config key during registration)"""
 
     description: str | None = None
     """Human-readable description of what this task does"""
 
-    prompt: str | ImportString[str]
+    prompt: str | ImportString[str] | BasePrompt
     """The task instruction/prompt."""
 
-    result_type: ImportString[type[TResult]] = Field(default="str", validate_default=True)  # type: ignore
+    required_return_type: ImportString[type[TResult]] = Field(
+        default="str", validate_default=True
+    )  # type: ignore
     """Expected type of the task result."""
 
-    deps: TDeps | None = None
+    required_dependency: ImportString[type[TDeps]] | None = Field(
+        default=None, validate_default=True
+    )  # type: ignore
     """Dependencies or context data needed for task execution"""
 
     knowledge: Knowledge | None = None
@@ -64,3 +64,25 @@ class AgentTask[TDeps, TResult](BaseModel):
             tool if isinstance(tool, ToolConfig) else ToolConfig(import_path=str(tool))
             for tool in self.tools
         ]
+
+    async def get_prompt(self) -> str:
+        if isinstance(self.prompt, BasePrompt):
+            messages = await self.prompt.format()
+            return "\n\n".join(m.get_text_content() for m in messages)
+        return self.prompt
+
+    def get_tools(self) -> list[LLMCallableTool]:
+        """Get all tools as LLMCallableTool instances."""
+        tools = []
+        for tool in self.tools:
+            match tool:
+                case str():
+                    tools.append(LLMCallableTool.from_callable(tool))
+                case ToolConfig():
+                    tools.append(LLMCallableTool.from_callable(tool.import_path))
+                case LLMCallableTool():
+                    tools.append(tool)
+                case _:
+                    msg = f"Invalid tool type: {type(tool)}"
+                    raise ValueError(msg)
+        return tools

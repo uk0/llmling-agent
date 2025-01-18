@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from datetime import timedelta
     from types import TracebackType
 
+    from llmling.config.models import Resource
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
+    from llmling_agent.models.task import AgentTask
     from llmling_agent.tools.manager import ToolManager
     from llmling_agent_providers.callback import ProcessorCallback
 
@@ -131,6 +133,7 @@ class StructuredAgent[TDeps, TResult]:
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         model: ModelType = None,
+        store_history: bool = True,
         wait_for_connections: bool = False,
     ) -> ChatMessage[TResult]:
         """Run with fixed result type.
@@ -143,6 +146,8 @@ class StructuredAgent[TDeps, TResult]:
                 - Complete response definition instance
             deps: Optional dependencies for the agent
             model: Optional model override
+            store_history: Whether the message exchange should be added to the
+                           context window
             wait_for_connections: Whether to wait for all connections to complete
         """
         typ = result_type or self._result_type
@@ -150,6 +155,7 @@ class StructuredAgent[TDeps, TResult]:
             *prompt,
             result_type=typ,
             model=model,
+            store_history=store_history,
             wait_for_connections=wait_for_connections,
         )
 
@@ -219,6 +225,75 @@ class StructuredAgent[TDeps, TResult]:
             tool_name=tool_name,
             tool_description=tool_description,
         )
+
+    async def run_task(
+        self,
+        task: AgentTask[TDeps, TResult],
+        *,
+        store_history: bool = True,
+        include_agent_tools: bool = True,
+    ) -> ChatMessage[TResult]:
+        """Execute a pre-defined task ensuring type compatibility.
+
+        Args:
+            task: Task configuration to execute
+            store_history: Whether to add task execution to conversation history
+            include_agent_tools: Whether to include agent's tools alongside task tools
+
+        Returns:
+            Task execution result
+
+        Raises:
+            TaskError: If task execution fails or types don't match
+            ValueError: If task configuration is invalid
+        """
+        from llmling_agent.tasks import TaskError
+
+        # Validate dependency requirement
+        if task.required_dependency is not None:  # noqa: SIM102
+            if not isinstance(self.context.data, task.required_dependency):
+                msg = (
+                    f"Agent dependencies ({type(self.context.data)}) "
+                    f"don't match task requirement ({task.required_dependency})"
+                )
+                raise TaskError(msg)
+
+        # Validate return type requirement
+        if task.required_return_type != self._result_type:
+            msg = (
+                f"Agent result type ({self._result_type}) "
+                f"doesn't match task requirement ({task.required_return_type})"
+            )
+            raise TaskError(msg)
+
+        # Load task knowledge if provided
+        if task.knowledge:
+            # Add knowledge sources to context
+            resources: list[Resource | str] = list(task.knowledge.paths) + list(
+                task.knowledge.resources
+            )
+            for source in resources:
+                await self.conversation.load_context_source(source)
+            for prompt in task.knowledge.prompts:
+                await self.conversation.load_context_source(prompt)
+
+        try:
+            # Register task tools temporarily
+            tools = task.get_tools()
+
+            # Use temporary tools
+            with self._agent.tools.temporary_tools(
+                tools, exclusive=not include_agent_tools
+            ):
+                # Execute task using StructuredAgent's run to maintain type safety
+                return await self.run(
+                    await task.get_prompt(), store_history=store_history
+                )
+
+        except Exception as e:
+            msg = f"Task execution failed: {e}"
+            logger.exception(msg)
+            raise TaskError(msg) from e
 
     @classmethod
     def from_callback(

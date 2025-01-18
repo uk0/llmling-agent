@@ -52,7 +52,7 @@ class DirectStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
         store_history: bool = True,
     ) -> ChatMessage[TResult]:
         """Direct execution of task prompt."""
-        return await agent.run(task.prompt, store_history=store_history)
+        return await agent.run(await task.get_prompt(), store_history=store_history)
 
 
 class StepByStepStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
@@ -80,7 +80,7 @@ class StepByStepStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
     ) -> ChatMessage[TResult]:
         # Get step breakdown using configurable prompt
         planning_prompt = self.planning_prompt_template.format(
-            prompt=task.prompt, max_steps=self.max_steps
+            prompt=await task.get_prompt(), max_steps=self.max_steps
         )
         msg = await agent.run(
             planning_prompt,
@@ -99,7 +99,7 @@ class StepByStepStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
 
         # Combine results using configurable prompt
         combine_prompt = self.combination_prompt_template.format(
-            results="\n".join(str(r) for r in results), prompt=task.prompt
+            results="\n".join(str(r) for r in results), prompt=await task.get_prompt()
         )
         return await agent.run(combine_prompt, store_history=store_history)
 
@@ -145,12 +145,13 @@ class ResearchStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
         store_history: bool = True,
     ) -> ChatMessage[TResult]:
         # Research phase
-        research_prompt = self.research_prompt_template.format(prompt=task.prompt)
+        prompt = await task.get_prompt()
+        research_prompt = self.research_prompt_template.format(prompt=prompt)
         research = await agent.run(research_prompt)
         # Execution phase
         execution_prompt = self.execution_prompt_template.format(
             research=research.content,
-            prompt=task.prompt,
+            prompt=await task.get_prompt(),
         )
         return await agent.run(execution_prompt, store_history=store_history)
 

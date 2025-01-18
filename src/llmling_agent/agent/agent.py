@@ -12,16 +12,7 @@ import time
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, cast, overload
 from uuid import uuid4
 
-from llmling import (
-    Config,
-    DynamicPrompt,
-    LLMCallableTool,
-    RuntimeConfig,
-    StaticPrompt,
-    ToolError,
-)
-from llmling.prompts.models import FilePrompt
-from llmling.utils.importing import import_callable
+from llmling import Config, LLMCallableTool, RuntimeConfig, ToolError
 import logfire
 from psygnal import Signal
 from pydantic_ai import RunContext  # noqa: TC002
@@ -34,7 +25,7 @@ from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.content import BaseContent
+from llmling_agent.models.content import BaseContent, Content
 from llmling_agent.models.mcp_server import MCPServerConfig, StdioMCPServer
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.responses.utils import to_type
@@ -923,8 +914,8 @@ class Agent[TDeps](TaskManagerMixin):
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         """Run agent with prompt and get response."""
-        prompts = [
-            await to_prompt(p) if not isinstance(prompt, BaseContent) else p
+        prompts: list[str | Content] = [
+            await to_prompt(p) if not isinstance(prompt, BaseContent) else p  # type: ignore
             for p in prompt
         ]
         final_prompt = "\n\n".join(str(p) for p in prompts)
@@ -1063,8 +1054,8 @@ class Agent[TDeps](TaskManagerMixin):
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        prompts = [
-            await to_prompt(p) if not isinstance(prompt, BaseContent) else p
+        prompts: list[str | Content] = [
+            await to_prompt(p) if not isinstance(prompt, BaseContent) else p  # type: ignore
             for p in prompt
         ]
         final_prompt = "\n\n".join(str(p) for p in prompts)
@@ -1169,9 +1160,13 @@ class Agent[TDeps](TaskManagerMixin):
         """
         from llmling_agent.tasks import TaskError
 
-        original_result_type = self._result_type
-
-        self.set_result_type(task.result_type)
+        if task.required_dependency is not None:  # noqa: SIM102
+            if not isinstance(self.context.data, task.required_dependency):
+                msg = (
+                    f"Agent dependencies ({type(self.context.data)}) "
+                    f"don't match task requirement ({task.required_dependency})"
+                )
+                raise TaskError(msg)
 
         # Load task knowledge
         if task.knowledge:
@@ -1182,22 +1177,10 @@ class Agent[TDeps](TaskManagerMixin):
             for source in resources:
                 await self.conversation.load_context_source(source)
             for prompt in task.knowledge.prompts:
-                if isinstance(prompt, StaticPrompt | DynamicPrompt | FilePrompt):
-                    await self.conversation.add_context_from_prompt(prompt)
-                else:
-                    await self.conversation.load_context_source(prompt)
-
+                await self.conversation.load_context_source(prompt)
         try:
             # Register task tools temporarily
-            tools = [import_callable(cfg.import_path) for cfg in task.tool_configs]
-            names = [cfg.name for cfg in task.tool_configs]
-            descriptions = [cfg.description for cfg in task.tool_configs]
-            tools = [
-                LLMCallableTool.from_callable(
-                    tool, name_override=name, description_override=description
-                )
-                for tool, name, description in zip(tools, names, descriptions)
-            ]
+            tools = task.get_tools()
             with self.tools.temporary_tools(tools, exclusive=not include_agent_tools):
                 # Execute task with task-specific tools
                 from llmling_agent.tasks.strategies import DirectStrategy
@@ -1213,8 +1196,6 @@ class Agent[TDeps](TaskManagerMixin):
             msg = f"Task execution failed: {e}"
             logger.exception(msg)
             raise TaskError(msg) from e
-        finally:
-            self.set_result_type(original_result_type)
 
     async def run_continuous(
         self,
