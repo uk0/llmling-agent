@@ -306,6 +306,28 @@ Select ONE option by its exact label."""
         prompt: AnyPromptType | None = None,
     ) -> MultiPick[T]: ...
 
+    @overload
+    async def pick_multiple(
+        self,
+        selections: Team[TDeps],
+        task: str,
+        *,
+        min_picks: int = 1,
+        max_picks: int | None = None,
+        prompt: AnyPromptType | None = None,
+    ) -> MultiPick[AnyAgent[TDeps, Any]]: ...
+
+    @overload
+    async def pick_multiple(
+        self,
+        selections: AgentPool,
+        task: str,
+        *,
+        min_picks: int = 1,
+        max_picks: int | None = None,
+        prompt: AnyPromptType | None = None,
+    ) -> MultiPick[AnyAgent[Any, Any]]: ...
+
     async def pick_multiple[T](
         self,
         selections: Sequence[T] | Mapping[str, T] | AgentPool | Team[TDeps],
