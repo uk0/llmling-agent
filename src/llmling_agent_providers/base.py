@@ -12,7 +12,6 @@ from llmling_agent.models.agents import ToolCallInfo
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from contextlib import AbstractAsyncContextManager
 
     from pydantic_ai.result import StreamedRunResult
@@ -50,14 +49,9 @@ class AgentProvider[TDeps]:
         model: str | ModelProtocol | None = None,
         name: str = "agent",
         debug: bool = False,
-        system_prompt: str | Sequence[str] = (),
     ):
         self._name = name
         self._model = model
-
-        self.system_prompt = (
-            system_prompt if isinstance(system_prompt, str) else "\n".join(system_prompt)
-        )
         self._tool_manager: ToolManager | None = None
         self._context: AgentContext[TDeps] | None = None
         self._conversation: ConversationManager | None = None

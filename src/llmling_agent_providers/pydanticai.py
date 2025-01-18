@@ -29,7 +29,7 @@ from llmling_agent_providers.base import AgentProvider, ProviderResponse
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
+    from collections.abc import AsyncIterator, Awaitable, Callable
 
     from pydantic_ai.agent import EndStrategy
     from pydantic_ai.tools import RunContext
@@ -51,7 +51,6 @@ class PydanticAIProvider(AgentProvider):
         self,
         *,
         model: str | ModelProtocol | None = None,
-        system_prompt: str | Sequence[str] = (),
         name: str = "agent",
         retries: int = 1,
         result_retries: int | None = None,
@@ -64,7 +63,6 @@ class PydanticAIProvider(AgentProvider):
 
         Args:
             model: Model to use for responses
-            system_prompt: Initial system instructions
             name: Agent name
             retries: Number of retries for failed operations
             result_retries: Max retries for result validation
@@ -73,11 +71,10 @@ class PydanticAIProvider(AgentProvider):
             debug: Whether to enable debug mode
             kwargs: Additional arguments for PydanticAI agent
         """
-        super().__init__(model=model, system_prompt=system_prompt)
+        super().__init__(model=model)
         self._debug = debug
         self._kwargs = dict(
             model=model,  # type: ignore
-            system_prompt=system_prompt,
             name=name,
             tools=[],
             retries=retries,
@@ -88,8 +85,8 @@ class PydanticAIProvider(AgentProvider):
             **kwargs,
         )
 
-    def get_agent(self) -> PydanticAgent[Any, Any]:
-        agent = PydanticAgent(**self._kwargs)  # type: ignore
+    def get_agent(self, system_prompt: str) -> PydanticAgent[Any, Any]:
+        agent = PydanticAgent(system_prompt=system_prompt, **self._kwargs)  # type: ignore
         tools = [t for t in self.tool_manager.values() if t.enabled]
         for tool in tools:
             wrapped = (
@@ -194,7 +191,7 @@ class PydanticAIProvider(AgentProvider):
         Returns:
             Response message with optional structured content
         """
-        agent = self.get_agent()
+        agent = self.get_agent(system_prompt or "")
         message_history = self.conversation.get_history()
         use_model = model or self.model
         if isinstance(use_model, str):
@@ -288,7 +285,7 @@ class PydanticAIProvider(AgentProvider):
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response using pydantic-ai."""
         message_history = self.conversation.get_history()
-        agent = self.get_agent()
+        agent = self.get_agent(system_prompt or "")
         use_model = model or self.model
         if isinstance(use_model, str):
             use_model = infer_model(use_model)

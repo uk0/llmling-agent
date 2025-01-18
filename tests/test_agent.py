@@ -132,6 +132,7 @@ async def test_agent_context_manager(tmp_path: Path):
     model = TestModel(custom_result_text=TEST_RESPONSE)
 
     async with Agent[None].open(config_path, name="test-agent", model=model) as agent:
+        agent.sys_prompts.inject_agent_info = False
         result = await agent.run(SIMPLE_PROMPT)
         assert result.data == TEST_RESPONSE
 
@@ -141,7 +142,7 @@ async def test_agent_context_manager(tmp_path: Path):
         assert len(messages) == 2  # noqa: PLR2004
 
         # Check prompt message
-        assert messages[0].content == SIMPLE_PROMPT
+        assert messages[0].content.strip() == SIMPLE_PROMPT
         assert messages[1].content == TEST_RESPONSE
 
 

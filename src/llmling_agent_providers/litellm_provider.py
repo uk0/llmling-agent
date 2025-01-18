@@ -75,7 +75,9 @@ class LiteLLMProvider(AgentProvider[Any]):
 
         try:
             # Create messages list from history and new prompt
-            messages = [{"role": "system", "content": self.system_prompt}]
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
             if store_history:
                 for msg in self.conversation.get_history():
                     messages.extend(self._convert_message_to_chat(msg))

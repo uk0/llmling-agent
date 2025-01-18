@@ -36,3 +36,7 @@ class Knowledge(BaseModel):
     """Whether to convert content to markdown when possible."""
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+
+    def get_resources(self) -> list[Resource | PromptType | str]:
+        """Get all resources."""
+        return self.resources + self.prompts + self.paths

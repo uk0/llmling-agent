@@ -106,7 +106,7 @@ class SystemPrompts:
             await self.refresh_cache()
 
         template = self._env.from_string(self.template or DEFAULT_TEMPLATE)
-        return await template.render_async(
+        result = await template.render_async(
             agent=agent,
             prompts=self.prompts,
             dynamic=self.dynamic,
@@ -114,3 +114,4 @@ class SystemPrompts:
             inject_tools=self.inject_tools,
             tool_usage_style=self.tool_usage_style,
         )
+        return result.strip()

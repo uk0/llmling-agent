@@ -163,7 +163,7 @@ class Agent[TDeps](TaskManagerMixin):
         runtime: RuntimeConfig | Config | StrPath | None = None,
         context: AgentContext[TDeps] | None = None,
         session: SessionIdType | SessionQuery = None,
-        system_prompt: str | Sequence[str] = (),
+        system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
         description: str | None = None,
         tools: Sequence[ToolType] | None = None,
         mcp_servers: list[str | MCPServerConfig] | None = None,
@@ -177,7 +177,6 @@ class Agent[TDeps](TaskManagerMixin):
         confirmation_callback: ConfirmationCallback | None = None,
         parallel_init: bool = True,
         debug: bool = False,
-        **kwargs: Any,
     ):
         """Initialize agent with runtime configuration.
 
@@ -199,7 +198,6 @@ class Agent[TDeps](TaskManagerMixin):
             end_strategy: Strategy for handling tool calls that are requested alongside
                           a final result
             defer_model_check: Whether to defer model evaluation until first run
-            kwargs: Additional arguments for PydanticAI agent
             enable_db_logging: Whether to enable logging for the agent
             confirmation_callback: Callback for confirmation prompts
             parallel_init: Whether to initialize resources in parallel
@@ -239,12 +237,7 @@ class Agent[TDeps](TaskManagerMixin):
         # Initialize conversation manager
         resources = list(resources)
         if ctx.config.knowledge:
-            # Add resources from config
-            resources.extend(
-                ctx.config.knowledge.paths
-                + ctx.config.knowledge.resources
-                + ctx.config.knowledge.prompts
-            )
+            resources.extend(ctx.config.knowledge.get_resources())
         self.conversation = ConversationManager(self, session, resources=resources)
         config_prompts = ctx.config.system_prompts if ctx else []
         all_prompts = list(config_prompts)
@@ -261,13 +254,11 @@ class Agent[TDeps](TaskManagerMixin):
                     assert isinstance(model, models.Model)
                 self._provider: AgentProvider = PydanticAIProvider(
                     model=model,
-                    system_prompt=all_prompts,
                     retries=retries,
                     end_strategy=end_strategy,
                     result_retries=result_retries,
                     defer_model_check=defer_model_check,
                     debug=debug,
-                    **kwargs,
                 )
             case "human":
                 self._provider = HumanProvider(name=name, debug=debug)
@@ -608,8 +599,7 @@ class Agent[TDeps](TaskManagerMixin):
         retries: int = 1,
         result_retries: int | None = None,
         end_strategy: EndStrategy = "early",
-        defer_model_check: bool = False,
-        **kwargs: Any,
+        debug: bool = False,
     ) -> AbstractAsyncContextManager[Agent[TDeps]]: ...
 
     @classmethod
@@ -626,8 +616,7 @@ class Agent[TDeps](TaskManagerMixin):
         retries: int = 1,
         result_retries: int | None = None,
         end_strategy: EndStrategy = "early",
-        defer_model_check: bool = False,
-        **kwargs: Any,
+        debug: bool = False,
     ) -> AbstractAsyncContextManager[StructuredAgent[TDeps, TResult]]: ...
 
     @classmethod
@@ -644,8 +633,7 @@ class Agent[TDeps](TaskManagerMixin):
         retries: int = 1,
         result_retries: int | None = None,
         end_strategy: EndStrategy = "early",
-        defer_model_check: bool = False,
-        **kwargs: Any,
+        debug: bool = False,
     ) -> AsyncIterator[Agent[TDeps] | StructuredAgent[TDeps, TResult]]:
         """Open and configure an agent with an auto-managed runtime configuration.
 
@@ -661,8 +649,7 @@ class Agent[TDeps](TaskManagerMixin):
             result_retries: Max retries for result validation (defaults to retries)
             end_strategy: Strategy for handling tool calls that are requested alongside
                         a final result
-            defer_model_check: Whether to defer model evaluation until first run
-            **kwargs: Additional arguments for PydanticAI agent
+            debug: Whether to enable debug logging
 
         Yields:
             Configured Agent instance
@@ -683,9 +670,7 @@ class Agent[TDeps](TaskManagerMixin):
             retries=retries,
             end_strategy=end_strategy,
             result_retries=result_retries,
-            defer_model_check=defer_model_check,
-            result_type=result_type,
-            **kwargs,
+            debug=debug,
         )
         async with agent:
             yield (agent if result_type is None else agent.to_structured(result_type))
@@ -947,12 +932,15 @@ class Agent[TDeps](TaskManagerMixin):
             # Get response through provider
             message_id = str(uuid4())
             start_time = time.perf_counter()
+            sys_prompt = await self.sys_prompts.format_system_prompt(self)
+
             result = await self._provider.generate_response(
                 final_prompt,
                 message_id,
                 result_type=result_type,
                 model=model,
                 store_history=store_history,
+                system_prompt=sys_prompt,
             )
 
             # Get cost info for assistant response
@@ -1078,6 +1066,7 @@ class Agent[TDeps](TaskManagerMixin):
             self.message_received.emit(user_msg)
             message_id = str(uuid4())
             start_time = time.perf_counter()
+            sys_prompt = await self.sys_prompts.format_system_prompt(self)
 
             async with self._provider.stream_response(
                 final_prompt,
@@ -1085,6 +1074,7 @@ class Agent[TDeps](TaskManagerMixin):
                 result_type=result_type,
                 model=model,
                 store_history=store_history,
+                system_prompt=sys_prompt,
             ) as stream:
                 yield stream  # type: ignore
 
