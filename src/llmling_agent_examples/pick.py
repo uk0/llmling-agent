@@ -29,31 +29,21 @@ agents:
 async def main(config_path: str):
     async with AgentPool[None](config_path) as pool:
         coordinator = pool.get_agent("coordinator")
-        experts = [
-            pool.get_agent(name)
-            for name in ["database_expert", "frontend_dev", "security_expert"]
-        ]
+        experts = pool.create_team(["database_expert", "frontend_dev", "security_expert"])
 
         # Single expert selection
-        pick = await coordinator.talk.pick(
-            experts,
-            task="Who should optimize our slow-running SQL queries?",
-        )
-        print("\nSingle expert selection:")
+        task = "Who should optimize our slow-running SQL queries?"
+        pick = await coordinator.talk.pick(experts, task=task)
         # the result is type safe, pick.selection is an agent instance
-        print(f"Selected: {pick.selection.name}")
-        print(f"Because: {pick.reason}")
+        assert pick.selection in experts
+        print(f"Selected: {pick.selection.name} Reason: {pick.reason}")
 
         # Multiple expert selection
-        multi_pick = await coordinator.talk.pick_multiple(
-            experts,
-            task="Who should we assign to create a secure login page?",
-            min_picks=2,
-        )
-        print("\nTeam selection:")
+        task = "Who should we assign to create a secure login page?"
+        multi_pick = await coordinator.talk.pick_multiple(experts, task=task, min_picks=2)
         # also here type-safe result
-        print("Selected:", ", ".join(e.name for e in multi_pick.selections))
-        print(f"Because: {multi_pick.reason}")
+        selected = ", ".join(e.name for e in multi_pick.selections)
+        print(f"Selected: {selected} Reason: {multi_pick.reason}")
 
 
 if __name__ == "__main__":
