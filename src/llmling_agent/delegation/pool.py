@@ -659,9 +659,9 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
 
         return base
 
-    def list_agents(self) -> Sequence[str]:
+    def list_agents(self) -> list[str]:
         """List available agent names."""
-        return self.list_items()
+        return list(self.list_items())
 
     def get_task(self, name: str) -> AgentTask[Any, Any]:
         return self._tasks[name]
