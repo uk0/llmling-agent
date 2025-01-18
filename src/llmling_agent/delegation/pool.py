@@ -167,8 +167,8 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
                     )
                 )
                 # Update references since enter_async_context might return new instances
-                for name, agent in zip(self.agents.keys(), agents):  # type: ignore[assignment]
-                    self.agents[name] = agent
+                for name, agent in zip(self.agents.keys(), agents):
+                    self.agents[name] = agent  # type: ignore[assignment]
             else:
                 for agent in self.agents.values():
                     await self.exit_stack.enter_async_context(agent)
