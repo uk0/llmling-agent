@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class SQLModelProvider(StorageProvider):
+class SQLModelProvider(StorageProvider[Message]):
     """Storage provider using SQLModel.
 
     Can work with any database supported by SQLAlchemy/SQLModel.
