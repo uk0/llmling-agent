@@ -203,5 +203,5 @@ Use them when appropriate to complete your tasks.
     By default, LLMling-Agent does not engage in prompt engineering or manipulation. The features described
     above (tool injection, strict mode, etc.) are strictly opt-in. We believe in transparency and
     explicit control - any modifications to system prompts are clearly visible and configurable.
-    By default, we include agent name and description though because we consider this essential
+    We do include agent name and description though because we consider this essential
     for proper coordination and context. You can disable this behavior by setting `inject_agent_info=False`.
