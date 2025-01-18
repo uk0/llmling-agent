@@ -78,8 +78,8 @@ async def meta_command(
             for prompt in prompts:
                 current_prompt = await prompt.apply(
                     current_prompt,
-                    model=model,  # type: ignore
-                    max_length=max_length,  # type: ignore
+                    model=model,
+                    max_length=max_length,
                 )
             result = current_prompt
         else:

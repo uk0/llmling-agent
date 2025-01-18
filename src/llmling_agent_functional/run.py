@@ -184,7 +184,7 @@ async def run_agent_pipeline(  # noqa: PLR0911
             agent_def,
             agent_name,
             result_type=result_type,
-            model=model,  # type: ignore[arg-type]
+            model=model,
             tools=tools,
             tool_choice=tool_choice,
             model_settings=model_settings or {},

@@ -421,7 +421,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
             runtime=original_agent.runtime,
             context=original_agent.context,
             # result_type=original_agent.actual_type,
-            model=new_config.model,  # type: ignore
+            model=new_config.model,
             system_prompt=new_config.system_prompts,
             name=new_name or f"{config.name}_copy_{len(self.agents)}",
         )

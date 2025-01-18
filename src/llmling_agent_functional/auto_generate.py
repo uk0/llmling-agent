@@ -97,7 +97,7 @@ def auto_callable(
             return await get_structured(
                 prompt=prompt,
                 response_type=return_type,  # type: ignore[arg-type]
-                model=model,  # type: ignore
+                model=model,
                 system_prompt=system_prompt,
                 max_retries=retries,
             )

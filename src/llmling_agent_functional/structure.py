@@ -14,7 +14,8 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pydantic_ai.agent import models
+    from llmling_agent.common_types import ModelType
+
 
 logger = get_logger(__name__)
 
@@ -22,7 +23,7 @@ logger = get_logger(__name__)
 async def get_structured[T](
     prompt: str,
     response_type: type[T],
-    model: models.Model | models.KnownModelName,
+    model: ModelType,
     *,
     system_prompt: str | None = None,
     max_retries: int = 3,
@@ -92,7 +93,7 @@ async def get_structured[T](
 async def get_structured_multiple[T](
     prompt: str,
     target: type[T],
-    model: models.Model | models.KnownModelName,
+    model: ModelType,
 ) -> list[T]:
     """Extract multiple structured instances from text."""
     async with Agent[None].open(model=model, name="structured") as agent:
@@ -102,7 +103,7 @@ async def get_structured_multiple[T](
 async def pick_one[T](
     prompt: str,
     options: type[T | Enum] | list[T],
-    model: models.Model | models.KnownModelName,
+    model: ModelType,
 ) -> T:
     """Pick one option from a list of choices."""
     instances: dict[str, T] = {}
