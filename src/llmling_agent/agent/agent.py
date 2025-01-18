@@ -34,6 +34,7 @@ from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
+from llmling_agent.models.content import BaseContent
 from llmling_agent.models.mcp_server import MCPServerConfig, StdioMCPServer
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.responses.utils import to_type
@@ -922,8 +923,11 @@ class Agent[TDeps](TaskManagerMixin):
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         """Run agent with prompt and get response."""
-        prompts = [await to_prompt(p) for p in prompt]
-        final_prompt = "\n\n".join(prompts)
+        prompts = [
+            await to_prompt(p) if not isinstance(prompt, BaseContent) else p
+            for p in prompt
+        ]
+        final_prompt = "\n\n".join(str(p) for p in prompts)
         self.context.current_prompt = final_prompt
         self.set_result_type(result_type)
 
@@ -938,8 +942,8 @@ class Agent[TDeps](TaskManagerMixin):
             sys_prompt = await self.sys_prompts.format_system_prompt(self)
 
             result = await self._provider.generate_response(
-                final_prompt,
-                message_id,
+                *prompts,
+                message_id=message_id,
                 result_type=result_type,
                 model=model,
                 store_history=store_history,
@@ -1059,8 +1063,11 @@ class Agent[TDeps](TaskManagerMixin):
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        prompts = [await to_prompt(p) for p in prompt]
-        final_prompt = "\n\n".join(prompts)
+        prompts = [
+            await to_prompt(p) if not isinstance(prompt, BaseContent) else p
+            for p in prompt
+        ]
+        final_prompt = "\n\n".join(str(p) for p in prompts)
         self.set_result_type(result_type)
         self.context.current_prompt = final_prompt
         try:
@@ -1072,8 +1079,8 @@ class Agent[TDeps](TaskManagerMixin):
             sys_prompt = await self.sys_prompts.format_system_prompt(self)
 
             async with self._provider.stream_response(
-                final_prompt,
-                message_id,
+                *prompts,
+                message_id=message_id,
                 result_type=result_type,
                 model=model,
                 store_history=store_history,

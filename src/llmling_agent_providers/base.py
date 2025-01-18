@@ -6,12 +6,14 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from psygnal import Signal
+from toprompt import to_prompt
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from contextlib import AbstractAsyncContextManager
 
     from pydantic_ai.result import StreamedRunResult
@@ -19,6 +21,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelProtocol, ModelType
+    from llmling_agent.models.content import Content
     from llmling_agent.models.context import AgentContext
     from llmling_agent.tools.manager import ToolManager
 
@@ -119,9 +122,8 @@ class AgentProvider[TDeps]:
 
     async def generate_response(
         self,
-        prompt: str,
+        *prompts: str | Content,
         message_id: str,
-        *,
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -132,9 +134,8 @@ class AgentProvider[TDeps]:
 
     def stream_response(
         self,
-        prompt: str,
+        *prompts: str | Content,
         message_id: str,
-        *,
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -142,3 +143,9 @@ class AgentProvider[TDeps]:
     ) -> AbstractAsyncContextManager[StreamedRunResult]:  # type: ignore[type-var]
         """Stream a response. Must be implemented by providers."""
         raise NotImplementedError
+
+    @staticmethod
+    async def format_prompts(prompts: Sequence[str | Content]) -> str:
+        """Format prompts for human readability using to_prompt."""
+        parts = [await to_prompt(p) for p in prompts]
+        return "\n\n".join(parts)

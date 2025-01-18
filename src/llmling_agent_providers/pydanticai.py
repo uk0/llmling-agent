@@ -36,6 +36,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelType
+    from llmling_agent.models.content import Content
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -171,9 +172,8 @@ class PydanticAIProvider(AgentProvider):
     @logfire.instrument("Pydantic-AI call. result type {result_type}. Prompt: {prompt}")
     async def generate_response(
         self,
-        prompt: str,
+        *prompts: str | Content,
         message_id: str,
-        *,
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -183,7 +183,7 @@ class PydanticAIProvider(AgentProvider):
         """Generate response using pydantic-ai.
 
         Args:
-            prompt: Text prompt to respond to
+            prompts: Texts / Image contents to respond to
             message_id: ID to assign to the response and tool calls
             result_type: Optional type for structured responses
             model: Optional model override for this call
@@ -202,6 +202,7 @@ class PydanticAIProvider(AgentProvider):
             use_model = infer_model(use_model)  # type: ignore
             self.model_changed.emit(use_model)
         try:
+            prompt = await self.format_prompts(prompts)
             result = await agent.run(
                 prompt,
                 deps=self._context,  # type: ignore
@@ -278,9 +279,8 @@ class PydanticAIProvider(AgentProvider):
     @asynccontextmanager
     async def stream_response(
         self,
-        prompt: str,
+        *prompts: str | Content,
         message_id: str,
-        *,
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -301,7 +301,7 @@ class PydanticAIProvider(AgentProvider):
             from devtools import debug
 
             debug(agent)
-
+        prompt = await self.format_prompts(prompts)
         async with agent.run_stream(
             prompt,
             deps=self._context,  # type: ignore

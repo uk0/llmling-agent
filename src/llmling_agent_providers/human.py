@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelType
+    from llmling_agent.models.content import Content
 
 
 logger = get_logger(__name__)
@@ -92,9 +93,8 @@ class HumanProvider(AgentProvider):
     @logfire.instrument("Human input. result type {result_type}. Prompt: {prompt}")
     async def generate_response(
         self,
-        prompt: str,
+        *prompts: str | Content,
         message_id: str,
-        *,
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -104,7 +104,7 @@ class HumanProvider(AgentProvider):
         """Get response through human input.
 
         Args:
-            prompt: Text prompt to respond to
+            prompts: Text / Image Content to respond to
             message_id: Message id to use for the response
             result_type: Optional type for structured responses
             model: Model override (unused for human)
@@ -123,11 +123,10 @@ class HumanProvider(AgentProvider):
                 print(history)
                 print("\n---")
         # Show prompt and get response
-        print(f"\n{prompt}")
+        print(f"\n{await self.format_prompts(prompts)}")
         if result_type:
             print(f"(Please provide response as {result_type.__name__})")
         response = input("> ")
-
         # Parse structured response if needed
         content: Any = response
         if result_type:
@@ -143,9 +142,8 @@ class HumanProvider(AgentProvider):
     @asynccontextmanager
     async def stream_response(
         self,
-        prompt: str,
+        *prompts: str | Content,
         message_id: str,
-        *,
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -153,6 +151,7 @@ class HumanProvider(AgentProvider):
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response keystroke by keystroke."""
+        prompt = await self.format_prompts(prompts)
         print(f"\n{prompt}")
         if result_type:
             print(f"(Please provide response as {result_type.__name__})")

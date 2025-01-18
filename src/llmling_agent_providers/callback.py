@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai.result import StreamedRunResult
 
+    from llmling_agent.models.content import Content
     from llmling_agent.models.providers import ProcessorCallback
 
 
@@ -47,9 +48,8 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
 
     async def generate_response(
         self,
-        prompt: str,
+        *prompts: str | Content,
         message_id: str,
-        *,
         result_type: type[TResult] | None = None,
         system_prompt: str | None = None,
         **kwargs: Any,
@@ -57,7 +57,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         """Process message through callback."""
         try:
             # Create args tuple based on callback requirements
-            args = (prompt, self.context) if self._wants_context else (prompt,)
+            args = (self.context, *prompts) if self._wants_context else (*prompts,)
             raw_result = self.callback(*args)
 
             # Handle async/sync result
@@ -73,9 +73,8 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
     @asynccontextmanager
     async def stream_response(
         self,
-        prompt: str,
+        *prompts: str | Content,
         message_id: str,
-        *,
         result_type: type[Any] | None = None,
         system_prompt: str | None = None,
         **kwargs: Any,
@@ -101,7 +100,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
 
         try:
             # Get result using normal response generation
-            result = await self.generate_response(prompt, message_id)
+            result = await self.generate_response(*prompts, message_id=message_id)
             stream_result = SingleChunkStream(str(result.content))
             yield stream_result  # type: ignore
 
@@ -117,9 +116,8 @@ if __name__ == "__main__":
         # Create processor
         from llmling_agent.agent.agent import Agent
 
-        uppercase = Agent[Any](
-            provider=CallbackProvider[Any](str.upper, name="uppercase")
-        )
+        provider = CallbackProvider[Any](str.upper, name="uppercase")
+        uppercase = Agent[Any](provider=provider)
 
         # Normal usage
         result = await uppercase.run("hello")

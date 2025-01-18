@@ -16,6 +16,12 @@ from tokonomics import get_available_models
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
+from llmling_agent.models.content import (
+    BaseContent,
+    Content,
+    ImageBase64Content,
+    ImageURLContent,
+)
 from llmling_agent_providers.base import AgentProvider, ProviderResponse
 
 
@@ -63,9 +69,8 @@ class LiteLLMProvider(AgentProvider[Any]):
 
     async def generate_response(
         self,
-        prompt: str,
+        *prompts: str | Content,
         message_id: str,
-        *,
         result_type: type[Any] | None = None,
         model: ModelProtocol | str | None = None,
         store_history: bool = True,
@@ -80,13 +85,35 @@ class LiteLLMProvider(AgentProvider[Any]):
 
         try:
             # Create messages list from history and new prompt
-            messages = []
+            messages: list[dict[str, Any]] = []
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
             if store_history:
                 for msg in self.conversation.get_history():
                     messages.extend(self._convert_message_to_chat(msg))
-            messages.append({"role": "user", "content": prompt})
+
+            # Convert new prompts to message content
+            content_parts: list[dict[str, Any]] = []
+            for p in prompts:
+                match p:
+                    case str():
+                        content_parts.append({"type": "text", "text": p})
+                    case ImageURLContent():
+                        content_parts.append({
+                            "type": "image_url",
+                            "image_url": {"url": p.url, "detail": p.detail or "auto"},
+                        })
+                    case ImageBase64Content():
+                        # Convert to data URL
+                        data_url = f"data:image/jpeg;base64,{p.data}"
+                        content_parts.append({
+                            "type": "image_url",
+                            "image_url": {"url": data_url, "detail": p.detail or "auto"},
+                        })
+
+            # Add the multi-modal content as user message
+            messages.append({"role": "user", "content": content_parts})
+
             schemas = [tool.callable.get_schema() for tool in self.tool_manager.values()]
             # Get completion
             response = await acompletion(
@@ -135,7 +162,16 @@ class LiteLLMProvider(AgentProvider[Any]):
 
             # Store in history if requested
             if store_history:
-                history_msg = ModelRequest(parts=[UserPromptPart(content=prompt)])
+                parts = []
+                for p in prompts:
+                    match p:
+                        case str():
+                            parts.append(UserPromptPart(content=p))
+                        case BaseContent():
+                            # For now, store content objects as string representation
+                            parts.append(UserPromptPart(content=str(p)))
+
+                history_msg = ModelRequest(parts=parts)
                 part = TextPart(content=content or "")
                 response_msg = PydanticModelResponse(parts=[part])
                 self.conversation.set_history([history_msg, response_msg])
@@ -183,7 +219,7 @@ class LiteLLMProvider(AgentProvider[Any]):
 
     # async def stream_response(
     #     self,
-    #     prompt: str,
+    #     *prompts: str | Content,
     #     message_id: str,
     #     *,
     #     result_type: type[Any] | None = None,
