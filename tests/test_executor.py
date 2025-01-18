@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from llmling_agent import Agent  # noqa: TC001
@@ -78,10 +80,7 @@ async def test_execution_order(pool):
         return "first"
 
     @agent_function(depends_on="first")
-    async def second(
-        agent1: Agent[None],
-        first: str,  # Gets result from first
-    ):
+    async def second(agent1: Agent[None], first: str):  # Gets result from first:
         assert first == "first"
         executed.append("second")
         return "second"
@@ -142,27 +141,17 @@ async def test_input_handling(pool):
     """Test handling of inputs and defaults."""
 
     @agent_function
-    async def func(
-        agent1: Agent[None],
-        required: str,
-        optional: int = 42,
-    ):
+    async def func(agent1: Agent[None], required: str, optional: int = 42):
         return f"{required}:{optional}"
 
     # With default
-    result = await execute_functions(
-        [func._agent_function],  # type: ignore
-        pool,
-        inputs={"required": "test"},
-    )
+    inputs: dict[str, Any] = {"required": "test"}
+    result = await execute_functions([func._agent_function], pool, inputs=inputs)
     assert result["func"] == "test:42"
 
     # With override
-    result = await execute_functions(
-        [func._agent_function],  # type: ignore
-        pool,
-        inputs={"required": "test", "optional": 100},
-    )
+    inputs = {"required": "test", "optional": 100}
+    result = await execute_functions([func._agent_function], pool, inputs=inputs)
     assert result["func"] == "test:100"
 
     # Missing required
