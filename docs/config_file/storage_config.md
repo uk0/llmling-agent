@@ -84,25 +84,141 @@ storage:
       log_context: true
 ```
 
-### Text Log
-Writes logs to text files with configurable format.
+### Text Log Templates
+
+The text log provider supports customizable Jinja2 templates. You can either use predefined formats or provide your own template file.
 
 ```yaml
 storage:
   providers:
     - type: "text_file"
-      path: "logs/chat.log"  # Log file path
-      format: "chronological"  # "chronological" | "conversations"
-      template: "chronological"  # predefined or custom template path
-      encoding: "utf-8"  # File encoding
-      agents: ["analyzer"]  # Agent filter
-      # Logging flags
-      log_messages: true
-      log_conversations: true
-      log_tool_calls: true
-      log_commands: true
-      log_context: true
+      path: "logs/chat.log"
+      # Use predefined template:
+      format: "chronological"  # or "conversations"
+      # Or use custom template:
+      template: "templates/custom.j2"
 ```
+
+#### Available Templates
+
+Two predefined formats are available:
+
+1. `chronological`: All events in chronological order
+2. `conversations`: Grouped by conversation with commands at the end
+
+#### Custom Templates
+
+You can create custom templates with access to these variables:
+
+##### Entry Types and Fields
+Each entry has a `type` field and type-specific data:
+
+```python
+# Message entry
+{
+    "type": "message",
+    "timestamp": datetime,
+    "conversation_id": str,
+    "content": str,
+    "role": str,
+    "name": str | None,
+    "model": str | None,
+    "cost_info": {
+        "token_usage": {
+            "total": int,
+            "prompt": int,
+            "completion": int
+        },
+        "total_cost": float
+    },
+    "response_time": float | None,
+    "forwarded_from": list[str] | None
+}
+
+# Conversation start entry
+{
+    "type": "conversation_start",
+    "timestamp": datetime,
+    "conversation_id": str,
+    "agent_name": str
+}
+
+# Tool call entry
+{
+    "type": "tool_call",
+    "timestamp": datetime,
+    "conversation_id": str,
+    "message_id": str,
+    "tool_name": str,
+    "args": dict[str, Any],
+    "result": Any
+}
+
+# Command entry
+{
+    "type": "command",
+    "timestamp": datetime,
+    "agent_name": str,
+    "session_id": str,
+    "command": str,
+    "context_type": str | None,
+    "metadata": dict[str, Any] | None
+}
+```
+
+##### Template Example
+
+```jinja
+=== Custom Log Format ===
+
+{% for entry in entries|sort(attribute="timestamp") %}
+  {%- if entry.type == "message" %}
+    [{{ entry.timestamp|strftime("%H:%M:%S") }}]
+    {{ entry.name or entry.role }}: {{ entry.content }}
+    {% if entry.cost_info %}
+      💰 ${{ "%.4f"|format(entry.cost_info.total_cost) }}
+      🎯 {{ entry.cost_info.token_usage.total }} tokens
+    {% endif %}
+    {% if entry.response_time %}
+      ⏱️ {{ "%.1f"|format(entry.response_time) }}s
+    {% endif %}
+
+  {%- elif entry.type == "tool_call" %}
+    🔧 {{ entry.tool_name }}({{ entry.args|pprint }})
+    ↪️ {{ entry.result }}
+
+  {%- elif entry.type == "command" %}
+    💻 {{ entry.agent_name }}: {{ entry.command }}
+  {%- endif %}
+{% endfor %}
+```
+
+##### Available Filters
+
+- `strftime(format)`: Format datetime objects
+- `pprint`: Pretty print dicts/lists
+- `join(separator)`: Join list items
+- Standard Jinja2 filters like `format`, `default`, etc.
+
+##### Usage Tips
+
+1. Use `entries|sort(attribute="timestamp")` to ensure chronological order
+2. Group by conversation with:
+   ```jinja
+   {% for conv_id, messages in entries|groupby("conversation_id") %}
+   ```
+3. Filter entries by type:
+   ```jinja
+   {% for msg in entries if msg.type == "message" %}
+   ```
+4. Use conditional blocks for optional data:
+   ```jinja
+   {% if entry.cost_info %}
+     Cost info here...
+   {% endif %}
+   ```
+
+The predefined templates (`CHRONOLOGICAL_TEMPLATE` and `CONVERSATIONS_TEMPLATE`) in the source code provide good examples of how to structure templates.
 
 ### File Storage
 Stores data in structured files (JSON, YAML, etc.).
