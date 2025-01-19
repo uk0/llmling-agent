@@ -168,6 +168,13 @@ Rich patterns for agent interaction and collaboration:
 
 
 [step_12]
+label = "Multi-modal support"
+content = """
+Both LiteLLM and Pydantic-AI (using a workaround) support Image input.
+Additional content types will be integrated soon!
+"""
+
+[step_13]
 label = "Multiple Interfaces"
 content = """
 Multiple ways to interact:
@@ -181,7 +188,7 @@ Multiple ways to interact:
 - Unified command system
 """
 
-[step_13]
+[step_14]
 label = "Task System"
 content = """
 Independent work definitions with type safety:
@@ -195,7 +202,7 @@ Independent work definitions with type safety:
 - YAML-based task configuration
 """
 
-[step_14]
+[step_15]
 label = "Capability System"
 content = """
 Fine-grained permission control for agents:
@@ -208,7 +215,7 @@ Fine-grained permission control for agents:
 - Agent interaction capabilites
 """
 
-[step_15]
+[step_16]
 label = "Knowledge Management"
 content = """
 Comprehensive knowledge integration:

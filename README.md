@@ -42,6 +42,7 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 - Leveraging the complete pydantic-based type-safe stack (Pydantic- Pydantic-AI, Typer, SQLModel, etc.)
 - Complete integrated command sytem to control agents from prompt-based interfaces
 - Agent MCP server support, initialized when entering the async context.
+- Multi-modal support for both LiteLLM and Pydantic-AI (currently Images only)
 - Storage providers to allow writing to local files, databases, etc. with many customizable backends. Log to SQL databases and pretty-print to a file according to your own wishes.
 - Support for creating prompts for many common python type(s / instances). Your agent understands common datatypes.
 - Integration of Meta-Model system based on [LLMling-models](https://github.com/phil65/llmling-models), also configurable via YAML.
