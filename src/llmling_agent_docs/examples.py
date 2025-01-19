@@ -8,40 +8,40 @@ import mknodes as mk
 nav = mk.MkNav("Examples")
 
 
-@nav.route.page("Creating Documentation", icon="octicon:book-16")
+@nav.route.page("Creating Documentation", icon="octicon:book-16", hide="toc")
 def _(page: mk.MkPage):
     """Agents creating documentation."""
     page += mk.MkTemplate("docs/examples/create_docs.md")
 
 
-@nav.route.page("Download Agents", icon="octicon:cloud-download-16")
+@nav.route.page("Download Agents", icon="octicon:cloud-download-16", hide="toc")
 def _(page: mk.MkPage):
     """Sequential vs parallel downloads with cheerleader."""
     page += mk.MkTemplate("docs/examples/download_agents.md")
 
 
-@nav.route.page("Pytest-Style Functions", icon="octicon:code-16")
+@nav.route.page("Pytest-Style Functions", icon="octicon:code-16", hide="toc")
 def _(page: mk.MkPage):
     """Using agents with pytest-style fixtures."""
     page += mk.MkTemplate("docs/examples/pytest_style.md")
 
 
-@nav.route.page("Human Interaction", icon="octicon:person-16")
+@nav.route.page("Human Interaction", icon="octicon:person-16", hide="toc")
 def _(page: mk.MkPage):
     """AI-Human interaction patterns."""
-    page += mk.MkTemplate("docs/examples/human_interaction.md")
+    page += mk.MkTemplate("docs/examples/human_interaction.md", hide="toc")
 
 
-@nav.route.page("Expert Selection", icon="octicon:people-16")
+@nav.route.page("Expert Selection", icon="octicon:people-16", hide="toc")
 def _(page: mk.MkPage):
     """Type-safe expert selection with pick()."""
-    page += mk.MkTemplate("docs/examples/pick_team.md")
+    page += mk.MkTemplate("docs/examples/pick_team.md", hide="toc")
 
 
-@nav.route.page("Structured Responses", icon="octicon:project-16")
+@nav.route.page("Structured Responses", icon="octicon:project-16", hide="toc")
 def _(page: mk.MkPage):
     """Using structured response types."""
-    page += mk.MkTemplate("docs/examples/structured_response.md")
+    page += mk.MkTemplate("docs/examples/structured_response.md", hide="toc")
 
 
 if __name__ == "__main__":
