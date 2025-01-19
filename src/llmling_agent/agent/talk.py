@@ -37,6 +37,7 @@ logger = get_logger(__name__)
 TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=None)
 ExtractionMode = Literal["structured", "tool_calls"]
+T = TypeVar("T")
 
 
 class LLMPick(BaseModel):
@@ -431,12 +432,16 @@ List your selections, one per line, followed by your reasoning."""
             prompt: Optional custom prompt
             include_tools: Whether to include other tools (tool_calls mode only)
         """
-        if mode == "structured":
-            # Create model for single instance
-            item_model = get_ctor_basemodel(as_type)
+        # Create model for single instance
+        item_model = get_ctor_basemodel(as_type)
 
-            # Create extraction prompt
-            final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
+        # Create extraction prompt
+        final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
+        schema_obj = create_constructor_schema(as_type)
+        schema = schema_obj.model_dump_openai()["function"]
+        final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
+
+        if mode == "structured":
 
             class Extraction(BaseModel):
                 instance: item_model  # type: ignore
@@ -448,21 +453,18 @@ List your selections, one per line, followed by your reasoning."""
             return as_type(**result.content.instance.model_dump())  # type: ignore
 
         # Legacy tool-calls approach
-        schema_obj = create_constructor_schema(as_type)
-        schema = schema_obj.model_dump_openai()["function"]
 
         async def construct(**kwargs: Any) -> T:
             """Construct instance from extracted data."""
             return as_type(**kwargs)
 
-        structured = self.agent.to_structured(as_type)
+        structured = self.agent.to_structured(item_model)
         tool = LLMCallableTool.from_callable(
             construct,
             name_override=schema["name"],
             description_override=schema["description"],
-            schema_override=schema,
+            # schema_override=schema,
         )
-        final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
         with structured.tools.temporary_tools(
             tool,
             exclusive=not include_tools,
@@ -498,20 +500,16 @@ List your selections, one per line, followed by your reasoning."""
 
         instances: list[T] = []
         schema_obj = create_constructor_schema(as_type)
-        schema = schema_obj.model_dump_openai()["function"]
-
+        final_prompt = prompt or "\n".join([
+            f"Extract {as_type.__name__} instances from text.",
+            # "Requirements:",
+            # f"- Extract at least {min_items} instances",
+            # f"- Extract at most {max_items} instances" if max_items else "",
+            "\nText to analyze:",
+            text,
+        ])
         if mode == "structured":
             # Create model for individual instance
-
-            # Create extraction prompt
-            final_prompt = prompt or "\n".join([
-                f"Extract {as_type.__name__} instances from text.",
-                "Requirements:",
-                f"- Extract at least {min_items} instances",
-                f"- Extract at most {max_items} instances" if max_items else "",
-                "\nText to analyze:",
-                text,
-            ])
 
             class Extraction(BaseModel):
                 instances: list[item_model]  # type: ignore
@@ -546,28 +544,15 @@ List your selections, one per line, followed by your reasoning."""
             if max_items and len(instances) >= max_items:
                 msg = f"Maximum number of items ({max_items}) reached"
                 raise ValueError(msg)
-            data = kwargs.get("data", kwargs)  # Handle potential nesting
-            instance = as_type(**data)  # Create instance with potentially nested data
+            instance = as_type(**kwargs)
+            instances.append(instance)
             return f"Added {instance}"
 
-        # add_instance.__annotations__ = schema_obj.get_annotations()
-        tool = LLMCallableTool.from_callable(
-            add_instance,
-            schema_override=schema,
-        )
+        add_instance.__annotations__ = schema_obj.get_annotations()
+        add_instance.__signature__ = schema_obj.to_python_signature()  # type: ignore
         structured = self.agent.to_structured(item_model)
-        with structured.tools.temporary_tools(tool, exclusive=not include_tools):
+        with structured.tools.temporary_tools(add_instance, exclusive=not include_tools):
             # Create extraction prompt
-            final_prompt = prompt or "\n".join([
-                f"Extract {as_type.__name__} instances from text.",
-                "You must:",
-                f"1. Extract at least {min_items} instances",
-                f"2. Extract at most {max_items} instances" if max_items else "",
-                "3. Use add_instance for EACH instance found",
-                f"\nType information:\n{schema['description']}",
-                "\nText to analyze:",
-                text,
-            ])
             await structured.run(final_prompt)
 
         if len(instances) < min_items:

@@ -110,7 +110,7 @@ def get_ctor_basemodel(cls: type) -> type[BaseModel]:
         hints = get_type_hints(cls)
         for field in dataclasses.fields(cls):
             fields[field.name] = (hints[field.name], ...)
-        return create_model(cls.__name__, **fields)
+        return create_model(cls.__name__, **fields)  # type: ignore
     return get_function_model(cls.__init__, name=cls.__name__)
 
 

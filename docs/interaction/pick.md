@@ -47,6 +47,10 @@ reviewer = await agent.talk.pick(
     task="Who should review this critical component?"
 )
 ```
+!!! info
+    In order for this mechanism to work, the name (and ideally also the description) of the agents should match
+    their expertise and skillset.
+
 
 ## Return Values
 
@@ -89,12 +93,6 @@ The method accepts:
 
 Where `T` is any type that can be converted to a prompt (implements `__prompt__` or is convertible by `to_prompt()`).
 
-## Tips
-
-- Use explicit labels when context matters
-- Provide clear task descriptions
-- Consider using structured types for complex decisions
-- Let teams/pools use their natural descriptions
 
 ## Example: Complex Decision Making
 
