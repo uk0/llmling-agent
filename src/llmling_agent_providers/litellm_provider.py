@@ -133,22 +133,18 @@ class LiteLLMProvider(AgentProvider[Any]):
                     case str():
                         content_parts.append({"type": "text", "text": p})
                     case ImageURLContent():
-                        content_parts.append({
-                            "type": "image_url",
-                            "image_url": {"url": p.url, "detail": p.detail or "auto"},
-                        })
+                        url = {"url": p.url, "detail": p.detail or "auto"}
+                        content_parts.append({"type": "image_url", "image_url": url})
                     case ImageBase64Content():
                         # Convert to data URL
                         data_url = f"data:image/jpeg;base64,{p.data}"
-                        content_parts.append({
-                            "type": "image_url",
-                            "image_url": {"url": data_url, "detail": p.detail or "auto"},
-                        })
+                        url = {"url": data_url, "detail": p.detail or "auto"}
+                        content_parts.append({"type": "image_url", "image_url": url})
 
             # Add the multi-modal content as user message
             messages.append({"role": "user", "content": content_parts})
 
-            schemas = [tool.callable.get_schema() for tool in self.tool_manager.values()]
+            schemas = [t.get_schema() for t in self.tool_manager.get_tools("enabled")]
             # Get completion
             response = await acompletion(
                 stream=False,
@@ -158,8 +154,8 @@ class LiteLLMProvider(AgentProvider[Any]):
                 if result_type and issubclass(result_type, BaseModel)
                 else None,
                 num_retries=self.num_retries,
-                tools=schemas,
-                tool_choice=self.get_tool_choice(),
+                tools=schemas or None,
+                tool_choice=self.get_tool_choice() if schemas else None,
                 **kwargs,
             )
             assert isinstance(response, ModelResponse)
