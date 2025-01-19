@@ -91,7 +91,7 @@ class LiteLLMProvider(AgentProvider[Any]):
             result=result,
             tool_call_id=tool_call.id,
         )
-
+        self.tool_used.emit(info)
         message = {
             "tool_call_id": tool_call.id,
             "role": "tool",
