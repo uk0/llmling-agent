@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 from llmling import BasePrompt, LLMCallableTool
 from llmling.config.models import ToolConfig
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 from typing_extensions import TypeVar
 
 from llmling_agent.config.knowledge import Knowledge  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    from llmling_agent.agent import AnyAgent
 
 
 TResult = TypeVar("TResult", default=str)
@@ -42,6 +48,9 @@ class AgentTask[TDeps, TResult](BaseModel):
     )  # type: ignore
     """Dependencies or context data needed for task execution"""
 
+    requires_vision: bool = False
+    """Whether the agent requires vision"""
+
     knowledge: Knowledge | None = None
     """Optional knowledge sources for this task:
     - Simple file/URL paths
@@ -56,6 +65,28 @@ class AgentTask[TDeps, TResult](BaseModel):
     """Minimum amount of required context size."""
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+
+    async def can_be_executed_by(self, agent: AnyAgent[Any, Any]) -> bool:
+        """Check if agent meets all requirements for this task."""
+        from llmling_agent.agent.structured import StructuredAgent
+
+        # Check dependencies
+        if self.required_dependency and not isinstance(
+            agent.context.data, self.required_dependency
+        ):
+            return False
+
+        # Check return type
+        if isinstance(agent, StructuredAgent):  # noqa: SIM102
+            if agent._result_type != self.required_return_type:
+                return False
+
+        # Check vision capabilities
+        if self.requires_vision:  # noqa: SIM102
+            if not await agent.provider.supports_capability("vision"):
+                return False
+
+        return True
 
     @property
     def tool_configs(self) -> list[ToolConfig]:

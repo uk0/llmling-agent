@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from psygnal import Signal
+import tokonomics
 from toprompt import to_prompt
 
 from llmling_agent.log import get_logger
@@ -149,3 +150,14 @@ class AgentProvider[TDeps]:
         """Format prompts for human readability using to_prompt."""
         parts = [await to_prompt(p) for p in prompts]
         return "\n\n".join(parts)
+
+    async def supports_capability(self, capability: Literal["vision"]) -> bool:
+        """Check if provider supports a specific capability."""
+        match capability:
+            case "vision":
+                if not self.model_name:
+                    return False
+                caps = await tokonomics.get_model_capabilities(self.model_name)
+                return (caps and caps.supports_vision) or False
+            case _:
+                return False

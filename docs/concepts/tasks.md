@@ -32,6 +32,7 @@ task = AgentTask[AppConfig, AnalysisResult](
     prompt="Analyze this data",
     required_dependency=AppConfig,     # Agent must have these dependencies
     required_return_type=AnalysisResult,  # Agent must produce this type
+    requires_vision=True,              # Agent requires vision (runtime-checked)
     tools=[                           # Task provides these tools
         "tools.analyzer",
         "tools.data_loader"
@@ -63,6 +64,9 @@ class AgentTask[TDeps, TResult]:
 
     required_return_type: type[TResult]
     """Type that the agent must return"""
+
+    requires_vision: bool = False
+    """Whether the agent requires vision"""
 
     tools: list[ToolConfig | str | LLMCallableTool]
     """Tools provided for this task"""
