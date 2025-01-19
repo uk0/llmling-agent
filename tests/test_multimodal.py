@@ -2,15 +2,12 @@ import pytest
 
 from llmling_agent import Agent
 from llmling_agent.models.content import ImageURLContent
-from llmling_agent_providers.litellm_provider import LiteLLMProvider
 
 
 @pytest.mark.asyncio
 async def test_litellm_vision():
     """Test basic vision capability with a small, public image."""
-    provider = LiteLLMProvider(name="test-vision", model="gpt-4o")
-
-    agent = Agent(provider=provider)
+    agent = Agent(provider="pydantic_ai", name="test-vision", model="gpt-4o")
 
     # Using a small, public image
     msg = "https://python.org/static/community_logos/python-logo-master-v3-TM.png"
@@ -21,3 +18,7 @@ async def test_litellm_vision():
     assert isinstance(result.content, str)
     assert "Python" in result.content
     assert len(result.content) < 100  # noqa: PLR2004
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])
