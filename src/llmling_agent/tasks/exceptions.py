@@ -3,21 +3,21 @@ from __future__ import annotations
 from llmling import LLMLingError
 
 
-class TaskError(LLMLingError):
+class JobError(LLMLingError):
     """General task-related exception."""
 
 
-class ToolSkippedError(TaskError):
+class ToolSkippedError(JobError):
     """Tool execution was skipped by user."""
 
 
-class RunAbortedError(TaskError):
+class RunAbortedError(JobError):
     """Run was aborted by user."""
 
 
-class ChainAbortedError(TaskError):
+class ChainAbortedError(JobError):
     """Agent chain was aborted by user."""
 
 
-class TaskRegistrationError(TaskError):
+class JobRegistrationError(JobError):
     """Task could not get registered."""

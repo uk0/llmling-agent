@@ -20,7 +20,7 @@ Most frameworks tightly couple tasks with their execution:
 
 ```python
 agent = Agent()
-task = Job(agent, **task_kwargs)
+job = Job(agent, **task_kwargs)
 ```
 
 ### LLMling-Agents's Approach
@@ -28,7 +28,7 @@ LLMling separates task definitions from execution:
 
 ```python
 # Define what needs to be done and what's required
-task = Job[AppConfig, AnalysisResult](
+job = Job[AppConfig, AnalysisResult](
     prompt="Analyze this data",
     required_dependency=AppConfig,     # Agent must have these dependencies
     required_return_type=AnalysisResult,  # Agent must produce this type
@@ -89,12 +89,12 @@ Jobs can be executed by any agent that meets their requirements:
 class Agent[TDeps, TResult]:
     async def run_job(
         self,
-        task: Job[TDeps, TResult],
+        job: Job[TDeps, TResult],
         *,
         store_history: bool = True,
         include_agent_tools: bool = True,
     ) -> ChatMessage[TResult]:
-        """Execute a pre-defined task.
+        """Execute a pre-defined job.
 
         1. Validates agent meets task requirements
         2. Loads task knowledge into context
@@ -112,7 +112,7 @@ This separation of concerns allows for better reusability and clearer contracts 
 Jobs can be defined directly in the agent manifest YAML file:
 
 ```yaml
-tasks:
+jobs:
   analyze_code:
     prompt: "Analyze the code in the provided files"
     description: "Static code analysis task"
@@ -136,8 +136,8 @@ tasks:
 Jobs can then be fetched from the pool and executed by any compatible agent:
 
 ```python
-# Get task from pool
-task = pool.get_task("analyze_code")
+# Get job from pool
+job = pool.get_job("analyze_code")
 
 # Execute with compatible agent
 agent = pool.get_agent("code_analyzer")

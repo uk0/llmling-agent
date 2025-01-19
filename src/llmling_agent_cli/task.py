@@ -37,7 +37,7 @@ async def execute_task(
     async with AgentPool[None](config) as pool:
         # Get both agent and task
         agent = pool.get_agent(agent_name)
-        task = pool.get_task(task_name)
+        task = pool.get_job(task_name)
 
         # Create final prompt from task and additional input
         task_prompt = task.prompt

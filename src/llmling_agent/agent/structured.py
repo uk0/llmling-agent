@@ -228,72 +228,70 @@ class StructuredAgent[TDeps, TResult]:
 
     async def run_job(
         self,
-        task: Job[TDeps, TResult],
+        job: Job[TDeps, TResult],
         *,
         store_history: bool = True,
         include_agent_tools: bool = True,
     ) -> ChatMessage[TResult]:
-        """Execute a pre-defined task ensuring type compatibility.
+        """Execute a pre-defined job ensuring type compatibility.
 
         Args:
-            task: Task configuration to execute
-            store_history: Whether to add task execution to conversation history
-            include_agent_tools: Whether to include agent's tools alongside task tools
+            job: Job configuration to execute
+            store_history: Whether to add job execution to conversation history
+            include_agent_tools: Whether to include agent's tools alongside job tools
 
         Returns:
             Task execution result
 
         Raises:
-            TaskError: If task execution fails or types don't match
-            ValueError: If task configuration is invalid
+            JobError: If job execution fails or types don't match
+            ValueError: If job configuration is invalid
         """
-        from llmling_agent.tasks import TaskError
+        from llmling_agent.tasks import JobError
 
         # Validate dependency requirement
-        if task.required_dependency is not None:  # noqa: SIM102
-            if not isinstance(self.context.data, task.required_dependency):
+        if job.required_dependency is not None:  # noqa: SIM102
+            if not isinstance(self.context.data, job.required_dependency):
                 msg = (
                     f"Agent dependencies ({type(self.context.data)}) "
-                    f"don't match task requirement ({task.required_dependency})"
+                    f"don't match job requirement ({job.required_dependency})"
                 )
-                raise TaskError(msg)
+                raise JobError(msg)
 
         # Validate return type requirement
-        if task.required_return_type != self._result_type:
+        if job.required_return_type != self._result_type:
             msg = (
                 f"Agent result type ({self._result_type}) "
-                f"doesn't match task requirement ({task.required_return_type})"
+                f"doesn't match job requirement ({job.required_return_type})"
             )
-            raise TaskError(msg)
+            raise JobError(msg)
 
         # Load task knowledge if provided
-        if task.knowledge:
+        if job.knowledge:
             # Add knowledge sources to context
-            resources: list[Resource | str] = list(task.knowledge.paths) + list(
-                task.knowledge.resources
+            resources: list[Resource | str] = list(job.knowledge.paths) + list(
+                job.knowledge.resources
             )
             for source in resources:
                 await self.conversation.load_context_source(source)
-            for prompt in task.knowledge.prompts:
+            for prompt in job.knowledge.prompts:
                 await self.conversation.load_context_source(prompt)
 
         try:
             # Register task tools temporarily
-            tools = task.get_tools()
+            tools = job.get_tools()
 
             # Use temporary tools
             with self._agent.tools.temporary_tools(
                 tools, exclusive=not include_agent_tools
             ):
-                # Execute task using StructuredAgent's run to maintain type safety
-                return await self.run(
-                    await task.get_prompt(), store_history=store_history
-                )
+                # Execute job using StructuredAgent's run to maintain type safety
+                return await self.run(await job.get_prompt(), store_history=store_history)
 
         except Exception as e:
             msg = f"Task execution failed: {e}"
             logger.exception(msg)
-            raise TaskError(msg) from e
+            raise JobError(msg) from e
 
     @classmethod
     def from_callback(

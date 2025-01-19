@@ -7,15 +7,15 @@ from typing import Any
 from llmling.core.baseregistry import BaseRegistry
 
 from llmling_agent.models.task import Job
-from llmling_agent.tasks.exceptions import TaskRegistrationError
+from llmling_agent.tasks.exceptions import JobRegistrationError
 
 
 class TaskRegistry(BaseRegistry[str, Job[Any, Any]]):
     """Registry for managing tasks."""
 
     @property
-    def _error_class(self) -> type[TaskRegistrationError]:
-        return TaskRegistrationError
+    def _error_class(self) -> type[JobRegistrationError]:
+        return JobRegistrationError
 
     def _validate_item(self, item: Any) -> Job[Any, Any]:
         if not isinstance(item, Job):

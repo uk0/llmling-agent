@@ -1161,7 +1161,7 @@ class Agent[TDeps](TaskManagerMixin):
 
     async def run_job[TResult](
         self,
-        task: Job[TDeps, TResult],
+        job: Job[TDeps, TResult],
         *,
         store_history: bool = True,
         include_agent_tools: bool = True,
@@ -1169,47 +1169,47 @@ class Agent[TDeps](TaskManagerMixin):
         """Execute a pre-defined task.
 
         Args:
-            task: Task configuration to execute
+            job: Job configuration to execute
             store_history: Whether the message exchange should be added to the
                            context window
             include_agent_tools: Whether to include agent tools
         Returns:
-            Task execution result
+            Job execution result
 
         Raises:
-            TaskError: If task execution fails
+            JobError: If task execution fails
             ValueError: If task configuration is invalid
         """
-        from llmling_agent.tasks import TaskError
+        from llmling_agent.tasks import JobError
 
-        if task.required_dependency is not None:  # noqa: SIM102
-            if not isinstance(self.context.data, task.required_dependency):
+        if job.required_dependency is not None:  # noqa: SIM102
+            if not isinstance(self.context.data, job.required_dependency):
                 msg = (
                     f"Agent dependencies ({type(self.context.data)}) "
-                    f"don't match task requirement ({task.required_dependency})"
+                    f"don't match job requirement ({job.required_dependency})"
                 )
-                raise TaskError(msg)
+                raise JobError(msg)
 
         # Load task knowledge
-        if task.knowledge:
+        if job.knowledge:
             # Add knowledge sources to context
-            resources: list[Resource | str] = list(task.knowledge.paths) + list(
-                task.knowledge.resources
+            resources: list[Resource | str] = list(job.knowledge.paths) + list(
+                job.knowledge.resources
             )
             for source in resources:
                 await self.conversation.load_context_source(source)
-            for prompt in task.knowledge.prompts:
+            for prompt in job.knowledge.prompts:
                 await self.conversation.load_context_source(prompt)
         try:
             # Register task tools temporarily
-            tools = task.get_tools()
+            tools = job.get_tools()
             with self.tools.temporary_tools(tools, exclusive=not include_agent_tools):
-                # Execute task with task-specific tools
+                # Execute job with job-specific tools
                 from llmling_agent.tasks.strategies import DirectStrategy
 
                 strategy = DirectStrategy[TDeps, TResult]()
                 return await strategy.execute(
-                    task=task,
+                    task=job,
                     agent=self,
                     store_history=store_history,
                 )
@@ -1217,7 +1217,7 @@ class Agent[TDeps](TaskManagerMixin):
         except Exception as e:
             msg = f"Task execution failed: {e}"
             logger.exception(msg)
-            raise TaskError(msg) from e
+            raise JobError(msg) from e
 
     async def run_continuous(
         self,

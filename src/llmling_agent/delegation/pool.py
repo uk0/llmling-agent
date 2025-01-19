@@ -663,7 +663,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         """List available agent names."""
         return list(self.list_items())
 
-    def get_task(self, name: str) -> Job[Any, Any]:
+    def get_job(self, name: str) -> Job[Any, Any]:
         return self._tasks[name]
 
     def register_task(self, name: str, task: Job[Any, Any]):

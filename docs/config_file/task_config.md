@@ -121,8 +121,8 @@ tasks:
 All tasks are available through the agent pool:
 
 ```python
-# Get task definition
-task = pool.get_task("analyze_code")
+# Get job definition
+job = pool.get_job("analyze_code")
 
 # Register new task
 pool.register_task("new_task", task_definition)

@@ -1,20 +1,20 @@
 """Task management."""
 
 from llmling_agent.tasks.exceptions import (
-    TaskError,
+    JobError,
     ToolSkippedError,
     RunAbortedError,
     ChainAbortedError,
-    TaskRegistrationError,
+    JobRegistrationError,
 )
 
 from llmling_agent.tasks.registry import TaskRegistry
 
 __all__ = [
     "ChainAbortedError",
+    "JobError",
+    "JobRegistrationError",
     "RunAbortedError",
-    "TaskError",
-    "TaskRegistrationError",
     "TaskRegistry",
     "ToolSkippedError",
 ]
