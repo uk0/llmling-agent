@@ -175,7 +175,9 @@ class LiteLLMProvider(AgentProvider[Any]):
                 messages.append(message)
             # Extract content
             content = response.choices[0].message.content
-
+            if content and result_type and issubclass(result_type, BaseModel):
+                # Parse JSON string into the requested model
+                content = result_type.model_validate_json(content)
             # Create tokonomics usage
             usage = Usage(
                 total_tokens=response.usage.prompt_tokens,  # type: ignore
