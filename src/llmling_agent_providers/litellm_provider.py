@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import json
 from typing import Any
 
+from litellm import BaseModel
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse as PydanticModelResponse,
@@ -120,7 +121,9 @@ class LiteLLMProvider(AgentProvider[Any]):
                 stream=False,
                 model=model_name,
                 messages=messages,
-                response_format=result_type,
+                response_format=result_type
+                if result_type and issubclass(result_type, BaseModel)
+                else None,
                 num_retries=self.num_retries,
                 tools=schemas,
                 tool_choice=self.get_tool_choice(),
