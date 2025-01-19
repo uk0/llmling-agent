@@ -107,6 +107,25 @@ You MUST use these tools to complete your tasks:
 Do not attempt to perform tasks without using appropriate tools.
 ```
 
+
+### 3. Temporary System prompts
+
+For temporary system prompt changes, The system prompt manager provides an async context manager:
+
+```python
+# Temporarily use a different system prompt
+with agent.sys_prompts.temporary_prompt(prompt):
+    # temporary prompt additional to agent's prompts
+    ...
+
+# Temporarily add sys_prompts and disable all others
+with agent.sys_prompts.temporary_prompt(prompt, exclusive=True):
+    # Only prompt is used here
+    ...
+
+# Original prompts are restored after context exit
+```
+
 ## Caching
 
 Dynamic prompts can be cached to avoid unnecessary re-evaluation:
