@@ -66,6 +66,7 @@ dependencies = [
     "toprompt>=0.0.1",
     "mcp>=1.2.0",
     "griffe>=1.5.4",
+    "pillow>=11.1.0",
 ]
 
 [project.scripts]

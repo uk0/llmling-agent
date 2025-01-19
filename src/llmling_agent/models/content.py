@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import io
 from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -10,6 +11,8 @@ from upath import UPath
 
 
 if TYPE_CHECKING:
+    import PIL.Image
+
     from llmling_agent.common_types import StrPath
 
 
@@ -105,6 +108,13 @@ class ImageBase64Content(BaseImageContent):
         """
         content = base64.b64encode(data).decode()
         return cls(data=content, detail=detail, description=description)
+
+    @classmethod
+    def from_pil_image(cls, image: PIL.Image.Image) -> ImageBase64Content:
+        """Create content from PIL Image."""
+        with io.BytesIO() as buffer:
+            image.save(buffer, format="PNG")
+            return cls(data=base64.b64encode(buffer.getvalue()).decode())
 
 
 Content = Annotated[ImageURLContent | ImageBase64Content, Field(discriminator="type")]
