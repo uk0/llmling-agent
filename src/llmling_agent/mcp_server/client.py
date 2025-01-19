@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import AbstractAsyncContextManager, AsyncExitStack
 import sys
 from typing import TYPE_CHECKING, Any, Self, TextIO
@@ -24,6 +25,7 @@ logger = get_logger(__name__)
 
 
 def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
+    """Convert MCP tool to OpenAI function schema."""
     desc = tool.description or "No description provided"
     return {"name": tool.name, "description": desc, "parameters": tool.inputSchema}
 
@@ -37,10 +39,14 @@ class MCPClient(AbstractAsyncContextManager["MCPClient"]):
         self._available_tools: list[Tool] = []
         self._old_stdout: TextIO | None = None
         self._stdio_mode = stdio_mode
+        self._owner_task_id: int | None = None
+        self._client_task: asyncio.Task[Any] | None = None
 
     async def __aenter__(self) -> Self:
         """Enter context and redirect stdout if in stdio mode."""
         try:
+            # Store the ID of task that creates the client
+            self._owner_task_id = id(asyncio.current_task())
             if self._stdio_mode:
                 self._old_stdout = sys.stdout
                 sys.stdout = sys.stderr
@@ -67,6 +73,31 @@ class MCPClient(AbstractAsyncContextManager["MCPClient"]):
             logger.exception("Error during MCP client cleanup")
             raise
 
+    async def _cleanup_in_owner_task(self):
+        """Perform cleanup in the original owner task."""
+        try:
+            await self.exit_stack.aclose()
+            self._client_task = None
+        except Exception:
+            logger.exception("Error during owner task cleanup")
+            raise
+
+    async def cleanup(self):
+        """Clean up resources."""
+        current_task = asyncio.current_task()
+        try:
+            if current_task and id(current_task) != self._owner_task_id:
+                # If cleanup called from different task, schedule it in original task
+                loop = asyncio.get_running_loop()
+                await loop.create_task(self._cleanup_in_owner_task())
+            else:
+                # Direct cleanup if in correct task
+                await self.exit_stack.aclose()
+                self._client_task = None
+        except Exception:
+            logger.exception("Error during MCP client cleanup")
+            raise
+
     async def connect(
         self,
         command: str,
@@ -87,6 +118,9 @@ class MCPClient(AbstractAsyncContextManager["MCPClient"]):
             logger.info("SSE servers not yet implemented")
             self.session = None
             return
+
+        # Store task that creates the connection
+        self._owner_task_id = id(asyncio.current_task())
 
         # Stdio connection
         params = StdioServerParameters(command=command, args=args, env=env)
@@ -142,8 +176,3 @@ class MCPClient(AbstractAsyncContextManager["MCPClient"]):
         except Exception as e:
             msg = f"MCP tool call failed: {e}"
             raise RuntimeError(msg) from e
-
-    async def cleanup(self):
-        """Clean up resources."""
-        await self.exit_stack.aclose()
-        self._available_tools = []

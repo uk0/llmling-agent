@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable, Sequence
 from contextlib import AsyncExitStack, contextmanager
 from dataclasses import dataclass, field, fields
@@ -383,8 +384,19 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 if info.metadata.get("mcp_tool") is not None
             ]
 
-            # Clean up exit stack (which includes MCP clients)
-            await self.exit_stack.aclose()
+            try:
+                # Clean up exit stack (which includes MCP clients)
+                await self.exit_stack.aclose()
+            except RuntimeError as e:
+                if "different task" in str(e):
+                    # Handle task context mismatch
+                    current_task = asyncio.current_task()
+                    if current_task:
+                        loop = asyncio.get_running_loop()
+                        await loop.create_task(self.exit_stack.aclose())
+                else:
+                    raise
+
             self._mcp_clients.clear()
 
             # Remove MCP tools
