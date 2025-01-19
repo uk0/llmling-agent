@@ -18,7 +18,7 @@ label = "True Async Framework"
 content = """
 An async-first Agent framwork.
 Unlike most other frameworks, where async is only done at a workflow-step level,
-this framework supports async agent interaction from the ground up.
+this framework is async-first in its design.
 
 Built for modern async Python from the ground up.
 
