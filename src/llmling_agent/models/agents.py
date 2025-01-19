@@ -469,8 +469,8 @@ class AgentsManifest[TDeps](ConfigModel):
     responses: dict[str, ResponseDefinition] = Field(default_factory=dict)
     """Mapping of response names to their definitions"""
 
-    tasks: dict[str, Job] = Field(default_factory=dict)
-    """Pre-defined tasks, ready to be used by agents."""
+    jobs: dict[str, Job] = Field(default_factory=dict)
+    """Pre-defined jobs, ready to be used by agents."""
 
     mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list)
     """List of MCP server configurations:

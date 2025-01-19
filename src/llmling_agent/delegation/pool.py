@@ -139,7 +139,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         # register tasks
         self._tasks = TaskRegistry()
         # Register tasks from manifest
-        for name, task in self.manifest.tasks.items():
+        for name, task in self.manifest.jobs.items():
             self._tasks.register(name, task)
         self.pool_talk = TeamTalk.from_agents(list(self.agents.values()))
         # Create requested agents immediately using sync initialization

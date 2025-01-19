@@ -10,7 +10,7 @@ Tasks define reusable operations that agents can execute. They can be defined in
 Simple task with prompt and result type:
 
 ```yaml
-tasks:
+jobs:
   analyze_code:
     prompt: "Analyze the code in src directory for potential improvements"
     result_type: "myapp.types.AnalysisResult"
@@ -21,7 +21,7 @@ tasks:
 Tasks can load context from various sources:
 
 ```yaml
-tasks:
+jobs:
   summarize_docs:
     prompt: "Summarize the documentation changes"
     result_type: "myapp.types.DocSummary"
@@ -48,7 +48,7 @@ tasks:
 Specify tools needed for the task:
 
 ```yaml
-tasks:
+jobs:
   security_audit:
     prompt: "Perform security audit on the codebase"
     result_type: "myapp.types.AuditReport"
@@ -64,7 +64,7 @@ tasks:
 Tasks can require specific data:
 
 ```yaml
-tasks:
+jobs:
   review_pr:
     prompt: "Review the pull request changes"
     result_type: "myapp.types.ReviewResult"
@@ -87,7 +87,7 @@ llmling-agent task run analyze_code --agent my-agent
 Complex task with all features:
 
 ```yaml
-tasks:
+jobs:
   deep_code_review:
     description: "Perform comprehensive code review"
     prompt: "Review the code changes focusing on:"

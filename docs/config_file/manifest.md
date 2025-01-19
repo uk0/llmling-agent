@@ -126,7 +126,7 @@ storage:
   log_commands: true
 
 # Pre-defined tasks
-tasks:
+jobs:
   analyze_code:
     prompt: "Analyze this code: {code}"
     result_type: "AnalysisResult"

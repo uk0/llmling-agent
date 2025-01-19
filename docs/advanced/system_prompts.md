@@ -100,6 +100,7 @@ agent.sys_prompts.tool_usage_style = "strict"
 This changes the tone:
 ```
 You MUST use these tools to complete your tasks:
+
 - read_logs: Read system log files
 - analyze_logs: Analyze logs for patterns
 - report_issue: Create issue report

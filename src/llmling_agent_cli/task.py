@@ -24,7 +24,7 @@ Example:
 """
 
 
-async def execute_task(
+async def execute_job(
     agent_name: str,
     task_name: str,
     config: AgentsManifest,
@@ -85,7 +85,7 @@ def task_command(
         manifest = AgentsManifest[Any].from_file(config_path)
 
         # Execute task
-        result = asyncio.run(execute_task(agent_name, task_name, manifest, prompt=prompt))
+        result = asyncio.run(execute_job(agent_name, task_name, manifest, prompt=prompt))
         print(result)
 
     except Exception as e:
