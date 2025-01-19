@@ -11,6 +11,8 @@ What sets this agent apart is that it has a concept of pluggable "providers". A 
 In contrast to pydantic-ai, the Base Agent is only generic over its dependency type. Its only generic over its return type on a method scope. (using return_type=)
 For an agent which is generic over both dependency and result type, see the StructuredAgent documentation.
 
+Theres also much more to discover: Powerful options to manage agent state (like ToolManagers), MCP server support, Agent events, the list goes on!
+
 ## Core Interface
 
 ### Running Queries

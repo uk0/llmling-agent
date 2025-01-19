@@ -19,6 +19,9 @@ agents:
       show_system: true
       input_prompt: "Your response: "
 ```
+!!! note
+    This mechanism is similar to HumanProviders, but implemented at a different level.
+    A HumanProvider has more "access" and is the more powerful way to take over an agent.
 
 ### Remote Input Model
 Connect to a remote human operator via REST or WebSocket:
