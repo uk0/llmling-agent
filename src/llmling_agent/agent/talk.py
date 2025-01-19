@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
+from llmling import LLMCallableTool
 from py2openai import create_constructor_schema
 from pydantic import BaseModel
 from toprompt import to_prompt
@@ -447,21 +448,23 @@ List your selections, one per line, followed by your reasoning."""
             return as_type(**result.content.instance.model_dump())  # type: ignore
 
         # Legacy tool-calls approach
-        schema = create_constructor_schema(as_type).model_dump_openai()["function"]
+        schema_obj = create_constructor_schema(as_type)
+        schema = schema_obj.model_dump_openai()["function"]
 
         async def construct(**kwargs: Any) -> T:
             """Construct instance from extracted data."""
             return as_type(**kwargs)
 
         structured = self.agent.to_structured(as_type)
-        structured.tools.register_tool(
+        tool = LLMCallableTool.from_callable(
             construct,
             name_override=schema["name"],
             description_override=schema["description"],
+            schema_override=schema,
         )
         final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
         with structured.tools.temporary_tools(
-            construct,
+            tool,
             exclusive=not include_tools,
         ):
             result = await structured.run(final_prompt)  # type: ignore
@@ -491,9 +494,14 @@ List your selections, one per line, followed by your reasoning."""
             prompt: Optional custom prompt
             include_tools: Whether to include other tools (tool_calls mode only)
         """
+        item_model = get_ctor_basemodel(as_type)
+
+        instances: list[T] = []
+        schema_obj = create_constructor_schema(as_type)
+        schema = schema_obj.model_dump_openai()["function"]
+
         if mode == "structured":
             # Create model for individual instance
-            item_model = get_ctor_basemodel(as_type)
 
             # Create extraction prompt
             final_prompt = prompt or "\n".join([
@@ -523,25 +531,32 @@ List your selections, one per line, followed by your reasoning."""
 
             # Convert model instances to actual type
             return [
-                as_type(**instance.model_dump())  # type: ignore
+                as_type(
+                    **instance.data  # type: ignore
+                    if hasattr(instance, "data")
+                    else instance.model_dump()  # type: ignore
+                )
                 for instance in result.content.instances
             ]
 
         # Legacy tool-calls approach
-        instances: list[T] = []
-        schema = create_constructor_schema(as_type).model_dump_openai()["function"]
 
         async def add_instance(**kwargs: Any) -> str:
             """Add an extracted instance."""
             if max_items and len(instances) >= max_items:
                 msg = f"Maximum number of items ({max_items}) reached"
                 raise ValueError(msg)
-            instance = as_type(**kwargs)
-            instances.append(instance)
+            data = kwargs.get("data", kwargs)  # Handle potential nesting
+            instance = as_type(**data)  # Create instance with potentially nested data
             return f"Added {instance}"
 
-        structured = self.agent.to_structured(as_type)
-        with structured.tools.temporary_tools(add_instance, exclusive=not include_tools):
+        # add_instance.__annotations__ = schema_obj.get_annotations()
+        tool = LLMCallableTool.from_callable(
+            add_instance,
+            schema_override=schema,
+        )
+        structured = self.agent.to_structured(item_model)
+        with structured.tools.temporary_tools(tool, exclusive=not include_tools):
             # Create extraction prompt
             final_prompt = prompt or "\n".join([
                 f"Extract {as_type.__name__} instances from text.",

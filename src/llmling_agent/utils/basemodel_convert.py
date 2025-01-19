@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import inspect
 from types import UnionType
 from typing import (
@@ -102,6 +103,14 @@ def get_ctor_basemodel(cls: type) -> type[BaseModel]:
         ...         self.age = age
         >>> model = get_ctor_basemodel(Person)
     """
+    if issubclass(cls, BaseModel):
+        return cls
+    if dataclasses.is_dataclass(cls):
+        fields = {}
+        hints = get_type_hints(cls)
+        for field in dataclasses.fields(cls):
+            fields[field.name] = (hints[field.name], ...)
+        return create_model(cls.__name__, **fields)
     return get_function_model(cls.__init__, name=cls.__name__)
 
 
