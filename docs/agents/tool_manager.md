@@ -60,7 +60,7 @@ One of the most powerful features is the ability to temporarily modify available
 ```python
 # Temporarily add tools
 with agent.tools.temporary_tools([tool1, tool2]) as temp_tools:
-    # Only tool1 and tool2 are available here
+    # tool1 and tool2 are available in addition to the agents tools
     ...
 
 # Temporarily add tools and disable all others
