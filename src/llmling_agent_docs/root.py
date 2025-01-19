@@ -2,10 +2,11 @@ import mknodes as mk
 
 from llmling_agent_docs import (
     advanced_features,
-    agent_interaction,
     configuration,
+    core_concepts,
     development,
     getting_started,
+    interaction_patterns,
 )
 
 
@@ -35,7 +36,8 @@ class Build:
         nav.page_template.announcement_bar = mk.MkMetadataBadges("websites")
         nav += getting_started.nav
         nav += configuration.nav
-        nav += agent_interaction.nav
+        nav += core_concepts.nav
+        nav += interaction_patterns.nav
         nav += advanced_features.nav
         nav += development.nav
         return nav

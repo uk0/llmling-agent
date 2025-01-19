@@ -92,10 +92,11 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/config_file/task_config.md")
 
 
-# @nav.route.page("Inheritance", icon="octicon:git-merge-16")
-# def _(page: mk.MkPage):
-#     """Configuration inheritance system."""
-#     page += mk.MkTemplate("docs/config_file/inheritance.md")
+@nav.route.page("Inheritance", icon="octicon:git-merge-16")
+def _(page: mk.MkPage):
+    """Configuration inheritance system."""
+    page += mk.MkTemplate("docs/config_file/inheritance.md")
+
 
 if __name__ == "__main__":
     print(nav.to_markdown())
