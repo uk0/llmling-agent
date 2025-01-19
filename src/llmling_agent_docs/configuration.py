@@ -14,12 +14,6 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/config_file/manifest.md")
 
 
-@nav.route.page("Environment Setup", icon="octicon:tools-16")
-def _(page: mk.MkPage):
-    """Environment configuration for tools and resources."""
-    page += mk.MkTemplate("docs/config_file/env_config.md")
-
-
 @nav.route.page("Provider Configuration", icon="octicon:plug-16")
 def _(page: mk.MkPage):
     """Agent provider setup and options."""
@@ -90,6 +84,12 @@ def _(page: mk.MkPage):
 def _(page: mk.MkPage):
     """Task definition and configuration."""
     page += mk.MkTemplate("docs/config_file/task_config.md")
+
+
+@nav.route.page("Environment Setup", icon="octicon:tools-16")
+def _(page: mk.MkPage):
+    """Environment configuration for tools and resources."""
+    page += mk.MkTemplate("docs/config_file/env_config.md")
 
 
 @nav.route.page("Inheritance", icon="octicon:git-merge-16")

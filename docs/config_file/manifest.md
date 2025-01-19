@@ -137,45 +137,45 @@ tasks:
       - import_path: "myapp.tools.analyze_security"
 ```
 
- ## Key Concepts
+## Key Concepts
 
- ### Agent Configuration
- Each agent entry defines:
- - Provider type and model
- - Response formatting
- - Capabilities and permissions
- - Environment and knowledge sources
- - Connections to other agents
+### Agent Configuration
+Each agent entry defines:
+- Provider type and model
+- Response formatting
+- Capabilities and permissions
+- Environment and knowledge sources
+- Connections to other agents
 
- ### Response Types
- Define structured output formats either:
- - Inline in the YAML (`type: "inline"`)
- - By importing Python types (`type: "import"`)
+### Response Types
+Define structured output formats either:
+- Inline in the YAML (`type: "inline"`)
+- By importing Python types (`type: "import"`)
 
- ### Storage
- Configure how agent interactions are stored:
- - SQL databases
- - Text logs
- - File storage
- - Memory storage (for testing)
+### Storage
+Configure how agent interactions are stored:
+- SQL databases
+- Text logs
+- File storage
+- Memory storage (for testing)
 
- ### Tasks
- Predefine common operations with:
- - Prompt templates
- - Required knowledge
- - Expected response types
- - Tool configurations
+### Tasks
+Predefine common operations with:
+- Prompt templates
+- Required knowledge
+- Expected response types
+- Tool configurations
 
- ## Usage
+## Usage
 
- Load a manifest in your code:
- ```python
- from llmling_agent import AgentPool
+Load a manifest i your code:
+```python
+from llmling_agent import AgentPool
 
- async with AgentPool("agents.yml") as pool:
-     agent = pool.get_agent("analyzer")
-     result = await agent.run("Analyze this code...")
- ```
+async with AgentPool("agents.yml") as pool:
+    agent = pool.get_agent("analyzer")
+    result = await agent.run("Analyze this code...")
+```
 
 !!! note
     You can get linter support by adding this line at the top of your YAML:
