@@ -30,10 +30,6 @@
 
 [Read the documentation! Unlike other frameworks, it doesnt mainly consist of "tools" ;)](https://phil65.github.io/llmling-agent/)
 
-# Getting Started
-
-LLMling Agent is a framework for creating and managing LLM-powered agents. It integrates with LLMling's resource system and provides structured interactions with language models.
-
 # 🚀 Getting Started
 
 LLMling Agent is a framework for creating and managing LLM-powered agents. It integrates with LLMling's resource system and provides structured interactions with language models.
@@ -64,6 +60,37 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 - 🖥️ Real-time-monitoring via Textual app in truly async manner. Talk to your agents while they are working and monitor the progress!
 
 
+
+
+### Why LLMling-agent? 🤔
+
+Why another framework you may ask? The framework stands out through three core principles:
+
+
+#### 🛡️ Type Safety and Structure
+Unlike other frameworks that rely on free-form text exchanges, LLMling-agent enforces type safety throughout the entire agent interaction chain. From input validation to structured outputs, every data flow is typed and validated, making it significantly more reliable for production systems.
+
+#### ⚙️ Rich Configuration System
+While other frameworks require extensive Python code for setup, LLMling-agent introduces a comprehensive YAML configuration system. This allows defining complex agent behaviors, capabilities, and interactions declaratively. The configuration supports inheritance, composition, and strong validation, making it easier to manage large-scale agent deployments.
+
+#### 🤝 Human-AI Collaboration
+Instead of choosing between fully autonomous or human-controlled operations, LLMling-agent offers flexible human-in-the-loop integration. From full human control to selective oversight of critical actions, the framework makes it natural to build systems that combine AI capabilities with human expertise.
+### Comparison with Other Frameworks
+
+
+### Comparison with Other Frameworks
+
+**AutoGen** focuses on autonomous multi-agent conversations, making it great for research and exploration but less suited for production systems that need strict controls and validation.
+
+**CrewAI** emphasizes sequential task execution with role-based agents, providing good structure but less flexibility in agent interactions and limited type safety.
+
+**LLMling-agent** takes the best from both:
+- AutoGen's flexible agent communication patterns
+- CrewAI's structured task execution
+- And adds:
+  - End-to-end type safety leveraging the whole pydantic-stack
+  - Rich YAML configuration which goes way beyond what CrewAI offers
+  - Human oversight capabilities in many different forms
 
 
 ## Quick Start
