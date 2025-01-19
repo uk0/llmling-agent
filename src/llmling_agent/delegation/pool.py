@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.session import SessionQuery
-    from llmling_agent.models.task import AgentTask
+    from llmling_agent.models.task import Job
     from llmling_agent.responses.models import ResponseDefinition
 
 
@@ -663,10 +663,10 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         """List available agent names."""
         return list(self.list_items())
 
-    def get_task(self, name: str) -> AgentTask[Any, Any]:
+    def get_task(self, name: str) -> Job[Any, Any]:
         return self._tasks[name]
 
-    def register_task(self, name: str, task: AgentTask[Any, Any]):
+    def register_task(self, name: str, task: Job[Any, Any]):
         self._tasks.register(name, task)
 
     @overload

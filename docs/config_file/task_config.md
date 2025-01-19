@@ -77,7 +77,7 @@ Execute tasks through the API or CLI:
 
 ```python
 # Python API
-result = await agent.run_task("analyze_code")
+result = await agent.run_job("analyze_code")
 
 # CLI
 llmling-agent task run analyze_code --agent my-agent

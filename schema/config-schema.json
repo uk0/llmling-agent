@@ -607,7 +607,7 @@
       "title": "AgentConnectionConfig",
       "type": "object"
     },
-    "AgentTask": {
+    "Job": {
       "description": "Definition of a task that can be executed by an agent.\n\nCan be used both programmatically and defined in YAML:\n\ntasks:\n  analyze_code:\n    prompt: \"Analyze the code in src directory\"\n    result_type: \"myapp.types.AnalysisResult\"\n    knowledge:\n      paths: [\"src/**/*.py\"]\n      resources:\n        - type: cli\n          command: \"mypy src/\"\n    tools: [\"analyze_code\", \"check_types\"]",
       "properties": {
         "name": {
@@ -700,7 +700,7 @@
         }
       },
       "required": ["prompt"],
-      "title": "AgentTask",
+      "title": "Job",
       "type": "object"
     },
     "CLIResource": {
@@ -3963,7 +3963,7 @@
     },
     "tasks": {
       "additionalProperties": {
-        "$ref": "#/$defs/AgentTask"
+        "$ref": "#/$defs/Job"
       },
       "description": "Pre-defined tasks, ready to be used by agents.",
       "title": "Tasks",

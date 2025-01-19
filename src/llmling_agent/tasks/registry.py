@@ -6,24 +6,24 @@ from typing import Any
 
 from llmling.core.baseregistry import BaseRegistry
 
-from llmling_agent.models.task import AgentTask
+from llmling_agent.models.task import Job
 from llmling_agent.tasks.exceptions import TaskRegistrationError
 
 
-class TaskRegistry(BaseRegistry[str, AgentTask[Any, Any]]):
+class TaskRegistry(BaseRegistry[str, Job[Any, Any]]):
     """Registry for managing tasks."""
 
     @property
     def _error_class(self) -> type[TaskRegistrationError]:
         return TaskRegistrationError
 
-    def _validate_item(self, item: Any) -> AgentTask[Any, Any]:
-        if not isinstance(item, AgentTask):
-            msg = f"Expected AgentTask, got {type(item)}"
+    def _validate_item(self, item: Any) -> Job[Any, Any]:
+        if not isinstance(item, Job):
+            msg = f"Expected Job, got {type(item)}"
             raise self._error_class(msg)
         return item
 
-    def register(self, name: str, task: AgentTask[Any, Any], replace: bool = False):
+    def register(self, name: str, task: Job[Any, Any], replace: bool = False):
         """Register a task with name.
 
         Creates a copy of the task with the name set.

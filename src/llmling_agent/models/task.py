@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 TResult = TypeVar("TResult", default=str)
 
 
-class AgentTask[TDeps, TResult](BaseModel):
+class Job[TDeps, TResult](BaseModel):
     """A task is a piece of work that can be executed by an agent.
 
     Requirements:

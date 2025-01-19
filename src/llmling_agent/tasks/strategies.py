@@ -11,14 +11,14 @@ from typing_extensions import TypeVar
 
 from llmling_agent.agent.agent import Agent
 from llmling_agent.models.messages import ChatMessage
-from llmling_agent.models.task import AgentTask
+from llmling_agent.models.task import Job
 
 
 TResult = TypeVar("TResult")
 TDeps = TypeVar("TDeps")
 
 ExecuteFunction = Callable[
-    [AgentTask[TDeps, TResult], Agent[TDeps]],
+    [Job[TDeps, TResult], Agent[TDeps]],
     ChatMessage[TResult] | Awaitable[ChatMessage[TResult]],
 ]
 
@@ -34,7 +34,7 @@ class TaskStrategy[TDeps, TResult](BaseModel, abc.ABC):
     @abc.abstractmethod
     async def execute(
         self,
-        task: AgentTask[TDeps, TResult],
+        task: Job[TDeps, TResult],
         agent: Agent[TDeps],
     ) -> ChatMessage[TResult]:
         """Execute task according to strategy."""
@@ -47,7 +47,7 @@ class DirectStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
 
     async def execute(
         self,
-        task: AgentTask[TDeps, TResult],
+        task: Job[TDeps, TResult],
         agent: Agent[TDeps],
         store_history: bool = True,
     ) -> ChatMessage[TResult]:
@@ -74,7 +74,7 @@ class StepByStepStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
 
     async def execute(
         self,
-        task: AgentTask[TDeps, TResult],
+        task: Job[TDeps, TResult],
         agent: Agent[TDeps],
         store_history: bool = True,
     ) -> ChatMessage[TResult]:
@@ -112,7 +112,7 @@ class CustomStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
 
     async def execute(
         self,
-        task: AgentTask[TDeps, TResult],
+        task: Job[TDeps, TResult],
         agent: Agent[TDeps],
         store_history: bool = True,
     ) -> ChatMessage[TResult]:
@@ -140,7 +140,7 @@ class ResearchStrategy[TDeps, TResult](TaskStrategy[TDeps, TResult]):
 
     async def execute(
         self,
-        task: AgentTask[TDeps, TResult],
+        task: Job[TDeps, TResult],
         agent: Agent[TDeps],
         store_history: bool = True,
     ) -> ChatMessage[TResult]:

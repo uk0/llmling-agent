@@ -34,7 +34,7 @@ from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, Stdi
 from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
 from llmling_agent.models.session import SessionQuery
 from llmling_agent.models.storage import StorageConfig
-from llmling_agent.models.task import AgentTask  # noqa: TC001
+from llmling_agent.models.task import Job  # noqa: TC001
 from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
 
 
@@ -469,7 +469,7 @@ class AgentsManifest[TDeps](ConfigModel):
     responses: dict[str, ResponseDefinition] = Field(default_factory=dict)
     """Mapping of response names to their definitions"""
 
-    tasks: dict[str, AgentTask] = Field(default_factory=dict)
+    tasks: dict[str, Job] = Field(default_factory=dict)
     """Pre-defined tasks, ready to be used by agents."""
 
     mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list)

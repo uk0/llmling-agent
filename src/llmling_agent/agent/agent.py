@@ -61,7 +61,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.models.session import SessionQuery
-    from llmling_agent.models.task import AgentTask
+    from llmling_agent.models.task import Job
     from llmling_agent.responses.models import ResponseDefinition
     from llmling_agent.tools.base import ToolInfo
 
@@ -1159,9 +1159,9 @@ class Agent[TDeps](TaskManagerMixin):
         )
         return self.run_task_sync(coro)
 
-    async def run_task[TResult](
+    async def run_job[TResult](
         self,
-        task: AgentTask[TDeps, TResult],
+        task: Job[TDeps, TResult],
         *,
         store_history: bool = True,
         include_agent_tools: bool = True,

@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
-    from llmling_agent.models.task import AgentTask
+    from llmling_agent.models.task import Job
     from llmling_agent.tools.manager import ToolManager
     from llmling_agent_providers.callback import ProcessorCallback
 
@@ -226,9 +226,9 @@ class StructuredAgent[TDeps, TResult]:
             tool_description=tool_description,
         )
 
-    async def run_task(
+    async def run_job(
         self,
-        task: AgentTask[TDeps, TResult],
+        task: Job[TDeps, TResult],
         *,
         store_history: bool = True,
         include_agent_tools: bool = True,

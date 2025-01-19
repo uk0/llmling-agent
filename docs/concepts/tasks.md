@@ -1,6 +1,6 @@
-# Agent Tasks
+# Agent Jobs
 
-## What are Agent Tasks?
+## What are Agent Jobs?
 
 In LLMling, tasks are specifications of work that can be executed by agents.
 Unlike other frameworks where tasks are tightly coupled with their executors,
@@ -13,14 +13,14 @@ A task defines:
 - What tools are needed (equipment)
 - What knowledge is required (context)
 
-## The Task Concept
+## The Job Concept
 
 ### Traditional Approach (Other Frameworks)
 Most frameworks tightly couple tasks with their execution:
 
 ```python
 agent = Agent()
-task = Task(agent, **task_kwargs)
+task = Job(agent, **task_kwargs)
 ```
 
 ### LLMling-Agents's Approach
@@ -28,12 +28,12 @@ LLMling separates task definitions from execution:
 
 ```python
 # Define what needs to be done and what's required
-task = AgentTask[AppConfig, AnalysisResult](
+task = Job[AppConfig, AnalysisResult](
     prompt="Analyze this data",
     required_dependency=AppConfig,     # Agent must have these dependencies
     required_return_type=AnalysisResult,  # Agent must produce this type
     requires_vision=True,              # Agent requires vision (runtime-checked)
-    tools=[                           # Task provides these tools
+    tools=[                           # Job provides these tools
         "tools.analyzer",
         "tools.data_loader"
     ]
@@ -41,19 +41,19 @@ task = AgentTask[AppConfig, AnalysisResult](
 
 # Any compatible agent can execute the task
 agent = pool.get_agent("analyzer", deps=AppConfig(), return_type=AnalysisResult)
-result = await agent.run_task(task)  # Deps and return type verified using typing and runtime checks
+result = await agent.run_job(task)  # Deps and return type verified using typing and runtime checks
 ```
 
 This separation provides:
-- Reusability: Same task can be executed by different agents
+- Reusability: Same job can be executed by different agents
 - Type Safety: Dependencies and results are validated
 - Clear Contracts: Requirements are explicitly defined
-- Resource Management: Tools and knowledge are task-specific
+- Resource Management: Tools and knowledge are job-specific
 
-## Task Fields
+## Job Fields
 
 ```python
-class AgentTask[TDeps, TResult]:
+class Job[TDeps, TResult]:
     """Definition of work that can be executed by an agent."""
 
     prompt: str
@@ -81,15 +81,15 @@ class AgentTask[TDeps, TResult]:
     """Minimum required context size"""
 ```
 
-## Task Execution
+## Job Execution
 
-Tasks can be executed by any agent that meets their requirements:
+Jobs can be executed by any agent that meets their requirements:
 
 ```python
 class Agent[TDeps, TResult]:
-    async def run_task(
+    async def run_job(
         self,
-        task: AgentTask[TDeps, TResult],
+        task: Job[TDeps, TResult],
         *,
         store_history: bool = True,
         include_agent_tools: bool = True,
@@ -103,13 +103,13 @@ class Agent[TDeps, TResult]:
         """
 ```
 
-Tasks provide a clean way to define work requirements and manage resources while maintaining type safety throughout the execution chain.
+Jobs provide a clean way to define work requirements and manage resources while maintaining type safety throughout the execution chain.
 This separation of concerns allows for better reusability and clearer contracts between task definitions and their executors.
 
 
 ## YAML Definition
 
-Tasks can be defined directly in the agent manifest YAML file:
+Jobs can be defined directly in the agent manifest YAML file:
 
 ```yaml
 tasks:
@@ -117,7 +117,7 @@ tasks:
     prompt: "Analyze the code in the provided files"
     description: "Static code analysis task"
 
-    # Task equipment
+    # Job equipment
     tools:
       - import_path: "myapp.tools.code_analyzer"
         name: "analyze_code"
@@ -133,7 +133,7 @@ tasks:
           content: "Analysis guidelines..."
 ```
 
-Tasks can then be fetched from the pool and executed by any compatible agent:
+Jobs can then be fetched from the pool and executed by any compatible agent:
 
 ```python
 # Get task from pool
@@ -141,10 +141,10 @@ task = pool.get_task("analyze_code")
 
 # Execute with compatible agent
 agent = pool.get_agent("code_analyzer")
-result = await agent.run_task(task)
+result = await agent.run_job(task)
 ```
 
-Tasks defined in YAML are automatically registered with the pool's task registry during initialization. This allows for:
+Jobs defined in YAML are automatically registered with the pool's task registry during initialization. This allows for:
 - Central task management
 - Configuration-driven task definitions
 - Easy sharing of tasks between agents
