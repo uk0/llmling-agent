@@ -2,13 +2,7 @@
 
 from llmling_agent.models import AgentsManifest, AgentConfig, AgentContext
 from llmling_agent.agent import Agent, StructuredAgent
-from llmling_agent_functional import (
-    run_with_model,
-    run_with_model_sync,
-    run_agent_pipeline_sync,
-    run_agent_pipeline,
-    get_structured,
-)
+
 from llmling_agent.delegation import (
     AgentPool,
     Decision,
@@ -52,10 +46,5 @@ __all__ = [
     "TeamRun",
     "TeamRunMonitor",
     "TeamRunStats",
-    "get_structured",
     "interactive_controller",
-    "run_agent_pipeline",
-    "run_agent_pipeline_sync",
-    "run_with_model",
-    "run_with_model_sync",
 ]
