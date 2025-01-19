@@ -151,7 +151,7 @@ class AgentProvider[TDeps]:
         parts = [await to_prompt(p) for p in prompts]
         return "\n\n".join(parts)
 
-    async def supports_capability(self, capability: Literal["vision"]) -> bool:
+    async def supports_feature(self, capability: Literal["vision"]) -> bool:
         """Check if provider supports a specific capability."""
         match capability:
             case "vision":

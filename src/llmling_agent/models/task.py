@@ -83,7 +83,7 @@ class AgentTask[TDeps, TResult](BaseModel):
 
         # Check vision capabilities
         if self.requires_vision:  # noqa: SIM102
-            if not await agent.provider.supports_capability("vision"):
+            if not await agent.provider.supports_feature("vision"):
                 return False
 
         return True
