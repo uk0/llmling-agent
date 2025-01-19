@@ -7,6 +7,7 @@ from llmling_agent_docs import (
     cli,
     configuration,
     core_concepts,
+    examples,
     getting_started,
     interaction_patterns,
 )
@@ -40,6 +41,7 @@ class Build:
         nav += configuration.nav
         nav += core_concepts.nav
         nav += interaction_patterns.nav
+        nav += examples.nav
         nav += advanced_features.nav
         nav.add_doc(section_name="API", flatten_nav=True, recursive=True)
         nav += cli.nav

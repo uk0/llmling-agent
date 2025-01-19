@@ -8,7 +8,7 @@ import mknodes as mk
 nav = mk.MkNav("Getting Started")
 
 
-@nav.route.page("Welcome to LLMling-Agent", hide=["toc", "nav"], is_homepage=True)
+@nav.route.page("Welcome to LLMling-Agent", hide=["toc"], is_homepage=True)
 def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/home.md")
 
@@ -35,6 +35,12 @@ def _(page: mk.MkPage):
 def _(page: mk.MkPage):
     """Guide to creating and configuring agents."""
     page += mk.MkTemplate("docs/agents/create_agents.md")
+
+
+@nav.route.page("Dependencies", hide="toc", icon="database")
+def _(page: mk.MkPage):
+    page += mk.MkDependencyTable(layout="badge")
+    page += mk.MkPipDepTree(direction="LR")
 
 
 if __name__ == "__main__":
