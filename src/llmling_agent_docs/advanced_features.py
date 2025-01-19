@@ -32,12 +32,6 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/advanced/system_prompts.md")
 
 
-@nav.route.page("Connections", icon="octicon:link-16")
-def _(page: mk.MkPage):
-    """Advanced connection patterns."""
-    page += mk.MkTemplate("docs/advanced/connections.md")
-
-
 @nav.route.page("Data Extraction", icon="octicon:file-code-16")
 def _(page: mk.MkPage):
     """Extracting structured data."""

@@ -56,12 +56,6 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/concepts/tasks.md")
 
 
-@nav.route.page("Connections", icon="octicon:link-16")
-def _(page: mk.MkPage):
-    """Agent connection system."""
-    page += mk.MkTemplate("docs/concepts/connections.md")
-
-
 @nav.route.page("Events", icon="octicon:broadcast-16")
 def _(page: mk.MkPage):
     """Event system and handlers."""
