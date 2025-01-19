@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import inspect
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from litellm import BaseModel
 from pydantic_ai.messages import (
@@ -24,6 +25,10 @@ from llmling_agent.models.content import (
     ImageURLContent,
 )
 from llmling_agent_providers.base import AgentProvider, ProviderResponse
+
+
+if TYPE_CHECKING:
+    from llmling_agent.tools.base import ToolInfo
 
 
 logger = get_logger(__name__)
@@ -67,6 +72,34 @@ class LiteLLMProvider(AgentProvider[Any]):
     async def get_model_names(self) -> list[str]:
         """Get list of all known model names."""
         return await get_available_models()
+
+    async def handle_tool_call(
+        self, tool_call, tool: ToolInfo
+    ) -> tuple[ToolCallInfo, dict]:
+        """Handle a single tool call properly."""
+        function_args = json.loads(tool_call.function.arguments)
+
+        # Handle both sync and async tools
+        if inspect.iscoroutinefunction(tool.callable.callable):
+            result = await tool.callable.callable(**function_args)
+        else:
+            result = tool.callable.callable(**function_args)
+
+        info = ToolCallInfo(
+            tool_name=tool.name,
+            args=function_args,
+            result=result,
+            tool_call_id=tool_call.id,
+        )
+
+        message = {
+            "tool_call_id": tool_call.id,
+            "role": "tool",
+            "name": tool.name,
+            "content": result,
+        }
+
+        return info, message
 
     async def generate_response(
         self,
@@ -132,27 +165,14 @@ class LiteLLMProvider(AgentProvider[Any]):
             assert isinstance(response, ModelResponse)
             assert isinstance(response.choices[0], Choices)
             calls: list[ToolCallInfo] = []
-
             for tool_call in response.choices[0].message.tool_calls or []:
                 function_name = tool_call.function.name
                 if not function_name:
                     continue
                 tool = self.tool_manager.get(function_name)
-                function_args = json.loads(tool_call.function.arguments)
-                function_response = tool.callable.callable(**function_args)
-                info = ToolCallInfo(
-                    tool_name=tool.name,
-                    args=function_args,
-                    result=function_response,
-                    tool_call_id=tool_call.id,
-                )
+                info, message = await self.handle_tool_call(tool_call, tool)
                 calls.append(info)
-                messages.append({
-                    "tool_call_id": tool_call.id,
-                    "role": "tool",
-                    "name": function_name,
-                    "content": function_response,
-                })
+                messages.append(message)
             # Extract content
             content = response.choices[0].message.content
 

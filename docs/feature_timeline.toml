@@ -92,7 +92,18 @@ Flexible team operations and execution patterns:
 - Background execution with monitoring
 """
 
+
 [step_7]
+label = "MCP server integration"
+content = """
+MCP server support for Agents.
+
+- Agents with MCP server configurations will "connect" on async initialization
+- MCP severs can provide agent tools
+- More extensive coverage of the MCP servers soon.
+"""
+
+[step_8]
 label = "Event System"
 content = """
 React to changes and automate workflows:
@@ -106,7 +117,7 @@ React to changes and automate workflows:
 - Event-driven agent execution
 """
 
-[step_8]
+[step_9]
 label = "Command System"
 content = """
 Rich command system across all interfaces:
@@ -121,7 +132,7 @@ Rich command system across all interfaces:
 - Cross-interface consistency
 """
 
-[step_9]
+[step_10]
 label = "Database & Logging"
 content = """
 Comprehensive interaction tracking:
@@ -138,7 +149,7 @@ Comprehensive interaction tracking:
 - Sophisticated conversation filtering for agents
 """
 
-[step_10]
+[step_11]
 label = "Interaction Patterns"
 content = """
 Rich patterns for agent interaction and collaboration:
@@ -156,7 +167,7 @@ Rich patterns for agent interaction and collaboration:
 """
 
 
-[step_11]
+[step_12]
 label = "Multiple Interfaces"
 content = """
 Multiple ways to interact:
@@ -170,7 +181,7 @@ Multiple ways to interact:
 - Unified command system
 """
 
-[step_12]
+[step_13]
 label = "Task System"
 content = """
 Independent work definitions with type safety:
@@ -184,7 +195,7 @@ Independent work definitions with type safety:
 - YAML-based task configuration
 """
 
-[step_13]
+[step_14]
 label = "Capability System"
 content = """
 Fine-grained permission control for agents:
@@ -197,7 +208,7 @@ Fine-grained permission control for agents:
 - Agent interaction capabilites
 """
 
-[step_14]
+[step_15]
 label = "Knowledge Management"
 content = """
 Comprehensive knowledge integration:

@@ -75,7 +75,7 @@ class PydanticAIProvider(AgentProvider):
         super().__init__(model=model)
         self._debug = debug
         self._kwargs = dict(
-            model=model,  # type: ignore
+            model=model,
             name=name,
             tools=[],
             retries=retries,
@@ -113,7 +113,6 @@ class PydanticAIProvider(AgentProvider):
     def model(self) -> str | ModelType:
         return self._model
 
-    # TODO: make this generic. Requires ToolInfo to become generic.
     def wrap_tool(
         self,
         tool: ToolInfo,
@@ -169,7 +168,7 @@ class PydanticAIProvider(AgentProvider):
             else wrapped_without_ctx
         )
 
-    @logfire.instrument("Pydantic-AI call. result type {result_type}. Prompt: {prompt}")
+    @logfire.instrument("Pydantic-AI call. model: {model} result type {result_type}.")
     async def generate_response(
         self,
         *prompts: str | Content,
@@ -199,7 +198,7 @@ class PydanticAIProvider(AgentProvider):
         message_history = self.conversation.get_history()
         use_model = model or self.model
         if isinstance(use_model, str):
-            use_model = infer_model(use_model)  # type: ignore
+            use_model = infer_model(use_model)
             self.model_changed.emit(use_model)
         try:
             prompt = await self.format_prompts(prompts)
