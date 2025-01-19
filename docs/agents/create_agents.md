@@ -21,6 +21,7 @@ async with AgentPool("agents.yml") as pool:
 ```
 
 This ensures:
+
 - Proper async initialization of all components
 - MCP server setup
 - Runtime configuration
@@ -64,7 +65,9 @@ pool = AgentPool(manifest, confirmation_callback=my_callback)
 ```
 
 ## Importance of Async Initialization
+
 Agents require proper async initialization for:
+
 1. MCP server setup and tool registration
 2. Runtime configuration loading
 3. Resource initialization
@@ -134,6 +137,7 @@ agents:
 ```
 
 ## Best Practices
+
 1. Use `AgentPool` for managing multiple agents
 2. Always use async context managers
 3. Consider using templates for common agent types

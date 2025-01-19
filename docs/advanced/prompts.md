@@ -5,6 +5,7 @@ LLMling-Agent provides a flexible system for handling different types of prompts
 ## Prompt Types
 
 The following types can be used as prompts:
+
 - Strings: Plain text prompts
 - Objects implementing `__prompt__`: Dynamic content providers
 - Types implementing `__prompt_type__`: Type-level information
@@ -75,6 +76,7 @@ All components are combined into a single coherent prompt.
 ## Supported in LLMling-Agent
 
 The prompt system is used throughout LLMling-Agent:
+
 - Agent.run() accepts any prompt type
 - Agent instances implement `__prompt__`
 - Context loading supports all prompt types

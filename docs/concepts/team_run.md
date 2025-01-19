@@ -5,6 +5,7 @@
 A TeamRun represents the orchestrated execution of a prompt by a group of agents. Unlike simple agent groups (Teams) which just define membership, TeamRuns manage how agents work together - particularly their execution order and interaction patterns.
 
 The key concept is that a TeamRun determines:
+
 - Which agents participate in the execution
 - In what order they process the input
 - How they interact with each other

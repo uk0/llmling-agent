@@ -38,6 +38,7 @@ agents:
 
 #### MCPClient
 Handles connection and communication with MCP servers:
+
 - Manages server lifecycle (connect/disconnect)
 - Lists available tools
 - Forwards tool calls to server
@@ -52,6 +53,7 @@ result = await client.call_tool("tool_name", arguments={})
 
 #### ToolManager Integration
 Tools from MCP servers are registered with the agent's ToolManager:
+
 - Tools are available like any other agent tool
 - Proper lifecycle management
 - Multiple MCP servers per agent

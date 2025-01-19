@@ -64,6 +64,7 @@ async with Agent(mcp_servers=servers) as agent:
 ```
 
 The initialization process:
+
 1. Creates MCP clients for each server
 2. Establishes connections
 3. Retrieves available tools

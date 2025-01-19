@@ -3,6 +3,7 @@
 ## Overview
 
 AgentContext serves multiple purposes:
+
 1. Holds agent-specific configuration and state
 2. Provides access to shared resources (pool, storage)
 3. Acts as a bridge between agents and the pool

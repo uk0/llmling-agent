@@ -40,6 +40,7 @@ agents:
 While tools provide specific functions an agent can use (like web searches or calculations), capabilities control an agent's access to privileged operations that can modify the system itself or access sensitive information. Think of capabilities as "administrative privileges" that determine what an agent is allowed to do beyond regular tool usage.
 
 For example:
+
 - A tool might provide specific statistics, but the `stats_access` capability gives access to all usage data of the agents itself
 - While tools are standalone functions, capabilities like `can_register_tools` allow the agent to modify the system's available toolset itself
 - Powerful functions like code execution are also included here to underline their potential impact (nothing stopping the user to add custom code execution tools of course)

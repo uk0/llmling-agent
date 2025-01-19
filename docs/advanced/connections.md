@@ -21,12 +21,15 @@ class Talk:
 
 ### Connection Types
 Three different ways messages can be handled:
+
 - `run`: Execute message as a new run in target agent
 - `context`: Add message as context to target's conversation
 - `forward`: Forward message directly to target's outbox
 
 ### Connection Management
+
 Connections are managed by the `TalkManager`, which provides:
+
 - Connection creation and cleanup
 - Message routing
 - Wait state management
@@ -65,7 +68,9 @@ team_a.pass_results_to(team_b)
 ## Message Flow Control
 
 ### Statistics and Monitoring
+
 Each connection tracks:
+
 - Message count
 - Token usage
 - Byte count
@@ -84,6 +89,7 @@ class TalkStats:
 
 ### Flow Control
 Connections support:
+
 - Priority-based message handling
 - Delayed execution
 - Message filtering
@@ -107,6 +113,7 @@ If a team is connected to other entities, a TeamTalk object is returned, contain
 The TeamTalk object provides a similar interface to the Talk object and forwards the method calls to all contained Talk objects.
 
 `TeamTalk` provides aggregate operations for multiple connections:
+
 - Collective statistics
 - Group operations (pause/resume)
 - Recursive target resolution

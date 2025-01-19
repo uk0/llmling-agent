@@ -5,6 +5,7 @@ The storage system in LLMling Agent provides flexible logging and history manage
 ## Overview
 
 The storage system serves multiple purposes:
+
 - Recording conversation history for context and analysis
 - Logging tool usage and command execution
 - Enabling conversation recovery and continuation
@@ -12,11 +13,13 @@ The storage system serves multiple purposes:
 - Allowing to pretty-print and output conversations in a customizable way
 
 Multiple providers can be active simultaneously, each handling different aspects of storage:
+
 - Some providers focus on full history tracking
 - Others specialize in output logging or monitoring
 - Providers can be filtered to handle specific agents
 
 Settings can be configured at two levels:
+
 - Global settings affecting all providers
 - Provider-specific settings for fine-grained control
 
@@ -33,6 +36,7 @@ storage:
       auto_migration: true      # Add missing columns automatically
 ```
 Features:
+
 - Complete conversation history
 - Efficient querying and filtering
 - Support for SQLite and other SQL databases
@@ -40,7 +44,9 @@ Features:
 - Default provider if none specified
 
 ### File Storage
+
 File-based storage using YAML or JSON formats:
+
 ```yaml
 storage:
   providers:
@@ -50,13 +56,16 @@ storage:
       encoding: utf-8
 ```
 Features:
+
 - Human-readable storage format
 - Easy version control integration
 - Flexible file organization
 - Support for multiple file formats
 
 ### Text Log Provider
+
 Simple text-based logging with customizable formats:
+
 ```yaml
 storage:
   providers:
@@ -66,13 +75,16 @@ storage:
       template: custom_template.txt  # Optional
 ```
 Features:
+
 - Simple text file output
 - Customizable log formats using jinja2-templating
 - Streaming-friendly
 - Output-only (no history queries)
 
 ### Memory Storage
+
 In-memory storage for testing and development:
+
 ```yaml
 storage:
   providers:
@@ -83,18 +95,21 @@ Provides temporary storage without persistence, ideal for testing and developmen
 ## Provider Capabilities
 
 History Providers (SQL, File):
+
 - Full conversation history
 - Message querying and filtering
 - Session recovery
 - Statistics and analytics
 
 Output Providers (Text Log):
+
 - Message logging
 - Format customization
 - Real-time monitoring
 - No query capabilities
 
 Storable Content:
+
 - Messages (user/assistant/system)
 - Conversation metadata
 - Tool call details
@@ -120,6 +135,7 @@ storage:
 ```
 
 Provider Filtering:
+
 - Global agent filters
 - Provider-specific filters
 - Combination modes:

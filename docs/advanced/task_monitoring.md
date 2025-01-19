@@ -38,6 +38,7 @@ result = await execution.wait()
 ### The Monitor Object
 
 Similar to how Talk objects manage agent connections, the TeamRunMonitor tracks execution progress through agent signals. It:
+
 - Captures message exchanges
 - Records tool usage
 - Tracks errors

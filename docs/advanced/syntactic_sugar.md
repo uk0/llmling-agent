@@ -17,6 +17,7 @@ team = analyzer & planner & executor
 ```
 
 When combining with `&`:
+
 - Agents become part of the same team
 - System prompts are combined with line breaks
 - Dependencies are collected into a list (if present)
@@ -39,6 +40,7 @@ pipeline = agent1 | uppercase | agent2
 ```
 
 When creating pipelines with `|`:
+
 - Each component processes the output of the previous one
 - Callables are converted to agents using CallbackProvider
 - Results flow through the pipeline in order
@@ -59,6 +61,7 @@ agent1 >> (agent2 & agent3)  # Both receive outputs
 ```
 
 When setting up forwarding with `>>`:
+
 - Messages are forwarded automatically
 - Original agent continues independently
 - Multiple targets receive the same messages
@@ -129,6 +132,7 @@ print(agent2.system_prompts)  # ["You are a summarizer."]
 ```
 
 The shared prompt provides team-level instructions without modifying individual agent behaviors. This is useful for:
+
 - Coordinating team efforts
 - Setting shared goals
 - Providing context for collaboration

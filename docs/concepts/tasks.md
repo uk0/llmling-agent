@@ -6,7 +6,8 @@ In LLMling, tasks are specifications of work that can be executed by agents.
 Unlike other frameworks where tasks are tightly coupled with their executors,
 LLMling treats tasks as independent definitions that specify requirements and provide resources.
 
-A task defines:
+A job defines:
+
 - What needs to be done (prompt)
 - What type of agent can do it (required dependencies)
 - What result to expect (required return type)
@@ -16,6 +17,7 @@ A task defines:
 ## The Job Concept
 
 ### Traditional Approach (Other Frameworks)
+
 Most frameworks tightly couple tasks with their execution:
 
 ```python
@@ -24,6 +26,7 @@ job = Job(agent, **task_kwargs)
 ```
 
 ### LLMling-Agents's Approach
+
 LLMling separates task definitions from execution:
 
 ```python
@@ -45,6 +48,7 @@ result = await agent.run_job(task)  # Deps and return type verified using typing
 ```
 
 This separation provides:
+
 - Reusability: Same job can be executed by different agents
 - Type Safety: Dependencies and results are validated
 - Clear Contracts: Requirements are explicitly defined
@@ -145,6 +149,7 @@ result = await agent.run_job(task)
 ```
 
 Jobs defined in YAML are automatically registered with the pool's task registry during initialization. This allows for:
+
 - Central task management
 - Configuration-driven task definitions
 - Easy sharing of tasks between agents

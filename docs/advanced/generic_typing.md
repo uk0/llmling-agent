@@ -7,6 +7,7 @@ While PydanticAI provides a solid base for single-agent operations with typed de
 LLMling adds typing support for agent pools, teams, and inter-agent communication.
 
 Key differences from PydanticAI:
+
 - Separation of Agent and StructuredAgent into distinct types
 - Pool-level dependency typing
 - Team-level type preservation

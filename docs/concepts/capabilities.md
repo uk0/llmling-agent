@@ -4,6 +4,7 @@
 
 Capabilities in LLMling define what "special" operations an agent is allowed to perform.
 They act as access privileges that control an agent's ability to:
+
 - Interact with other agents
 - Access resources and history
 - Execute code or commands

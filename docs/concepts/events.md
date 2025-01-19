@@ -3,6 +3,7 @@
 ## Overview
 
 Events in LLMling allow agents to react to external triggers such as:
+
 - File system changes
 - Webhook calls (coming soon)
 - User interface actions
@@ -46,6 +47,7 @@ triggers:
 ## Event Manager
 
 Each agent has an event manager (`agent.events`) that handles:
+
 - Event source lifecycle
 - Event processing
 - Callback management
@@ -116,6 +118,7 @@ llmling-agent watch \
 ```
 
 Watch mode:
+
 1. Loads agent configuration
 2. Sets up configured event sources
 3. Runs until interrupted (Ctrl+C)
@@ -187,6 +190,7 @@ llmling-agent watch --config agents.yaml --agent reviewer
 ```
 
 Now the agent automatically:
+
 1. Detects file changes
 2. Gets git diff
 3. Analyzes changes

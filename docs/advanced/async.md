@@ -31,7 +31,13 @@ When agents are connected, messages flow between them asynchronously:
 analyzer >> summarizer  # analyzer's outputs go to summarizer
 
 # Optionally wait for connected agents to complete
-await analyzer.run("Analyze", wait_for_connections=True)  # waits for summarizer
+# If wai_for_connections is set, also the connected agents get awaited.
+# Otherwise, the follow-up runs will run concurrently (async)
+await analyzer.run("Analyze", wait_for_connections=False)  # waits for summarizer
+
+# Since we didnt wait for connected agents, we can trigger the waiting manually:
+await summarizer.complete_tasks()
+
 ```
 
 By default, connections operate independently. Use `wait_for_connections=True` when you need to ensure all downstream processing is complete.
@@ -57,6 +63,7 @@ agent = Agent(
 ### What Gets Loaded in Parallel
 
 For an Agent, these components can initialize concurrently:
+
 - Runtime configuration and tools
 - Event system setup
 - MCP server connections
@@ -73,6 +80,7 @@ For an AgentPool:
 ## Performance Considerations
 
 Parallel initialization can significantly speed up startup when you have:
+
 - Multiple agents in a pool
 - Multiple agents using MCP servers
 - Many knowledge sources
@@ -104,6 +112,7 @@ llmling-agent watch --config agents.yml
 ```
 
 This command:
+
 - Loads all agents from the configuration
 - Sets up their event triggers (file watchers, webhooks, etc.)
 - Keeps them running until interrupted (Ctrl+C)

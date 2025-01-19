@@ -82,6 +82,7 @@ agent = Agent(provider=process)
 ```
 
 This seamless integration of callables allows you to:
+
 - Mix and match agents with regular functions
 - Create lightweight processing steps without full agent overhead
 - Preserve type safety throughout the workflow

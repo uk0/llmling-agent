@@ -5,6 +5,7 @@ Events allow agents to respond to external changes and automate actions based on
 ## Basic Concepts
 
 Events flow through the system in this order:
+
 1. Event Source detects change
 2. Event Manager processes event
 3. Agent receives and handles event

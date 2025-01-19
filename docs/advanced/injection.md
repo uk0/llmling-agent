@@ -59,6 +59,7 @@ async def analyze_data(
 ```
 
 The system ensures type safety between functions:
+
 - Return types are checked against dependency parameter types
 - Runtime type checking of actual values
 - Clear error messages for type mismatches
@@ -179,6 +180,7 @@ async def validate_data(
 ```
 
 Type checking is:
+
 - Optional (untyped functions work normally)
 - Enforced between dependencies
 - Validated at runtime
@@ -299,6 +301,7 @@ async def main():
 ```
 
 The key is that the `with_agents` decorator needs a pool, which is your connection to the manifest. This design:
+
 1. Keeps configuration in YAML (easy to edit/version)
 2. Provides clean dependency injection in code
 3. Allows flexible pool management strategies
