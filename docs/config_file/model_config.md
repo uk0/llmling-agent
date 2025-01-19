@@ -1,5 +1,10 @@
 # Models & Providers
 
+
+In addition to the regular models, LLMling-Agent supports some special kinds of models
+provided by [LLMling-models](https://github.com/phil65/LLMling-models).
+
+
 ## Human-Interaction Models
 Models that facilitate human interaction and input:
 
