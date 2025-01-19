@@ -18,7 +18,7 @@ from upath import UPath
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.models.session import SessionQuery
-from llmling_agent.pydantic_ai_utils import (
+from llmling_agent_providers.pydanticai.utils import (
     convert_model_message,
     format_part,
     get_message_role,

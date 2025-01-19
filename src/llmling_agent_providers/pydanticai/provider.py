@@ -18,7 +18,6 @@ from pydantic_ai.result import StreamedRunResult
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
-from llmling_agent.pydantic_ai_utils import format_part, get_tool_calls
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
     RunAbortedError,
@@ -26,6 +25,7 @@ from llmling_agent.tasks.exceptions import (
 )
 from llmling_agent.utils.inspection import has_argument_type
 from llmling_agent_providers.base import AgentProvider, ProviderResponse
+from llmling_agent_providers.pydanticai.utils import format_part, get_tool_calls
 
 
 if TYPE_CHECKING:

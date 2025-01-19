@@ -75,6 +75,7 @@ Humans, LLM libraries and Callables can all be used as the "Agent" brain and be 
 - Consistent interface across providers
 - Provider-specific optimizations
 - Stream support
+- Multi-modal support for LitemLLM (experimental)
 """
 
 [step_6]
