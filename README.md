@@ -144,28 +144,6 @@ llmling-agent chat my-agent
 Agents are defined in YAML configuration files. The environment (tools and resources) can be configured either inline or in a separate file:
  (see [LLMling documentation](https://github.com/phil65/llmling) for YAML details)
 
-#### Option 1: Separate Environment File
-
-```yaml
-# agents.yml - Agent configuration
-agents:
-  system_checker:
-    model: openai:gpt-4o-mini
-    environment: env_system.yml  # Reference to environment file
-    system_prompts:
-      - "You help users check their system status."
-
-# env_system.yml - Environment configuration (LLMling format)
-tools:
-  get_system_info:
-    import_path: platform.platform
-    description: "Get system platform information"
-  get_memory:
-    import_path: psutil.virtual_memory
-    description: "Get memory usage information"
-```
-
-#### Option 2: Inline Environment
 
 ```yaml
 # agents.yml - Complete configuration
@@ -185,18 +163,12 @@ agents:
       - "You help users check their system status."
 ```
 
-Both approaches are equivalent - choose what works best for your use case:
-- **Separate files**: Better for reusing environments across agents or when configurations are large
-- **Inline configuration**: Simpler for small configurations or self-contained agents
-
-
 ### Running Your First Agent
 
-1. Save both configuration files:
+1. Save configuration file:
    - `agents.yml` - Agent configuration
-   - `env_system.yml` - Environment configuration
 
-2. Add the agent configuration to LLMling Agent:
+2. Add the agent configuration to LLMling-Agent:
 ```bash
 llmling-agent add my-config agents.yml
 ```
