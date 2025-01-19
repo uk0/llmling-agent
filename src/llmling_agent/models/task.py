@@ -104,7 +104,7 @@ class AgentTask[TDeps, TResult](BaseModel):
 
     def get_tools(self) -> list[LLMCallableTool]:
         """Get all tools as LLMCallableTool instances."""
-        tools = []
+        tools: list[LLMCallableTool] = []
         for tool in self.tools:
             match tool:
                 case str():
