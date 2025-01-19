@@ -17,6 +17,7 @@ from pydantic_ai.result import StreamedRunResult
 
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
+from llmling_agent.models.content import BaseContent
 from llmling_agent.models.context import AgentContext
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
@@ -25,7 +26,11 @@ from llmling_agent.tasks.exceptions import (
 )
 from llmling_agent.utils.inspection import has_argument_type
 from llmling_agent_providers.base import AgentProvider, ProviderResponse
-from llmling_agent_providers.pydanticai.utils import format_part, get_tool_calls
+from llmling_agent_providers.pydanticai.utils import (
+    content_to_model_message,
+    format_part,
+    get_tool_calls,
+)
 
 
 if TYPE_CHECKING:
@@ -201,7 +206,18 @@ class PydanticAIProvider(AgentProvider):
             use_model = infer_model(use_model)
             self.model_changed.emit(use_model)
         try:
-            prompt = await self.format_prompts(prompts)
+            text_prompts = [p for p in prompts if isinstance(p, str)]
+            content_prompts = [p for p in prompts if isinstance(p, BaseContent)]
+
+            # Get normal text prompt
+            prompt = await self.format_prompts(text_prompts)
+
+            # Convert Content objects to ModelMessages
+            if content_prompts:
+                content_message = content_to_model_message(tuple(content_prompts))
+                message_history = [*message_history, content_message]
+
+            # Run with complete history
             result = await agent.run(
                 prompt,
                 deps=self._context,  # type: ignore

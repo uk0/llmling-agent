@@ -27,6 +27,7 @@ from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
+from llmling_agent.models.content import Content, ImageBase64Content, ImageURLContent
 from llmling_agent.models.messages import ChatMessage
 
 
@@ -228,6 +229,27 @@ def get_message_role(msg: ModelMessage) -> str:
             return "Unknown"
 
 
+def content_to_model_message(
+    prompts: tuple[Content, ...],
+    role: MessageRole = "user",
+) -> ModelMessage:
+    """Convert our Content objects to ModelMessage.
+
+    Converts ImageURL and ImageBase64Content into a properly formatted ModelMessage
+    that pydantic-ai can handle.
+    """
+    contents: list[tuple[ContentType, ContentSource]] = []
+
+    for p in prompts:
+        match p:
+            case ImageURLContent():
+                contents.append(("image", p.url))
+            case ImageBase64Content():
+                contents.append(("image", p.data))
+
+    return create_message(contents, role=role)
+
+
 def create_message(
     contents: list[tuple[ContentType, ContentSource]] | str,
     role: MessageRole = "user",
@@ -335,3 +357,53 @@ def to_model_message(message: ChatMessage[str]) -> ModelMessage:
             return ModelRequest(parts=[UserPromptPart(content=message.content)])
     msg = f"Unknown message role: {message.role}"
     raise ValueError(msg)
+
+
+def convert_to_chat_format(
+    system_prompt: str | None,
+    history: list[ModelMessage],
+    prompts: tuple[str | Content, ...],
+) -> list[dict[str, Any]]:
+    """Convert pydantic-ai messages to OpenAI/LiteLLM chat format.
+
+    Args:
+        system_prompt: Optional system instruction
+        history: Previous conversation in pydantic-ai format
+        prompts: New prompts/content to send
+
+    Returns:
+        Messages in OpenAI chat format:
+        [
+            {"role": "system", "content": "You are..."},
+            {"role": "user", "content": [{"type": "text", "text": "Hi"}, ...]}
+        ]
+    """
+    messages: list[dict[str, Any]] = []
+
+    # Add system prompt if provided
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    # Convert history
+    messages.extend({"role": "user", "content": str(msg)} for msg in history)
+    # Convert new prompts to content parts
+    content_parts: list[dict[str, Any]] = []
+    for p in prompts:
+        match p:
+            case str():
+                content_parts.append({"type": "text", "text": p})
+            case ImageURLContent():
+                dct = {"url": p.url, "detail": p.detail or "auto"}
+                content_parts.append({"type": "image_url", "image_url": dct})
+            case ImageBase64Content():
+                data_url = f"data:image/jpeg;base64,{p.data}"
+                dct = {"url": data_url, "detail": p.detail or "auto"}
+                content_parts.append({"type": "image_url", "image_url": dct})
+
+    # Add new prompts as user message with potentially multiple content parts
+    if content_parts:
+        messages.append({
+            "role": "user",
+            "content": content_parts[0] if len(content_parts) == 1 else content_parts,
+        })
+
+    return messages

@@ -25,7 +25,7 @@ from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.content import BaseContent, Content
+from llmling_agent.models.content import BaseContent, Content, ImageBase64Content
 from llmling_agent.models.mcp_server import MCPServerConfig, StdioMCPServer
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.responses.utils import to_type
@@ -47,6 +47,7 @@ if TYPE_CHECKING:
 
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
+    import PIL.Image
     from pydantic_ai.agent import EndStrategy
     from pydantic_ai.result import StreamedRunResult
 
@@ -73,6 +74,30 @@ AgentType = (
     Literal["pydantic_ai", "human", "litellm"] | AgentProvider | Callable[..., Any]
 )
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
+
+
+async def _convert_prompts(
+    prompts: Sequence[AnyPromptType | PIL.Image.Image],
+) -> list[str | Content]:
+    """Convert prompts to our internal format.
+
+    Handles:
+    - PIL Images -> ImageBase64Content
+    - Regular prompts -> str via to_prompt
+    - Content objects -> pass through
+    """
+    import PIL.Image
+
+    result: list[str | Content] = []
+    for p in prompts:
+        match p:
+            case PIL.Image.Image():
+                result.append(ImageBase64Content.from_pil_image(p))
+            case _ if not isinstance(p, BaseContent):
+                result.append(await to_prompt(p))
+            case _:
+                result.append(p)  # type: ignore
+    return result
 
 
 class AgentKwargs(TypedDict, total=False):
@@ -914,10 +939,10 @@ class Agent[TDeps](TaskManagerMixin):
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         """Run agent with prompt and get response."""
-        prompts: list[str | Content] = [
-            await to_prompt(p) if not isinstance(prompt, BaseContent) else p  # type: ignore
-            for p in prompt
-        ]
+        prompts = await _convert_prompts(prompt)
+        final_prompt = "\n\n".join(str(p) for p in prompts)
+        self.context.current_prompt = final_prompt
+        self.set_result_type(result_type)
         final_prompt = "\n\n".join(str(p) for p in prompts)
         self.context.current_prompt = final_prompt
         self.set_result_type(result_type)
@@ -1054,10 +1079,7 @@ class Agent[TDeps](TaskManagerMixin):
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        prompts: list[str | Content] = [
-            await to_prompt(p) if not isinstance(prompt, BaseContent) else p  # type: ignore
-            for p in prompt
-        ]
+        prompts = await _convert_prompts(prompt)
         final_prompt = "\n\n".join(str(p) for p in prompts)
         self.set_result_type(result_type)
         self.context.current_prompt = final_prompt
