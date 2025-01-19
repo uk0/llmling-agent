@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import mknodes as mk
 
 from llmling_agent_docs import (
     advanced_features,
+    cli,
     configuration,
     core_concepts,
-    development,
     getting_started,
     interaction_patterns,
 )
@@ -39,7 +41,8 @@ class Build:
         nav += core_concepts.nav
         nav += interaction_patterns.nav
         nav += advanced_features.nav
-        nav += development.nav
+        nav.add_doc(section_name="API", flatten_nav=True, recursive=True)
+        nav += cli.nav
         return nav
 
 
