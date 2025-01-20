@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Literal, overload
@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.delegation.router import AgentRouter
+    from llmling_agent.models.conditions import Condition
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
 
@@ -205,6 +206,9 @@ class Team[TDeps](TaskManagerMixin):
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ) -> TeamTalk:
         """Forward results to another agent or all agents in a team."""
         match other:
@@ -221,6 +225,9 @@ class Team[TDeps](TaskManagerMixin):
             delay=delay,
             queued=queued,
             queue_strategy=queue_strategy,
+            transform=transform,
+            filter_condition=filter_condition,
+            exit_condition=exit_condition,
         )
 
     def monitored(

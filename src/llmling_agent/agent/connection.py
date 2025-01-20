@@ -403,6 +403,9 @@ class TalkManager:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ) -> Talk[Any]: ...
 
     @overload
@@ -415,6 +418,9 @@ class TalkManager:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ) -> TeamTalk: ...
 
     def connect_agent_to(
@@ -426,6 +432,9 @@ class TalkManager:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ) -> Talk[Any] | TeamTalk:
         """Handle single agent connections."""
         from llmling_agent.agent import Agent, StructuredAgent
@@ -449,6 +458,9 @@ class TalkManager:
                     delay=delay,
                     queued=queued,
                     queue_strategy=queue_strategy,
+                    transform=transform,
+                    filter_condition=filter_condition,
+                    exit_condition=exit_condition,
                 )
                 for target in targets
             ]
@@ -462,6 +474,9 @@ class TalkManager:
             delay=delay,
             queued=queued,
             queue_strategy=queue_strategy,
+            transform=transform,
+            filter_condition=filter_condition,
+            exit_condition=exit_condition,
         )
 
     def add_connection(
@@ -474,6 +489,9 @@ class TalkManager:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ) -> Talk[Any]:
         """Add a connection to the manager."""
         connection = Talk(
@@ -484,6 +502,9 @@ class TalkManager:
             delay=delay,
             queued=queued,
             queue_strategy=queue_strategy,
+            transform=transform,
+            filter_condition=filter_condition,
+            exit_condition=exit_condition,
         )
         self.connection_added.emit(connection)
         self._connections.append(connection)
@@ -498,6 +519,9 @@ class TalkManager:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
         **kwargs: Any,
     ) -> TeamTalk:
         """Handle group connections."""
@@ -520,6 +544,9 @@ class TalkManager:
                 delay=delay,
                 queued=queued,
                 queue_strategy=queue_strategy,
+                transform=transform,
+                filter_condition=filter_condition,
+                exit_condition=exit_condition,
             )
             for src in self.owner.agents
             for t in targets

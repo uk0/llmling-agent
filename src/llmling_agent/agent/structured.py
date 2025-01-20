@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Literal, Self, get_type_hints, overload
 
 from pydantic import ValidationError
@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import ModelType
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.execution import TeamRun
+    from llmling_agent.models.conditions import Condition
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
@@ -371,6 +372,9 @@ class StructuredAgent[TDeps, TResult]:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: Literal["concat"],
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ) -> Talk[str]: ...
 
     @overload
@@ -383,6 +387,9 @@ class StructuredAgent[TDeps, TResult]:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy,
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ) -> Talk[TResult]: ...
 
     @overload
@@ -395,6 +402,9 @@ class StructuredAgent[TDeps, TResult]:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ) -> TeamTalk: ...
 
     def pass_results_to(
@@ -406,6 +416,9 @@ class StructuredAgent[TDeps, TResult]:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ) -> Talk[TResult] | Talk[str] | TeamTalk:
         """Forward results to another agent or all agents in a team."""
         return self._agent.connections.connect_agent_to(
@@ -415,4 +428,7 @@ class StructuredAgent[TDeps, TResult]:
             delay=delay,
             queued=queued,
             queue_strategy=queue_strategy,
+            transform=transform,
+            filter_condition=filter_condition,
+            exit_condition=exit_condition,
         )

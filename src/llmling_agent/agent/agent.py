@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Coroutine
+from collections.abc import Awaitable, Callable, Coroutine
 from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -57,6 +57,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import ModelType, SessionIdType, StrPath, ToolType
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.execution import TeamRun
+    from llmling_agent.models.conditions import Condition
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.providers import ProcessorCallback
@@ -874,6 +875,9 @@ class Agent[TDeps](TaskManagerMixin):
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ) -> Talk[str]: ...
 
     @overload
@@ -886,6 +890,9 @@ class Agent[TDeps](TaskManagerMixin):
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ) -> TeamTalk: ...
 
     def pass_results_to(
@@ -897,6 +904,9 @@ class Agent[TDeps](TaskManagerMixin):
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ) -> Talk[str] | TeamTalk:
         """Forward results to another agent or all agents in a team."""
         return self.connections.connect_agent_to(
@@ -906,6 +916,9 @@ class Agent[TDeps](TaskManagerMixin):
             delay=delay,
             queued=queued,
             queue_strategy=queue_strategy,
+            transform=transform,
+            filter_condition=filter_condition,
+            exit_condition=exit_condition,
         )
 
     def stop_passing_results_to(self, other: AnyAgent[Any, Any]):
