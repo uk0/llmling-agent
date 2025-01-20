@@ -3,14 +3,14 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from psygnal.containers import EventedList
 from pydantic_ai.result import StreamedRunResult
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.connection import QueueStrategy, TalkManager, TeamTalk
-from llmling_agent.delegation.execution import TeamRun
+from llmling_agent.delegation.execution import ExecutionMode, TeamRun
 from llmling_agent.delegation.pool import AgentResponse
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
@@ -31,7 +31,6 @@ if TYPE_CHECKING:
 
 
 TDeps = TypeVar("TDeps", default=None)
-ResultData = TypeVar("ResultData", default=str)
 
 
 class TeamResponse(list[AgentResponse[Any]]):
@@ -230,10 +229,7 @@ class Team[TDeps](TaskManagerMixin):
             exit_condition=exit_condition,
         )
 
-    def monitored(
-        self,
-        mode: Literal["parallel", "sequential", "controlled"],
-    ) -> TeamRun[TDeps]:
+    def monitored(self, mode: ExecutionMode) -> TeamRun[TDeps]:
         """Create a monitored execution."""
         return TeamRun(self, mode)
 

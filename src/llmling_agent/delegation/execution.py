@@ -35,6 +35,9 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+ExecutionMode = Literal["parallel", "sequential", "controlled"]
+"""The execution mode for a TeamRun."""
+
 
 @dataclass(frozen=True)
 class TeamRunStats:
@@ -185,7 +188,7 @@ class TeamRun[TDeps](TaskManagerMixin):
     def __init__(
         self,
         team: Team[TDeps],
-        mode: Literal["parallel", "sequential", "controlled"],
+        mode: ExecutionMode,
     ):
         super().__init__()
         self.team = team
