@@ -29,19 +29,19 @@ def _(page: mk.MkPage):
 @nav.route.page("Human Interaction", icon="octicon:person-16", hide="toc")
 def _(page: mk.MkPage):
     """AI-Human interaction patterns."""
-    page += mk.MkTemplate("docs/examples/human_interaction.md", hide="toc")
+    page += mk.MkTemplate("docs/examples/human_interaction.md")
 
 
 @nav.route.page("Expert Selection", icon="octicon:people-16", hide="toc")
 def _(page: mk.MkPage):
     """Type-safe expert selection with pick()."""
-    page += mk.MkTemplate("docs/examples/pick_team.md", hide="toc")
+    page += mk.MkTemplate("docs/examples/pick_team.md")
 
 
 @nav.route.page("Structured Responses", icon="octicon:project-16", hide="toc")
 def _(page: mk.MkPage):
     """Using structured response types."""
-    page += mk.MkTemplate("docs/examples/structured_response.md", hide="toc")
+    page += mk.MkTemplate("docs/examples/structured_response.md")
 
 
 if __name__ == "__main__":
