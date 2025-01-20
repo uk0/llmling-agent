@@ -28,7 +28,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![PyUp](https://pyup.io/repos/github/phil65/llmling-agent/shield.svg)](https://pyup.io/repos/github/phil65/llmling-agent/)
 
-[Read the documentation! Unlike other frameworks, it doesnt mainly consist of "tools" ;)](https://phil65.github.io/llmling-agent/)
+### [Read the documentation! Unlike other frameworks, it doesnt mainly consist of "tools" ;)](https://phil65.github.io/llmling-agent/)
 
 # 🚀 Getting Started
 
@@ -49,7 +49,7 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 - 🔐 Structured responses. With pydantic-AI at its core, the Agents allow injecting dependencies as well as defining a return type while keeping type safety.
 - 📋 Response type definition via YAML. Structured response Agents can be defined in the agent config.
 - 🛡️ Capabilites system allowing runtime modifications and "special" commands (on-the-fly agent generation, history lookups)
-- 📊 Complete database logging of Agent interactions including easy
+- 📊 Complete database logging of Agent interactions including easy recovery based on query parameters.
 - ⚙️ pytest-inspired way to create agents from YAML in a type-safe manner. "Auto-populated signatures."
 - 🔧 Tasks, tools, and what else you can expect from an Agent framework.
 - 👥 Easy human-in-the-loop interactions on multiple levels (complete "providers" or model-based, see llmling-models)
@@ -75,7 +75,6 @@ While other frameworks require extensive Python code for setup, LLMling-agent in
 
 #### 🤝 Human-AI Collaboration
 Instead of choosing between fully autonomous or human-controlled operations, LLMling-agent offers flexible human-in-the-loop integration. From full human control to selective oversight of critical actions, the framework makes it natural to build systems that combine AI capabilities with human expertise.
-### Comparison with Other Frameworks
 
 
 ### Comparison with Other Frameworks
