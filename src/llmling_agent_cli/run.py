@@ -9,98 +9,104 @@ from typing import TYPE_CHECKING, Any
 from llmling.cli.constants import verbose_opt
 import typer as t
 
+from llmling_agent.delegation import AgentPool
+from llmling_agent_cli import resolve_agent_config
+
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.agent import Agent
-    from llmling_agent.delegation.agentgroup import Team
-
-PROMPT_HELP = "Include named prompt from environment configuration"
-OUTPUT_HELP = "Output format (text/json/yaml)"
+    from llmling_agent.models.messages import ChatMessage
 
 
 def run_command(
     agent_name: str = t.Argument(help="Agent name(s) to run (can be comma-separated)"),
     prompts: list[str] = t.Argument(None, help="Additional prompts to send"),  # noqa: B008
-    config_path: str = t.Option(
-        None, "-c", "--config", help="Override agent configuration path"
+    config_path: str = t.Option(None, "-c", "--config", help="Override config path"),
+    execution_mode: str = t.Option(
+        "parallel",
+        "-x",
+        "--execution",
+        help="Execution mode for multiple agents: parallel/sequential/controlled",
     ),
-    include_prompt: list[str] = t.Option(  # noqa: B008
-        None,
-        "--include-prompt",
-        "-p",
-        help=PROMPT_HELP,
+    show_messages: bool = t.Option(
+        True, "--show-messages", help="Show all messages (not just final responses)"
     ),
-    environment: str = t.Option(
-        None, "--environment", "-e", help="Override agent's environment"
+    detail_level: str = t.Option(
+        "simple", "-d", "--detail", help="Output detail level: simple/detailed/markdown"
     ),
-    model: str = t.Option(None, "--model", "-m", help="Override agent's model"),
-    output_format: str = t.Option("text", "-o", "--output-format", help=OUTPUT_HELP),
+    show_metadata: bool = t.Option(False, "--metadata", help="Show message metadata"),
+    show_costs: bool = t.Option(False, "--costs", help="Show token usage and costs"),
+    model: str = t.Option(None, "--model", "-m", help="Override model"),
     verbose: bool = verbose_opt,
 ):
-    """Run agent with prompts.
-
-    First runs any prompts provided via --include-prompt,
-    then any additional prompts provided as arguments.
+    """Run agent(s) with prompts.
 
     Examples:
-        # Run with single prompt
-        llmling-agent run myagent "Analyze this text"
+        # Single agent
+        llmling-agent run myagent "Analyze this"
 
-        # Multiple agents
-        llmling-agent run "agent1,agent2" "Process data"
+        # Parallel execution (default)
+        llmling-agent run "agent1,agent2,agent3" "Process this"
 
-        # Include environment prompt
-        llmling-agent run myagent -p analyze_code
+        # Sequential chain
+        llmling-agent run "agent1,agent2,agent3" -x sequential "Process this"
 
-        # Multiple environment prompts
-        llmling-agent run myagent -p greet -p analyze
+        # Controlled routing (interactive)
+        llmling-agent run "agent1,agent2,agent3" -x controlled "Process this"
 
-        # Environment prompt + additional prompt
-        llmling-agent run myagent -p analyze "And summarize it"
-
-        # Override model
-        llmling-agent run myagent -m gpt-4 "Complex analysis"
+        # Show all messages
+        llmling-agent run "agent1,agent2" --show-messages "Process this"
     """
-    from llmling.cli.utils import format_output
-
-    from llmling_agent.delegation import AgentPool
-    from llmling_agent_cli import resolve_agent_config
-
     try:
         # Resolve configuration path
         try:
             config_path = resolve_agent_config(config_path)
         except ValueError as e:
-            msg = str(e)
-            raise t.BadParameter(msg) from e
-
-        # Parse agent names
-        agent_names = [name.strip() for name in agent_name.split(",")]
+            error_msg = str(e)
+            raise t.BadParameter(error_msg) from e
 
         async def run():
-            async with AgentPool[None](config_path, agents_to_load=agent_names) as pool:
-                if len(agent_names) == 1:
-                    # Single agent execution
-                    agent: Agent[Any] = pool.get_agent(
-                        agent_names[0],
-                        model_override=model,
+            async with AgentPool[None](config_path) as pool:
+
+                def on_message(chat_message: ChatMessage[Any]):
+                    print(
+                        chat_message.format(
+                            style=detail_level,  # type: ignore
+                            show_metadata=show_metadata,
+                            show_costs=show_costs,
+                        )
                     )
-                    for prompt in prompts:
-                        result = await agent.run(prompt)
-                        if isinstance(result.data, str):
-                            print(result.data)
-                        else:
-                            format_output(result.data, output_format)
-                else:
-                    # Multi-agent execution
-                    group: Team[Any] = pool.create_team(
-                        agent_names,
-                        model_override=model,
-                    )
-                    for prompt in prompts:
-                        responses = await group.run_parallel(prompt)
-                        formatted = {r.agent_name: r.response for r in responses}
-                        format_output(formatted, output_format)
+
+                # Connect message handlers if showing all messages
+                if show_messages:
+                    for agent in pool.agents.values():
+                        agent.message_sent.connect(on_message)
+
+                agent_names = [name.strip() for name in agent_name.split(",")]
+                group = pool.create_team(agent_names, model_override=model)
+
+                for prompt in prompts:
+                    match execution_mode:
+                        case "parallel":
+                            responses = await group.run_parallel(prompt)
+                        case "sequential":
+                            responses = await group.run_sequential(prompt)
+                        case "controlled":
+                            responses = await group.run_controlled(prompt)
+                        case _:
+                            error_msg = f"Invalid execution mode: {execution_mode}"
+                            raise t.BadParameter(error_msg)  # noqa: TRY301
+
+                    if not show_messages:
+                        messages = [r.message for r in responses]
+                        for msg in messages:
+                            assert msg
+                            print(
+                                msg.format(
+                                    style=detail_level,  # type: ignore
+                                    show_metadata=show_metadata,
+                                    show_costs=show_costs,
+                                )
+                            )
 
         # Run the async code in the sync command
         asyncio.run(run())
