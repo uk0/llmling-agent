@@ -7,12 +7,14 @@ from datetime import datetime, timedelta
 import inspect
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
+from jinja2 import Template
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 from upath import UPath
 
 
 if TYPE_CHECKING:
     from llmling_agent.models.messages import ChatMessage
+    from llmling_agent_providers.callback import CallbackProvider
 
 
 ConnectionType = Literal["run", "context", "forward"]
@@ -120,6 +122,21 @@ class FileConnectionConfig(ConnectionConfig):
         }
         return UPath(self.path.format(**variables))
 
+    def get_provider(self) -> CallbackProvider[str]:
+        """Get provider for file writing."""
+        from llmling_agent_providers.callback import CallbackProvider
+
+        path_obj = UPath(self.path)
+        template_obj = Template(self.template)
+
+        async def write_message(message: str) -> str:
+            formatted = template_obj.render(message=message)
+            path_obj.write_text(formatted + "\n", encoding=self.encoding)
+            return ""
+
+        name = f"file_writer_{path_obj.stem}"
+        return CallbackProvider(write_message, name=name)
+
 
 class CallableConnectionConfig(ConnectionConfig):
     """Forward messages to a callable.
@@ -146,6 +163,12 @@ class CallableConnectionConfig(ConnectionConfig):
         if inspect.iscoroutine(result):
             return await result
         return result
+
+    def get_provider(self) -> CallbackProvider[Any]:
+        """Get provider for callable."""
+        from llmling_agent_providers.callback import CallbackProvider
+
+        return CallbackProvider(self.callable, name=self.callable.__name__)
 
 
 ForwardingTarget = Annotated[
