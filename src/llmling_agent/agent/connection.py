@@ -13,7 +13,7 @@ from psygnal import Signal
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.models.messages import ChatMessage, FormatStyle
 
 
 if TYPE_CHECKING:
@@ -34,53 +34,97 @@ logger = get_logger(__name__)
 class TalkStats:
     """Statistics for a single connection."""
 
-    message_count: int = 0
+    source_name: str | None
+    target_names: set[str]
+    messages: list[ChatMessage[Any]] = field(default_factory=list)
     start_time: datetime = field(default_factory=datetime.now)
-    last_message_time: datetime | None = None
-    token_count: int = 0
-    byte_count: int = 0
-    source_name: str | None = None
-    target_names: set[str] = field(default_factory=set)
+
+    @property
+    def message_count(self) -> int:
+        """Number of messages transmitted."""
+        return len(self.messages)
+
+    @property
+    def last_message_time(self) -> datetime | None:
+        """When the last message was sent."""
+        return self.messages[-1].timestamp if self.messages else None
+
+    @property
+    def token_count(self) -> int:
+        """Total tokens used."""
+        return sum(
+            msg.cost_info.token_usage["total"] for msg in self.messages if msg.cost_info
+        )
+
+    @property
+    def byte_count(self) -> int:
+        """Total bytes transmitted."""
+        return sum(len(str(msg.content).encode()) for msg in self.messages)
+
+    def format(
+        self,
+        style: FormatStyle = "simple",
+        **kwargs: Any,
+    ) -> str:
+        """Format the conversation that happened on this connection."""
+        return "\n".join(msg.format(style, **kwargs) for msg in self.messages)
 
 
-@dataclass(frozen=True)
+@dataclass
 class TeamTalkStats:
     """Statistics aggregated from multiple connections."""
 
     stats: list[TalkStats | TeamTalkStats] = field(default_factory=list)
 
-    @cached_property
+    # def __init__(self, stats: list[TalkStats | TeamTalkStats]):
+    #     self.stats = stats
+
+    @property
+    def messages(self) -> list[ChatMessage[Any]]:
+        """All messages across all connections, flattened."""
+        return [msg for stat in self.stats for msg in stat.messages]
+
+    @property
     def message_count(self) -> int:
         """Total messages across all connections."""
-        return sum(stat.message_count for stat in self.stats)
+        return len(self.messages)
 
-    @cached_property
-    def token_count(self) -> int:
-        """Total tokens across all connections."""
-        return sum(stat.token_count for stat in self.stats)
-
-    @cached_property
-    def byte_count(self) -> int:
-        """Total bytes forwarded across all connections."""
-        return sum(stat.byte_count for stat in self.stats)
+    @property
+    def start_time(self) -> datetime:
+        """Total messages across all connections."""
+        return self.stats[0].start_time
 
     @property
     def num_connections(self) -> int:
         """Number of active connections."""
         return len(self.stats)
 
-    @cached_property
-    def start_time(self) -> datetime:
-        """Earliest connection start time."""
-        if not self.stats:
-            return datetime.now()
-        return min(stat.start_time for stat in self.stats)
+    @property
+    def token_count(self) -> int:
+        """Total tokens across all connections."""
+        return sum(
+            msg.cost_info.token_usage["total"] for msg in self.messages if msg.cost_info
+        )
 
-    @cached_property
+    @property
+    def byte_count(self) -> int:
+        """Total bytes transmitted."""
+        return sum(len(str(msg.content).encode()) for msg in self.messages)
+
+    @property
     def last_message_time(self) -> datetime | None:
-        """Most recent message across all connections."""
-        times = [s.last_message_time for s in self.stats if s.last_message_time]
-        return max(times) if times else None
+        """Most recent message time."""
+        if not self.messages:
+            return None
+        return max(msg.timestamp for msg in self.messages)
+
+    def format(
+        self,
+        style: FormatStyle = "simple",
+        **kwargs: Any,
+    ) -> str:
+        """Format all conversations in the team."""
+        return "\n".join(msg.format(style, **kwargs) for msg in self.messages)
 
     @cached_property
     def source_names(self) -> set[str]:
@@ -172,13 +216,9 @@ class Talk[TTransmittedData]:
             return
 
         # Update stats
-        totals = message.cost_info.token_usage["total"] if message.cost_info else 0
         self._stats = TalkStats(
-            message_count=self._stats.message_count + 1,
+            messages=[*self._stats.messages, message],
             start_time=self._stats.start_time,
-            last_message_time=datetime.now(),
-            token_count=self._stats.token_count + totals,
-            byte_count=self._stats.byte_count + len(str(message.content).encode()),
             source_name=self._stats.source_name,
             target_names=self._stats.target_names,
         )
@@ -198,17 +238,18 @@ class Talk[TTransmittedData]:
                 for target in self.targets:
 
                     async def add_context(target=target):
+                        meta = {
+                            "type": "forwarded_message",
+                            "role": message.role,
+                            "model": message.model,
+                            "cost_info": message.cost_info,
+                            "timestamp": message.timestamp.isoformat(),
+                            "prompt": prompt,
+                        }
                         target.conversation.add_context_message(
                             str(message.content),
                             source=self.source.name,
-                            metadata={
-                                "type": "forwarded_message",
-                                "role": message.role,
-                                "model": message.model,
-                                "cost_info": message.cost_info,
-                                "timestamp": message.timestamp.isoformat(),
-                                "prompt": prompt,
-                            },
+                            metadata=meta,
                         )
 
                     if self.delay is not None or self.priority != 0:
