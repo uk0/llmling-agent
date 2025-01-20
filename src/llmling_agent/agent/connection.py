@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import replace
+import inspect
 from typing import TYPE_CHECKING, Any, Literal, Self, overload
 
 from psygnal import Signal
@@ -16,17 +16,17 @@ from llmling_agent.talk.stats import TalkStats, TeamTalkStats
 
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable, Sequence
     from datetime import timedelta
 
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.common_types import AsyncFilterFn
+    from llmling_agent.common_types import AnyFilterFn
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.models.forward_targets import ConnectionType
 
 TContent = TypeVar("TContent")
-FilterFn = Callable[[ChatMessage[Any]], bool]
 QueueStrategy = Literal["concat", "latest", "buffer"]
 logger = get_logger(__name__)
 
@@ -50,8 +50,9 @@ class Talk[TTransmittedData]:
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
+        filter_condition: AnyFilterFn | None = None,
+        stop_condition: AnyFilterFn | None = None,
+        exit_condition: AnyFilterFn | None = None,
     ):
         """Initialize talk connection.
 
@@ -73,7 +74,8 @@ class Talk[TTransmittedData]:
                 - "buffer": Process all messages individually
             transform: Optional function to transform messages
             filter_condition: Optional condition for filtering messages
-            exit_condition: Optional condition for disconnecting
+            stop_condition: Optional condition for disconnecting
+            exit_condition: Optional condition for stopping the event loop
         """
         self.source = source
         self.targets = targets
@@ -88,9 +90,9 @@ class Talk[TTransmittedData]:
         self._pending_messages: list[ChatMessage[TTransmittedData]] = []
         names = {t.name for t in targets}
         self._stats = TalkStats(source_name=source.name, target_names=names)
-        self._filter: AsyncFilterFn | None = None
         self._transform = transform
         self._filter_condition = filter_condition
+        self._stop_condition = stop_condition
         self._exit_condition = exit_condition
 
     async def _handle_message(
@@ -108,12 +110,44 @@ class Talk[TTransmittedData]:
             prompt,
         )
         self.source.outbox.emit(message, None)
-
+        # Check active state
         if not self.active or (self.group and not self.group.active):
             return
-        if self._filter and not self._filter(message):
-            return
 
+        # Check exit condition
+        if self._exit_condition:
+            do_exit = self._exit_condition(message)
+            if inspect.isawaitable(do_exit):
+                if await do_exit:
+                    raise SystemExit
+            elif do_exit:
+                raise SystemExit
+
+        # Check stop condition
+        if self._stop_condition:
+            do_stop = self._stop_condition(message)
+            if inspect.isawaitable(do_stop):
+                if await do_stop:
+                    self.disconnect()
+                    return
+            elif do_stop:
+                self.disconnect()
+                return
+        # Check filter condition
+        if self._filter_condition and not self._filter_condition(message):
+            do_filter = self._filter_condition(message)
+            if inspect.isawaitable(do_filter):
+                if not await do_filter:
+                    return
+            elif not do_filter:
+                return
+        # Apply transform if configured
+        if self._transform:
+            transformed = self._transform(message)
+            if inspect.isawaitable(transformed):
+                message = await transformed
+            else:
+                message = transformed
         # Update stats
         self._stats = replace(
             self._stats,
@@ -247,9 +281,9 @@ class Talk[TTransmittedData]:
 
         return []
 
-    def when(self, condition: AsyncFilterFn) -> Self:
+    def when(self, condition: AnyFilterFn) -> Self:
         """Add condition for message forwarding."""
-        self._filter = condition
+        self._filter_condition = condition
         return self
 
     @asynccontextmanager
@@ -277,7 +311,7 @@ class TeamTalk(list["Talk | TeamTalk"]):
 
     def __init__(self, talks: Sequence[Talk | TeamTalk]):
         super().__init__(talks)
-        self._filter: AsyncFilterFn | None = None
+        self._filter_condition: AnyFilterFn | None = None
         self.active = True
 
     @property
@@ -321,7 +355,7 @@ class TeamTalk(list["Talk | TeamTalk"]):
         """Get aggregated statistics for all connections."""
         return TeamTalkStats(stats=[talk.stats for talk in self])
 
-    def when(self, condition: AsyncFilterFn) -> Self:
+    def when(self, condition: AnyFilterFn) -> Self:
         """Add condition to all connections in group."""
         for talk in self:
             talk.when(condition)
@@ -404,8 +438,9 @@ class TalkManager:
         queued: bool = False,
         queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
+        filter_condition: AnyFilterFn | None = None,
+        stop_condition: AnyFilterFn | None = None,
+        exit_condition: AnyFilterFn | None = None,
     ) -> Talk[Any]: ...
 
     @overload
@@ -419,8 +454,9 @@ class TalkManager:
         queued: bool = False,
         queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
+        filter_condition: AnyFilterFn | None = None,
+        stop_condition: AnyFilterFn | None = None,
+        exit_condition: AnyFilterFn | None = None,
     ) -> TeamTalk: ...
 
     def connect_agent_to(
@@ -433,8 +469,9 @@ class TalkManager:
         queued: bool = False,
         queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
+        filter_condition: AnyFilterFn | None = None,
+        stop_condition: AnyFilterFn | None = None,
+        exit_condition: AnyFilterFn | None = None,
     ) -> Talk[Any] | TeamTalk:
         """Handle single agent connections."""
         from llmling_agent.agent import Agent, StructuredAgent
@@ -460,6 +497,7 @@ class TalkManager:
                     queue_strategy=queue_strategy,
                     transform=transform,
                     filter_condition=filter_condition,
+                    stop_condition=stop_condition,
                     exit_condition=exit_condition,
                 )
                 for target in targets
@@ -476,6 +514,7 @@ class TalkManager:
             queue_strategy=queue_strategy,
             transform=transform,
             filter_condition=filter_condition,
+            stop_condition=stop_condition,
             exit_condition=exit_condition,
         )
 
@@ -490,8 +529,9 @@ class TalkManager:
         queued: bool = False,
         queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
+        filter_condition: AnyFilterFn | None = None,
+        stop_condition: AnyFilterFn | None = None,
+        exit_condition: AnyFilterFn | None = None,
     ) -> Talk[Any]:
         """Add a connection to the manager."""
         connection = Talk(
@@ -504,6 +544,7 @@ class TalkManager:
             queue_strategy=queue_strategy,
             transform=transform,
             filter_condition=filter_condition,
+            stop_condition=stop_condition,
             exit_condition=exit_condition,
         )
         self.connection_added.emit(connection)
@@ -520,8 +561,9 @@ class TalkManager:
         queued: bool = False,
         queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
+        filter_condition: AnyFilterFn | None = None,
+        stop_condition: AnyFilterFn | None = None,
+        exit_condition: AnyFilterFn | None = None,
         **kwargs: Any,
     ) -> TeamTalk:
         """Handle group connections."""
@@ -546,6 +588,7 @@ class TalkManager:
                 queue_strategy=queue_strategy,
                 transform=transform,
                 filter_condition=filter_condition,
+                stop_condition=stop_condition,
                 exit_condition=exit_condition,
             )
             for src in self.owner.agents

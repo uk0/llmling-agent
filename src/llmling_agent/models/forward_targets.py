@@ -50,8 +50,11 @@ class ConnectionConfig(BaseModel):
     filter_condition: Condition | None = None
     """When to filter messages (using Talk.when())."""
 
-    exit_condition: Condition | None = None
+    stop_condition: Condition | None = None
     """When to disconnect the connection."""
+
+    exit_condition: Condition | None = None
+    """When to exit the application (by raising SystemExit)."""
 
     transform: ImportString[Callable[[Any], Any | Awaitable[Any]]] | None = None
     """Optional function to transform messages before forwarding."""

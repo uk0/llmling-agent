@@ -882,6 +882,7 @@ class Agent[TDeps](TaskManagerMixin):
         queue_strategy: QueueStrategy = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
         filter_condition: AsyncFilterFn | None = None,
+        stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
     ) -> Talk[str]: ...
 
@@ -897,6 +898,7 @@ class Agent[TDeps](TaskManagerMixin):
         queue_strategy: QueueStrategy = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
         filter_condition: AsyncFilterFn | None = None,
+        stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
     ) -> TeamTalk: ...
 
@@ -911,6 +913,7 @@ class Agent[TDeps](TaskManagerMixin):
         queue_strategy: QueueStrategy = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
         filter_condition: AsyncFilterFn | None = None,
+        stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
     ) -> Talk[str] | TeamTalk:
         """Forward results to another agent or all agents in a team."""
@@ -923,6 +926,7 @@ class Agent[TDeps](TaskManagerMixin):
             queue_strategy=queue_strategy,
             transform=transform,
             filter_condition=filter_condition,
+            stop_condition=stop_condition,
             exit_condition=exit_condition,
         )
 

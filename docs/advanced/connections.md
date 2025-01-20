@@ -1,7 +1,7 @@
 # Agent Connection System
 
 ## Overview
-LLMling provides a robust, object-oriented approach to managing agent communications through dedicated connection objects. The system supports various connection patterns and offers fine-grained control over message flow and monitoring.
+LLMling provides a robust, object-oriented approach to managing agent communications through dedicated connection objects. The system supports various connection patterns and offers fine-grained control over message flow and monitoring. Connections can be defined both programmatically and through YAML configuration.
 
 ## Core Components
 
@@ -16,6 +16,10 @@ class Talk:
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: AnyFilterFn | None = None,
+        stop_condition: AnyFilterFn | None = None,
+        exit_condition: AnyFilterFn | None = None,
     )
 ```
 
@@ -34,6 +38,27 @@ Connections are managed by the `TalkManager`, which provides:
 - Message routing
 - Wait state management
 - Statistics tracking
+
+## YAML Configuration
+
+Connections can be defined in agent configuration:
+
+```yaml
+agents:
+  analyzer:
+    # ... other config ...
+    connections:
+      - type: agent
+        name: planner
+        connection_type: run
+        filter_condition:
+          type: word_match
+          words: ["analyze", "examine"]
+        stop_condition:
+          type: message_count
+          max_messages: 5
+        transform: myapp.transforms.process_message
+```
 
 ## Connection Patterns
 
@@ -76,43 +101,43 @@ Each connection tracks:
 - Byte count
 - Timing information
 
-```python
-@dataclass(frozen=True)
-class TalkStats:
-    message_count: int
-    token_count: int
-    byte_count: int
-    last_message_time: datetime | None
-    source_name: str | None
-    target_names: set[str]
-```
+### Control Mechanisms
 
-### Flow Control
-Connections support:
+1. **Message Filtering**:
+   ```python
+   # Using lambda
+   talk.when(lambda msg: "important" in msg.content)
 
-- Priority-based message handling
-- Delayed execution
-- Message filtering
-- State tracking (active/inactive)
+   # Using YAML
+   filter_condition:
+     type: word_match
+     words: ["important"]
+   ```
+
+2. **Connection Control**:
+   - `stop_condition`: Disconnect this connection
+   - `exit_condition`: Exit the entire process (raises SystemExit)
+   - `transform`: Modify messages as they flow
+
+3. **Flow Control**:
+   - Priority-based handling
+   - Delayed execution
+   - Message queuing
 
 ```python
 # Set up connection with control
 talk = agent.pass_results_to(
     target,
     priority=1,
-    delay=timedelta(seconds=5)
+    delay=timedelta(seconds=5),
+    stop_condition=lambda msg: msg.content == "STOP",
+    exit_condition=lambda msg: msg.content == "EXIT"
 )
-
-# Filter messages
-talk.when(lambda msg: "important" in msg.content)
 ```
 
 ### Team Management
 
-If a team is connected to other entities, a TeamTalk object is returned, containing multiple one-to-many connections.
-The TeamTalk object provides a similar interface to the Talk object and forwards the method calls to all contained Talk objects.
-
-`TeamTalk` provides aggregate operations for multiple connections:
+TeamTalk provides aggregate operations for multiple connections:
 
 - Collective statistics
 - Group operations (pause/resume)
@@ -145,6 +170,11 @@ The TeamTalk object provides a similar interface to the Talk object and forwards
    - Chainable configuration
    - Consistent interface across patterns
 
+6. **Configuration Options**
+   - Programmatic setup
+   - YAML configuration
+   - Runtime modification
+
 ## Example Usage
 
 ```python
@@ -156,10 +186,17 @@ executor = Agent(name="executor")
 # Create team
 planning_team = planner & executor
 
-# Set up connection
-talk =analyzer.pass_results_to(planning_team, connection_type="run")
+# Set up connection with control
+talk = analyzer.pass_results_to(
+    planning_team,
+    connection_type="run",
+    transform=lambda msg: preprocess_message(msg),
+    stop_condition=lambda msg: msg.metadata.get("complete", False),
+    exit_condition=lambda msg: msg.metadata.get("error", False)
+)
 
 talk.when(lambda msg: msg.metadata.get("priority") == "high")
 
 # Monitor
 print(f"Processed {talk.stats.message_count} messages")
+```

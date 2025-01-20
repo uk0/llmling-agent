@@ -344,11 +344,14 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
                     queued=target.queued,
                     queue_strategy=target.queue_strategy,
                     transform=target.transform,
-                    exit_condition=target.exit_condition.check
-                    if target.exit_condition
+                    stop_condition=target.stop_condition.check
+                    if target.stop_condition
                     else None,
                     filter_condition=target.filter_condition.check
                     if target.filter_condition
+                    else None,
+                    exit_condition=target.exit_condition.check
+                    if target.exit_condition
                     else None,
                 )
 
