@@ -545,7 +545,7 @@
           "description": "When to filter messages (using Talk.when()).",
           "title": "Filter Condition"
         },
-        "exit_condition": {
+        "stop_condition": {
           "anyOf": [
             {
               "discriminator": {
@@ -594,6 +594,57 @@
           ],
           "default": null,
           "description": "When to disconnect the connection.",
+          "title": "Stop Condition"
+        },
+        "exit_condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "and": "#/$defs/AndCondition",
+                  "callable": "#/$defs/CallableCondition",
+                  "cost_limit": "#/$defs/CostLimitCondition",
+                  "message_count": "#/$defs/MessageCountCondition",
+                  "or": "#/$defs/OrCondition",
+                  "time": "#/$defs/TimeCondition",
+                  "token_threshold": "#/$defs/TokenThresholdCondition",
+                  "word_match": "#/$defs/WordMatchCondition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/WordMatchCondition"
+                },
+                {
+                  "$ref": "#/$defs/MessageCountCondition"
+                },
+                {
+                  "$ref": "#/$defs/TimeCondition"
+                },
+                {
+                  "$ref": "#/$defs/TokenThresholdCondition"
+                },
+                {
+                  "$ref": "#/$defs/CostLimitCondition"
+                },
+                {
+                  "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/AndCondition"
+                },
+                {
+                  "$ref": "#/$defs/OrCondition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When to exit the application (by raising SystemExit).",
           "title": "Exit Condition"
         },
         "transform": {
@@ -940,7 +991,7 @@
           "description": "When to filter messages (using Talk.when()).",
           "title": "Filter Condition"
         },
-        "exit_condition": {
+        "stop_condition": {
           "anyOf": [
             {
               "discriminator": {
@@ -989,6 +1040,57 @@
           ],
           "default": null,
           "description": "When to disconnect the connection.",
+          "title": "Stop Condition"
+        },
+        "exit_condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "and": "#/$defs/AndCondition",
+                  "callable": "#/$defs/CallableCondition",
+                  "cost_limit": "#/$defs/CostLimitCondition",
+                  "message_count": "#/$defs/MessageCountCondition",
+                  "or": "#/$defs/OrCondition",
+                  "time": "#/$defs/TimeCondition",
+                  "token_threshold": "#/$defs/TokenThresholdCondition",
+                  "word_match": "#/$defs/WordMatchCondition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/WordMatchCondition"
+                },
+                {
+                  "$ref": "#/$defs/MessageCountCondition"
+                },
+                {
+                  "$ref": "#/$defs/TimeCondition"
+                },
+                {
+                  "$ref": "#/$defs/TokenThresholdCondition"
+                },
+                {
+                  "$ref": "#/$defs/CostLimitCondition"
+                },
+                {
+                  "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/AndCondition"
+                },
+                {
+                  "$ref": "#/$defs/OrCondition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When to exit the application (by raising SystemExit).",
           "title": "Exit Condition"
         },
         "transform": {
@@ -1677,7 +1779,7 @@
           "description": "When to filter messages (using Talk.when()).",
           "title": "Filter Condition"
         },
-        "exit_condition": {
+        "stop_condition": {
           "anyOf": [
             {
               "discriminator": {
@@ -1726,6 +1828,57 @@
           ],
           "default": null,
           "description": "When to disconnect the connection.",
+          "title": "Stop Condition"
+        },
+        "exit_condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "and": "#/$defs/AndCondition",
+                  "callable": "#/$defs/CallableCondition",
+                  "cost_limit": "#/$defs/CostLimitCondition",
+                  "message_count": "#/$defs/MessageCountCondition",
+                  "or": "#/$defs/OrCondition",
+                  "time": "#/$defs/TimeCondition",
+                  "token_threshold": "#/$defs/TokenThresholdCondition",
+                  "word_match": "#/$defs/WordMatchCondition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/WordMatchCondition"
+                },
+                {
+                  "$ref": "#/$defs/MessageCountCondition"
+                },
+                {
+                  "$ref": "#/$defs/TimeCondition"
+                },
+                {
+                  "$ref": "#/$defs/TokenThresholdCondition"
+                },
+                {
+                  "$ref": "#/$defs/CostLimitCondition"
+                },
+                {
+                  "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/AndCondition"
+                },
+                {
+                  "$ref": "#/$defs/OrCondition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When to exit the application (by raising SystemExit).",
           "title": "Exit Condition"
         },
         "transform": {
