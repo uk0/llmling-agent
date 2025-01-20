@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import AsyncIterator, Callable, Mapping
 from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 from llmling import LLMCallableTool
@@ -38,6 +38,8 @@ TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=None)
 ExtractionMode = Literal["structured", "tool_calls"]
 T = TypeVar("T")
+
+type EndCondition = Callable[[list[ChatMessage[Any]], ChatMessage[Any]], bool]
 
 
 class LLMPick(BaseModel):
@@ -100,6 +102,53 @@ class Interactions[TDeps, TResult]:
 
     def __init__(self, agent: AnyAgent[TDeps, TResult]):
         self.agent = agent
+
+    async def conversation(
+        self,
+        other: AnyAgent[Any, Any],
+        initial_message: AnyPromptType,
+        *,
+        max_rounds: int | None = None,
+        end_condition: Callable[[list[ChatMessage[Any]], ChatMessage[Any]], bool]
+        | None = None,
+        store_history: bool = True,
+    ) -> AsyncIterator[ChatMessage[Any]]:
+        """Maintain conversation between two agents.
+
+        Args:
+            other: Agent to converse with
+            initial_message: Message to start conversation with
+            max_rounds: Optional maximum number of exchanges
+            end_condition: Optional predicate to check for conversation end
+            store_history: Whether to store in conversation history
+
+        Yields:
+            Messages from both agents in conversation order
+        """
+        rounds = 0
+        messages: list[ChatMessage[Any]] = []
+        current_message = initial_message
+        current_agent = self.agent
+
+        while True:
+            if max_rounds and rounds >= max_rounds:
+                logger.debug("Conversation ended: max rounds (%d) reached", max_rounds)
+                return
+
+            response = await current_agent.run(
+                current_message, store_history=store_history
+            )
+            messages.append(response)
+            yield response
+
+            if end_condition and end_condition(messages, response):
+                logger.debug("Conversation ended: end condition met")
+                return
+
+            # Switch agents for next round
+            current_agent = other if current_agent == self.agent else self.agent
+            current_message = response.content
+            rounds += 1
 
     def _resolve_agent(self, target: str | AnyAgent[TDeps, Any]) -> AnyAgent[TDeps, Any]:
         """Resolve string agent name to instance."""
