@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 TContent = TypeVar("TContent")
 FilterFn = Callable[[ChatMessage[Any]], bool]
 TransformFn = Callable[[ChatMessage[TContent]], ChatMessage[TContent]]
-
+QueueStrategy = Literal["concat", "latest", "buffer"]
 logger = get_logger(__name__)
 
 
@@ -168,7 +168,7 @@ class Talk[TTransmittedData]:
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
-        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+        queue_strategy: QueueStrategy = "latest",
     ):
         """Initialize talk connection.
 

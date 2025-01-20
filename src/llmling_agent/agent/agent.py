@@ -20,7 +20,7 @@ from tokonomics import TokenLimits, get_model_limits
 from toprompt import AnyPromptType, to_prompt
 from typing_extensions import TypeVar
 
-from llmling_agent.agent.connection import Talk, TalkManager, TeamTalk
+from llmling_agent.agent.connection import QueueStrategy, Talk, TalkManager, TeamTalk
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
@@ -873,7 +873,7 @@ class Agent[TDeps](TaskManagerMixin):
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
-        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+        queue_strategy: QueueStrategy = "latest",
     ) -> Talk[str]: ...
 
     @overload
@@ -885,7 +885,7 @@ class Agent[TDeps](TaskManagerMixin):
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
-        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+        queue_strategy: QueueStrategy = "latest",
     ) -> TeamTalk: ...
 
     def pass_results_to(
@@ -896,7 +896,7 @@ class Agent[TDeps](TaskManagerMixin):
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
-        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+        queue_strategy: QueueStrategy = "latest",
     ) -> Talk[str] | TeamTalk:
         """Forward results to another agent or all agents in a team."""
         return self.connections.connect_agent_to(
