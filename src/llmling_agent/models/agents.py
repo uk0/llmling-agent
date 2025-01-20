@@ -159,6 +159,9 @@ class AgentConfig(BaseModel):
     system_prompts: list[str] = Field(default_factory=list)
     """System prompts for the agent"""
 
+    library_system_prompts: list[str] = Field(default_factory=list)
+    """System prompts for the agent from the library"""
+
     user_prompts: list[str] = Field(default_factory=list)
     """Default user prompts for the agent"""
 
@@ -626,13 +629,19 @@ class AgentsManifest[TDeps](ConfigModel):
         provider = config.get_provider()
         # set model for provider (the setting should move to provider config soon)
         provider._model = config.model
+
+        sys_prompts = config.system_prompts
+        if config.library_system_prompts:
+            prompt = self.prompts.format_prompts(config.library_system_prompts)
+            sys_prompts.append(prompt)
+
         # Create agent with runtime and context
         agent: AnyAgent[TAgentDeps, Any] = Agent[Any](
             runtime=runtime,
             context=context,
             model=config.model,
             provider=provider,
-            system_prompt=config.system_prompts,
+            system_prompt=sys_prompts,
             name=name,
             # name=config.name or name,
             enable_db_logging=config.enable_db_logging,

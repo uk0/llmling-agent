@@ -180,3 +180,100 @@ For further information, check out agent/sys_prompts.py in the codebase.
     explicit control - any modifications to system prompts are clearly visible and configurable.
     We do include agent name and description though because we consider this essential
     for proper coordination and context. You can disable this behavior by setting `inject_agent_info=False`.
+
+## Prompt Library
+
+LLMling includes a library of pre-defined system prompts that can be used across agents. These prompts are organized by type:
+
+### Prompt Types
+- `role`: Defines WHO the agent is (identity, expertise, personality)
+- `methodology`: Defines HOW the agent approaches tasks (process, methods)
+- `tone`: Defines the STYLE of communication (language, attitude)
+- `format`: Defines OUTPUT STRUCTURE (not content)
+
+### Using Library Prompts
+
+You can reference prompts from the library:
+
+```python
+# Add a single library prompt
+agent.sys_prompts.add_library_prompt("step_by_step")
+
+# In YAML configuration:
+agents:
+  my_agent:
+    model: gpt-4
+    system_prompts:    # direct prompts
+      - "You are a helpful assistant"
+    library_system_prompts:      # reference library prompts
+      - step_by_step
+      - professional
+```
+
+### Defining Library Prompts
+
+```yaml
+prompts:
+  system_prompts:
+    expert_analyst:
+      content: |
+        You are an expert data analyst.
+        Focus on finding patterns and insights in data.
+        Always provide evidence for your conclusions.
+      type: role
+
+    step_by_step:
+      content: |
+        Break tasks into clear, sequential steps.
+        For each step:
+        1. Explain what to do
+        2. Note important considerations
+        3. Define completion criteria
+      type: methodology
+```
+
+!!! tip "Organizing Prompts"
+    It's recommended to keep prompt libraries in separate files and use YAML inheritance
+    to include them. This keeps your agent configurations clean and promotes reuse:
+    ```yaml
+    # prompts.yml
+    prompts:
+      system_prompts:
+        my_prompt:
+          content: ...
+          type: role
+
+    # agents.yml
+    INHERIT: prompts.yml
+    agents:
+      my_agent:
+        library_system_prompts:
+          - my_prompt
+    ```
+
+### Available Prompts
+
+By default, INHERIT is set to builtin prompt library with a few silly prompts to get started.
+These can all be referenced by name without any further configuration.
+
+Roles:
+
+- `technical_writer`: Expert in clear, precise documentation
+- `code_reviewer`: Expert code analysis and feedback
+- `rubber_duck`: Debugging assistant with personality
+
+Methodologies:
+
+- `step_by_step`: Break tasks into clear sequences
+- `minimalist`: Concise, essential responses
+- `detailed`: Comprehensive coverage of topics
+
+Tones:
+
+- `professional`: Formal business communication
+- `pirate`: Maritime flavor (fun!)
+- `shakespearean`: Classical, poetic style
+
+Formats:
+
+- `markdown`: Structured Markdown formatting
