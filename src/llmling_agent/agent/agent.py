@@ -316,7 +316,7 @@ class Agent[TDeps](TaskManagerMixin):
             all_prompts.append(system_prompt)
         else:
             all_prompts.extend(system_prompt)
-        self.sys_prompts = SystemPrompts(all_prompts)
+        self.sys_prompts = SystemPrompts(all_prompts, context=ctx)
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""

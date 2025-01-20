@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
+    from llmling_agent.models.context import AgentContext
 
 
 ToolInjectionMode = Literal["off", "all", "required"]
@@ -60,6 +61,7 @@ class SystemPrompts:
         prompts: AnyPromptType | list[AnyPromptType] | None = None,
         template: str | None = None,
         dynamic: bool = True,
+        context: AgentContext | None = None,
         inject_agent_info: bool = True,
         inject_tools: ToolInjectionMode = "off",
         tool_usage_style: ToolUsageStyle = "suggestive",
@@ -72,6 +74,7 @@ class SystemPrompts:
                 self.prompts = []
             case _:
                 self.prompts = [prompts]
+        self.context = context
         self.template = template
         self.dynamic = dynamic
         self.inject_agent_info = inject_agent_info
@@ -93,6 +96,30 @@ class SystemPrompts:
 
     def __getitem__(self, idx: int | slice) -> AnyPromptType | list[AnyPromptType]:
         return self.prompts[idx]
+
+    def add_library_prompt(self, identifier: str) -> None:
+        """Add a prompt from the library by reference.
+
+        Args:
+            identifier: Name of the prompt in the library
+
+        Raises:
+            ValueError: If prompt not found or no context available
+        """
+        if not self.context:
+            msg = "No context available to resolve library prompts"
+            raise ValueError(msg)
+
+        if not self.context.definition.prompts.system_prompts:
+            msg = "No prompts available in library"
+            raise ValueError(msg)
+
+        prompt = self.context.definition.prompts.system_prompts.get(identifier)
+        if not prompt:
+            msg = f"Prompt {identifier!r} not found in library"
+            raise ValueError(msg)
+
+        self.prompts.append(prompt.content)
 
     async def refresh_cache(self) -> None:
         """Force re-evaluation of prompts."""
