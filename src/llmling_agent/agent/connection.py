@@ -2,153 +2,33 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field, replace
-from datetime import datetime, timedelta
-from functools import cached_property
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Literal, Self, overload
 
 from psygnal import Signal
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage, FormatStyle
+from llmling_agent.models.messages import ChatMessage
+from llmling_agent.talk.stats import TalkStats, TeamTalkStats
 
 
 if TYPE_CHECKING:
+    from datetime import timedelta
+
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.agentgroup import Team
+    from llmling_agent.models.conditions import Condition
     from llmling_agent.models.forward_targets import ConnectionType
 
 TContent = TypeVar("TContent")
 FilterFn = Callable[[ChatMessage[Any]], bool]
-TransformFn = Callable[[ChatMessage[TContent]], ChatMessage[TContent]]
 QueueStrategy = Literal["concat", "latest", "buffer"]
 logger = get_logger(__name__)
-
-
-@dataclass(frozen=True)
-class TalkStats:
-    """Statistics for a single connection."""
-
-    source_name: str | None
-    target_names: set[str]
-    messages: list[ChatMessage[Any]] = field(default_factory=list)
-    start_time: datetime = field(default_factory=datetime.now)
-
-    @property
-    def message_count(self) -> int:
-        """Number of messages transmitted."""
-        return len(self.messages)
-
-    @property
-    def last_message_time(self) -> datetime | None:
-        """When the last message was sent."""
-        return self.messages[-1].timestamp if self.messages else None
-
-    @property
-    def token_count(self) -> int:
-        """Total tokens used."""
-        return sum(
-            msg.cost_info.token_usage["total"] for msg in self.messages if msg.cost_info
-        )
-
-    @property
-    def byte_count(self) -> int:
-        """Total bytes transmitted."""
-        return sum(len(str(msg.content).encode()) for msg in self.messages)
-
-    def format(
-        self,
-        style: FormatStyle = "simple",
-        **kwargs: Any,
-    ) -> str:
-        """Format the conversation that happened on this connection."""
-        return "\n".join(msg.format(style, **kwargs) for msg in self.messages)
-
-
-@dataclass
-class TeamTalkStats:
-    """Statistics aggregated from multiple connections."""
-
-    stats: list[TalkStats | TeamTalkStats] = field(default_factory=list)
-
-    # def __init__(self, stats: list[TalkStats | TeamTalkStats]):
-    #     self.stats = stats
-
-    @property
-    def messages(self) -> list[ChatMessage[Any]]:
-        """All messages across all connections, flattened."""
-        return [msg for stat in self.stats for msg in stat.messages]
-
-    @property
-    def message_count(self) -> int:
-        """Total messages across all connections."""
-        return len(self.messages)
-
-    @property
-    def start_time(self) -> datetime:
-        """Total messages across all connections."""
-        return self.stats[0].start_time
-
-    @property
-    def num_connections(self) -> int:
-        """Number of active connections."""
-        return len(self.stats)
-
-    @property
-    def token_count(self) -> int:
-        """Total tokens across all connections."""
-        return sum(
-            msg.cost_info.token_usage["total"] for msg in self.messages if msg.cost_info
-        )
-
-    @property
-    def byte_count(self) -> int:
-        """Total bytes transmitted."""
-        return sum(len(str(msg.content).encode()) for msg in self.messages)
-
-    @property
-    def last_message_time(self) -> datetime | None:
-        """Most recent message time."""
-        if not self.messages:
-            return None
-        return max(msg.timestamp for msg in self.messages)
-
-    def format(
-        self,
-        style: FormatStyle = "simple",
-        **kwargs: Any,
-    ) -> str:
-        """Format all conversations in the team."""
-        return "\n".join(msg.format(style, **kwargs) for msg in self.messages)
-
-    @cached_property
-    def source_names(self) -> set[str]:
-        """Set of unique source names recursively."""
-
-        def _collect_source_names(stat: TalkStats | TeamTalkStats) -> set[str]:
-            """Recursively collect source names."""
-            if isinstance(stat, TalkStats):
-                return {stat.source_name} if stat.source_name else set()
-            # It's a TeamTalkStats, recurse
-            names = set()
-            for s in stat.stats:
-                names.update(_collect_source_names(s))
-            return names
-
-        names = set()
-        for stat in self.stats:
-            names.update(_collect_source_names(stat))
-        return names
-
-    @cached_property
-    def target_names(self) -> set[str]:
-        """Set of all target names across connections."""
-        return {name for s in self.stats for name in s.target_names}
 
 
 class Talk[TTransmittedData]:
@@ -169,6 +49,9 @@ class Talk[TTransmittedData]:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
+        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        filter_condition: Condition | None = None,
+        exit_condition: Condition | None = None,
     ):
         """Initialize talk connection.
 
@@ -188,6 +71,9 @@ class Talk[TTransmittedData]:
                 - "concat": Combine all messages with newlines
                 - "latest": Use only the most recent message
                 - "buffer": Process all messages individually
+            transform: Optional function to transform messages
+            filter_condition: Optional condition for filtering messages
+            exit_condition: Optional condition for disconnecting
         """
         self.source = source
         self.targets = targets
@@ -203,7 +89,9 @@ class Talk[TTransmittedData]:
         names = {t.name for t in targets}
         self._stats = TalkStats(source_name=source.name, target_names=names)
         self._filter: FilterFn | None = None
-        self._transformer: TransformFn | None = None
+        self._transform = transform
+        self._filter_condition = filter_condition
+        self._exit_condition = exit_condition
 
     async def _handle_message(
         self,
