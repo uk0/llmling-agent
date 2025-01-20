@@ -14,30 +14,23 @@ You are an expert in retrieving and returning information
 about a specific commit from the current working directoy."
 """
 
+MODEL = "openai:gpt-4o-mini"
+SERVERS = ["uvx mcp-server-git"]
+
+picker = Agent[None](model=MODEL, system_prompt=PICKER, mcp_servers=SERVERS)
+analyzer = Agent[None](model=MODEL, system_prompt=ANALYZER, mcp_servers=SERVERS)
+
+# Connect picker to analyzer
+picker >> analyzer
+
+# Register message handlers to see the messages
+picker.message_sent.connect(lambda msg: print(msg.format()))
+analyzer.message_sent.connect(lambda msg: print(msg.format()))
+
 
 async def main():
-    # Create both agents with git MCP server
-    async with (
-        Agent[None](
-            model="openai:gpt-4o-mini",
-            name="CommitPicker",
-            system_prompt=PICKER,
-            mcp_servers=["uvx mcp-server-git"],
-        ) as picker,
-        Agent[None](
-            model="openai:gpt-4o-mini",
-            name="CommitAnalyzer",
-            system_prompt=ANALYZER,
-            mcp_servers=["uvx mcp-server-git"],
-        ) as analyzer,
-    ):
-        # Connect picker to analyzer
-        picker >> analyzer
-
-        # Register message handlers to see the messages
-        picker.message_sent.connect(lambda msg: print(msg.format()))
-        analyzer.message_sent.connect(lambda msg: print(msg.format()))
-
+    # For MCP servers, we need async context.
+    async with picker, analyzer:
         # Start the chain by asking picker for the latest commit
         await picker.run("Get the latest commit hash! ")
 

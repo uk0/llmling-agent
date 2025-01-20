@@ -32,6 +32,12 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/examples/human_interaction.md")
 
 
+@nav.route.page("MCP Servers", icon="octicon:server-16", hide="toc")
+def _(page: mk.MkPage):
+    """MCP server usage."""
+    page += mk.MkTemplate("docs/examples/mcp_servers.md")
+
+
 @nav.route.page("Expert Selection", icon="octicon:people-16", hide="toc")
 def _(page: mk.MkPage):
     """Type-safe expert selection with pick()."""
