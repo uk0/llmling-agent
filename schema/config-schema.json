@@ -494,6 +494,121 @@
           "description": "Delay before processing.",
           "title": "Delay"
         },
+        "filter_condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "and": "#/$defs/AndCondition",
+                  "callable": "#/$defs/CallableCondition",
+                  "cost_limit": "#/$defs/CostLimitCondition",
+                  "message_count": "#/$defs/MessageCountCondition",
+                  "or": "#/$defs/OrCondition",
+                  "time": "#/$defs/TimeCondition",
+                  "token_threshold": "#/$defs/TokenThresholdCondition",
+                  "word_match": "#/$defs/WordMatchCondition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/WordMatchCondition"
+                },
+                {
+                  "$ref": "#/$defs/MessageCountCondition"
+                },
+                {
+                  "$ref": "#/$defs/TimeCondition"
+                },
+                {
+                  "$ref": "#/$defs/TokenThresholdCondition"
+                },
+                {
+                  "$ref": "#/$defs/CostLimitCondition"
+                },
+                {
+                  "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/AndCondition"
+                },
+                {
+                  "$ref": "#/$defs/OrCondition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When to filter messages (using Talk.when()).",
+          "title": "Filter Condition"
+        },
+        "exit_condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "and": "#/$defs/AndCondition",
+                  "callable": "#/$defs/CallableCondition",
+                  "cost_limit": "#/$defs/CostLimitCondition",
+                  "message_count": "#/$defs/MessageCountCondition",
+                  "or": "#/$defs/OrCondition",
+                  "time": "#/$defs/TimeCondition",
+                  "token_threshold": "#/$defs/TokenThresholdCondition",
+                  "word_match": "#/$defs/WordMatchCondition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/WordMatchCondition"
+                },
+                {
+                  "$ref": "#/$defs/MessageCountCondition"
+                },
+                {
+                  "$ref": "#/$defs/TimeCondition"
+                },
+                {
+                  "$ref": "#/$defs/TokenThresholdCondition"
+                },
+                {
+                  "$ref": "#/$defs/CostLimitCondition"
+                },
+                {
+                  "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/AndCondition"
+                },
+                {
+                  "$ref": "#/$defs/OrCondition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When to disconnect the connection.",
+          "title": "Exit Condition"
+        },
+        "transform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional function to transform messages before forwarding.",
+          "title": "Transform"
+        },
         "name": {
           "description": "Name of target agent.",
           "title": "Name",
@@ -515,6 +630,31 @@
         "name"
       ],
       "title": "AgentConnectionConfig",
+      "type": "object"
+    },
+    "AndCondition": {
+      "description": "Require all conditions to be met.",
+      "properties": {
+        "type": {
+          "const": "and",
+          "default": "and",
+          "description": "Type discriminator.",
+          "title": "Type",
+          "type": "string"
+        },
+        "conditions": {
+          "description": "List of conditions to check.",
+          "items": {
+            "$ref": "#/$defs/ConnectionCondition"
+          },
+          "title": "Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conditions"
+      ],
+      "title": "AndCondition",
       "type": "object"
     },
     "BasePrompt": {
@@ -675,6 +815,28 @@
       "title": "CLIResource",
       "type": "object"
     },
+    "CallableCondition": {
+      "description": "Custom predicate function.",
+      "properties": {
+        "type": {
+          "const": "callable",
+          "default": "callable",
+          "description": "Type discriminator.",
+          "title": "Type",
+          "type": "string"
+        },
+        "predicate": {
+          "description": "Function to evaluate condition:\nArgs:\n    message: Current message being processed\n    stats: Current connection statistics\nReturns:\n    Whether condition is met",
+          "title": "Predicate",
+          "type": "string"
+        }
+      },
+      "required": [
+        "predicate"
+      ],
+      "title": "CallableCondition",
+      "type": "object"
+    },
     "CallableConnectionConfig": {
       "description": "Forward messages to a callable.\n\nThe callable can be either sync or async and should have the signature:\ndef process_message(message: ChatMessage[Any], **kwargs) -> Any\n\nAny additional kwargs specified in the config will be passed to the callable.",
       "properties": {
@@ -726,6 +888,121 @@
           "default": null,
           "description": "Delay before processing.",
           "title": "Delay"
+        },
+        "filter_condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "and": "#/$defs/AndCondition",
+                  "callable": "#/$defs/CallableCondition",
+                  "cost_limit": "#/$defs/CostLimitCondition",
+                  "message_count": "#/$defs/MessageCountCondition",
+                  "or": "#/$defs/OrCondition",
+                  "time": "#/$defs/TimeCondition",
+                  "token_threshold": "#/$defs/TokenThresholdCondition",
+                  "word_match": "#/$defs/WordMatchCondition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/WordMatchCondition"
+                },
+                {
+                  "$ref": "#/$defs/MessageCountCondition"
+                },
+                {
+                  "$ref": "#/$defs/TimeCondition"
+                },
+                {
+                  "$ref": "#/$defs/TokenThresholdCondition"
+                },
+                {
+                  "$ref": "#/$defs/CostLimitCondition"
+                },
+                {
+                  "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/AndCondition"
+                },
+                {
+                  "$ref": "#/$defs/OrCondition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When to filter messages (using Talk.when()).",
+          "title": "Filter Condition"
+        },
+        "exit_condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "and": "#/$defs/AndCondition",
+                  "callable": "#/$defs/CallableCondition",
+                  "cost_limit": "#/$defs/CostLimitCondition",
+                  "message_count": "#/$defs/MessageCountCondition",
+                  "or": "#/$defs/OrCondition",
+                  "time": "#/$defs/TimeCondition",
+                  "token_threshold": "#/$defs/TokenThresholdCondition",
+                  "word_match": "#/$defs/WordMatchCondition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/WordMatchCondition"
+                },
+                {
+                  "$ref": "#/$defs/MessageCountCondition"
+                },
+                {
+                  "$ref": "#/$defs/TimeCondition"
+                },
+                {
+                  "$ref": "#/$defs/TokenThresholdCondition"
+                },
+                {
+                  "$ref": "#/$defs/CostLimitCondition"
+                },
+                {
+                  "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/AndCondition"
+                },
+                {
+                  "$ref": "#/$defs/OrCondition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When to disconnect the connection.",
+          "title": "Exit Condition"
+        },
+        "transform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional function to transform messages before forwarding.",
+          "title": "Transform"
         },
         "callable": {
           "description": "Import path to the message processing function.",
@@ -980,6 +1257,43 @@
         }
       },
       "title": "Capabilities",
+      "type": "object"
+    },
+    "ConnectionCondition": {
+      "description": "Base class for connection control conditions.",
+      "properties": {
+        "type": {
+          "description": "Discriminator for condition types.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "ConnectionCondition",
+      "type": "object"
+    },
+    "CostLimitCondition": {
+      "description": "Disconnect when cost limit is reached.",
+      "properties": {
+        "type": {
+          "const": "cost_limit",
+          "default": "cost_limit",
+          "description": "Type discriminator.",
+          "title": "Type",
+          "type": "string"
+        },
+        "max_cost": {
+          "description": "Maximum cost in USD before triggering.",
+          "title": "Max Cost",
+          "type": "number"
+        }
+      },
+      "required": [
+        "max_cost"
+      ],
+      "title": "CostLimitCondition",
       "type": "object"
     },
     "CostOptimizedMultiModel": {
@@ -1311,6 +1625,121 @@
           "default": null,
           "description": "Delay before processing.",
           "title": "Delay"
+        },
+        "filter_condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "and": "#/$defs/AndCondition",
+                  "callable": "#/$defs/CallableCondition",
+                  "cost_limit": "#/$defs/CostLimitCondition",
+                  "message_count": "#/$defs/MessageCountCondition",
+                  "or": "#/$defs/OrCondition",
+                  "time": "#/$defs/TimeCondition",
+                  "token_threshold": "#/$defs/TokenThresholdCondition",
+                  "word_match": "#/$defs/WordMatchCondition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/WordMatchCondition"
+                },
+                {
+                  "$ref": "#/$defs/MessageCountCondition"
+                },
+                {
+                  "$ref": "#/$defs/TimeCondition"
+                },
+                {
+                  "$ref": "#/$defs/TokenThresholdCondition"
+                },
+                {
+                  "$ref": "#/$defs/CostLimitCondition"
+                },
+                {
+                  "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/AndCondition"
+                },
+                {
+                  "$ref": "#/$defs/OrCondition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When to filter messages (using Talk.when()).",
+          "title": "Filter Condition"
+        },
+        "exit_condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "and": "#/$defs/AndCondition",
+                  "callable": "#/$defs/CallableCondition",
+                  "cost_limit": "#/$defs/CostLimitCondition",
+                  "message_count": "#/$defs/MessageCountCondition",
+                  "or": "#/$defs/OrCondition",
+                  "time": "#/$defs/TimeCondition",
+                  "token_threshold": "#/$defs/TokenThresholdCondition",
+                  "word_match": "#/$defs/WordMatchCondition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/WordMatchCondition"
+                },
+                {
+                  "$ref": "#/$defs/MessageCountCondition"
+                },
+                {
+                  "$ref": "#/$defs/TimeCondition"
+                },
+                {
+                  "$ref": "#/$defs/TokenThresholdCondition"
+                },
+                {
+                  "$ref": "#/$defs/CostLimitCondition"
+                },
+                {
+                  "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/AndCondition"
+                },
+                {
+                  "$ref": "#/$defs/OrCondition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When to disconnect the connection.",
+          "title": "Exit Condition"
+        },
+        "transform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional function to transform messages before forwarding.",
+          "title": "Transform"
         },
         "connection_type": {
           "const": "run",
@@ -2651,6 +3080,38 @@
       "title": "MessageContent",
       "type": "object"
     },
+    "MessageCountCondition": {
+      "description": "Disconnect after N messages.",
+      "properties": {
+        "type": {
+          "const": "message_count",
+          "default": "message_count",
+          "description": "Type discriminator.",
+          "title": "Type",
+          "type": "string"
+        },
+        "max_messages": {
+          "description": "Maximum number of messages before triggering.",
+          "title": "Max Messages",
+          "type": "integer"
+        },
+        "count_mode": {
+          "default": "total",
+          "description": "How to count messages:\n- total: All messages in conversation\n- per_agent: Messages from each agent separately",
+          "enum": [
+            "total",
+            "per_agent"
+          ],
+          "title": "Count Mode",
+          "type": "string"
+        }
+      },
+      "required": [
+        "max_messages"
+      ],
+      "title": "MessageCountCondition",
+      "type": "object"
+    },
     "OpenAPIToolsetConfig": {
       "additionalProperties": false,
       "description": "Configuration for OpenAPI toolsets.",
@@ -2698,6 +3159,31 @@
         "spec"
       ],
       "title": "OpenAPIToolsetConfig",
+      "type": "object"
+    },
+    "OrCondition": {
+      "description": "Require any condition to be met.",
+      "properties": {
+        "type": {
+          "const": "or",
+          "default": "or",
+          "description": "Type discriminator.",
+          "title": "Type",
+          "type": "string"
+        },
+        "conditions": {
+          "description": "List of conditions to check.",
+          "items": {
+            "$ref": "#/$defs/ConnectionCondition"
+          },
+          "title": "Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conditions"
+      ],
+      "title": "OrCondition",
       "type": "object"
     },
     "PathResource": {
@@ -4099,6 +4585,29 @@
       "title": "TextResource",
       "type": "object"
     },
+    "TimeCondition": {
+      "description": "Disconnect after time period.",
+      "properties": {
+        "type": {
+          "const": "time",
+          "default": "time",
+          "description": "Type discriminator.",
+          "title": "Type",
+          "type": "string"
+        },
+        "duration": {
+          "description": "How long the connection should stay active.",
+          "format": "duration",
+          "title": "Duration",
+          "type": "string"
+        }
+      },
+      "required": [
+        "duration"
+      ],
+      "title": "TimeCondition",
+      "type": "object"
+    },
     "TokenOptimizedMultiModel": {
       "additionalProperties": false,
       "description": "Multi-model that selects based on input token count.\n\nExample YAML configuration:\n    ```yaml\n    model:\n      type: token-optimized\n      models:\n        - openai:gpt-4  # 8k context\n        - openai:gpt-4-32k  # 32k context\n        - openai:gpt-3.5-turbo-16k  # 16k context\n      strategy: efficient  # Use smallest sufficient context window\n    ```",
@@ -4133,6 +4642,39 @@
         "models"
       ],
       "title": "TokenOptimizedMultiModel",
+      "type": "object"
+    },
+    "TokenThresholdCondition": {
+      "description": "Disconnect after token threshold is reached.",
+      "properties": {
+        "type": {
+          "const": "token_threshold",
+          "default": "token_threshold",
+          "description": "Type discriminator.",
+          "title": "Type",
+          "type": "string"
+        },
+        "max_tokens": {
+          "description": "Maximum number of tokens allowed.",
+          "title": "Max Tokens",
+          "type": "integer"
+        },
+        "count_type": {
+          "default": "total",
+          "description": "What tokens to count:\n- total: All tokens used\n- prompt: Only prompt tokens\n- completion: Only completion tokens",
+          "enum": [
+            "total",
+            "prompt",
+            "completion"
+          ],
+          "title": "Count Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "max_tokens"
+      ],
+      "title": "TokenThresholdCondition",
       "type": "object"
     },
     "ToolConfig": {
@@ -4306,6 +4848,47 @@
         "path"
       ],
       "title": "WebhookConfig",
+      "type": "object"
+    },
+    "WordMatchCondition": {
+      "description": "Disconnect when word/phrase is found in message.",
+      "properties": {
+        "type": {
+          "const": "word_match",
+          "default": "word_match",
+          "description": "Type discriminator.",
+          "title": "Type",
+          "type": "string"
+        },
+        "words": {
+          "description": "Words or phrases to match in messages.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Words",
+          "type": "array"
+        },
+        "case_sensitive": {
+          "default": false,
+          "description": "Whether to match case-sensitively.",
+          "title": "Case Sensitive",
+          "type": "boolean"
+        },
+        "mode": {
+          "default": "any",
+          "description": "Match mode:\n- any: Trigger if any word matches\n- all: Require all words to match",
+          "enum": [
+            "any",
+            "all"
+          ],
+          "title": "Mode",
+          "type": "string"
+        }
+      },
+      "required": [
+        "words"
+      ],
+      "title": "WordMatchCondition",
       "type": "object"
     },
     "WorkerConfig": {
