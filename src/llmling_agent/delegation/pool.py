@@ -17,6 +17,11 @@ from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.delegation.controllers import interactive_controller
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
+from llmling_agent.models.forward_targets import (
+    AgentConnectionConfig,
+    CallableConnectionConfig,
+    FileConnectionConfig,
+)
 from llmling_agent.tasks import TaskRegistry
 
 
@@ -314,40 +319,36 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         item.context.pool = self
         return item
 
-    def _setup_connections(self):
-        """Set up forwarding connections between agents."""
-        from llmling_agent.models.forward_targets import AgentConnectionConfig
-
-        for name, config in self.manifest.agents.items():
-            if name not in self.agents:
-                continue
-            agent = self.agents[name]
-            for target in config.connections:
-                if isinstance(target, AgentConnectionConfig):
-                    if target.name not in self.agents:
-                        msg = f"Forward target {target.name} not loaded for {name}"
-                        raise ValueError(msg)
-                    target_agent = self.agents[target.name]
-                    agent.pass_results_to(target_agent)
-
     def _connect_signals(self):
         """Set up forwarding connections between agents."""
-        from llmling_agent.models.forward_targets import AgentConnectionConfig
-
         for name, config in self.manifest.agents.items():
             if name not in self.agents:
                 continue
-            agent = self.agents[name]
+
+            source_agent = self.agents[name]
             for target in config.connections:
-                if isinstance(target, AgentConnectionConfig):
-                    if target.name not in self.agents:
-                        msg = f"Forward target {target.name} not loaded for {name}"
-                        raise ValueError(msg)
-                    target_agent = self.agents[target.name]
-                    agent.pass_results_to(
-                        target_agent,
-                        connection_type=target.connection_type,
-                    )
+                match target:
+                    case AgentConnectionConfig():
+                        if target.name not in self.agents:
+                            msg = f"Forward target {target.name} not found for {name}"
+                            raise ValueError(msg)
+                        target_agent = self.agents[target.name]
+                    case FileConnectionConfig() | CallableConnectionConfig():
+                        target_agent = Agent(provider=target.get_provider())
+
+                _talk = source_agent.pass_results_to(
+                    target_agent,
+                    connection_type=target.connection_type,
+                    priority=target.priority,
+                    delay=target.delay,
+                    queued=target.queued,
+                    queue_strategy=target.queue_strategy,
+                )
+
+                source_agent.connections.set_wait_state(
+                    target_agent,
+                    wait=target.wait_for_completion,
+                )
 
     @overload
     async def clone_agent[TDeps](
