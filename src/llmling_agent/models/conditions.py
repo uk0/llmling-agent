@@ -127,6 +127,20 @@ class TokenThresholdCondition(ConnectionCondition):
                 return message.cost_info.token_usage["completion"] >= self.max_tokens
 
 
+class CostCondition(ConnectionCondition):
+    """Stop when cost threshold is reached."""
+
+    type: Literal["cost"] = Field("cost", init=False)
+    """Type discriminator."""
+
+    max_cost: float
+    """Maximum cost in USD."""
+
+    async def check(self, message: ChatMessage[Any], stats: TalkStats) -> bool:
+        """Check if cost limit is reached."""
+        return stats.total_cost >= self.max_cost
+
+
 class CostLimitCondition(ConnectionCondition):
     """Disconnect when cost limit is reached."""
 

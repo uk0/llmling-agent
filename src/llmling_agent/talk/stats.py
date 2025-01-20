@@ -51,6 +51,13 @@ class TalkStats:
         """Format the conversation that happened on this connection."""
         return "\n".join(msg.format(style, **kwargs) for msg in self.messages)
 
+    @property
+    def total_cost(self) -> float:
+        """Total cost in USD."""
+        return sum(
+            float(msg.cost_info.total_cost) for msg in self.messages if msg.cost_info
+        )
+
 
 @dataclass
 class TeamTalkStats:
@@ -86,6 +93,13 @@ class TeamTalkStats:
         """Total tokens across all connections."""
         return sum(
             msg.cost_info.token_usage["total"] for msg in self.messages if msg.cost_info
+        )
+
+    @property
+    def total_cost(self) -> float:
+        """Total cost in USD."""
+        return sum(
+            float(msg.cost_info.total_cost) for msg in self.messages if msg.cost_info
         )
 
     @property
