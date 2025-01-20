@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import deque
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 import tempfile
@@ -13,6 +14,7 @@ from llmling import BasePrompt, PromptMessage, StaticPrompt
 from llmling.config.models import BaseResource
 from psygnal import Signal
 from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserPromptPart
+from toprompt import AnyPromptType, to_prompt
 from upath import UPath
 
 from llmling_agent.log import get_logger
@@ -348,6 +350,60 @@ class ConversationManager:
         self._last_messages = []
         event = self.HistoryCleared(session_id=str(self.id))
         self.history_cleared.emit(event)
+
+    @asynccontextmanager
+    async def temporary_state(
+        self,
+        history: list[AnyPromptType] | None = None,
+        *,
+        exclusive: bool = False,
+    ):
+        """Temporarily set conversation history.
+
+        Args:
+            history: Optional list of prompts to use as temporary history.
+                    Can be strings, BasePrompts, or other prompt types.
+            exclusive: If True, only use provided history. If False, append
+                    to existing history.
+
+        Example:
+            # Append to existing history
+            async with conversation.temporary_state(
+                history=["Additional context"]
+            ):
+                await agent.run("Use combined context")
+
+            # Use only provided history
+            async with conversation.temporary_state(
+                history=["Only this context"],
+                exclusive=True
+            ):
+                await agent.run("Use only this context")
+        """
+        # Store current state
+        old_history = self._current_history.copy()
+
+        try:
+            # Convert new prompts if provided
+            if history is not None:
+                converted = []
+                for prompt in history:
+                    content = await to_prompt(prompt)
+                    converted.append(
+                        to_model_message(ChatMessage(content=content, role="user"))
+                    )
+
+                # Either replace or append based on exclusive flag
+                if exclusive:
+                    self._current_history = converted
+                else:
+                    self._current_history.extend(converted)
+
+            yield self
+
+        finally:
+            # Restore original state
+            self._current_history = old_history
 
     @property
     def last_run_messages(self) -> list[ChatMessage]:
