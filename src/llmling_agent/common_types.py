@@ -30,6 +30,9 @@ ModelType = ModelProtocol | str | None
 EnvironmentType = Literal["file", "inline"]
 ToolSource = Literal["runtime", "agent", "builtin", "dynamic", "task", "mcp"]
 AnyCallable = Callable[..., Any]
+AsyncFilterFn = Callable[..., Awaitable[bool]]
+SyncFilterFn = Callable[..., bool]
+AnyFilterFn = Callable[..., bool | Awaitable[bool]]
 T = TypeVar("T")
 type OptionalAwaitable[T] = T | Awaitable[T]
 

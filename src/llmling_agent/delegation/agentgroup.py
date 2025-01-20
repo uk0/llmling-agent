@@ -23,9 +23,9 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from llmling_agent.agent import AnyAgent
+    from llmling_agent.common_types import AsyncFilterFn
     from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.delegation.router import AgentRouter
-    from llmling_agent.models.conditions import Condition
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
 
@@ -207,8 +207,8 @@ class Team[TDeps](TaskManagerMixin):
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: Condition | None = None,
-        exit_condition: Condition | None = None,
+        filter_condition: AsyncFilterFn | None = None,
+        exit_condition: AsyncFilterFn | None = None,
     ) -> TeamTalk:
         """Forward results to another agent or all agents in a team."""
         match other:

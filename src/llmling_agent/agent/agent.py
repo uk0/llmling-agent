@@ -54,10 +54,15 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.agent.talk import Interactions
-    from llmling_agent.common_types import ModelType, SessionIdType, StrPath, ToolType
+    from llmling_agent.common_types import (
+        AsyncFilterFn,
+        ModelType,
+        SessionIdType,
+        StrPath,
+        ToolType,
+    )
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.execution import TeamRun
-    from llmling_agent.models.conditions import Condition
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.providers import ProcessorCallback
@@ -876,8 +881,8 @@ class Agent[TDeps](TaskManagerMixin):
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: Condition | None = None,
-        exit_condition: Condition | None = None,
+        filter_condition: AsyncFilterFn | None = None,
+        exit_condition: AsyncFilterFn | None = None,
     ) -> Talk[str]: ...
 
     @overload
@@ -891,8 +896,8 @@ class Agent[TDeps](TaskManagerMixin):
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: Condition | None = None,
-        exit_condition: Condition | None = None,
+        filter_condition: AsyncFilterFn | None = None,
+        exit_condition: AsyncFilterFn | None = None,
     ) -> TeamTalk: ...
 
     def pass_results_to(
@@ -905,8 +910,8 @@ class Agent[TDeps](TaskManagerMixin):
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: Condition | None = None,
-        exit_condition: Condition | None = None,
+        filter_condition: AsyncFilterFn | None = None,
+        exit_condition: AsyncFilterFn | None = None,
     ) -> Talk[str] | TeamTalk:
         """Forward results to another agent or all agents in a team."""
         return self.connections.connect_agent_to(

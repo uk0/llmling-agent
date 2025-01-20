@@ -23,10 +23,9 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
     from llmling_agent.agent.connection import QueueStrategy, Talk, TeamTalk
-    from llmling_agent.common_types import ModelType
+    from llmling_agent.common_types import AsyncFilterFn, ModelType
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.execution import TeamRun
-    from llmling_agent.models.conditions import Condition
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
@@ -373,8 +372,8 @@ class StructuredAgent[TDeps, TResult]:
         queued: bool = False,
         queue_strategy: Literal["concat"],
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: Condition | None = None,
-        exit_condition: Condition | None = None,
+        filter_condition: AsyncFilterFn | None = None,
+        exit_condition: AsyncFilterFn | None = None,
     ) -> Talk[str]: ...
 
     @overload
@@ -388,8 +387,8 @@ class StructuredAgent[TDeps, TResult]:
         queued: bool = False,
         queue_strategy: QueueStrategy,
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: Condition | None = None,
-        exit_condition: Condition | None = None,
+        filter_condition: AsyncFilterFn | None = None,
+        exit_condition: AsyncFilterFn | None = None,
     ) -> Talk[TResult]: ...
 
     @overload
@@ -403,8 +402,8 @@ class StructuredAgent[TDeps, TResult]:
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: Condition | None = None,
-        exit_condition: Condition | None = None,
+        filter_condition: AsyncFilterFn | None = None,
+        exit_condition: AsyncFilterFn | None = None,
     ) -> TeamTalk: ...
 
     def pass_results_to(
@@ -417,8 +416,8 @@ class StructuredAgent[TDeps, TResult]:
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
         transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
-        filter_condition: Condition | None = None,
-        exit_condition: Condition | None = None,
+        filter_condition: AsyncFilterFn | None = None,
+        exit_condition: AsyncFilterFn | None = None,
     ) -> Talk[TResult] | Talk[str] | TeamTalk:
         """Forward results to another agent or all agents in a team."""
         return self._agent.connections.connect_agent_to(

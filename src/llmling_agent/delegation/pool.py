@@ -344,8 +344,12 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
                     queued=target.queued,
                     queue_strategy=target.queue_strategy,
                     transform=target.transform,
-                    exit_condition=target.exit_condition,
-                    filter_condition=target.filter_condition,
+                    exit_condition=target.exit_condition.check
+                    if target.exit_condition
+                    else None,
+                    filter_condition=target.filter_condition.check
+                    if target.filter_condition
+                    else None,
                 )
 
                 source_agent.connections.set_wait_state(
