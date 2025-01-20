@@ -31,6 +31,7 @@ from llmling_agent.environment import AgentEnvironment, FileEnvironment, InlineE
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, StdioMCPServer
+from llmling_agent.models.prompts import PromptConfig
 from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
 from llmling_agent.models.session import SessionQuery
 from llmling_agent.models.storage import StorageConfig
@@ -460,6 +461,9 @@ class AgentsManifest[TDeps](ConfigModel):
     or collaborate through the orchestrator.
     """
 
+    INHERIT: str | list[str] | None = None
+    """Inheritance references."""
+
     agents: dict[str, AgentConfig] = Field(default_factory=dict)
     """Mapping of agent IDs to their configurations"""
 
@@ -477,6 +481,8 @@ class AgentsManifest[TDeps](ConfigModel):
     - str entries are converted to StdioMCPServer
     - MCPServerConfig for full server configuration
     """
+    prompts: PromptConfig = Field(default_factory=PromptConfig)
+
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
     def clone_agent_config(
