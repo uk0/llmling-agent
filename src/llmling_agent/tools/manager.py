@@ -411,7 +411,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
     @contextmanager
     def temporary_tools(
         self,
-        tools: AnyCallable | LLMCallableTool | Sequence[AnyCallable | LLMCallableTool],
+        tools: ToolType | Sequence[ToolType],
         *,
         exclusive: bool = False,
     ) -> Iterator[list[ToolInfo]]:
