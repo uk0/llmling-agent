@@ -50,7 +50,6 @@ agents:
     connections:
       - type: agent
         name: planner
-        connection_type: run
         filter_condition:
           type: word_match
           words: ["analyze", "examine"]
@@ -89,6 +88,8 @@ team_a = agent_1 & agent_2
 team_b = agent_3 & agent_4
 team_a.pass_results_to(team_b)
 ```
+
+In this scenario each team member of team_a gets connected to all team members of team b.
 
 ## Message Flow Control
 
