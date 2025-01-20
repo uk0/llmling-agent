@@ -397,12 +397,12 @@ class Agent[TDeps](TaskManagerMixin):
                 await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)
 
     @overload
-    def __rshift__(self, other: AnyAgent[Any, Any] | str) -> Talk: ...
+    def __rshift__(self, other: AnyAgent[Any, Any]) -> Talk: ...
 
     @overload
     def __rshift__(self, other: Team[Any]) -> TeamTalk: ...
 
-    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> Talk | TeamTalk:
+    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any]) -> Talk | TeamTalk:
         """Connect agent to another agent or group.
 
         Example:
@@ -867,7 +867,7 @@ class Agent[TDeps](TaskManagerMixin):
     @overload
     def pass_results_to(
         self,
-        other: AnyAgent[Any, Any] | str,
+        other: AnyAgent[Any, Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -890,7 +890,7 @@ class Agent[TDeps](TaskManagerMixin):
 
     def pass_results_to(
         self,
-        other: AnyAgent[Any, Any] | Team[Any] | str,
+        other: AnyAgent[Any, Any] | Team[Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -1457,7 +1457,7 @@ class Agent[TDeps](TaskManagerMixin):
             model: Temporary model override
             provider: Temporary provider override
         """
-        old_model = self._provider.model if hasattr(self._provider, "model") else None
+        old_model = self._provider.model if hasattr(self._provider, "model") else None  # pyright: ignore
         old_provider = self._provider
 
         async with AsyncExitStack() as stack:

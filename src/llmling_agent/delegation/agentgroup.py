@@ -212,7 +212,7 @@ class Team[TDeps](TaskManagerMixin):
                 msg = "Pool required for forwarding to agent by name"
                 raise ValueError(msg)
             case str():
-                other = self.agents[0].context.pool.get_agent(other)
+                other = self.agents[0].context.pool.get_agent(other)  # type: ignore
 
         return self.connections.connect_group_to(
             other,

@@ -96,6 +96,7 @@ class FileConnectionConfig(ConnectionConfig):
     """
 
     type: Literal["file"] = Field("file", init=False)
+    connection_type: Literal["run"] = Field("run", init=False, exclude=True)
     path: str
     """Path to output file. Supports variables: {date}, {time}, {agent}"""
 
@@ -115,11 +116,9 @@ class FileConnectionConfig(ConnectionConfig):
     def resolve_path(self, context: dict[str, str]) -> UPath:
         """Resolve path template with context variables."""
         now = datetime.now()
-        variables = {
-            "date": now.strftime("%Y-%m-%d"),
-            "time": now.strftime("%H-%M-%S"),
-            **context,
-        }
+        date = now.strftime("%Y-%m-%d")
+        time_ = now.strftime("%H-%M-%S")
+        variables = {"date": date, "time": time_, **context}
         return UPath(self.path.format(**variables))
 
     def get_provider(self) -> CallbackProvider[str]:
@@ -150,6 +149,7 @@ class CallableConnectionConfig(ConnectionConfig):
     type: Literal["callable"] = Field("callable", init=False)
     callable: ImportString[Callable[..., Any]]
     """Import path to the message processing function."""
+    connection_type: Literal["run"] = Field("run", init=False, exclude=True)
 
     kw_args: dict[str, Any] = Field(default_factory=dict)
     """Additional kwargs to pass to the callable."""

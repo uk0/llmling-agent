@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
-    from llmling_agent.agent.connection import Talk, TeamTalk
+    from llmling_agent.agent.connection import QueueStrategy, Talk, TeamTalk
     from llmling_agent.common_types import ModelType
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.execution import TeamRun
@@ -364,48 +364,48 @@ class StructuredAgent[TDeps, TResult]:
     @overload
     def pass_results_to(
         self,
-        other: AnyAgent[Any, Any] | str,
+        other: AnyAgent[Any, Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
-        queue_strategy: Literal["latest", "buffer"] = "latest",
-    ) -> Talk[TResult]: ...
-
-    @overload
-    def pass_results_to(
-        self,
-        other: AnyAgent[Any, Any] | str,
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = True,
         queue_strategy: Literal["concat"],
     ) -> Talk[str]: ...
 
     @overload
     def pass_results_to(
         self,
-        other: Team[Any],
+        other: AnyAgent[Any, Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
-        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+        queue_strategy: QueueStrategy,
+    ) -> Talk[TResult]: ...
+
+    @overload
+    def pass_results_to(
+        self,
+        other: AnyAgent[Any, Any] | Team[Any],
+        *,
+        connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
+        queued: bool = False,
+        queue_strategy: QueueStrategy = "latest",
     ) -> TeamTalk: ...
 
     def pass_results_to(
         self,
-        other: AnyAgent[Any, Any] | Team[Any] | str,
+        other: AnyAgent[Any, Any] | Team[Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
-        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+        queue_strategy: QueueStrategy = "latest",
     ) -> Talk[TResult] | Talk[str] | TeamTalk:
         """Forward results to another agent or all agents in a team."""
         return self._agent.connections.connect_agent_to(
