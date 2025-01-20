@@ -14,7 +14,7 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/examples/create_docs.md")
 
 
-@nav.route.page("Download Agents", icon="octicon:cloud-download-16", hide="toc")
+@nav.route.page("Download Agents", icon="octicon:download-16", hide="toc")
 def _(page: mk.MkPage):
     """Sequential vs parallel downloads with cheerleader."""
     page += mk.MkTemplate("docs/examples/download_agents.md")

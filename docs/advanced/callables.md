@@ -24,7 +24,7 @@ agent = StructuredAgent(analyze, result_type=AnalysisResult)
 
 Callables are automatically converted to agents when used in:
 
-### Teams (using &)
+### Teams (using `&`)
 ```python
 def analyze(text: str) -> AnalysisResult:
     return AnalysisResult(...)
@@ -36,13 +36,13 @@ def summarize(text: str) -> str:
 team = analyzer & analyze & summarize
 ```
 
-### Pipelines (using |)
+### Pipelines (using `|`)
 ```python
 # Functions become agents in the pipeline
 pipeline = agent | analyze | summarize
 ```
 
-### Connections (using >>)
+### Connections (using `>>`)
 ```python
 # Function becomes agent when used as target
 agent >> analyze
