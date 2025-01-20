@@ -12,7 +12,7 @@ CLI_PATH = "llmling_agent.__main__:cli"
 def _(page: mk.MkPage):
     # page += mk.MkBinaryImage.for_file("docs/assets/cli.gif")
     # page += mk.MkTemplate("cli_index.jinja")
-    page += mk.MkCliDoc(CLI_PATH)
+    page += mk.MkTemplate("docs/cli.md")
 
 
 @nav.route.page("add", icon="mdi:plus-circle")
