@@ -113,7 +113,7 @@ class AgentKwargs(TypedDict, total=False):
     # Runtime Environment
     runtime: RuntimeConfig | Config | StrPath | None  # Resources and tools
     tools: Sequence[ToolType] | None  # Available tools
-    mcp_servers: list[str | MCPServerConfig] | None  # External tool servers
+    mcp_servers: Sequence[str | MCPServerConfig] | None  # External tool servers
 
     # Execution Settings
     retries: int  # Operation retry count
@@ -183,7 +183,7 @@ class Agent[TDeps](TaskManagerMixin):
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
         description: str | None = None,
         tools: Sequence[ToolType] | None = None,
-        mcp_servers: list[str | MCPServerConfig] | None = None,
+        mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         resources: Sequence[Resource | PromptType | str] = (),
         retries: int = 1,
         result_retries: int | None = None,

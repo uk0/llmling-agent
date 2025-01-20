@@ -19,7 +19,7 @@ from llmling_agent.models.agents import ToolCallInfo  # noqa: TC001
 
 
 TContent = TypeVar("TContent", str, BaseModel, default=str)
-
+FormatStyle = Literal["simple", "detailed", "markdown"]
 logger = get_logger(__name__)
 
 
@@ -162,7 +162,7 @@ class ChatMessage[TContent]:
 
     def format(
         self,
-        style: Literal["simple", "detailed", "markdown"] = "simple",
+        style: FormatStyle = "simple",
         *,
         show_metadata: bool = False,
         show_costs: bool = False,
