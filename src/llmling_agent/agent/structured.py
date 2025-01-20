@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Self, get_type_hints, overload
 
+from pydantic import ValidationError
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
@@ -158,6 +159,21 @@ class StructuredAgent[TDeps, TResult]:
             store_history=store_history,
             wait_for_connections=wait_for_connections,
         )
+
+    async def validate_against(
+        self,
+        prompt: str,
+        criteria: type[TResult],
+        **kwargs: Any,
+    ) -> bool:
+        """Check if agent's response satisfies stricter criteria."""
+        result = await self.run(prompt, **kwargs)
+        try:
+            criteria.model_validate(result.content.model_dump())  # type: ignore
+        except ValidationError:
+            return False
+        else:
+            return True
 
     def __repr__(self) -> str:
         type_name = getattr(self._result_type, "__name__", str(self._result_type))
