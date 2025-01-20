@@ -645,3 +645,24 @@ class TalkManager:
             await talk._handle_message(message_copy, None)
         if should_wait:
             await self.wait_for_connections()
+
+    @asynccontextmanager
+    async def paused_routing(self):
+        """Temporarily pause message routing to connections.
+
+        Example:
+            async with agent.connections.paused_routing():
+                # Messages won't be forwarded to connected agents
+                await agent.run("This stays local")
+        """
+        # Store and pause all talks
+        active_talks = [talk for talk in self._connections if talk.active]
+        for talk in active_talks:
+            talk.active = False
+
+        try:
+            yield self
+        finally:
+            # Restore original state
+            for talk in active_talks:
+                talk.active = True
