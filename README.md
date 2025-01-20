@@ -51,6 +51,8 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 - 🛡️ Capabilites system allowing runtime modifications and "special" commands (on-the-fly agent generation, history lookups)
 - 📊 Complete database logging of Agent interactions including easy recovery based on query parameters.
 - ⚙️ pytest-inspired way to create agents from YAML in a type-safe manner. "Auto-populated signatures."
+- 🛜 Comletely UPath backed. Any file operations under our control is routed through fsspec to allow referencing remote sourcces.
+- 📕 Integrated prompt management system.
 - 🔧 Tasks, tools, and what else you can expect from an Agent framework.
 - 👥 Easy human-in-the-loop interactions on multiple levels (complete "providers" or model-based, see llmling-models)
 - 💻 A CLI application with extensive slash command support to build agent flows interactively. Set up message connections via commands.
