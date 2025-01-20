@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Coroutine
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from os import PathLike
@@ -1421,6 +1421,78 @@ class Agent[TDeps](TaskManagerMixin):
     @property
     def tools(self) -> ToolManager:
         return self._tool_manager
+
+    @asynccontextmanager
+    async def temporary_state(
+        self,
+        *,
+        system_prompts: list[AnyPromptType] | None = None,
+        replace_prompts: bool = False,
+        tools: list[ToolType] | None = None,
+        replace_tools: bool = False,
+        history: list[AnyPromptType] | SessionQuery | None = None,
+        replace_history: bool = False,
+        pause_routing: bool = False,
+        model: ModelType | None = None,
+        provider: AgentProvider | None = None,
+    ) -> AsyncIterator[Self]:
+        """Temporarily modify agent state.
+
+        Args:
+            system_prompts: Temporary system prompts to use
+            replace_prompts: Whether to replace existing prompts
+            tools: Temporary tools to make available
+            replace_tools: Whether to replace existing tools
+            history: Conversation history (prompts or query)
+            replace_history: Whether to replace existing history
+            pause_routing: Whether to pause message routing
+            model: Temporary model override
+            provider: Temporary provider override
+        """
+        old_model = self._provider.model if hasattr(self._provider, "model") else None
+        old_provider = self._provider
+
+        async with AsyncExitStack() as stack:
+            # System prompts (async)
+            if system_prompts is not None:
+                await stack.enter_async_context(
+                    self.sys_prompts.temporary_prompt(
+                        system_prompts, exclusive=replace_prompts
+                    )
+                )
+
+            # Tools (sync)
+            if tools is not None:
+                stack.enter_context(
+                    self.tools.temporary_tools(tools, exclusive=replace_tools)
+                )
+
+            # History (async)
+            if history is not None:
+                await stack.enter_async_context(
+                    self.conversation.temporary_state(
+                        history, replace_history=replace_history
+                    )
+                )
+
+            # Routing (async)
+            if pause_routing:
+                await stack.enter_async_context(self.connections.paused_routing())
+
+            # Model/Provider
+            if provider is not None:
+                self._provider = provider
+            elif model is not None:
+                self._provider.set_model(model)
+
+            try:
+                yield self
+            finally:
+                # Restore model/provider
+                if provider is not None:
+                    self._provider = old_provider
+                elif model is not None and old_model:
+                    self._provider.set_model(old_model)
 
 
 if __name__ == "__main__":

@@ -29,7 +29,7 @@ from llmling_agent_providers.pydanticai.utils import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Coroutine, Sequence
+    from collections.abc import AsyncIterator, Coroutine, Sequence
     from types import TracebackType
 
     from llmling.config.models import Resource
@@ -354,55 +354,43 @@ class ConversationManager:
     @asynccontextmanager
     async def temporary_state(
         self,
-        history: list[AnyPromptType] | None = None,
+        history: list[AnyPromptType] | SessionQuery | None = None,
         *,
-        exclusive: bool = False,
-    ):
+        replace_history: bool = False,
+    ) -> AsyncIterator[Self]:
         """Temporarily set conversation history.
 
         Args:
             history: Optional list of prompts to use as temporary history.
                     Can be strings, BasePrompts, or other prompt types.
-            exclusive: If True, only use provided history. If False, append
+            replace_history: If True, only use provided history. If False, append
                     to existing history.
-
-        Example:
-            # Append to existing history
-            async with conversation.temporary_state(
-                history=["Additional context"]
-            ):
-                await agent.run("Use combined context")
-
-            # Use only provided history
-            async with conversation.temporary_state(
-                history=["Only this context"],
-                exclusive=True
-            ):
-                await agent.run("Use only this context")
         """
-        # Store current state
         old_history = self._current_history.copy()
 
         try:
-            # Convert new prompts if provided
+            messages: list[ChatMessage[Any]] = []
             if history is not None:
-                converted = []
-                for prompt in history:
-                    content = await to_prompt(prompt)
-                    converted.append(
-                        to_model_message(ChatMessage(content=content, role="user"))
-                    )
-
-                # Either replace or append based on exclusive flag
-                if exclusive:
-                    self._current_history = converted
+                if isinstance(history, SessionQuery):
+                    # Get ChatMessages and convert to ModelMessages
+                    messages = await self._agent.context.storage.filter_messages(history)
                 else:
-                    self._current_history.extend(converted)
+                    # Convert prompts to ModelMessages
+                    messages = [
+                        ChatMessage(content=await to_prompt(p), role="user")
+                        for p in history
+                    ]
+
+            model_messages = [to_model_message(msg) for msg in messages]
+
+            if replace_history:
+                self._current_history = model_messages
+            else:
+                self._current_history.extend(model_messages)
 
             yield self
 
         finally:
-            # Restore original state
             self._current_history = old_history
 
     @property
