@@ -15,56 +15,56 @@ def _(page: mk.MkPage):
     page += mk.MkCliDoc(CLI_PATH)
 
 
-@nav.route.page("add", icon="wrench")
+@nav.route.page("add", icon="mdi:plus-circle")
 def _(page: mk.MkPage):
     page += mk.MkCliDoc(CLI_PATH, prog_name="add")
 
 
-@nav.route.page("run", icon="web")
+@nav.route.page("run", icon="mdi:play")
 def _(page: mk.MkPage):
     page += mk.MkCliDoc(CLI_PATH, prog_name="run")
 
 
-@nav.route.page("list", icon="folder-wrench")
+@nav.route.page("list", icon="mdi:format-list-bulleted")
 def _(page: mk.MkPage):
     page += mk.MkCliDoc(CLI_PATH, prog_name="list")
 
 
-@nav.route.page("set", icon="folder-wrench")
+@nav.route.page("set", icon="mdi:cog")
 def _(page: mk.MkPage):
     page += mk.MkCliDoc(CLI_PATH, prog_name="set")
 
 
-@nav.route.page("chat", icon="folder-wrench")
+@nav.route.page("chat", icon="mdi:chat")
 def _(page: mk.MkPage):
     page += mk.MkCliDoc(CLI_PATH, prog_name="chat")
 
 
-@nav.route.page("quickstart", icon="folder-wrench")
+@nav.route.page("quickstart", icon="mdi:rocket")
 def _(page: mk.MkPage):
     page += mk.MkCliDoc(CLI_PATH, prog_name="quickstart")
 
 
-@nav.route.page("task", icon="folder-wrench")
+@nav.route.page("task", icon="mdi:clipboard-check")
 def _(page: mk.MkPage):
     page += mk.MkCliDoc(CLI_PATH, prog_name="task")
 
 
-@nav.route.page("watch", icon="folder-wrench")
+@nav.route.page("watch", icon="mdi:eye")
 def _(page: mk.MkPage):
     page += mk.MkCliDoc(CLI_PATH, prog_name="watch")
 
 
-@nav.route.page("history", icon="folder-wrench")
+@nav.route.page("history", icon="mdi:history")
 def _(page: mk.MkPage):
     page += mk.MkCliDoc(CLI_PATH, prog_name="history")
 
 
-@nav.route.page("launch", icon="folder-wrench")
+@nav.route.page("launch", icon="mdi:launch")
 def _(page: mk.MkPage):
     page += mk.MkCliDoc(CLI_PATH, prog_name="launch")
 
 
-@nav.route.page("web", icon="folder-wrench")
+@nav.route.page("web", icon="mdi:web")
 def _(page: mk.MkPage):
     page += mk.MkCliDoc(CLI_PATH, prog_name="web")
