@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable  # noqa: TC003
 from datetime import datetime, timedelta
 import inspect
 from typing import TYPE_CHECKING, Annotated, Any, Literal
@@ -8,8 +9,6 @@ from pydantic import BaseModel, ConfigDict, Field, ImportString
 
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
-
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.talk.stats import TalkStats
 
@@ -150,9 +149,7 @@ class CallableCondition(ConnectionCondition):
     type: Literal["callable"] = Field("callable", init=False)
     """Type discriminator."""
 
-    predicate: ImportString[
-        Callable[[ChatMessage[Any], TalkStats], bool | Awaitable[bool]]
-    ]
+    predicate: ImportString[Callable[..., bool | Awaitable[bool]]]
     """Function to evaluate condition:
     Args:
         message: Current message being processed

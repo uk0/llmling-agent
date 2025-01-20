@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable  # noqa: TC003
+from collections.abc import Awaitable, Callable  # noqa: TC003
 from datetime import datetime, timedelta
 import inspect
 from typing import TYPE_CHECKING, Annotated, Any, Literal
@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 from jinja2 import Template
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 from upath import UPath
+
+from llmling_agent.models.conditions import Condition  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -44,6 +46,15 @@ class ConnectionConfig(BaseModel):
 
     delay: timedelta | None = None
     """Delay before processing."""
+
+    filter_condition: Condition | None = None
+    """When to filter messages (using Talk.when())."""
+
+    exit_condition: Condition | None = None
+    """When to disconnect the connection."""
+
+    transform: ImportString[Callable[[Any], Any | Awaitable[Any]]] | None = None
+    """Optional function to transform messages before forwarding."""
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
