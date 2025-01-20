@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, overload
 
 from psygnal import Signal
 from typing_extensions import TypeVar
@@ -167,6 +167,8 @@ class Talk[TTransmittedData]:
         wait_for_connections: bool = False,
         priority: int = 0,
         delay: timedelta | None = None,
+        queued: bool = False,
+        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
     ):
         """Initialize talk connection.
 
@@ -181,6 +183,11 @@ class Talk[TTransmittedData]:
             wait_for_connections: Whether to wait for all targets to complete
             priority: Task priority (lower = higher priority)
             delay: Optional delay before processing
+            queued: Whether messages should be queued for manual processing
+            queue_strategy: How to process queued messages:
+                - "concat": Combine all messages with newlines
+                - "latest": Use only the most recent message
+                - "buffer": Process all messages individually
         """
         self.source = source
         self.targets = targets
@@ -190,6 +197,9 @@ class Talk[TTransmittedData]:
         self.active = True
         self.connection_type = connection_type
         self.wait_for_connections = wait_for_connections
+        self.queued = queued
+        self.queue_strategy = queue_strategy
+        self._pending_messages: list[ChatMessage[TTransmittedData]] = []
         names = {t.name for t in targets}
         self._stats = TalkStats(source_name=source.name, target_names=names)
         self._filter: FilterFn | None = None
@@ -200,6 +210,7 @@ class Talk[TTransmittedData]:
         message: ChatMessage[TTransmittedData],
         prompt: str | None = None,
     ):
+        """Handle message forwarding based on connection configuration."""
         logger.debug(
             "Message from %s to %s: %r (type: %s) (prompt: %s)",
             self.source.name,
@@ -216,14 +227,31 @@ class Talk[TTransmittedData]:
             return
 
         # Update stats
-        self._stats = TalkStats(
+        self._stats = replace(
+            self._stats,
             messages=[*self._stats.messages, message],
-            start_time=self._stats.start_time,
-            source_name=self._stats.source_name,
-            target_names=self._stats.target_names,
         )
 
-        # Handle message based on connection type
+        # For queued connections, just queue the message
+        if self.queued:
+            self._pending_messages.append(message)
+            return
+
+        # Process message immediately
+        await self._process_message(message, prompt)
+
+    async def _process_message(
+        self,
+        message: ChatMessage[TTransmittedData],
+        prompt: str | None = None,
+    ) -> list[ChatMessage[Any]]:
+        """Process a single message according to connection type.
+
+        Returns:
+            List of response messages (for "run" connections)
+        """
+        results: list[ChatMessage[Any]] = []
+
         match self.connection_type:
             case "run":
                 for target in self.targets:
@@ -233,6 +261,7 @@ class Talk[TTransmittedData]:
                     response = await target.run(*prompts)
                     response.forwarded_from.append(target.name)
                     target.outbox.emit(response, None)
+                    results.append(response)
 
             case "context":
                 for target in self.targets:
@@ -275,7 +304,60 @@ class Talk[TTransmittedData]:
                         )
                     else:
                         target.outbox.emit(message, prompt)
+
         self.message_forwarded.emit(message)
+        return results
+
+    async def trigger(self) -> list[ChatMessage[TTransmittedData]]:
+        """Process queued messages.
+
+        Returns:
+            List of processed messages:
+            - concat/latest: Single merged message in list
+            - buffer: All messages processed individually
+        """
+        if not self._pending_messages:
+            return []
+
+        match self.queue_strategy:
+            case "buffer":
+                # Process each message individually
+                results: list[ChatMessage[TTransmittedData]] = []
+                for message in self._pending_messages:
+                    processed = await self._process_message(message, None)
+                    results.append(message)
+                    results.extend(processed)  # Add any responses
+                self._pending_messages.clear()
+                return results
+
+            case "latest":
+                # Just use the most recent message as-is
+                merged = self._pending_messages[-1]
+                responses = await self._process_message(merged, None)
+                self._pending_messages.clear()
+                return [merged, *responses]
+
+            case "concat":
+                # Ensure all messages have string content
+                base = self._pending_messages[-1]
+                contents = [str(m.content) for m in self._pending_messages]
+                # Create merged message
+                merged = replace(
+                    base,
+                    content="\n\n".join(contents),  # type: ignore
+                    metadata={
+                        **base.metadata,
+                        "merged_count": len(self._pending_messages),
+                        "queue_strategy": self.queue_strategy,
+                    },
+                )
+
+                # Process the merged message
+                responses = await self._process_message(merged, None)
+                self._pending_messages.clear()
+                return [merged, *responses]
+
+        return []
 
     def when(self, condition: FilterFn) -> Self:
         """Add condition for message forwarding."""
@@ -381,7 +463,6 @@ class TalkManager:
 
     async def wait_for_connections(self, _seen: set[str] | None = None):
         """Wait for this agent and all connected agents to complete their tasks."""
-        # Track seen agents to avoid cycles
         seen: set[str] = _seen or {self.owner.name}  # type: ignore
 
         # Wait for our own tasks
@@ -416,7 +497,6 @@ class TalkManager:
                 _targets = target.connections.get_targets(recursive=True, _seen=seen)
                 seen.add(target.name)
                 all_targets.add(target)
-                # Get recursive targets
                 all_targets.update(_targets)
 
         return all_targets
@@ -429,27 +509,36 @@ class TalkManager:
     def connect_agent_to(
         self,
         other: AnyAgent[Any, Any] | str,
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
-    ) -> Talk: ...
+        queued: bool = False,
+        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+    ) -> Talk[Any]: ...
 
     @overload
     def connect_agent_to(
         self,
         other: Team[Any],
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
+        queued: bool = False,
+        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
     ) -> TeamTalk: ...
 
     def connect_agent_to(
         self,
         other: AnyAgent[Any, Any] | Team[Any] | str,
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
-    ) -> Talk | TeamTalk:
+        queued: bool = False,
+        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+    ) -> Talk[Any] | TeamTalk:
         """Handle single agent connections."""
         from llmling_agent.agent import Agent, StructuredAgent
         from llmling_agent.delegation.agentgroup import Team
@@ -470,6 +559,8 @@ class TalkManager:
                     connection_type=connection_type,
                     priority=priority,
                     delay=delay,
+                    queued=queued,
+                    queue_strategy=queue_strategy,
                 )
                 for target in targets
             ]
@@ -481,16 +572,21 @@ class TalkManager:
             connection_type=connection_type,
             priority=priority,
             delay=delay,
+            queued=queued,
+            queue_strategy=queue_strategy,
         )
 
     def add_connection(
         self,
         source: AnyAgent[Any, Any],
         targets: list[AnyAgent[Any, Any]],
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
-    ) -> Talk:
+        queued: bool = False,
+        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+    ) -> Talk[Any]:
         """Add a connection to the manager."""
         connection = Talk(
             source,
@@ -498,6 +594,8 @@ class TalkManager:
             connection_type=connection_type,
             priority=priority,
             delay=delay,
+            queued=queued,
+            queue_strategy=queue_strategy,
         )
         self.connection_added.emit(connection)
         self._connections.append(connection)
@@ -506,9 +604,12 @@ class TalkManager:
     def connect_group_to(
         self,
         other: AnyAgent[Any, Any] | Team[Any] | str,
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
+        queued: bool = False,
+        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
         **kwargs: Any,
     ) -> TeamTalk:
         """Handle group connections."""
@@ -529,6 +630,8 @@ class TalkManager:
                 connection_type=connection_type,
                 priority=priority,
                 delay=delay,
+                queued=queued,
+                queue_strategy=queue_strategy,
             )
             for src in self.owner.agents
             for t in targets
@@ -555,6 +658,26 @@ class TalkManager:
                 return list(other.agents)
         return [other]
 
+    async def trigger_all(self) -> dict[str, list[ChatMessage[Any]]]:
+        """Trigger all queued connections."""
+        results = {}
+        for talk in self._connections:
+            if isinstance(talk, Talk) and talk.queued:
+                results[talk.source.name] = await talk.trigger()
+        return results
+
+    async def trigger_for(
+        self, target: str | AnyAgent[Any, Any]
+    ) -> list[ChatMessage[Any]]:
+        """Trigger queued connections to specific target."""
+        target_name = target if isinstance(target, str) else target.name
+        results = []
+        for talk in self._connections:
+            if isinstance(talk, Talk) and talk.queued:  # noqa: SIM102
+                if any(t.name == target_name for t in talk.targets):
+                    results.extend(await talk.trigger())
+        return results
+
     def disconnect_all(self):
         """Disconnect all managed connections."""
         for conn in self._connections:
@@ -577,25 +700,54 @@ class TalkManager:
             talk.active = False
             self._connections.remove(talk)
 
+    async def route_message(self, message: ChatMessage[Any], wait: bool | None = None):
+        """Route message to all connections."""
+        if wait is not None:
+            should_wait = wait
+        else:
+            should_wait = any(
+                self._wait_states.get(t.name, False) for t in self.get_targets()
+            )
+
+        logger.debug(
+            "TalkManager routing message from %s to %d connections",
+            message.name,
+            len(self._connections),
+        )
+
+        forwarded_from = [*message.forwarded_from, self.owner.name]  # type: ignore
+        message_copy = replace(message, forwarded_from=forwarded_from)
+
+        for talk in self._connections:
+            await talk._handle_message(message_copy, None)
+
+        if should_wait:
+            await self.wait_for_connections()
+
+    @asynccontextmanager
+    async def paused_routing(self):
+        """Temporarily pause message routing to connections."""
+        active_talks = [talk for talk in self._connections if talk.active]
+        for talk in active_talks:
+            talk.active = False
+
+        try:
+            yield self
+        finally:
+            for talk in active_talks:
+                talk.active = True
+
     @property
     def stats(self) -> TeamTalkStats:
         """Get aggregated statistics for all connections."""
         return TeamTalkStats(stats=[conn.stats for conn in self._connections])
 
-    def get_connections(self, recursive: bool = False) -> list[Talk]:
-        """Get all Talk connections, flattening TeamTalks.
-
-        Args:
-            recursive: Whether to include connections from nested TeamTalks.
-                    If True, follows TeamTalks through their targets' connections.
-
-        Returns:
-            List of all individual Talk connections
-        """
+    def get_connections(self, recursive: bool = False) -> list[Talk[Any]]:
+        """Get all Talk connections, flattening TeamTalks."""
 
         def _collect_talks(
-            item: Talk | TeamTalk, seen: set[str] | None = None
-        ) -> list[Talk]:
+            item: Talk[Any] | TeamTalk, seen: set[str] | None = None
+        ) -> list[Talk[Any]]:
             match item:
                 case Talk():
                     return [item]
@@ -603,15 +755,12 @@ class TalkManager:
                     if not recursive:
                         return [t for subitem in item for t in _collect_talks(subitem)]
 
-                    # Handle recursive case
-                    seen = seen or {self.owner.name}  # type: ignore[has-type]
+                    seen = seen or {self.owner.name}  # type: ignore
                     talks = []
 
-                    # First get direct talks from this TeamTalk
                     for subitem in item:
                         talks.extend(_collect_talks(subitem))
 
-                    # Then recursively get talks from targets if not seen
                     for target in item.targets:
                         if target.name not in seen:
                             seen.add(target.name)
@@ -620,49 +769,3 @@ class TalkManager:
                     return talks
 
         return [talk for conn in self._connections for talk in _collect_talks(conn)]
-
-    async def route_message(self, message: ChatMessage[Any], wait: bool | None = None):
-        """Route message to all connections.
-
-        Args:
-            message: Message to route
-            wait: Override default waiting behavior
-                 None = use configured states from _wait_states
-                 True/False = override for this message
-        """
-        if wait is not None:
-            should_wait = wait
-        else:
-            # Use configured states as fallback
-            should_wait = any(
-                self._wait_states.get(t.name, False) for t in self.get_targets()
-            )
-        msg = "TalkManager routing message from %s to %d connections"
-        logger.debug(msg, message.name, len(self._connections))
-        forwarded_from = [*message.forwarded_from, self.owner.name]  # type: ignore[has-type]
-        message_copy = replace(message, forwarded_from=forwarded_from)
-        for talk in self._connections:
-            await talk._handle_message(message_copy, None)
-        if should_wait:
-            await self.wait_for_connections()
-
-    @asynccontextmanager
-    async def paused_routing(self):
-        """Temporarily pause message routing to connections.
-
-        Example:
-            async with agent.connections.paused_routing():
-                # Messages won't be forwarded to connected agents
-                await agent.run("This stays local")
-        """
-        # Store and pause all talks
-        active_talks = [talk for talk in self._connections if talk.active]
-        for talk in active_talks:
-            talk.active = False
-
-        try:
-            yield self
-        finally:
-            # Restore original state
-            for talk in active_talks:
-                talk.active = True

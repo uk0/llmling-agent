@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Self, get_type_hints, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, get_type_hints, overload
 
 from pydantic import ValidationError
 from typing_extensions import TypeVar
@@ -365,34 +365,54 @@ class StructuredAgent[TDeps, TResult]:
     def pass_results_to(
         self,
         other: AnyAgent[Any, Any] | str,
-        prompt: str | None = None,
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
+        queued: bool = False,
+        queue_strategy: Literal["latest", "buffer"] = "latest",
     ) -> Talk[TResult]: ...
 
     @overload
     def pass_results_to(
         self,
-        other: Team[Any],
-        prompt: str | None = None,
+        other: AnyAgent[Any, Any] | str,
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
+        queued: bool = True,
+        queue_strategy: Literal["concat"],
+    ) -> Talk[str]: ...
+
+    @overload
+    def pass_results_to(
+        self,
+        other: Team[Any],
+        *,
+        connection_type: ConnectionType = "run",
+        priority: int = 0,
+        delay: timedelta | None = None,
+        queued: bool = False,
+        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
     ) -> TeamTalk: ...
 
     def pass_results_to(
         self,
         other: AnyAgent[Any, Any] | Team[Any] | str,
-        prompt: str | None = None,
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
-    ) -> Talk[TResult] | TeamTalk:
+        queued: bool = False,
+        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+    ) -> Talk[TResult] | Talk[str] | TeamTalk:
         """Forward results to another agent or all agents in a team."""
         return self._agent.connections.connect_agent_to(
             other,
             connection_type=connection_type,
             priority=priority,
             delay=delay,
+            queued=queued,
+            queue_strategy=queue_strategy,
         )

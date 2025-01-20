@@ -868,29 +868,35 @@ class Agent[TDeps](TaskManagerMixin):
     def pass_results_to(
         self,
         other: AnyAgent[Any, Any] | str,
-        prompt: str | None = None,
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
+        queued: bool = False,
+        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
     ) -> Talk[str]: ...
 
     @overload
     def pass_results_to(
         self,
         other: Team[Any],
-        prompt: str | None = None,
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
+        queued: bool = False,
+        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
     ) -> TeamTalk: ...
 
     def pass_results_to(
         self,
         other: AnyAgent[Any, Any] | Team[Any] | str,
-        prompt: str | None = None,
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
+        queued: bool = False,
+        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
     ) -> Talk[str] | TeamTalk:
         """Forward results to another agent or all agents in a team."""
         return self.connections.connect_agent_to(
@@ -898,6 +904,8 @@ class Agent[TDeps](TaskManagerMixin):
             connection_type=connection_type,
             priority=priority,
             delay=delay,
+            queued=queued,
+            queue_strategy=queue_strategy,
         )
 
     def stop_passing_results_to(self, other: AnyAgent[Any, Any]):

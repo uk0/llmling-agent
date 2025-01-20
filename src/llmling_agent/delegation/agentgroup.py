@@ -199,29 +199,29 @@ class Team[TDeps](TaskManagerMixin):
     def pass_results_to(
         self,
         other: AnyAgent[Any, Any] | Team[Any] | str,
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
+        queued: bool = False,
+        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
     ) -> TeamTalk:
+        """Forward results to another agent or all agents in a team."""
         match other:
+            case str() if not self.agents[0].context.pool:
+                msg = "Pool required for forwarding to agent by name"
+                raise ValueError(msg)
             case str():
-                if not self.agents[0].context.pool:
-                    msg = "Pool required for forwarding to agent by name"
-                    raise ValueError(msg)
-                resolved = self.agents[0].context.pool.get_agent(other)
-                return self.pass_results_to(
-                    resolved,
-                    priority=priority,
-                    delay=delay,
-                    connection_type=connection_type,
-                )
-            case _:
-                return self.connections.connect_group_to(
-                    other,
-                    connection_type=connection_type,
-                    priority=priority,
-                    delay=delay,
-                )
+                other = self.agents[0].context.pool.get_agent(other)
+
+        return self.connections.connect_group_to(
+            other,
+            connection_type=connection_type,
+            priority=priority,
+            delay=delay,
+            queued=queued,
+            queue_strategy=queue_strategy,
+        )
 
     def monitored(
         self,
