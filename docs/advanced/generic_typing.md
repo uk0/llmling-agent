@@ -16,11 +16,13 @@ Key differences from PydanticAI:
 ## Core Generic Types
 
 ### Dependencies (TDeps)
+
 LLMling inherits PydanticAI's dependency system to provide type-safe context for tool execution.
 Dependencies are defined at agent construction time and flow through the entire tool system.
 For detailed understanding of the dependency system, refer to PydanticAI's documentation.
 
 ### Agent Types
+
 ```python
 class Agent[TDeps]:
     """Base agent with typed dependencies."""
@@ -43,6 +45,7 @@ team4 = Team([agent1, agent2])  # Team[Any] - mixed deps
 ```
 
 ### Pool Typing
+
 ```python
 pool = AgentPool[GlobalDeps]()
 
@@ -80,6 +83,7 @@ a BaseModel since the type is generated dynamically.
 ## Multi-Agent Type System
 
 ### Pool Typing
+
 ```python
 class AgentPool[TSharedDeps]:
     """Pool with optional shared dependencies."""
@@ -87,6 +91,7 @@ class AgentPool[TSharedDeps]:
 The pool can provide shared dependencies to its agents while still allowing individual agents to specify their own dependency types through `get_agent`.
 
 ### Team Type Management
+
 ```python
 # Same dependency type - preserved through the team
 team = Team[MyDeps]([agent1, agent2])  # all Agent[MyDeps]
@@ -111,5 +116,6 @@ this doesnt yet guarantee "real" type-safe connections based on specific BaseMod
 
 
 ### And more!
+
 Response types, small decision / result dataclasses and much more should also preserve types to maxium extent.
 This should provide great help static type checkers.

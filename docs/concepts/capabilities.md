@@ -2,40 +2,49 @@
 
 ## What are Capabilities?
 
-Capabilities in LLMling define what "special" operations an agent is allowed to perform.
-They act as access privileges that control an agent's ability to:
+Capabilities in LLMling define what "special" operations an agent is allowed to perform. While tools provide specific functions an agent can use (like web searches or calculations), capabilities control an agent's access to privileged operations that can modify the system itself or access sensitive information.
 
-- Interact with other agents
-- Access resources and history
-- Execute code or commands
-- Register and use tools
-
-When capabilities are enabled, corresponding tools become available to the agent.
-This provides a secure and explicit way to control agent permissions.
+Think of capabilities as "administrative privileges" that determine what an agent is allowed to do beyond regular tool usage. When capabilities are enabled, corresponding tools become available to the agent, providing a secure and explicit way to control agent permissions.
 
 ## Defining Capabilities
 
-Capabilities are defined in the agent configuration:
+Capabilities can be defined in YAML configuration:
 
 ```yaml
 agents:
-  supervisor:
-    # Full access agent
+  my_agent:
     capabilities:
-      can_list_agents: true
-      can_delegate_tasks: true
-      can_create_workers: true
-      history_access: "all"
+      # Agent Discovery & Delegation
+      can_list_agents: false        # Whether agent can discover other agents
+      can_delegate_tasks: false     # Whether agent can assign tasks to other agents
+      can_observe_agents: false     # Whether agent can monitor other agents' activities
+      can_ask_agents: false         # Whether agent can ask other agents directly
 
-  worker:
-    # Limited access agent
-    capabilities:
-      can_load_resources: true
-      history_access: "own"
-      can_execute_code: false
+      # History & Statistics Access
+      history_access: none          # Access to conversation history (none|own|all)
+      stats_access: none           # Access to usage statistics (none|own|all)
+
+      # Resource Management
+      can_load_resources: false    # Whether agent can load resource content
+      can_list_resources: false    # Whether agent can discover available resources
+
+      # Tool Management
+      can_register_tools: false    # Whether agent can register importable functions
+      can_register_code: false     # Whether agent can create new tools from code
+      can_install_packages: false  # Whether agent can install Python packages
+      can_chain_tools: false       # Whether agent can chain multiple tool calls
+
+      # Code Execution
+      can_execute_code: false      # Whether agent can execute Python code (WARNING: No sandbox)
+      can_execute_commands: false  # Whether agent can execute CLI commands
+
+      # Agent Creation
+      can_create_workers: false    # Whether agent can create worker agents (as tools)
+      can_create_delegates: false  # Whether agent can spawn temporary delegate agents
+      can_add_agents: false       # Whether agent can add other agents to the pool
 ```
 
-In Python:
+Or in Python:
 ```python
 from llmling_agent.config import Capabilities
 
@@ -125,5 +134,67 @@ can_create_delegates: bool = False
 
 can_add_agents: bool = False
 """Whether the agent can add other agents to the pool."""
+```
 
+## Common Patterns
+
+Here are some common capability configurations for different agent roles:
+
+### Basic Agent
+```yaml
+agents:
+  restricted_agent:
+    capabilities:
+      # Minimal capabilities - can only use predefined tools
+      can_load_resources: true    # Can load resources
+```
+
+### Power User Agent
+```yaml
+agents:
+  power_user:
+    capabilities:
+      can_load_resources: true
+      can_list_resources: true
+      can_register_tools: true
+      history_access: own         # Can access own history
+      stats_access: own          # Can access own stats
+```
+
+### Team Lead Agent
+```yaml
+agents:
+  team_lead:
+    capabilities:
+      # Can manage other agents but no code execution
+      can_list_agents: true
+      can_delegate_tasks: true
+      can_observe_agents: true
+      history_access: all
+      stats_access: all
+      can_create_workers: true
+      can_create_delegates: true
+```
+
+### Admin Agent
+```yaml
+agents:
+  admin:
+    capabilities:
+      # Full access to everything
+      can_list_agents: true
+      can_delegate_tasks: true
+      can_observe_agents: true
+      history_access: all
+      stats_access: all
+      can_load_resources: true
+      can_list_resources: true
+      can_register_tools: true
+      can_register_code: true
+      can_install_packages: true
+      can_chain_tools: true
+      can_execute_code: true
+      can_execute_commands: true
+      can_create_workers: true
+      can_create_delegates: true
 ```

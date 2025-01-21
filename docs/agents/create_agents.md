@@ -79,9 +79,9 @@ Always use async context managers:
 agent = Agent(...)
 result = await agent.run("Hello")
 
-# ❌ Limited: Not everything is initialized
+# ❌ Limited: Works, but not everything is initialized
 agent = Agent(...)
-result = await agent.run_sync("Hello")
+result = agent.run_sync("Hello")
 
 # ✅ Correct - proper async initialization
 async with Agent(...) as agent:

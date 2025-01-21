@@ -20,12 +20,6 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/advanced/callables.md")
 
 
-@nav.route.page("Capabilities System", icon="octicon:shield-check-16")
-def _(page: mk.MkPage):
-    """Advanced capabilities and permissions."""
-    page += mk.MkTemplate("docs/advanced/capabilities.md")
-
-
 @nav.route.page("System Prompts", icon="octicon:comment-16")
 def _(page: mk.MkPage):
     """Advanced system prompt features."""
