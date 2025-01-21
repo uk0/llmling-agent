@@ -42,7 +42,7 @@ async def test_agent_message_history(test_agent: Agent[None]):
         ModelRequest(parts=[UserPromptPart(content="Previous message")]),
         ModelResponse(parts=[TextPart(content="Previous response")]),
     ]
-    test_agent.conversation._current_history = history
+    test_agent.conversation.set_history(history)
     result = await test_agent.run(SIMPLE_PROMPT)
     assert result.data == TEST_RESPONSE
     assert test_agent.conversation.last_run_messages

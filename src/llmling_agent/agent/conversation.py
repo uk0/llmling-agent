@@ -12,7 +12,7 @@ from uuid import UUID, uuid4
 from llmling import BasePrompt, PromptMessage, StaticPrompt
 from llmling.config.models import BaseResource
 from psygnal import Signal
-from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserPromptPart
+from pydantic_ai.messages import ModelRequest, UserPromptPart
 from toprompt import AnyPromptType, to_prompt
 from upath import UPath
 
@@ -23,7 +23,6 @@ from llmling_agent.utils.async_read import read_path
 from llmling_agent_providers.pydanticai.utils import (
     convert_model_message,
     format_part,
-    get_message_role,
     to_model_message,
 )
 
@@ -202,7 +201,7 @@ class ConversationManager:
         token_count = 0
 
         # Get messages, optionally limited
-        history = self._current_history
+        history = self.chat_messages
         if num_messages:
             history = history[-num_messages:]
 
@@ -210,15 +209,22 @@ class ConversationManager:
             history = list(reversed(history))  # Start from newest when token limited
 
         for msg in history:
-            # Check message type instead of role string
-            if not include_system and isinstance(msg, SystemPromptPart):
+            # Check role directly from ChatMessage
+            if not include_system and msg.role == "system":
                 continue
-            content = "\n".join(format_part(part) for part in msg.parts)
-            formatted = template.format(agent=get_message_role(msg), content=content)
+
+            formatted = template.format(
+                agent=msg.name or msg.role.title(), content=str(msg.content)
+            )
 
             if max_tokens:
                 # Count tokens in this message
-                msg_tokens = self.get_message_tokens(msg)
+                if msg.cost_info:
+                    msg_tokens = msg.cost_info.token_usage["total"]
+                else:
+                    # Fallback to tiktoken if no cost info
+                    msg_tokens = self.get_message_tokens(msg)
+
                 if token_count + msg_tokens > max_tokens:
                     break
                 token_count += msg_tokens
@@ -532,14 +538,27 @@ class ConversationManager:
 
     def get_history_tokens(self) -> int:
         """Get token count for current history."""
-        import tiktoken
-
-        encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
-        return sum(
-            len(encoding.encode(format_part(part)))
-            for msg in self._current_history
-            for part in msg.parts
+        # Use cost_info if available
+        total = sum(
+            msg.cost_info.token_usage["total"]
+            for msg in self.chat_messages
+            if msg.cost_info
         )
+
+        # For messages without cost_info, use tiktoken
+        if messages_without_cost := [
+            msg for msg in self.chat_messages if not msg.cost_info
+        ]:
+            import tiktoken
+
+            encoding = tiktoken.encoding_for_model(
+                self._agent.model_name or "gpt-3.5-turbo"
+            )
+            total += sum(
+                len(encoding.encode(str(msg.content))) for msg in messages_without_cost
+            )
+
+        return total
 
     def get_pending_tokens(self) -> int:
         """Get token count for pending messages."""
