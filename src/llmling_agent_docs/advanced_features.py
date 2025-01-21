@@ -80,6 +80,12 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/advanced/agent_state.md")
 
 
+@nav.route.page("Passing data to the agent", icon="octicon:pulse-16")
+def _(page: mk.MkPage):
+    """Passing data to the agent."""
+    page += mk.MkTemplate("docs/advanced/passing_data.md")
+
+
 # @nav.route.page("UPath & YAML Features", icon="octicon:file-code-16")
 # def _(page: mk.MkPage):
 #     """UPath integration and YAML features."""
