@@ -780,12 +780,12 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
                         details.append(talk.connection_type)
                         if talk.queued:
                             details.append(f"queued({talk.queue_strategy})")
-                        if talk._filter_condition:
-                            details.append(f"filter:{talk._filter_condition.__name__}")
-                        if talk._stop_condition:
-                            details.append(f"stop:{talk._stop_condition.__name__}")
-                        if talk._exit_condition:
-                            details.append(f"exit:{talk._exit_condition.__name__}")
+                        if fn := talk._filter_condition:  # type: ignore
+                            details.append(f"filter:{fn.__name__}")
+                        if fn := talk._stop_condition:  # type: ignore
+                            details.append(f"stop:{fn.__name__}")
+                        if fn := talk._exit_condition:  # type: ignore
+                            details.append(f"exit:{fn.__name__}")
 
                         label = f"|{' '.join(details)}|" if details else ""
                         lines.append(f"    {source}--{label}-->{target.name}")
