@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.models.converters import (
+    ConversionConfig,
     MarkItDownConfig,
     PlainConverterConfig,
 )
@@ -14,7 +15,6 @@ from llmling_agent.utils.async_read import read_path
 if TYPE_CHECKING:
     from os import PathLike
 
-    from llmling_agent.models.converters import ConversionConfig
     from llmling_agent_converters.base import DocumentConverter
 
 
@@ -25,9 +25,13 @@ class ConversionManager:
     The manager will handle async I/O and thread pooling.
     """
 
-    def __init__(self, config: ConversionConfig):
-        self.config = config
-        self._converters = self._setup_converters()
+    def __init__(self, config: ConversionConfig | list[DocumentConverter]):
+        if isinstance(config, list):
+            self.config = ConversionConfig()
+            self._converters = config
+        else:
+            self.config = config
+            self._converters = self._setup_converters()
         self._executor = ThreadPoolExecutor(max_workers=3)
 
     def __del__(self):
@@ -50,6 +54,9 @@ class ConversionManager:
                     from llmling_agent_converters.plain_converter import PlainConverter
 
                     converters.append(PlainConverter(cfg))
+        # Always add PlainConverter as fallback
+        # if it gets configured by user, that one gets preference.
+        converters.append(PlainConverter(PlainConverterConfig()))
         return converters
 
     async def convert_file(self, path: str | PathLike[str]) -> str:
@@ -64,9 +71,6 @@ class ConversionManager:
             )
             if not supports:
                 continue
-
-            # Read file asynchronously
-
             # Run conversion in thread pool
             import mimetypes
 

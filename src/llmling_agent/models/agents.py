@@ -30,6 +30,7 @@ import yamling
 from llmling_agent.config import Capabilities, Knowledge
 from llmling_agent.environment import AgentEnvironment, FileEnvironment, InlineEnvironment
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
+from llmling_agent.models.converters import ConversionConfig
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, StdioMCPServer
 from llmling_agent.models.prompts import PromptConfig
@@ -473,6 +474,9 @@ class AgentsManifest[TDeps](ConfigModel):
 
     storage: StorageConfig = Field(default_factory=StorageConfig)
     """Storage provider configuration."""
+
+    conversion: ConversionConfig = Field(default_factory=ConversionConfig)
+    """Document conversion configuration."""
 
     responses: dict[str, ResponseDefinition] = Field(default_factory=dict)
     """Mapping of response names to their definitions"""

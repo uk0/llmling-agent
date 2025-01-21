@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from pydantic_ai import RunContext
 from typing_extensions import TypeVar
 
+from llmling_agent.prompts.conversion_manager import ConversionManager
 from llmling_agent.tools.base import ToolInfo
 
 
@@ -98,6 +99,11 @@ class AgentContext[TDeps]:
             data=deps,
             pool=pool,
         )
+
+    @cached_property
+    def converter(self) -> ConversionManager:
+        """Get conversion manager from global config."""
+        return ConversionManager(self.definition.conversion)
 
     # TODO: perhaps add agent directly to context?
     @property

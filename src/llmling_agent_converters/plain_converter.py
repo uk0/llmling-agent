@@ -5,13 +5,12 @@ from typing import TYPE_CHECKING, Any
 from upath import UPath
 
 from llmling_agent.log import get_logger
+from llmling_agent.models.converters import PlainConverterConfig
 from llmling_agent_converters.base import DocumentConverter
 
 
 if TYPE_CHECKING:
     from os import PathLike
-
-    from llmling_agent.models.converters import PlainConverterConfig
 
 
 logger = get_logger(__name__)
@@ -20,8 +19,8 @@ logger = get_logger(__name__)
 class PlainConverter(DocumentConverter):
     """Fallback converter that handles plain text."""
 
-    def __init__(self, config: PlainConverterConfig):
-        self.config = config
+    def __init__(self, config: PlainConverterConfig | None = None):
+        self.config = config or PlainConverterConfig()
 
     def supports_file(self, path: str | PathLike[str]) -> bool:
         """Support text files or unknown types as last resort."""

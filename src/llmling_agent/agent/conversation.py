@@ -6,7 +6,6 @@ from collections import deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
-import tempfile
 from typing import TYPE_CHECKING, Any, Literal, Self, overload
 from uuid import UUID, uuid4
 
@@ -472,36 +471,12 @@ class ConversationManager:
             ValueError: If content cannot be loaded or converted
         """
         path_obj = UPath(path)
-
         if convert_to_md:
-            try:
-                from markitdown import MarkItDown
-
-                md = MarkItDown()
-
-                # Direct handling for local paths and http(s) URLs
-                if path_obj.protocol in ("", "file", "http", "https"):
-                    result = md.convert(path_obj.path)
-                else:
-                    with tempfile.NamedTemporaryFile(suffix=path_obj.suffix) as tmp:
-                        tmp.write(await read_path(path_obj, mode="rb"))
-                        tmp.flush()
-                        result = md.convert(tmp.name)
-
-                content = result.text_content
-                source = f"markdown:{path_obj.name}"
-
-            except Exception as e:
-                msg = f"Failed to convert {path_obj} to markdown: {e}"
-                raise ValueError(msg) from e
+            content = await self._agent.context.converter.convert_file(path)
+            source = f"markdown:{path_obj.name}"
         else:
-            try:
-                content = await read_path(path_obj)
-                source = f"{path_obj.protocol}:{path_obj.name}"
-            except Exception as e:
-                msg = f"Failed to read {path_obj}: {e}"
-                raise ValueError(msg) from e
-
+            content = await read_path(path)
+            source = f"{path_obj.protocol}:{path_obj.name}"
         self.add_context_message(content, source=source, **metadata)
 
     async def add_context_from_resource(self, resource: Resource | str):
@@ -585,9 +560,8 @@ if __name__ == "__main__":
 
     async def main():
         async with Agent[Any].open() as agent:
-            convo = ConversationManager(agent)
-            await convo.add_context_from_path("E:/mcp_zed.yml")
-            print(convo._current_history)
+            await agent.conversation.add_context_from_path("E:/mcp_zed.yml")
+            print(agent.conversation.get_history())
 
     import asyncio
 

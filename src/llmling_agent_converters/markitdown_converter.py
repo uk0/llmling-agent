@@ -1,19 +1,18 @@
 from __future__ import annotations
 
+from functools import cached_property
 import tempfile
 from typing import TYPE_CHECKING, Any
 
-from markitdown import MarkItDown
 from upath import UPath
 
 from llmling_agent.log import get_logger
+from llmling_agent.models.converters import MarkItDownConfig
 from llmling_agent_converters.base import DocumentConverter
 
 
 if TYPE_CHECKING:
     from os import PathLike
-
-    from llmling_agent.models.converters import MarkItDownConfig
 
 
 logger = get_logger(__name__)
@@ -22,9 +21,14 @@ logger = get_logger(__name__)
 class MarkItDownConverter(DocumentConverter):
     """Converter using MarkItDown for document conversion."""
 
-    def __init__(self, config: MarkItDownConfig):
-        self.config = config
-        self.converter = MarkItDown()
+    def __init__(self, config: MarkItDownConfig | None = None):
+        self.config = config or MarkItDownConfig()
+
+    @cached_property
+    def converter(self):
+        from markitdown import MarkItDown
+
+        return MarkItDown()
 
     def supports_file(self, path: str | PathLike[str]) -> bool:
         """Accept any file - MarkItDown is good at detecting formats."""
