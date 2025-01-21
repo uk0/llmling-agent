@@ -26,15 +26,11 @@ class MarkItDownConverter(DocumentConverter):
         self.config = config
         self.converter = MarkItDown()
 
-    @property
-    def is_async(self) -> bool:
-        return False
-
-    async def supports_file(self, path: str | PathLike[str]) -> bool:
+    def supports_file(self, path: str | PathLike[str]) -> bool:
         """Accept any file - MarkItDown is good at detecting formats."""
         return True
 
-    async def supports_content(self, content: Any, mime_type: str | None = None) -> bool:
+    def supports_content(self, content: Any, mime_type: str | None = None) -> bool:
         """Only supports files, not raw content."""
         return False
 

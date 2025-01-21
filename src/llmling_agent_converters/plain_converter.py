@@ -23,18 +23,14 @@ class PlainConverter(DocumentConverter):
     def __init__(self, config: PlainConverterConfig):
         self.config = config
 
-    @property
-    def is_async(self) -> bool:
-        return False
-
-    async def supports_file(self, path: str | PathLike[str]) -> bool:
+    def supports_file(self, path: str | PathLike[str]) -> bool:
         """Support text files or unknown types as last resort."""
         import mimetypes
 
         mime_type, _ = mimetypes.guess_type(str(path))
         return mime_type is None or mime_type.startswith("text/")
 
-    async def supports_content(self, content: Any, mime_type: str | None = None) -> bool:
+    def supports_content(self, content: Any, mime_type: str | None = None) -> bool:
         """Accept any content we can convert to string."""
         return True
 

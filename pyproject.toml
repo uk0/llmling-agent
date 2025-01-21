@@ -15,6 +15,7 @@ packages = [
     "src/llmling_agent_functional",
     "src/llmling_agent_docs",
     "src/llmling_agent_events",
+    "src/llmling_agent_converters",
 ]
 
 [build-system]
@@ -70,6 +71,7 @@ dependencies = [
     "pillow>=11.1.0",
     "aioimaplib>=2.0.1",
     "croniter>=6.0.0",
+    "morefs[asynclocal]",
 ]
 
 [project.scripts]

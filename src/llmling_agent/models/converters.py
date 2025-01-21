@@ -41,6 +41,9 @@ class PlainConverterConfig(BaseConverterConfig):
     type: Literal["plain"] = Field("plain", init=False)
     """Type discriminator for plain text converter."""
 
+    force: bool = False
+    """Whether to attempt converting any file type."""
+
 
 ConverterConfig = Annotated[
     DoclingConverterConfig | MarkItDownConfig | PlainConverterConfig,
