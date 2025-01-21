@@ -725,3 +725,55 @@ class TalkManager:
                         result.extend(target.connections.get_connections(True))
 
         return result
+
+    def get_mermaid_diagram(
+        self,
+        include_details: bool = True,
+        recursive: bool = True,
+    ) -> str:
+        """Generate mermaid flowchart of all connections."""
+        lines = ["flowchart LR"]
+        connections = self.get_connections(recursive=recursive)
+
+        for talk in connections:
+            source = talk.source.name
+            for target in talk.targets:
+                if include_details:
+                    details: list[str] = []
+                    details.append(talk.connection_type)
+                    if talk.queued:
+                        details.append(f"queued({talk.queue_strategy})")
+                    if talk._filter_condition:
+                        details.append(f"filter:{talk._filter_condition.__name__}")
+                    if talk._stop_condition:
+                        details.append(f"stop:{talk._stop_condition.__name__}")
+                    if talk._exit_condition:
+                        details.append(f"exit:{talk._exit_condition.__name__}")
+                    elif any([
+                        talk._filter_condition,
+                        talk._stop_condition,
+                        talk._exit_condition,
+                    ]):
+                        details.append("conditions")
+
+                    label = f"|{' '.join(details)}|" if details else ""
+                    lines.append(f"    {source}--{label}-->{target.name}")
+                else:
+                    lines.append(f"    {source}-->{target.name}")
+
+        return "\n".join(lines)
+
+
+if __name__ == "__main__":
+    from llmling_agent.agent import Agent
+    from llmling_agent.talk.stats import TalkStats
+
+    agent = Agent[None]("test_agent")
+    agent_2 = Agent[None]("test_agent_2")
+    agent_3 = Agent[None]("test_agent_3")
+    agent_4 = Agent[None]("test_agent_3")
+    _conn_1 = agent >> agent_2
+    _conn_2 = agent >> agent_3
+    _conn_3 = agent_2 >> agent_4
+    print(agent.connections.get_connections(recursive=True))
+    print(agent.connections.get_mermaid_diagram())
