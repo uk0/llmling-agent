@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
 
 from psygnal import Signal
 import tokonomics
@@ -14,7 +14,7 @@ from llmling_agent.models.agents import ToolCallInfo
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import AsyncIterator, Sequence
     from contextlib import AbstractAsyncContextManager
 
     from pydantic_ai.result import StreamedRunResult
@@ -38,6 +38,29 @@ class ProviderResponse:
     tool_calls: list[ToolCallInfo] = field(default_factory=list)
     model_name: str = ""
     usage: TokonomicsUsage | None = None
+
+
+@runtime_checkable
+class StreamingResponse(Protocol):
+    """Protocol for streaming responses.
+
+    This matches PydanticAI's StreamedRunResult interface to make transition easier,
+    but lives in our core package to remove the dependency.
+    """
+
+    model_name: str | None
+    """Name of the model generating the response."""
+
+    is_complete: bool
+    """Whether the streaming is finished."""
+
+    async def stream(self) -> AsyncIterator[str]:
+        """Stream individual chunks as they arrive."""
+        ...
+
+    def usage(self) -> dict[str, int] | None:
+        """Get token usage statistics if available."""
+        ...
 
 
 class AgentProvider[TDeps]:
