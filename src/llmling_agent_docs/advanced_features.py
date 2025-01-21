@@ -80,6 +80,12 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/advanced/agent_state.md")
 
 
+@nav.route.page("Document conversion", icon="octicon:pulse-16")
+def _(page: mk.MkPage):
+    """Document conversion."""
+    page += mk.MkTemplate("docs/advanced/document_conversion.md")
+
+
 @nav.route.page("Passing data to the agent", icon="octicon:pulse-16")
 def _(page: mk.MkPage):
     """Passing data to the agent."""
