@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import AsyncExitStack
+from contextlib import AsyncExitStack, suppress
 from dataclasses import dataclass
 import signal
 from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
@@ -259,16 +259,26 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
 
     async def run_event_loop(self) -> None:
         """Run pool in event-watching mode until interrupted."""
+        import sys
+
+        print("Starting event watch mode...")
+        print("Active agents: ", ", ".join(self.list_agents()))
+        print("Press Ctrl+C to stop")
+
         stop_event = asyncio.Event()
-        loop = asyncio.get_running_loop()
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, stop_event.set)
 
-        logger.info("Starting event watch mode...")
-        logger.info("Active agents: %s", ", ".join(self.list_agents()))
-        logger.info("Press Ctrl+C to stop")
-
-        await stop_event.wait()
+        if sys.platform != "win32":
+            # Unix: Use signal handlers
+            loop = asyncio.get_running_loop()
+            for sig in (signal.SIGINT, signal.SIGTERM):
+                loop.add_signal_handler(sig, stop_event.set)
+            while True:
+                await asyncio.sleep(1)
+        else:
+            # Windows: Use keyboard interrupt
+            with suppress(KeyboardInterrupt):
+                while True:
+                    await asyncio.sleep(1)
 
     def start_supervision(self) -> OptionalAwaitable[None]:
         """Start supervision interface.

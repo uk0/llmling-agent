@@ -11,6 +11,7 @@ from llmling_agent.events.sources import (
     EventConfig,
     EventData,
     FileWatchConfig,
+    TimeEventConfig,
     WebhookConfig,
 )
 from llmling_agent.log import get_logger
@@ -99,7 +100,7 @@ class EventManager:
         if not config.enabled:
             msg = f"Source {config.name} is disabled"
             raise ValueError(msg)
-
+        logger.info("Creating event source: %s (%s)", config.name, config.type)
         match config:
             case FileWatchConfig():
                 from llmling_agent_events.file_watcher import FileSystemEventSource
@@ -114,6 +115,11 @@ class EventManager:
                 from llmling_agent_events.email_watcher import EmailEventSource
 
                 return EmailEventSource(config)
+            case TimeEventConfig():
+                from llmling_agent_events.timed_watcher import TimeEventSource
+
+                return TimeEventSource(config)
+
             case _:
                 msg = f"Unknown event source type: {config.type}"
                 raise ValueError(msg)
@@ -131,6 +137,7 @@ class EventManager:
             msg = "Event processing disabled, not adding source: %s"
             logger.warning(msg, config.name)
             return
+        logger.debug("Setting up event source: %s (%s)", config.name, config.type)
 
         if config.name in self._sources:
             msg = f"Event source already exists: {config.name}"
@@ -190,6 +197,14 @@ class EventManager:
 
     async def __aenter__(self) -> Self:
         """Allow using manager as async context manager."""
+        if not self.enabled:
+            return self
+
+        # Set up triggers from config
+        if self.agent.context.config and self.agent.context.config.triggers:
+            for trigger in self.agent.context.config.triggers:
+                await self.add_source(trigger)
+
         return self
 
     async def __aexit__(self, *exc: object):

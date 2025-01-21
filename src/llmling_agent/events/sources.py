@@ -173,6 +173,9 @@ class TimeEventConfig(EventSourceConfig):
     schedule: str
     """Cron expression for scheduling (e.g. '0 9 * * 1-5' for weekdays at 9am)"""
 
+    prompt: str
+    """Prompt to send to the agent when the schedule triggers."""
+
     timezone: str | None = None
     """Timezone for schedule (defaults to system timezone)"""
 

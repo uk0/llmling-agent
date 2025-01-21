@@ -25,9 +25,12 @@ class TimeEvent(EventData):
     schedule: str
     """Cron expression that triggered this event."""
 
+    prompt: str
+    """Cron expression that triggered this event."""
+
     def to_prompt(self) -> str:
         """Format scheduled event."""
-        return f"Scheduled task triggered by {self.schedule}"
+        return f"Scheduled task triggered by {self.schedule}: {self.prompt}"
 
 
 class TimeEventSource(EventSource):
@@ -72,4 +75,8 @@ class TimeEventSource(EventSource):
                 if (current - next_run).total_seconds() > 1:
                     continue
 
-            yield TimeEvent(source=self.config.name, schedule=self.config.schedule)
+            yield TimeEvent(
+                source=self.config.name,
+                schedule=self.config.schedule,
+                prompt=self.config.prompt,
+            )

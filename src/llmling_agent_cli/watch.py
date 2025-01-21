@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import TYPE_CHECKING, Any
 
 import typer as t
@@ -31,6 +32,8 @@ def watch_command(
     log_level: str = t.Option("INFO", help="Logging level"),
 ):
     """Run agents in event-watching mode."""
+    level = getattr(logging, log_level.upper())
+    logging.basicConfig(level=level)
 
     async def run_watch():
         async with AgentPool[None](config) as pool:
