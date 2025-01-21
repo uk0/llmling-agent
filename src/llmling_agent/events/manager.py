@@ -7,10 +7,9 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Self
 
 from llmling_agent.events.sources import (
+    EmailConfig,
     EventConfig,
     EventData,
-    EventSource,
-    FileSystemEventSource,
     FileWatchConfig,
     WebhookConfig,
 )
@@ -19,6 +18,7 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
+    from llmling_agent_events.base import EventSource
 
 logger = get_logger(__name__)
 
@@ -102,10 +102,18 @@ class EventManager:
 
         match config:
             case FileWatchConfig():
+                from llmling_agent_events.file_watcher import FileSystemEventSource
+
                 return FileSystemEventSource(config)
             case WebhookConfig():
-                msg = "Webhook events not yet implemented"
-                raise NotImplementedError(msg)
+                from llmling_agent_events.webhook_watcher import WebhookEventSource
+
+                return WebhookEventSource(config)
+
+            case EmailConfig():
+                from llmling_agent_events.email_watcher import EmailEventSource
+
+                return EmailEventSource(config)
             case _:
                 msg = f"Unknown event source type: {config.type}"
                 raise ValueError(msg)

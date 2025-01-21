@@ -14,6 +14,7 @@ packages = [
     "src/llmling_agent_storage",
     "src/llmling_agent_functional",
     "src/llmling_agent_docs",
+    "src/llmling_agent_events",
 ]
 
 [build-system]
@@ -67,6 +68,7 @@ dependencies = [
     "mcp>=1.2.0",
     "griffe>=1.5.4",
     "pillow>=11.1.0",
+    "aioimaplib>=2.0.1",
 ]
 
 [project.scripts]
