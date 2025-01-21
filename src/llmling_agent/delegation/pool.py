@@ -753,6 +753,46 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
             decision_callback=decision_callback,
         )
 
+    def get_mermaid_diagram(
+        self,
+        include_details: bool = True,
+    ) -> str:
+        """Generate mermaid flowchart of all agents and their connections.
+
+        Args:
+            include_details: Whether to show connection details (types, queues, etc)
+        """
+        lines = ["flowchart LR"]
+
+        # Add all agents as nodes
+        for name in self.agents:
+            lines.append(f"    {name}[{name}]")  # noqa: PERF401
+
+        # Add all connections as edges
+        for agent in self.agents.values():
+            connections = agent.connections.get_connections()
+            for talk in connections:
+                source = talk.source.name
+                for target in talk.targets:
+                    if include_details:
+                        details: list[str] = []
+                        details.append(talk.connection_type)
+                        if talk.queued:
+                            details.append(f"queued({talk.queue_strategy})")
+                        if talk._filter_condition:
+                            details.append(f"filter:{talk._filter_condition.__name__}")
+                        if talk._stop_condition:
+                            details.append(f"stop:{talk._stop_condition.__name__}")
+                        if talk._exit_condition:
+                            details.append(f"exit:{talk._exit_condition.__name__}")
+
+                        label = f"|{' '.join(details)}|" if details else ""
+                        lines.append(f"    {source}--{label}-->{target.name}")
+                    else:
+                        lines.append(f"    {source}-->{target.name}")
+
+        return "\n".join(lines)
+
 
 if __name__ == "__main__":
 
