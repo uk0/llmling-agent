@@ -76,11 +76,15 @@ Agents require proper async initialization for:
 Always use async context managers:
 ```python
 # ❌ Wrong - missing async init
-agent = Agent.from_config("config.yml")
+agent = Agent(...)
 result = await agent.run("Hello")
 
+# ❌ Limited: Not everything is initialized
+agent = Agent(...)
+result = await agent.run_sync("Hello")
+
 # ✅ Correct - proper async initialization
-async with Agent.open("config.yml") as agent:
+async with Agent(...) as agent:
     result = await agent.run("Hello")
 ```
 
@@ -127,8 +131,11 @@ parent.register_worker(
     reset_history_on_run=True,
     pass_message_history=False
 )
+```
 
 # In YAML config
+
+```yaml
 agents:
   parent:
     workers:
@@ -141,4 +148,3 @@ agents:
 1. Use `AgentPool` for managing multiple agents
 2. Always use async context managers
 3. Consider using templates for common agent types
-```
