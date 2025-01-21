@@ -144,17 +144,3 @@ async def test_agent_context_manager(tmp_path: Path):
         # Check prompt message
         assert messages[0].content.strip() == SIMPLE_PROMPT
         assert messages[1].content == TEST_RESPONSE
-
-
-@pytest.mark.asyncio
-async def test_agent_logging():
-    """Test agent logging functionality."""
-    model = TestModel(custom_result_text=TEST_RESPONSE)
-    async with (
-        Agent[None](name="test-agent", model=model) as agent1,
-        Agent[None](name="test-agent", model=model, enable_db_logging=False) as agent2,
-    ):
-        result1 = await agent1.run(SIMPLE_PROMPT)
-        assert result1.data == TEST_RESPONSE
-        result2 = await agent2.run(SIMPLE_PROMPT)
-        assert result2.data == TEST_RESPONSE

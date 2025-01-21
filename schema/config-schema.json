@@ -217,18 +217,15 @@
               "$ref": "#/$defs/SessionQuery"
             },
             {
+              "$ref": "#/$defs/MemoryConfig"
+            },
+            {
               "type": "null"
             }
           ],
           "default": null,
           "description": "Session configuration for conversation recovery.",
           "title": "Session"
-        },
-        "enable_db_logging": {
-          "default": true,
-          "description": "Enable session database logging.",
-          "title": "Enable Db Logging",
-          "type": "boolean"
         },
         "result_type": {
           "anyOf": [
@@ -3278,6 +3275,70 @@
         }
       },
       "title": "LiteLLMProviderConfig",
+      "type": "object"
+    },
+    "MemoryConfig": {
+      "description": "Configuration for agent memory and history handling.",
+      "properties": {
+        "enable": {
+          "default": true,
+          "description": "Whether to enable history tracking.",
+          "title": "Enable",
+          "type": "boolean"
+        },
+        "max_tokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum number of tokens to keep in context window.",
+          "title": "Max Tokens"
+        },
+        "max_messages": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum number of messages to keep in context window.",
+          "title": "Max Messages"
+        },
+        "session": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionQuery"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Query configuration for loading previous session."
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Override default storage provider for this agent.\nIf None, uses manifest's default provider or first available.",
+          "title": "Provider"
+        }
+      },
+      "title": "MemoryConfig",
       "type": "object"
     },
     "MemoryStorageConfig": {

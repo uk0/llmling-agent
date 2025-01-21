@@ -19,7 +19,7 @@ from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
-from llmling_agent.models.session import SessionQuery
+from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent_providers.pydanticai.utils import (
     convert_model_message,
     format_part,
@@ -70,7 +70,7 @@ class ConversationManager:
     def __init__(
         self,
         agent: Agent[Any],
-        session: SessionIdType | SessionQuery = None,
+        session_config: MemoryConfig | None = None,
         *,
         resources: Sequence[Resource | PromptType | str] = (),
     ):
@@ -78,7 +78,7 @@ class ConversationManager:
 
         Args:
             agent: instance to manage
-            session: Optional session ID or query to load and continue conversation
+            session_config: Optional MemoryConfig
             resources: Optional paths to load as context
         """
         self._agent = agent
@@ -89,19 +89,15 @@ class ConversationManager:
         # Generate new ID if none provided
         self.id = str(uuid4())
 
-        if session is not None:
+        if session_config is not None and session_config.session is not None:
             storage = self._agent.context.storage
-            match session:
-                case SessionQuery():
-                    messages = storage.filter_messages_sync(session)
-                    self._current_history = [to_model_message(msg) for msg in messages]
-                    if session.name:
-                        self.id = session.name
-                case _:  # SessionIdType
-                    self.id = str(session)
-                    query = SessionQuery(name=self.id)
-                    messages = storage.filter_messages_sync(query)
-                    self._current_history = [to_model_message(msg) for msg in messages]
+            messages = storage.filter_messages_sync(session_config.session)
+            self._current_history = [to_model_message(msg) for msg in messages]
+            if session_config.session.name:
+                self.id = session_config.session.name
+
+        # Note: max_messages and max_tokens will be handled in add_message/get_history
+        # to maintain the rolling window during conversation
 
     def get_initialization_tasks(self) -> list[Coroutine[Any, Any, Any]]:
         """Get all initialization coroutines."""
@@ -562,7 +558,7 @@ if __name__ == "__main__":
 
     async def main():
         async with Agent[Any].open() as agent:
-            convo = ConversationManager(agent, session="test")
+            convo = ConversationManager(agent)
             await convo.add_context_from_path("E:/mcp_zed.yml")
             print(convo._current_history)
 

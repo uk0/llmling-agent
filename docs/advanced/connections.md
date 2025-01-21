@@ -144,34 +144,40 @@ TeamTalk provides aggregate operations for multiple connections:
 ## Unique Features
 
 1. **Object-Oriented Design**
-   - Each connection is a first-class object
-   - Strong typing and clear interfaces
-   - Easy to extend and customize
+
+- Each connection is a first-class object
+- Strong typing and clear interfaces
+- Easy to extend and customize
 
 2. **Flexible Routing**
-   - Multiple connection types
-   - Configurable message handling
-   - Support for complex topologies
+
+- Multiple connection types
+- Configurable message handling
+- Support for complex topologies
 
 3. **Rich Monitoring**
-   - Detailed statistics
-   - Connection state tracking
-   - Performance metrics
+
+- Detailed statistics
+- Connection state tracking
+- Performance metrics
 
 4. **Type Safety**
-   - Generic type parameters for dependencies and results
-   - Type-safe message passing
-   - Proper typing for team operations
+
+- Generic type parameters for dependencies and results
+- Type-safe message passing
+- Proper typing for team operations
 
 5. **Clean API**
-   - Operator overloading for intuitive syntax (`agent >> other_agent`)
-   - Chainable configuration
-   - Consistent interface across patterns
+
+- Operator overloading for intuitive syntax (`agent >> other_agent`)
+- Chainable configuration
+- Consistent interface across patterns
 
 6. **Configuration Options**
-   - Programmatic setup
-   - YAML configuration
-   - Runtime modification
+
+- Programmatic setup
+- YAML configuration
+- Runtime modification
 
 ## Example Usage
 

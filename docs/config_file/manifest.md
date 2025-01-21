@@ -21,7 +21,6 @@ agents:
     # Provider behavior
     retries: 1
     end_strategy: "early"  # "early" | "complete" | "confirm"
-    enable_db_logging: true
 
     # Structured output
     result_type:
@@ -40,7 +39,9 @@ agents:
     model_settings: {}  # Additional model parameters
 
     # State management
-    session: "session_name"  # or SessionQuery object
+    session:                 # Initial session loading
+      name: my_session       # Optional session identifier
+      since: 1h             # Only messages from last hour
     avatar: "path/to/avatar.png"  # Optional UI avatar
 
     # Capabilities
@@ -183,7 +184,7 @@ async with AgentPool("agents.yml") as pool:
     Versioned config files will arrive soon!
 
 LLMling-Agent supports the YAML inheritance functionality for the manifest also known from MkDocs, using the
-INHERIT key on the top level. It even supports UPaths (universal-pathlib)
+`INHERIT` key on the top level. It even supports UPaths (universal-pathlib)
 
 
  ## Next Steps

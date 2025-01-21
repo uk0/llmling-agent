@@ -6,6 +6,7 @@ from datetime import datetime
 from functools import cached_property
 import logging
 from typing import TYPE_CHECKING, Any, Literal, Self
+from uuid import UUID
 
 from llmling import (
     BasePrompt,
@@ -33,7 +34,7 @@ from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, StdioMCPServer
 from llmling_agent.models.prompts import PromptConfig
 from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
-from llmling_agent.models.session import SessionQuery
+from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.models.storage import StorageConfig
 from llmling_agent.models.task import Job  # noqa: TC001
 from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
@@ -126,11 +127,8 @@ class AgentConfig(BaseModel):
     - MCPServerConfig for full server configuration
     """
 
-    session: str | SessionQuery | None = None
+    session: str | SessionQuery | MemoryConfig | None = None
     """Session configuration for conversation recovery."""
-
-    enable_db_logging: bool = True
-    """Enable session database logging."""
 
     result_type: str | ResponseDefinition | None = None
     """Name of the response definition to use"""
@@ -254,13 +252,17 @@ class AgentConfig(BaseModel):
                 data["model"] = {"type": "test", "model": model}
         return data
 
-    def get_session_query(self) -> SessionQuery | None:
-        """Get session query from config."""
-        if self.session is None:
-            return None
-        if isinstance(self.session, str):
-            return SessionQuery(name=self.session)
-        return self.session
+    def get_session_config(self) -> MemoryConfig:
+        """Get resolved memory configuration."""
+        match self.session:
+            case str() | UUID():
+                return MemoryConfig(session=SessionQuery(name=str(self.session)))
+            case SessionQuery():
+                return MemoryConfig(session=self.session)
+            case MemoryConfig():
+                return self.session
+            case None:
+                return MemoryConfig()
 
     def get_system_prompts(self) -> list[BasePrompt]:
         """Get all system prompts as BasePrompts."""
@@ -433,9 +435,8 @@ class AgentConfig(BaseModel):
             "model": self.model,
             "system_prompt": self.system_prompts,
             "retries": self.retries,
-            "enable_db_logging": self.enable_db_logging,
             # "result_tool_name": self.result_tool_name,
-            "session": self.session,
+            "session": self.get_session_config(),
             # "result_tool_description": self.result_tool_description,
             "result_retries": self.result_retries,
             "end_strategy": self.end_strategy,
@@ -644,7 +645,6 @@ class AgentsManifest[TDeps](ConfigModel):
             system_prompt=sys_prompts,
             name=name,
             # name=config.name or name,
-            enable_db_logging=config.enable_db_logging,
         )
         if result_type := self.get_result_type(name):
             return agent.to_structured(result_type)

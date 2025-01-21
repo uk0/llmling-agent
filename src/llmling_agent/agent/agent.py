@@ -10,7 +10,7 @@ from datetime import datetime
 from os import PathLike
 import time
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, cast, overload
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from llmling import Config, LLMCallableTool, RuntimeConfig, ToolError
 import logfire
@@ -28,6 +28,7 @@ from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.content import BaseContent, Content, ImageBase64Content
 from llmling_agent.models.mcp_server import MCPServerConfig, StdioMCPServer
 from llmling_agent.models.messages import ChatMessage, TokenCost
+from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context
@@ -67,7 +68,6 @@ if TYPE_CHECKING:
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.providers import ProcessorCallback
-    from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import Job
     from llmling_agent.responses.models import ResponseDefinition
     from llmling_agent.tools.base import ToolInfo
@@ -132,10 +132,9 @@ class AgentKwargs(TypedDict, total=False):
 
     # Context & State
     context: AgentContext[Any] | None  # x
-    session: SessionIdType | SessionQuery
+    session: SessionIdType | SessionQuery | MemoryConfig
 
     # Behavior Control
-    enable_db_logging: bool
     confirmation_callback: ConfirmationCallback | None
     debug: bool
 
@@ -187,7 +186,7 @@ class Agent[TDeps](TaskManagerMixin):
         model: ModelType = None,
         runtime: RuntimeConfig | Config | StrPath | None = None,
         context: AgentContext[TDeps] | None = None,
-        session: SessionIdType | SessionQuery = None,
+        session: SessionIdType | SessionQuery | MemoryConfig = None,
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
         description: str | None = None,
         tools: Sequence[ToolType] | None = None,
@@ -199,7 +198,6 @@ class Agent[TDeps](TaskManagerMixin):
         tool_choice: bool | str | list[str] = True,
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
-        enable_db_logging: bool = True,
         confirmation_callback: ConfirmationCallback | None = None,
         parallel_init: bool = True,
         debug: bool = False,
@@ -210,7 +208,7 @@ class Agent[TDeps](TaskManagerMixin):
             runtime: Runtime configuration providing access to resources/tools
             context: Agent context with capabilities and configuration
             provider: Agent type to use (ai: PydanticAIProvider, human: HumanProvider)
-            session: Optional id or Session query to recover a conversation
+            session: Optional id, Session query or Memory conig
             model: The default model to use (defaults to GPT-4)
             system_prompt: Static system prompts to use for this agent
             name: Name of the agent for logging
@@ -225,7 +223,6 @@ class Agent[TDeps](TaskManagerMixin):
             end_strategy: Strategy for handling tool calls that are requested alongside
                           a final result
             defer_model_check: Whether to defer model evaluation until first run
-            enable_db_logging: Whether to enable logging for the agent
             confirmation_callback: Callback for confirmation prompts
             parallel_init: Whether to initialize resources in parallel
             debug: Whether to enable debug mode
@@ -248,6 +245,16 @@ class Agent[TDeps](TaskManagerMixin):
         ctx.confirmation_callback = confirmation_callback
         if capabilities is not None:
             ctx.capabilities = capabilities
+
+        match session:
+            case str() | UUID():
+                memory_cfg = MemoryConfig(session=SessionQuery(name=str(session)))
+            case SessionQuery():
+                memory_cfg = MemoryConfig(session=session)
+            case MemoryConfig():
+                memory_cfg = session
+            case None:
+                memory_cfg = MemoryConfig()
         # Initialize runtime
         match runtime:
             case None:
@@ -266,7 +273,7 @@ class Agent[TDeps](TaskManagerMixin):
         resources = list(resources)
         if ctx.config.knowledge:
             resources.extend(ctx.config.knowledge.get_resources())
-        self.conversation = ConversationManager(self, session, resources=resources)
+        self.conversation = ConversationManager(self, memory_cfg, resources=resources)
 
         # Initialize provider
         match provider:
@@ -317,7 +324,7 @@ class Agent[TDeps](TaskManagerMixin):
 
         self.connections = TalkManager(self)
         self.talk = Interactions(self)
-        self._logger = AgentLogger(self, enable_db_logging=enable_db_logging)
+        self._logger = AgentLogger(self, enable_db_logging=memory_cfg.enable)
         self._events = EventManager(self, enable_events=True)
 
         # Set up system prompts
@@ -750,7 +757,7 @@ class Agent[TDeps](TaskManagerMixin):
         deps: TDeps | None = None,  # TDeps from class
         result_type: type[TResult] | None = None,
         model: str | ModelType = None,
-        session: SessionIdType | SessionQuery = None,
+        session: SessionIdType | SessionQuery | MemoryConfig = None,
         model_settings: dict[str, Any] | None = None,
         tools: list[ToolType] | None = None,
         tool_choice: bool | str | list[str] = True,
@@ -760,7 +767,6 @@ class Agent[TDeps](TaskManagerMixin):
         result_tool_description: str | None = None,
         result_retries: int | None = None,
         system_prompt: str | Sequence[str] | None = None,
-        enable_db_logging: bool = True,
     ) -> AsyncIterator[Agent[TDeps] | StructuredAgent[TDeps, TResult]]:
         """Open and configure a specific agent from configuration."""
         """Implementation with all parameters..."""
@@ -774,7 +780,7 @@ class Agent[TDeps](TaskManagerMixin):
             model: Optional model override
             result_type: Optional type for structured responses
             model_settings: Additional model-specific settings
-            session: Optional id or Session query to recover a conversation
+            session: Optional id, Session query or MemoryConfig
 
             # Tool Configuration
             tools: Additional tools to register (import paths or callables)
@@ -794,7 +800,6 @@ class Agent[TDeps](TaskManagerMixin):
 
             # Other Settings
             system_prompt: Additional system prompts
-            enable_db_logging: Whether to enable logging for the agent
 
         Yields:
             Configured Agent instance
@@ -854,7 +859,6 @@ class Agent[TDeps](TaskManagerMixin):
             tool_choice=tool_choice,
             tools=tools,
             system_prompt=system_prompt or [],
-            enable_db_logging=enable_db_logging,
         )
         async with base_agent:
             if resolved_type is not None and resolved_type is not str:

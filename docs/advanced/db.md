@@ -1,9 +1,10 @@
-# Agent Logging
+# Agent Logging & Memory Management
 
-LLMling-agent uses SQLModel with SQLite to maintain a history of agent interactions.
-The database is automatically created and managed.
+LLMling-agent provides flexible storage and memory management for agent interactions through SQLModel with SQLite.
 
-## What Gets Logged
+## Storage System
+
+### What Gets Logged
 
 - **Conversations**: Basic metadata like agent name, start time
 - **Messages**: Complete message history including:
@@ -16,7 +17,7 @@ The database is automatically created and managed.
 - **Commands**: Command history with session context
 - **Tool Usage**: Tool calls with arguments and results
 
-## Storage Location
+### Storage Location
 
 The SQLite database is stored using platformdirs:
 ```python
@@ -26,48 +27,73 @@ The SQLite database is stored using platformdirs:
 # macOS: ~/Library/Application Support/llmling/history.db
 ```
 
-## Enabling/Disabling Logging
+## Memory Configuration
 
-Logging can be controlled per agent:
+Agents can be configured with sophisticated memory management:
 
-Via YAML:
 ```yaml
 agents:
   assistant:
     model: openai:gpt-4o-mini
-    enable_db_logging: false  # Disable logging for this agent
+    session:
+      enable: true              # Enable/disable memory tracking
+      max_tokens: 4000         # Rolling window token limit
+      max_messages: 100        # Rolling window message limit
+      provider: "sql"          # Optional storage provider override
+      session:                 # Initial session loading
+        name: my_session       # Optional session identifier
+        since: 1h             # Only messages from last hour
+        roles:                # Only specific message types
+          - user
+          - assistant
+        contains: "analysis"  # Filter by content
+        include_forwarded: true
 ```
 
-Via code:
+Or via code:
 ```python
-# In constructor
-agent = Agent(..., enable_db_logging=False)
+from llmling_agent.models.session import MemoryConfig, SessionQuery
 
-# When using open():
-async with Agent.open(..., enable_db_logging=False) as agent:
-    ...
+# Configure memory management
+memory_cfg = MemoryConfig(
+    enable=True,
+    max_tokens=4000,          # Rolling window of max 4000 tokens
+    max_messages=100,         # Keep last 100 messages
+    session=SessionQuery(     # Initial session loading
+        name="my_session",
+        since="1h",
+        roles={"user", "assistant"}
+    )
+)
+
+# Use in agent creation
+agent = Agent(..., session=memory_cfg)
 ```
 
-## Conversation Recovery
+### Memory Management Features
+
+- **Rolling Window**: Maintain a limited context window by:
+  - Token count (`max_tokens`)
+  - Message count (`max_messages`)
+- **Initial Loading**: Load specific parts of previous conversations
+- **Provider Selection**: Choose storage backend per agent
+- **Selective History**: Filter what gets stored and loaded
+
+## Session Recovery
 
 Sessions can be recovered in multiple ways:
 
-Simple recovery by session name:
+### Simple Recovery
 ```yaml
 agents:
   assistant:
     session: "my_session_name"  # Simple session identifier
-
-  analyst:
-    model: openai:gpt-4o-mini
-    # No session = new conversation each time
 ```
 
-Advanced query-based recovery:
+### Query-Based Recovery
 ```yaml
 agents:
   assistant:
-    model: openai:gpt-4o-mini
     session:
       name: my_session_name    # Optional session identifier
       agents:                  # Filter by specific agents
@@ -81,15 +107,58 @@ agents:
       include_forwarded: true # Include forwarded messages
 ```
 
-Via code:
+### Programmatic Recovery
 ```python
 # Store session ID for later
 session = agent.conversation.id
 
-# Recover conversation in new session
+# Simple recovery by ID
 async with Agent.open(..., session=session) as agent:
     # Conversation history is automatically loaded
     ...
+
+# Advanced query-based recovery
+query = SessionQuery(
+    name="my_session",
+    since="1h",
+    roles={"user", "assistant"},
+    contains="analysis"
+)
+async with Agent.open(..., session=query) as agent:
+    # Filtered conversation history is loaded
+    ...
 ```
 
-The session configuration supports flexible filtering to recover exactly the conversation context you need.
+## Storage Providers
+
+Multiple storage providers are available:
+
+```yaml
+storage:
+  providers:
+    - type: sql               # SQLite database (default)
+      url: sqlite:///history.db
+      pool_size: 5
+      auto_migration: true
+
+    - type: text_file        # Text log file
+      path: "chat.log"
+      format: chronological
+      encoding: utf-8
+
+    - type: file            # Structured file storage
+      path: "history.json"
+      format: json
+
+    - type: memory         # In-memory storage (testing)
+
+  # Global settings
+  default_provider: sql    # Provider for history queries
+  log_messages: true      # Whether to log messages
+  log_conversations: true # Whether to log conversations
+  log_tool_calls: true   # Whether to log tool calls
+  log_commands: true     # Whether to log commands
+  log_context: true      # Whether to log context additions
+```
+
+Storage can be configured globally and overridden per agent through the memory configuration.
