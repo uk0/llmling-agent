@@ -6,13 +6,13 @@ import asyncio
 from contextlib import AsyncExitStack
 from dataclasses import dataclass
 import signal
-from typing import TYPE_CHECKING, Any, Self, Unpack, overload
+from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 
 from llmling import BaseRegistry, LLMLingError
 from typing_extensions import TypeVar
 
 from llmling_agent.agent import Agent, AnyAgent
-from llmling_agent.agent.connection import TeamTalk
+from llmling_agent.agent.connection import Talk, TeamTalk
 from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.delegation.controllers import interactive_controller
 from llmling_agent.log import get_logger
@@ -772,6 +772,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         for agent in self.agents.values():
             connections = agent.connections.get_connections()
             for talk in connections:
+                talk = cast(Talk[Any], talk)  # help mypy understand it's a Talk
                 source = talk.source.name
                 for target in talk.targets:
                     if include_details:

@@ -433,7 +433,9 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             ```
         """
         # Normalize inputs to lists
-        tools_list = [tools] if not isinstance(tools, Sequence) else list(tools)
+        tools_list: list[ToolType] = (
+            [tools] if not isinstance(tools, Sequence) else list(tools)
+        )
 
         # Store original tool states if exclusive
         original_states: dict[str, bool] = {}
