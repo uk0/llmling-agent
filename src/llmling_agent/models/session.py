@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Self
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
@@ -28,6 +30,24 @@ class MemoryConfig(BaseModel):
     If None, uses manifest's default provider or first available."""
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+
+    @classmethod
+    def from_value(cls, value: bool | int | str | SessionQuery | UUID | None) -> Self:
+        """Create MemoryConfig from any value."""
+        match value:
+            case False:
+                return cls(max_messages=0)
+            case int():
+                return cls(max_tokens=value)
+            case str() | UUID():
+                return cls(session=SessionQuery(name=str(value)))
+            case SessionQuery():
+                return cls(session=value)
+            case None | True:
+                return cls()
+            case _:
+                msg = f"Invalid memory configuration: type: {value}"
+                raise ValueError(msg)
 
 
 class SessionQuery(BaseModel):

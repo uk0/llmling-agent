@@ -10,7 +10,7 @@ from datetime import datetime
 from os import PathLike
 import time
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, cast, overload
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from llmling import Config, LLMCallableTool, RuntimeConfig, ToolError
 import logfire
@@ -132,7 +132,7 @@ class AgentKwargs(TypedDict, total=False):
 
     # Context & State
     context: AgentContext[Any] | None  # x
-    session: SessionIdType | SessionQuery | MemoryConfig
+    session: SessionIdType | SessionQuery | MemoryConfig | bool | int
 
     # Behavior Control
     confirmation_callback: ConfirmationCallback | None
@@ -186,7 +186,7 @@ class Agent[TDeps](TaskManagerMixin):
         model: ModelType = None,
         runtime: RuntimeConfig | Config | StrPath | None = None,
         context: AgentContext[TDeps] | None = None,
-        session: SessionIdType | SessionQuery | MemoryConfig = None,
+        session: SessionIdType | SessionQuery | MemoryConfig | bool | int = None,
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
         description: str | None = None,
         tools: Sequence[ToolType] | None = None,
@@ -208,7 +208,13 @@ class Agent[TDeps](TaskManagerMixin):
             runtime: Runtime configuration providing access to resources/tools
             context: Agent context with capabilities and configuration
             provider: Agent type to use (ai: PydanticAIProvider, human: HumanProvider)
-            session: Optional id, Session query or Memory conig
+            session: Memory configuration.
+                - None: Default memory config
+                - False: Disable message history (max_messages=0)
+                - int: Max tokens for memory
+                - str/UUID: Session identifier
+                - SessionQuery: Query to recover conversation
+                - MemoryConfig: Complete memory configuration
             model: The default model to use (defaults to GPT-4)
             system_prompt: Static system prompts to use for this agent
             name: Name of the agent for logging
@@ -246,15 +252,11 @@ class Agent[TDeps](TaskManagerMixin):
         if capabilities is not None:
             ctx.capabilities = capabilities
 
-        match session:
-            case str() | UUID():
-                memory_cfg = MemoryConfig(session=SessionQuery(name=str(session)))
-            case SessionQuery():
-                memory_cfg = MemoryConfig(session=session)
-            case MemoryConfig():
-                memory_cfg = session
-            case None:
-                memory_cfg = MemoryConfig()
+        memory_cfg = (
+            session
+            if isinstance(session, MemoryConfig)
+            else MemoryConfig.from_value(session)
+        )
         # Initialize runtime
         match runtime:
             case None:
