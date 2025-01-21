@@ -137,7 +137,7 @@ class HumanProvider(AgentProvider):
                 error_msg = f"Invalid response format: {e}"
                 raise ToolError(error_msg) from e
 
-        return ProviderResponse(content=content, tool_calls=[], usage=None)
+        return ProviderResponse(content=content)
 
     @asynccontextmanager
     async def stream_response(

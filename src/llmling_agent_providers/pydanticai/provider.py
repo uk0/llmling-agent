@@ -19,6 +19,7 @@ from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.models.content import BaseContent
 from llmling_agent.models.context import AgentContext
+from llmling_agent.models.messages import TokenCost
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
     RunAbortedError,
@@ -238,10 +239,19 @@ class PydanticAIProvider(AgentProvider):
             resolved_model = (
                 use_model.name() if isinstance(use_model, Model) else str(use_model)
             )
+            usage = result.usage()
+            cost_str = prompt + str(content_prompts)  # dirty
+            cost_info = (
+                await TokenCost.from_usage(
+                    usage, resolved_model, cost_str, str(result.data)
+                )
+                if resolved_model and usage
+                else None
+            )
             return ProviderResponse(
                 content=result.data,
                 tool_calls=tool_calls,
-                usage=result.usage(),
+                cost_and_usage=cost_info,
                 model_name=resolved_model,
             )
         finally:

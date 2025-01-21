@@ -12,8 +12,8 @@ from pydantic_ai.messages import (
     TextPart,
     UserPromptPart,
 )
-from pydantic_ai.usage import Usage
 from tokonomics import get_available_models
+from tokonomics.toko_types import TokenUsage
 
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
@@ -24,6 +24,7 @@ from llmling_agent.models.content import (
     ImageBase64Content,
     ImageURLContent,
 )
+from llmling_agent.models.messages import TokenCost
 from llmling_agent_providers.base import AgentProvider, ProviderResponse
 
 
@@ -175,12 +176,15 @@ class LiteLLMProvider(AgentProvider[Any]):
                 # Parse JSON string into the requested model
                 content = result_type.model_validate_json(content)
             # Create tokonomics usage
-            usage = Usage(
+            usage = TokenUsage(
                 total_tokens=response.usage.prompt_tokens,  # type: ignore
                 request_tokens=response.usage.prompt_tokens,  # type: ignore
                 response_tokens=response.usage.completion_tokens,  # type: ignore
             )
-
+            cost_and_usage = TokenCost(
+                token_usage=usage,
+                total_cost=response.usage.cost,  # type: ignore
+            )
             # Store in history if requested
             if store_history:
                 parts = []
@@ -191,9 +195,8 @@ class LiteLLMProvider(AgentProvider[Any]):
                         case BaseContent():
                             # For now, store content objects as string representation
                             parts.append(UserPromptPart(content=str(p)))
-
                 request_msg = ModelRequest(parts=parts)
-                part = TextPart(content=content or "")
+                part = TextPart(content=str(content) if content else "")
                 response_msg = PydanticModelResponse(parts=[part])
                 self.conversation.set_history([
                     *complete_history,
@@ -205,7 +208,7 @@ class LiteLLMProvider(AgentProvider[Any]):
                 content=content,
                 tool_calls=calls,
                 model_name=model_name,
-                usage=usage,
+                cost_and_usage=cost_and_usage,
             )
 
         except Exception as e:

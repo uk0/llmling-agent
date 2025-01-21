@@ -18,12 +18,12 @@ if TYPE_CHECKING:
     from contextlib import AbstractAsyncContextManager
 
     from pydantic_ai.result import StreamedRunResult
-    from tokonomics import Usage as TokonomicsUsage
 
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelProtocol, ModelType
     from llmling_agent.models.content import Content
     from llmling_agent.models.context import AgentContext
+    from llmling_agent.models.messages import TokenCost
     from llmling_agent.tools.manager import ToolManager
 
 
@@ -37,7 +37,7 @@ class ProviderResponse:
     content: Any
     tool_calls: list[ToolCallInfo] = field(default_factory=list)
     model_name: str = ""
-    usage: TokonomicsUsage | None = None
+    cost_and_usage: TokenCost | None = None
 
 
 @runtime_checkable

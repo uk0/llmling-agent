@@ -206,6 +206,7 @@ class Agent[TDeps](TaskManagerMixin):
     agent_reset = Signal(AgentReset)
 
     def __init__(
+        # we dont use AgentKwargs here so that we can work with explicit ones in the ctor
         self,
         name: str = "llmling-agent",
         provider: AgentType = "pydantic_ai",
@@ -1033,17 +1034,6 @@ class Agent[TDeps](TaskManagerMixin):
                 store_history=store_history,
                 system_prompt=sys_prompt,
             )
-
-            # Get cost info for assistant response
-            usage = result.usage
-            cost_info = (
-                await TokenCost.from_usage(
-                    usage, result.model_name, final_prompt, str(result.content)
-                )
-                if result.model_name and usage
-                else None
-            )
-
             # Create final message with all metrics
             response_msg = ChatMessage[TResult](
                 content=result.content,
@@ -1052,7 +1042,7 @@ class Agent[TDeps](TaskManagerMixin):
                 model=result.model_name,
                 message_id=message_id,
                 tool_calls=result.tool_calls,
-                cost_info=cost_info,
+                cost_info=result.cost_and_usage,
                 response_time=time.perf_counter() - start_time,
             )
             if self._debug:
