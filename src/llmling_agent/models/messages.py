@@ -170,67 +170,61 @@ class ChatMessage[TContent]:
         """Format message with configurable style."""
         match style:
             case "simple":
-                return self._format_simple()
+                sender = self.name or self.role.title()
+                return f"{sender}: {self.content}"
             case "detailed":
-                return self._format_detailed(show_metadata, show_costs)
+                ts = self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                name = self.name or self.role.title()
+                parts = [
+                    f"From: {name}",
+                    f"Time: {ts}",
+                    "-" * 40,
+                    f"{self.content}",
+                    "-" * 40,
+                ]
+                if show_costs and self.cost_info:
+                    parts.extend([
+                        f"Tokens: {self.cost_info.token_usage['total']:,}",
+                        f"Cost: ${self.cost_info.total_cost:.5f}",
+                    ])
+                    if self.response_time:
+                        parts.append(f"Response time: {self.response_time:.2f}s")
+
+                if show_metadata and self.metadata:
+                    parts.append("Metadata:")
+                    parts.extend(f"  {k}: {v}" for k, v in self.metadata.items())
+                if self.forwarded_from:
+                    forwarded_from = " -> ".join(self.forwarded_from)
+                    parts.append(f"Forwarded via: {forwarded_from}")
+
+                return "\n".join(parts)
+
             case "markdown":
-                return self._format_markdown(show_metadata, show_costs)
+                name = self.name or self.role.title()
+                ts = self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                parts = [f"## {name}", f"*{ts}*", "", str(self.content), ""]
+
+                if show_costs and self.cost_info:
+                    parts.extend([
+                        "---",
+                        "**Stats:**",
+                        f"- Tokens: {self.cost_info.token_usage['total']:,}",
+                        f"- Cost: ${self.cost_info.total_cost:.4f}",
+                    ])
+                    if self.response_time:
+                        parts.append(f"- Response time: {self.response_time:.2f}s")
+
+                if show_metadata and self.metadata:
+                    meta = yamling.dump_yaml(self.metadata)
+                    parts.extend(["", "**Metadata:**", "```", meta, "```"])
+
+                if self.forwarded_from:
+                    parts.append(f"\n*Forwarded via: {' → '.join(self.forwarded_from)}*")
+
+                return "\n".join(parts)
             case _:
                 msg = f"Invalid style: {style}"
                 raise ValueError(msg)
-
-    def _format_simple(self) -> str:
-        """Basic format: sender and message."""
-        sender = self.name or self.role.title()
-        return f"{sender}: {self.content}"
-
-    def _format_detailed(self, show_metadata: bool, show_costs: bool) -> str:
-        """Detailed format with optional metadata and costs."""
-        ts = self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-        name = self.name or self.role.title()
-        parts = [f"From: {name}", f"Time: {ts}", "-" * 40, f"{self.content}", "-" * 40]
-
-        if show_costs and self.cost_info:
-            parts.extend([
-                f"Tokens: {self.cost_info.token_usage['total']:,}",
-                f"Cost: ${self.cost_info.total_cost:.5f}",
-            ])
-            if self.response_time:
-                parts.append(f"Response time: {self.response_time:.2f}s")
-
-        if show_metadata and self.metadata:
-            parts.append("Metadata:")
-            parts.extend(f"  {k}: {v}" for k, v in self.metadata.items())
-        if self.forwarded_from:
-            forwarded_from = " -> ".join(self.forwarded_from)
-            parts.append(f"Forwarded via: {forwarded_from}")
-
-        return "\n".join(parts)
-
-    def _format_markdown(self, show_metadata: bool, show_costs: bool) -> str:
-        """Markdown format for rich display."""
-        name = self.name or self.role.title()
-        timestamp = self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-        parts = [f"## {name}", f"*{timestamp}*", "", str(self.content), ""]
-
-        if show_costs and self.cost_info:
-            parts.extend([
-                "---",
-                "**Stats:**",
-                f"- Tokens: {self.cost_info.token_usage['total']:,}",
-                f"- Cost: ${self.cost_info.total_cost:.4f}",
-            ])
-            if self.response_time:
-                parts.append(f"- Response time: {self.response_time:.2f}s")
-
-        if show_metadata and self.metadata:
-            meta = yamling.dump_yaml(self.metadata)
-            parts.extend(["", "**Metadata:**", "```", meta, "```"])
-
-        if self.forwarded_from:
-            parts.append(f"\n*Forwarded via: {' → '.join(self.forwarded_from)}*")
-
-        return "\n".join(parts)
 
 
 @dataclass
