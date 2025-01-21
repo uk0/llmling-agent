@@ -42,6 +42,16 @@ agents:
           max_cost: 0.05
 ```
 
+```mermaid
+flowchart LR
+    player1[player1]
+    player2[player2]
+    player3[player3]
+    player1--|run|-->player2
+    player2--|run stop:check|-->player3
+    player3--|run|-->player1
+```
+
 ## Running the Example
 
 Start the chain by sending a word to player1:
