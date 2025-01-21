@@ -10,12 +10,26 @@ from typing import Annotated, Any, Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 
+DEFAULT_TEMPLATE = """
+{%- if include_timestamp %}at {{ timestamp }}{% endif %}
+Event from {{ source }}:
+{%- if include_metadata %}
+Metadata:
+{% for key, value in metadata.items() %}
+{{ key }}: {{ value }}
+{% endfor %}
+{% endif %}
+{{ content }}
+"""
+
+
 @dataclass(frozen=True, kw_only=True)
 class EventData:
     """Base class for event data."""
 
     source: str
     timestamp: datetime = field(default_factory=datetime.now)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def create(cls, source: str, **kwargs: Any) -> Self:
@@ -25,6 +39,22 @@ class EventData:
     @abstractmethod
     def to_prompt(self) -> str:
         """Convert event to agent prompt."""
+
+    async def format(self, config: EventSourceConfig) -> str:
+        """Wraps core message with configurable template."""
+        from jinja2 import Environment
+
+        env = Environment(trim_blocks=True, lstrip_blocks=True)
+        template = env.from_string(config.template)
+
+        return template.render(
+            source=self.source,
+            content=self.to_prompt(),  # Use the core message
+            metadata=self.metadata,
+            timestamp=self.timestamp,
+            include_metadata=config.include_metadata,
+            include_timestamp=config.include_timestamp,
+        )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -73,8 +103,14 @@ class EventSourceConfig(BaseModel):
     enabled: bool = True
     """Whether this event source is active."""
 
-    # extra_knowledge: Knowledge | None = None
-    """Additional context to load when this trigger activates."""
+    template: str = DEFAULT_TEMPLATE
+    """Jinja2 template for formatting events."""
+
+    include_metadata: bool = True
+    """Control metadata visibility in template."""
+
+    include_timestamp: bool = True
+    """Control timestamp visibility in template."""
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
@@ -128,6 +164,22 @@ class WebhookConfig(EventSourceConfig):
     """Optional secret for request validation."""
 
 
+class TimeEventConfig(EventSourceConfig):
+    """Time-based event source configuration."""
+
+    type: Literal["time"] = Field("time", init=False)
+    """Type discriminator for time events."""
+
+    schedule: str
+    """Cron expression for scheduling (e.g. '0 9 * * 1-5' for weekdays at 9am)"""
+
+    timezone: str | None = None
+    """Timezone for schedule (defaults to system timezone)"""
+
+    skip_missed: bool = False
+    """Whether to skip executions missed while agent was inactive"""
+
+
 class EmailConfig(EventSourceConfig):
     """Email event source configuration.
 
@@ -173,5 +225,6 @@ class EmailConfig(EventSourceConfig):
 
 
 EventConfig = Annotated[
-    FileWatchConfig | WebhookConfig | EmailConfig, Field(discriminator="type")
+    FileWatchConfig | WebhookConfig | EmailConfig | TimeEventConfig,
+    Field(discriminator="type"),
 ]

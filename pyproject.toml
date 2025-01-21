@@ -69,6 +69,7 @@ dependencies = [
     "griffe>=1.5.4",
     "pillow>=11.1.0",
     "aioimaplib>=2.0.1",
+    "croniter>=6.0.0",
 ]
 
 [project.scripts]

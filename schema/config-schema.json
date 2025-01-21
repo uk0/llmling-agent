@@ -368,7 +368,9 @@
           "items": {
             "discriminator": {
               "mapping": {
+                "email": "#/$defs/EmailConfig",
                 "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
                 "webhook": "#/$defs/WebhookConfig"
               },
               "propertyName": "type"
@@ -379,6 +381,12 @@
               },
               {
                 "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
               }
             ]
           },
@@ -1614,6 +1622,124 @@
       "title": "DynamicPrompt",
       "type": "object"
     },
+    "EmailConfig": {
+      "description": "Email event source configuration.\n\nMonitors an email inbox for new messages and converts them to events.",
+      "properties": {
+        "type": {
+          "const": "email",
+          "default": "email",
+          "description": "Type discriminator for email sources.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "description": "Unique identifier for this event source.",
+          "title": "Name",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this event source is active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "template": {
+          "default": "\n{%- if include_timestamp %}at {{ timestamp }}{% endif %}\nEvent from {{ source }}:\n{%- if include_metadata %}\nMetadata:\n{% for key, value in metadata.items() %}\n{{ key }}: {{ value }}\n{% endfor %}\n{% endif %}\n{{ content }}\n",
+          "description": "Jinja2 template for formatting events.",
+          "title": "Template",
+          "type": "string"
+        },
+        "include_metadata": {
+          "default": true,
+          "description": "Control metadata visibility in template.",
+          "title": "Include Metadata",
+          "type": "boolean"
+        },
+        "include_timestamp": {
+          "default": true,
+          "description": "Control timestamp visibility in template.",
+          "title": "Include Timestamp",
+          "type": "boolean"
+        },
+        "host": {
+          "description": "IMAP server hostname",
+          "title": "Host",
+          "type": "string"
+        },
+        "port": {
+          "default": 993,
+          "description": "Server port (defaults to 993 for IMAP SSL)",
+          "title": "Port",
+          "type": "integer"
+        },
+        "username": {
+          "description": "Email account username/address",
+          "title": "Username",
+          "type": "string"
+        },
+        "password": {
+          "description": "Account password or app-specific password",
+          "format": "password",
+          "title": "Password",
+          "type": "string",
+          "writeOnly": true
+        },
+        "folder": {
+          "default": "INBOX",
+          "description": "Folder/mailbox to monitor",
+          "title": "Folder",
+          "type": "string"
+        },
+        "ssl": {
+          "default": true,
+          "description": "Whether to use SSL/TLS connection",
+          "title": "Ssl",
+          "type": "boolean"
+        },
+        "check_interval": {
+          "default": 60,
+          "description": "Seconds between inbox checks",
+          "exclusiveMinimum": 0,
+          "title": "Check Interval",
+          "type": "integer"
+        },
+        "mark_seen": {
+          "default": true,
+          "description": "Whether to mark processed emails as seen",
+          "title": "Mark Seen",
+          "type": "boolean"
+        },
+        "filters": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Email filtering criteria",
+          "title": "Filters",
+          "type": "object"
+        },
+        "max_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum email size in bytes",
+          "title": "Max Size"
+        }
+      },
+      "required": [
+        "name",
+        "host",
+        "username",
+        "password"
+      ],
+      "title": "EmailConfig",
+      "type": "object"
+    },
     "EntryPointToolsetConfig": {
       "additionalProperties": false,
       "description": "Configuration for entry point toolsets.",
@@ -2151,6 +2277,24 @@
           "default": true,
           "description": "Whether this event source is active.",
           "title": "Enabled",
+          "type": "boolean"
+        },
+        "template": {
+          "default": "\n{%- if include_timestamp %}at {{ timestamp }}{% endif %}\nEvent from {{ source }}:\n{%- if include_metadata %}\nMetadata:\n{% for key, value in metadata.items() %}\n{{ key }}: {{ value }}\n{% endfor %}\n{% endif %}\n{{ content }}\n",
+          "description": "Jinja2 template for formatting events.",
+          "title": "Template",
+          "type": "string"
+        },
+        "include_metadata": {
+          "default": true,
+          "description": "Control metadata visibility in template.",
+          "title": "Include Metadata",
+          "type": "boolean"
+        },
+        "include_timestamp": {
+          "default": true,
+          "description": "Control timestamp visibility in template.",
+          "title": "Include Timestamp",
           "type": "boolean"
         },
         "paths": {
@@ -4761,6 +4905,77 @@
       "title": "TimeCondition",
       "type": "object"
     },
+    "TimeEventConfig": {
+      "description": "Time-based event source configuration.",
+      "properties": {
+        "type": {
+          "const": "time",
+          "default": "time",
+          "description": "Type discriminator for time events.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "description": "Unique identifier for this event source.",
+          "title": "Name",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this event source is active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "template": {
+          "default": "\n{%- if include_timestamp %}at {{ timestamp }}{% endif %}\nEvent from {{ source }}:\n{%- if include_metadata %}\nMetadata:\n{% for key, value in metadata.items() %}\n{{ key }}: {{ value }}\n{% endfor %}\n{% endif %}\n{{ content }}\n",
+          "description": "Jinja2 template for formatting events.",
+          "title": "Template",
+          "type": "string"
+        },
+        "include_metadata": {
+          "default": true,
+          "description": "Control metadata visibility in template.",
+          "title": "Include Metadata",
+          "type": "boolean"
+        },
+        "include_timestamp": {
+          "default": true,
+          "description": "Control timestamp visibility in template.",
+          "title": "Include Timestamp",
+          "type": "boolean"
+        },
+        "schedule": {
+          "description": "Cron expression for scheduling (e.g. '0 9 * * 1-5' for weekdays at 9am)",
+          "title": "Schedule",
+          "type": "string"
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Timezone for schedule (defaults to system timezone)",
+          "title": "Timezone"
+        },
+        "skip_missed": {
+          "default": false,
+          "description": "Whether to skip executions missed while agent was inactive",
+          "title": "Skip Missed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "schedule"
+      ],
+      "title": "TimeEventConfig",
+      "type": "object"
+    },
     "TokenOptimizedMultiModel": {
       "additionalProperties": false,
       "description": "Multi-model that selects based on input token count.\n\nExample YAML configuration:\n    ```yaml\n    model:\n      type: token-optimized\n      models:\n        - openai:gpt-4  # 8k context\n        - openai:gpt-4-32k  # 32k context\n        - openai:gpt-3.5-turbo-16k  # 16k context\n      strategy: efficient  # Use smallest sufficient context window\n    ```",
@@ -4969,6 +5184,24 @@
           "default": true,
           "description": "Whether this event source is active.",
           "title": "Enabled",
+          "type": "boolean"
+        },
+        "template": {
+          "default": "\n{%- if include_timestamp %}at {{ timestamp }}{% endif %}\nEvent from {{ source }}:\n{%- if include_metadata %}\nMetadata:\n{% for key, value in metadata.items() %}\n{{ key }}: {{ value }}\n{% endfor %}\n{% endif %}\n{{ content }}\n",
+          "description": "Jinja2 template for formatting events.",
+          "title": "Template",
+          "type": "string"
+        },
+        "include_metadata": {
+          "default": true,
+          "description": "Control metadata visibility in template.",
+          "title": "Include Metadata",
+          "type": "boolean"
+        },
+        "include_timestamp": {
+          "default": true,
+          "description": "Control timestamp visibility in template.",
+          "title": "Include Timestamp",
           "type": "boolean"
         },
         "port": {
