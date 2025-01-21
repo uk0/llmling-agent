@@ -1236,14 +1236,7 @@ class Agent[TDeps](TaskManagerMixin):
             tools = job.get_tools()
             with self.tools.temporary_tools(tools, exclusive=not include_agent_tools):
                 # Execute job with job-specific tools
-                from llmling_agent.tasks.strategies import DirectStrategy
-
-                strategy = DirectStrategy[TDeps, TResult]()
-                return await strategy.execute(
-                    task=job,
-                    agent=self,
-                    store_history=store_history,
-                )
+                return await self.run(await job.get_prompt(), store_history=store_history)
 
         except Exception as e:
             msg = f"Task execution failed: {e}"
@@ -1427,7 +1420,7 @@ class Agent[TDeps](TaskManagerMixin):
     def reset(self):
         """Reset agent state (conversation history and tool states)."""
         old_tools = self.tools.list_tools()
-        self.conversation.clear()  # This emits history_cleared
+        self.conversation.clear()
         self.tools.reset_states()
         new_tools = self.tools.list_tools()
 

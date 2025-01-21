@@ -88,7 +88,6 @@ Flexible team operations and execution patterns:
 - Connection mechanisms (>>, &, |)
 - Type-safe team creation
 - Execution statistics and cost tracking
-- Custom execution strategies
 - Background execution with monitoring
 """
 

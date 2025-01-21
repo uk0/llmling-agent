@@ -111,7 +111,6 @@ Tasks are pre-defined operations that agents can execute. They include:
 - Required tools
 - Knowledge sources
 - Expected result types
-- Execution strategies
 
 ## Mental Model
 

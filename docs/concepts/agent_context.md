@@ -46,22 +46,15 @@ class AppConfig:
     api_key: str
     endpoint: str
 
-# Create context with typed deps
-context = AgentContext[AppConfig].create_default(
-    name="my-agent",
-    deps=app_config
-)
-
-# Type-safe access in tools
-async def call_api(ctx: RunContext[AgentContext[AppConfig]], query: str) -> str:
-    api_key = ctx.deps.data.api_key  # Type-safe access
-    endpoint = ctx.deps.data.endpoint
-    return await make_request(endpoint, api_key, query)
+my_agent(deps=AppConfig())
 ```
+
 
 ## Tool Context (Current Implementation)
 
-Currently, tools receive a nested context structure:
+Currently, tools receive a nested context structure. This more has historical reasons,
+so be aware that this is subject to change.
+
 
 ```python
 # Tool receives PydanticAI context containing our context
@@ -91,12 +84,6 @@ AgentContext acts as a bridge to the agent pool:
 if context.pool:
     # Get other agents
     helper = context.pool.get_agent("helper")
-
-    # Create teams
-    team = context.pool.create_team(["analyzer", "planner"])
-
-    # Access storage
-    await context.pool.storage.log_message(...)
 ```
 
 ## Tool Validation
@@ -137,56 +124,3 @@ if context.pool:
     store = context.pool.storage
     await store.log_conversation(...)
 ```
-
-## Creating Contexts
-
-### Default Context
-```python
-# Create minimal context
-context = AgentContext[None].create_default(
-    name="my-agent"
-)
-
-# With capabilities
-context = AgentContext[AppConfig].create_default(
-    name="my-agent",
-    capabilities=Capabilities(can_delegate_tasks=True),
-    deps=app_config,
-    pool=pool
-)
-```
-
-### From Configuration
-```python
-# Create from agent config
-context = AgentContext[AppConfig](
-    agent_name="my-agent",
-    capabilities=config.capabilities,
-    definition=manifest,
-    config=agent_config,
-    data=app_config
-)
-```
-
-## Best Practices
-
-### Dependency Management
-- Use typed dependencies for type safety
-- Keep dependencies immutable
-- Document required dependency structure
-
-### Tool Implementation
-- Always type context parameter
-- Check required capabilities
-- Handle missing pool/runtime gracefully
-
-### Error Handling
-```python
-if not context.pool:
-    raise RuntimeError("Pool required for this operation")
-
-if not context.runtime:
-    raise RuntimeError("Runtime required for this operation")
-```
-
-AgentContext provides a central point for agent configuration, capabilities, and pool integration, though its interface is planned for improvement in future versions.
