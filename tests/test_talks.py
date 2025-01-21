@@ -58,7 +58,7 @@ async def test_connection_filtering():
     ):
         # Only forward messages containing "important"
         talk = source.pass_results_to(target)
-        talk.when(lambda msg, _stats: "important" in msg.content)
+        talk.when(lambda msg, agent, _stats: "important" in msg.content)
 
         # First message with default test model response
         await source.run("first message")

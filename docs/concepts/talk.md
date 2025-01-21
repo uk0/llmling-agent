@@ -126,6 +126,37 @@ The TeamTalk object provides a similar interface to the Talk object and forwards
 - Group operations (pause/resume)
 - Recursive target resolution
 
+## Message Routing
+
+### Basic Routing
+
+The connection system supports flexible message routing through filter conditions. These can be defined using the `when` method, which accepts filter functions with varying levels of detail:
+
+```python
+# Simple message-based routing
+agent >> other_agent.when(
+    lambda msg: "urgent" in str(msg.content)
+)
+
+# Target-aware routing
+agent >> other_agent.when(
+    lambda msg, target: (
+        "code" in str(msg.content) and
+        not target.is_busy()
+    )
+)
+
+# Full context routing (message, target, stats)
+agent >> other_agent.when(
+    lambda msg, target, stats: (
+        "database" in str(msg.content) and
+        target.capabilities.can_execute_code and
+        stats.message_count < 10
+    )
+)
+```
+
+
 ## Unique Features
 
 1. **Object-Oriented Design**

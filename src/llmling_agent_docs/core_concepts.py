@@ -50,6 +50,12 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/concepts/talk.md")
 
 
+@nav.route.page("Routing", icon="octicon:comment-discussion-16")
+def _(page: mk.MkPage):
+    """Agent communication system."""
+    page += mk.MkTemplate("docs/concepts/routing.md")
+
+
 @nav.route.page("Tasks", icon="octicon:tasklist-16")
 def _(page: mk.MkPage):
     """Task definition and execution."""
@@ -60,18 +66,6 @@ def _(page: mk.MkPage):
 def _(page: mk.MkPage):
     """Event system and handlers."""
     page += mk.MkTemplate("docs/concepts/events.md")
-
-
-@nav.route.page("Providers", icon="octicon:plug-16")
-def _(page: mk.MkPage):
-    """Overview of different provider types."""
-    page += mk.MkTemplate("docs/config_file/provider_config.md")
-
-
-@nav.route.page("Models", icon="octicon:cpu-16")
-def _(page: mk.MkPage):
-    """Language model configuration and types."""
-    page += mk.MkTemplate("docs/config_file/model_config.md")
 
 
 @nav.route.page("Storage System", icon="octicon:database-16")

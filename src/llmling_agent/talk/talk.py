@@ -86,7 +86,9 @@ class Talk[TTransmittedData]:
         self.wait_for_connections = wait_for_connections
         self.queued = queued
         self.queue_strategy = queue_strategy
-        self._pending_messages: list[ChatMessage[TTransmittedData]] = []
+        self._pending_messages: dict[str, list[ChatMessage[TTransmittedData]]] = {
+            target.name: [] for target in targets
+        }
         names = {t.name for t in targets}
         self._stats = TalkStats(source_name=source.name, target_names=names)
         self._transform = transform
@@ -98,95 +100,125 @@ class Talk[TTransmittedData]:
         targets = [t.name for t in self.targets]
         return f"<Talk({self.connection_type}) {self.source.name} -> {targets}>"
 
+    async def _evaluate_condition(
+        self,
+        condition: Callable[..., bool | Awaitable[bool]] | None,
+        message: ChatMessage[Any],
+        target: AnyAgent[Any, Any],
+        *,
+        default_return: bool = False,
+    ) -> bool:
+        """Evaluate a condition with flexible parameter handling."""
+        if not condition:
+            return default_return
+
+        # Get number of parameters
+        sig = inspect.signature(condition)
+        param_count = len(sig.parameters)
+
+        # Call with appropriate number of arguments
+        match param_count:
+            case 1:
+                result = condition(message)
+            case 2:
+                result = condition(message, target)
+            case 3:
+                result = condition(message, target, self.stats)
+            case _:
+                msg = f"Condition must take 1-3 parameters, got {param_count}"
+                raise ValueError(msg)
+
+        if inspect.isawaitable(result):
+            return await result
+        return result
+
+    async def _should_route_to(
+        self,
+        message: ChatMessage[Any],
+        target: AnyAgent[Any, Any],
+    ) -> bool:
+        """Determine if message should be routed to target."""
+        return await self._evaluate_condition(
+            self._filter_condition,
+            message,
+            target,
+            default_return=True,
+        )
+
     async def _handle_message(
         self,
         message: ChatMessage[TTransmittedData],
         prompt: str | None = None,
-    ):
+    ) -> list[ChatMessage[Any]]:
         """Handle message forwarding based on connection configuration."""
-        logger.debug(
-            "Message from %s to %s: %r (type: %s) (prompt: %s)",
-            self.source.name,
-            [t.name for t in self.targets],
-            message.content,
-            self.connection_type,
-            prompt,
-        )
+        # 1. Initial message handling
         self.source.outbox.emit(message, None)
-        # Check active state
-        if not self.active or (self.group and not self.group.active):
-            return
 
-        # Check exit condition
-        if self._exit_condition:
-            do_exit = self._exit_condition(message, self.stats)
-            if inspect.isawaitable(do_exit):
-                if await do_exit:
-                    raise SystemExit
-            elif do_exit:
+        # 2. Early exit checks
+        if not (self.active and (not self.group or self.group.active)):
+            return []
+
+        # 3. Check exit condition for any target
+        for target in self.targets:
+            # Exit if condition returns True
+            if await self._evaluate_condition(self._exit_condition, message, target):
                 raise SystemExit
 
-        # Check stop condition
-        if self._stop_condition:
-            do_stop = self._stop_condition(message, self.stats)
-            if inspect.isawaitable(do_stop):
-                if await do_stop:
-                    self.disconnect()
-                    return
-            elif do_stop:
+        # 4. Check stop condition for any target
+        for target in self.targets:
+            # Stop if condition returns True
+            if await self._evaluate_condition(self._stop_condition, message, target):
                 self.disconnect()
-                return
-        # Check filter condition
-        if self._filter_condition:
-            do_filter = self._filter_condition(message, self.stats)
-            if inspect.isawaitable(do_filter):
-                if not await do_filter:
-                    return
-            elif not do_filter:
-                return
-        # Apply transform if configured
+                return []
+
+        # 5. Transform if configured
+        processed_message = message
         if self._transform:
             transformed = self._transform(message)
             if inspect.isawaitable(transformed):
-                message = await transformed
+                processed_message = await transformed
             else:
-                message = transformed
-        # Update stats
-        self._stats = replace(
-            self._stats,
-            messages=[*self._stats.messages, message],
-        )
+                processed_message = transformed
 
-        # For queued connections, just queue the message
-        if self.queued:
-            self._pending_messages.append(message)
-            return
+        # 8. Process for each target
+        responses: list[ChatMessage[Any]] = []
+        is_forwarded = False
+        for target in self.targets:
+            if await self._should_route_to(processed_message, target):
+                is_forwarded = True
+                if self.queued:
+                    # Queue per agent
+                    self._pending_messages[target.name].append(processed_message)
+                    continue
+                if response := await self._process_for_target(
+                    processed_message, target, prompt
+                ):
+                    responses.append(response)
+        if is_forwarded:
+            self._stats = replace(
+                self._stats,
+                messages=[*self._stats.messages, processed_message],
+            )
+            # 9. Emit forwarded signal after processing
+            self.message_forwarded.emit(processed_message)
+        return responses
 
-        # Process message immediately
-        await self._process_message(message, prompt)
-
-    async def _process_message(
+    async def _process_for_target(
         self,
-        message: ChatMessage[TTransmittedData],
+        message: ChatMessage[Any],
+        target: AnyAgent[Any, Any],
         prompt: str | None = None,
-    ) -> list[ChatMessage[Any]]:
-        """Process a single message according to connection type.
-
-        Returns:
-            List of response messages (for "run" connections)
-        """
-        results: list[ChatMessage[Any]] = []
-
+    ) -> ChatMessage[Any] | None:
+        """Process message for a single target."""
         match self.connection_type:
             case "run":
-                for target in self.targets:
-                    prompts: list[AnyPromptType] = [message.content]
-                    if prompt:
-                        prompts.append(prompt)
-                    response = await target.run(*prompts)
-                    response.forwarded_from.append(target.name)
-                    target.outbox.emit(response, None)
-                    results.append(response)
+                prompts: list[AnyPromptType] = [message.content]
+                if prompt:
+                    prompts.append(prompt)
+                response = await target.run(*prompts)
+                response.forwarded_from.append(target.name)
+                target.outbox.emit(response, None)
+                return response
 
             case "context":
                 meta = {
@@ -197,90 +229,98 @@ class Talk[TTransmittedData]:
                     "timestamp": message.timestamp.isoformat(),
                     "prompt": prompt,
                 }
-                for target in self.targets:
 
-                    async def add_context(target=target):
-                        target.conversation.add_context_message(
-                            str(message.content),
-                            source=self.source.name,
-                            metadata=meta,
-                        )
+                async def add_context():
+                    target.conversation.add_context_message(
+                        str(message.content),
+                        source=self.source.name,
+                        metadata=meta,
+                    )
 
-                    if self.delay is not None or self.priority != 0:
-                        target.run_background(
-                            add_context(),
-                            priority=self.priority,
-                            delay=self.delay,
-                        )
-                    else:
-                        target.run_task_sync(add_context())
+                if self.delay is not None or self.priority != 0:
+                    target.run_background(
+                        add_context(),
+                        priority=self.priority,
+                        delay=self.delay,
+                    )
+                else:
+                    await add_context()
+                return None
 
             case "forward":
-                for target in self.targets:
-                    if self.delay is not None or self.priority != 0:
+                if self.delay is not None or self.priority != 0:
 
-                        async def delayed_emit(target=target):
-                            target.outbox.emit(message, prompt)
-
-                        target.run_background(
-                            delayed_emit(),
-                            priority=self.priority,
-                            delay=self.delay,
-                        )
-                    else:
+                    async def delayed_emit():
                         target.outbox.emit(message, prompt)
 
-        self.message_forwarded.emit(message)
-        return results
+                    target.run_background(
+                        delayed_emit(),
+                        priority=self.priority,
+                        delay=self.delay,
+                    )
+                else:
+                    target.outbox.emit(message, prompt)
+                return None
 
     async def trigger(self) -> list[ChatMessage[TTransmittedData]]:
-        """Process queued messages.
-
-        Returns:
-            List of processed messages:
-            - concat/latest: Single merged message in list
-            - buffer: All messages processed individually
-        """
+        """Process queued messages."""
         if not self._pending_messages:
             return []
 
         match self.queue_strategy:
             case "buffer":
-                # Process each message individually
                 results: list[ChatMessage[TTransmittedData]] = []
-                for message in self._pending_messages:
-                    processed = await self._process_message(message, None)
-                    results.append(message)
-                    results.extend(processed)  # Add any responses
-                self._pending_messages.clear()
+                # Process each agent's queue
+                for target in self.targets:
+                    queue = self._pending_messages[target.name]
+                    for message in queue:
+                        if response := await self._process_for_target(
+                            message, target, None
+                        ):
+                            results.append(response)  # noqa: PERF401
+                    queue.clear()
                 return results
 
             case "latest":
-                # Just use the most recent message as-is
-                latest = self._pending_messages[-1]
-                responses = await self._process_message(latest, None)
-                self._pending_messages.clear()
-                return [latest, *responses]
+                results = []
+                # Get latest message for each agent
+                for target in self.targets:
+                    queue = self._pending_messages[target.name]
+                    if queue:
+                        latest = queue[-1]
+                        if response := await self._process_for_target(
+                            latest, target, None
+                        ):
+                            results.append(response)
+                        queue.clear()
+                return results
 
             case "concat":
-                # Ensure all messages have string content
-                base = self._pending_messages[-1]
-                contents = [str(m.content) for m in self._pending_messages]
-                # Create merged message
-                meta = {
-                    **base.metadata,
-                    "merged_count": len(self._pending_messages),
-                    "queue_strategy": self.queue_strategy,
-                }
-                content = "\n\n".join(contents)
-                merged = replace(base, content=content, metadata=meta)  # type: ignore
+                results = []
+                # Concat messages per agent
+                for target in self.targets:
+                    queue = self._pending_messages[target.name]
+                    if not queue:
+                        continue
 
-                # Process the merged message
-                responses = await self._process_message(merged, None)
-                self._pending_messages.clear()
-                return [merged, *responses]
+                    base = queue[-1]
+                    contents = [str(m.content) for m in queue]
+                    meta = {
+                        **base.metadata,
+                        "merged_count": len(queue),
+                        "queue_strategy": self.queue_strategy,
+                    }
+                    content = "\n\n".join(contents)
+                    merged = replace(base, content=content, metadata=meta)  # type: ignore
 
-        return []
+                    if response := await self._process_for_target(merged, target, None):
+                        results.append(response)
+                    queue.clear()
+
+                return results
+            case _:
+                msg = f"Invalid queue strategy: {self.queue_strategy}"
+                raise ValueError(msg)
 
     def when(self, condition: AnyFilterFn) -> Self:
         """Add condition for message forwarding."""
