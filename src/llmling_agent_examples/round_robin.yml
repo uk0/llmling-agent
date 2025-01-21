@@ -1,0 +1,37 @@
+prompts:
+  system_prompts:
+    word_chain:
+      type: role
+      content: |
+        "Append one word to the given word or sentence and continue the sentence indenfinitely."
+
+agents:
+  player1:
+    model: gpt-3.5-turbo
+    library_system_prompts:
+      - word_chain
+    connections:
+      - type: agent
+        name: player2
+        connection_type: run
+
+  player2:
+    model: gpt-3.5-turbo
+    library_system_prompts:
+      - word_chain
+    connections:
+      - type: agent
+        name: player3
+        connection_type: run
+        stop_condition:
+          type: cost_limit
+          max_cost: 0.01 # stop circle when this agent reaches 0.01 cost
+
+  player3:
+    model: gpt-3.5-turbo
+    library_system_prompts:
+      - word_chain
+    connections:
+      - type: agent
+        name: player1
+        connection_type: run

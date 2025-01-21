@@ -48,17 +48,19 @@ if __name__ == "__main__":
 ## How It Works
 
 1. Two agents are set up with access to a Git MCP server:
-   - `picker`: Specialized in finding commits
-   - `analyzer`: Specialized in analyzing commit details
+
+- `picker`: Specialized in finding commits
+- `analyzer`: Specialized in analyzing commit details
 
 2. The agents are connected using `>>` operator, so the picker's output flows to the analyzer
 
 3. Message handlers are registered to display the conversation
 
 4. When run, the workflow:
-   - Picker finds the latest commit hash
-   - Automatically forwards to analyzer
-   - Analyzer provides detailed commit information
+
+- Picker finds the latest commit hash
+- Automatically forwards to analyzer
+- Analyzer provides detailed commit information
 
 Example Output:
 ```
@@ -76,6 +78,7 @@ includes the following details:
 ```
 
 This demonstrates:
+
 - MCP server integration for Git operations
 - Agent chaining with automatic message forwarding
 - Structured commit analysis workflow

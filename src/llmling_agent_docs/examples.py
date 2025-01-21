@@ -50,5 +50,13 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/examples/structured_response.md")
 
 
+@nav.route.page(
+    "Round-robin communication YAML Edition", icon="octicon:project-16", hide="toc"
+)
+def _(page: mk.MkPage):
+    """Using structured response types."""
+    page += mk.MkTemplate("docs/examples/round_robin.md")
+
+
 if __name__ == "__main__":
     print(nav.to_markdown())

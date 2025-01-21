@@ -96,16 +96,18 @@ if __name__ == "__main__":
 ## How It Works
 
 1. Python-defined Responses:
-   - Use Pydantic models
-   - Full IDE support and type checking
-   - Best for programmatic use
-   - Inline field documentation
+
+- Use Pydantic models
+- Full IDE support and type checking
+- Best for programmatic use
+- Inline field documentation
 
 2. YAML-defined Responses:
-   - Define in configuration
-   - Include validation constraints
-   - Best for configuration-driven workflows
-   - Self-documenting fields
+
+- Define in configuration
+- Include validation constraints
+- Best for configuration-driven workflows
+- Self-documenting fields
 
 Example Output:
 ```
