@@ -117,4 +117,73 @@ class ImageBase64Content(BaseImageContent):
             return cls(data=base64.b64encode(buffer.getvalue()).decode())
 
 
-Content = Annotated[ImageURLContent | ImageBase64Content, Field(discriminator="type")]
+class BasePDFContent(BaseContent):
+    """Base for PDF document content."""
+
+    detail: DetailLevel | None = None
+    """Detail level for document processing by models."""
+
+    @classmethod
+    async def from_path(
+        cls,
+        path: StrPath,
+        *,
+        detail: DetailLevel | None = None,
+        description: str | None = None,
+    ) -> PDFURLContent | PDFBase64Content:
+        """Create PDF content from any path.
+
+        Args:
+            path: Local path or URL to PDF
+            detail: Optional detail level for processing
+            description: Optional description of the document
+        """
+        path_obj = UPath(path)
+
+        # For http(s) URLs, pass through as URL content
+        if path_obj.protocol in ("http", "https"):
+            return PDFURLContent(
+                url=str(path_obj), detail=detail, description=description
+            )
+
+        # For all other paths, read and convert to base64
+        content = base64.b64encode(path_obj.read_bytes()).decode()
+        return PDFBase64Content(data=content, detail=detail, description=description)
+
+
+class PDFURLContent(BasePDFContent):
+    """PDF from URL."""
+
+    type: Literal["pdf_url"] = Field("pdf_url", init=False)
+    """Type discriminator for URL-based PDFs."""
+
+    url: str
+    """URL to the PDF document."""
+
+
+class PDFBase64Content(BasePDFContent):
+    """PDF from base64 data."""
+
+    type: Literal["pdf_base64"] = Field("pdf_base64", init=False)
+    """Type discriminator for base64-encoded PDFs."""
+
+    data: str
+    """Base64-encoded PDF data."""
+
+    @classmethod
+    def from_bytes(
+        cls,
+        data: bytes,
+        *,
+        detail: DetailLevel | None = None,
+        description: str | None = None,
+    ) -> PDFBase64Content:
+        """Create PDF content from raw bytes."""
+        content = base64.b64encode(data).decode()
+        return cls(data=content, detail=detail, description=description)
+
+
+Content = Annotated[
+    ImageURLContent | ImageBase64Content | PDFURLContent | PDFBase64Content,
+    Field(discriminator="type"),
+]
