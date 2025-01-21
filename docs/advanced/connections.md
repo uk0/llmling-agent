@@ -65,10 +65,7 @@ agents:
 Simple connection between two agents:
 ```python
 # Direct connection
-agent_a.pass_results_to(agent_b)
-
-# Named connection (using pool)
-agent_a.pass_results_to("agent_b")
+connection = agent_a.pass_results_to(agent_b)
 ```
 
 ### Agent-to-Team
@@ -78,7 +75,7 @@ Connect an agent to multiple targets:
 team = agent_b & agent_c & agent_d
 
 # Connect agent to team
-agent_a.pass_results_to(team)
+connection = agent_a.pass_results_to(team)
 ```
 
 ### Team-to-Team
@@ -86,7 +83,7 @@ Connect groups of agents:
 ```python
 team_a = agent_1 & agent_2
 team_b = agent_3 & agent_4
-team_a.pass_results_to(team_b)
+connection = team_a.pass_results_to(team_b)
 ```
 
 In this scenario each team member of team_a gets connected to all team members of team b.
