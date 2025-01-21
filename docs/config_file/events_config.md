@@ -13,20 +13,11 @@ All event sources share these base properties:
 
 ```yaml
 triggers:
-  - name: "my_trigger"               # Unique identifier
-    enabled: true                    # Whether trigger is active
-    template: |                      # Optional event formatting
-      Event from {{ source }}
-      {%- if include_timestamp %} at {{ timestamp }}{% endif %}
-      {%- if include_metadata %}
-      Metadata:
-      {% for key, value in metadata.items() %}
-      {{ key }}: {{ value }}
-      {% endfor %}
-      {% endif %}
-      {{ content }}
-    include_metadata: true           # Include event metadata
-    include_timestamp: true          # Include event timestamp
+  - name: "my_trigger"                   # Unique identifier
+    enabled: true                        # Whether trigger is active
+    template: <a_jinja_template_string>  # Optional event formatting
+    include_metadata: true               # Include event metadata
+    include_timestamp: true              # Include event timestamp
 ```
 
 ## File Watch Events
@@ -74,39 +65,6 @@ triggers:
       from: "important@client.com"
       subject: "urgent"
     max_size: 1048576             # Max email size in bytes
-```
-
-## Event Content
-Each event type provides specific content that can be accessed in templates:
-
-### File Events
-```yaml
-template: |
-  File {{ type }}: {{ path }}
-  {% if include_metadata %}
-  Changed at: {{ timestamp }}
-  {% endif %}
-```
-
-### Email Events
-```yaml
-template: |
-  New Email:
-  From: {{ sender }}
-  Subject: {{ subject }}
-
-  {{ body }}
-  {% if include_metadata %}
-  Received: {{ metadata.date }}
-  Message-ID: {{ metadata.message_id }}
-  {% endif %}
-```
-
-### Webhook Events
-```yaml
-template: |
-  Webhook received:
-  {{ payload | tojson(indent=2) }}
 ```
 
 ## Time Events
