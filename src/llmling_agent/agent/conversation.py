@@ -100,6 +100,10 @@ class ConversationManager:
         # Note: max_messages and max_tokens will be handled in add_message/get_history
         # to maintain the rolling window during conversation
 
+    @property
+    def chat_messages(self) -> list[ChatMessage[Any]]:
+        return [convert_model_message(msg) for msg in self._current_history]
+
     def get_initialization_tasks(self) -> list[Coroutine[Any, Any, Any]]:
         """Get all initialization coroutines."""
         self._resources = []  # Clear so we dont load again on async init
@@ -122,22 +126,18 @@ class ConversationManager:
         self._pending_messages.clear()
 
     def __bool__(self) -> bool:
-        return bool(self._pending_messages) or bool(self._current_history)
+        return bool(self._pending_messages) or bool(self.chat_messages)
 
     def __repr__(self) -> str:
         return f"ConversationManager(id={self.id!r})"
 
     def __prompt__(self) -> str:
-        if not self._current_history:
+        if not self.chat_messages:
             return "No conversation history"
 
-        last_msgs = self._current_history[-2:]
+        last_msgs = self.chat_messages[-2:]
         parts = ["Recent conversation:"]
-        parts.extend(
-            f"{get_message_role(msg).title()}: {format_part(part)[:100]}..."
-            for msg in last_msgs
-            for part in msg.parts
-        )
+        parts.extend(msg.format() for msg in last_msgs)
         return "\n".join(parts)
 
     @overload
@@ -158,21 +158,19 @@ class ConversationManager:
                 - Agent name for conversation history with that agent
         """
         match key:
-            case int():
-                return convert_model_message(self._current_history[key])
-            case slice():
-                return [convert_model_message(msg) for msg in self._current_history[key]]
+            case int() | slice():
+                return self.chat_messages[key]
             case str():
                 query = SessionQuery(name=key)
                 return self._agent.context.storage.filter_messages_sync(query=query)
 
     def __contains__(self, item: Any) -> bool:
         """Check if item is in history."""
-        return item in self._current_history
+        return item in self.chat_messages
 
     def __len__(self) -> int:
         """Get length of history."""
-        return len(self._current_history)
+        return len(self.chat_messages)
 
     def get_message_tokens(self, message: ModelMessage) -> int:
         """Get token count for a single message."""
