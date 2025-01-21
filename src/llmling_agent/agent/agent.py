@@ -7,6 +7,7 @@ from collections.abc import Awaitable, Callable, Coroutine
 from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
+import os
 from os import PathLike
 import time
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, cast, overload
@@ -19,13 +20,20 @@ from pydantic_ai import RunContext  # noqa: TC002
 from tokonomics import TokenLimits, get_model_limits
 from toprompt import AnyPromptType, to_prompt
 from typing_extensions import TypeVar
+from upath import UPath
 
 from llmling_agent.agent.connection import QueueStrategy, Talk, TalkManager, TeamTalk
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.content import BaseContent, Content, ImageBase64Content
+from llmling_agent.models.content import (
+    BaseContent,
+    BaseImageContent,
+    BasePDFContent,
+    Content,
+    ImageBase64Content,
+)
 from llmling_agent.models.mcp_server import MCPServerConfig, StdioMCPServer
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.models.session import MemoryConfig, SessionQuery
@@ -84,12 +92,13 @@ JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
 
 async def _convert_prompts(
-    prompts: Sequence[AnyPromptType | PIL.Image.Image],
+    prompts: Sequence[AnyPromptType | PIL.Image.Image | os.PathLike[str]],
 ) -> list[str | Content]:
     """Convert prompts to our internal format.
 
     Handles:
     - PIL Images -> ImageBase64Content
+    - UPath/PathLike -> Auto-detect and convert to appropriate Content
     - Regular prompts -> str via to_prompt
     - Content objects -> pass through
     """
@@ -100,6 +109,24 @@ async def _convert_prompts(
         match p:
             case PIL.Image.Image():
                 result.append(ImageBase64Content.from_pil_image(p))
+
+            case os.PathLike():
+                from mimetypes import guess_type
+
+                path_obj = UPath(p)
+                mime_type, _ = guess_type(str(path_obj))
+
+                match mime_type:
+                    case "application/pdf":
+                        content: Content = await BasePDFContent.from_path(path_obj)
+                        result.append(content)
+                    case str() if mime_type.startswith("image/"):
+                        content = await BaseImageContent.from_path(path_obj)
+                        result.append(content)
+                    case _:
+                        # Non-media or unknown type
+                        result.append(path_obj.read_text())
+
             case _ if not isinstance(p, BaseContent):
                 result.append(await to_prompt(p))
             case _:
@@ -957,7 +984,7 @@ class Agent[TDeps](TaskManagerMixin):
     @logfire.instrument("Calling Agent.run: {prompt}:")
     async def run(
         self,
-        *prompt: AnyPromptType,
+        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
         result_type: type[TResult] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -1098,7 +1125,7 @@ class Agent[TDeps](TaskManagerMixin):
     @asynccontextmanager
     async def run_stream(
         self,
-        *prompt: AnyPromptType,
+        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
         result_type: type[TResult] | None = None,
         model: ModelType = None,
         store_history: bool = True,
