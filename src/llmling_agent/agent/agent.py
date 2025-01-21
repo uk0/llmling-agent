@@ -22,7 +22,7 @@ from toprompt import AnyPromptType, to_prompt
 from typing_extensions import TypeVar
 from upath import UPath
 
-from llmling_agent.agent.connection import QueueStrategy, Talk, TalkManager, TeamTalk
+from llmling_agent.agent.connection import ConnectionManager
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
@@ -79,6 +79,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.models.task import Job
     from llmling_agent.responses.models import ResponseDefinition
+    from llmling_agent.talk import QueueStrategy, Talk, TeamTalk
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -194,7 +195,7 @@ class Agent[TDeps](TaskManagerMixin):
 
     # this fixes weird mypy issue
     conversation: ConversationManager
-    connections: TalkManager
+    connections: ConnectionManager
     talk: Interactions
     description: str | None
 
@@ -354,7 +355,7 @@ class Agent[TDeps](TaskManagerMixin):
         self._provider.tool_used.connect(self.tool_used.emit)
         self._provider.model_changed.connect(self.model_changed.emit)
 
-        self.connections = TalkManager(self)
+        self.connections = ConnectionManager(self)
         self.talk = Interactions(self)
         self._logger = AgentLogger(self, enable_db_logging=memory_cfg.enable)
         self._events = EventManager(self, enable_events=True)

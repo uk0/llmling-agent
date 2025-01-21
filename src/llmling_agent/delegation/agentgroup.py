@@ -9,11 +9,12 @@ from psygnal.containers import EventedList
 from pydantic_ai.result import StreamedRunResult
 from typing_extensions import TypeVar
 
-from llmling_agent.agent.connection import QueueStrategy, TalkManager, TeamTalk
+from llmling_agent.agent.connection import ConnectionManager
 from llmling_agent.delegation.execution import ExecutionMode, TeamRun
 from llmling_agent.delegation.pool import AgentResponse
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
+from llmling_agent.talk import QueueStrategy, TeamTalk
 from llmling_agent.utils.tasks import TaskManagerMixin
 
 
@@ -97,7 +98,7 @@ class Team[TDeps](TaskManagerMixin):
         self.agents = EventedList(list(agents))
         self.shared_prompt = shared_prompt
         self.name = name or " & ".join([i.name for i in agents])
-        self.connections = TalkManager(self)
+        self.connections = ConnectionManager(self)
         self.team_talk = TeamTalk.from_agents(self.agents)
 
     def __repr__(self) -> str:

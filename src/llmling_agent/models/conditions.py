@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, ImportString
 
 if TYPE_CHECKING:
     from llmling_agent.models.messages import ChatMessage
-    from llmling_agent.talk.stats import TalkStats
+    from llmling_agent.talk import TalkStats
 
 
 class ConnectionCondition(BaseModel):

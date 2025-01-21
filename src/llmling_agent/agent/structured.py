@@ -22,7 +22,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
-    from llmling_agent.agent.connection import QueueStrategy, Talk, TeamTalk
     from llmling_agent.common_types import AsyncFilterFn, ModelType
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.execution import TeamRun
@@ -30,6 +29,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.task import Job
+    from llmling_agent.talk import QueueStrategy, Talk, TeamTalk
     from llmling_agent.tools.manager import ToolManager
     from llmling_agent_providers.callback import ProcessorCallback
 

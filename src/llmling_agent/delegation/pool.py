@@ -12,7 +12,6 @@ from llmling import BaseRegistry, LLMLingError
 from typing_extensions import TypeVar
 
 from llmling_agent.agent import Agent, AnyAgent
-from llmling_agent.agent.connection import Talk, TeamTalk
 from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.delegation.controllers import interactive_controller
 from llmling_agent.log import get_logger
@@ -22,6 +21,7 @@ from llmling_agent.models.forward_targets import (
     CallableConnectionConfig,
     FileConnectionConfig,
 )
+from llmling_agent.talk import Talk, TeamTalk
 from llmling_agent.tasks import TaskRegistry
 
 

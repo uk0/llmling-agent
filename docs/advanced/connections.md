@@ -32,7 +32,7 @@ Three different ways messages can be handled:
 
 ### Connection Management
 
-Connections are managed by the `TalkManager`, which provides:
+Connections are managed by the `ConnectionManager`, which provides:
 
 - Connection creation and cleanup
 - Message routing
