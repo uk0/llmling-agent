@@ -186,17 +186,17 @@ class Talk[TTransmittedData]:
                     results.append(response)
 
             case "context":
+                meta = {
+                    "type": "forwarded_message",
+                    "role": message.role,
+                    "model": message.model,
+                    "cost_info": message.cost_info,
+                    "timestamp": message.timestamp.isoformat(),
+                    "prompt": prompt,
+                }
                 for target in self.targets:
 
                     async def add_context(target=target):
-                        meta = {
-                            "type": "forwarded_message",
-                            "role": message.role,
-                            "model": message.model,
-                            "cost_info": message.cost_info,
-                            "timestamp": message.timestamp.isoformat(),
-                            "prompt": prompt,
-                        }
                         target.conversation.add_context_message(
                             str(message.content),
                             source=self.source.name,
@@ -254,25 +254,23 @@ class Talk[TTransmittedData]:
 
             case "latest":
                 # Just use the most recent message as-is
-                merged = self._pending_messages[-1]
-                responses = await self._process_message(merged, None)
+                latest = self._pending_messages[-1]
+                responses = await self._process_message(latest, None)
                 self._pending_messages.clear()
-                return [merged, *responses]
+                return [latest, *responses]
 
             case "concat":
                 # Ensure all messages have string content
                 base = self._pending_messages[-1]
                 contents = [str(m.content) for m in self._pending_messages]
                 # Create merged message
-                merged = replace(
-                    base,
-                    content="\n\n".join(contents),  # type: ignore
-                    metadata={
-                        **base.metadata,
-                        "merged_count": len(self._pending_messages),
-                        "queue_strategy": self.queue_strategy,
-                    },
-                )
+                meta = {
+                    **base.metadata,
+                    "merged_count": len(self._pending_messages),
+                    "queue_strategy": self.queue_strategy,
+                }
+                content = "\n\n".join(contents)
+                merged = replace(base, content=content, metadata=meta)  # type: ignore
 
                 # Process the merged message
                 responses = await self._process_message(merged, None)

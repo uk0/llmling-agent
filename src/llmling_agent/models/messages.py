@@ -193,7 +193,7 @@ class ChatMessage[TContent]:
         if show_costs and self.cost_info:
             parts.extend([
                 f"Tokens: {self.cost_info.token_usage['total']:,}",
-                f"Cost: ${self.cost_info.total_cost:.4f}",
+                f"Cost: ${self.cost_info.total_cost:.5f}",
             ])
             if self.response_time:
                 parts.append(f"Response time: {self.response_time:.2f}s")

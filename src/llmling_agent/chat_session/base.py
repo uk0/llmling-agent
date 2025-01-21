@@ -219,11 +219,10 @@ class AgentPoolView:
 
             # Get usage info if available
             usage = stream_result.usage()
+            model = stream_result.model_name  # type: ignore
             cost_info = (
-                await TokenCost.from_usage(
-                    usage, self._agent.model_name, content, response
-                )
-                if usage and self._agent.model_name
+                await TokenCost.from_usage(usage, model, content, response)
+                if usage and model
                 else None
             )
 
@@ -232,7 +231,7 @@ class AgentPoolView:
                 content="",  # Empty content for final status message
                 role="assistant",
                 name=self._agent.name,
-                model=self._agent.model_name,
+                model=model,
                 message_id=str(uuid4()),
                 cost_info=cost_info,
                 response_time=time.perf_counter() - start_time,

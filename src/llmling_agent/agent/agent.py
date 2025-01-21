@@ -1002,7 +1002,7 @@ class Agent[TDeps](TaskManagerMixin):
                 await TokenCost.from_usage(
                     usage, result.model_name, final_prompt, str(result.content)
                 )
-                if self.model_name and usage
+                if result.model_name and usage
                 else None
             )
 
@@ -1011,7 +1011,7 @@ class Agent[TDeps](TaskManagerMixin):
                 content=result.content,
                 role="assistant",
                 name=self.name,
-                model=self.model_name,
+                model=result.model_name,
                 message_id=message_id,
                 tool_calls=result.tool_calls,
                 cost_info=cost_info,
@@ -1134,10 +1134,11 @@ class Agent[TDeps](TaskManagerMixin):
                 # After streaming is done, create and emit final message
                 usage = stream.usage()
                 cost_info = None
-                if self.model_name:
+                model_name = stream.model_name  # type: ignore
+                if model_name:
                     cost_info = await TokenCost.from_usage(
                         usage,
-                        stream.model_name,  # type: ignore
+                        model_name,
                         final_prompt,
                         str(stream.formatted_content),  # type: ignore
                     )
@@ -1145,7 +1146,7 @@ class Agent[TDeps](TaskManagerMixin):
                     content=cast(TResult, stream.formatted_content),  # type: ignore
                     role="assistant",
                     name=self.name,
-                    model=self.model_name,
+                    model=model_name,
                     message_id=message_id,
                     cost_info=cost_info,
                     response_time=time.perf_counter() - start_time,
