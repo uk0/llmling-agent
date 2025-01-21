@@ -1,47 +1,121 @@
-# Events
+# Events & Triggers
 
-## Overview
-
-Events in LLMling allow agents to react to external triggers such as:
+Events allow agents to respond to external changes and automate actions based on various triggers.
+LLMling-agent supports different types of triggers that can activate agents automatically.
 
 - File system changes
-- Webhook calls (coming soon)
+- Webhook calls
+- Incoming emails
+- Time-based triggers
 - User interface actions
-- System signals
 
-Events can trigger agent execution automatically, making agents responsive to their environment.
+## Basic Concepts
+
+Events flow through the system in this order:
+
+1. Event Source detects change
+2. Event Manager processes event
+3. Agent receives and handles event
+4. Optional: Agent forwards event results through connections
 
 ## Event Types
 
-### File System Events
-Monitors file changes and triggers agent execution:
+### File Watch Events
+Monitor file system changes and trigger agent actions:ä
+
 ```yaml
-triggers:
-  watch_code:
-    type: file
-    name: code_watcher
-    paths: ["src/**/*.py"]  # Glob patterns supported
-    extensions: [".py"]     # Optional filter
-    ignore_paths: ["**/__pycache__"]
-    recursive: true
-    debounce: 1600  # ms
+agents:
+  code_monitor:
+    triggers:
+      - type: "file"
+        name: "python_watcher"        # Unique identifier
+        enabled: true                 # Can be disabled without removal
+        paths: ["src/**/*.py"]        # Glob patterns to watch
+        extensions: [".py"]           # Optional file type filter
+        ignore_paths:                 # Optional ignore patterns
+          - "**/__pycache__"
+          - "**/.git"
+        recursive: true               # Watch subdirectories
+        debounce: 1600               # Minimum ms between triggers
 ```
 
-When files change, the agent receives events with:
-- Path of changed file
-- Type of change (added/modified/deleted)
-- Timestamp of change
-
-### Webhook Events (Coming Soon)
+### Webhook Events
 Listen for HTTP requests:
+
+```yaml
+agents:
+  api_handler:
+    triggers:
+      - type: "webhook"
+        name: "github_webhook"
+        enabled: true
+        port: 8000
+        path: "/github"
+        secret: "${WEBHOOK_SECRET}"   # Optional validation secret
+```
+
+## Event Configuration
+
+### Common Properties
+All event types share these base properties:
+
 ```yaml
 triggers:
-  github:
-    type: webhook
-    name: github_hook
-    port: 8000
-    path: "/github"
-    secret: "your-secret"  # For validation
+  - name: "my_trigger"               # Unique identifier
+    enabled: true                    # Whether trigger is active
+    knowledge:                       # Optional knowledge to load
+      paths: ["context/*.md"]        # Files to load as context
+      resources:                     # LLMling resources
+        - type: "cli"
+          command: "git status"
+      prompts:                       # Context prompts
+        - "Consider this background information..."
+```
+
+### Multiple Triggers
+Agents can have multiple triggers of different types:
+
+```yaml
+agents:
+  project_assistant:
+    triggers:
+      # Watch for code changes
+      - type: "file"
+        name: "code_watcher"
+        paths: ["src/**/*.py"]
+        extensions: [".py"]
+
+      # Listen for GitHub webhooks
+      - type: "webhook"
+        name: "github_events"
+        port: 8000
+        path: "/github"
+
+      # Manual review trigger
+      - type: "manual"
+        name: "review_code"
+        prompt: "Review latest changes"
+```
+
+## Event Handling
+
+### In Configuration
+Configure how agents handle events through system prompts:
+
+```yaml
+agents:
+  file_monitor:
+    system_prompts:
+      - |
+        You monitor file changes and analyze their impact.
+        When receiving file change events:
+        1. Check file type and content
+        2. Assess impact of changes
+        3. Recommend actions if needed
+    triggers:
+      - type: "file"
+        name: "config_watch"
+        paths: ["config/*.yml"]
 ```
 
 ## Event Manager
@@ -66,134 +140,152 @@ await manager.add_callback(on_event)
 await manager.remove_callback(on_event)
 ```
 
-## YAML Configuration
+Events can be handled in two ways:
 
-Events can be configured in the agent manifest:
+1. **Automatic Handling**: Events are automatically converted to agent runs using their `to_prompt()` method
+2. **Custom Callbacks**: Custom event handlers for more control
 
-```yaml
-agents:
-  code_reviewer:
-    description: "Reviews code changes"
-    model: openai:gpt-4
+#### Default Handler
+By default, events are automatically converted to prompts and passed to the agent:
 
-    # Event configuration
-    triggers:
-      # File watcher
-      - type: file
-        name: watch_source
-        paths: ["src"]
-        extensions: [".py", ".js"]
-        ignore_paths: ["**/tests"]
+```python
+# Auto-handling is enabled by default
+event_manager = EventManager(agent)
 
-      # Multiple watchers
-      - type: file
-        name: watch_docs
-        paths: ["docs"]
-        extensions: [".md"]
+# Can be disabled
+event_manager.auto_handle = False
 
-      # Webhook (coming soon)
-      - type: webhook
-        name: pr_hook
-        port: 8000
-        path: "/github"
+# Re-enable
+event_manager.auto_handle = True
 ```
 
-## CLI Watch Mode
+#### Custom Event Handlers
 
-LLMling provides a CLI command to run agents in watch mode:
+Register custom callbacks to handle events:
+
+```python
+async def handle_events(event: EventData) -> None:
+    match event:
+        case FileEvent(type="modified", path=p) if p.endswith('.py'):
+            await agent.run(f"Python file modified: {p}")
+        case WebhookEvent(path="/github"):
+            await agent.run(f"GitHub webhook received: {event.data}")
+
+# Register callback
+await agent.events.add_callback(handle_events)
+
+# Remove callback
+await agent.events.remove_callback(handle_events)
+```
+
+Callbacks can be both sync or async:
+
+```python
+# Sync callback
+def sync_handler(event: EventData) -> None:
+    print(f"Event received: {event}")
+
+# Async callback
+async def async_handler(event: EventData) -> None:
+    await process_event(event)
+
+# Both work
+await agent.events.add_callback(sync_handler)
+await agent.events.add_callback(async_handler)
+```
+
+## CLI Usage
+
+Run agents in event-watching mode to handle events:
 
 ```bash
-# Start watching with configuration
-llmling-agent watch --config agents.yaml
+# Start watching with default configuration
+llmling-agent watch agents.yml
 
-# Watch specific agent
-llmling-agent watch --config agents.yaml --agent code_reviewer
-
-# Additional options
-llmling-agent watch \
-  --config agents.yaml \
-  --agent code_reviewer \
-  --debug \
-  --log-level DEBUG
+# With specific log level
+llmling-agent watch agents.yml --log-level DEBUG
 ```
 
-Watch mode:
+The agents will:
+1. Start monitoring configured event sources
+2. Handle events based on their configuration
+3. Run until interrupted (Ctrl+C)
 
-1. Loads agent configuration
-2. Sets up configured event sources
-3. Runs until interrupted (Ctrl+C)
-4. Logs events and agent responses
+## Event Data
 
-## Event Processing
+Each event type provides specific data:
 
-When an event occurs:
-
-1. Event source creates `EventData`:
+### FileEvent
 ```python
 @dataclass(frozen=True)
 class FileEvent(EventData):
-    """File system event."""
-    path: str
-    type: "added" | "modified" | "deleted"
+    path: str           # Path to affected file
+    type: ChangeType    # "added" | "modified" | "deleted"
+    timestamp: datetime # When event occurred
+    source: str        # Trigger name
 ```
 
-2. Event manager processes event:
+### WebhookEvent
 ```python
-async def emit_event(self, event: EventData):
-    """Emit event to all callbacks."""
-    # Run custom callbacks
-    for callback in self._callbacks:
-        await callback(event)
-
-    # Run default handler (agent.run)
-    if self.auto_run:
-        prompt = event.to_prompt()
-        await self.agent.run(prompt)
+@dataclass(frozen=True)
+class WebhookEvent(EventData):
+    path: str          # Request path
+    method: str        # HTTP method
+    data: dict        # Request data
+    timestamp: datetime
+    source: str
 ```
 
-3. Agent receives converted prompt:
-```python
-# File event example
-"File modified: src/main.py
-Please review this change."
-```
+## Best Practices
 
-## Example: Code Review Bot
+1. **Choose Handling Strategy**
+   - Use auto-handling for simple cases
+   - Use custom callbacks for complex logic
+   - Can combine both approaches
 
+2. **Error Handling**
+   - Events are handled independently
+   - Errors in one callback don't affect others
+   - Default handler errors are logged but don't stop processing
+
+3. **Performance**
+   - Keep handlers light and fast
+   - Use async operations for I/O
+   - Consider debouncing for high-frequency events
+
+## Common Patterns
+
+### Code Review Automation
 ```yaml
 agents:
-  reviewer:
-    description: "Automated code reviewer"
-    model: openai:gpt-4
-
-    # Watch for code changes
+  code_reviewer:
     triggers:
-      - type: file
-        name: watch_code
-        paths: ["src"]
-        extensions: [".py"]
-        debounce: 1600
-
-    # Tools for reviewing
-    tools:
-      - import_path: tools.git.get_diff
-      - import_path: tools.analyze_code
-
-    # System prompt
+      - type: "file"
+        name: "pr_watch"
+        paths: ["src/**/*.py"]
     system_prompts:
-      - "You are a code review bot that provides quick feedback on code changes."
+      - "You review Python code changes and provide feedback."
 ```
 
-Run in watch mode:
-```bash
-llmling-agent watch --config agents.yaml --agent reviewer
+### Configuration Monitor
+```yaml
+agents:
+  config_monitor:
+    triggers:
+      - type: "file"
+        name: "config_watch"
+        paths: ["config/*.yml"]
+        debounce: 5000  # 5 second delay
 ```
 
-Now the agent automatically:
+### Mixed Handling
+```python
+# Custom handling for specific cases
+async def special_handler(event: EventData) -> None:
+    if isinstance(event, FileEvent) and event.path.endswith('.secret'):
+        await handle_secret_file(event.path)
 
-1. Detects file changes
-2. Gets git diff
-3. Analyzes changes
-4. Provides review comments
-
-The event system makes agents proactive, responding to changes in their environment without manual intervention.
+# Register custom handler but keep auto-handling
+await agent.events.add_callback(special_handler)
+# Auto-handling will still process other events
+```
