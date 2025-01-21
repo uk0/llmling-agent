@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Literal, TypedDict
 from uuid import uuid4
@@ -19,8 +19,64 @@ from llmling_agent.models.agents import ToolCallInfo  # noqa: TC001
 
 
 TContent = TypeVar("TContent", str, BaseModel, default=str)
-FormatStyle = Literal["simple", "detailed", "markdown"]
+FormatStyle = Literal["simple", "detailed", "markdown", "custom"]
 logger = get_logger(__name__)
+
+SIMPLE_TEMPLATE = """{{ name or role.title() }}: {{ content }}"""
+
+DETAILED_TEMPLATE = """From: {{ name or role.title() }}
+Time: {{ timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+----------------------------------------
+{{ content }}
+----------------------------------------
+{%- if show_costs and cost_info %}
+Tokens: {{ "{:,}".format(cost_info.token_usage['total']) }}
+Cost: ${{ "%.5f"|format(cost_info.total_cost) }}
+{%- if response_time %}
+Response time: {{ "%.2f"|format(response_time) }}s
+{%- endif %}
+{%- endif %}
+{%- if show_metadata and metadata %}
+Metadata:
+{%- for key, value in metadata.items() %}
+  {{ key }}: {{ value }}
+{%- endfor %}
+{%- endif %}
+{%- if forwarded_from %}
+Forwarded via: {{ forwarded_from|join(' -> ') }}
+{%- endif %}"""
+
+MARKDOWN_TEMPLATE = """## {{ name or role.title() }}
+*{{ timestamp.strftime('%Y-%m-%d %H:%M:%S') }}*
+
+{{ content }}
+
+{%- if show_costs and cost_info %}
+---
+**Stats:**
+- Tokens: {{ "{:,}".format(cost_info.token_usage['total']) }}
+- Cost: ${{ "%.4f"|format(cost_info.total_cost) }}
+{%- if response_time %}
+- Response time: {{ "%.2f"|format(response_time) }}s
+{%- endif %}
+{%- endif %}
+
+{%- if show_metadata and metadata %}
+**Metadata:**
+```
+{{ metadata|to_yaml }}
+```
+{%- endif %}
+
+{%- if forwarded_from %}
+*Forwarded via: {{ forwarded_from|join(' → ') }}*
+{%- endif %}"""
+
+MESSAGE_TEMPLATES = {
+    "simple": SIMPLE_TEMPLATE,
+    "detailed": DETAILED_TEMPLATE,
+    "markdown": MARKDOWN_TEMPLATE,
+}
 
 
 class TokenUsage(TypedDict):
@@ -164,67 +220,51 @@ class ChatMessage[TContent]:
         self,
         style: FormatStyle = "simple",
         *,
+        template: str | None = None,
+        variables: dict[str, Any] | None = None,
         show_metadata: bool = False,
         show_costs: bool = False,
     ) -> str:
-        """Format message with configurable style."""
+        """Format message with configurable style.
+
+        Args:
+            style: Predefined style or "custom" for custom template
+            template: Custom Jinja template (required if style="custom")
+            variables: Additional variables for template rendering
+            show_metadata: Whether to include metadata
+            show_costs: Whether to include cost information
+
+        Raises:
+            ValueError: If style is "custom" but no template provided
+                    or if style is invalid
+        """
+        from jinja2 import Environment
+
+        env = Environment(trim_blocks=True, lstrip_blocks=True)
+        env.filters["to_yaml"] = yamling.dump_yaml
+
         match style:
-            case "simple":
-                sender = self.name or self.role.title()
-                return f"{sender}: {self.content}"
-            case "detailed":
-                ts = self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-                name = self.name or self.role.title()
-                parts = [
-                    f"From: {name}",
-                    f"Time: {ts}",
-                    "-" * 40,
-                    f"{self.content}",
-                    "-" * 40,
-                ]
-                if show_costs and self.cost_info:
-                    parts.extend([
-                        f"Tokens: {self.cost_info.token_usage['total']:,}",
-                        f"Cost: ${self.cost_info.total_cost:.5f}",
-                    ])
-                    if self.response_time:
-                        parts.append(f"Response time: {self.response_time:.2f}s")
-
-                if show_metadata and self.metadata:
-                    parts.append("Metadata:")
-                    parts.extend(f"  {k}: {v}" for k, v in self.metadata.items())
-                if self.forwarded_from:
-                    forwarded_from = " -> ".join(self.forwarded_from)
-                    parts.append(f"Forwarded via: {forwarded_from}")
-
-                return "\n".join(parts)
-
-            case "markdown":
-                name = self.name or self.role.title()
-                ts = self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-                parts = [f"## {name}", f"*{ts}*", "", str(self.content), ""]
-
-                if show_costs and self.cost_info:
-                    parts.extend([
-                        "---",
-                        "**Stats:**",
-                        f"- Tokens: {self.cost_info.token_usage['total']:,}",
-                        f"- Cost: ${self.cost_info.total_cost:.4f}",
-                    ])
-                    if self.response_time:
-                        parts.append(f"- Response time: {self.response_time:.2f}s")
-
-                if show_metadata and self.metadata:
-                    meta = yamling.dump_yaml(self.metadata)
-                    parts.extend(["", "**Metadata:**", "```", meta, "```"])
-
-                if self.forwarded_from:
-                    parts.append(f"\n*Forwarded via: {' → '.join(self.forwarded_from)}*")
-
-                return "\n".join(parts)
+            case "custom":
+                if not template:
+                    msg = "Custom style requires a template"
+                    raise ValueError(msg)
+                template_str = template
+            case _ if style in MESSAGE_TEMPLATES:
+                template_str = MESSAGE_TEMPLATES[style]
             case _:
                 msg = f"Invalid style: {style}"
                 raise ValueError(msg)
+
+        template_obj = env.from_string(template_str)
+        render_vars = {
+            **asdict(self),
+            "show_metadata": show_metadata,
+            "show_costs": show_costs,
+        }
+        if variables:
+            render_vars.update(variables)
+
+        return template_obj.render(**render_vars)
 
 
 @dataclass
