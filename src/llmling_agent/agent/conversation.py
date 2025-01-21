@@ -85,6 +85,7 @@ class ConversationManager:
         self._current_history: list[ModelMessage] = []
         self._last_messages: list[ModelMessage] = []
         self._pending_messages: deque[ModelRequest] = deque()
+        self._config = session_config
         self._resources = list(resources)  # Store for async loading
         # Generate new ID if none provided
         self.id = str(uuid4())
@@ -305,28 +306,53 @@ class ConversationManager:
         self,
         include_pending: bool = True,
         roles: set[type[ModelMessage]] | None = None,
+        do_filter: bool = True,
     ) -> list[ModelMessage]:
-        """Get current conversation history.
+        """Get conversation history.
 
         Args:
-            include_pending: Whether to include pending messages in the history.
-                             If True, pending messages are moved to main history.
-            roles: Message roles to include
+            include_pending: Whether to include pending messages
+            roles: Optional role filter
+            do_filter: Whether to apply memory config limits (max_tokens, max_messages)
 
         Returns:
-            List of messages in chronological order
+            Filtered list of messages in chronological order
         """
         if include_pending and self._pending_messages:
             self._current_history.extend(self._pending_messages)
             self._pending_messages.clear()
 
-        if roles:
-            return [
-                msg
-                for msg in self._current_history
-                if any(isinstance(msg, r) for r in roles)
-            ]
-        return self._current_history
+        # 2. Start with original history
+        history = self._current_history
+
+        # 3. Only filter if needed
+        if do_filter:
+            # Filter by roles if specified
+            if roles:
+                history = [
+                    msg for msg in history if any(isinstance(msg, r) for r in roles)
+                ]
+
+            # Apply memory config limits if configured
+            if self._config:
+                # First filter by message count (simple slice)
+                if self._config.max_messages:
+                    history = history[-self._config.max_messages :]
+
+                # Then filter by tokens if needed
+                if self._config.max_tokens:
+                    token_count = 0
+                    filtered = []
+                    # Collect messages from newest to oldest until we hit the limit
+                    for msg in reversed(history):
+                        msg_tokens = self.get_message_tokens(msg)
+                        if token_count + msg_tokens > self._config.max_tokens:
+                            break
+                        token_count += msg_tokens
+                        filtered.append(msg)
+                    history = list(reversed(filtered))
+
+        return history
 
     def get_pending_messages(self) -> list[ModelMessage]:
         """Get messages that will be included in next interaction."""
