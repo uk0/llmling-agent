@@ -74,6 +74,12 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/advanced/task_monitoring.md")
 
 
+@nav.route.page("Agent state", icon="octicon:pulse-16")
+def _(page: mk.MkPage):
+    """Agent state management."""
+    page += mk.MkTemplate("docs/advanced/agent_state.md")
+
+
 # @nav.route.page("UPath & YAML Features", icon="octicon:file-code-16")
 # def _(page: mk.MkPage):
 #     """UPath integration and YAML features."""
