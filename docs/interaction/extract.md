@@ -1,6 +1,8 @@
 # Extracting Data with extract() and extract_multiple()
 
-The extraction methods provide powerful ways to parse structured data from text, constructing typed objects from natural language descriptions. These methods can work with any Python class that has a proper constructor.
+The extraction methods provide powerful ways to parse structured data from text,
+constructing typed objects from natural language descriptions.
+These methods can work with any Python class that has a proper constructor.
 
 ## Basic Usage
 
@@ -34,6 +36,7 @@ for member in team:
 Both methods support two extraction modes:
 
 ### Structured Mode (Default)
+
 ```python
 # More robust, single-round extraction
 result = await agent.talk.extract(
@@ -44,6 +47,7 @@ result = await agent.talk.extract(
 ```
 
 ### Tool Calls Mode
+
 ```python
 # Legacy mode, might be useful for experimentation
 result = await agent.talk.extract(
@@ -56,6 +60,7 @@ result = await agent.talk.extract(
 ## Working with Complex Types
 
 ### Nested Objects
+
 ```python
 class Address:
     def __init__(self, street: str, city: str):
@@ -90,6 +95,7 @@ result = await agent.talk.extract(
 ```
 
 For multiple extraction:
+
 ```python
 results = await agent.talk.extract_multiple(
     text,
@@ -136,12 +142,14 @@ class Extraction(BaseModel):
 ```
 
 3. **LLM Interaction**
-   - Single structured response from LLM
-   - LLM sees complete schema upfront
-   - Natural mapping of fields
-   - One-shot validation through Pydantic
+
+- Single structured response from LLM
+- LLM sees complete schema upfront
+- Natural mapping of fields
+- One-shot validation through Pydantic
 
 4. **Instance Creation**
+
 ```python
 # Convert validated model to target class
 result = as_type(**model_instance.model_dump())
@@ -181,6 +189,7 @@ class Person:
 ```
 
 2. **Constructor Tool**
+
 ```python
 async def construct(**kwargs: Any) -> T:
     """Dynamic constructor tool."""
@@ -188,17 +197,20 @@ async def construct(**kwargs: Any) -> T:
 ```
 
 3. **LLM Interaction**
-   - LLM makes function calls
-   - For multiple: Repeated calls to add instances
-   - Each call validated separately
-   - State maintained between calls
+
+- LLM makes function calls
+- For multiple: Repeated calls to add instances
+- Each call validated separately
+- State maintained between calls
 
 4. **Instance Creation**
-   - Through tool call execution
-   - One instance per call
-   - Results collected in list (for multiple)
+
+- Through tool call execution
+- One instance per call
+- Results collected in list (for multiple)
 
 Trade-offs:
+
 - More flexible but less robust
 - Multiple round-trips for multiple instances
 - Harder to maintain complex state
