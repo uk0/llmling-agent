@@ -51,6 +51,9 @@ flowchart LR
     player2--|run stop:check|-->player3
     player3--|run|-->player1
 ```
+!!! note
+    Mermaid diagrams can be generated using pool.get_mermaid_diagram() for a whole pool, as well as
+    TalkManager.get_mermaid_diagram() for a single agent.
 
 ## Running the Example
 
