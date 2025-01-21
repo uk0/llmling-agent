@@ -95,6 +95,10 @@ class Talk[TTransmittedData]:
         self._stop_condition = stop_condition
         self._exit_condition = exit_condition
 
+    def __repr__(self):
+        targets = [t.name for t in self.targets]
+        return f"<Talk({self.connection_type}) {self.source.name} -> {targets}>"
+
     async def _handle_message(
         self,
         message: ChatMessage[TTransmittedData],
@@ -312,6 +316,9 @@ class TeamTalk(list["Talk | TeamTalk"]):
         self._filter_condition: AnyFilterFn | None = None
         self.active = True
 
+    def __repr__(self):
+        return f"TeamTalk({list(self)})"
+
     @property
     def targets(self) -> list[AnyAgent[Any, Any]]:
         """Get all targets from all connections."""
@@ -375,6 +382,9 @@ class TalkManager:
         self.owner = owner
         self._connections: list[Talk | TeamTalk] = []
         self._wait_states: dict[str, bool] = {}
+
+    def __repr__(self):
+        return f"TalkManager({self.owner})"
 
     def set_wait_state(self, target: AnyAgent[Any, Any] | str, wait: bool = True):
         """Set waiting behavior for target."""
