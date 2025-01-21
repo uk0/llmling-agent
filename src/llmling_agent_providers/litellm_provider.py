@@ -116,14 +116,14 @@ class LiteLLMProvider(AgentProvider[Any]):
         from litellm.files.main import ModelResponse
 
         model_name = self._get_model_name(model)
-
+        complete_history = self.conversation.get_history()
         try:
             # Create messages list from history and new prompt
             messages: list[dict[str, Any]] = []
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
             if store_history:
-                for msg in self.conversation.get_history():
+                for msg in complete_history:
                     messages.extend(self._convert_message_to_chat(msg))
 
             # Convert new prompts to message content
@@ -192,10 +192,14 @@ class LiteLLMProvider(AgentProvider[Any]):
                             # For now, store content objects as string representation
                             parts.append(UserPromptPart(content=str(p)))
 
-                history_msg = ModelRequest(parts=parts)
+                request_msg = ModelRequest(parts=parts)
                 part = TextPart(content=content or "")
                 response_msg = PydanticModelResponse(parts=[part])
-                self.conversation.set_history([history_msg, response_msg])
+                self.conversation.set_history([
+                    *complete_history,
+                    request_msg,
+                    response_msg,
+                ])
 
             return ProviderResponse(
                 content=content,
