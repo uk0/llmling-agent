@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from upath import UPath
 
+from llmling_agent.utils.async_read import read_path
+
 
 if TYPE_CHECKING:
     import PIL.Image
@@ -68,7 +70,8 @@ class BaseImageContent(BaseContent):
             )
 
         # For all other paths, read and convert to base64
-        content = base64.b64encode(path_obj.read_bytes()).decode()
+        data = await read_path(path_obj, mode="rb")
+        content = base64.b64encode(data).decode()
         return ImageBase64Content(data=content, detail=detail, description=description)
 
 
@@ -147,7 +150,8 @@ class BasePDFContent(BaseContent):
             )
 
         # For all other paths, read and convert to base64
-        content = base64.b64encode(path_obj.read_bytes()).decode()
+        data = await read_path(path_obj, mode="rb")
+        content = base64.b64encode(data).decode()
         return PDFBase64Content(data=content, detail=detail, description=description)
 
 

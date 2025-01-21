@@ -20,6 +20,7 @@ from upath import UPath
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.models.session import MemoryConfig, SessionQuery
+from llmling_agent.utils.async_read import read_path
 from llmling_agent_providers.pydanticai.utils import (
     convert_model_message,
     format_part,
@@ -483,7 +484,7 @@ class ConversationManager:
                     result = md.convert(path_obj.path)
                 else:
                     with tempfile.NamedTemporaryFile(suffix=path_obj.suffix) as tmp:
-                        tmp.write(path_obj.read_bytes())
+                        tmp.write(await read_path(path_obj, mode="rb"))
                         tmp.flush()
                         result = md.convert(tmp.name)
 
@@ -495,7 +496,7 @@ class ConversationManager:
                 raise ValueError(msg) from e
         else:
             try:
-                content = path_obj.read_text()
+                content = await read_path(path_obj)
                 source = f"{path_obj.protocol}:{path_obj.name}"
             except Exception as e:
                 msg = f"Failed to read {path_obj}: {e}"

@@ -39,6 +39,7 @@ from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
+from llmling_agent.utils.async_read import read_path
 from llmling_agent.utils.inspection import call_with_context
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_providers import (
@@ -125,7 +126,8 @@ async def _convert_prompts(
                         result.append(content)
                     case _:
                         # Non-media or unknown type
-                        result.append(path_obj.read_text())
+                        text = await read_path(path_obj)
+                        result.append(text)
 
             case _ if not isinstance(p, BaseContent):
                 result.append(await to_prompt(p))
