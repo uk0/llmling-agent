@@ -706,28 +706,22 @@ class TalkManager:
 
     def get_connections(self, recursive: bool = False) -> list[Talk[Any]]:
         """Get all Talk connections, flattening TeamTalks."""
+        result = []
+        seen = set()
 
-        def _collect_talks(
-            item: Talk[Any] | TeamTalk, seen: set[str] | None = None
-        ) -> list[Talk[Any]]:
-            match item:
-                case Talk():
-                    return [item]
-                case TeamTalk():
-                    if not recursive:
-                        return [t for subitem in item for t in _collect_talks(subitem)]
+        # Get our direct connections
+        for conn in self._connections:
+            if isinstance(conn, Talk):
+                result.append(conn)
+            else:  # TeamTalk
+                result.extend(t for t in conn if isinstance(t, Talk))
 
-                    seen = seen or {self.owner.name}  # type: ignore
-                    talks = []
+        # Get target connections if recursive
+        if recursive:
+            for conn in result:
+                for target in conn.targets:
+                    if target.name not in seen:
+                        seen.add(target.name)
+                        result.extend(target.connections.get_connections(True))
 
-                    for subitem in item:
-                        talks.extend(_collect_talks(subitem))
-
-                    for target in item.targets:
-                        if target.name not in seen:
-                            seen.add(target.name)
-                            conns = target.connections.get_connections(recursive=True)
-                            talks.extend(conns)
-                    return talks
-
-        return [talk for conn in self._connections for talk in _collect_talks(conn)]
+        return result
