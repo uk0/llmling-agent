@@ -664,12 +664,8 @@ class TalkManager:
             should_wait = any(
                 self._wait_states.get(t.name, False) for t in self.get_targets()
             )
-
-        logger.debug(
-            "TalkManager routing message from %s to %d connections",
-            message.name,
-            len(self._connections),
-        )
+        msg = "TalkManager routing message from %s to %d connections"
+        logger.debug(msg, message.name, len(self._connections))
 
         forwarded_from = [*message.forwarded_from, self.owner.name]  # type: ignore
         message_copy = replace(message, forwarded_from=forwarded_from)

@@ -488,7 +488,6 @@ List your selections, one per line, followed by your reasoning."""
         final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
         schema_obj = create_constructor_schema(as_type)
         schema = schema_obj.model_dump_openai()["function"]
-        final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
 
         if mode == "structured":
 
@@ -514,10 +513,7 @@ List your selections, one per line, followed by your reasoning."""
             description_override=schema["description"],
             # schema_override=schema,
         )
-        with structured.tools.temporary_tools(
-            tool,
-            exclusive=not include_tools,
-        ):
+        with structured.tools.temporary_tools(tool, exclusive=not include_tools):
             result = await structured.run(final_prompt)  # type: ignore
         return result.content  # type: ignore
 
