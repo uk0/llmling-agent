@@ -61,6 +61,7 @@ if TYPE_CHECKING:
         StrPath,
         ToolType,
     )
+    from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.execution import TeamRun
     from llmling_agent.models.context import ConfirmationCallback
@@ -109,33 +110,34 @@ async def _convert_prompts(
 class AgentKwargs(TypedDict, total=False):
     # Core Identity
     provider: AgentType
-    description: str | None  # What it does
+    description: str | None
 
     # Model Configuration
-    model: ModelType  # Which model to use
-    system_prompt: str | Sequence[str]  # How it should behave
-    # model_settings: dict[str, Any]  # Model-specific settings
+    model: ModelType
+    system_prompt: str | Sequence[str]
+    # model_settings: dict[str, Any]
 
     # Runtime Environment
-    runtime: RuntimeConfig | Config | StrPath | None  # Resources and tools
-    tools: Sequence[ToolType] | None  # Available tools
-    mcp_servers: Sequence[str | MCPServerConfig] | None  # External tool servers
+    runtime: RuntimeConfig | Config | StrPath | None
+    tools: Sequence[ToolType] | None
+    capabilities: Capabilities | None
+    mcp_servers: Sequence[str | MCPServerConfig] | None
 
     # Execution Settings
-    retries: int  # Operation retry count
-    result_retries: int | None  # Validation retry count
-    tool_choice: bool | str | list[str]  # Tool usage control
-    end_strategy: EndStrategy  # Tool call handling
-    defer_model_check: bool  # Lazy model validation
+    retries: int
+    result_retries: int | None
+    tool_choice: bool | str | list[str]
+    end_strategy: EndStrategy
+    defer_model_check: bool
 
     # Context & State
-    context: AgentContext[Any] | None  # Custom context/deps
-    session: SessionIdType | SessionQuery  # Conversation recovery
+    context: AgentContext[Any] | None  # x
+    session: SessionIdType | SessionQuery
 
     # Behavior Control
-    enable_db_logging: bool  # History logging
-    confirmation_callback: ConfirmationCallback | None  # Tool confirmation
-    debug: bool  # Debug output
+    enable_db_logging: bool
+    confirmation_callback: ConfirmationCallback | None
+    debug: bool
 
 
 class Agent[TDeps](TaskManagerMixin):
@@ -189,6 +191,7 @@ class Agent[TDeps](TaskManagerMixin):
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
         description: str | None = None,
         tools: Sequence[ToolType] | None = None,
+        capabilities: Capabilities | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         resources: Sequence[Resource | PromptType | str] = (),
         retries: int = 1,
@@ -213,6 +216,7 @@ class Agent[TDeps](TaskManagerMixin):
             name: Name of the agent for logging
             description: Description of the Agent ("what it can do")
             tools: List of tools to register with the agent
+            capabilities: Capabilities for the agent
             mcp_servers: MCP servers to connect to
             resources: Additional resources to load
             retries: Default number of retries for failed operations
@@ -242,7 +246,8 @@ class Agent[TDeps](TaskManagerMixin):
         # prepare context
         ctx = context or AgentContext[TDeps].create_default(name)
         ctx.confirmation_callback = confirmation_callback
-
+        if capabilities is not None:
+            ctx.capabilities = capabilities
         # Initialize runtime
         match runtime:
             case None:

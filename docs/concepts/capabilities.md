@@ -2,9 +2,13 @@
 
 ## What are Capabilities?
 
-Capabilities in LLMling define what "special" operations an agent is allowed to perform. While tools provide specific functions an agent can use (like web searches or calculations), capabilities control an agent's access to privileged operations that can modify the system itself or access sensitive information.
+Capabilities in LLMling define what "special" operations an agent is allowed to perform.
+While tools provide specific functions an agent can use (like web searches or calculations),
+capabilities control an agent's access to privileged operations that can modify the system itself or access sensitive information.
 
-Think of capabilities as "administrative privileges" that determine what an agent is allowed to do beyond regular tool usage. When capabilities are enabled, corresponding tools become available to the agent, providing a secure and explicit way to control agent permissions.
+Think of capabilities as "administrative privileges" that determine what an agent is allowed to do beyond regular tool usage.
+When capabilities are enabled, corresponding tools become available to the agent,
+providing a secure and explicit way to control agent permissions.
 
 ## Defining Capabilities
 
@@ -45,6 +49,7 @@ agents:
 ```
 
 Or in Python:
+
 ```python
 from llmling_agent.config import Capabilities
 
@@ -53,11 +58,18 @@ capabilities = Capabilities(
     can_delegate_tasks=True,
     history_access="own"
 )
+
+agent = Agent(
+    name="my_agent",
+    capabilities=capabilities,
+    model="gpt-4"
+)
 ```
 
 ## Available Capabilities
 
 ### Agent Interaction
+
 Control how agents can discover and interact with each other:
 ```python
 can_list_agents: bool = False
@@ -74,6 +86,7 @@ can_ask_agents: bool = False
 ```
 
 ### History & Statistics Access
+
 Control access to conversation history and usage data:
 ```python
 history_access: AccessLevel = "none"
@@ -92,6 +105,7 @@ stats_access: AccessLevel = "none"
 ```
 
 ### Resource Management
+
 Control access to resources and tools:
 ```python
 can_load_resources: bool = False
@@ -114,6 +128,7 @@ can_chain_tools: bool = False
 ```
 
 ### Code Execution
+
 Control ability to execute code (use with caution):
 ```python
 can_execute_code: bool = False
@@ -124,6 +139,7 @@ can_execute_commands: bool = False
 ```
 
 ### Agent Creation
+
 Control ability to create and manage other agents:
 ```python
 can_create_workers: bool = False
@@ -141,6 +157,7 @@ can_add_agents: bool = False
 Here are some common capability configurations for different agent roles:
 
 ### Basic Agent
+
 ```yaml
 agents:
   restricted_agent:
@@ -150,6 +167,7 @@ agents:
 ```
 
 ### Power User Agent
+
 ```yaml
 agents:
   power_user:
@@ -162,6 +180,7 @@ agents:
 ```
 
 ### Team Lead Agent
+
 ```yaml
 agents:
   team_lead:
@@ -177,6 +196,7 @@ agents:
 ```
 
 ### Admin Agent
+
 ```yaml
 agents:
   admin:
