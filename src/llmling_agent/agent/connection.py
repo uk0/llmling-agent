@@ -116,7 +116,7 @@ class Talk[TTransmittedData]:
 
         # Check exit condition
         if self._exit_condition:
-            do_exit = self._exit_condition(message)
+            do_exit = self._exit_condition(message, self.stats)
             if inspect.isawaitable(do_exit):
                 if await do_exit:
                     raise SystemExit
@@ -125,7 +125,7 @@ class Talk[TTransmittedData]:
 
         # Check stop condition
         if self._stop_condition:
-            do_stop = self._stop_condition(message)
+            do_stop = self._stop_condition(message, self.stats)
             if inspect.isawaitable(do_stop):
                 if await do_stop:
                     self.disconnect()
@@ -134,8 +134,8 @@ class Talk[TTransmittedData]:
                 self.disconnect()
                 return
         # Check filter condition
-        if self._filter_condition and not self._filter_condition(message):
-            do_filter = self._filter_condition(message)
+        if self._filter_condition:
+            do_filter = self._filter_condition(message, self.stats)
             if inspect.isawaitable(do_filter):
                 if not await do_filter:
                     return
