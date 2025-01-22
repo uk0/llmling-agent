@@ -63,8 +63,8 @@ async def test_agent_streaming(test_agent: Agent[None]):
 async def test_agent_streaming_with_history(test_agent: Agent[None]):
     """Test streaming with message history."""
     history = [
-        ModelRequest(parts=[UserPromptPart(content="Previous message")]),
-        ModelResponse(parts=[TextPart(content="Previous response")]),
+        ChatMessage(role="user", content="Previous message"),
+        ChatMessage(role="assistant", content="Previous response"),
     ]
     test_agent.conversation.set_history(history)
     stream_ctx = test_agent.run_stream(SIMPLE_PROMPT)

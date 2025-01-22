@@ -327,15 +327,24 @@ class PydanticAIProvider(AgentProvider):
         if model:
             self.model_changed.emit(use_model)
 
-        if self._debug:
-            from devtools import debug
+        text_prompts = [p for p in prompts if isinstance(p, str)]
+        content_prompts = [p for p in prompts if isinstance(p, BaseContent)]
 
-            debug(agent)
-        prompt = await self.format_prompts(prompts)
+        # Get normal text prompt
+        prompt = await self.format_prompts(text_prompts)
+
+        # Convert Content objects to ChatMessages
+        if content_prompts:
+            prompts_msgs = [ChatMessage(role="user", content=p) for p in content_prompts]
+            message_history = [*message_history, *prompts_msgs]
+
+        # Convert all messages to pydantic-ai format
+        model_messages = [to_model_message(m) for m in message_history]
+
         async with agent.run_stream(
             prompt,
-            deps=self._context,  # type: ignore
-            message_history=message_history,
+            deps=self._context,
+            message_history=model_messages,
             model=model or self.model,  # type: ignore
             result_type=result_type or str,
         ) as stream_result:
