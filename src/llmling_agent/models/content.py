@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import io
-from typing import TYPE_CHECKING, Annotated, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field
 from upath import UPath
@@ -31,6 +31,10 @@ class BaseContent(BaseModel):
     """Human-readable description of the content."""
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+
+    def to_openai_format(self) -> dict[str, Any]:
+        """Convert to OpenAI API format."""
+        raise NotImplementedError
 
 
 class BaseImageContent(BaseContent):
@@ -84,6 +88,13 @@ class ImageURLContent(BaseImageContent):
     url: str
     """URL to the image."""
 
+    def to_openai_format(self) -> dict[str, Any]:
+        """Convert to OpenAI API format for vision models."""
+        return {
+            "type": "image_url",
+            "image_url": {"url": self.url, "detail": self.detail or "auto"},
+        }
+
 
 class ImageBase64Content(BaseImageContent):
     """Image from base64 data."""
@@ -93,6 +104,14 @@ class ImageBase64Content(BaseImageContent):
 
     data: str
     """Base64-encoded image data."""
+
+    def to_openai_format(self) -> dict[str, Any]:
+        """Convert to OpenAI API format for vision models."""
+        data_url = f"data:image/jpeg;base64,{self.data}"
+        return {
+            "type": "image_url",
+            "image_url": {"url": data_url, "detail": self.detail or "auto"},
+        }
 
     @classmethod
     def from_bytes(
@@ -125,6 +144,10 @@ class BasePDFContent(BaseContent):
 
     detail: DetailLevel | None = None
     """Detail level for document processing by models."""
+
+    def to_openai_format(self) -> dict[str, Any]:
+        """Convert to OpenAI API format for PDF handling."""
+        raise NotImplementedError
 
     @classmethod
     async def from_path(
@@ -200,6 +223,13 @@ class AudioURLContent(AudioContent):
     type: Literal["audio_url"] = Field("audio_url", init=False)
     url: str
 
+    def to_openai_format(self) -> dict[str, Any]:
+        """Convert to OpenAI API format for audio models."""
+        return {
+            "type": "audio",
+            "audio": {"url": self.url, "format": self.format or "auto"},
+        }
+
 
 class AudioBase64Content(AudioContent):
     """Audio from base64 data."""
@@ -207,6 +237,14 @@ class AudioBase64Content(AudioContent):
     type: Literal["audio_base64"] = Field("audio_base64", init=False)
     data: str
     format: str | None = None  # mp3, wav, etc
+
+    def to_openai_format(self) -> dict[str, Any]:
+        """Convert to OpenAI API format for audio models."""
+        data_url = f"data:audio/{self.format or 'mp3'};base64,{self.data}"
+        return {
+            "type": "audio",
+            "audio": {"url": data_url, "format": self.format or "auto"},
+        }
 
     @classmethod
     def from_bytes(cls, data: bytes, audio_format: str = "mp3") -> Self:

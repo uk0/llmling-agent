@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import base64
 import json
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import messages as _messages
 from pydantic_ai.messages import (
@@ -23,15 +21,10 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 
-from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.content import (
-    AudioBase64Content,
-    AudioURLContent,
     BaseContent,
     Content,
-    ImageBase64Content,
-    ImageURLContent,
 )
 from llmling_agent.models.messages import ChatMessage
 
@@ -39,18 +32,6 @@ from llmling_agent.models.messages import ChatMessage
 if TYPE_CHECKING:
     from llmling_agent.common_types import MessageRole
     from llmling_agent.tools.base import ToolInfo
-
-
-logger = get_logger(__name__)
-
-# Type definitions
-type ContentType = Literal["text", "image", "audio", "video"]
-type ContentSource = str | bytes | Path | Any
-
-
-def to_base64(data: bytes) -> str:
-    """Convert bytes to base64 string."""
-    return base64.b64encode(data).decode()
 
 
 def format_part(  # noqa: PLR0911
@@ -221,48 +202,13 @@ def convert_model_message(
             raise ValueError(msg)
 
 
-def content_to_openai_format(content: Content) -> dict[str, Any]:
-    """Convert Content object to OpenAI format."""
-    match content:
-        case ImageURLContent():
-            return {
-                "type": "image_url",
-                "image_url": {"url": content.url, "detail": content.detail or "auto"},
-            }
-        case ImageBase64Content():
-            data_url = f"data:image/jpeg;base64,{content.data}"
-            return {
-                "type": "image_url",
-                "image_url": {"url": data_url, "detail": content.detail or "auto"},
-            }
-        case AudioURLContent():  # New!
-            return {
-                "type": "audio",
-                "audio": {"url": content.url, "format": content.format or "auto"},
-            }
-        case AudioBase64Content():  # New!
-            data_url = f"data:audio/{content.format or 'mp3'};base64,{content.data}"
-            return {
-                "type": "audio",
-                "audio": {"url": data_url, "format": content.format or "auto"},
-            }
-        case _:
-            msg = f"Unsupported content type: {type(content)}"
-            raise ValueError(msg)
-
-
 def to_model_message(message: ChatMessage[str | Content]) -> ModelMessage:
     """Convert ChatMessage to pydantic-ai ModelMessage."""
     match message.content:
         case BaseContent():
+            content = [message.content.to_openai_format()]
             return ModelRequest(
-                parts=[
-                    UserPromptPart(
-                        content=json.dumps({
-                            "content": [content_to_openai_format(message.content)]
-                        })
-                    )
-                ]
+                parts=[UserPromptPart(content=json.dumps({"content": content}))]
             )
         case str():
             part_cls = {
