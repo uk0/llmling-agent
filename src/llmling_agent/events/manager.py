@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any, Self
+from collections.abc import Awaitable, Callable, Coroutine
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from functools import wraps
+import inspect
+from typing import TYPE_CHECKING, Any, Self, TypeVar, overload
 
 from llmling_agent.events.sources import (
     EmailConfig,
@@ -25,6 +29,19 @@ logger = get_logger(__name__)
 
 
 type EventCallback = Callable[[EventData], None | Awaitable[None]]
+
+T = TypeVar("T")
+
+
+@dataclass(frozen=True)
+class FunctionResultEvent(EventData):
+    """Event from a function execution result."""
+
+    result: Any
+
+    def to_prompt(self) -> str:
+        """Convert result to prompt format."""
+        return str(self.result)
 
 
 class EventManager:
@@ -48,6 +65,7 @@ class EventManager:
         self._sources: dict[str, EventSource] = {}
         self._callbacks: list[EventCallback] = []
         self.auto_run = auto_run
+        self._observers: dict[str, list[EventObserver]] = {}
 
     async def _default_handler(self, event: EventData) -> None:
         """Default event handler that converts events to agent runs."""
@@ -210,3 +228,196 @@ class EventManager:
     async def __aexit__(self, *exc: object):
         """Clean up when exiting context."""
         await self.cleanup()
+
+    @overload
+    def track[T](
+        self,
+        event_name: str | None = None,
+        **event_metadata: Any,
+    ) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
+
+    @overload
+    def track[T](
+        self,
+        event_name: str | None = None,
+        **event_metadata: Any,
+    ) -> Callable[
+        [Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]
+    ]: ...
+
+    def track(
+        self,
+        event_name: str | None = None,
+        **event_metadata: Any,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """Track function calls as events.
+
+        Args:
+            event_name: Optional name for the event (defaults to function name)
+            **event_metadata: Additional metadata to include with event
+
+        Example:
+            @event_manager.track("user_search")
+            async def search_docs(query: str) -> list[Doc]:
+                results = await search(query)
+                return results  # This result becomes event data
+        """
+
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+            name = event_name or func.__name__
+
+            @wraps(func)
+            async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
+                start_time = datetime.now()
+                try:
+                    result = await func(*args, **kwargs)
+                    if self.enabled:
+                        event = EventData.create(
+                            source=name,
+                            content=result,
+                            metadata={
+                                "status": "success",
+                                "duration": datetime.now() - start_time,
+                                "args": args,
+                                "kwargs": kwargs,
+                                **event_metadata,
+                            },
+                        )
+                        await self.emit_event(event)
+                except Exception as e:
+                    if self.enabled:
+                        event = EventData.create(
+                            source=name,
+                            content=str(e),
+                            metadata={
+                                "status": "error",
+                                "error": str(e),
+                                "duration": datetime.now() - start_time,
+                                "args": args,
+                                "kwargs": kwargs,
+                                **event_metadata,
+                            },
+                        )
+                        await self.emit_event(event)
+                    raise
+                else:
+                    return result
+
+            @wraps(func)
+            def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+                start_time = datetime.now()
+                try:
+                    result = func(*args, **kwargs)
+                    if self.enabled:
+                        event = EventData.create(
+                            source=name,
+                            content=result,
+                            metadata={
+                                "status": "success",
+                                "duration": datetime.now() - start_time,
+                                "args": args,
+                                "kwargs": kwargs,
+                                **event_metadata,
+                            },
+                        )
+                        self.agent.run_background(self.emit_event(event))
+                except Exception as e:
+                    if self.enabled:
+                        event = EventData.create(
+                            source=name,
+                            content=str(e),
+                            metadata={
+                                "status": "error",
+                                "error": str(e),
+                                "duration": datetime.now() - start_time,
+                                "args": args,
+                                "kwargs": kwargs,
+                                **event_metadata,
+                            },
+                        )
+                        self.agent.run_background(self.emit_event(event))
+                    raise
+                else:
+                    return result
+
+            return async_wrapper if inspect.iscoroutinefunction(func) else sync_wrapper
+
+        return decorator
+
+    @overload
+    def poll(
+        self,
+        event_type: str,
+        interval: timedelta | None = None,
+    ) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
+
+    @overload
+    def poll(
+        self,
+        event_type: str,
+        interval: timedelta | None = None,
+    ) -> Callable[
+        [Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]
+    ]: ...
+
+    def poll(
+        self,
+        event_type: str,
+        interval: timedelta | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """Decorator to register an event observer.
+
+        Args:
+            event_type: Type of event to observe
+            interval: Optional polling interval for periodic checks
+
+        Example:
+            @event_manager.observe("file_changed")
+            async def handle_file_change(event: FileEvent):
+                await process_file(event.path)
+        """
+
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+            observer = EventObserver(func, interval=interval)
+            self._observers.setdefault(event_type, []).append(observer)
+
+            @wraps(func)
+            async def wrapper(*args: Any, **kwargs: Any) -> Any:
+                result = func(*args, **kwargs)
+                if inspect.iscoroutine(result):
+                    result = await result
+
+                # Convert result to event and emit
+                if self.enabled:
+                    event = FunctionResultEvent(
+                        source=event_type,
+                        result=result,
+                        metadata={
+                            "type": "function_result",
+                            "result_type": type(result).__name__,
+                        },
+                    )
+                    await self.emit_event(event)
+                return result
+
+            return wrapper
+
+        return decorator
+
+
+@dataclass
+class EventObserver:
+    """Registered event observer."""
+
+    callback: Callable[..., Any]
+    interval: timedelta | None = None
+    last_run: datetime | None = None
+
+    async def __call__(self, event: EventData) -> None:
+        """Handle an event."""
+        try:
+            result = self.callback(event)
+            if inspect.iscoroutine(result):
+                await result
+        except Exception:
+            logger.exception("Error in event observer")
