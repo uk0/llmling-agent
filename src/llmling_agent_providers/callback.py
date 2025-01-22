@@ -58,7 +58,6 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         """Process message through callback."""
         from llmling_agent.models.messages import ChatMessage
 
-        msg_history = self.conversation.get_history()
         try:
             # Create args tuple based on callback requirements
             args = (self.context, *prompts) if self._wants_context else (*prompts,)
@@ -66,10 +65,12 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
             # Handle async/sync result
             result = await raw_result if isinstance(raw_result, Awaitable) else raw_result
             if store_history:
-                formatted = await self.format_prompts(prompts)
-                msg_history.append(ChatMessage(role="user", content=formatted))
-                msg_history.append(ChatMessage(role="assistant", content=result))
-                self.conversation.set_history(msg_history)
+                msgs = [
+                    ChatMessage(role="user", content=await self.format_prompts(prompts)),
+                    ChatMessage(role="assistant", content=result),
+                ]
+                self.conversation.add_chat_messages(msgs)
+
             return ProviderResponse(content=result)
 
         except Exception as e:
@@ -88,9 +89,6 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:
         """Simulate streaming by yielding complete result as one chunk."""
-        from llmling_agent.models.messages import ChatMessage
-
-        msg_history = self.conversation.get_history()
 
         class SingleChunkStream:
             def __init__(self, content: str):
@@ -112,12 +110,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         try:
             # Get result using normal response generation
             result = await self.generate_response(*prompts, message_id=message_id)
-
-            if store_history:
-                formatted = await self.format_prompts(prompts)
-                msg_history.append(ChatMessage(role="user", content=formatted))
-                msg_history.append(ChatMessage(role="assistant", content=result))
-                self.conversation.set_history(msg_history)
+            # we already save history etc with generate_response
             stream_result = SingleChunkStream(str(result.content))
             yield stream_result  # type: ignore
 

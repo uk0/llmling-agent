@@ -12,11 +12,7 @@ from tokonomics.toko_types import TokenUsage
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.content import (
-    Content,
-    ImageBase64Content,
-    ImageURLContent,
-)
+from llmling_agent.models.content import BaseContent, Content
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent_providers.base import AgentProvider, ProviderResponse
 
@@ -126,15 +122,8 @@ class LiteLLMProvider(AgentProvider[Any]):
                 match p:
                     case str():
                         content_parts.append({"type": "text", "text": p})
-                    case ImageURLContent():
-                        url = {"url": p.url, "detail": p.detail or "auto"}
-                        content_parts.append({"type": "image_url", "image_url": url})
-                    case ImageBase64Content():
-                        # Convert to data URL
-                        data_url = f"data:image/jpeg;base64,{p.data}"
-                        url = {"url": data_url, "detail": p.detail or "auto"}
-                        content_parts.append({"type": "image_url", "image_url": url})
-
+                    case BaseContent():
+                        content_parts.append(p.to_openai_format())
             # Add the multi-modal content as user message
             messages.append({"role": "user", "content": content_parts})
 
@@ -182,11 +171,7 @@ class LiteLLMProvider(AgentProvider[Any]):
             if store_history:
                 request_msgs = [ChatMessage(role="user", content=str(p)) for p in prompts]
                 response_msg = ChatMessage(role="assistant", content=content)
-                self.conversation.set_history([
-                    *complete_history,
-                    *request_msgs,
-                    response_msg,
-                ])
+                self.conversation.add_chat_messages([*request_msgs, response_msg])
 
             return ProviderResponse(
                 content=content,
@@ -256,19 +241,8 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    provider = LiteLLMProvider(
-        name="litellm-test",
-        model="gpt-3.5-turbo",  # or any model supported by LiteLLM
-        debug=True,
-    )
-
     # Create agent with LiteLLM provider
-    agent = Agent[Any](
-        provider=provider,
-        model="openai/gpt-3.5-turbo",  # or any model supported by LiteLLM
-        name="litellm-test",
-        debug=True,
-    )
+    agent = Agent[Any](provider="litellm", model="openai/gpt-3.5-turbo", name="test")
 
     # Use run_sync for simple testing
     response = agent.run_sync("Tell me a short joke about Python programming.")

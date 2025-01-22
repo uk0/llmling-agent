@@ -239,8 +239,7 @@ class PydanticAIProvider(AgentProvider):
             if store_history:
                 tools = dict(self.tool_manager._items)
                 new = [convert_model_message(m, tools) for m in new_msgs]
-                self.conversation._last_messages = new
-                self.conversation.set_history(message_history + new)
+                self.conversation.add_chat_messages(new)
             resolved_model = (
                 use_model.name() if isinstance(use_model, Model) else str(use_model)
             )
@@ -366,8 +365,7 @@ class PydanticAIProvider(AgentProvider):
                     if store_history:
                         tools = dict(self.tool_manager._items)
                         new = [convert_model_message(m, tools) for m in messages]
-                        self.conversation._last_messages = new
-                        self.conversation.set_history(message_history + new)
+                        self.conversation.add_chat_messages(new)
 
                     # Extract and update tool calls
                     tool_calls = get_tool_calls(messages, dict(self.tool_manager._items))

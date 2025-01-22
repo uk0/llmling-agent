@@ -98,8 +98,7 @@ class ConversationManager:
 
     async def __aenter__(self) -> Self:
         """Initialize when used standalone."""
-        tasks = self.get_initialization_tasks()
-        if tasks:
+        if tasks := self.get_initialization_tasks():
             await asyncio.gather(*tasks)
         return self
 
@@ -267,7 +266,6 @@ class ConversationManager:
                         "limit": limit,
                     }
                     query = query.model_copy(update=update)
-                self.chat_messages = storage.filter_messages_sync(query)
                 if query.name:
                     self.id = query.name
             case str() | UUID():
@@ -279,7 +277,6 @@ class ConversationManager:
                     roles=roles,
                     limit=limit,
                 )
-                self.chat_messages = storage.filter_messages_sync(query)
             case None:
                 # Use current session ID
                 query = SessionQuery(
@@ -289,7 +286,10 @@ class ConversationManager:
                     roles=roles,
                     limit=limit,
                 )
-                self.chat_messages = storage.filter_messages_sync(query)
+            case _:
+                msg = f"Invalid type for session: {type(session)}"
+                raise ValueError(msg)
+        self.chat_messages = storage.filter_messages_sync(query)
 
     def get_history(
         self,
@@ -389,6 +389,11 @@ class ConversationManager:
 
         finally:
             self.chat_messages = old_history
+
+    def add_chat_messages(self, messages: list[ChatMessage]) -> None:
+        """Add new messages to history and update last_messages."""
+        self._last_messages = messages
+        self.chat_messages.extend(messages)
 
     @property
     def last_run_messages(self) -> list[ChatMessage]:

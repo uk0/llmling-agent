@@ -41,7 +41,7 @@ class ProviderResponse:
 
 
 @runtime_checkable
-class StreamingResponse(Protocol):
+class StreamingResponseProtocol(Protocol):
     """Protocol for streaming responses.
 
     This matches PydanticAI's StreamedRunResult interface to make transition easier,
