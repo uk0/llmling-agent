@@ -266,12 +266,7 @@ class Team[TDeps](TaskManagerMixin):
         execution = TeamRun(self, "controlled")
         return await execution.run(prompt, deps)
 
-    async def chain(
-        self,
-        message: Any,
-        *,
-        require_all: bool = True,
-    ) -> ChatMessage:
+    async def chain(self, message: Any, *, require_all: bool = True) -> ChatMessage:
         """Pass message through the chain of team members.
 
         Each agent processes the result of the previous one.

@@ -184,3 +184,14 @@ class AgentProvider[TDeps]:
                 return (caps and caps.supports_vision) or False
             case _:
                 return False
+
+    async def get_token_limits(self) -> tokonomics.TokenLimits | None:
+        """Get token limits for the current model."""
+        if not self.model_name:
+            return None
+
+        try:
+            return await tokonomics.get_model_limits(self.model_name)
+        except ValueError:
+            logger.debug("Could not get token limits for model: %s", self.model_name)
+            return None

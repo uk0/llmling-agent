@@ -17,29 +17,20 @@ from llmling import Config, LLMCallableTool, RuntimeConfig, ToolError
 import logfire
 from psygnal import Signal
 from pydantic_ai import RunContext  # noqa: TC002
-from tokonomics import TokenLimits, get_model_limits
 from toprompt import AnyPromptType, to_prompt
 from typing_extensions import TypeVar
-from upath import UPath
 
 from llmling_agent.agent.connection import ConnectionManager
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.content import (
-    BaseContent,
-    BaseImageContent,
-    BasePDFContent,
-    Content,
-    ImageBase64Content,
-)
 from llmling_agent.models.mcp_server import MCPServerConfig, StdioMCPServer
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.models.session import MemoryConfig, SessionQuery
+from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
-from llmling_agent.utils.async_read import read_path
 from llmling_agent.utils.inspection import call_with_context
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_providers import (
@@ -92,50 +83,6 @@ AgentType = (
     Literal["pydantic_ai", "human", "litellm"] | AgentProvider | Callable[..., Any]
 )
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
-
-
-async def _convert_prompts(
-    prompts: Sequence[AnyPromptType | PIL.Image.Image | os.PathLike[str]],
-) -> list[str | Content]:
-    """Convert prompts to our internal format.
-
-    Handles:
-    - PIL Images -> ImageBase64Content
-    - UPath/PathLike -> Auto-detect and convert to appropriate Content
-    - Regular prompts -> str via to_prompt
-    - Content objects -> pass through
-    """
-    import PIL.Image
-
-    result: list[str | Content] = []
-    for p in prompts:
-        match p:
-            case PIL.Image.Image():
-                result.append(ImageBase64Content.from_pil_image(p))
-
-            case os.PathLike():
-                from mimetypes import guess_type
-
-                path_obj = UPath(p)
-                mime_type, _ = guess_type(str(path_obj))
-
-                match mime_type:
-                    case "application/pdf":
-                        content: Content = await BasePDFContent.from_path(path_obj)
-                        result.append(content)
-                    case str() if mime_type.startswith("image/"):
-                        content = await BaseImageContent.from_path(path_obj)
-                        result.append(content)
-                    case _:
-                        # Non-media or unknown type
-                        text = await read_path(path_obj)
-                        result.append(text)
-
-            case _ if not isinstance(p, BaseContent):
-                result.append(await to_prompt(p))
-            case _:
-                result.append(p)  # type: ignore
-    return result
 
 
 class AgentKwargs(TypedDict, total=False):
@@ -1012,7 +959,7 @@ class Agent[TDeps](TaskManagerMixin):
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         """Run agent with prompt and get response."""
-        prompts = await _convert_prompts(prompt)
+        prompts = await convert_prompts(prompt)
         final_prompt = "\n\n".join(str(p) for p in prompts)
         self.context.current_prompt = final_prompt
         self.set_result_type(result_type)
@@ -1141,7 +1088,7 @@ class Agent[TDeps](TaskManagerMixin):
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        prompts = await _convert_prompts(prompt)
+        prompts = await convert_prompts(prompt)
         final_prompt = "\n\n".join(str(p) for p in prompts)
         self.set_result_type(result_type)
         self.context.current_prompt = final_prompt
@@ -1351,17 +1298,6 @@ class Agent[TDeps](TaskManagerMixin):
         self._logger.clear_state()
         self.conversation.clear()
         logger.debug("Cleared history and reset tool state")
-
-    async def get_token_limits(self) -> TokenLimits | None:
-        """Get token limits for the current model."""
-        if not self.model_name:
-            return None
-
-        try:
-            return await get_model_limits(self.model_name)
-        except ValueError:
-            logger.debug("Could not get token limits for model: %s", self.model_name)
-            return None
 
     async def share(
         self,

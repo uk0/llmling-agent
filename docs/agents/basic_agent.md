@@ -117,7 +117,6 @@ await agent.run_continuous(get_prompt)
 - `register_worker`: Turn an agent into a tool for another agent
 - `to_agent_tool`: Create a callable tool from the agent
 - `set_model`: Change the model dynamically
-- `get_token_limits`: Get model's token limits
 - Various task execution and chain management methods
 
 All methods maintain proper typing and integrate seamlessly with the rest of the LLMling ecosystem.
