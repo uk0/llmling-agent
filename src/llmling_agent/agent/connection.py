@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from datetime import timedelta
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.common_types import AnyFilterFn
+    from llmling_agent.common_types import AgentName, AnyFilterFn
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
@@ -34,19 +34,19 @@ class ConnectionManager:
     def __init__(self, owner: AnyAgent[Any, Any] | Team[Any]):
         self.owner = owner
         self._connections: list[Talk | TeamTalk] = []
-        self._wait_states: dict[str, bool] = {}
+        self._wait_states: dict[AgentName, bool] = {}
 
     def __repr__(self):
         return f"ConnectionManager({self.owner})"
 
-    def set_wait_state(self, target: AnyAgent[Any, Any] | str, wait: bool = True):
+    def set_wait_state(self, target: AnyAgent[Any, Any] | AgentName, wait: bool = True):
         """Set waiting behavior for target."""
         target_name = target if isinstance(target, str) else target.name
         self._wait_states[target_name] = wait
 
-    async def wait_for_connections(self, _seen: set[str] | None = None):
+    async def wait_for_connections(self, _seen: set[AgentName] | None = None):
         """Wait for this agent and all connected agents to complete their tasks."""
-        seen: set[str] = _seen or {self.owner.name}  # type: ignore
+        seen: set[AgentName] = _seen or {self.owner.name}  # type: ignore
 
         # Wait for our own tasks
         await self.owner.complete_tasks()
@@ -58,7 +58,7 @@ class ConnectionManager:
                 await agent.connections.wait_for_connections(seen)
 
     def get_targets(
-        self, recursive: bool = False, _seen: set[str] | None = None
+        self, recursive: bool = False, _seen: set[AgentName] | None = None
     ) -> set[AnyAgent[Any, Any]]:
         """Get all currently connected target agents.
 
@@ -91,7 +91,7 @@ class ConnectionManager:
     @overload
     def connect_agent_to(
         self,
-        other: AnyAgent[Any, Any] | str,
+        other: AnyAgent[Any, Any] | AgentName,
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -122,7 +122,7 @@ class ConnectionManager:
 
     def connect_agent_to(
         self,
-        other: AnyAgent[Any, Any] | Team[Any] | str,
+        other: AnyAgent[Any, Any] | Team[Any] | AgentName,
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -214,7 +214,7 @@ class ConnectionManager:
 
     def connect_group_to(
         self,
-        other: AnyAgent[Any, Any] | Team[Any] | str,
+        other: AnyAgent[Any, Any] | Team[Any] | AgentName,
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -258,7 +258,7 @@ class ConnectionManager:
         return TeamTalk(conns)
 
     def _resolve_targets(
-        self, other: AnyAgent[Any, Any] | Team[Any] | str
+        self, other: AnyAgent[Any, Any] | Team[Any] | AgentName
     ) -> list[AnyAgent[Any, Any]]:
         """Resolve target(s) to connect to."""
         from llmling_agent.agent import Agent, StructuredAgent
@@ -277,7 +277,7 @@ class ConnectionManager:
                 return list(other.agents)
         return [other]
 
-    async def trigger_all(self) -> dict[str, list[ChatMessage[Any]]]:
+    async def trigger_all(self) -> dict[AgentName, list[ChatMessage[Any]]]:
         """Trigger all queued connections."""
         results = {}
         for talk in self._connections:
@@ -286,7 +286,7 @@ class ConnectionManager:
         return results
 
     async def trigger_for(
-        self, target: str | AnyAgent[Any, Any]
+        self, target: AgentName | AnyAgent[Any, Any]
     ) -> list[ChatMessage[Any]]:
         """Trigger queued connections to specific target."""
         target_name = target if isinstance(target, str) else target.name

@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import Agent, AnyAgent, StructuredAgent
+    from llmling_agent.common_types import AgentName
     from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.delegation.router import (
         AgentRouter,
@@ -150,7 +151,9 @@ class Interactions[TDeps, TResult]:
             current_message = response.content
             rounds += 1
 
-    def _resolve_agent(self, target: str | AnyAgent[TDeps, Any]) -> AnyAgent[TDeps, Any]:
+    def _resolve_agent(
+        self, target: AgentName | AnyAgent[TDeps, Any]
+    ) -> AnyAgent[TDeps, Any]:
         """Resolve string agent name to instance."""
         if isinstance(target, str):
             if not self.agent.context.pool:
@@ -162,7 +165,7 @@ class Interactions[TDeps, TResult]:
     @overload
     async def ask(
         self,
-        target: str | Agent[TDeps],
+        target: AgentName | Agent[TDeps],
         message: str,
         *,
         include_history: bool = False,
@@ -181,7 +184,7 @@ class Interactions[TDeps, TResult]:
 
     async def ask[TOtherResult](
         self,
-        target: str | AnyAgent[TDeps, TOtherResult],
+        target: AgentName | AnyAgent[TDeps, TOtherResult],
         message: str | TOtherResult,
         *,
         include_history: bool = False,

@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
+    from llmling_agent.common_types import AgentName
     from llmling_agent.delegation import DecisionCallback, Team, TeamResponse
     from llmling_agent.models.agents import ToolCallInfo
 
@@ -422,7 +423,7 @@ class TeamRun[TDeps](TaskManagerMixin):
         self,
         prompt: str | None = None,
         *,
-        initial_agent: str | AnyAgent[TDeps, Any] | None = None,
+        initial_agent: AgentName | AnyAgent[TDeps, Any] | None = None,
         decision_callback: DecisionCallback | None = None,
         router: AgentRouter | None = None,
         **kwargs: Any,

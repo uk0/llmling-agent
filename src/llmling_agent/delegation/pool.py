@@ -13,6 +13,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.agent import Agent, AnyAgent
 from llmling_agent.agent.structured import StructuredAgent
+from llmling_agent.common_types import AgentName
 from llmling_agent.delegation.controllers import interactive_controller
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
@@ -79,7 +80,7 @@ class AgentResponse[TResult]:
         return self.message.content if self.message else None
 
 
-class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
+class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
     """Pool for managing multiple agents with shared dependencies.
 
     The pool acts as a central registry and dependency provider for agents.
@@ -96,7 +97,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
         manifest: StrPath | AgentsManifest[Any] | None = None,
         *,
         shared_deps: TPoolDeps | None = None,
-        agents_to_load: list[str] | None = None,
+        agents_to_load: list[AgentName] | None = None,
         connect_agents: bool = True,
         confirmation_callback: ConfirmationCallback | None = None,
         parallel_agent_load: bool = True,
@@ -373,8 +374,8 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     @overload
     async def clone_agent[TDeps](
         self,
-        agent: str | Agent[TDeps],
-        new_name: str | None = None,
+        agent: AgentName | Agent[TDeps],
+        new_name: AgentName | None = None,
         *,
         model_override: str | None = None,
         system_prompts: list[str] | None = None,
@@ -385,7 +386,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     async def clone_agent[TDeps, TResult](
         self,
         agent: StructuredAgent[TDeps, TResult],
-        new_name: str | None = None,
+        new_name: AgentName | None = None,
         *,
         model_override: str | None = None,
         system_prompts: list[str] | None = None,
@@ -394,8 +395,8 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
 
     async def clone_agent[TDeps, TAgentResult](
         self,
-        agent: str | AnyAgent[TDeps, TAgentResult],
-        new_name: str | None = None,
+        agent: AgentName | AnyAgent[TDeps, TAgentResult],
+        new_name: AgentName | None = None,
         *,
         model_override: str | None = None,
         system_prompts: list[str] | None = None,
@@ -458,7 +459,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     @overload
     async def create_agent(
         self,
-        name: str,
+        name: AgentName,
         *,
         session: SessionIdType | SessionQuery = None,
         name_override: str | None = None,
@@ -468,7 +469,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     @overload
     async def create_agent[TCustomDeps](
         self,
-        name: str,
+        name: AgentName,
         *,
         deps: TCustomDeps,
         session: SessionIdType | SessionQuery = None,
@@ -479,7 +480,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     @overload
     async def create_agent[TResult](
         self,
-        name: str,
+        name: AgentName,
         *,
         return_type: type[TResult],
         session: SessionIdType | SessionQuery = None,
@@ -492,7 +493,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     @overload
     async def create_agent[TCustomDeps, TResult](
         self,
-        name: str,
+        name: AgentName,
         *,
         deps: TCustomDeps,
         return_type: type[TResult],
@@ -505,7 +506,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
 
     async def create_agent(
         self,
-        name: str,
+        name: AgentName,
         *,
         deps: Any | None = None,
         return_type: Any | None = None,
@@ -586,7 +587,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     @overload
     def get_agent(
         self,
-        agent: str | Agent[Any],
+        agent: AgentName | Agent[Any],
         *,
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
@@ -595,7 +596,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     @overload
     def get_agent[TResult](
         self,
-        agent: str | Agent[Any],
+        agent: AgentName | Agent[Any],
         *,
         return_type: type[TResult],
         model_override: str | None = None,
@@ -605,7 +606,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     @overload
     def get_agent[TCustomDeps](
         self,
-        agent: str | Agent[Any],
+        agent: AgentName | Agent[Any],
         *,
         deps: TCustomDeps,
         model_override: str | None = None,
@@ -615,7 +616,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     @overload
     def get_agent[TCustomDeps, TResult](
         self,
-        agent: str | Agent[Any],
+        agent: AgentName | Agent[Any],
         *,
         deps: TCustomDeps,
         return_type: type[TResult],
@@ -625,7 +626,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
 
     def get_agent(
         self,
-        agent: str | Agent[Any],
+        agent: AgentName | Agent[Any],
         *,
         deps: Any | None = None,
         return_type: Any | None = None,
@@ -693,7 +694,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     @overload
     async def add_agent(
         self,
-        name: str,
+        name: AgentName,
         *,
         result_type: None = None,
         **kwargs: Unpack[AgentKwargs],
@@ -702,7 +703,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
     @overload
     async def add_agent[TResult](
         self,
-        name: str,
+        name: AgentName,
         *,
         result_type: type[TResult] | str | ResponseDefinition,
         **kwargs: Unpack[AgentKwargs],
@@ -710,7 +711,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
 
     async def add_agent(
         self,
-        name: str,
+        name: AgentName,
         *,
         result_type: type[Any] | str | ResponseDefinition | None = None,
         **kwargs: Unpack[AgentKwargs],
@@ -742,7 +743,7 @@ class AgentPool[TPoolDeps](BaseRegistry[str, AnyAgent[Any, Any]]):
 
     async def controlled_conversation(
         self,
-        initial_agent: str | Agent[Any] = "starter",
+        initial_agent: AgentName | Agent[Any] = "starter",
         initial_prompt: str = "Hello!",
         decision_callback: DecisionCallback = interactive_controller,
     ):

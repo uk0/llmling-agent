@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.common_types import AsyncFilterFn
+    from llmling_agent.common_types import AgentName, AsyncFilterFn
     from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.delegation.router import AgentRouter
     from llmling_agent.models.context import AgentContext
@@ -188,7 +188,7 @@ class Team[TDeps](TaskManagerMixin):
 
         return execution
 
-    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any] | str) -> TeamTalk:
+    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any] | AgentName) -> TeamTalk:
         """Connect group to target agent(s).
 
         Returns:
@@ -199,7 +199,7 @@ class Team[TDeps](TaskManagerMixin):
 
     def pass_results_to(
         self,
-        other: AnyAgent[Any, Any] | Team[Any] | str,
+        other: AnyAgent[Any, Any] | Team[Any] | AgentName,
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -259,7 +259,7 @@ class Team[TDeps](TaskManagerMixin):
         prompt: str | None = None,
         deps: TDeps | None = None,
         *,
-        initial_agent: str | AnyAgent[TDeps, Any] | None = None,
+        initial_agent: AgentName | AnyAgent[TDeps, Any] | None = None,
         decision_callback: DecisionCallback | None = None,
         router: AgentRouter | None = None,
     ) -> TeamResponse:

@@ -24,6 +24,9 @@ type JsonArray = list[JsonValue]
 
 type StrPath = str | os.PathLike[str]
 type SessionIdType = str | UUID | None
+
+
+AgentName = str
 MessageRole = Literal["user", "assistant", "system"]
 PartType = Literal["text", "image", "audio", "video"]
 ModelType = ModelProtocol | str | None
