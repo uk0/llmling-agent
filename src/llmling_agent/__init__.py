@@ -16,7 +16,7 @@ from llmling_agent.delegation import (
     TeamRunMonitor,
 )
 from llmling_agent.delegation.callbacks import DecisionCallback
-from llmling_agent.delegation.router import AgentRouter, RuleRouter, CallbackRouter
+from llmling_agent.delegation.router import AgentRouter, CallbackRouter
 from dotenv import load_dotenv
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.chat_session.base import AgentPoolView
@@ -40,7 +40,6 @@ __all__ = [
     "DecisionCallback",
     "EndDecision",
     "RouteDecision",
-    "RuleRouter",
     "StructuredAgent",
     "Team",
     "TeamRun",
