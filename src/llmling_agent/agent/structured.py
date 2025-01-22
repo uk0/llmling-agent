@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal, Self, get_type_hints, overload
 
 from pydantic import ValidationError
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
-    from llmling_agent.common_types import AsyncFilterFn, ModelType
+    from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn, ModelType
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.delegation.execution import TeamRun
     from llmling_agent.models.context import AgentContext
@@ -371,7 +371,7 @@ class StructuredAgent[TDeps, TResult]:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: Literal["concat"],
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        transform: AnyTransformFn | None = None,
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
@@ -387,7 +387,7 @@ class StructuredAgent[TDeps, TResult]:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy,
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        transform: AnyTransformFn | None = None,
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
@@ -403,7 +403,7 @@ class StructuredAgent[TDeps, TResult]:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        transform: AnyTransformFn | None = None,
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
@@ -418,7 +418,7 @@ class StructuredAgent[TDeps, TResult]:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        transform: AnyTransformFn | None = None,
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,

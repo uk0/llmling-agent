@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from psygnal import Signal
 
@@ -13,14 +13,14 @@ from llmling_agent.talk import Talk, TeamTalk, TeamTalkStats
 
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
     from datetime import timedelta
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.common_types import AgentName, AnyFilterFn
+    from llmling_agent.common_types import AgentName, AnyFilterFn, AnyTransformFn
     from llmling_agent.delegation.agentgroup import Team
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
+    from llmling_agent.talk.talk import QueueStrategy
 
 logger = get_logger(__name__)
 
@@ -97,8 +97,8 @@ class ConnectionManager:
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
-        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        queue_strategy: QueueStrategy = "latest",
+        transform: AnyTransformFn | None = None,
         filter_condition: AnyFilterFn | None = None,
         stop_condition: AnyFilterFn | None = None,
         exit_condition: AnyFilterFn | None = None,
@@ -113,8 +113,8 @@ class ConnectionManager:
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
-        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        queue_strategy: QueueStrategy = "latest",
+        transform: AnyTransformFn | None = None,
         filter_condition: AnyFilterFn | None = None,
         stop_condition: AnyFilterFn | None = None,
         exit_condition: AnyFilterFn | None = None,
@@ -128,8 +128,8 @@ class ConnectionManager:
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
-        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        queue_strategy: QueueStrategy = "latest",
+        transform: AnyTransformFn | None = None,
         filter_condition: AnyFilterFn | None = None,
         stop_condition: AnyFilterFn | None = None,
         exit_condition: AnyFilterFn | None = None,
@@ -188,8 +188,8 @@ class ConnectionManager:
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
-        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        queue_strategy: QueueStrategy = "latest",
+        transform: AnyTransformFn | None = None,
         filter_condition: AnyFilterFn | None = None,
         stop_condition: AnyFilterFn | None = None,
         exit_condition: AnyFilterFn | None = None,
@@ -220,8 +220,8 @@ class ConnectionManager:
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
-        queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        queue_strategy: QueueStrategy = "latest",
+        transform: AnyTransformFn | None = None,
         filter_condition: AnyFilterFn | None = None,
         stop_condition: AnyFilterFn | None = None,
         exit_condition: AnyFilterFn | None = None,

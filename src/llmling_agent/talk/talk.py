@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.common_types import AnyFilterFn
+    from llmling_agent.common_types import AnyFilterFn, AnyTransformFn
     from llmling_agent.models.forward_targets import ConnectionType
 
 TContent = TypeVar("TContent")
@@ -48,7 +48,7 @@ class Talk[TTransmittedData]:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        transform: AnyTransformFn | None = None,
         filter_condition: AnyFilterFn | None = None,
         stop_condition: AnyFilterFn | None = None,
         exit_condition: AnyFilterFn | None = None,

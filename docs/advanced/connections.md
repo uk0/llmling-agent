@@ -16,7 +16,7 @@ class Talk:
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        transform: AnyTransformFn | None = None,
         filter_condition: AnyFilterFn | None = None,
         stop_condition: AnyFilterFn | None = None,
         exit_condition: AnyFilterFn | None = None,

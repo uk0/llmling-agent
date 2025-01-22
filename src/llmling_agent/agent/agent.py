@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable, Coroutine
+from collections.abc import Callable, Coroutine
 from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -65,6 +65,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.agent.talk import Interactions
     from llmling_agent.common_types import (
+        AnyTransformFn,
         AsyncFilterFn,
         ModelType,
         SessionIdType,
@@ -922,7 +923,7 @@ class Agent[TDeps](TaskManagerMixin):
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        transform: AnyTransformFn | None = None,
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
@@ -938,7 +939,7 @@ class Agent[TDeps](TaskManagerMixin):
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        transform: AnyTransformFn | None = None,
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
@@ -953,7 +954,7 @@ class Agent[TDeps](TaskManagerMixin):
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        transform: AnyTransformFn | None = None,
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Callable, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, overload
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.common_types import AgentName, AsyncFilterFn
+    from llmling_agent.common_types import AgentName, AnyTransformFn, AsyncFilterFn
     from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.delegation.router import AgentRouter
     from llmling_agent.models.context import AgentContext
@@ -206,7 +206,7 @@ class Team[TDeps](TaskManagerMixin):
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
-        transform: Callable[[Any], Any | Awaitable[Any]] | None = None,
+        transform: AnyTransformFn | None = None,
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
