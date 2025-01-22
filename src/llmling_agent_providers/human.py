@@ -113,17 +113,21 @@ class HumanProvider(AgentProvider):
             system_prompt: System prompt from SystemPrompts manager
             kwargs: Additional arguments for human (unused)
         """
+        from llmling_agent.models.messages import ChatMessage
+
+        msg_history = self.conversation.get_history()
         if self._show_context:
             history = await self.conversation.format_history(
-                format_template="[{agent}] {content}\n",  # Optionally customize format
-                include_system=False,  # Skip system messages for cleaner output
+                format_template="[{agent}] {content}\n",
+                include_system=False,
             )
             if history:
                 print("\nContext:")
                 print(history)
                 print("\n---")
         # Show prompt and get response
-        print(f"\n{await self.format_prompts(prompts)}")
+        formatted = await self.format_prompts(prompts)
+        print(f"\n{formatted}")
         if result_type:
             print(f"(Please provide response as {result_type.__name__})")
         response = input("> ")
@@ -136,7 +140,10 @@ class HumanProvider(AgentProvider):
                 logger.exception("Failed to parse structured response")
                 error_msg = f"Invalid response format: {e}"
                 raise ToolError(error_msg) from e
-
+        if store_history:
+            msg_history.append(ChatMessage(role="user", content=formatted))
+            msg_history.append(ChatMessage(role="assistant", content=content))
+            self.conversation.set_history(msg_history)
         return ProviderResponse(content=content)
 
     @asynccontextmanager
@@ -151,6 +158,9 @@ class HumanProvider(AgentProvider):
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response keystroke by keystroke."""
+        from llmling_agent.models.messages import ChatMessage
+
+        msg_history = self.conversation.get_history()
         prompt = await self.format_prompts(prompts)
         print(f"\n{prompt}")
         if result_type:
@@ -204,7 +214,10 @@ class HumanProvider(AgentProvider):
                     logger.exception("Failed to parse structured response")
                     error_msg = f"Invalid response format: {e}"
                     raise ToolError(error_msg) from e
-
+            if store_history:
+                msg_history.append(ChatMessage(role="user", content=prompt))
+                msg_history.append(ChatMessage(role="assistant", content=content))
+                self.conversation.set_history(msg_history)
             stream_result.formatted_content = str(content)
             yield stream_result  # type: ignore
 

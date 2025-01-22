@@ -16,6 +16,7 @@ import pytest
 import yamling
 
 from llmling_agent.agent import Agent
+from llmling_agent.models.messages import ChatMessage
 
 
 if TYPE_CHECKING:
@@ -39,8 +40,8 @@ async def test_simple_agent_run(test_agent: Agent[None]):
 async def test_agent_message_history(test_agent: Agent[None]):
     """Test agent with message history."""
     history = [
-        ModelRequest(parts=[UserPromptPart(content="Previous message")]),
-        ModelResponse(parts=[TextPart(content="Previous response")]),
+        ChatMessage(content="Previous message", role="user"),
+        ChatMessage(content="Previous response", role="assistant"),
     ]
     test_agent.conversation.set_history(history)
     result = await test_agent.run(SIMPLE_PROMPT)

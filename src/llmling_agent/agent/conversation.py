@@ -12,7 +12,6 @@ from uuid import UUID, uuid4
 from llmling import BasePrompt, PromptMessage, StaticPrompt
 from llmling.config.models import BaseResource
 from psygnal import Signal
-from pydantic_ai.messages import ModelRequest, UserPromptPart
 from toprompt import AnyPromptType, to_prompt
 from upath import UPath
 
@@ -20,11 +19,6 @@ from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.utils.async_read import read_path
-from llmling_agent_providers.pydanticai.utils import (
-    convert_model_message,
-    format_part,
-    to_model_message,
-)
 
 
 if TYPE_CHECKING:
@@ -33,7 +27,6 @@ if TYPE_CHECKING:
 
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
-    from pydantic_ai.messages import ModelMessage
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import MessageRole, SessionIdType, StrPath
@@ -81,9 +74,9 @@ class ConversationManager:
             resources: Optional paths to load as context
         """
         self._agent = agent
-        self._current_history: list[ModelMessage] = []
-        self._last_messages: list[ModelMessage] = []
-        self._pending_messages: deque[ModelRequest] = deque()
+        self.chat_messages: list[ChatMessage] = []
+        self._last_messages: list[ChatMessage] = []
+        self._pending_messages: deque[ChatMessage] = deque()
         self._config = session_config
         self._resources = list(resources)  # Store for async loading
         # Generate new ID if none provided
@@ -91,17 +84,12 @@ class ConversationManager:
 
         if session_config is not None and session_config.session is not None:
             storage = self._agent.context.storage
-            messages = storage.filter_messages_sync(session_config.session)
-            self._current_history = [to_model_message(msg) for msg in messages]
+            self._current_history = storage.filter_messages_sync(session_config.session)
             if session_config.session.name:
                 self.id = session_config.session.name
 
         # Note: max_messages and max_tokens will be handled in add_message/get_history
         # to maintain the rolling window during conversation
-
-    @property
-    def chat_messages(self) -> list[ChatMessage[Any]]:
-        return [convert_model_message(msg) for msg in self._current_history]
 
     def get_initialization_tasks(self) -> list[Coroutine[Any, Any, Any]]:
         """Get all initialization coroutines."""
@@ -171,13 +159,13 @@ class ConversationManager:
         """Get length of history."""
         return len(self.chat_messages)
 
-    def get_message_tokens(self, message: ModelMessage) -> int:
+    def get_message_tokens(self, message: ChatMessage) -> int:
         """Get token count for a single message."""
         import tiktoken
 
         encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
         # Format message to text for token counting
-        content = "\n".join(format_part(part) for part in message.parts)
+        content = "\n".join(message.format())
         return len(encoding.encode(content))
 
     async def format_history(
@@ -279,8 +267,7 @@ class ConversationManager:
                         "limit": limit,
                     }
                     query = query.model_copy(update=update)
-                messages = storage.filter_messages_sync(query)
-                self._current_history = [to_model_message(msg) for msg in messages]
+                self.chat_messages = storage.filter_messages_sync(query)
                 if query.name:
                     self.id = query.name
             case str() | UUID():
@@ -292,8 +279,7 @@ class ConversationManager:
                     roles=roles,
                     limit=limit,
                 )
-                messages = storage.filter_messages_sync(query)
-                self._current_history = [to_model_message(msg) for msg in messages]
+                self.chat_messages = storage.filter_messages_sync(query)
             case None:
                 # Use current session ID
                 query = SessionQuery(
@@ -303,62 +289,51 @@ class ConversationManager:
                     roles=roles,
                     limit=limit,
                 )
-                messages = storage.filter_messages_sync(query)
-                self._current_history = [to_model_message(msg) for msg in messages]
+                self.chat_messages = storage.filter_messages_sync(query)
 
     def get_history(
         self,
         include_pending: bool = True,
-        roles: set[type[ModelMessage]] | None = None,
         do_filter: bool = True,
-    ) -> list[ModelMessage]:
+    ) -> list[ChatMessage]:
         """Get conversation history.
 
         Args:
             include_pending: Whether to include pending messages
-            roles: Optional role filter
             do_filter: Whether to apply memory config limits (max_tokens, max_messages)
 
         Returns:
             Filtered list of messages in chronological order
         """
         if include_pending and self._pending_messages:
-            self._current_history.extend(self._pending_messages)
+            self.chat_messages.extend(self._pending_messages)
             self._pending_messages.clear()
 
         # 2. Start with original history
-        history = self._current_history
+        history = self.chat_messages
 
         # 3. Only filter if needed
-        if do_filter:
-            # Filter by roles if specified
-            if roles:
-                history = [
-                    msg for msg in history if any(isinstance(msg, r) for r in roles)
-                ]
+        if do_filter and self._config:
+            # First filter by message count (simple slice)
+            if self._config.max_messages:
+                history = history[-self._config.max_messages :]
 
-            # Apply memory config limits if configured
-            if self._config:
-                # First filter by message count (simple slice)
-                if self._config.max_messages:
-                    history = history[-self._config.max_messages :]
-
-                # Then filter by tokens if needed
-                if self._config.max_tokens:
-                    token_count = 0
-                    filtered = []
-                    # Collect messages from newest to oldest until we hit the limit
-                    for msg in reversed(history):
-                        msg_tokens = self.get_message_tokens(msg)
-                        if token_count + msg_tokens > self._config.max_tokens:
-                            break
-                        token_count += msg_tokens
-                        filtered.append(msg)
-                    history = list(reversed(filtered))
+            # Then filter by tokens if needed
+            if self._config.max_tokens:
+                token_count = 0
+                filtered = []
+                # Collect messages from newest to oldest until we hit the limit
+                for msg in reversed(history):
+                    msg_tokens = self.get_message_tokens(msg)
+                    if token_count + msg_tokens > self._config.max_tokens:
+                        break
+                    token_count += msg_tokens
+                    filtered.append(msg)
+                history = list(reversed(filtered))
 
         return history
 
-    def get_pending_messages(self) -> list[ModelMessage]:
+    def get_pending_messages(self) -> list[ChatMessage]:
         """Get messages that will be included in next interaction."""
         return list(self._pending_messages)
 
@@ -366,13 +341,13 @@ class ConversationManager:
         """Clear pending messages without adding them to history."""
         self._pending_messages.clear()
 
-    def set_history(self, history: list[ModelMessage]):
+    def set_history(self, history: list[ChatMessage]):
         """Update conversation history after run."""
-        self._current_history = history
+        self.chat_messages = history
 
     def clear(self):
         """Clear conversation history and prompts."""
-        self._current_history = []
+        self.chat_messages = []
         self._last_messages = []
         event = self.HistoryCleared(session_id=str(self.id))
         self.history_cleared.emit(event)
@@ -392,37 +367,33 @@ class ConversationManager:
             replace_history: If True, only use provided history. If False, append
                     to existing history.
         """
-        old_history = self._current_history.copy()
+        old_history = self.chat_messages.copy()
 
         try:
             messages: list[ChatMessage[Any]] = []
             if history is not None:
                 if isinstance(history, SessionQuery):
-                    # Get ChatMessages and convert to ModelMessages
                     messages = await self._agent.context.storage.filter_messages(history)
                 else:
-                    # Convert prompts to ModelMessages
                     messages = [
                         ChatMessage(content=await to_prompt(p), role="user")
                         for p in history
                     ]
 
-            model_messages = [to_model_message(msg) for msg in messages]
-
             if replace_history:
-                self._current_history = model_messages
+                self.chat_messages = messages
             else:
-                self._current_history.extend(model_messages)
+                self.chat_messages.extend(messages)
 
             yield self
 
         finally:
-            self._current_history = old_history
+            self.chat_messages = old_history
 
     @property
     def last_run_messages(self) -> list[ChatMessage]:
         """Get messages from the last run converted to our format."""
-        return [convert_model_message(msg) for msg in self._last_messages]
+        return self._last_messages
 
     def add_context_message(
         self,
@@ -444,9 +415,6 @@ class ConversationManager:
 
         header = f"Content from {source}:" if source else "Additional context:"
         formatted = f"{header}{meta_str}\n{content}\n"
-        message = ModelRequest(parts=[UserPromptPart(content=formatted)])
-        self._pending_messages.append(message)
-        # Emit as user message - will trigger logging through existing flow
 
         chat_message = ChatMessage[str](
             content=formatted,
@@ -455,6 +423,8 @@ class ConversationManager:
             model=self._agent.model_name,
             metadata=metadata,
         )
+        self._pending_messages.append(chat_message)
+        # Emit as user message - will trigger logging through existing flow
         self._agent.message_received.emit(chat_message)
 
     async def add_context_from_path(
@@ -565,11 +535,8 @@ class ConversationManager:
         import tiktoken
 
         encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
-        return sum(
-            len(encoding.encode(format_part(part)))
-            for msg in self._pending_messages
-            for part in msg.parts
-        )
+        text = "\n".join(msg.format() for msg in self._pending_messages)
+        return len(encoding.encode(text))
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.models.content import BaseContent
 from llmling_agent.models.context import AgentContext
-from llmling_agent.models.messages import TokenCost
+from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
     RunAbortedError,
@@ -28,9 +28,10 @@ from llmling_agent.tasks.exceptions import (
 from llmling_agent.utils.inspection import has_argument_type
 from llmling_agent_providers.base import AgentProvider, ProviderResponse
 from llmling_agent_providers.pydanticai.utils import (
-    content_to_model_message,
+    convert_model_message,
     format_part,
     get_tool_calls,
+    to_model_message,
 )
 
 
@@ -215,14 +216,16 @@ class PydanticAIProvider(AgentProvider):
 
             # Convert Content objects to ModelMessages
             if content_prompts:
-                content_message = content_to_model_message(tuple(content_prompts))
-                message_history = [*message_history, content_message]
+                prompts_msgs = [
+                    ChatMessage(role="user", content=p) for p in content_prompts
+                ]
+                message_history = [*message_history, *prompts_msgs]
 
             # Run with complete history
             result = await agent.run(
                 prompt,
                 deps=self._context,  # type: ignore
-                message_history=message_history,
+                message_history=[to_model_message(m) for m in message_history],
                 model=model or self.model,  # type: ignore
                 result_type=result_type or str,
             )
@@ -234,8 +237,10 @@ class PydanticAIProvider(AgentProvider):
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
             if store_history:
-                self.conversation._last_messages = list(new_msgs)
-                self.conversation.set_history(result.all_messages())
+                tools = dict(self.tool_manager._items)
+                new = [convert_model_message(m, tools) for m in new_msgs]
+                self.conversation._last_messages = new
+                self.conversation.set_history(message_history + new)
             resolved_model = (
                 use_model.name() if isinstance(use_model, Model) else str(use_model)
             )
@@ -350,8 +355,10 @@ class PydanticAIProvider(AgentProvider):
                     self.chunk_streamed.emit("", message_id)
                     messages = stream_result.new_messages()
                     if store_history:
-                        self.conversation._last_messages = list(messages)
-                        self.conversation.set_history(stream_result.all_messages())
+                        tools = dict(self.tool_manager._items)
+                        new = [convert_model_message(m, tools) for m in messages]
+                        self.conversation._last_messages = new
+                        self.conversation.set_history(message_history + new)
 
                     # Extract and update tool calls
                     tool_calls = get_tool_calls(messages, dict(self.tool_manager._items))

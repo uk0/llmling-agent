@@ -52,17 +52,24 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         message_id: str,
         result_type: type[TResult] | None = None,
         system_prompt: str | None = None,
+        store_history: bool = True,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Process message through callback."""
+        from llmling_agent.models.messages import ChatMessage
+
+        msg_history = self.conversation.get_history()
         try:
             # Create args tuple based on callback requirements
             args = (self.context, *prompts) if self._wants_context else (*prompts,)
             raw_result = self.callback(*args)
-
             # Handle async/sync result
             result = await raw_result if isinstance(raw_result, Awaitable) else raw_result
-
+            if store_history:
+                formatted = await self.format_prompts(prompts)
+                msg_history.append(ChatMessage(role="user", content=formatted))
+                msg_history.append(ChatMessage(role="assistant", content=result))
+                self.conversation.set_history(msg_history)
             return ProviderResponse(content=result)
 
         except Exception as e:
@@ -77,9 +84,13 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         message_id: str,
         result_type: type[Any] | None = None,
         system_prompt: str | None = None,
+        store_history: bool = True,
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:
         """Simulate streaming by yielding complete result as one chunk."""
+        from llmling_agent.models.messages import ChatMessage
+
+        msg_history = self.conversation.get_history()
 
         class SingleChunkStream:
             def __init__(self, content: str):
@@ -101,6 +112,12 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         try:
             # Get result using normal response generation
             result = await self.generate_response(*prompts, message_id=message_id)
+
+            if store_history:
+                formatted = await self.format_prompts(prompts)
+                msg_history.append(ChatMessage(role="user", content=formatted))
+                msg_history.append(ChatMessage(role="assistant", content=result))
+                self.conversation.set_history(msg_history)
             stream_result = SingleChunkStream(str(result.content))
             yield stream_result  # type: ignore
 

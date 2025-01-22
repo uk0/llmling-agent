@@ -6,12 +6,6 @@ import json
 from typing import TYPE_CHECKING, Any
 
 from litellm import BaseModel
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse as PydanticModelResponse,
-    TextPart,
-    UserPromptPart,
-)
 from tokonomics import get_available_models
 from tokonomics.toko_types import TokenUsage
 
@@ -19,12 +13,11 @@ from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.content import (
-    BaseContent,
     Content,
     ImageBase64Content,
     ImageURLContent,
 )
-from llmling_agent.models.messages import TokenCost
+from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent_providers.base import AgentProvider, ProviderResponse
 
 
@@ -187,20 +180,11 @@ class LiteLLMProvider(AgentProvider[Any]):
             )
             # Store in history if requested
             if store_history:
-                parts = []
-                for p in prompts:
-                    match p:
-                        case str():
-                            parts.append(UserPromptPart(content=p))
-                        case BaseContent():
-                            # For now, store content objects as string representation
-                            parts.append(UserPromptPart(content=str(p)))
-                request_msg = ModelRequest(parts=parts)
-                part = TextPart(content=str(content) if content else "")
-                response_msg = PydanticModelResponse(parts=[part])
+                request_msgs = [ChatMessage(role="user", content=str(p)) for p in prompts]
+                response_msg = ChatMessage(role="assistant", content=content)
                 self.conversation.set_history([
                     *complete_history,
-                    request_msg,
+                    *request_msgs,
                     response_msg,
                 ])
 

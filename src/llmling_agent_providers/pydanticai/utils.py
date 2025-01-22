@@ -27,7 +27,11 @@ from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.content import Content, ImageBase64Content, ImageURLContent
+from llmling_agent.models.content import (
+    Content,
+    ImageBase64Content,
+    ImageURLContent,
+)
 from llmling_agent.models.messages import ChatMessage
 
 
@@ -346,17 +350,68 @@ def prepare_audio_url(content: ContentSource) -> str:
             raise ValueError(msg)
 
 
-def to_model_message(message: ChatMessage[str]) -> ModelMessage:
+def to_model_message(message: ChatMessage[str | Content]) -> ModelMessage:
     """Convert ChatMessage to pydantic-ai ModelMessage."""
-    match message.role:
-        case "user":
-            return ModelRequest(parts=[UserPromptPart(content=message.content)])
-        case "system":
-            return ModelRequest(parts=[SystemPromptPart(content=message.content)])
-        case "assistant":
-            return ModelRequest(parts=[UserPromptPart(content=message.content)])
-    msg = f"Unknown message role: {message.role}"
-    raise ValueError(msg)
+    match message:
+        case ChatMessage() if isinstance(message.content, ImageURLContent):
+            return ModelRequest(
+                parts=[
+                    UserPromptPart(
+                        content=json.dumps({
+                            "content": [
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": message.content.url,
+                                        "detail": message.content.detail or "auto",
+                                    },
+                                }
+                            ]
+                        })
+                    )
+                ]
+            )
+        case ChatMessage() if isinstance(message.content, ImageBase64Content):
+            data_url = f"data:image/jpeg;base64,{message.content.data}"
+            return ModelRequest(
+                parts=[
+                    UserPromptPart(
+                        content=json.dumps({
+                            "content": [
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": data_url,
+                                        "detail": message.content.detail or "auto",
+                                    },
+                                }
+                            ]
+                        })
+                    )
+                ]
+            )
+        # TODO: Add PDF support once we know the format
+        # case ChatMessage() if isinstance(message.content, BasePDFContent):
+        #     # Need to check litellm docs for correct format
+        #     return ModelRequest(...)
+        case ChatMessage():
+            # Handle regular text content
+            match message.role:
+                case "user":
+                    return ModelRequest(
+                        parts=[UserPromptPart(content=str(message.content))]
+                    )
+                case "system":
+                    return ModelRequest(
+                        parts=[SystemPromptPart(content=str(message.content))]
+                    )
+                case "assistant":
+                    return ModelRequest(
+                        parts=[UserPromptPart(content=str(message.content))]
+                    )
+                case _:
+                    msg = f"Unknown message role: {message.role}"
+                    raise ValueError(msg)
 
 
 def convert_to_chat_format(
