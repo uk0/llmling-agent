@@ -25,8 +25,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import AgentName, AnyTransformFn, AsyncFilterFn
-    from llmling_agent.delegation.callbacks import DecisionCallback
-    from llmling_agent.delegation.router import AgentRouter
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
 
@@ -252,18 +250,6 @@ class Team[TDeps](TaskManagerMixin):
     ) -> TeamResponse:
         """Run agents one after another."""
         execution = TeamRun(self, "sequential")
-        return await execution.run(prompt, deps)
-
-    async def run_controlled(
-        self,
-        prompt: str | None = None,
-        deps: TDeps | None = None,
-        *,
-        initial_agent: AgentName | AnyAgent[TDeps, Any] | None = None,
-        decision_callback: DecisionCallback | None = None,
-        router: AgentRouter | None = None,
-    ) -> TeamResponse:
-        execution = TeamRun(self, "controlled")
         return await execution.run(prompt, deps)
 
     async def chain(self, message: Any, *, require_all: bool = True) -> ChatMessage:

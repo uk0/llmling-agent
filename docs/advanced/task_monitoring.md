@@ -13,8 +13,6 @@ result = await team.run_parallel("Analyze this text")
 # Sequential execution
 result = await team.run_sequential("Process in order")
 
-# Controlled execution with routing decisions
-result = await team.run_controlled("Handle with decisions")
 ```
 
 ## Monitored Execution
@@ -23,7 +21,7 @@ For more complex scenarios where you need to track execution progress, use the m
 
 ```python
 # Create monitored execution
-execution = team.monitored("parallel")  # or "sequential"/"controlled"
+execution = team.monitored("parallel")  # or "sequential"
 
 # Start in background
 execution.start_background("Task to execute")

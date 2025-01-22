@@ -83,7 +83,7 @@ label = "Teams and Execution"
 content = """
 Flexible team operations and execution patterns:
 
-- Multiple execution modes (parallel/sequential/controlled)
+- Multiple execution modes (parallel/sequential)
 - Rich monitoring capabilities
 - Connection mechanisms (>>, &, |)
 - Type-safe team creation

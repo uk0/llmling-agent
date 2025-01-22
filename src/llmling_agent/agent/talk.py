@@ -12,9 +12,7 @@ from toprompt import to_prompt
 from typing_extensions import TypeVar
 
 from llmling_agent.delegation.agentgroup import Team
-from llmling_agent.delegation.controllers import interactive_controller
 from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.delegation.router import CallbackRouter
 from llmling_agent.log import get_logger
 from llmling_agent.utils.basemodel_convert import get_ctor_basemodel
 
@@ -26,11 +24,8 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import Agent, AnyAgent, StructuredAgent
     from llmling_agent.common_types import AgentName
-    from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.delegation.router import (
-        AgentRouter,
         ChatMessage,
-        Decision,
     )
 
 
@@ -200,35 +195,6 @@ class Interactions[TDeps, TResult]:
             )
 
         return await target_agent.run(message)
-
-    @overload
-    async def controlled(
-        self,
-        message: str,
-        decision_callback: DecisionCallback[str] = interactive_controller,
-    ) -> tuple[ChatMessage[str], Decision]: ...
-
-    @overload
-    async def controlled(
-        self,
-        message: TResult,
-        decision_callback: DecisionCallback[TResult],
-    ) -> tuple[ChatMessage[TResult], Decision]: ...
-
-    async def controlled(
-        self,
-        message: str | TResult,
-        decision_callback: DecisionCallback[Any] = interactive_controller,
-        router: AgentRouter | None = None,
-    ) -> tuple[ChatMessage[Any], Decision]:
-        """Get response with routing decision."""
-        assert self.agent.context.pool
-        router = router or CallbackRouter(self.agent.context.pool, decision_callback)
-
-        response = await self.agent.run(message)
-        decision = await router.decide(response.content)
-
-        return response, decision
 
     @overload
     async def pick[T: AnyPromptType](

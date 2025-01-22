@@ -87,29 +87,6 @@ workflow = Graph(nodes=[AnalyzeNode, PlanNode, EndNode])
 ```
 
 
-## 6. Controlled Interactions
-
-Best for: Supervised flows where human or custom logic controls the routing
-
-```python
-async def my_controller(message: str, pool: AgentPool, router: AgentRouter) -> Decision:
-    if "urgent" in message:
-        return router.get_route_decision("urgent_handler", "Urgent case detected")
-    return router.get_end_decision("No urgent action needed")
-
-# Interactive control
-response, decision = await agent.talk.controlled(
-    "Handle this request",
-    decision_callback=my_controller
-)
-
-# Or use built-in interactive controller
-response, decision = await agent.talk.controlled(
-    "Handle this request",
-    decision_callback=interactive_controller
-)
-```
-
 ## 7. Agent Selection (pick)
 
 Best for: Letting agents make informed choices about which other agents to work with. The agent analyzes each potential colleague's capabilities, description, and specialties to make an optimal choice.

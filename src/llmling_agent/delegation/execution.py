@@ -10,15 +10,7 @@ import inspect
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal
 
-from llmling_agent.delegation.controllers import interactive_controller
 from llmling_agent.delegation.pool import AgentResponse
-from llmling_agent.delegation.router import (
-    AgentRouter,
-    AwaitResponseDecision,
-    CallbackRouter,
-    EndDecision,
-    RouteDecision,
-)
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.utils.tasks import TaskManagerMixin
@@ -29,14 +21,13 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
-    from llmling_agent.common_types import AgentName
-    from llmling_agent.delegation import DecisionCallback, Team, TeamResponse
+    from llmling_agent.delegation import Team, TeamResponse
     from llmling_agent.models.agents import ToolCallInfo
 
 
 logger = get_logger(__name__)
 
-ExecutionMode = Literal["parallel", "sequential", "controlled"]
+ExecutionMode = Literal["parallel", "sequential"]
 """The execution mode for a TeamRun."""
 
 
@@ -334,8 +325,6 @@ class TeamRun[TDeps](TaskManagerMixin):
                     return await self._run_parallel(prompt)
                 case "sequential":
                     return await self._run_sequential(prompt)
-                case "controlled":
-                    return await self._run_controlled(prompt, **kwargs)
                 case _:
                     msg = f"Invalid mode: {self.mode}"
                     raise ValueError(msg)
@@ -416,76 +405,6 @@ class TeamRun[TDeps](TaskManagerMixin):
                 msg = ChatMessage(content="", role="assistant")
                 res = AgentResponse[str](agent_name=agent.name, message=msg, error=str(e))
                 results.append(res)
-
-        return TeamResponse(results, start_time)
-
-    async def _run_controlled(
-        self,
-        prompt: str | None = None,
-        *,
-        initial_agent: AgentName | AnyAgent[TDeps, Any] | None = None,
-        decision_callback: DecisionCallback | None = None,
-        router: AgentRouter | None = None,
-        **kwargs: Any,
-    ) -> TeamResponse:
-        """Execute in controlled mode.
-
-        Execution flow is controlled by routing decisions.
-        """
-        from llmling_agent.delegation.agentgroup import TeamResponse
-
-        # Combine shared prompt with user prompt if both exist
-        final_prompt = None
-        if self.team.shared_prompt and prompt:
-            final_prompt = f"{self.team.shared_prompt}\n\n{prompt}"
-        else:
-            final_prompt = self.team.shared_prompt or prompt
-
-        results = []
-        start_time = datetime.now()
-        if not decision_callback:
-            decision_callback = interactive_controller
-        # Resolve initial agent
-        current_agent = (
-            next(a for a in self.team.agents if a.name == initial_agent)
-            if isinstance(initial_agent, str)
-            else initial_agent or self.team.agents[0]
-        )
-
-        # Create router for decisions
-        assert current_agent.context.pool
-        router = router or CallbackRouter(current_agent.context.pool, decision_callback)
-        current_message = final_prompt
-
-        while True:
-            # Get response from current agent
-            now = perf_counter()
-            message = await current_agent.run(current_message)
-            duration = perf_counter() - now
-            response = AgentResponse(current_agent.name, message, timing=duration)
-            results.append(response)
-
-            # Get next decision
-            assert response.message
-            decision = await router.decide(response.message.content)
-
-            # Execute the decision
-            assert current_agent.context.pool
-            await decision.execute(
-                response.message, current_agent, current_agent.context.pool
-            )
-
-            match decision:
-                case EndDecision():
-                    break
-                case RouteDecision():
-                    continue
-                case AwaitResponseDecision():
-                    current_agent = next(
-                        (a for a in self.team.agents if a.name == decision.target_agent),
-                        current_agent,
-                    )
-                    current_message = str(response.message.content)
 
         return TeamResponse(results, start_time)
 

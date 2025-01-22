@@ -14,7 +14,6 @@ from typing_extensions import TypeVar
 from llmling_agent.agent import Agent, AnyAgent
 from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.common_types import AgentName
-from llmling_agent.delegation.controllers import interactive_controller
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
 from llmling_agent.models.forward_targets import (
@@ -35,7 +34,6 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
     from llmling_agent.delegation.agentgroup import Team
-    from llmling_agent.delegation.callbacks import DecisionCallback
     from llmling_agent.models.agents import AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.messages import ChatMessage
@@ -740,29 +738,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         if result_type is not None:
             return agent.to_structured(result_type)
         return agent
-
-    async def controlled_conversation(
-        self,
-        initial_agent: AgentName | Agent[Any] = "starter",
-        initial_prompt: str = "Hello!",
-        decision_callback: DecisionCallback = interactive_controller,
-    ):
-        """Start a controlled conversation between agents.
-
-        Args:
-            initial_agent: Agent instance or name to start with
-            initial_prompt: First message to start conversation
-            decision_callback: Callback for routing decisions
-        """
-        from llmling_agent.delegation.agentgroup import Team
-
-        group = Team(list(self.agents.values()))
-
-        await group.run_controlled(
-            prompt=initial_prompt,
-            initial_agent=initial_agent,
-            decision_callback=decision_callback,
-        )
 
     def get_mermaid_diagram(
         self,

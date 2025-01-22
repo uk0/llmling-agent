@@ -130,26 +130,6 @@ async def improve_code(
     return await manager.run(f"Improve this code:\n{code}")
 ```
 
-### Controlled Execution
-
-Use Team for interactive or rule-based agent interaction:
-
-```python
-@agent_function
-async def collaborative_task(
-    coordinator: Agent[None],
-    specialist1: Agent[None],
-    specialist2: Agent[None],
-    task: str,
-) -> str:
-    team = Team([coordinator, specialist1, specialist2])
-    results = await team.run_controlled(
-        prompt=f"Solve: {task}",
-        decision_callback=my_router,
-    )
-    return results[-1].content
-```
-
 
 ## Type Safety
 

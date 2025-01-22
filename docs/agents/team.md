@@ -121,19 +121,6 @@ await team.distribute(
 )
 ```
 
-## Controlled Team Execution
-
-Run team with decision control:
-
-```python
-results = await team.run_controlled(
-    prompt="Complex task",
-    initial_agent="planner",           # Start with this agent
-    decision_callback=my_controller,    # Custom control logic
-    router=custom_router               # Optional custom router
-)
-```
-
 ## Team Response Handling
 
 Teams provide rich response objects:

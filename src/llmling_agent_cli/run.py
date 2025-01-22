@@ -25,7 +25,7 @@ def run_command(
         "parallel",
         "-x",
         "--execution",
-        help="Execution mode for multiple agents: parallel/sequential/controlled",
+        help="Execution mode for multiple agents: parallel/sequential",
     ),
     show_messages: bool = t.Option(
         True, "--show-messages", help="Show all messages (not just final responses)"
@@ -49,9 +49,6 @@ def run_command(
 
         # Sequential chain
         llmling-agent run "agent1,agent2,agent3" -x sequential "Process this"
-
-        # Controlled routing (interactive)
-        llmling-agent run "agent1,agent2,agent3" -x controlled "Process this"
 
         # Show all messages
         llmling-agent run "agent1,agent2" --show-messages "Process this"
@@ -90,8 +87,8 @@ def run_command(
                             responses = await group.run_parallel(prompt)
                         case "sequential":
                             responses = await group.run_sequential(prompt)
-                        case "controlled":
-                            responses = await group.run_controlled(prompt)
+                        # case "controlled":
+                        #     responses = await group.run_controlled(prompt)
                         case _:
                             error_msg = f"Invalid execution mode: {execution_mode}"
                             raise t.BadParameter(error_msg)  # noqa: TRY301

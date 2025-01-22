@@ -58,19 +58,6 @@ results = await execution.run("Process this")
 # Results contain all intermediate steps
 ```
 
-### Controlled
-Execution flow is determined by routing decisions:
-```python
-execution = team.monitored("controlled")
-results = await execution.run(
-    "Handle this task",
-    decision_callback=interactive_controller
-)
-# Flow determined by decisions
-# Can branch and loop
-# Results track execution path
-```
-
 ## Running a TeamRun
 
 ### Direct Execution
