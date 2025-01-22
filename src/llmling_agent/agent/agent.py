@@ -449,12 +449,12 @@ class Agent[TDeps](TaskManagerMixin):
                 await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)
 
     @overload
-    def __rshift__(self, other: AnyAgent[Any, Any]) -> Talk: ...
+    def __rshift__(self, other: AnyAgent[Any, Any]) -> Talk[str]: ...
 
     @overload
     def __rshift__(self, other: Team[Any]) -> TeamTalk: ...
 
-    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any]) -> Talk | TeamTalk:
+    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any]) -> Talk[str] | TeamTalk:
         """Connect agent to another agent or group.
 
         Example:
