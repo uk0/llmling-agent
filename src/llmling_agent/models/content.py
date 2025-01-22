@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import io
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field
 from upath import UPath
@@ -181,13 +181,60 @@ class PDFBase64Content(BasePDFContent):
         *,
         detail: DetailLevel | None = None,
         description: str | None = None,
-    ) -> PDFBase64Content:
+    ) -> Self:
         """Create PDF content from raw bytes."""
         content = base64.b64encode(data).decode()
         return cls(data=content, detail=detail, description=description)
 
 
+class AudioContent(BaseContent):
+    """Base for audio content."""
+
+    format: str | None = None  # mp3, wav, etc
+    description: str | None = None
+
+
+class AudioURLContent(AudioContent):
+    """Audio from URL."""
+
+    type: Literal["audio_url"] = Field("audio_url", init=False)
+    url: str
+
+
+class AudioBase64Content(AudioContent):
+    """Audio from base64 data."""
+
+    type: Literal["audio_base64"] = Field("audio_base64", init=False)
+    data: str
+    format: str | None = None  # mp3, wav, etc
+
+    @classmethod
+    def from_bytes(cls, data: bytes, audio_format: str = "mp3") -> Self:
+        """Create from raw bytes."""
+        return cls(data=base64.b64encode(data).decode(), format=audio_format)
+
+    @classmethod
+    def from_path(cls, path: StrPath) -> Self:
+        """Create from file path with auto format detection."""
+        import mimetypes
+
+        path_obj = UPath(path)
+        mime_type, _ = mimetypes.guess_type(str(path_obj))
+        fmt = (
+            mime_type.removeprefix("audio/")
+            if mime_type and mime_type.startswith("audio/")
+            else "mp3"
+        )
+
+        return cls(data=base64.b64encode(path_obj.read_bytes()).decode(), format=fmt)
+
+
 Content = Annotated[
-    ImageURLContent | ImageBase64Content | PDFURLContent | PDFBase64Content,
+    ImageURLContent
+    | ImageBase64Content
+    | PDFURLContent
+    | PDFBase64Content
+    | AudioURLContent
+    | AudioBase64Content,
     Field(discriminator="type"),
 ]

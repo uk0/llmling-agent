@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import base64
 import json
-import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -23,11 +22,13 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
-from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.content import (
+    AudioBase64Content,
+    AudioURLContent,
+    BaseContent,
     Content,
     ImageBase64Content,
     ImageURLContent,
@@ -220,245 +221,56 @@ def convert_model_message(
             raise ValueError(msg)
 
 
-def get_message_role(msg: ModelMessage) -> str:
-    """Get appropriate name for message source."""
-    match msg:
-        case ModelRequest():
-            return "User"
-        case ModelResponse():
-            return "Assistant"
-        case SystemPromptPart():
-            return "System"
-        case _:
-            return "Unknown"
-
-
-def content_to_model_message(
-    prompts: tuple[Content, ...],
-    role: MessageRole = "user",
-) -> ModelMessage:
-    """Convert our Content objects to ModelMessage.
-
-    Converts ImageURL and ImageBase64Content into a properly formatted ModelMessage
-    that pydantic-ai can handle.
-    """
-    contents: list[tuple[ContentType, ContentSource]] = []
-
-    for p in prompts:
-        match p:
-            case ImageURLContent():
-                contents.append(("image", p.url))
-            case ImageBase64Content():
-                contents.append(("image", p.data))
-
-    return create_message(contents, role=role)
-
-
-def create_message(
-    contents: list[tuple[ContentType, ContentSource]] | str,
-    role: MessageRole = "user",
-) -> ModelMessage:
-    """Create a message from content pairs.
-
-    For multi-modal content, creates a JSON string that models like GPT-4V
-    can interpret. For simple text, creates a plain text message.
-    """
-    # Handle simple text case
-    if isinstance(contents, str):
-        part = (
-            UserPromptPart(content=contents)
-            if role == "user"
-            else SystemPromptPart(content=contents)
-        )
-        return ModelRequest(parts=[part])
-
-    # For multi-modal, convert to a JSON string
-    content_list = []
-    for type_, content in contents:
-        match type_:
-            case "text":
-                content_list.append({"type": "text", "text": str(content)})
-            case "image":
-                url = prepare_image_url(content)
-                content_list.append({"type": "image", "url": url})
-            case "audio":
-                url = prepare_audio_url(content)
-                content_list.append({"type": "audio", "url": url})
-            case _:
-                msg = f"Unsupported content type: {type_}"
-                raise ValueError(msg)
-
-    # Convert to JSON string and create appropriate message part
-    content_str = json.dumps({"content": content_list})
-    return ModelRequest(
-        parts=[
-            UserPromptPart(content=content_str)
-            if role == "user"
-            else SystemPromptPart(content=content_str)
-        ]
-    )
-
-
-def prepare_image_url(content: ContentSource) -> str:
-    """Convert image content to URL or data URL."""
+def content_to_openai_format(content: Content) -> dict[str, Any]:
+    """Convert Content object to OpenAI format."""
     match content:
-        case str() if content.startswith(("http://", "https://")):
-            return content
-        case str() | os.PathLike():
-            # Read file and convert to data URL
-            path = UPath(content)
-            content_b64 = to_base64(path.read_bytes())
-            return f"data:image/png;base64,{content_b64}"
-        case bytes():
-            content_b64 = to_base64(content)
-            return f"data:image/png;base64,{content_b64}"
+        case ImageURLContent():
+            return {
+                "type": "image_url",
+                "image_url": {"url": content.url, "detail": content.detail or "auto"},
+            }
+        case ImageBase64Content():
+            data_url = f"data:image/jpeg;base64,{content.data}"
+            return {
+                "type": "image_url",
+                "image_url": {"url": data_url, "detail": content.detail or "auto"},
+            }
+        case AudioURLContent():  # New!
+            return {
+                "type": "audio",
+                "audio": {"url": content.url, "format": content.format or "auto"},
+            }
+        case AudioBase64Content():  # New!
+            data_url = f"data:audio/{content.format or 'mp3'};base64,{content.data}"
+            return {
+                "type": "audio",
+                "audio": {"url": data_url, "format": content.format or "auto"},
+            }
         case _:
-            msg = f"Unsupported image content type: {type(content)}"
-            raise ValueError(msg)
-
-
-def prepare_audio_url(content: ContentSource) -> str:
-    """Convert audio content to URL or data URL.
-
-    Supports common audio formats (mp3, wav, ogg, m4a).
-    Uses content-type detection when possible.
-    """
-    import mimetypes
-
-    def get_audio_mime(path: str | Path) -> str:
-        """Get MIME type for audio file."""
-        mime_type, _ = mimetypes.guess_type(str(path))
-        if not mime_type or not mime_type.startswith("audio/"):
-            # Default to mp3 if we can't detect or it's not audio
-            return "audio/mpeg"
-        return mime_type
-
-    match content:
-        case str() if content.startswith(("http://", "https://")):
-            return content
-        case str() | os.PathLike():
-            path = UPath(content)
-            content_b64 = to_base64(path.read_bytes())
-            mime_type = get_audio_mime(path)
-            return f"data:{mime_type};base64,{content_b64}"
-        case bytes():
-            # For raw bytes, default to mp3 as it's most common
-            content_b64 = to_base64(content)
-            return f"data:audio/mpeg;base64,{content_b64}"
-        case _:
-            msg = f"Unsupported audio content type: {type(content)}"
+            msg = f"Unsupported content type: {type(content)}"
             raise ValueError(msg)
 
 
 def to_model_message(message: ChatMessage[str | Content]) -> ModelMessage:
     """Convert ChatMessage to pydantic-ai ModelMessage."""
-    match message:
-        case ChatMessage() if isinstance(message.content, ImageURLContent):
+    match message.content:
+        case BaseContent():
             return ModelRequest(
                 parts=[
                     UserPromptPart(
                         content=json.dumps({
-                            "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": message.content.url,
-                                        "detail": message.content.detail or "auto",
-                                    },
-                                }
-                            ]
+                            "content": [content_to_openai_format(message.content)]
                         })
                     )
                 ]
             )
-        case ChatMessage() if isinstance(message.content, ImageBase64Content):
-            data_url = f"data:image/jpeg;base64,{message.content.data}"
-            return ModelRequest(
-                parts=[
-                    UserPromptPart(
-                        content=json.dumps({
-                            "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": data_url,
-                                        "detail": message.content.detail or "auto",
-                                    },
-                                }
-                            ]
-                        })
-                    )
-                ]
-            )
-        # TODO: Add PDF support once we know the format
-        # case ChatMessage() if isinstance(message.content, BasePDFContent):
-        #     # Need to check litellm docs for correct format
-        #     return ModelRequest(...)
-        case ChatMessage():
-            # Handle regular text content
-            match message.role:
-                case "user":
-                    return ModelRequest(
-                        parts=[UserPromptPart(content=str(message.content))]
-                    )
-                case "system":
-                    return ModelRequest(
-                        parts=[SystemPromptPart(content=str(message.content))]
-                    )
-                case "assistant":
-                    return ModelRequest(
-                        parts=[UserPromptPart(content=str(message.content))]
-                    )
-                case _:
-                    msg = f"Unknown message role: {message.role}"
-                    raise ValueError(msg)
-
-
-def convert_to_chat_format(
-    system_prompt: str | None,
-    history: list[ModelMessage],
-    prompts: tuple[str | Content, ...],
-) -> list[dict[str, Any]]:
-    """Convert pydantic-ai messages to OpenAI/LiteLLM chat format.
-
-    Args:
-        system_prompt: Optional system instruction
-        history: Previous conversation in pydantic-ai format
-        prompts: New prompts/content to send
-
-    Returns:
-        Messages in OpenAI chat format:
-        [
-            {"role": "system", "content": "You are..."},
-            {"role": "user", "content": [{"type": "text", "text": "Hi"}, ...]}
-        ]
-    """
-    messages: list[dict[str, Any]] = []
-
-    # Add system prompt if provided
-    if system_prompt:
-        messages.append({"role": "system", "content": system_prompt})
-    # Convert history
-    messages.extend({"role": "user", "content": str(msg)} for msg in history)
-    # Convert new prompts to content parts
-    content_parts: list[dict[str, Any]] = []
-    for p in prompts:
-        match p:
-            case str():
-                content_parts.append({"type": "text", "text": p})
-            case ImageURLContent():
-                dct = {"url": p.url, "detail": p.detail or "auto"}
-                content_parts.append({"type": "image_url", "image_url": dct})
-            case ImageBase64Content():
-                data_url = f"data:image/jpeg;base64,{p.data}"
-                dct = {"url": data_url, "detail": p.detail or "auto"}
-                content_parts.append({"type": "image_url", "image_url": dct})
-
-    # Add new prompts as user message with potentially multiple content parts
-    if content_parts:
-        messages.append({
-            "role": "user",
-            "content": content_parts[0] if len(content_parts) == 1 else content_parts,
-        })
-
-    return messages
+        case str():
+            part_cls = {
+                "user": UserPromptPart,
+                "system": SystemPromptPart,
+                "assistant": UserPromptPart,
+            }.get(message.role)
+            if not part_cls:
+                msg = f"Unknown message role: {message.role}"
+                raise ValueError(msg)
+            return ModelRequest(parts=[part_cls(content=message.content)])
