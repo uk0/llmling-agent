@@ -2,10 +2,22 @@
 
 from __future__ import annotations
 
+import pathlib
+
 import mknodes as mk
+
+from llmling_agent.agent.agent import Agent
 
 
 nav = mk.MkNav("Examples")
+
+INTRO = """
+"This page is generated using another older work of mine, an
+experimental MkDocs add-on (or almost fork) named **MkNodes**,
+which focusses on programmatic website generation. You can see the source
+for this homepage section below.  This system is perfectly suited for Agent usage for
+documentation generation.
+"""
 
 
 @nav.route.page("Creating Documentation", icon="octicon:book-16", hide="toc")
@@ -44,7 +56,7 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/examples/pick_team.md")
 
 
-@nav.route.page("Structured Responses", icon="octicon:project-16", hide="toc")
+@nav.route.page("Structured Responses", icon="simple-icons:instructure", hide="toc")
 def _(page: mk.MkPage):
     """Using structured response types."""
     page += mk.MkTemplate("docs/examples/structured_response.md")
@@ -56,6 +68,21 @@ def _(page: mk.MkPage):
 def _(page: mk.MkPage):
     """Using structured response types."""
     page += mk.MkTemplate("docs/examples/round_robin.md")
+
+
+@nav.route.page(
+    "MkDocs Integration & Docs generation", icon="oui:documentation", hide="toc"
+)
+def gen_docs(page: mk.MkPage):
+    """Generate docs using agents."""
+    agent = Agent[None](model="openai:gpt-4o-mini")
+    content = pathlib.Path("src/llmling_agent/__init__.py")
+    page += mk.MkAdmonition(INTRO)
+    page += mk.MkCode(pathlib.Path(__file__).read_text())
+    result = agent.run_sync(
+        "Group and list the given classes. Use markdown for the group headers", content
+    )
+    page += result.content
 
 
 if __name__ == "__main__":
