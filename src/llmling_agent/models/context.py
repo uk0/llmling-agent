@@ -19,7 +19,7 @@ from llmling_agent.tools.base import ToolInfo
 if TYPE_CHECKING:
     from llmling import RuntimeConfig
 
-    from llmling_agent.agent.agent import Agent
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig, AgentsManifest
@@ -107,11 +107,11 @@ class AgentContext[TDeps]:
 
     # TODO: perhaps add agent directly to context?
     @property
-    def agent(self) -> Agent[TDeps]:
+    def agent(self) -> AnyAgent[TDeps, Any]:
         """Get the agent instance from the pool."""
         assert self.pool, "No agent pool available"
         assert self.agent_name, "No agent name available"
-        return self.pool.get_agent(self.agent_name)
+        return self.pool.agents[self.agent_name]
 
     @cached_property
     def storage(self) -> StorageManager:
