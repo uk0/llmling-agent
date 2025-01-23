@@ -57,6 +57,7 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 - 🔧 Tasks, tools, and what else you can expect from an Agent framework.
 - 👥 Easy human-in-the-loop interactions on multiple levels (complete "providers" or model-based, see llmling-models)
 - 💻 A CLI application with extensive slash command support to build agent flows interactively. Set up message connections via commands.
+- ℹ️ The most easy way available to generate static websites in combination with [MkNodes](https://github.com/phil/mknodes) and  [the corresponding MkDocs plugin](https://github.com/phil65/mkdocs_mknodes)
 
 ## 🔜 Coming Soon
 - 🎯 Built-in event system for reactive agent behaviors (file changes, webhooks, timed events)
@@ -597,6 +598,25 @@ llmling-agent history stats  # Basic stats
 llmling-agent history stats --group-by model  # Model usage
 llmling-agent history stats --group-by day    # Daily breakdown
 ```
+
+## 📚 MkDocs Integration
+
+In combination with [MkNodes](https://github.com/phil65/mknodes) and the [MkDocs plugin](https://github.com/phil65/mkdocs_mknodes),
+you can easily generate static documentation for websites with a few lines of code.
+
+```python
+
+@nav.route.page("Feature XYZ", icon="oui:documentation", hide="toc")
+def gen_docs(page: mk.MkPage):
+    """Generate docs using agents."""
+    agent = Agent[None](model="openai:gpt-4o-mini")
+    page += mk.MkAdmonition("MkNodes includes all kinds of Markdown objects to generate docs!")
+    source_code = load_source_code_from_folder(...)
+    page += mk.MkCode() # if you want to display source code
+    result = agent.run_sync("Describle Feature XYZ in MkDocs compatible markdown including examples.", content)
+    page += result.content
+```
+
 
 
 This diagram shows the main components of the LLMling Agent framework:
