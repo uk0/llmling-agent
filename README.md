@@ -124,7 +124,7 @@ Notes:
 
 ## 🚀 Quick Examples
 
-Three ways to create a simple agent setup that turns topics into Wikipedia explorations:
+Three ways to create a simple agent flow:
 
 
 ### Python Version
@@ -141,10 +141,17 @@ async def main():
             tools=["webbrowser.open"],
         )
         # Create main agent and connect
-        agent = await pool.add_agent("assistant")
+        agent = await pool.add_agent("assistant", model="openai:gpt-4o-mini")
         connection = agent >> browser  # this sets up a permanent connection.
-        await agent.run("What's your favorite holiday destination?")
+        await agent.run("Tell us a random major city! Just one word!")
+        print(connection.stats.total_cost)  # Check cost of this connection
 ```
+
+This flow will:
+
+- Ask the 1st agent to tell a major city
+- Will make the 2nd agent open a related webpage using that info
+
 
 ### YAML Version
 ```yaml
@@ -740,3 +747,6 @@ classDiagram
         +add_context_from_resource()
     }
 ```
+
+
+### [Read the documentation for further info!](https://phil65.github.io/llmling-agent/)
