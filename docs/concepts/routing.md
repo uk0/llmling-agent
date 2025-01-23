@@ -133,6 +133,7 @@ source >> target.when(safe_route)
 ```
 
 This routing system provides:
+
 - Flexible decision-making
 - Access to relevant context
 - Type safety through signature checking

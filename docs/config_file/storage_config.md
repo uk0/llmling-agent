@@ -1,7 +1,3 @@
----
-render_macros: false
----
-
 # Storage Configuration
 
 The storage configuration defines how agent interactions, messages, and tool usage are logged. It's defined at the root level of the manifest.
@@ -58,11 +54,13 @@ storage:
 ```
 
 With `filter_mode: "and"`:
+
 - An agent must be allowed by both global AND provider filters
 - If either filter is None, only the other filter applies
 - If both are None, all agents are logged
 
 With `filter_mode: "override"`:
+
 - Provider filter takes precedence if set
 - Falls back to global filter if provider filter is None
 - If both are None, all agents are logged
@@ -239,6 +237,7 @@ storage:
 ## Provider Selection
 
 When loading history, providers are selected in this order:
+
 1. Explicitly specified preferred provider
 2. Default provider if configured in `default_provider`
 3. First capable provider in the list
@@ -247,6 +246,7 @@ When loading history, providers are selected in this order:
 ## Logging Flags
 
 All logging flags can be set both globally and per provider:
+
 - `log_messages`: Log all messages exchanged
 - `log_conversations`: Log conversation metadata
 - `log_tool_calls`: Log tool executions and results
@@ -254,6 +254,7 @@ All logging flags can be set both globally and per provider:
 - `log_context`: Log context additions and changes
 
 Provider flags are combined with global flags using AND logic:
+
 ```yaml
 storage:
   log_messages: true     # Global setting
@@ -263,6 +264,7 @@ storage:
 ```
 
 ## Notes
+
 - Individual provider settings are combined with global settings
 - SQL provider is recommended for production use
 - Memory provider is useful for testing

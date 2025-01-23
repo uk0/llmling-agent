@@ -130,4 +130,3 @@ pool.register_task("new_task", task_definition)
 # List available tasks
 tasks = pool.list_tasks()
 ```
-```

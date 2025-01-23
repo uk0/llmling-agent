@@ -337,3 +337,4 @@ talk.when(lambda msg: msg.metadata.get("priority") == "high")
 
 # Monitor
 print(f"Processed {talk.stats.message_count} messages")
+```

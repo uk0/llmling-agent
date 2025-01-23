@@ -86,6 +86,7 @@ The `pick()` method works by:
 ## Input Types
 
 The method accepts:
+
 - `Sequence[T]`: List of options
 - `Mapping[str, T]`: Options with explicit labels
 - `Team[TDeps]`: Team of agents
@@ -168,6 +169,7 @@ team_members = await agent.talk.pick_multiple(
 ### Return Value
 
 The method returns a `MultiPick[T]` object containing:
+
 - `selections`: List of selected items (with proper types)
 - `reason`: The reasoning behind the selections
 
@@ -220,6 +222,7 @@ for member in team.selections:
 - Both work with all input types (sequences, mappings, teams, pools)
 
 Choose `pick_multiple()` when you need to:
+
 - Select multiple team members
 - Choose multiple approaches/steps
 - Form groups or subteams

@@ -185,28 +185,6 @@ async def monitor_system(
     watcher.pass_results_to(alerter)
 ```
 
-## Error Handling
-
-The system provides clear error messages for common issues:
-
-```python
-# Missing agent in pool
-@agent_function
-async def missing_agent(
-    nonexistent: Agent[None],
-) -> str:
-    ...  # Raises: AgentInjectionError: No agent named 'nonexistent' found in pool
-
-# Duplicate agent parameter
-@agent_function
-async def duplicate_agent(
-    analyst: Agent[None],
-) -> str:
-    ...
-# This raises: AgentInjectionError: Cannot inject agent 'analyst': Parameter already provided
-result = await duplicate_agent(analyst=some_agent)
-```
-
 ## Tips and Best Practices
 
 1. **Type Hints**: Always use `Agent[None]` or appropriate generic type for proper typing.
@@ -243,9 +221,6 @@ async def shared_analysis(
     group = Team[Context]([analyzer1, analyzer2])
     return await group.run_parallel("Analyze using shared context")
 ```
-
-##
-to Manifest
 
 The connection between your YAML manifest and the injection system is made through the AgentPool:
 

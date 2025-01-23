@@ -123,6 +123,7 @@ result = await task.execute(agent)
 ## Implementation Details
 
 Unlike the base Agent, StructuredAgent:
+
 - Enforces result validation
 - Provides type hints for responses
 - Manages conversion between structured/unstructured data
