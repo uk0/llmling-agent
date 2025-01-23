@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from llmling import ToolError
 import logfire
+from pydantic import BaseModel
 from slashed import CommandStore, DefaultOutputWriter, parse_command
 
 from llmling_agent.log import get_logger
@@ -26,6 +27,36 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+async def get_structured_response(
+    model_cls: type[BaseModel], use_promptantic: bool = True
+) -> BaseModel:
+    if not issubclass(model_cls, BaseModel):
+        msg = "model must be a subclass of BaseModel"
+        raise TypeError(msg)
+    if use_promptantic:
+        from promptantic import ModelGenerator, PromptanticError
+
+        try:
+            return await ModelGenerator().apopulate(model_cls)
+        except PromptanticError as e:
+            logger.exception("Failed to get structured input")
+            error_msg = f"Invalid input: {e}"
+            raise ToolError(error_msg) from e
+        except KeyboardInterrupt:
+            msg = "Input cancelled by user"
+            raise ToolError(msg)  # noqa: B904
+    else:
+        # Regular text input
+        print(f"(Please provide response as {model_cls.__name__})")
+        response = input("> ")
+        try:
+            return model_cls.model_validate_json(response)
+        except Exception as e:
+            logger.exception("Failed to parse structured response")
+            error_msg = f"Invalid response format: {e}"
+            raise ToolError(error_msg) from e
 
 
 def get_textual_streaming_app():
@@ -72,6 +103,7 @@ class HumanProvider(AgentProvider):
         timeout: int | None = None,
         show_context: bool = True,
         command_store: CommandStore | None = None,
+        use_promptantic: bool = True,
         debug: bool = False,
     ):
         """Initialize human provider."""
@@ -82,6 +114,7 @@ class HumanProvider(AgentProvider):
         self._debug = debug
         self._timeout = timeout
         self._show_context = show_context
+        self.use_promptantic = use_promptantic
         self.commands = command_store or CommandStore()
         for cmd in get_commands():
             self.commands.register_command(cmd)
@@ -90,7 +123,7 @@ class HumanProvider(AgentProvider):
     def __repr__(self) -> str:
         return f"Human({self.name!r})"
 
-    @logfire.instrument("Human input. result type {result_type}. Prompt: {prompt}")
+    @logfire.instrument("Human input. result type {result_type}")
     async def generate_response(
         self,
         *prompts: str | Content,
@@ -128,18 +161,12 @@ class HumanProvider(AgentProvider):
         # Show prompt and get response
         formatted = await self.format_prompts(prompts)
         print(f"\n{formatted}")
+        content: Any
         if result_type:
-            print(f"(Please provide response as {result_type.__name__})")
-        response = input("> ")
-        # Parse structured response if needed
-        content: Any = response
-        if result_type:
-            try:
-                content = result_type.model_validate_json(response)
-            except Exception as e:
-                logger.exception("Failed to parse structured response")
-                error_msg = f"Invalid response format: {e}"
-                raise ToolError(error_msg) from e
+            content = await get_structured_response(result_type, self.use_promptantic)
+        else:
+            content = input("> ")
+
         if store_history:
             msg_history.append(ChatMessage(role="user", content=formatted))
             msg_history.append(ChatMessage(role="assistant", content=content))
