@@ -235,10 +235,8 @@ class Agent[TDeps](TaskManagerMixin):
         match runtime:
             case None:
                 ctx.runtime = RuntimeConfig.from_config(Config())
-            case Config():
+            case Config() | str() | PathLike():
                 ctx.runtime = RuntimeConfig.from_config(runtime)
-            case str() | PathLike():
-                ctx.runtime = RuntimeConfig.from_config(Config.from_file(runtime))
             case RuntimeConfig():
                 ctx.runtime = runtime
 
