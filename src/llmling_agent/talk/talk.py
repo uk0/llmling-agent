@@ -386,7 +386,7 @@ class TeamTalk(list["Talk | TeamTalk"]):
         cls,
         agents: Sequence[AnyAgent[Any, Any]],
         targets: list[AnyAgent[Any, Any]] | None = None,
-    ) -> TeamTalk:
+    ) -> Self:
         """Create TeamTalk from a collection of agents."""
         return cls([Talk(agent, targets or []) for agent in agents])
 
