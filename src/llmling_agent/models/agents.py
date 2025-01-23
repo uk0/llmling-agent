@@ -18,6 +18,7 @@ from llmling import (
     PromptMessage,
     StaticPrompt,
 )
+from llmling.utils.importing import import_callable
 from llmling_models.model_types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_ai.agent import EndStrategy  # noqa: TC002
@@ -292,6 +293,7 @@ class AgentConfig(BaseModel):
         """
         # If string shorthand is used, convert to default provider config
         from llmling_agent.models.providers import (
+            CallbackProviderConfig,
             HumanProviderConfig,
             LiteLLMProviderConfig,
             PydanticAIProviderConfig,
@@ -307,8 +309,12 @@ class AgentConfig(BaseModel):
                 case "litellm":
                     provider_config = LiteLLMProviderConfig()
                 case _:
-                    msg = f"Invalid provider type: {provider_config}"
-                    raise ValueError(msg)
+                    try:
+                        fn = import_callable(provider_config)
+                        provider_config = CallbackProviderConfig(fn=fn)
+                    except Exception:  # noqa: BLE001
+                        msg = f"Invalid provider type: {provider_config}"
+                        raise ValueError(msg)  # noqa: B904
 
         # Create provider instance from config
         return provider_config.get_provider()

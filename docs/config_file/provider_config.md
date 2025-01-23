@@ -71,6 +71,8 @@ provider: "pydantic_ai"  # Use default AI provider (pydantic-ai
 provider: "human"  # Use default human provider
 # or
 provider: "litellm"  # Use default LiteLLM provider
+# or
+provider: "path.to.callable"  # Create a CallableProvider
 ```
 
 ## Configuration Notes
