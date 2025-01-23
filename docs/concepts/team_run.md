@@ -72,20 +72,24 @@ for response in results:
 ```
 
 ### Monitored Runs
-Start run in background with monitoring:
+Get stats while run is executing in background:
 ```python
-# Start run
-run.start_background(
-    "Process this task",
-    monitor_callback=on_update
-)
+# Start run and get stats object
+stats = run.start_background("Process this task")
 
-# Monitor progress
-async def on_update(stats: TeamRunStats):
-    print(f"Active agents: {stats.active_agents}")
-    print(f"Messages: {stats.message_counts}")
-    print(f"Tokens used: {stats.total_tokens}")
-    print(f"Cost so far: ${stats.total_cost:.4f}")
+# Monitor progress by polling stats
+while run.is_running:
+    # Access stats through TeamTalk interface
+    print(f"Active connections: {len(stats)}")
+    for talk in stats:
+        print(f"\nConnection: {talk.source_name} -> {talk.target_names}")
+        print(f"Messages: {len(talk.stats.messages)}")
+        print(f"Tool calls: {len(talk.stats.tool_calls)}")
+    if stats.errors:
+        print("\nErrors:")
+        for agent, error, time in stats.errors:
+            print(f"  {agent}: {error} at {time}")
+    await asyncio.sleep(0.5)
 
 # Wait for completion when needed
 results = await run.wait()

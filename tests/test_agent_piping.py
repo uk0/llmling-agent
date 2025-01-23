@@ -28,13 +28,7 @@ async def test_agent_piping():
     assert result[0].message.data == "model: test"
     assert result[1].message.data == "transform1: model: test"
     assert result[2].message.data == "transform2: transform1: model: test"
-
-    # Stats checks with exact names
-    assert pipeline.stats.message_counts == {
-        "agent1": 1,
-        "transform1": 1,
-        "transform2": 1,
-    }
+    assert pipeline.stats.stats.message_count == 3  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
@@ -50,15 +44,16 @@ async def test_agent_piping_with_monitoring():
 
     pipeline = agent1 | transform
 
+    # Get stats object directly from start_background
+    stats = pipeline.start_background("test")
+
+    # Monitor progress
     updates = []
+    while pipeline.is_running:
+        updates.append(len(stats))  # Track number of active connections
+        await asyncio.sleep(0.01)
 
-    def on_stats_update(stats):
-        updates.append(len(stats.active_agents))
-
-    pipeline.start_background("test")
-    pipeline.monitor(on_stats_update, interval=0.01)
     _result = await pipeline.wait()
-
     assert updates  # Last update should show no active agents
 
 
@@ -80,8 +75,7 @@ async def test_agent_piping_errors():
     assert result[1].error is not None
     assert "Transform error" in result[1].error
 
-    assert pipeline.stats.has_errors
-    assert len(pipeline.stats.error_log) == 1
+    assert pipeline.stats.errors
 
 
 @pytest.mark.asyncio

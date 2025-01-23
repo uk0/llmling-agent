@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-import inspect
 from itertools import pairwise
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import AgentResponse, ChatMessage, TeamResponse
+from llmling_agent.talk.talk import Talk, TeamTalk
 from llmling_agent.utils.tasks import TaskManagerMixin
 
 
@@ -20,14 +20,11 @@ if TYPE_CHECKING:
     import os
 
     import PIL.Image
-    from psygnal import SignalInstance
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
     from llmling_agent.delegation import Team
-    from llmling_agent.models.agents import ToolCallInfo
-    from llmling_agent.talk.talk import Talk
 
 
 logger = get_logger(__name__)
@@ -36,151 +33,24 @@ ExecutionMode = Literal["parallel", "sequential"]
 """The execution mode for a TeamRun."""
 
 
-@dataclass(frozen=True)
-class TeamRunStats:
-    """Statistics about a team execution."""
+@dataclass(frozen=True, kw_only=True)
+class ExtendedTeamTalk(TeamTalk):
+    """TeamTalk that also provides TeamRunStats interface."""
 
-    start_time: datetime
-    received_messages: dict[str, list[ChatMessage]]  # agent -> messages
-    sent_messages: dict[str, list[ChatMessage]]  # agent -> messages
-    tool_calls: dict[str, list[ToolCallInfo]]  # agent -> tool calls
-    error_log: list[tuple[str, str, datetime]]  # (agent, error, timestamp)
-    duration: float
+    errors: list[tuple[str, str, datetime]] = field(default_factory=list)
 
-    @property
-    def active_agents(self) -> list[str]:
-        """Get currently active agents."""
-        return [
-            name
-            for name in self.received_messages
-            if len(self.received_messages[name]) > len(self.sent_messages[name])
-        ]
+    def add_error(self, agent: str, error: str):
+        """Track errors from AgentResponses."""
+        self.errors.append((agent, error, datetime.now()))
 
     @property
-    def message_counts(self) -> dict[str, int]:
-        """Get message count per agent."""
-        return {name: len(messages) for name, messages in self.sent_messages.items()}
-
-    @property
-    def total_tokens(self) -> int:
-        """Get total token usage across all agents."""
-        return sum(
-            msg.cost_info.token_usage["total"]
-            for messages in self.sent_messages.values()
-            for msg in messages
-            if msg.cost_info
-        )
-
-    @property
-    def total_cost(self) -> float:
-        """Get total cost across all agents."""
-        return sum(
-            float(msg.cost_info.total_cost)
-            for messages in self.sent_messages.values()
-            for msg in messages
-            if msg.cost_info
-        )
-
-    @property
-    def tool_counts(self) -> dict[str, int]:
-        """Get tool usage count per agent."""
-        return {name: len(calls) for name, calls in self.tool_calls.items()}
-
-    @property
-    def is_active(self) -> bool:
-        """Whether any agents are still processing."""
-        return bool(self.active_agents)
-
-    @property
-    def has_errors(self) -> bool:
-        """Whether any errors occurred."""
-        return bool(self.error_log)
-
-
-class TeamRunMonitor:
-    """Monitors team execution through agent signals."""
-
-    def __init__(self, team: Team):
-        self.team = team
-        self.start_time = datetime.now()
-        self._stop_event = asyncio.Event()
-
-        # Raw event collection
-        self._received_messages: dict[str, list[ChatMessage]] = {
-            agent.name: [] for agent in team.agents
-        }
-        self._sent_messages: dict[str, list[ChatMessage]] = {
-            agent.name: [] for agent in team.agents
-        }
-        self._errors: dict[str, list[tuple[str, datetime]]] = {
-            agent.name: [] for agent in team.agents
-        }
-        self._tool_calls: dict[str, list[ToolCallInfo]] = {
-            agent.name: [] for agent in team.agents
-        }
-
-        # Track signal connections for cleanup
-        self._signal_connections: list[tuple[SignalInstance, Callable]] = []
-
-    def start(self):
-        """Start monitoring."""
-        # Connect signals for all agents
-        logger.debug("TeamRunMonitor starting")
-        self._stop_event.clear()
-        for agent in self.team.agents:
-            # Message tracking
-            self._signal_connections.extend([
-                (
-                    agent.message_received,
-                    lambda msg, name=agent.name: self._received_messages[name].append(
-                        msg
-                    ),
-                ),
-                (
-                    agent.message_sent,
-                    lambda msg, name=agent.name: self._sent_messages[name].append(msg),
-                ),
-                (
-                    agent.run_failed,
-                    lambda msg, exc, name=agent.name: self._errors[name].append((
-                        str(exc),
-                        datetime.now(),
-                    )),
-                ),
-                (
-                    agent.tool_used,
-                    lambda info, name=agent.name: self._tool_calls[name].append(info),
-                ),
-            ])
-
-        # Connect all tracked signals
-        for signal, handler in self._signal_connections:
-            signal.connect(handler)
-
-    def stop(self):
-        """Stop monitoring and cleanup signals."""
-        logger.debug("TeamRunMonitor stopping")
-        self._stop_event.set()
-        for signal, handler in self._signal_connections:
-            signal.disconnect(handler)
-        self._signal_connections.clear()
-
-    @property
-    def stats(self) -> TeamRunStats:
-        """Get current execution statistics."""
-        log = [(n, err, ts) for n, errors in self._errors.items() for err, ts in errors]
-        return TeamRunStats(
-            start_time=self.start_time,
-            received_messages=self._received_messages,
-            sent_messages=self._sent_messages,
-            tool_calls=self._tool_calls,
-            error_log=log,
-            duration=(datetime.now() - self.start_time).total_seconds(),
-        )
+    def error_log(self) -> list[tuple[str, str, datetime]]:
+        """Errors from failed responses."""
+        return self.errors
 
 
 class TeamRun[TDeps](TaskManagerMixin):
-    """Handles team operations with optional monitoring."""
+    """Handles team operations with monitoring."""
 
     def __init__(
         self,
@@ -190,7 +60,7 @@ class TeamRun[TDeps](TaskManagerMixin):
         super().__init__()
         self.team = team
         self.mode = mode
-        self._monitor: TeamRunMonitor | None = None
+        self._team_talk = ExtendedTeamTalk()
         self._main_task: asyncio.Task[TeamResponse] | None = None
 
     def __or__(self, other: Agent | Callable | Team | TeamRun) -> TeamRun:
@@ -217,74 +87,22 @@ class TeamRun[TDeps](TaskManagerMixin):
     async def start(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
-        monitor_callback: Callable[[TeamRunStats], Any] | None = None,
-        monitor_interval: float = 0.1,
         **kwargs: Any,
     ) -> TeamResponse:
         """Start execution with optional monitoring."""
-        self._monitor = TeamRunMonitor(self.team)
-        self._monitor.start()
-
-        if monitor_callback:
-
-            async def _monitor():
-                logger.debug("Monitor task starting")
-                assert self._monitor
-                while not self._monitor._stop_event.is_set():
-                    logger.debug("Monitor checking stats")
-                    stats = self.stats
-                    logger.debug("Stats: active_agents=%s", stats.active_agents)
-                    if inspect.iscoroutinefunction(monitor_callback):
-                        await monitor_callback(stats)
-                    else:
-                        monitor_callback(stats)
-                    await asyncio.sleep(monitor_interval)
-                logger.debug("Monitor task stopping")
-
-            self.create_task(_monitor(), name="stats_monitor")
-
         return await self._execute(*prompts, **kwargs)
 
     def start_background(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
-        monitor_callback: Callable[[TeamRunStats], Any] | None = None,
-        monitor_interval: float = 0.1,
         **kwargs: Any,
-    ) -> None:
+    ) -> ExtendedTeamTalk:
         if self._main_task:
             msg = "Execution already running"
             raise RuntimeError(msg)
-        coro = self.start(
-            *prompts,
-            monitor_callback=monitor_callback,
-            monitor_interval=monitor_interval,
-            **kwargs,
-        )
+        coro = self.start(*prompts, **kwargs)
         self._main_task = self.create_task(coro, name="main_execution")
-
-    def monitor(
-        self,
-        callback: Callable[[TeamRunStats], Any],
-        interval: float = 0.1,
-    ) -> None:
-        """Monitor execution with callback.
-
-        Args:
-            callback: Function to call with stats updates
-            interval: How often to check for updates (seconds)
-        """
-
-        async def _monitor():
-            while self.is_running:
-                # Direct callback with stats
-                if inspect.iscoroutinefunction(callback):
-                    await callback(self.stats)
-                else:
-                    callback(self.stats)
-                await asyncio.sleep(interval)
-
-        self.create_task(_monitor(), name="stats_monitor")
+        return self._team_talk
 
     @property
     def is_running(self) -> bool:
@@ -298,8 +116,6 @@ class TeamRun[TDeps](TaskManagerMixin):
         try:
             return await self._main_task
         finally:
-            if self._monitor:
-                self._monitor.stop()
             await self.cleanup_tasks()
 
     async def cancel(self) -> None:
@@ -322,8 +138,7 @@ class TeamRun[TDeps](TaskManagerMixin):
         **kwargs: Any,
     ) -> TeamResponse:
         """Common execution logic."""
-        self._monitor = TeamRunMonitor(self.team)
-        self._monitor.start()
+        self._team_talk = ExtendedTeamTalk()
         try:
             match self.mode:
                 case "parallel":
@@ -334,34 +149,19 @@ class TeamRun[TDeps](TaskManagerMixin):
                     msg = f"Invalid mode: {self.mode}"
                     raise ValueError(msg)
         finally:
-            self._monitor.stop()
+            pass
 
     @property
-    def stats(self) -> TeamRunStats:
+    def stats(self) -> ExtendedTeamTalk:
         """Get current execution statistics."""
-        if not self._monitor:
-            # Return empty stats if not monitoring
-            return TeamRunStats(
-                start_time=datetime.now(),
-                received_messages={agent.name: [] for agent in self.team.agents},
-                sent_messages={agent.name: [] for agent in self.team.agents},
-                tool_calls={agent.name: [] for agent in self.team.agents},
-                error_log=[],
-                duration=0.0,
-            )
-        return self._monitor.stats
+        return self._team_talk
 
     async def _run_parallel(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
     ) -> TeamResponse:
-        """Execute in parallel mode.
-
-        All agents run simultaneously and independently.
-        """
+        """Execute in parallel mode."""
         start_time = datetime.now()
-
-        # Combine shared prompt with user prompt if both exist
         final_prompt = list(prompt)
         if self.team.shared_prompt:
             final_prompt.insert(0, self.team.shared_prompt)
@@ -374,6 +174,7 @@ class TeamRun[TDeps](TaskManagerMixin):
                 return AgentResponse(agent.name, message=message, timing=timing)
             except Exception as e:  # noqa: BLE001
                 msg = ChatMessage(content="", role="assistant")
+                self._team_talk.add_error(agent.name, str(e))
                 return AgentResponse(agent_name=agent.name, message=msg, error=str(e))
 
         responses = await asyncio.gather(*[run_agent(a) for a in self.team.agents])
@@ -384,38 +185,50 @@ class TeamRun[TDeps](TaskManagerMixin):
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
     ) -> AsyncIterator[Talk[Any] | AgentResponse[Any]]:
         try:
+            first = self.team[0]
             connections = [
                 source.pass_results_to(target, queued=True)
                 for source, target in pairwise(self.team)
             ]
+            for conn in connections:
+                self._team_talk.append(conn)
+
             start = perf_counter()
-            first = self.team[0]
             message = await first.run(*prompt)
             timing = perf_counter() - start
             response = AgentResponse[Any](
                 agent_name=first.name, message=message, timing=timing
             )
-            yield response  # pyright: ignore
+            yield response
             for connection in connections:
+                target = connection.targets[0]
+                target_name = target.name
                 yield connection  # pyright: ignore
                 try:
                     start = perf_counter()
-
                     messages = await connection.trigger()
+                    # If this is the last agent
+                    if target == self.team.agents[-1]:
+                        # Create Talk for stats collection only
+                        last_talk = Talk[Any](target, [], connection_type="run")
+                        # Add its message to the Talk's stats
+                        if response.message:
+                            last_talk.stats.messages.append(response.message)
+                        # Add Talk to TeamTalk
+                        self._team_talk.append(last_talk)
                     timing = perf_counter() - start
                     response = AgentResponse[Any](
-                        agent_name=connection.targets[0].name,
-                        message=messages[0],
-                        timing=timing,
-                    )
-                    yield response
-                except Exception as e:  # noqa: BLE001
-                    msg = ChatMessage(content="", role="assistant")
-                    response = AgentResponse[Any](
-                        agent_name=connection.targets[0].name, message=msg, error=str(e)
+                        agent_name=target_name, message=messages[0], timing=timing
                     )
                     yield response
 
+                except Exception as e:  # noqa: BLE001
+                    self._team_talk.add_error(connection.targets[0].name, str(e))
+                    msg = ChatMessage(content="", role="assistant")
+                    response = AgentResponse[Any](
+                        agent_name=target_name, message=msg, error=str(e)
+                    )
+                    yield response
         finally:
             for connection in connections:
                 connection.disconnect()
@@ -423,57 +236,65 @@ class TeamRun[TDeps](TaskManagerMixin):
     async def _run_sequential(
         self, *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str]
     ) -> TeamResponse:
-        """Execute in sequential mode.
-
-        Agents run one after another, in order.
-        """
+        """Execute in sequential mode."""
         start_time = datetime.now()
         final_prompt = list(prompt)
         if self.team.shared_prompt:
             final_prompt.insert(0, self.team.shared_prompt)
-        msgs = [
-            item
-            async for item in self.run_iter(*final_prompt)
-            if isinstance(item, AgentResponse)
+
+        responses = [
+            i async for i in self.run_iter(*final_prompt) if isinstance(i, AgentResponse)
         ]
-        return TeamResponse(msgs, start_time)
+        return TeamResponse(responses, start_time)
 
 
 if __name__ == "__main__":
     import asyncio
 
     from llmling_agent import AgentPool
-    from llmling_agent.models.messages import ChatMessage
-    from llmling_agent.talk.talk import Talk
 
     async def main():
         async with AgentPool[None]() as pool:
-            # Create three agents
+            # Create three agents with different roles
             agent1 = await pool.add_agent(
                 "analyzer",
-                system_prompt="You analyze text.",
+                system_prompt="You analyze text and find key points.",
                 model="openai:gpt-4o-mini",
             )
             agent2 = await pool.add_agent(
                 "summarizer",
-                system_prompt="You summarize analysis.",
+                system_prompt="You create concise summaries.",
                 model="openai:gpt-4o-mini",
             )
             agent3 = await pool.add_agent(
                 "critic",
-                system_prompt="You critique summaries.",
+                system_prompt="You evaluate and critique summaries.",
                 model="openai:gpt-4o-mini",
             )
 
-            # Create sequential team
-            team = TeamRun(agent1 & agent2 & agent3, mode="sequential")
+            # Create team and get monitored execution
+            team = agent1 & agent2 & agent3
+            execution = team.monitored(mode="sequential")
 
-            # Test the iterator
             text = "The quick brown fox jumps over the lazy dog."
-            print("\nStarting sequential processing...")
+            print(f"\nProcessing text: {text}\n")
 
-            async for item in team.run_iter(text):
-                if isinstance(item, Talk):
-                    print(item.stats.tool_calls)
+            # Start execution and get stats object (ExtendedTeamTalk)
+            stats = execution.start_background(text)
+
+            # Poll stats while running
+            while execution.is_running:
+                print("\nCurrent status:")
+                print(f"Number of active connections: {len(stats)}")
+                print("Errors:", len(stats.errors))
+                await asyncio.sleep(0.5)
+
+            # Wait for completion and get results
+            result = await execution.wait()
+            print("\nFinal Results:")
+            for resp in result:
+                print(f"\n{resp.agent_name}:")
+                print("-" * 40)
+                print(resp.message)
 
     asyncio.run(main())
