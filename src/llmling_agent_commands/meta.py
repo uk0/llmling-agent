@@ -12,7 +12,7 @@ from llmling_agent_commands.completers import MetaCompleter
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentPoolView
+    from llmling_agent.models.context import AgentContext
 
 
 META_HELP = """\
@@ -37,7 +37,7 @@ Examples:
 
 
 async def meta_command(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -74,7 +74,7 @@ async def meta_command(
         if chain:
             # Sequential application (multiple LLM calls)
             current_prompt = goal
-            model = ctx.context._agent.model_name
+            model = ctx.context.agent.model_name
             for prompt in prompts:
                 current_prompt = await prompt.apply(
                     current_prompt,
@@ -102,7 +102,7 @@ async def meta_command(
             result = await combined.apply(
                 goal=goal,
                 styles=", ".join(style_names),
-                model=ctx.context._agent.model_name,  # type: ignore
+                model=ctx.context.agent.model_name,  # type: ignore
                 max_length=max_length,
             )
         await ctx.output.print("\nGenerated Prompt:\n" + result)

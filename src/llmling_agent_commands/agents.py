@@ -13,7 +13,7 @@ from llmling_agent_commands.completers import get_available_agents
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentPoolView
+    from llmling_agent.models.context import AgentContext
 
 
 CREATE_AGENT_HELP = """\
@@ -69,7 +69,7 @@ Example: /switch-agent url_opener
 
 
 async def create_agent_command(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -90,7 +90,7 @@ async def create_agent_command(
             raise CommandError(msg)
 
         # Get model from args or current agent
-        current_agent = ctx.context._agent
+        current_agent = ctx.context.agent
         # Create and register the new agent
         await ctx.context.pool.add_agent(
             name=name,
@@ -108,15 +108,15 @@ async def create_agent_command(
 
 
 async def show_agent(
-    ctx: CommandContext[AgentPoolView], args: list[str], kwargs: dict[str, str]
+    ctx: CommandContext[AgentContext], args: list[str], kwargs: dict[str, str]
 ):
     """Show current agent's configuration."""
-    if not ctx.context._agent.context:
+    if not ctx.context.agent.context:
         await ctx.output.print("No agent context available")
         return
 
     # Get the agent's config with current overrides
-    config = ctx.context._agent.context.config
+    config = ctx.context.agent.context.config
 
     # Get base config as dict
     config_dict = config.model_dump(exclude_none=True)
@@ -141,13 +141,13 @@ async def show_agent(
 
 
 async def list_agents(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
     """List all available agents."""
     # Get agent definition through context
-    definition = ctx.context._agent.context.definition
+    definition = ctx.context.agent.context.definition
 
     await ctx.output.print("\nAvailable agents:")
     for name, agent in definition.agents.items():
@@ -166,17 +166,19 @@ async def list_agents(
 
 
 async def switch_agent(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
     """Switch to a different agent."""
+    msg = "Temporarily disabled"
+    raise RuntimeError(msg)
     if not args:
         await ctx.output.print("Usage: /switch-agent <name>")
         return
 
     name = args[0]
-    definition = ctx.context._agent.context.definition
+    definition = ctx.context.agent.context.definition
 
     if name not in definition.agents:
         await ctx.output.print(f"Unknown agent: {name}")
@@ -186,7 +188,7 @@ async def switch_agent(
         new_agent: AnyAgent[Any, Any]
         async with Agent[Any].open_agent(definition, name) as new_agent:
             # Update session's agent
-            ctx.context._agent = new_agent
+            ctx.context.agent = new_agent
             await ctx.output.print(f"Switched to agent: {name}")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Failed to switch agent: {e}")

@@ -124,7 +124,11 @@ class AgentPoolView:
             metadata: Optional interface-specific metadata
         """
         meta = metadata or {}
-        ctx = self.commands.create_context(self, output_writer=output, metadata=meta)
+        ctx = self.commands.create_context(
+            self._agent.context,
+            output_writer=output,
+            metadata=meta,
+        )
         await self.commands.execute_command(command_str, ctx)
 
     async def send_slash_command(

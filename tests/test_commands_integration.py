@@ -6,7 +6,8 @@ from llmling import Config, PromptMessage, PromptParameter, StaticPrompt
 import pytest
 from slashed import CommandStore, DefaultOutputWriter
 
-from llmling_agent import Agent, AgentPoolView
+from llmling_agent import Agent
+from llmling_agent.delegation.pool import AgentPool
 from llmling_agent_commands.prompts import prompt_cmd
 
 
@@ -58,10 +59,11 @@ async def test_prompt_command_simple(config: Config):
             messages.append(message)
 
     async with Agent[None].open(config) as agent:
-        session = AgentPoolView(agent)
-
+        pool = AgentPool[None]()
+        pool.register(agent.name, agent)
+        agent.context.pool = pool
         store = CommandStore(enable_system_commands=True)
-        context = store.create_context(session, output_writer=TestOutput())
+        context = store.create_context(agent.context, output_writer=TestOutput())
 
         # Execute prompt command
         await prompt_cmd.execute(ctx=context, args=["greet"])
@@ -88,10 +90,11 @@ async def test_prompt_command_with_args(config: Config):
             messages.append(message)
 
     async with Agent[None].open(config) as agent:
-        session = AgentPoolView(agent)
-
+        pool = AgentPool[None]()
+        pool.register(agent.name, agent)
+        agent.context.pool = pool
         store = CommandStore(enable_system_commands=True)
-        context = store.create_context(session, output_writer=TestOutput())
+        context = store.create_context(agent.context, output_writer=TestOutput())
 
         # Execute prompt command with arguments
         kwargs = {"data": "test.txt"}

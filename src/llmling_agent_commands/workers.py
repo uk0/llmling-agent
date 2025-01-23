@@ -12,7 +12,7 @@ from llmling_agent_commands.completers import get_available_agents
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentPoolView
+    from llmling_agent.models.context import AgentContext
 
 
 logger = get_logger(__name__)
@@ -53,7 +53,7 @@ Example: /list-workers
 
 
 async def add_worker_command(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -77,12 +77,12 @@ async def add_worker_command(
         share_context = kwargs.get("share_context", "false").lower() == "true"
 
         # Register worker
-        tool_info = ctx.context._agent.tools.register_worker(
+        tool_info = ctx.context.agent.tools.register_worker(
             worker,
             reset_history_on_run=reset_history,
             pass_message_history=share_history,
             share_context=share_context,
-            parent=ctx.context._agent,
+            parent=ctx.context.agent,
         )
 
         await ctx.output.print(
@@ -99,7 +99,7 @@ async def add_worker_command(
 
 
 async def remove_worker_command(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -112,18 +112,18 @@ async def remove_worker_command(
     tool_name = f"ask_{worker_name}"  # Match the naming in to_agent_tool
 
     try:
-        if tool_name not in ctx.context._agent.tools:
+        if tool_name not in ctx.context.agent.tools:
             msg = f"No worker tool found for agent: {worker_name}"
             raise CommandError(msg)  # noqa: TRY301
 
         # Check if it's actually a worker tool
-        tool_info = ctx.context._agent.tools[tool_name]
+        tool_info = ctx.context.agent.tools[tool_name]
         if tool_info.source != "agent":
             msg = f"{tool_name} is not a worker tool"
             raise CommandError(msg)  # noqa: TRY301
 
         # Remove the tool
-        del ctx.context._agent.tools[tool_name]
+        del ctx.context.agent.tools[tool_name]
         await ctx.output.print(f"Removed worker tool: {tool_name}")
 
     except Exception as e:
@@ -132,14 +132,14 @@ async def remove_worker_command(
 
 
 async def list_workers_command(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
     """List all worker tools."""
     # Filter tools by source="agent"
     worker_tools = [
-        info for info in ctx.context._agent.tools.values() if info.source == "agent"
+        info for info in ctx.context.agent.tools.values() if info.source == "agent"
     ]
 
     if not worker_tools:

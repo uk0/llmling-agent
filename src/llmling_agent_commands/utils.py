@@ -10,7 +10,7 @@ from slashed import CommandContext, CommandError, SlashedCommand
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentPoolView
+    from llmling_agent.models.context import AgentContext
 
 
 class CopyClipboardCommand(SlashedCommand):
@@ -30,7 +30,7 @@ class CopyClipboardCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentPoolView],
+        ctx: CommandContext[AgentContext],
         *,
         num_messages: int = 1,
         include_system: bool = False,
@@ -52,7 +52,7 @@ class CopyClipboardCommand(SlashedCommand):
             msg = "pyperclip package required for clipboard operations"
             raise CommandError(msg) from e
 
-        content = await ctx.get_data()._agent.conversation.format_history(
+        content = await ctx.context.agent.conversation.format_history(
             num_messages=num_messages,
             include_system=include_system,
             max_tokens=max_tokens,
@@ -92,9 +92,9 @@ class EditAgentFileCommand(SlashedCommand):
     name = "open-agent-file"
     category = "utils"
 
-    async def execute_command(self, ctx: CommandContext[AgentPoolView]):
+    async def execute_command(self, ctx: CommandContext[AgentContext]):
         """Open agent's configuration file."""
-        agent = ctx.get_data()._agent
+        agent = ctx.context.agent
         if not agent.context:
             msg = "No agent context available"
             raise CommandError(msg)

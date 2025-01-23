@@ -11,7 +11,8 @@ from llmling_agent_commands.completers import get_prompt_names
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentPoolView
+    from llmling_agent.models.context import AgentContext
+
 
 EXECUTE_PROMPT_HELP = """\
 Execute a named prompt with optional arguments.
@@ -28,12 +29,12 @@ Examples:
 
 
 async def list_prompts(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
     """List available prompts."""
-    prompts = ctx.context._agent.runtime.get_prompts()
+    prompts = ctx.context.agent.runtime.get_prompts()
     await ctx.output.print("\nAvailable prompts:")
     for prompt in prompts:
         await ctx.output.print(f"  {prompt.name:<20} - {prompt.description}")
@@ -42,7 +43,7 @@ async def list_prompts(
 # TODO: we need to get a clear picture about the difference between Knowledge prompts
 # and runtime prompts.
 async def prompt_command(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -56,11 +57,11 @@ async def prompt_command(
 
     name = args[0]
     try:
-        prompt = ctx.context._agent.runtime.get_prompt(name)
+        prompt = ctx.context.agent.runtime.get_prompt(name)
         # Add as context using new method
-        await ctx.context._agent.conversation.add_context_from_prompt(prompt, **kwargs)  # type: ignore
+        await ctx.context.agent.conversation.add_context_from_prompt(prompt, **kwargs)  # type: ignore
         await ctx.output.print(f"Added prompt {name!r} to next message as context.")
-    except Exception as e:  # noqa: BLE001
+    except (ValueError, KeyError) as e:
         await ctx.output.print(f"Error executing prompt: {e}")
 
 

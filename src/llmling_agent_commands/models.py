@@ -11,7 +11,7 @@ from llmling_agent_commands.completers import get_model_names
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentPoolView
+    from llmling_agent.models.context import AgentContext
 
 
 SET_MODEL_HELP = """\
@@ -30,7 +30,7 @@ Note: Available models depend on your configuration and API access.
 
 
 async def set_model(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -42,7 +42,7 @@ async def set_model(
     model = args[0]
     try:
         # Create new session with model override
-        ctx.context._agent.set_model(model)
+        ctx.context.agent.set_model(model)
         await ctx.output.print(f"Model changed to: {model}")
     except Exception as e:  # noqa: BLE001
         await ctx.output.print(f"Failed to change model: {e}")

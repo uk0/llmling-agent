@@ -227,7 +227,6 @@ class HumanProvider(AgentProvider):
 
     async def handle_input(self, content: str):
         """Handle all human input."""
-        from llmling_agent.chat_session.base import AgentPoolView
         from llmling_agent.events.sources import UIEvent
 
         if not content.strip():
@@ -248,9 +247,10 @@ class HumanProvider(AgentProvider):
                     kwargs=parsed.args.kwargs,
                 )
                 assert self.context.agent
-                view = AgentPoolView(self.context.agent, pool=self.context.pool)
                 await self.commands.execute_command_with_context(
-                    parsed.name, context=view, output_writer=DefaultOutputWriter()
+                    parsed.name,
+                    context=self.context,
+                    output_writer=DefaultOutputWriter(),
                 )
 
             elif content.startswith("@"):

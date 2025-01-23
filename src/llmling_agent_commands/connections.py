@@ -13,8 +13,8 @@ from llmling_agent_commands.completers import get_available_agents
 
 
 if TYPE_CHECKING:
+    from llmling_agent import AgentContext
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.chat_session.base import AgentPoolView
 
 
 logger = get_logger(__name__)
@@ -56,7 +56,7 @@ def format_agent_name(agent: AnyAgent[Any, Any], current: bool = False) -> str:
 
 
 async def connect_command(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -69,7 +69,13 @@ async def connect_command(
     wait = kwargs.get("wait", "true").lower() != "false"
 
     try:
-        await ctx.context.connect_to(target, wait)
+        assert ctx.context.pool
+        target_agent = ctx.context.pool.get_agent(target)
+        ctx.context.agent.pass_results_to(target_agent)
+        ctx.context.agent.connections.set_wait_state(
+            target, wait if wait is not None else True
+        )
+
         msg = f"Now forwarding messages to {target}"
         msg += " (waiting for responses)" if wait else " (async)"
         await ctx.output.print(msg)
@@ -79,7 +85,7 @@ async def connect_command(
 
 
 async def disconnect_command(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -92,7 +98,7 @@ async def disconnect_command(
     try:
         assert ctx.context.pool
         target_agent = ctx.context.pool.get_agent(target)
-        ctx.context._agent.connections.disconnect(target_agent)
+        ctx.context.agent.connections.disconnect(target_agent)
         await ctx.output.print(f"Stopped forwarding messages to {target}")
     except Exception as e:
         msg = f"Failed to disconnect from {target}: {e}"
@@ -100,34 +106,34 @@ async def disconnect_command(
 
 
 async def disconnect_all_command(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
     """Disconnect from all agents."""
-    if not ctx.context._agent.connections.get_targets():
+    if not ctx.context.agent.connections.get_targets():
         await ctx.output.print("No active connections")
         return
 
-    await ctx.context._agent.disconnect_all()
+    await ctx.context.agent.disconnect_all()
     await ctx.output.print("Disconnected from all agents")
 
 
 async def list_connections(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
     """List current connections."""
-    if not ctx.context._agent.connections.get_targets():
+    if not ctx.context.agent.connections.get_targets():
         await ctx.output.print("No active connections")
         return
 
     # Create tree visualization
-    tree = Tree(format_agent_name(ctx.context._agent, current=True))
+    tree = Tree(format_agent_name(ctx.context.agent, current=True))
 
     # Use session's get_connections() for info
-    for agent in ctx.context._agent.connections.get_targets():
+    for agent in ctx.context.agent.connections.get_targets():
         assert ctx.context.pool
         name = format_agent_name(ctx.context.pool.get_agent(agent.name))
         _branch = tree.add(name)

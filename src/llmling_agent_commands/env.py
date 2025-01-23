@@ -13,7 +13,7 @@ from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentPoolView
+    from llmling_agent import AgentContext
 
 
 SET_ENV_HELP = """\
@@ -39,7 +39,7 @@ This allows you to modify:
 
 
 async def set_env(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -54,7 +54,7 @@ async def set_env(
         raise CommandError(msg)
 
     try:
-        agent = ctx.context._agent
+        agent = ctx.context.agent
         if not agent.context.config:
             msg = "No agent context available"
             raise CommandError(msg)  # noqa: TRY301
@@ -90,16 +90,16 @@ async def set_env(
 
 
 async def edit_env(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
     """Open agent's environment file in default application."""
-    if not ctx.context._agent.context:
+    if not ctx.context.agent.context:
         msg = "No agent context available"
         raise CommandError(msg)
 
-    config = ctx.context._agent.context.config
+    config = ctx.context.agent.context.config
     match config.environment:
         case FileEnvironment(uri=uri):
             # For file environments, open in browser

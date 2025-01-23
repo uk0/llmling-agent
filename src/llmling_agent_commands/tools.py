@@ -14,6 +14,7 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from llmling_agent.chat_session.base import AgentPoolView
+    from llmling_agent.models.context import AgentContext
 
 
 logger = get_logger(__name__)
@@ -83,12 +84,12 @@ Tools are grouped by source (runtime/agent/builtin).
 
 
 async def list_tools(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
     """List all available tools."""
-    agent = ctx.context._agent
+    agent = ctx.context.agent
     # Format output using ToolInfo formatting
     sections = ["# Available Tools\n"]
     for tool_info in agent.tools.values():
@@ -99,7 +100,7 @@ async def list_tools(
 
 
 async def tool_info(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -109,7 +110,7 @@ async def tool_info(
         return
 
     tool_name = args[0]
-    agent = ctx.context._agent
+    agent = ctx.context.agent
 
     try:
         tool_info = agent.tools[tool_name]
@@ -141,7 +142,7 @@ async def tool_info(
 
 
 async def toggle_tool(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
     *,
@@ -156,9 +157,9 @@ async def toggle_tool(
     name = args[0]
     try:
         if enable:
-            ctx.context._agent.tools.enable_tool(name)
+            ctx.context.agent.tools.enable_tool(name)
         else:
-            ctx.context._agent.tools.disable_tool(name)
+            ctx.context.agent.tools.disable_tool(name)
         action = "enabled" if enable else "disabled"
         await ctx.output.print(f"Tool '{name}' {action}")
     except ValueError as e:
@@ -167,7 +168,7 @@ async def toggle_tool(
 
 
 async def enable_tool(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -176,7 +177,7 @@ async def enable_tool(
 
 
 async def disable_tool(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -185,7 +186,7 @@ async def disable_tool(
 
 
 async def register_tool(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -210,7 +211,7 @@ async def register_tool(
         )
 
         # Register with ToolManager
-        tool_info = ctx.context._agent.tools.register_tool(
+        tool_info = ctx.context.agent.tools.register_tool(
             llm_tool,
             enabled=True,
             source="dynamic",
@@ -227,7 +228,7 @@ async def register_tool(
 
 
 async def write_tool(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -268,7 +269,7 @@ async def write_tool(
 
         # Register all tools with ctx parameter added
         for func in tools:
-            tool_info = ctx.context._agent.tools.register_tool(
+            tool_info = ctx.context.agent.tools.register_tool(
                 func, source="dynamic", metadata={"created_by": "write-tool"}
             )
             await ctx.output.print(f"Tool '{tool_info.name}' registered!")

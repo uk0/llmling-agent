@@ -11,7 +11,6 @@ from slashed import (
     SlashedCommand,
 )
 
-from llmling_agent.chat_session.base import AgentPoolView
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage
@@ -180,10 +179,9 @@ class PoolSupervisor(TaskManagerMixin):
         try:
             if message.startswith("/"):
                 # Create view just for this command
-                view = AgentPoolView(agent, pool=self.pool)
                 await self.commands.execute_command_with_context(
                     message[1:],
-                    context=view,
+                    context=agent.context,
                     output_writer=self.output,
                     metadata={"supervision": True},
                 )

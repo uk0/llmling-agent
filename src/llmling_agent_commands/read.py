@@ -11,7 +11,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentPoolView
+    from llmling_agent.models.context import AgentContext
 
 
 logger = get_logger(__name__)
@@ -40,7 +40,7 @@ Examples:
 
 
 async def read_command(
-    ctx: CommandContext[AgentPoolView],
+    ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -59,7 +59,7 @@ async def read_command(
     convert_to_md = kwargs.get("convert_to_md", "").lower() in ("true", "1", "yes")
 
     try:
-        agent = ctx.context._agent
+        agent = ctx.context.agent
         await agent.conversation.add_context_from_path(path, convert_to_md=convert_to_md)
         await ctx.output.print(f"Added content from {path} to next message as context.")
     except Exception as e:
