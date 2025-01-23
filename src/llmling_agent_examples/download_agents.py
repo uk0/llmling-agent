@@ -112,8 +112,7 @@ FILE_URL = "http://speedtest.tele2.net/10MB.zip"
 OVERSEER_PROMPT = f"""
 Please coordinate downloading this file twice: {FILE_URL}
 
-Delegate to file_getter_1 and file_getter_2.
-Let them work in parallel. Report the results
+Delegate to file_getter_1 and file_getter_2. Report the results.
 """
 
 TEAM_PROMPT = f"Download this file: {FILE_URL}"

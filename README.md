@@ -115,11 +115,7 @@ The according API keys need to be set as environment variables.
 | Human-in-the-loop | Yes (but more a gimmick) | No | Yes |
 | Callable-based | (Depends on callback) | (Depends on callback) | Yes |
 
-Notes:
-- Multi-modal support in PydanticAI and LiteLLM depends on the underlying model's capabilities (e.g., GPT-4V supports images)
-- Callable-based provider's capabilities depend on the provided callback function, except for structured responses which are always supported through validation
-- Human provider supports streaming through character-by-character input
-- All providers support structured responses through pydantic validation
+(Multi-modal support (Images & PDF) in PydanticAI and LiteLLM depends on the underlying model's capabilities)
 
 
 ## 🚀 Quick Examples
@@ -371,20 +367,21 @@ llmling-agent chat --config agents.yml system_checker
 - Run it using the CLI
 
 ```bash
-llmling-agent run --config agents.yml system_checker "Some prompt"
+llmling-agent run --config agents.yml my_agent "Some prompt"
 ```
 
 - Use the defined Agent programmatically
 
 ```python
-from llmling_agent import Agent
+from llmling_agent import AgentPool
 
-async with Agent.open_agent("agents.yml", "system_checker") as agent:
+async with AgentPool("agents.yml") as pool:
+    agent = pool.get_agent("my_agent")
     result = await agent.run("User prompt!")
     print(result.data)
 ```
 
-- Start a watch mode and react to triggers
+- Start *watch mode* and only react to triggers
 
 ```bash
 llmling-agent watch --config agents.yml
@@ -398,8 +395,7 @@ The `AgentPool` allows multiple agents to work together on tasks. Here's a pract
 ```python
 # agents.yml
 agents:
-  file_getter_1:
-    name: "File Downloader 1"
+  file_getter:
     model: openai:gpt-4o-mini
     environment:
       tools:
@@ -410,17 +406,16 @@ agents:
         You are a download specialist. Just use the download_file tool
         and report its results. No explanations needed.
 
-  file_getter_2:  # Same configuration as file_getter_1
-    ... # ... (identical config to file_getter_1, omitting for brevity)
-
   overseer:
-    name: "Download Coordinator"
-    description: "Coordinates parallel downloads"
+    capabilities:
+      can_delegate_tasks: true  # these capabilities are available as tools for the agent
+      can_list_agents: true
     model: openai:gpt-4o-mini
     system_prompts:
       - |
-        You coordinate downloads by delegating to file_getter_1 and file_getter_2.
-        Just delegate tasks and report results concisely. No explanations needed.
+        You coordinate downloads using available agents.
+        1. Check out the available agents and assign each of them the download task
+        2. Report the results.
 
 ```
 
@@ -429,14 +424,17 @@ from llmling_agent.delegation import AgentPool
 
 async def main():
     async with AgentPool("agents.yml") as pool:
-        # Run downloads in parallel (sequential mode also available)
-        team = pool.create_team(["file_getter_1", "file_getter_2"])
+        # first we create two agents based on the file_getter template
+        file_getter_1 = pool.get_agent("file_getter")
+        file_getter_2 = pool.get_agent("file_getter")
+        # then we form a team and execute the task
+        team = file_getter_1 & file_getter_2
         responses = await team.run_parallel("Download https://example.com/file.zip")
 
-        # Or let a coordinator orchestrate
+        # Or let a coordinator orchestrate using his capabilities.
         coordinator = pool.get_agent("coordinator")
         result = await overseer.run(
-            "Download https://example.com/file.zip using both getters..."
+            "Download https://example.com/file.zip by delegating to all workers available!"
         )
 
 ### Advanced Connection Features
@@ -472,10 +470,7 @@ connection = agent_a.pass_results_to(
 async def transform_message(message: str) -> str:
     return f"Transformed: {message}"
 
-connection = agent_a.pass_results_to(
-    agent_b,
-    transform=transform_message
-)
+connection = agent_a.pass_results_to(agent_b, transform=transform_message)
 
 # Connection statistics
 print(f"Messages processed: {connection.stats.message_count}")
@@ -485,7 +480,8 @@ print(f"Total cost: ${connection.stats.total_cost:.2f}")
 
 ### Team Operations
 
-Teams allow coordinating multiple agents efficiently:
+Teams allow coordinating multiple agents efficiently.
+They represent a parallel execution group.
 
 ```python
 async with AgentPool() as pool:
@@ -494,9 +490,6 @@ async with AgentPool() as pool:
 
     # Run in parallel
     results = await team.run_parallel("Analyze this project")
-
-    # Run sequentially (chain)
-    results = await team.run_sequential("Improve this code")
 
     # Custom execution monitoring
     async def monitor_progress(stats: TeamRunStats):
