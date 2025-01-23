@@ -3,9 +3,11 @@ from __future__ import annotations
 from collections.abc import Awaitable
 from contextlib import asynccontextmanager
 import inspect
+from time import perf_counter
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from llmling_agent.log import get_logger
+from llmling_agent.models.content import BaseContent
 from llmling_agent.utils.inspection import has_argument_type
 from llmling_agent_providers.base import AgentProvider, ProviderResponse
 
@@ -58,16 +60,28 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         """Process message through callback."""
         from llmling_agent.models.messages import ChatMessage
 
+        text_prompts = [p for p in prompts if isinstance(p, str)]
+        content_prompts = [p for p in prompts if isinstance(p, BaseContent)]
+
+        # Get normal text prompt
+        prompt = await self.format_prompts(text_prompts)
+
         try:
             # Create args tuple based on callback requirements
-            args = (self.context, *prompts) if self._wants_context else (*prompts,)
+            args = (
+                (self.context, prompt, *content_prompts)
+                if self._wants_context
+                else (prompt, *content_prompts)
+            )
+            now = perf_counter()
             raw_result = self.callback(*args)
             # Handle async/sync result
             result = await raw_result if isinstance(raw_result, Awaitable) else raw_result
             if store_history:
+                duration = perf_counter() - now
                 msgs = [
-                    ChatMessage(role="user", content=await self.format_prompts(prompts)),
-                    ChatMessage(role="assistant", content=result),
+                    ChatMessage(role="user", content=prompt),
+                    ChatMessage(role="assistant", content=result, response_time=duration),
                 ]
                 self.conversation.add_chat_messages(msgs)
 
