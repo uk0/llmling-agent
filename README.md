@@ -453,24 +453,19 @@ connection = agent_a.pass_results_to(
     queued=True,
     queue_strategy="latest",  # or "concat", "buffer"
 )
-await connection.trigger()  # Process queued messages
+await connection.trigger(optional_additional_prompt)  # Process queued messages
 
 # Filtered connection
 connection = agent_a.pass_results_to(
     agent_b,
-    filter_condition={
-        "type": "word_match",
-        "words": ["error", "warning"],
-    }
+    filter_condition=lambda message, target_agent, stats: stats.total_cost < 10.0,
 )
 
 # Conditional disconnection
 connection = agent_a.pass_results_to(
     agent_b,
-    stop_condition={
-        "type": "message_count",
-        "max_messages": 100,
-    }
+    filter_condition=lambda _, _, stats: stats.message_count > 10,
+
 )
 
 # Message transformation
@@ -521,9 +516,8 @@ LLMling-Agent offers multiple levels of human integration:
 # Provider-level human integration
 from llmling_agent import Agent
 
-async with Agent.open("config.yml") as agent:
-    agent.provider = "human"  # Switch to human provider
-    result = await agent.run("What should we do?")
+async with Agent(provider="human") as agent:
+    result = await agent.run("We can ask ourselves and be part of Workflows!")
 ```
 
 ```yaml

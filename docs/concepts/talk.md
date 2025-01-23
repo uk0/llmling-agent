@@ -157,6 +157,141 @@ agent >> other_agent.when(
 ```
 
 
+### Manual Message Triggering
+
+Connections can be configured for manual message processing using `queued=True`. This allows precise control over when messages flow through the connection:
+
+```python
+# Create queued connection
+talk = agent_a.pass_results_to(
+    agent_b,
+    queued=True,
+    queue_strategy="latest"  # Only process most recent message
+)
+
+# Manually trigger message processing
+responses = await talk.trigger()
+```
+
+### Queue Strategies
+
+When using queued connections, different strategies are available for processing pending messages:
+
+- `latest`: Process only the most recent message (default)
+- `concat`: Combine all pending messages with newlines
+- `buffer`: Process all messages individually in order
+
+```python
+# Process all messages
+talk = source.pass_results_to(
+    target,
+    queued=True,
+    queue_strategy="buffer"
+)
+
+# Combine pending messages
+talk = source.pass_results_to(
+    target,
+    queued=True,
+    queue_strategy="concat"
+)
+```
+
+### Connection States
+
+Connections can be temporarily paused or permanently disconnected:
+
+```python
+# Temporarily pause
+async with talk.paused():
+    # Connection won't process messages
+    await do_something()
+
+# Permanently disconnect
+talk.disconnect()
+```
+
+### Message Transformation
+
+Messages can be transformed before being forwarded:
+
+```python
+talk = agent_a.pass_results_to(
+    agent_b,
+    transform=lambda msg: f"Processed: {msg.content}"
+)
+
+# Async transforms
+async def add_metadata(msg):
+    msg.metadata["processed"] = True
+    return msg
+
+talk = agent_a.pass_results_to(
+    agent_b,
+    transform=add_metadata
+)
+```
+
+### Execution Control
+
+Fine-grained control over message execution:
+
+```python
+talk = agent_a.pass_results_to(
+    agent_b,
+    priority=1,  # Lower numbers = higher priority
+    delay=timedelta(seconds=5),  # Delay before processing
+    wait_for_connections=True,  # Wait for completion
+)
+```
+
+### Stop and Exit Conditions
+
+Connections support conditions for stopping or exiting:
+
+```python
+# Stop this connection when condition met
+talk = agent_a.pass_results_to(
+    agent_b,
+    stop_condition=lambda msg: "stop" in str(msg.content)
+)
+
+# Exit the application when condition met
+talk = agent_a.pass_results_to(
+    agent_b,
+    exit_condition=lambda msg: "emergency" in str(msg.content)
+)
+```
+
+### Monitoring and Signals
+
+Connections emit signals for monitoring:
+
+```python
+# Listen for original messages
+talk.message_received.connect(lambda msg: print(f"Received: {msg}"))
+
+# Listen for transformed/processed messages
+talk.message_forwarded.connect(lambda msg: print(f"Forwarded: {msg}"))
+```
+
+### Message Queuing
+
+Queued connections store messages per target:
+
+```python
+talk = agent_a.pass_results_to(
+    agent_b,
+    queued=True
+)
+
+# Check pending messages
+pending = talk._pending_messages[agent_b.name]
+
+# Process with custom prompt
+responses = await talk.trigger("Additional context")
+```
+
 ## Unique Features
 
 1. **Object-Oriented Design**
