@@ -50,7 +50,7 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/concepts/talk.md")
 
 
-@nav.route.page("Routing", icon="octicon:comment-discussion-16")
+@nav.route.page("Routing", icon="octicon:git-branch-16")
 def _(page: mk.MkPage):
     """Agent communication system."""
     page += mk.MkTemplate("docs/concepts/routing.md")

@@ -56,13 +56,13 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/config_file/connection_config.md")
 
 
-@nav.route.page("Conditions", icon="octicon:arrow-right-16")
+@nav.route.page("Conditions", icon="octicon:git-branch-16")
 def _(page: mk.MkPage):
     """Condition configurations."""
     page += mk.MkTemplate("docs/config_file/condition_config.md")
 
 
-@nav.route.page("System prompts / Prompt library", icon="octicon:arrow-right-16")
+@nav.route.page("System prompts / Prompt library", icon="octicon:book-16")
 def _(page: mk.MkPage):
     """Prompt library."""
     page += mk.MkTemplate("docs/config_file/prompt_config.md")

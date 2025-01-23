@@ -74,19 +74,19 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/advanced/task_monitoring.md")
 
 
-@nav.route.page("Agent state", icon="octicon:pulse-16")
+@nav.route.page("Agent state", icon="octicon:database-16")
 def _(page: mk.MkPage):
     """Agent state management."""
     page += mk.MkTemplate("docs/advanced/agent_state.md")
 
 
-@nav.route.page("Document conversion", icon="octicon:pulse-16")
+@nav.route.page("Document conversion", icon="octicon:file-symlink-16")
 def _(page: mk.MkPage):
     """Document conversion."""
     page += mk.MkTemplate("docs/advanced/document_conversion.md")
 
 
-@nav.route.page("Passing data to the agent", icon="octicon:pulse-16")
+@nav.route.page("Passing data to the agent", icon="octicon:arrow-both-16")
 def _(page: mk.MkPage):
     """Passing data to the agent."""
     page += mk.MkTemplate("docs/advanced/passing_data.md")
