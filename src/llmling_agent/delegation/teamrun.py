@@ -382,19 +382,39 @@ class TeamRun[TDeps](TaskManagerMixin):
     async def run_iter(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
-    ) -> AsyncIterator[Talk[Any] | ChatMessage[Any]]:
+    ) -> AsyncIterator[Talk[Any] | AgentResponse[Any]]:
         try:
             connections = [
                 source.pass_results_to(target, queued=True)
                 for source, target in pairwise(self.team)
             ]
-
-            message = await self.team[0].run(*prompt)
-            yield message  # pyright: ignore
+            start = perf_counter()
+            first = self.team[0]
+            message = await first.run(*prompt)
+            timing = perf_counter() - start
+            response = AgentResponse[Any](
+                agent_name=first.name, message=message, timing=timing
+            )
+            yield response  # pyright: ignore
             for connection in connections:
                 yield connection  # pyright: ignore
-                messages = await connection.trigger()
-                yield messages[0]  # pyright: ignore
+                try:
+                    start = perf_counter()
+
+                    messages = await connection.trigger()
+                    timing = perf_counter() - start
+                    response = AgentResponse[Any](
+                        agent_name=connection.targets[0].name,
+                        message=messages[0],
+                        timing=timing,
+                    )
+                    yield response
+                except Exception as e:  # noqa: BLE001
+                    msg = ChatMessage(content="", role="assistant")
+                    response = AgentResponse[Any](
+                        agent_name=connection.targets[0].name, message=msg, error=str(e)
+                    )
+                    yield response
 
         finally:
             for connection in connections:
@@ -408,26 +428,15 @@ class TeamRun[TDeps](TaskManagerMixin):
         Agents run one after another, in order.
         """
         start_time = datetime.now()
-        results = []
-        current_input = list(prompt)
+        final_prompt = list(prompt)
         if self.team.shared_prompt:
-            current_input.insert(0, self.team.shared_prompt)
-        for agent in self.team.agents:
-            try:
-                start = perf_counter()
-                message = await agent.run(current_input)
-                current_input = message.data
-                timing = perf_counter() - start
-                res = AgentResponse[Any](
-                    agent_name=agent.name, message=message, timing=timing
-                )
-                results.append(res)
-            except Exception as e:  # noqa: BLE001
-                msg = ChatMessage(content="", role="assistant")
-                res = AgentResponse[str](agent_name=agent.name, message=msg, error=str(e))
-                results.append(res)
-
-        return TeamResponse(results, start_time)
+            final_prompt.insert(0, self.team.shared_prompt)
+        msgs = [
+            item
+            async for item in self.run_iter(*final_prompt)
+            if isinstance(item, AgentResponse)
+        ]
+        return TeamResponse(msgs, start_time)
 
 
 if __name__ == "__main__":
