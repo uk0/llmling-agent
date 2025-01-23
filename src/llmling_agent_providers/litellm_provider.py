@@ -228,7 +228,7 @@ class LiteLLMProvider(AgentProvider[Any]):
     #     system_prompt: str | None = None,
 
     #     **kwargs: Any,
-    # ) -> AbstractAsyncContextManager[StreamedRunResult]:  # type: ignore[type-var]
+    # ) -> AbstractAsyncContextManager[StreamingResponseProtocol]:
     #     """Stream response from LiteLLM.
 
     #     Not implemented yet - would need to handle streaming responses.

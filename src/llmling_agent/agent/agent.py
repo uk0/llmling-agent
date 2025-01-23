@@ -32,7 +32,7 @@ from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context, has_return_type
 from llmling_agent.utils.tasks import TaskManagerMixin
-from llmling_agent_providers.base import AgentProvider
+from llmling_agent_providers.base import AgentProvider, StreamingResponseProtocol
 
 
 if TYPE_CHECKING:
@@ -44,7 +44,6 @@ if TYPE_CHECKING:
     from llmling.prompts import PromptType
     import PIL.Image
     from pydantic_ai.agent import EndStrategy
-    from pydantic_ai.result import StreamedRunResult
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
@@ -1086,7 +1085,7 @@ class Agent[TDeps](TaskManagerMixin):
         model: ModelType = None,
         store_history: bool = True,
         wait_for_connections: bool | None = None,
-    ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], TResult]]:
+    ) -> AsyncIterator[StreamingResponseProtocol[TResult]]:
         """Run agent with prompt and get a streaming response.
 
         Args:

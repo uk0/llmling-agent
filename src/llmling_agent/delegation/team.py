@@ -5,7 +5,6 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from typing import TYPE_CHECKING, Any, overload
 
 from psygnal.containers import EventedList
-from pydantic_ai.result import StreamedRunResult
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.connection import ConnectionManager
@@ -14,6 +13,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.talk import QueueStrategy, TeamTalk
 from llmling_agent.utils.inspection import has_return_type
 from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent_providers.base import StreamingResponseProtocol
 
 
 logger = get_logger(__name__)
@@ -28,7 +28,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import AgentName, AnyTransformFn, AsyncFilterFn
-    from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage, TeamResponse
     from llmling_agent.models.providers import ProcessorCallback
@@ -252,12 +251,10 @@ class Team[TDeps](TaskManagerMixin):
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         require_all: bool = True,
-    ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], str]]:
+    ) -> AsyncIterator[StreamingResponseProtocol]:
         """Stream results through chain of team members."""
-        from llmling_agent.models.context import AgentContext
-
         async with AsyncExitStack() as stack:
-            streams: list[StreamedRunResult[AgentContext[TDeps], str]] = []
+            streams: list[StreamingResponseProtocol[str]] = []
             current_message = prompts
 
             # Set up all streams
@@ -280,11 +277,15 @@ class Team[TDeps](TaskManagerMixin):
                     logger.warning("Chain handler %s failed: %s", agent.name, e)
 
             # Create a stream-like interface for the chain
-            class ChainStream(StreamedRunResult[AgentContext[TDeps], str]):
+            class ChainStream(StreamingResponseProtocol[str]):
                 def __init__(self):
                     self.streams = streams
                     self.current_stream_idx = 0
-                    self.is_final = False
+                    self.is_complete = False
+                    self.model_name = None
+
+                def usage(self) -> dict[str, int] | None:
+                    return None
 
                 async def stream(self) -> AsyncIterator[str]:  # type: ignore
                     for idx, stream in enumerate(self.streams):
@@ -292,7 +293,7 @@ class Team[TDeps](TaskManagerMixin):
                         async for chunk in stream.stream():
                             yield chunk
                             if idx == len(self.streams) - 1 and stream.is_complete:
-                                self.is_final = True
+                                self.is_complete = True
 
             yield ChainStream()
 

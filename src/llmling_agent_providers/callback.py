@@ -9,13 +9,15 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from llmling_agent.log import get_logger
 from llmling_agent.models.content import BaseContent
 from llmling_agent.utils.inspection import has_argument_type
-from llmling_agent_providers.base import AgentProvider, ProviderResponse
+from llmling_agent_providers.base import (
+    AgentProvider,
+    ProviderResponse,
+    StreamingResponseProtocol,
+)
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-
-    from pydantic_ai.result import StreamedRunResult
 
     from llmling_agent.models.content import Content
     from llmling_agent.models.providers import ProcessorCallback
@@ -101,7 +103,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         system_prompt: str | None = None,
         store_history: bool = True,
         **kwargs: Any,
-    ) -> AsyncIterator[StreamedRunResult]:
+    ) -> AsyncIterator[StreamingResponseProtocol]:
         """Simulate streaming by yielding complete result as one chunk."""
 
         class SingleChunkStream:

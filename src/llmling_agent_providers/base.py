@@ -17,8 +17,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from contextlib import AbstractAsyncContextManager
 
-    from pydantic_ai.result import StreamedRunResult
-
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelProtocol, ModelType
     from llmling_agent.models.content import Content
@@ -41,7 +39,7 @@ class ProviderResponse:
 
 
 @runtime_checkable
-class StreamingResponseProtocol(Protocol):
+class StreamingResponseProtocol[TResult](Protocol):
     """Protocol for streaming responses.
 
     This matches PydanticAI's StreamedRunResult interface to make transition easier,
@@ -49,12 +47,10 @@ class StreamingResponseProtocol(Protocol):
     """
 
     model_name: str | None
-    """Name of the model generating the response."""
-
     is_complete: bool
-    """Whether the streaming is finished."""
+    formatted_content: TResult = None  # type: ignore
 
-    async def stream(self) -> AsyncIterator[str]:
+    def stream(self) -> AsyncIterator[TResult]:
         """Stream individual chunks as they arrive."""
         ...
 
@@ -165,7 +161,7 @@ class AgentProvider[TDeps]:
         model: ModelType = None,
         store_history: bool = True,
         **kwargs: Any,
-    ) -> AbstractAsyncContextManager[StreamedRunResult]:  # type: ignore[type-var]
+    ) -> AbstractAsyncContextManager[StreamingResponseProtocol]:
         """Stream a response. Must be implemented by providers."""
         raise NotImplementedError
 

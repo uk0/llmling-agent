@@ -11,7 +11,11 @@ import logfire
 from slashed import CommandStore, DefaultOutputWriter, parse_command
 
 from llmling_agent.log import get_logger
-from llmling_agent_providers.base import AgentProvider, ProviderResponse
+from llmling_agent_providers.base import (
+    AgentProvider,
+    ProviderResponse,
+    StreamingResponseProtocol,
+)
 from llmling_agent_providers.human.utils import (
     get_structured_response,
     get_textual_streaming_app,
@@ -20,8 +24,6 @@ from llmling_agent_providers.human.utils import (
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-
-    from pydantic_ai.result import StreamedRunResult
 
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelType
@@ -124,7 +126,7 @@ class HumanProvider(AgentProvider):
         store_history: bool = True,
         system_prompt: str | None = None,
         **kwargs: Any,
-    ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
+    ) -> AsyncIterator[StreamingResponseProtocol]:
         """Stream response keystroke by keystroke."""
         from llmling_agent.models.messages import ChatMessage
 
@@ -134,7 +136,7 @@ class HumanProvider(AgentProvider):
         if result_type:
             print(f"(Please provide response as {result_type.__name__})")
 
-        # Create a StreamedRunResult-like object
+        # Create a StreamingResponseProtocol-like object
         class StreamResult:
             def __init__(self):
                 self.stream = None
