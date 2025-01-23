@@ -373,6 +373,14 @@ class TeamTalk(list["Talk | TeamTalk"]):
         for talk in self:
             await talk._handle_message(message, prompt)
 
+    async def trigger(
+        self, prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None = None
+    ) -> list[ChatMessage]:
+        messages = []
+        for talk in self:
+            messages.extend(await talk.trigger(prompt))
+        return messages
+
     @classmethod
     def from_agents(
         cls,
