@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
 from datetime import datetime
 import inspect
+from itertools import pairwise
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -16,12 +17,17 @@ from llmling_agent.utils.tasks import TaskManagerMixin
 
 
 if TYPE_CHECKING:
+    import os
+
+    import PIL.Image
     from psygnal import SignalInstance
+    from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
     from llmling_agent.delegation import Team
     from llmling_agent.models.agents import ToolCallInfo
+    from llmling_agent.talk.talk import Talk
 
 
 logger = get_logger(__name__)
@@ -350,8 +356,6 @@ class TeamRun[TDeps](TaskManagerMixin):
 
         All agents run simultaneously and independently.
         """
-        from llmling_agent.models.messages import TeamResponse
-
         start_time = datetime.now()
 
         # Combine shared prompt with user prompt if both exist
@@ -374,13 +378,32 @@ class TeamRun[TDeps](TaskManagerMixin):
         responses = await asyncio.gather(*[run_agent(a) for a in self.team.agents])
         return TeamResponse(responses, start_time)
 
+    async def run_iter(
+        self,
+        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+    ) -> AsyncIterator[Talk[Any] | ChatMessage[Any]]:
+        try:
+            connections = [
+                source.pass_results_to(target, queued=True)
+                for source, target in pairwise(self.team)
+            ]
+
+            message = await self.team[0].run(*prompt)
+            yield message  # pyright: ignore
+            for connection in connections:
+                yield connection  # pyright: ignore
+                messages = await connection.trigger()
+                yield messages[0]  # pyright: ignore
+
+        finally:
+            for connection in connections:
+                connection.disconnect()
+
     async def _run_sequential(self, prompt: str | None = None) -> TeamResponse:
         """Execute in sequential mode.
 
         Agents run one after another, in order.
         """
-        from llmling_agent.models.messages import TeamResponse
-
         start_time = datetime.now()
         results = []
         # Combine shared prompt with user prompt if both exist
