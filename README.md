@@ -106,6 +106,22 @@ This creates a temporary agent ready for chat - no configuration needed!
 The according API keys need to be set as environment variables.
 
 
+## Provider support
+
+| Provider Type | Streaming Support | Multi-Modal Support | Structured Response Support |
+|--------------|------------------|---------------------|---------------------------|
+| PydanticAI | Yes | (Model dependent) | Yes |
+| LiteLLM | Yes | (Model dependent) | Yes |
+| Human-in-the-loop | Yes (but more a gimmick) | No | Yes |
+| Callable-based | (Depends on callback) | (Depends on callback) | Yes |
+
+Notes:
+- Multi-modal support in PydanticAI and LiteLLM depends on the underlying model's capabilities (e.g., GPT-4V supports images)
+- Callable-based provider's capabilities depend on the provided callback function, except for structured responses which are always supported through validation
+- Human provider supports streaming through character-by-character input
+- All providers support structured responses through pydantic validation
+
+
 ## 🚀 Quick Examples
 
 Three ways to create a simple agent setup that turns topics into Wikipedia explorations:
@@ -542,18 +558,12 @@ React to file changes, webhooks, and more:
 
 ```python
 # File watching
-agent.events.add_source({
-    "type": "file",
-    "paths": ["src/**/*.py"],
-    "debounce": 1000,
-})
+agent.events.add_file_watch(paths=["src/**/*.py"], debounce=1000)
 
-# Webhook endpoint (coming soon)
-agent.events.add_source({
-    "type": "webhook",
-    "path": "/hooks/github",
-    "port": 8000,
-})
+# Webhook endpoint
+agent.events.add_webhook("/hooks/github",port=8000)
+
+# Also included: time-based and email
 ```
 
 ### Multi-Modal Support
@@ -585,7 +595,8 @@ Extensive slash commands available in all interfaces:
 
 ### Storage & Analytics
 
-Track all interactions with flexible storage:
+All interaction is tracked using configurable storage providers.
+Information can get fetched programmatically or via CLI.
 
 ```python
 # Query conversation history
@@ -604,6 +615,18 @@ stats = await agent.context.storage.get_conversation_stats(
 )
 ```
 
+
+```bash
+# View recent conversations
+llmling-agent history show
+llmling-agent history show --period 24h  # Last 24 hours
+llmling-agent history show --query "database"  # Search content
+
+# View usage statistics
+llmling-agent history stats  # Basic stats
+llmling-agent history stats --group-by model  # Model usage
+llmling-agent history stats --group-by day    # Daily breakdown
+```
 
 
 This diagram shows the main components of the LLMling Agent framework:
