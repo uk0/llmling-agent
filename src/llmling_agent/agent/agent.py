@@ -17,7 +17,6 @@ from llmling import Config, LLMCallableTool, RuntimeConfig, ToolError
 import logfire
 from psygnal import Signal
 from pydantic_ai import RunContext  # noqa: TC002
-from toprompt import AnyPromptType, to_prompt
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.connection import ConnectionManager
@@ -46,6 +45,7 @@ if TYPE_CHECKING:
     import PIL.Image
     from pydantic_ai.agent import EndStrategy
     from pydantic_ai.result import StreamedRunResult
+    from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.interactions import Interactions
@@ -1162,7 +1162,7 @@ class Agent[TDeps](TaskManagerMixin):
 
     def run_sync(
         self,
-        *prompt: AnyPromptType,
+        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         model: ModelType = None,
@@ -1243,14 +1243,13 @@ class Agent[TDeps](TaskManagerMixin):
 
     async def run_in_background(
         self,
-        prompt: AnyPromptType,
-        *,
+        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
         max_count: int | None = None,
         interval: float = 1.0,
         block: bool = False,
         **kwargs: Any,
     ) -> ChatMessage[TResult] | None:
-        """Run agent continuously with prompt or dynamic prompt function.
+        """Run agent continuously in background with prompt or dynamic prompt function.
 
         Args:
             prompt: Static prompt or function that generates prompts
@@ -1266,15 +1265,14 @@ class Agent[TDeps](TaskManagerMixin):
             logger.debug(msg, self.name, max_count, interval, self.name)
             while max_count is None or count < max_count:
                 try:
-                    current_prompt = (
-                        call_with_context(prompt, self.context, **kwargs)
-                        if callable(prompt)
-                        else to_prompt(prompt)
-                    )
+                    current_prompts = [
+                        call_with_context(p, self.context, **kwargs) if callable(p) else p
+                        for p in prompt
+                    ]
                     msg = "%s: Generated prompt #%d: %s"
-                    logger.debug(msg, self.name, count, current_prompt)
+                    logger.debug(msg, self.name, count, current_prompts)
 
-                    await self.run(current_prompt, **kwargs)
+                    await self.run(current_prompts, **kwargs)
                     msg = "%s: Run continous result #%d"
                     logger.debug(msg, self.name, count)
 
