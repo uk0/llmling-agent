@@ -351,7 +351,10 @@ class TeamRun[TDeps](TaskManagerMixin):
             )
         return self._monitor.stats
 
-    async def _run_parallel(self, prompt: str | None = None) -> TeamResponse:
+    async def _run_parallel(
+        self,
+        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+    ) -> TeamResponse:
         """Execute in parallel mode.
 
         All agents run simultaneously and independently.
@@ -359,11 +362,9 @@ class TeamRun[TDeps](TaskManagerMixin):
         start_time = datetime.now()
 
         # Combine shared prompt with user prompt if both exist
-        final_prompt = None
-        if self.team.shared_prompt and prompt:
-            final_prompt = f"{self.team.shared_prompt}\n\n{prompt}"
-        else:
-            final_prompt = self.team.shared_prompt or prompt
+        final_prompt = list(prompt)
+        if self.team.shared_prompt:
+            final_prompt.insert(0, self.team.shared_prompt)
 
         async def run_agent(agent: AnyAgent[TDeps, Any]) -> AgentResponse[Any]:
             try:
@@ -399,27 +400,25 @@ class TeamRun[TDeps](TaskManagerMixin):
             for connection in connections:
                 connection.disconnect()
 
-    async def _run_sequential(self, prompt: str | None = None) -> TeamResponse:
+    async def _run_sequential(
+        self, *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str]
+    ) -> TeamResponse:
         """Execute in sequential mode.
 
         Agents run one after another, in order.
         """
         start_time = datetime.now()
         results = []
-        # Combine shared prompt with user prompt if both exist
-        final_prompt = None
-        if self.team.shared_prompt and prompt:
-            final_prompt = f"{self.team.shared_prompt}\n\n{prompt}"
-        else:
-            final_prompt = self.team.shared_prompt or prompt
-        current_input = final_prompt
+        current_input = list(prompt)
+        if self.team.shared_prompt:
+            current_input.insert(0, self.team.shared_prompt)
         for agent in self.team.agents:
             try:
                 start = perf_counter()
                 message = await agent.run(current_input)
-                current_input = str(message.data)
+                current_input = message.data
                 timing = perf_counter() - start
-                res = AgentResponse[str](
+                res = AgentResponse[Any](
                     agent_name=agent.name, message=message, timing=timing
                 )
                 results.append(res)
