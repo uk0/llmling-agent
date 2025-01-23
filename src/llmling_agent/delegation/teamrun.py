@@ -351,7 +351,7 @@ class TeamRun[TDeps](TaskManagerMixin):
 
         All agents run simultaneously and independently.
         """
-        from llmling_agent.delegation.agentgroup import TeamResponse
+        from llmling_agent.delegation.team import TeamResponse
 
         start_time = datetime.now()
 
@@ -380,7 +380,7 @@ class TeamRun[TDeps](TaskManagerMixin):
 
         Agents run one after another, in order.
         """
-        from llmling_agent.delegation.agentgroup import TeamResponse
+        from llmling_agent.delegation.team import TeamResponse
 
         start_time = datetime.now()
         results = []

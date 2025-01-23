@@ -12,7 +12,7 @@ from llmling_agent.models import AgentsManifest
 
 
 if TYPE_CHECKING:
-    from llmling_agent.delegation.agentgroup import Team
+    from llmling_agent.delegation.team import Team
 
 
 class _TestOutput(BaseModel):

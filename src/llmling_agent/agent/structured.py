@@ -23,8 +23,8 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn, ModelType
-    from llmling_agent.delegation.agentgroup import Team
-    from llmling_agent.delegation.execution import TeamRun
+    from llmling_agent.delegation.team import Team
+    from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage

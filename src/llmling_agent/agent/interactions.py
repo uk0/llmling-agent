@@ -11,8 +11,8 @@ from pydantic import BaseModel
 from toprompt import to_prompt
 from typing_extensions import TypeVar
 
-from llmling_agent.delegation.agentgroup import Team
 from llmling_agent.delegation.pool import AgentPool
+from llmling_agent.delegation.team import Team
 from llmling_agent.log import get_logger
 from llmling_agent.utils.basemodel_convert import get_ctor_basemodel
 

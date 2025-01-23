@@ -10,8 +10,8 @@ from pydantic_ai.result import StreamedRunResult
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.connection import ConnectionManager
-from llmling_agent.delegation.execution import ExecutionMode, TeamRun
 from llmling_agent.delegation.pool import AgentResponse
+from llmling_agent.delegation.teamrun import ExecutionMode, TeamRun
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.talk import QueueStrategy, TeamTalk

@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
-    from llmling_agent.delegation.agentgroup import Team
+    from llmling_agent.delegation.team import Team
     from llmling_agent.models.agents import AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.messages import ChatMessage
@@ -242,7 +242,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             model_override: Optional model to use for all agents
             shared_prompt: Optional prompt for all agents
         """
-        from llmling_agent.delegation.agentgroup import Team
+        from llmling_agent.delegation.team import Team
 
         if agents is None:
             agents = list(self.agents.keys())

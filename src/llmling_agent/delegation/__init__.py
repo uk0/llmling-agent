@@ -1,10 +1,10 @@
 """Agent delegation and collaboration functionality."""
 
 from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.delegation.execution import TeamRun, TeamRunMonitor, TeamRunStats
+from llmling_agent.delegation.teamrun import TeamRun, TeamRunMonitor, TeamRunStats
 from llmling_agent.delegation.injection import AgentInjectionError, inject_agents
 from llmling_agent.delegation.decorators import with_agents
-from llmling_agent.delegation.agentgroup import Team, TeamResponse
+from llmling_agent.delegation.team import Team, TeamResponse
 
 __all__ = [
     "AgentInjectionError",

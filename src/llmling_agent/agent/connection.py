@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import AgentName, AnyFilterFn, AnyTransformFn
-    from llmling_agent.delegation.agentgroup import Team
+    from llmling_agent.delegation.team import Team
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.talk.talk import QueueStrategy
@@ -136,7 +136,7 @@ class ConnectionManager:
     ) -> Talk[Any] | TeamTalk:
         """Handle single agent connections."""
         from llmling_agent.agent import Agent, StructuredAgent
-        from llmling_agent.delegation.agentgroup import Team
+        from llmling_agent.delegation.team import Team
 
         if not isinstance(self.owner, Agent | StructuredAgent):
             msg = "connect_agent_to can only be used with single agents"
@@ -228,7 +228,7 @@ class ConnectionManager:
         **kwargs: Any,
     ) -> TeamTalk:
         """Handle group connections."""
-        from llmling_agent.delegation.agentgroup import Team
+        from llmling_agent.delegation.team import Team
 
         if not isinstance(self.owner, Team):
             msg = "connect_group_to can only be used with agent groups"
@@ -262,7 +262,7 @@ class ConnectionManager:
     ) -> list[AnyAgent[Any, Any]]:
         """Resolve target(s) to connect to."""
         from llmling_agent.agent import Agent, StructuredAgent
-        from llmling_agent.delegation.agentgroup import Team
+        from llmling_agent.delegation.team import Team
 
         match other:
             case str():

@@ -48,8 +48,8 @@ if TYPE_CHECKING:
     from pydantic_ai.result import StreamedRunResult
 
     from llmling_agent.agent import AnyAgent
+    from llmling_agent.agent.interactions import Interactions
     from llmling_agent.agent.structured import StructuredAgent
-    from llmling_agent.agent.talk import Interactions
     from llmling_agent.common_types import (
         AnyTransformFn,
         AsyncFilterFn,
@@ -59,8 +59,8 @@ if TYPE_CHECKING:
         ToolType,
     )
     from llmling_agent.config.capabilities import Capabilities
-    from llmling_agent.delegation.agentgroup import Team
-    from llmling_agent.delegation.execution import TeamRun
+    from llmling_agent.delegation.team import Team
+    from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.providers import ProcessorCallback
@@ -208,8 +208,8 @@ class Agent[TDeps](TaskManagerMixin):
             debug: Whether to enable debug mode
         """
         from llmling_agent.agent import AgentLogger
+        from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
-        from llmling_agent.agent.talk import Interactions
         from llmling_agent.events import EventManager
 
         super().__init__()
@@ -435,7 +435,7 @@ class Agent[TDeps](TaskManagerMixin):
             group = analyzer & existing_group  # Add to existing group
         """
         from llmling_agent.agent import StructuredAgent
-        from llmling_agent.delegation.agentgroup import Team
+        from llmling_agent.delegation.team import Team
 
         match other:
             case Team():
@@ -451,8 +451,8 @@ class Agent[TDeps](TaskManagerMixin):
 
     def __or__(self, other: Agent | Callable | Team | TeamRun) -> TeamRun:
         # Create new execution with sequential mode (for piping)
-        from llmling_agent.delegation.agentgroup import Team
-        from llmling_agent.delegation.execution import TeamRun
+        from llmling_agent.delegation.team import Team
+        from llmling_agent.delegation.teamrun import TeamRun
 
         execution = TeamRun(Team([self]), mode="sequential")
         return execution | other
