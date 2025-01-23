@@ -76,9 +76,7 @@ class WebhookEventSource(EventSource):
         """Verify webhook signature."""
         if not signature or not self.config.secret:
             return False
-
-        expected = hmac.new(
-            self.config.secret.encode(), payload, hashlib.sha256
-        ).hexdigest()
+        key = self.config.secret.encode()
+        expected = hmac.new(key, payload, hashlib.sha256).hexdigest()
 
         return hmac.compare_digest(signature, expected)
