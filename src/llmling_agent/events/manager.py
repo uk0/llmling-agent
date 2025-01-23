@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable, Coroutine
+from collections.abc import Awaitable, Callable, Coroutine, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import wraps
 import inspect
 from typing import TYPE_CHECKING, Any, Self, TypeVar, overload
+
+from pydantic import SecretStr
 
 from llmling_agent.events.sources import (
     EmailConfig,
@@ -19,11 +21,11 @@ from llmling_agent.events.sources import (
     WebhookConfig,
 )
 from llmling_agent.log import get_logger
+from llmling_agent_events.base import EventSource
 
 
 if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
-    from llmling_agent_events.base import EventSource
 
 logger = get_logger(__name__)
 
@@ -103,46 +105,134 @@ class EventManager:
             except Exception:
                 logger.exception("Error in default event handler")
 
-    def create_source(self, config: EventConfig) -> EventSource:
-        """Create an event source from configuration.
+    async def add_file_watch(
+        self,
+        paths: str | Sequence[str],
+        *,
+        name: str | None = None,
+        extensions: list[str] | None = None,
+        ignore_paths: list[str] | None = None,
+        recursive: bool = True,
+        debounce: int = 1600,
+    ) -> EventSource:
+        """Add file system watch event source.
 
         Args:
-            config: Event source configuration
-
-        Returns:
-            Configured event source instance
-
-        Raises:
-            ValueError: If source type is unknown or disabled
+            paths: Paths or patterns to watch
+            name: Optional source name (default: generated from paths)
+            extensions: File extensions to monitor
+            ignore_paths: Paths to ignore
+            recursive: Whether to watch subdirectories
+            debounce: Minimum time between events (ms)
         """
-        if not config.enabled:
-            msg = f"Source {config.name} is disabled"
-            raise ValueError(msg)
-        logger.info("Creating event source: %s (%s)", config.name, config.type)
-        match config:
-            case FileWatchConfig():
-                from llmling_agent_events.file_watcher import FileSystemEventSource
+        path_list = [paths] if isinstance(paths, str) else list(paths)
+        config = FileWatchConfig(
+            name=name or f"file_watch_{len(self._sources)}",
+            paths=path_list,
+            extensions=extensions,
+            ignore_paths=ignore_paths,
+            recursive=recursive,
+            debounce=debounce,
+        )
+        return await self.add_source(config)
 
-                return FileSystemEventSource(config)
-            case WebhookConfig():
-                from llmling_agent_events.webhook_watcher import WebhookEventSource
+    async def add_webhook(
+        self,
+        path: str,
+        *,
+        name: str | None = None,
+        port: int = 8000,
+        secret: str | None = None,
+    ) -> EventSource:
+        """Add webhook event source.
 
-                return WebhookEventSource(config)
+        Args:
+            path: URL path to listen on
+            name: Optional source name
+            port: Port to listen on
+            secret: Optional secret for request validation
+        """
+        config = WebhookConfig(
+            name=name or f"webhook_{len(self._sources)}",
+            path=path,
+            port=port,
+            secret=secret,
+        )
+        return await self.add_source(config)
 
-            case EmailConfig():
-                from llmling_agent_events.email_watcher import EmailEventSource
+    async def add_timed_event(
+        self,
+        schedule: str,
+        prompt: str,
+        *,
+        name: str | None = None,
+        timezone: str | None = None,
+        skip_missed: bool = False,
+    ) -> EventSource:
+        """Add time-based event source.
 
-                return EmailEventSource(config)
-            case TimeEventConfig():
-                from llmling_agent_events.timed_watcher import TimeEventSource
+        Args:
+            schedule: Cron expression (e.g. "0 9 * * 1-5" for weekdays at 9am)
+            prompt: Prompt to send when triggered
+            name: Optional source name
+            timezone: Optional timezone (system default if None)
+            skip_missed: Whether to skip missed executions
+        """
+        config = TimeEventConfig(
+            name=name or f"timed_{len(self._sources)}",
+            schedule=schedule,
+            prompt=prompt,
+            timezone=timezone,
+            skip_missed=skip_missed,
+        )
+        return await self.add_source(config)
 
-                return TimeEventSource(config)
+    async def add_email_watch(
+        self,
+        host: str,
+        username: str,
+        password: str,
+        *,
+        name: str | None = None,
+        port: int = 993,
+        folder: str = "INBOX",
+        ssl: bool = True,
+        check_interval: int = 60,
+        mark_seen: bool = True,
+        filters: dict[str, str] | None = None,
+        max_size: int | None = None,
+    ) -> EventSource:
+        """Add email monitoring event source.
 
-            case _:
-                msg = f"Unknown event source type: {config.type}"
-                raise ValueError(msg)
+        Args:
+            host: IMAP server hostname
+            username: Email account username
+            password: Account password or app password
+            name: Optional source name
+            port: Server port (default: 993 for IMAP SSL)
+            folder: Mailbox to monitor
+            ssl: Whether to use SSL/TLS
+            check_interval: Seconds between checks
+            mark_seen: Whether to mark processed emails as seen
+            filters: Optional email filtering criteria
+            max_size: Maximum email size in bytes
+        """
+        config = EmailConfig(
+            name=name or f"email_{len(self._sources)}",
+            host=host,
+            username=username,
+            password=SecretStr(password),
+            port=port,
+            folder=folder,
+            ssl=ssl,
+            check_interval=check_interval,
+            mark_seen=mark_seen,
+            filters=filters or {},
+            max_size=max_size,
+        )
+        return await self.add_source(config)
 
-    async def add_source(self, config: EventConfig):
+    async def add_source(self, config: EventConfig) -> EventSource:
         """Add and start a new event source.
 
         Args:
@@ -151,10 +241,6 @@ class EventManager:
         Raises:
             ValueError: If source already exists or is invalid
         """
-        if not self.enabled:
-            msg = "Event processing disabled, not adding source: %s"
-            logger.warning(msg, config.name)
-            return
         logger.debug("Setting up event source: %s (%s)", config.name, config.type)
 
         if config.name in self._sources:
@@ -162,19 +248,19 @@ class EventManager:
             raise ValueError(msg)
 
         try:
-            source = self.create_source(config)
+            source = EventSource.from_config(config)
             await source.connect()
             self._sources[config.name] = source
-
             # Start processing events
             name = f"event_processor_{config.name}"
             self.agent.create_task(self._process_events(source), name=name)
             logger.debug("Added event source: %s", config.name)
-
         except Exception as e:
             msg = f"Failed to add event source {config.name}"
             logger.exception(msg)
             raise RuntimeError(msg) from e
+        else:
+            return source
 
     async def remove_source(self, name: str):
         """Stop and remove an event source.
@@ -196,7 +282,8 @@ class EventManager:
             # Get the async iterator from the coroutine
             async for event in source.events():
                 if not self.enabled:
-                    break
+                    logger.debug("Event processing disabled, skipping event")
+                    continue
                 await self.emit_event(event)
 
         except asyncio.CancelledError:
