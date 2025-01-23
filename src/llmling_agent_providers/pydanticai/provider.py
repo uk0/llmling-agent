@@ -232,13 +232,17 @@ class PydanticAIProvider(AgentProvider):
 
             # Extract tool calls and set message_id
             new_msgs = result.new_messages()
-            tool_calls = get_tool_calls(new_msgs, dict(self.tool_manager._items))
+            tool_calls = get_tool_calls(
+                new_msgs,
+                dict(self.tool_manager._items),
+                agent_name=self.name,
+            )
             for call in tool_calls:
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
             if store_history:
                 tools = dict(self.tool_manager._items)
-                new = [convert_model_message(m, tools) for m in new_msgs]
+                new = [convert_model_message(m, tools, self.name) for m in new_msgs]
                 self.conversation.add_chat_messages(new)
             resolved_model = (
                 use_model.name() if isinstance(use_model, Model) else str(use_model)
@@ -364,11 +368,17 @@ class PydanticAIProvider(AgentProvider):
                     messages = stream_result.new_messages()
                     if store_history:
                         tools = dict(self.tool_manager._items)
-                        new = [convert_model_message(m, tools) for m in messages]
+                        new = [
+                            convert_model_message(m, tools, self.name) for m in messages
+                        ]
                         self.conversation.add_chat_messages(new)
 
                     # Extract and update tool calls
-                    tool_calls = get_tool_calls(messages, dict(self.tool_manager._items))
+                    tool_calls = get_tool_calls(
+                        messages,
+                        dict(self.tool_manager._items),
+                        agent_name=self.name,
+                    )
                     for call in tool_calls:
                         call.message_id = message_id
                         call.context_data = self._context.data if self._context else None

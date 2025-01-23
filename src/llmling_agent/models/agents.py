@@ -765,6 +765,9 @@ class ToolCallInfo(BaseModel):
     result: Any
     """Result returned by the tool."""
 
+    agent_name: str
+    """Name of the calling agent."""
+
     tool_call_id: str = Field(default_factory=lambda: str(uuid4()))
     """ID provided by the model (e.g. OpenAI function call ID)."""
 

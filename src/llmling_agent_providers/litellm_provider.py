@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
-from litellm import BaseModel
+from pydantic import BaseModel
 from tokonomics import get_available_models
 from tokonomics.toko_types import TokenUsage
 
@@ -17,6 +18,8 @@ from llmling_agent_providers.base import AgentProvider, ProviderResponse
 
 
 if TYPE_CHECKING:
+    from litellm import ChatCompletionMessageToolCall
+
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -63,16 +66,23 @@ class LiteLLMProvider(AgentProvider[Any]):
         return await get_available_models()
 
     async def handle_tool_call(
-        self, tool_call, tool: ToolInfo
+        self,
+        tool_call: ChatCompletionMessageToolCall,
+        tool: ToolInfo,
+        message_id: str,
     ) -> tuple[ToolCallInfo, dict]:
         """Handle a single tool call properly."""
         function_args = json.loads(tool_call.function.arguments)
+        start_time = perf_counter()
         result = await tool.execute(**function_args)
         info = ToolCallInfo(
             tool_name=tool.name,
+            agent_name=self.name,
             args=function_args,
             result=result,
             tool_call_id=tool_call.id,
+            timing=perf_counter() - start_time,
+            message_id=message_id,
         )
         self.tool_used.emit(info)
         message = {
@@ -142,7 +152,7 @@ class LiteLLMProvider(AgentProvider[Any]):
                 if not function_name:
                     continue
                 tool = self.tool_manager.get(function_name)
-                info, message = await self.handle_tool_call(tool_call, tool)
+                info, message = await self.handle_tool_call(tool_call, tool, message_id)
                 calls.append(info)
                 messages.append(message)
             # Extract content

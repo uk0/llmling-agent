@@ -70,6 +70,7 @@ def format_part(  # noqa: PLR0911
 def get_tool_calls(
     messages: list[ModelMessage],
     tools: dict[str, ToolInfo] | None = None,
+    agent_name: str | None = None,
     context_data: Any | None = None,
 ) -> list[ToolCallInfo]:
     """Extract tool call information from messages.
@@ -77,6 +78,7 @@ def get_tool_calls(
     Args:
         messages: Messages from captured run
         tools: Original ToolInfo set to enrich ToolCallInfos with additional info
+        agent_name: Name of the caller
         context_data: Optional context data to attach to tool calls
     """
     tools = tools or {}
@@ -88,7 +90,11 @@ def get_tool_calls(
     }
     return [
         parts_to_tool_call_info(
-            call_parts[part.tool_call_id], part, tools.get(part.tool_name), context_data
+            call_parts[part.tool_call_id],
+            part,
+            tools.get(part.tool_name),
+            agent_name=agent_name,
+            context_data=context_data,
         )
         for part in parts
         if isinstance(part, ToolReturnPart) and part.tool_call_id in call_parts
@@ -99,6 +105,7 @@ def parts_to_tool_call_info(
     call_part: ToolCallPart,
     return_part: ToolReturnPart,
     tool_info: ToolInfo | None,
+    agent_name: str | None = None,
     context_data: Any | None = None,
 ) -> ToolCallInfo:
     """Convert matching tool call and return parts into a ToolCallInfo."""
@@ -111,6 +118,7 @@ def parts_to_tool_call_info(
     return ToolCallInfo(
         tool_name=call_part.tool_name,
         args=args,
+        agent_name=agent_name or "UNSET",
         result=return_part.content,
         tool_call_id=call_part.tool_call_id or str(uuid4()),
         timestamp=return_part.timestamp,
@@ -121,7 +129,8 @@ def parts_to_tool_call_info(
 
 def convert_model_message(
     message: ModelMessage | ModelRequestPart | ModelResponsePart,
-    tools: dict[str, ToolInfo] | None = None,
+    tools: dict[str, ToolInfo],
+    agent_name: str,
 ) -> ChatMessage:
     """Convert a pydantic-ai message to our ChatMessage format.
 
@@ -130,6 +139,7 @@ def convert_model_message(
     Args:
         message: Message to convert (ModelMessage or its parts)
         tools: Original ToolInfo set to enrich ToolCallInfos with additional info
+        agent_name: Name of the agent of this message
 
     Returns:
         Converted ChatMessage
@@ -171,6 +181,7 @@ def convert_model_message(
             info = ToolCallInfo(
                 tool_name=message.tool_name,
                 args=args,
+                agent_name=agent_name,
                 result=None,  # Not available yet
                 tool_call_id=message.tool_call_id or str(uuid4()),
             )
@@ -180,6 +191,7 @@ def convert_model_message(
         case ToolReturnPart():
             info = ToolCallInfo(
                 tool_name=message.tool_name,
+                agent_name=agent_name,
                 args={},  # No args in return part
                 result=message.content,
                 tool_call_id=message.tool_call_id or str(uuid4()),
