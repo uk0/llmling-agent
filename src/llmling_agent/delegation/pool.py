@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import AsyncExitStack, suppress
-from dataclasses import dataclass
 import signal
 from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 
@@ -36,7 +35,6 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.team import Team
     from llmling_agent.models.agents import AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
-    from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import Job
     from llmling_agent.responses.models import ResponseDefinition
@@ -47,35 +45,6 @@ logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=Any)
 TPoolDeps = TypeVar("TPoolDeps", default=None)
-
-
-@dataclass
-class AgentResponse[TResult]:
-    """Result from an agent's execution."""
-
-    # TODO: replace with Response
-
-    agent_name: str
-    """Name of the agent that produced this result"""
-
-    message: ChatMessage[TResult] | None
-    """The actual message with content and metadata"""
-
-    timing: float | None = None
-    """Time taken by this agent in seconds"""
-
-    error: str | None = None
-    """Error message if agent failed"""
-
-    @property
-    def success(self) -> bool:
-        """Whether the agent completed successfully."""
-        return self.error is None
-
-    @property
-    def response(self) -> TResult | None:
-        """Convenient access to message content."""
-        return self.message.content if self.message else None
 
 
 class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):

@@ -10,9 +10,8 @@ import inspect
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal
 
-from llmling_agent.delegation.pool import AgentResponse
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.models.messages import AgentResponse, ChatMessage, TeamResponse
 from llmling_agent.utils.tasks import TaskManagerMixin
 
 
@@ -21,7 +20,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
-    from llmling_agent.delegation import Team, TeamResponse
+    from llmling_agent.delegation import Team
     from llmling_agent.models.agents import ToolCallInfo
 
 
@@ -351,7 +350,7 @@ class TeamRun[TDeps](TaskManagerMixin):
 
         All agents run simultaneously and independently.
         """
-        from llmling_agent.delegation.team import TeamResponse
+        from llmling_agent.models.messages import TeamResponse
 
         start_time = datetime.now()
 
@@ -380,7 +379,7 @@ class TeamRun[TDeps](TaskManagerMixin):
 
         Agents run one after another, in order.
         """
-        from llmling_agent.delegation.team import TeamResponse
+        from llmling_agent.models.messages import TeamResponse
 
         start_time = datetime.now()
         results = []

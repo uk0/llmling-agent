@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
-from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, overload
 
 from psygnal.containers import EventedList
@@ -10,10 +9,8 @@ from pydantic_ai.result import StreamedRunResult
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.connection import ConnectionManager
-from llmling_agent.delegation.pool import AgentResponse
 from llmling_agent.delegation.teamrun import ExecutionMode, TeamRun
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage
 from llmling_agent.talk import QueueStrategy, TeamTalk
 from llmling_agent.utils.inspection import has_return_type
 from llmling_agent.utils.tasks import TaskManagerMixin
@@ -23,66 +20,17 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+    from datetime import timedelta
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import AgentName, AnyTransformFn, AsyncFilterFn
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
+    from llmling_agent.models.messages import ChatMessage, TeamResponse
     from llmling_agent.models.providers import ProcessorCallback
 
 
 TDeps = TypeVar("TDeps", default=None)
-
-
-class TeamResponse(list[AgentResponse[Any]]):
-    """Results from a team execution."""
-
-    def __init__(
-        self, responses: list[AgentResponse[Any]], start_time: datetime | None = None
-    ):
-        super().__init__(responses)
-        self.start_time = start_time or datetime.now()
-        self.end_time = datetime.now()
-
-    @property
-    def duration(self) -> float:
-        """Get execution duration in seconds."""
-        return (self.end_time - self.start_time).total_seconds()
-
-    @property
-    def successful(self) -> list[AgentResponse[Any]]:
-        """Get only successful responses."""
-        return [r for r in self if r.success]
-
-    @property
-    def failed(self) -> list[AgentResponse[Any]]:
-        """Get failed responses."""
-        return [r for r in self if not r.success]
-
-    def by_agent(self, name: str) -> AgentResponse[Any] | None:
-        """Get response from specific agent."""
-        return next((r for r in self if r.agent_name == name), None)
-
-    def format_durations(self) -> str:
-        """Format execution times."""
-        parts = [f"{r.agent_name}: {r.timing:.2f}s" for r in self if r.timing is not None]
-        return f"Individual times: {', '.join(parts)}\nTotal time: {self.duration:.2f}s"
-
-    def to_chat_message(self) -> ChatMessage[str]:
-        """Convert team response to a single chat message."""
-        # Combine all responses into one structured message
-        content = "\n\n".join(
-            f"[{response.agent_name}]: {response.message.content}"
-            for response in self
-            if response.message
-        )
-        meta = {
-            "type": "team_response",
-            "agents": [r.agent_name for r in self],
-            "duration": self.duration,
-            "success_count": len(self.successful),
-        }
-        return ChatMessage(content=content, role="assistant", metadata=meta)  # type: ignore
 
 
 class Team[TDeps](TaskManagerMixin):

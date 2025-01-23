@@ -327,3 +327,83 @@ class Response[TContent]:
                 context_parts.append(f"Duration: {self.timing:.2f}s")
 
         return f"{' | '.join(context_parts)}\n{msg}"
+
+
+@dataclass
+class AgentResponse[TResult]:
+    """Result from an agent's execution."""
+
+    # TODO: replace with Response
+
+    agent_name: str
+    """Name of the agent that produced this result"""
+
+    message: ChatMessage[TResult] | None
+    """The actual message with content and metadata"""
+
+    timing: float | None = None
+    """Time taken by this agent in seconds"""
+
+    error: str | None = None
+    """Error message if agent failed"""
+
+    @property
+    def success(self) -> bool:
+        """Whether the agent completed successfully."""
+        return self.error is None
+
+    @property
+    def response(self) -> TResult | None:
+        """Convenient access to message content."""
+        return self.message.content if self.message else None
+
+
+class TeamResponse(list[AgentResponse[Any]]):
+    """Results from a team execution."""
+
+    def __init__(
+        self, responses: list[AgentResponse[Any]], start_time: datetime | None = None
+    ):
+        super().__init__(responses)
+        self.start_time = start_time or datetime.now()
+        self.end_time = datetime.now()
+
+    @property
+    def duration(self) -> float:
+        """Get execution duration in seconds."""
+        return (self.end_time - self.start_time).total_seconds()
+
+    @property
+    def successful(self) -> list[AgentResponse[Any]]:
+        """Get only successful responses."""
+        return [r for r in self if r.success]
+
+    @property
+    def failed(self) -> list[AgentResponse[Any]]:
+        """Get failed responses."""
+        return [r for r in self if not r.success]
+
+    def by_agent(self, name: str) -> AgentResponse[Any] | None:
+        """Get response from specific agent."""
+        return next((r for r in self if r.agent_name == name), None)
+
+    def format_durations(self) -> str:
+        """Format execution times."""
+        parts = [f"{r.agent_name}: {r.timing:.2f}s" for r in self if r.timing is not None]
+        return f"Individual times: {', '.join(parts)}\nTotal time: {self.duration:.2f}s"
+
+    def to_chat_message(self) -> ChatMessage[str]:
+        """Convert team response to a single chat message."""
+        # Combine all responses into one structured message
+        content = "\n\n".join(
+            f"[{response.agent_name}]: {response.message.content}"
+            for response in self
+            if response.message
+        )
+        meta = {
+            "type": "team_response",
+            "agents": [r.agent_name for r in self],
+            "duration": self.duration,
+            "success_count": len(self.successful),
+        }
+        return ChatMessage(content=content, role="assistant", metadata=meta)  # type: ignore
