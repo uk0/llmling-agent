@@ -15,6 +15,7 @@ from llmling_agent.delegation.pool import AgentResponse
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.talk import QueueStrategy, TeamTalk
+from llmling_agent.utils.inspection import has_return_type
 from llmling_agent.utils.tasks import TaskManagerMixin
 
 
@@ -24,9 +25,10 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.common_types import AgentName, AnyTransformFn, AsyncFilterFn
+    from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
+    from llmling_agent.models.providers import ProcessorCallback
 
 
 TDeps = TypeVar("TDeps", default=None)
@@ -151,7 +153,9 @@ class Team[TDeps](TaskManagerMixin):
                 agents = [*self.agents, other]
                 return Team(agents=agents, shared_prompt=self.shared_prompt)
 
-    def __or__(self, other: AnyAgent[Any, Any] | Callable | Team[Any]) -> TeamRun[TDeps]:
+    def __or__(
+        self, other: AnyAgent[Any, Any] | ProcessorCallback[Any] | Team[Any]
+    ) -> TeamRun[TDeps]:
         """Create a pipeline using | operator.
 
         Example:
@@ -186,7 +190,9 @@ class Team[TDeps](TaskManagerMixin):
 
         return execution
 
-    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any] | AgentName) -> TeamTalk:
+    def __rshift__(
+        self, other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[Any]
+    ) -> TeamTalk:
         """Connect group to target agent(s).
 
         Returns:
@@ -197,7 +203,7 @@ class Team[TDeps](TaskManagerMixin):
 
     def pass_results_to(
         self,
-        other: AnyAgent[Any, Any] | Team[Any] | AgentName,
+        other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -210,13 +216,13 @@ class Team[TDeps](TaskManagerMixin):
         exit_condition: AsyncFilterFn | None = None,
     ) -> TeamTalk:
         """Forward results to another agent or all agents in a team."""
-        match other:
-            case str() if not self.agents[0].context.pool:
-                msg = "Pool required for forwarding to agent by name"
-                raise ValueError(msg)
-            case str():
-                other = self.agents[0].context.pool.get_agent(other)  # type: ignore
+        from llmling_agent.agent import Agent, StructuredAgent
 
+        if callable(other):
+            if has_return_type(other, str):
+                other = Agent.from_callback(other)
+            else:
+                other = StructuredAgent.from_callback(other)
         return self.connections.connect_group_to(
             other,
             connection_type=connection_type,
