@@ -982,10 +982,6 @@ class Agent[TDeps](TaskManagerMixin):
         final_prompt = "\n\n".join(str(p) for p in prompts)
         self.context.current_prompt = final_prompt
         self.set_result_type(result_type)
-        final_prompt = "\n\n".join(str(p) for p in prompts)
-        self.context.current_prompt = final_prompt
-        self.set_result_type(result_type)
-
         try:
             # Create and emit user message
             user_msg = ChatMessage[str](content=final_prompt, role="user")
