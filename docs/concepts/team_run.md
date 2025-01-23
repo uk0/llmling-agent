@@ -115,6 +115,65 @@ if stats.has_errors:
         print(f"{agent} failed at {time}: {error}")
 ```
 
+## Monitoring Execution Flow
+
+For sequential executions, you can monitor and control the execution flow using `run_iter()`.
+This yields items in alternating order:
+- Connection objects (`Talk`) before they're used
+- Responses (`AgentResponse`) after each agent executes
+
+This allows you to configure routing before messages flow through connections and monitor the results.
+
+Here are common usage patterns:
+
+### Basic Monitoring
+Simple progress tracking of the execution chain:
+```python
+execution = team.monitored("sequential")
+async for item in execution.run_iter("analyze this"):
+    match item:
+        case Talk():
+            print(f"Next connection: {item.source.name} -> {item.target.name}")
+        case AgentResponse():
+            print(f"Got response from {item.agent_name}: {item.data}")
+```
+
+### Error Handling
+Stop execution when an agent fails:
+```python
+execution = team.monitored("sequential")
+async for item in execution.run_iter("analyze"):
+    if isinstance(item, AgentResponse):
+        if not item.success:
+            print(f"Chain failed at {item.agent_name}: {item.error}")
+            break
+        print(f"✅ {item.agent_name}")
+```
+
+### Message Transformation
+Modify messages before they're forwarded:
+```python
+execution = team.monitored("sequential")
+async for item in execution.run_iter("analyze"):
+    if isinstance(item, Talk):
+        # Configure connection before it's used
+        item.transform = lambda msg: f"Previous: {msg.content}"
+```
+
+### Progress Tracking
+Integration with progress bars:
+```python
+from rich.progress import Progress
+async def track_progress():
+    with Progress() as progress:
+        task = progress.add_task("Processing...", total=len(team.agents))
+        async for item in execution.run_iter("analyze"):
+            if isinstance(item, AgentResponse):
+                progress.advance(task)
+```
+
+The alternating pattern of connection->response makes it clear when you can configure routing and when you receive results.
+
 ## Advanced Features
 
 ### Custom Monitoring
