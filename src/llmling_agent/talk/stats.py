@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
+    from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.messages import ChatMessage, FormatStyle
 
 
@@ -37,6 +38,14 @@ class TalkStats:
         return sum(
             msg.cost_info.token_usage["total"] for msg in self.messages if msg.cost_info
         )
+
+    @property
+    def tool_calls(self) -> list[ToolCallInfo]:
+        """Accumulated tool calls going through this connection."""
+        result = []
+        for msg in self.messages:
+            result.extend(msg.tool_calls)
+        return result
 
     @property
     def byte_count(self) -> int:
@@ -77,6 +86,14 @@ class TeamTalkStats:
     def message_count(self) -> int:
         """Total messages across all connections."""
         return len(self.messages)
+
+    @property
+    def tool_calls(self) -> list[ToolCallInfo]:
+        """Accumulated tool calls going through this connection."""
+        result = []
+        for msg in self.messages:
+            result.extend(msg.tool_calls)
+        return result
 
     @property
     def start_time(self) -> datetime:
