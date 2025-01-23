@@ -22,7 +22,7 @@ agents:
         don't hesitate to ask the human agent for guidance.
 
   human:
-    type: "human"  # Special provider type for human interaction
+    provider: "human"  # Special provider type for human interaction
     description: "A human who can provide answers"
 ```
 

@@ -21,7 +21,7 @@ agents:
         don't hesitate to ask the human agent for guidance.
 
   human:
-    type: "human"
+    provider: "human"
     description: "A human who can provide answers"
 """
 

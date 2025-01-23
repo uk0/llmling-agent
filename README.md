@@ -193,7 +193,7 @@ This is the extended version
 # agents.yml
 agents:
   analyzer:
-    type:  # Provider configuration
+    provider:  # Provider configuration
       type: "pydantic_ai"  # Provider type discriminator
       name: "PydanticAI Provider"  # Optional provider name
       end_strategy: "early"  # "early" | "complete" | "confirm"
@@ -523,7 +523,7 @@ async with Agent.open("config.yml") as agent:
 # Or via YAML configuration
 agents:
   human_agent:
-    type: "human"  # Complete human control
+    provider: "human"  # Complete human control
     timeout: 300  # Optional timeout in seconds
     show_context: true  # Show conversation context
 ```

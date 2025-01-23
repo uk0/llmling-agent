@@ -45,13 +45,17 @@ When defining structured agents in YAML, use the `result_type` field to specify 
 ```yaml
 agents:
   analyzer:
-    model: openai:gpt-4
+    provider:
+       type: pydantic_ai
+       model: openai:gpt-4
     result_type: AnalysisResult  # Reference shared definition
     system_prompts:
       - You analyze text and provide structured results.
 
   validator:
-    model: openai:gpt-4
+    provider:
+       type: litellm
+       model: openai:gpt-4
     result_type:  # Inline definition
       type: inline
       fields:

@@ -40,7 +40,7 @@ agents:
   agent_1:
     name: First Agent
     description: First test agent
-    type:
+    provider:
       type: callback
       callback: {__name__}.make_test_response
     model: test
@@ -51,7 +51,7 @@ agents:
   agent_2:
     name: Second Agent
     description: Second test agent
-    type:
+    provider:
       type: callback
       callback: {__name__}.make_test_response
     model: test

@@ -8,7 +8,7 @@ The default provider, using pydantic-ai for language model integration.
 ```yaml
 agents:
   my-agent:
-    type:
+    provider:
       type: "pydantic_ai"  # provider discriminator
       name: "gpt4-agent"  # optional provider instance name
       end_strategy: "early"  # "early" | "complete" | "confirm"
@@ -27,7 +27,7 @@ Provider that routes messages to human operators for manual responses.
 ```yaml
 agents:
   human-agent:
-    type:
+    provider:
       type: "human"
       name: "human-reviewer"  # optional instance name
       timeout: 300  # seconds to wait for response (null = wait forever)
@@ -40,7 +40,7 @@ Provider using LiteLLM for unified model access.
 ```yaml
 agents:
   my-agent:
-    type:
+    provider:
       type: "litellm"
       name: "litellm-agent"  # optional instance name
       retries: 3  # max retries for failed calls
@@ -56,7 +56,7 @@ Provider that uses Python functions for responses.
 ```yaml
 agents:
   callback-agent:
-    type:
+    provider:
       type: "callback"
       name: "custom-processor"  # optional name
       callback: "myapp.processors.analyze_text"  # import path to function
@@ -66,11 +66,11 @@ agents:
 For common providers, you can use string shortcuts instead of full configuration:
 
 ```yaml
-type: "pydantic_ai"  # Use default AI provider (pydantic-ai
+provider: "pydantic_ai"  # Use default AI provider (pydantic-ai
 # or
-type: "human"  # Use default human provider
+provider: "human"  # Use default human provider
 # or
-type: "litellm"  # Use default LiteLLM provider
+provider: "litellm"  # Use default LiteLLM provider
 ```
 
 ## Configuration Notes

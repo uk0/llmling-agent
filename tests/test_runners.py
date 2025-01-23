@@ -49,7 +49,7 @@ agents:
   test_agent:
     name: Test Agent
     description: Agent for testing conversation flow
-    type:
+    provider:
       type: callback
       callback: {__name__}.make_response
     model: test
