@@ -151,7 +151,7 @@ agents:
 ```
 
 ```bash
-llmling-agent run --config agents.yml "whats your favourite holiday destination?"
+llmling-agent run assistant --config agents.yml "whats your favourite holiday destination?"
 > What's your favorite holiday destination?
 ```
 
