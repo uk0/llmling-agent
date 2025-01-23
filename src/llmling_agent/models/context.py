@@ -107,10 +107,10 @@ class AgentContext[TDeps]:
 
     # TODO: perhaps add agent directly to context?
     @property
-    def agent(self) -> Agent[TDeps] | None:
+    def agent(self) -> Agent[TDeps]:
         """Get the agent instance from the pool."""
-        if not self.pool or not self.agent_name:
-            return None
+        assert self.pool, "No agent pool available"
+        assert self.agent_name, "No agent name available"
         return self.pool.get_agent(self.agent_name)
 
     @cached_property
