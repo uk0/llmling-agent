@@ -1381,6 +1381,73 @@
       "title": "ConnectionCondition",
       "type": "object"
     },
+    "ConversionConfig": {
+      "description": "Global conversion configuration.",
+      "properties": {
+        "providers": {
+          "anyOf": [
+            {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "docling": "#/$defs/DoclingConverterConfig",
+                    "markitdown": "#/$defs/MarkItDownConfig",
+                    "plain": "#/$defs/PlainConverterConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/DoclingConverterConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/MarkItDownConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/PlainConverterConfig"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of configured converter providers.",
+          "title": "Providers"
+        },
+        "default_provider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of default provider for conversions.",
+          "title": "Default Provider"
+        },
+        "max_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Global size limit for all converters.",
+          "title": "Max Size"
+        }
+      },
+      "title": "ConversionConfig",
+      "type": "object"
+    },
     "CostLimitCondition": {
       "description": "Disconnect when cost limit is reached.",
       "properties": {
@@ -1533,6 +1600,39 @@
         "selection_prompt"
       ],
       "title": "DelegationMultiModel",
+      "type": "object"
+    },
+    "DoclingConverterConfig": {
+      "description": "Configuration for docling-based converter.",
+      "properties": {
+        "type": {
+          "const": "docling",
+          "default": "docling",
+          "description": "Type discriminator for docling converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this converter is currently active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "max_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional size limit in bytes.",
+          "title": "Max Size"
+        }
+      },
+      "title": "DoclingConverterConfig",
       "type": "object"
     },
     "DynamicPrompt": {
@@ -3277,6 +3377,39 @@
       "title": "LiteLLMProviderConfig",
       "type": "object"
     },
+    "MarkItDownConfig": {
+      "description": "Configuration for MarkItDown-based converter.",
+      "properties": {
+        "type": {
+          "const": "markitdown",
+          "default": "markitdown",
+          "description": "Type discriminator for MarkItDown converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this converter is currently active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "max_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional size limit in bytes.",
+          "title": "Max Size"
+        }
+      },
+      "title": "MarkItDownConfig",
+      "type": "object"
+    },
     "MemoryConfig": {
       "description": "Configuration for agent memory and history handling.",
       "properties": {
@@ -3624,6 +3757,32 @@
         "path"
       ],
       "title": "PathResource",
+      "type": "object"
+    },
+    "PlainConverterConfig": {
+      "description": "Configuration for plain text fallback converter.",
+      "properties": {
+        "type": {
+          "const": "plain",
+          "default": "plain",
+          "description": "Type discriminator for plain text converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this converter is currently active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "force": {
+          "default": false,
+          "description": "Whether to attempt converting any file type.",
+          "title": "Force",
+          "type": "boolean"
+        }
+      },
+      "title": "PlainConverterConfig",
       "type": "object"
     },
     "ProcessingStep": {
@@ -5010,6 +5169,11 @@
           "title": "Schedule",
           "type": "string"
         },
+        "prompt": {
+          "description": "Prompt to send to the agent when the schedule triggers.",
+          "title": "Prompt",
+          "type": "string"
+        },
         "timezone": {
           "anyOf": [
             {
@@ -5032,7 +5196,8 @@
       },
       "required": [
         "name",
-        "schedule"
+        "schedule",
+        "prompt"
       ],
       "title": "TimeEventConfig",
       "type": "object"
@@ -5425,6 +5590,10 @@
     "storage": {
       "$ref": "#/$defs/StorageConfig",
       "description": "Storage provider configuration."
+    },
+    "conversion": {
+      "$ref": "#/$defs/ConversionConfig",
+      "description": "Document conversion configuration."
     },
     "responses": {
       "additionalProperties": {
