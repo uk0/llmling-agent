@@ -31,7 +31,7 @@ from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
-from llmling_agent.utils.inspection import call_with_context
+from llmling_agent.utils.inspection import call_with_context, has_return_type
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_providers.base import AgentProvider
 
@@ -395,12 +395,16 @@ class Agent[TDeps](TaskManagerMixin):
                 await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)
 
     @overload
-    def __rshift__(self, other: AnyAgent[Any, Any]) -> Talk[str]: ...
+    def __rshift__(
+        self, other: AnyAgent[Any, Any] | ProcessorCallback[Any]
+    ) -> Talk[str]: ...
 
     @overload
     def __rshift__(self, other: Team[Any]) -> TeamTalk: ...
 
-    def __rshift__(self, other: AnyAgent[Any, Any] | Team[Any]) -> Talk[str] | TeamTalk:
+    def __rshift__(
+        self, other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[Any]
+    ) -> Talk[str] | TeamTalk:
         """Connect agent to another agent or group.
 
         Example:
@@ -870,7 +874,7 @@ class Agent[TDeps](TaskManagerMixin):
     @overload
     def pass_results_to(
         self,
-        other: AnyAgent[Any, Any],
+        other: AnyAgent[Any, Any] | ProcessorCallback[Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -901,7 +905,7 @@ class Agent[TDeps](TaskManagerMixin):
 
     def pass_results_to(
         self,
-        other: AnyAgent[Any, Any] | Team[Any],
+        other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -914,6 +918,14 @@ class Agent[TDeps](TaskManagerMixin):
         exit_condition: AsyncFilterFn | None = None,
     ) -> Talk[str] | TeamTalk:
         """Forward results to another agent or all agents in a team."""
+        if callable(other):
+            if has_return_type(other, str):
+                other = Agent.from_callback(other)
+            else:
+                from llmling_agent.agent.structured import StructuredAgent
+
+                other = StructuredAgent.from_callback(other)
+
         return self.connections.connect_agent_to(
             other,
             connection_type=connection_type,
