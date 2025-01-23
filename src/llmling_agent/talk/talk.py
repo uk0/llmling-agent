@@ -18,7 +18,9 @@ from llmling_agent.talk.stats import TalkStats, TeamTalkStats
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Sequence
     from datetime import timedelta
+    import os
 
+    import PIL.Image
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
@@ -207,12 +209,14 @@ class Talk[TTransmittedData]:
         self,
         message: ChatMessage[Any],
         target: AnyAgent[Any, Any],
-        prompt: str | None = None,
+        prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None = None,
     ) -> ChatMessage[Any] | None:
         """Process message for a single target."""
         match self.connection_type:
             case "run":
-                prompts: list[AnyPromptType] = [message.content]
+                prompts: list[AnyPromptType | PIL.Image.Image | os.PathLike[str]] = [
+                    message.content
+                ]
                 if prompt:
                     prompts.append(prompt)
                 response = await target.run(*prompts)
@@ -262,7 +266,9 @@ class Talk[TTransmittedData]:
                     target.outbox.emit(message, prompt)
                 return None
 
-    async def trigger(self) -> list[ChatMessage[TTransmittedData]]:
+    async def trigger(
+        self, prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None = None
+    ) -> list[ChatMessage[TTransmittedData]]:
         """Process queued messages."""
         if not self._pending_messages:
             return []
@@ -275,7 +281,7 @@ class Talk[TTransmittedData]:
                     queue = self._pending_messages[target.name]
                     for message in queue:
                         if response := await self._process_for_target(
-                            message, target, None
+                            message, target, prompt
                         ):
                             results.append(response)  # noqa: PERF401
                     queue.clear()
@@ -289,7 +295,7 @@ class Talk[TTransmittedData]:
                     if queue:
                         latest = queue[-1]
                         if response := await self._process_for_target(
-                            latest, target, None
+                            latest, target, prompt
                         ):
                             results.append(response)
                         queue.clear()
@@ -313,7 +319,7 @@ class Talk[TTransmittedData]:
                     content = "\n\n".join(contents)
                     merged = replace(base, content=content, metadata=meta)  # type: ignore
 
-                    if response := await self._process_for_target(merged, target, None):
+                    if response := await self._process_for_target(merged, target, prompt):
                         results.append(response)
                     queue.clear()
 
