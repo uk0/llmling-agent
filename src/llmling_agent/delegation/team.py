@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn
+    from llmling_agent.common_types import AgentName, AnyTransformFn, AsyncFilterFn
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.providers import ProcessorCallback
@@ -118,6 +118,12 @@ class Team[TDeps](TaskManagerMixin):
     def __len__(self) -> int:
         """Get number of team members."""
         return len(self.agents)
+
+    def __getitem__(self, index_or_name: int | AgentName) -> AnyAgent[TDeps, Any]:
+        """Get team member by index or name."""
+        if isinstance(index_or_name, str):
+            return next(agent for agent in self.agents if agent.name == index_or_name)
+        return self.agents[index_or_name]
 
     @overload
     def __and__(self, other: Team[None]) -> Team[None]: ...
