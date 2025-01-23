@@ -21,6 +21,10 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from datetime import timedelta
+    import os
+
+    import PIL.Image
+    from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import AgentName, AnyTransformFn, AsyncFilterFn
@@ -196,29 +200,31 @@ class Team[TDeps](TaskManagerMixin):
 
     async def run_parallel(
         self,
-        prompt: str | None = None,
-        deps: TDeps | None = None,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
     ) -> TeamResponse:
         """Run all agents in parallel."""
         execution = TeamRun(self, "parallel")
-        return await execution.run(prompt, deps)
+        return await execution.run(*prompts)
 
     async def run_sequential(
         self,
-        prompt: str | None = None,
-        deps: TDeps | None = None,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
     ) -> TeamResponse:
         """Run agents one after another."""
         execution = TeamRun(self, "sequential")
-        return await execution.run(prompt, deps)
+        return await execution.run(*prompts)
 
-    async def chain(self, message: Any, *, require_all: bool = True) -> ChatMessage:
+    async def chain(
+        self,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        require_all: bool = True,
+    ) -> ChatMessage:
         """Pass message through the chain of team members.
 
         Each agent processes the result of the previous one.
 
         Args:
-            message: Initial message to process
+            prompts: Initial messages to process
             require_all: If True, all agents must succeed
 
         Returns:
@@ -227,12 +233,12 @@ class Team[TDeps](TaskManagerMixin):
         Raises:
             ValueError: If chain breaks and require_all=True
         """
-        current_message = message
+        current_message = prompts
 
         for agent in self.agents:
             try:
-                result = await agent.run(current_message)
-                current_message = result.content
+                result = await agent.run(*current_message)
+                current_message = (result.content,)
             except Exception as e:
                 if require_all:
                     msg = f"Chain broken at {agent.name}: {e}"
@@ -244,8 +250,7 @@ class Team[TDeps](TaskManagerMixin):
     @asynccontextmanager
     async def chain_stream(
         self,
-        message: Any,
-        *,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         require_all: bool = True,
     ) -> AsyncIterator[StreamedRunResult[AgentContext[TDeps], str]]:
         """Stream results through chain of team members."""
@@ -253,20 +258,20 @@ class Team[TDeps](TaskManagerMixin):
 
         async with AsyncExitStack() as stack:
             streams: list[StreamedRunResult[AgentContext[TDeps], str]] = []
-            current_message = message
+            current_message = prompts
 
             # Set up all streams
             for agent in self.agents:
                 try:
                     stream = await stack.enter_async_context(
-                        agent.run_stream(current_message)
+                        agent.run_stream(*current_message)
                     )
                     streams.append(stream)
                     # Wait for complete response for next agent
                     async for chunk in stream.stream():
                         current_message = chunk
                         if stream.is_complete:
-                            current_message = stream.formatted_content  # type: ignore
+                            current_message = (stream.formatted_content,)  # type: ignore
                             break
                 except Exception as e:
                     if require_all:

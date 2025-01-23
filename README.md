@@ -55,6 +55,7 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 - 🛜 Comletely UPath backed. Any file operations under our control is routed through fsspec to allow referencing remote sourcces.
 - 📕 Integrated prompt management system.
 - 🔧 Tasks, tools, and what else you can expect from an Agent framework.
+- 🏎️ No fixed dependencies on all the super-heavy LLM libraries. Way faster startup than most other frameworks, and all IO in our control is async.
 - 👥 Easy human-in-the-loop interactions on multiple levels (complete "providers" or model-based, see llmling-models)
 - 💻 A CLI application with extensive slash command support to build agent flows interactively. Set up message connections via commands.
 - ℹ️ The most easy way available to generate static websites in combination with [MkNodes](https://github.com/phil/mknodes) and  [the corresponding MkDocs plugin](https://github.com/phil65/mkdocs_mknodes)

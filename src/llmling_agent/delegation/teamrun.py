@@ -216,8 +216,7 @@ class TeamRun[TDeps](TaskManagerMixin):
 
     async def start(
         self,
-        prompt: str | None = None,
-        deps: Any | None = None,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         monitor_callback: Callable[[TeamRunStats], Any] | None = None,
         monitor_interval: float = 0.1,
         **kwargs: Any,
@@ -244,12 +243,11 @@ class TeamRun[TDeps](TaskManagerMixin):
 
             self.create_task(_monitor(), name="stats_monitor")
 
-        return await self._execute(prompt, **kwargs)
+        return await self._execute(*prompts, **kwargs)
 
     def start_background(
         self,
-        prompt: str | None = None,
-        deps: TDeps | None = None,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         monitor_callback: Callable[[TeamRunStats], Any] | None = None,
         monitor_interval: float = 0.1,
         **kwargs: Any,
@@ -258,8 +256,7 @@ class TeamRun[TDeps](TaskManagerMixin):
             msg = "Execution already running"
             raise RuntimeError(msg)
         coro = self.start(
-            prompt,
-            deps,
+            *prompts,
             monitor_callback=monitor_callback,
             monitor_interval=monitor_interval,
             **kwargs,
@@ -313,23 +310,26 @@ class TeamRun[TDeps](TaskManagerMixin):
 
     async def run(
         self,
-        prompt: str | None = None,
-        deps: TDeps | None = None,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         **kwargs: Any,
     ) -> TeamResponse:
         """Execute directly without monitoring."""
-        return await self._execute(prompt, **kwargs)
+        return await self._execute(*prompts, **kwargs)
 
-    async def _execute(self, prompt: str | None = None, **kwargs: Any) -> TeamResponse:
+    async def _execute(
+        self,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        **kwargs: Any,
+    ) -> TeamResponse:
         """Common execution logic."""
         self._monitor = TeamRunMonitor(self.team)
         self._monitor.start()
         try:
             match self.mode:
                 case "parallel":
-                    return await self._run_parallel(prompt)
+                    return await self._run_parallel(*prompts)
                 case "sequential":
-                    return await self._run_sequential(prompt)
+                    return await self._run_sequential(*prompts)
                 case _:
                     msg = f"Invalid mode: {self.mode}"
                     raise ValueError(msg)
@@ -369,7 +369,7 @@ class TeamRun[TDeps](TaskManagerMixin):
         async def run_agent(agent: AnyAgent[TDeps, Any]) -> AgentResponse[Any]:
             try:
                 start = perf_counter()
-                message = await agent.run(final_prompt)
+                message = await agent.run(*final_prompt)
                 timing = perf_counter() - start
                 return AgentResponse(agent.name, message=message, timing=timing)
             except Exception as e:  # noqa: BLE001
@@ -442,43 +442,38 @@ class TeamRun[TDeps](TaskManagerMixin):
 if __name__ == "__main__":
     import asyncio
 
-    from llmling_agent.delegation import AgentPool
-
-    async def on_stats_update(stats: TeamRunStats):
-        """Handle stats updates."""
-        print(
-            f"\rActive: {stats.active_agents} | Messages: {stats.message_counts}", end=""
-        )
+    from llmling_agent import AgentPool
+    from llmling_agent.models.messages import ChatMessage
+    from llmling_agent.talk.talk import Talk
 
     async def main():
         async with AgentPool[None]() as pool:
-            analyzer = await pool.add_agent(
+            # Create three agents
+            agent1 = await pool.add_agent(
                 "analyzer",
-                system_prompt="You analyze text in a formal way.",
+                system_prompt="You analyze text.",
                 model="openai:gpt-4o-mini",
             )
-            summarizer = await pool.add_agent(
+            agent2 = await pool.add_agent(
                 "summarizer",
-                system_prompt="You create concise summaries.",
+                system_prompt="You summarize analysis.",
+                model="openai:gpt-4o-mini",
+            )
+            agent3 = await pool.add_agent(
+                "critic",
+                system_prompt="You critique summaries.",
                 model="openai:gpt-4o-mini",
             )
 
-            team = pool.create_team([analyzer, summarizer])
+            # Create sequential team
+            team = TeamRun(agent1 & agent2 & agent3, mode="sequential")
+
+            # Test the iterator
             text = "The quick brown fox jumps over the lazy dog."
+            print("\nStarting sequential processing...")
 
-            print("\n=== Monitored Parallel Execution ===")
-            execution = team.monitored("parallel")
-
-            # Start execution and monitoring
-            execution.start_background(text)
-            execution.monitor(on_stats_update)
-
-            # Wait for completion
-            response = await execution.wait()
-            print(response)
-            print("\n\nFinal Stats:")
-            print(f"Duration: {execution.stats.duration:.2f}s")
-            print(f"Total tokens: {execution.stats.total_tokens}")
-            print(f"Total cost: ${execution.stats.total_cost:.4f}")
+            async for item in team.run_iter(text):
+                if isinstance(item, Talk):
+                    print(item.stats.tool_calls)
 
     asyncio.run(main())

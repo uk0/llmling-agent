@@ -71,7 +71,6 @@ async def test_parallel_execution():
 
         prompt = "Test input"
         responses = await group.run_parallel(prompt)
-
         # Verify execution
         assert len(responses) == 2  # noqa: PLR2004
         assert all(r.success for r in responses)
