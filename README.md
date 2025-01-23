@@ -103,92 +103,170 @@ uvx llmling-agent quickstart openai:gpt-4o-mini
 ```
 
 This creates a temporary agent ready for chat - no configuration needed!
-LLMling-Agent is Pydantic-ai based, so all pydantic-ai models can be used.
 The according API keys need to be set as environment variables.
 
-For persistent agents, you can use:
 
-```bash
-# Create a basic agent configuration
-llmling-agent init agents.yml
+## 🚀 Quick Examples
 
-# Or use the interactive wizard (EXPERIMENTAL)
-llmling-agent init agents.yml --interactive
+Three ways to create a simple agent setup that turns topics into Wikipedia explorations:
+
+
+### Python Version
+```python
+from llmling_agent import AgentPool
+
+async def main():
+    async with AgentPool() as pool:
+        # Create browser assistant
+        browser = await pool.add_agent(
+            "browser",
+            system_prompt="Open Wikipedia pages matching the topics you receive.",
+            model="openai:gpt-4o-mini",
+            tools=["webbrowser.open"],
+        )
+        # Create main agent and connect
+        agent = await pool.add_agent("assistant")
+        connection = agent >> browser  # this sets up a permanent connection.
+        await agent.run("What's your favorite holiday destination?")
 ```
 
-This creates a basic agent configuration file that you can customize. The interactive mode will guide you through setting up your agents.
+### YAML Version
+```yaml
+# agents.yml
+agents:
+  browser:
+    model: openai:gpt-4o-mini
+    system_prompts:
+      - "Open Wikipedia pages matching the topics you receive."
+    environment:
+      tools:
+        open_url:
+          import_path: webbrowser.open
 
-### Basic Usage
-
-The simplest way to use LLMling Agent is through its command-line interface:
-
-```bash
-# Start an interactive chat with an agent
-llmling-agent chat my-agent
-
-# Run an agent with a specific prompt
-llmling-agent run my-agent "What is the current system status?"
+  assistant:
+    model: openai:gpt-4o-mini
+    connections:  # this forwards any output to the 2nd agent
+      - type: agent
+        name: browser
 ```
 
-## Features
-
-### Dynamic Environment
-
-LLMling Agent allows the AI to modify its own environment (when permitted):
-- Register new tools on the fly
-- Load and analyze resources
-- Install Python packages
-- Create new tools from code
-
-These capabilities can be controlled via roles and permissions to ensure safe operation.
-
-### Interactive Chat Sessions
-
-The chat interface provides rich features:
 ```bash
-# Start a chat session
-llmling-agent chat my-agent
-
-# Available during chat:
-/list-tools              # See available tools
-/register-tool os.getcwd # Add new tools on the fly
-/list-resources         # View accessible resources
-/show-resource config   # Examine resource content
-/enable-tool tool_name  # Enable/disable tools
-/set-model gpt-4       # Switch models mid-conversation
-# and many more!
+llmling-agent run --config agents.yml "whats your favourite holiday destination?"
+> What's your favorite holiday destination?
 ```
 
-### Safe and Configurable
 
-- Fine-grained capability control (resource access, tool registration, etc.)
-- Role-based permissions (overseer, specialist, assistant)
-- Tool confirmation for sensitive operations
-- Command history and usage statistics
+### CLI Version (Interactive using slash command system)
+```bash
+# Start session
+llmling-agent quickstart --model openai:gpt-4o-mini
+# Create browser assistant
+/create-agent browser --system-prompt "Open Wikipedia pages matching the topics you receive." --tools webbrowser.open
+# Connect and try it
+/connect browser
+> What's your favorite holiday destination?
+```
 
 
 ### First Agent Configuration
 
-Agents are defined in YAML configuration files. The environment (tools and resources) can be configured either inline or in a separate file:
- (see [LLMling documentation](https://github.com/phil65/llmling) for YAML details)
+Agents can be defined in YAML configuration files.
+The YAML setup is extensive, you can define every detail of your agent:
+Connections, routing, tools, MCP servers, resources, system prompts, and much much more.
+Check out the Manual for the whole configuration!
 
 
 ```yaml
 # agents.yml - Complete configuration
 agents:
-  system_checker:
-    model: openai:gpt-4o-mini
-    environment:  # Inline environment configuration
-      type: inline
-      tools:
-        get_system_info:
-          import_path: platform.platform
-          description: "Get system platform information"
-        get_memory:
-          import_path: psutil.virtual_memory
-          description: "Get memory usage information"
-    system_prompts:
-      - "You help users check their system status."
+  analyzer:  # Agent name (key in agents dict)
+    # Basic configuration
+    type: "pydantic_ai"  # "pydantic_ai" | "human" | "litellm" | custom provider config
+    name: "analyzer"  # Optional override for agent name
+    inherits: "base_agent"  # Optional parent config to inherit from
+    description: "Code analysis specialist"
+    model: "openai:gpt-4"  # or structured model definition
+    debug: false
+
+    # Provider behavior
+    retries: 1
+    end_strategy: "early"  # "early" | "complete" | "confirm"
+
+    # Structured output
+    result_type:
+      type: "inline"  # or "import" for Python types
+      fields:
+        success:
+          type: "bool"
+          description: "Whether analysis succeeded"
+    result_tool_name: "final_result"  # Name for result validation tool
+    result_tool_description: "Create final response"  # Optional description
+    result_retries: 3  # Validation retry count
+
+    # Agent behavior
+    system_prompts: ["You are a code analyzer..."]
+    user_prompts: ["Example query..."]  # Default queries
+    model_settings: {}  # Additional model parameters
+
+    # State management
+    session:                 # Initial session loading
+      name: my_session       # Optional session identifier
+      since: 1h             # Only messages from last hour
+    avatar: "path/to/avatar.png"  # Optional UI avatar
+
+    # Capabilities
+    capabilities:
+      can_delegate_tasks: true
+      can_load_resources: true
+      history_access: "own"  # "none" | "own" | "all"
+      # ... other capability settings
+
+    # Environment & Resources
+    environment:
+      type: "file"  # or "inline"
+      uri: "environments/analyzer.yml"
+
+    # Knowledge configuration
+    knowledge:
+      paths: ["docs/**/*.md"]
+      resources:
+        - type: "repository"
+          url: "https://github.com/user/repo"
+      prompts:
+        - type: "file"
+          path: "prompts/analysis.txt"
+
+    # MCP integration
+    mcp_servers:
+      - type: "stdio"
+        command: "python"
+        args: ["-m", "mcp_server"]
+      - "python -m other_server"  # shorthand syntax
+
+    # Agent relationships
+    workers:
+      - name: "formatter"
+        reset_history_on_run: true
+        pass_message_history: false
+        share_context: false
+      - "linter"  # shorthand syntax
+
+    # Message routing
+    connections:
+      - type: "agent"
+        name: "reporter"
+        connection_type: "run"  # "run" | "context" | "forward"
+        wait_for_completion: true
+
+    # Event handling
+    triggers:
+      - type: "file"
+        name: "code_change"
+        paths: ["src/**/*.py"]
+        extensions: [".py"]
+        recursive: true
+
+  # Additional agents...
 ```
 
 ### Running Your First Agent
@@ -196,17 +274,14 @@ agents:
 1. Save configuration file:
    - `agents.yml` - Agent configuration
 
-2. Add the agent configuration to LLMling-Agent:
+
+2. Start chatting with your agent:
 ```bash
-llmling-agent add my-config agents.yml
+llmling-agent chat --config agents.yml system_checker
 ```
 
-3. Start chatting with your agent:
-```bash
-llmling-agent chat system_checker
-```
+3. Or run it programmatically (in general, pool usage is recommended though, see the following section):
 
-4. Or run it programmatically:
 ```python
 from llmling_agent import Agent
 
@@ -302,7 +377,8 @@ Each agent can have its own:
 
 ### Message Forwarding
 
-LLMling Agent supports message forwarding between agents, allowing creation of agent chains and networks. When an agent processes a message, it can forward it to other agents for further processing:
+LLMling Agent supports message forwarding between agents, allowing creation of agent chains and networks.
+When an agent processes a message, it can forward it to other agents for further processing:
 
 ```python
 # Create two agents
@@ -310,12 +386,11 @@ async with Agent.open_agent("agents.yml", "analyzer") as agent_a, \
           Agent.open_agent("agents.yml", "reviewer") as agent_b:
 
     # Let agent_a pass its results to agent_b
-    agent_a.pass_results_to(agent_b)
+    connection = agent_a.pass_results_to(agent_b)
 
     # Start the chain - agent_b will process agent_a's output
     await agent_a.run("Analyze this code")
-    await agent_b.complete_tasks()  # Wait for agent_b to finish
-    agent_a.stop_passing_results_to(agent_b)
+    await agent_b.complete_tasks()  # Optinally wait for agent_b to finish
 ```
 
 Each agent in the chain can:
@@ -324,23 +399,10 @@ Each agent in the chain can:
 3. Forward its own response to other agents
 
 This enables simple creation of agent chains.
+The connection objects are highly configurable and observable, they even allow routing!
 
 
-### Conversation History and Analytics
 
-LLMling Agent provides built-in conversation tracking and analysis:
-
-```bash
-# View recent conversations
-llmling-agent history show
-llmling-agent history show --period 24h  # Last 24 hours
-llmling-agent history show --query "database"  # Search content
-
-# View usage statistics
-llmling-agent history stats  # Basic stats
-llmling-agent history stats --group-by model  # Model usage
-llmling-agent history stats --group-by day    # Daily breakdown
-```
 
 This diagram shows the main components of the LLMling Agent framework:
 
