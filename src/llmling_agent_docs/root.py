@@ -9,7 +9,6 @@ from llmling_agent_docs import (
     core_concepts,
     examples,
     getting_started,
-    interaction_patterns,
 )
 
 
@@ -38,9 +37,8 @@ class Build:
     def on_root(self, nav: mk.MkNav):
         nav.page_template.announcement_bar = mk.MkMetadataBadges("websites")
         nav += getting_started.nav
-        nav += configuration.nav
         nav += core_concepts.nav
-        nav += interaction_patterns.nav
+        nav += configuration.nav
         nav += examples.nav
         nav += advanced_features.nav
         nav.add_doc(section_name="API", flatten_nav=True, recursive=True)

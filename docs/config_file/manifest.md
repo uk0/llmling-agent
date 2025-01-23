@@ -2,7 +2,7 @@
 
 The agent manifest is a YAML file that defines your complete agent setup.
 The config part is powered by [Pydantic](https://docs.pydantic.dev/latest/) and provides excellent validation
-and IDE support for YAML linters using an extensive (almost 5000 lines long) schema.
+and IDE support for YAML linters by providing an extensive, detailed schema.
 
 Let's look at a complete, correctly structured example:
 

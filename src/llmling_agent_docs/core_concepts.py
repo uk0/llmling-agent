@@ -116,5 +116,11 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/concepts/mcp.md")
 
 
+# @nav.route.page("Human Provider", icon="octicon:person-16")
+# def _(page: mk.MkPage):
+#     """Using the human provider for interaction."""
+#     page += mk.MkTemplate("docs/interaction/human_provider.md")
+
+
 if __name__ == "__main__":
     print(nav.to_markdown())
