@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import inspect
 from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from py2openai import OpenAIFunctionTool  # noqa: TC002
@@ -145,6 +146,12 @@ class ToolInfo:
                 f"{indent}    {key}: {value}" for key, value in self.metadata.items()
             )
         return "\n".join(lines)
+
+    async def execute(self, *args: Any, **kwargs: Any) -> Any:
+        """Execute tool, handling both sync and async cases."""
+        if inspect.iscoroutinefunction(self.callable.callable):
+            return await self.callable.callable(*args, **kwargs)
+        return self.callable.callable(*args, **kwargs)
 
 
 @dataclass
