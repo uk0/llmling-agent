@@ -27,6 +27,7 @@ Options:
   --model model_name        Override model (default: same as current agent)
   --role role_name         Agent role (assistant/specialist/overseer)
   --description "text"     Optional description of the agent
+  --tools "import_path1|import_path2"   Optional list tools (by import path)
 
 Examples:
   # Create poet using same model as current agent
@@ -75,7 +76,9 @@ async def create_agent_command(
 ):
     """Create a new agent in the current session."""
     if not args:
-        await ctx.output.print("Usage: /create-agent <name> --system-prompt 'prompt'")
+        await ctx.output.print(
+            "Usage: /create-agent <name> --system-prompt 'prompt' [--tools 'tool1|tool2']"
+        )
         return
 
     name = args[0]
@@ -91,15 +94,24 @@ async def create_agent_command(
 
         # Get model from args or current agent
         current_agent = ctx.context.agent
+
+        # Parse tools if provided
+        tools = None
+        if tool_str := kwargs.get("tools"):
+            tools = [t.strip() for t in tool_str.split("|")]
+
         # Create and register the new agent
         await ctx.context.pool.add_agent(
             name=name,
             model=kwargs.get("model") or current_agent.model_name,
             system_prompt=system_prompt,
             description=kwargs.get("description"),
+            tools=tools,
         )
 
         msg = f"Created agent '{name}'"
+        if tools:
+            msg += f" with tools: {', '.join(tools)}"
         await ctx.output.print(f"{msg}\nUse /connect {name} to forward messages")
 
     except ValueError as e:
