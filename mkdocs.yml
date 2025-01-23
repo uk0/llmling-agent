@@ -1,5 +1,5 @@
 site_name: "LLMling-Agent"
-site_description: "A pydantic-ai based Agent with LLMling backend"
+site_description: "A brand new AI framework.  Fully async. Excellently typed. Pydantic-Ai + LiteLLM support. Human in the loop. Unique messaging features."
 repo_url: "https://github.com/phil65/llmling-agent/"
 site_url: https://phil65.github.io/llmling-agent/
 site_author: "Philipp Temminghoff"

@@ -24,7 +24,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "llmling-agent"
-description = "A pydantic-ai based Agent with LLMling backend"
+description = "A brand new AI framework.  Fully async. Excellently typed. Pydantic-Ai + LiteLLM support. Human in the loop. Unique messaging features."
 authors = [
     { name = "Philipp Temminghoff", email = "philipptemminghoff@googlemail.com" },
 ]
