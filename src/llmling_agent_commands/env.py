@@ -2,20 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 import webbrowser
 
-from llmling import RuntimeConfig
+from llmling import Config, RuntimeConfig
 from slashed import Command, CommandContext, CommandError, PathCompleter
 from upath import UPath
 
-from llmling_agent.agent.agent import Agent
-from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent import AnyAgent
     from llmling_agent.chat_session.base import AgentPoolView
 
 
@@ -57,36 +54,35 @@ async def set_env(
         raise CommandError(msg)
 
     try:
-        # Get current agent configuration
         agent = ctx.context._agent
         if not agent.context.config:
             msg = "No agent context available"
             raise CommandError(msg)  # noqa: TRY301
 
-        # Update environment path in config
-        config = agent.context.config
-        config = config.model_copy(update={"environment": env_path})
+        # Manually remove runtime tools
+        runtime_tools = [
+            name for name, info in agent.tools.items() if info.source == "runtime"
+        ]
+        for name in runtime_tools:
+            del agent.tools[name]
 
-        # Create new runtime with updated config
-        async with RuntimeConfig.open(config.get_config()) as new_runtime:
-            # Create new agent with updated runtime
-            kw_args = agent.context.config.get_agent_kwargs()
-            new_agent: AnyAgent[Any, Any] = Agent(
-                runtime=new_runtime, context=agent.context, **kw_args
-            )
-            if isinstance(agent, StructuredAgent):
-                new_agent = new_agent.to_structured(
-                    result_type=agent.result_type,
-                    # tool_name=agent.tool_name,
-                    # tool_description=agent.tool_description,
-                )
-            # Update session's agent
-            ctx.context._agent = new_agent
+        # Clean up old runtime if we own it
+        if agent._owns_runtime and agent.context.runtime:
+            await agent.context.runtime.__aexit__(None, None, None)
 
-            await ctx.output.print(
-                f"Environment changed to: {env_path}\n"
-                "Session updated with new configuration."
-            )
+        # Create and initialize new runtime
+        config = Config.from_file(env_path)
+        runtime = RuntimeConfig.from_config(config)
+        agent.context.runtime = runtime
+        agent._owns_runtime = True  # type: ignore
+
+        # Re-initialize agent with new runtime
+        await agent.__aenter__()
+
+        await ctx.output.print(
+            f"Environment changed to: {env_path}\n"
+            f"Replaced runtime tools: {', '.join(runtime_tools)}"
+        )
 
     except Exception as e:
         msg = f"Failed to change environment: {e}"
