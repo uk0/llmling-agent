@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 import inspect
 from typing import TYPE_CHECKING, Any, Literal, TypeVar
@@ -142,16 +143,16 @@ class ToolInfo:
             lines.extend(f"{indent}    {param}" for param in self.parameters)
         if self.metadata:
             lines.append(f"{indent}  Metadata:")
-            lines.extend(
-                f"{indent}    {key}: {value}" for key, value in self.metadata.items()
-            )
+            lines.extend(f"{indent}    {k}: {v}" for k, v in self.metadata.items())
         return "\n".join(lines)
 
     async def execute(self, *args: Any, **kwargs: Any) -> Any:
         """Execute tool, handling both sync and async cases."""
         if inspect.iscoroutinefunction(self.callable.callable):
             return await self.callable.callable(*args, **kwargs)
-        return self.callable.callable(*args, **kwargs)
+        # use thread for sync tools - the overhead doesn't matter
+        # in the context of LLM operations
+        return await asyncio.to_thread(self.callable.callable, *args, **kwargs)
 
 
 @dataclass

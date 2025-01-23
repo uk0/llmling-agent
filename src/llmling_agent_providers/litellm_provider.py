@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import inspect
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -68,13 +67,7 @@ class LiteLLMProvider(AgentProvider[Any]):
     ) -> tuple[ToolCallInfo, dict]:
         """Handle a single tool call properly."""
         function_args = json.loads(tool_call.function.arguments)
-
-        # Handle both sync and async tools
-        if inspect.iscoroutinefunction(tool.callable.callable):
-            result = await tool.callable.callable(**function_args)
-        else:
-            result = tool.callable.callable(**function_args)
-
+        result = await tool.execute(**function_args)
         info = ToolCallInfo(
             tool_name=tool.name,
             args=function_args,
