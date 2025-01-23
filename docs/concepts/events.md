@@ -8,6 +8,8 @@ LLMling-agent supports different types of triggers that can activate agents auto
 - Incoming emails
 - Time-based triggers
 - User interface actions
+- Function calls (monitor functions using a decorator and get event each time it is called)
+
 
 ## Basic Concepts
 
@@ -236,22 +238,70 @@ class WebhookEvent(EventData):
     source: str
 ```
 
-## Best Practices
 
-1. **Choose Handling Strategy**
-   - Use auto-handling for simple cases
-   - Use custom callbacks for complex logic
-   - Can combine both approaches
+## Function Monitoring
 
-2. **Error Handling**
-   - Events are handled independently
-   - Errors in one callback don't affect others
-   - Default handler errors are logged but don't stop processing
+The EventManager provides two powerful decorators for monitoring function execution and creating periodic tasks:
 
-3. **Performance**
-   - Keep handlers light and fast
-   - Use async operations for I/O
-   - Consider debouncing for high-frequency events
+### Track Function Calls
+
+Monitor any function and get events when it's called:
+
+```python
+agent = Agent(...)
+
+@agent.events.track("search_executed")
+async def search_docs(query: str) -> list[Doc]:
+    results = await search(query)
+    return results  # Result becomes event content
+
+# Track with additional metadata
+@agent.events.track(
+    "user_action",
+    category="authentication",
+    severity="high"
+)
+def user_login(username: str) -> bool:
+    return auth.login(username)
+```
+
+The decorator:
+- Creates an event for each function call
+- Includes function result as event content
+- Adds timing and error information
+- Supports both sync and async functions
+- Can include custom metadata
+
+### Poll Functions
+
+Execute functions periodically and handle their results as events:
+
+```python
+agent = Agent(...)
+
+# Check every hour
+@agent.events.poll("system_stats", hours=1)
+async def check_system() -> SystemInfo:
+    stats = await get_system_stats()
+    return stats
+
+# Check every 30 minutes with metadata
+@agent.events.poll(
+    "database_status",
+    minutes=30,
+    metadata={"critical": True}
+)
+def check_database() -> DBStatus:
+    return db.get_status()
+```
+
+The decorator:
+- Executes function at specified intervals
+- Converts results to events
+- Handles both sync and async functions
+- Can include custom metadata
+- Supports flexible time intervals
+
 
 ## Common Patterns
 
