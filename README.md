@@ -167,68 +167,84 @@ llmling-agent quickstart --model openai:gpt-4o-mini
 > What's your favorite holiday destination?
 ```
 
+### YAML configuration
 
-### First Agent Configuration
-
-Agents can be defined in YAML configuration files.
-The YAML setup is extensive, you can define every detail of your agent:
-Connections, routing, tools, MCP servers, resources, system prompts, and much much more.
-Check out the Manual for the whole configuration!
-
+While you can define agents with 3 lines of YAML (or competely programmatic or via CLI),
+you can also create agents as well as their connections, agent tasks, storage providers and much more via YAML.
+This is the extended version
 
 ```yaml
-# agents.yml - Complete configuration
+# agents.yml
 agents:
-  analyzer:  # Agent name (key in agents dict)
-    # Basic configuration
-    type: "pydantic_ai"  # "pydantic_ai" | "human" | "litellm" | custom provider config
-    name: "analyzer"  # Optional override for agent name
+  analyzer:
+    type:  # Provider configuration
+      type: "pydantic_ai"  # Provider type discriminator
+      name: "PydanticAI Provider"  # Optional provider name
+      end_strategy: "early"  # "early" | "complete" | "confirm"
+      model:  # Model configuration
+        type: "fallback"  # Lot of special "meta-models" included out of the box!
+        models:  # Try models in sequence
+          - "openai:gpt-4"
+          - "openai:gpt-3.5-turbo"
+          - "anthropic:claude-2"
+      result_retries: 3  # Max retries for result validation
+      defer_model_check: false  # Whether to defer model evaluation
+      validation_enabled: true  # Whether to validate outputs
+      allow_text_fallback: true  # Accept plain text when validation fails
+
+    name: "Code Analyzer"  # Display name
     inherits: "base_agent"  # Optional parent config to inherit from
     description: "Code analysis specialist"
-    model: "openai:gpt-4"  # or structured model definition
     debug: false
-
-    # Provider behavior
-    retries: 1
-    end_strategy: "early"  # "early" | "complete" | "confirm"
+    retries: 1  # Number of retries for failed operations
 
     # Structured output
     result_type:
       type: "inline"  # or "import" for Python types
       fields:
-        success:
-          type: "bool"
-          description: "Whether analysis succeeded"
-    result_tool_name: "final_result"  # Name for result validation tool
-    result_tool_description: "Create final response"  # Optional description
-    result_retries: 3  # Validation retry count
+        severity:
+          type: "str"
+          description: "Issue severity"
+        issues:
+          type: "list[str]"
+          description: "Found issues"
 
-    # Agent behavior
-    system_prompts: ["You are a code analyzer..."]
-    user_prompts: ["Example query..."]  # Default queries
-    model_settings: {}  # Additional model parameters
+    # Core behavior
+    system_prompts:
+      - "You analyze code for potential issues and improvements."
 
-    # State management
-    session:                 # Initial session loading
-      name: my_session       # Optional session identifier
-      since: 1h             # Only messages from last hour
-    avatar: "path/to/avatar.png"  # Optional UI avatar
+    # Session & History
+    session:
+      name: "analysis_session"
+      since: "1h"  # Only load messages from last hour
+      roles: ["user", "assistant"]  # Only specific message types
 
-    # Capabilities
+    # Capabilities (role-based permissions)
     capabilities:
       can_delegate_tasks: true
       can_load_resources: true
+      can_register_tools: true
       history_access: "own"  # "none" | "own" | "all"
-      # ... other capability settings
+      stats_access: "all"
 
-    # Environment & Resources
+    # Environment configuration
     environment:
-      type: "file"  # or "inline"
-      uri: "environments/analyzer.yml"
+      type: "inline"  # or "file" for external config
+      tools:
+        analyze_complexity:
+          import_path: "radon.complexity"
+          description: "Calculate code complexity"
+        run_linter:
+          import_path: "pylint.lint"
+          description: "Run code linting"
+      resources:
+        coding_standards:
+          type: "text"
+          content: "PEP8 guidelines..."
 
-    # Knowledge configuration
+    # Knowledge sources
     knowledge:
-      paths: ["docs/**/*.md"]
+      paths: ["docs/**/*.md"]  # Glob patterns for files
       resources:
         - type: "repository"
           url: "https://github.com/user/repo"
@@ -236,14 +252,16 @@ agents:
         - type: "file"
           path: "prompts/analysis.txt"
 
-    # MCP integration
+    # MCP Server integration
     mcp_servers:
       - type: "stdio"
         command: "python"
         args: ["-m", "mcp_server"]
+        environment:
+          DEBUG: "1"
       - "python -m other_server"  # shorthand syntax
 
-    # Agent relationships
+    # Worker agents (specialists)
     workers:
       - name: "formatter"
         reset_history_on_run: true
@@ -251,44 +269,104 @@ agents:
         share_context: false
       - "linter"  # shorthand syntax
 
-    # Message routing
+    # Message forwarding
     connections:
       - type: "agent"
         name: "reporter"
         connection_type: "run"  # "run" | "context" | "forward"
+        priority: 1
+        queued: true
+        queue_strategy: "latest"
+        transform: "my_module.transform_func"
         wait_for_completion: true
-
-    # Event handling
+        filter_condition:  # When to forward messages
+          type: "word_match"
+          words: ["error", "warning"]
+          case_sensitive: false
+        stop_condition:  # When to disconnect
+          type: "message_count"
+          max_messages: 100
+          count_mode: "total"  # or "per_agent"
+        exit_condition:  # When to exit application
+          type: "cost_limit"
+          max_cost: 10.0
+    # Event triggers
     triggers:
       - type: "file"
         name: "code_change"
         paths: ["src/**/*.py"]
         extensions: [".py"]
-        recursive: true
+        debounce: 1000  # ms
 
-  # Additional agents...
+# Response type definitions
+responses:
+  AnalysisResult:
+    type: "inline"
+    description: "Code analysis result format"
+    fields:
+      severity: {type: "str"}
+      issues: {type: "list[str]"}
+
+  ComplexResult:
+    type: "import"
+    import_path: "myapp.types.ComplexResult"
+
+# Storage configuration
+storage:
+  providers:
+    - type: "sql"
+      url: "sqlite:///history.db"
+      pool_size: 5
+    - type: "text_file"
+      path: "logs/chat.log"
+      format: "chronological"
+  log_messages: true
+  log_conversations: true
+  log_tool_calls: true
+  log_commands: true
+
+# Pre-defined jobs
+jobs:
+  analyze_code:
+    name: "Code Analysis"
+    description: "Analyze code quality"
+    prompt: "Analyze this code: {code}"
+    required_return_type: "AnalysisResult"
+    knowledge:
+      paths: ["src/**/*.py"]
+    tools: ["analyze_complexity", "run_linter"]
 ```
 
-### Running Your First Agent
+You can use an Agents manifest in multiple ways:
 
-1. Save configuration file:
-   - `agents.yml` - Agent configuration
+- Use it for CLI sessions
 
-
-2. Start chatting with your agent:
 ```bash
 llmling-agent chat --config agents.yml system_checker
 ```
 
-3. Or run it programmatically (in general, pool usage is recommended though, see the following section):
+- Run it using the CLI
+
+```bash
+llmling-agent run --config agents.yml system_checker "Some prompt"
+```
+
+- Use the defined Agent programmatically
 
 ```python
 from llmling_agent import Agent
 
 async with Agent.open_agent("agents.yml", "system_checker") as agent:
-    result = await agent.run("How much memory is available?")
+    result = await agent.run("User prompt!")
     print(result.data)
 ```
+
+- Start a watch mode and react to triggers
+
+```bash
+llmling-agent watch --config agents.yml
+```
+
 
 ### Agent Pool: Multi-Agent Coordination
 
@@ -298,15 +376,12 @@ The `AgentPool` allows multiple agents to work together on tasks. Here's a pract
 # agents.yml
 agents:
   file_getter_1:
-    name: "File Downloader 1" # Agent name (can be anything unique)
-    description: "Downloads files from URLs"
-    model: openai:gpt-4o-mini  # Language model to use, takes pydantic-ai model names
-    environment: # Environment configuration (can also be external YAML file)
-      type: inline
+    name: "File Downloader 1"
+    model: openai:gpt-4o-mini
+    environment:
       tools:
-        download_file:  # Simple httpx-based download utility
-        import_path: llmling_agent_tools.download_file
-        description: "Download file from URL to local path"
+        download_file:
+          import_path: llmling_agent_tools.download_file
     system_prompts:
       - |
         You are a download specialist. Just use the download_file tool
@@ -341,66 +416,193 @@ async def main():
             "Download https://example.com/file.zip using both getters..."
         )
 
+### Advanced Connection Features
 
-#### Features
+Connections between agents are highly configurable and support various patterns:
 
-- **Team Tasks**: Run tasks across multiple agents either sequentially or in parallel
-- **Agent Cloning**: Create variations of agents with different configurations
-- **Resource Sharing**: Agents in a pool can share resources and tools
-- **Overseer Pattern**: Use overseer agents to coordinate specialist agents
-- **Built-in Collaboration**: Tools for delegation, brainstorming, and debates
+```python
+# Basic connection
+connection = agent_a >> agent_b  # Forward all messages
 
-#### Configuration
+# Queued connection (manual processing)
+connection = agent_a.pass_results_to(
+    agent_b,
+    queued=True,
+    queue_strategy="latest",  # or "concat", "buffer"
+)
+await connection.trigger()  # Process queued messages
 
-The pool is configured through an agents manifest (YAML):
+# Filtered connection
+connection = agent_a.pass_results_to(
+    agent_b,
+    filter_condition={
+        "type": "word_match",
+        "words": ["error", "warning"],
+    }
+)
+
+# Conditional disconnection
+connection = agent_a.pass_results_to(
+    agent_b,
+    stop_condition={
+        "type": "message_count",
+        "max_messages": 100,
+    }
+)
+
+# Message transformation
+async def transform_message(message: str) -> str:
+    return f"Transformed: {message}"
+
+connection = agent_a.pass_results_to(
+    agent_b,
+    transform=transform_message
+)
+
+# Connection statistics
+print(f"Messages processed: {connection.stats.message_count}")
+print(f"Total tokens: {connection.stats.token_count}")
+print(f"Total cost: ${connection.stats.total_cost:.2f}")
+```
+
+### Team Operations
+
+Teams allow coordinating multiple agents efficiently:
+
+```python
+async with AgentPool() as pool:
+    # Create a team
+    team = pool.create_team(["analyzer", "planner", "executor"])
+
+    # Run in parallel
+    results = await team.run_parallel("Analyze this project")
+
+    # Run sequentially (chain)
+    results = await team.run_sequential("Improve this code")
+
+    # Custom execution monitoring
+    async def monitor_progress(stats: TeamRunStats):
+        print(f"Active agents: {stats.active_agents}")
+        print(f"Messages: {stats.message_counts}")
+
+    execution = team.monitored("parallel")
+    execution.monitor(monitor_progress, interval=1.0)
+    await execution.run("Complex task...")
+```
+
+### Human-in-the-Loop Integration
+
+LLMling-Agent offers multiple levels of human integration:
+
+```python
+# Provider-level human integration
+from llmling_agent import Agent
+
+async with Agent.open("config.yml") as agent:
+    agent.provider = "human"  # Switch to human provider
+    result = await agent.run("What should we do?")
+```
+
+```yaml
+# Or via YAML configuration
+agents:
+  human_agent:
+    type: "human"  # Complete human control
+    timeout: 300  # Optional timeout in seconds
+    show_context: true  # Show conversation context
+```
+
+You can also use LLMling-models for more sophisticated human integration:
+- Remote human operators via network
+- Hybrid human-AI workflows
+- Input streaming support
+- Custom UI integration
+
+### Capability System
+
+Fine-grained control over agent permissions:
+
+```python
+agent.capabilities.can_load_resources = True
+agent.capabilities.history_access = "own"  # "none" | "own" | "all"
+```
 
 ```yaml
 agents:
-  agent_1:
-    model: openai:gpt-4
-    # ... agent-specific config
-
-  agent_2:
-    model: openai:gpt-4
-    # ... agent-specific config
-
-  overseer:
-    model: openai:gpt-4
-    # ... overseer config
+  restricted_agent:
+    capabilities:
+      can_delegate_tasks: false
+      can_register_tools: false
+      history_access: "none"
 ```
 
-Each agent can have its own:
-- Model configuration
-- Role and capabilities
-- Tools and resources
-- System prompts and behavior settings
+### Event-Driven Automation
 
-### Message Forwarding
-
-LLMling Agent supports message forwarding between agents, allowing creation of agent chains and networks.
-When an agent processes a message, it can forward it to other agents for further processing:
+React to file changes, webhooks, and more:
 
 ```python
-# Create two agents
-async with Agent.open_agent("agents.yml", "analyzer") as agent_a, \
-          Agent.open_agent("agents.yml", "reviewer") as agent_b:
+# File watching
+agent.events.add_source({
+    "type": "file",
+    "paths": ["src/**/*.py"],
+    "debounce": 1000,
+})
 
-    # Let agent_a pass its results to agent_b
-    connection = agent_a.pass_results_to(agent_b)
-
-    # Start the chain - agent_b will process agent_a's output
-    await agent_a.run("Analyze this code")
-    await agent_b.complete_tasks()  # Optinally wait for agent_b to finish
+# Webhook endpoint (coming soon)
+agent.events.add_source({
+    "type": "webhook",
+    "path": "/hooks/github",
+    "port": 8000,
+})
 ```
 
-Each agent in the chain can:
-1. Process the incoming message
-2. Access the source agent as a dependency
-3. Forward its own response to other agents
+### Multi-Modal Support
 
-This enables simple creation of agent chains.
-The connection objects are highly configurable and observable, they even allow routing!
+Handle images and PDFs alongside text (depends on provider / model support)
 
+```python
+import PIL.Image
+from llmling_agent import Agent
+
+async with Agent.open() as agent:
+    image = PIL.Image.open("image.jpg")
+    result = await agent.run("What's in this image?", image)
+    result = await agent.run("What's in this PDF?", pathlib.Path("document.pdf"))
+```
+
+### Command System
+
+Extensive slash commands available in all interfaces:
+
+```bash
+/list-tools              # Show available tools
+/enable-tool tool_name   # Enable specific tool
+/connect other_agent     # Forward results
+/model gpt-4            # Switch models
+/history search "query"  # Search conversation
+/stats                   # Show usage statistics
+```
+
+### Storage & Analytics
+
+Track all interactions with flexible storage:
+
+```python
+# Query conversation history
+messages = await agent.conversation.filter_messages(
+    SessionQuery(
+        since="1h",
+        contains="error",
+        roles={"user", "assistant"},
+    )
+)
+
+# Get usage statistics
+stats = await agent.context.storage.get_conversation_stats(
+    group_by="model",
+    period="24h",
+)
+```
 
 
 
