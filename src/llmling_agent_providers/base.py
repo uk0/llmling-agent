@@ -77,6 +77,7 @@ class AgentProvider[TDeps]:
         name: str = "agent",
         debug: bool = False,
     ):
+        super().__init__()
         self._name = name
         self._model = model
         self._tool_manager: ToolManager | None = None
