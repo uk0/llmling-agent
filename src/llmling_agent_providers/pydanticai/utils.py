@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 from pydantic_ai import messages as _messages
 from pydantic_ai.messages import (
@@ -111,7 +112,7 @@ def parts_to_tool_call_info(
         tool_name=call_part.tool_name,
         args=args,
         result=return_part.content,
-        tool_call_id=call_part.tool_call_id,
+        tool_call_id=call_part.tool_call_id or str(uuid4()),
         timestamp=return_part.timestamp,
         context_data=context_data,
         agent_tool_name=tool_info.agent_name if tool_info else None,
@@ -171,7 +172,7 @@ def convert_model_message(
                 tool_name=message.tool_name,
                 args=args,
                 result=None,  # Not available yet
-                tool_call_id=message.tool_call_id,
+                tool_call_id=message.tool_call_id or str(uuid4()),
             )
             content = f"Tool call: {message.tool_name}\nArgs: {args}"
             return ChatMessage(content=content, role="assistant", tool_calls=[info])
@@ -181,7 +182,7 @@ def convert_model_message(
                 tool_name=message.tool_name,
                 args={},  # No args in return part
                 result=message.content,
-                tool_call_id=message.tool_call_id,
+                tool_call_id=message.tool_call_id or str(uuid4()),
                 timestamp=message.timestamp,
             )
             content = f"Tool {message.tool_name} returned: {message.content}"

@@ -33,12 +33,7 @@ from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context
 from llmling_agent.utils.tasks import TaskManagerMixin
-from llmling_agent_providers import (
-    AgentProvider,
-    CallbackProvider,
-    HumanProvider,
-    PydanticAIProvider,
-)
+from llmling_agent_providers.base import AgentProvider
 
 
 if TYPE_CHECKING:
@@ -259,6 +254,8 @@ class Agent[TDeps](TaskManagerMixin):
         # Initialize provider
         match provider:
             case "pydantic_ai":
+                from llmling_agent_providers.pydanticai import PydanticAIProvider
+
                 if model and not isinstance(model, str):
                     from pydantic_ai import models
 
@@ -272,8 +269,12 @@ class Agent[TDeps](TaskManagerMixin):
                     debug=debug,
                 )
             case "human":
+                from llmling_agent_providers.human import HumanProvider
+
                 self._provider = HumanProvider(name=name, debug=debug)
             case Callable():
+                from llmling_agent_providers.callback import CallbackProvider
+
                 self._provider = CallbackProvider(provider, name=name, debug=debug)
             case "litellm":
                 from llmling_agent_providers.litellm_provider import LiteLLMProvider
@@ -538,8 +539,12 @@ class Agent[TDeps](TaskManagerMixin):
             case AgentProvider():
                 self._provider = value
             case "pydantic_ai":
+                from llmling_agent_providers.pydanticai import PydanticAIProvider
+
                 self._provider = PydanticAIProvider(model=model)
             case "human":
+                from llmling_agent_providers.human import HumanProvider
+
                 self._provider = HumanProvider()
             case "litellm":
                 from llmling_agent_providers.litellm_provider import LiteLLMProvider
