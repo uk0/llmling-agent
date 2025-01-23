@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from llmling_models.model_types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, ImportString
-from pydantic_ai.agent import EndStrategy  # noqa: TC002
+
+from llmling_agent.common_types import EndStrategy  # noqa: TC001
 
 
 if TYPE_CHECKING:

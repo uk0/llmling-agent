@@ -43,7 +43,6 @@ if TYPE_CHECKING:
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
     import PIL.Image
-    from pydantic_ai.agent import EndStrategy
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
@@ -52,6 +51,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import (
         AnyTransformFn,
         AsyncFilterFn,
+        EndStrategy,
         ModelType,
         SessionIdType,
         StrPath,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, overload
 
 from psygnal.containers import EventedList
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
     import os
 
     import PIL.Image
+    from tokonomics.pydanticai_cost import Usage
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
@@ -284,8 +286,14 @@ class Team[TDeps](TaskManagerMixin):
                     self.is_complete = False
                     self.model_name = None
 
-                def usage(self) -> dict[str, int] | None:
-                    return None
+                def usage(self) -> Usage:
+                    @dataclass
+                    class Usage:
+                        total_tokens: int | None
+                        request_tokens: int | None
+                        response_tokens: int | None
+
+                    return Usage(0, 0, 0)
 
                 async def stream(self) -> AsyncIterator[str]:  # type: ignore
                     for idx, stream in enumerate(self.streams):

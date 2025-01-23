@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from contextlib import AbstractAsyncContextManager
 
+    from tokonomics.pydanticai_cost import Usage
+
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelProtocol, ModelType
     from llmling_agent.models.content import Content
@@ -54,7 +56,7 @@ class StreamingResponseProtocol[TResult](Protocol):
         """Stream individual chunks as they arrive."""
         ...
 
-    def usage(self) -> dict[str, int] | None:
+    def usage(self) -> Usage:
         """Get token usage statistics if available."""
         ...
 

@@ -21,13 +21,13 @@ from llmling import (
 from llmling.utils.importing import import_callable
 from llmling_models.model_types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from pydantic_ai.agent import EndStrategy  # noqa: TC002
 from pydantic_ai.models.test import TestModel
 from toprompt import render_prompt
 from typing_extensions import TypeVar
 from upath.core import UPath
 import yamling
 
+from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.config import Capabilities, Knowledge
 from llmling_agent.environment import AgentEnvironment, FileEnvironment, InlineEnvironment
 from llmling_agent.events.sources import EventConfig  # noqa: TC001
