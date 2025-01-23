@@ -99,7 +99,7 @@ Agents can run continuously:
 
 ```python
 # Run with static prompt
-await agent.run_continuous(
+await agent.run_in_background(
     "Monitor the system",
     interval=60,
     max_count=10
@@ -109,7 +109,7 @@ await agent.run_continuous(
 def get_prompt(ctx):
     return f"Check status of {ctx.data.system}"
 
-await agent.run_continuous(get_prompt)
+await agent.run_in_background(get_prompt)
 ```
 
 ## Other Features

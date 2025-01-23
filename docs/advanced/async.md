@@ -93,7 +93,7 @@ Some operations can run in the background while maintaining async safety:
 
 ```python
 # Continuous background processing
-await agent.run_continuous(
+await agent.run_in_background(
     "Monitor this",
     interval=5.0,
     block=False  # runs in background

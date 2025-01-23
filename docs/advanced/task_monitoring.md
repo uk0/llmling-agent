@@ -7,30 +7,29 @@ The Team class provides different ways to execute tasks across multiple agents. 
 The Team class offers three primary execution modes:
 
 ```python
-# Simple parallel execution
+# Simple parallel run
 result = await team.run_parallel("Analyze this text")
 
-# Sequential execution
+# Sequential run
 result = await team.run_sequential("Process in order")
 
 ```
 
 ## Monitored Execution
 
-For more complex scenarios where you need to track execution progress, use the monitored interface:
+For more complex scenarios where you need to track progress, use the monitored interface:
 
 ```python
 # Create monitored execution
-execution = team.monitored("parallel")  # or "sequential"
+run = team.monitored("parallel")  # or "sequential"
 
 # Start in background
-execution.start_background("Task to execute")
+connection = run.run_in_background("Task to execute")
 
-# Monitor progress
-execution.monitor(on_stats_update)  # provide callback for updates
+# do something with connection....
 
 # Wait for completion
-result = await execution.wait()
+result = await run.wait()
 ```
 
 ### The Monitor Object
@@ -50,7 +49,7 @@ This happens asynchronously without blocking the main execution.
 The TeamRunStats object provides a complete view of the execution state:
 
 ```python
-stats = execution.stats
+stats = run.stats
 
 # Raw data
 stats.received_messages  # All messages received by agents
@@ -71,19 +70,19 @@ stats.duration       # Time elapsed
 The execution object provides several control methods:
 
 ```python
-# Start execution
-execution.start_background(prompt)  # Non-blocking start
-await execution.start(prompt)       # Direct start
+# Start pipeline
+run.run_in_background(prompt)  # Non-blocking start
+await run.run(prompt)       # Direct start
 
 # Monitor progress
-execution.monitor(callback)         # Register update callback
+run.monitor(callback)         # Register update callback
 
 # Check state
-execution.is_running               # Whether still processing
+run.is_running               # Whether still processing
 
-# Control execution
-await execution.wait()            # Wait for completion
-await execution.cancel()          # Cancel execution
+# Control run
+await run.wait()            # Wait for completion
+await run.cancel()          # Cancel run
 ```
 
 ### Example: Progress Monitoring
@@ -94,10 +93,10 @@ async def on_stats_update(stats: TeamRunStats):
     print(f"Messages processed: {stats.message_counts}")
     print(f"Tools used: {stats.tool_counts}")
 
-execution = team.monitored("parallel")
-execution.start_background("Task")
-execution.monitor(on_stats_update)
-result = await execution.wait()
+run = team.monitored("parallel")
+run.run_in_background("Task")
+run.monitor(on_stats_update)
+result = await run.wait()
 ```
 
 ### Cleanup
@@ -118,11 +117,11 @@ The execution system integrates with TaskManagerMixin to provide:
 ## Summary
 
 The monitoring system provides a flexible way to:
-- Track execution progress
-- Collect execution metrics
+- Track run progress
+- Collect run metrics
 - Monitor agent activity
 - Analyze tool usage
 - Handle errors
-- Control execution flow
+- Control run flow
 
 All while maintaining asynchronous operation and proper resource management.

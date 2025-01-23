@@ -131,7 +131,7 @@ async def run(config_path: str):
         progress = CheerProgress()
 
         # we pass a callback to keep the fan up-to-date. CheerProgress is our state object
-        await fan.run_continuous(progress.create_prompt)
+        await fan.run_in_background(progress.create_prompt)
         # now lets do some downloading. After each sequence, we tell the fan about the
         # duration so he can adapt his cheering to the current happenings.
         progress.update("Sequential downloads starting - let's see how they do!")

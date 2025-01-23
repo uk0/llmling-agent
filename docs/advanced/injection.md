@@ -177,7 +177,7 @@ async def monitor_system(
     watcher: Agent[None],
     alerter: Agent[None],
 ):
-    await watcher.run_continuous(
+    await watcher.run_in_background(
         "Check system status",
         interval=300,  # every 5 minutes
         max_count=None,  # run indefinitely

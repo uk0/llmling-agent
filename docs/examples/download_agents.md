@@ -110,7 +110,7 @@ async def run():
         progress = CheerProgress()
 
         # Start continuous fan support in background
-        await fan.run_continuous(progress.create_prompt)
+        await fan.run_in_background(progress.create_prompt)
 
         # Sequential downloads
         progress.update("Sequential downloads starting - let's see how they do!")

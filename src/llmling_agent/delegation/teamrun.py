@@ -84,15 +84,26 @@ class TeamRun[TDeps](TaskManagerMixin):
                 self.team.agents.extend(other.team.agents)
         return self
 
-    async def start(
+    async def run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         **kwargs: Any,
     ) -> TeamResponse:
         """Start execution with optional monitoring."""
-        return await self._execute(*prompts, **kwargs)
+        self._team_talk = ExtendedTeamTalk()
+        try:
+            match self.mode:
+                case "parallel":
+                    return await self._run_parallel(*prompts)
+                case "sequential":
+                    return await self._run_sequential(*prompts)
+                case _:
+                    msg = f"Invalid mode: {self.mode}"
+                    raise ValueError(msg)
+        finally:
+            pass
 
-    def start_background(
+    def run_in_background(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         **kwargs: Any,
@@ -100,7 +111,7 @@ class TeamRun[TDeps](TaskManagerMixin):
         if self._main_task:
             msg = "Execution already running"
             raise RuntimeError(msg)
-        coro = self.start(*prompts, **kwargs)
+        coro = self.run(*prompts, **kwargs)
         self._main_task = self.create_task(coro, name="main_execution")
         return self._team_talk
 
@@ -123,33 +134,6 @@ class TeamRun[TDeps](TaskManagerMixin):
         if self._main_task:
             self._main_task.cancel()
         await self.cleanup_tasks()
-
-    async def run(
-        self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
-        **kwargs: Any,
-    ) -> TeamResponse:
-        """Execute directly without monitoring."""
-        return await self._execute(*prompts, **kwargs)
-
-    async def _execute(
-        self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
-        **kwargs: Any,
-    ) -> TeamResponse:
-        """Common execution logic."""
-        self._team_talk = ExtendedTeamTalk()
-        try:
-            match self.mode:
-                case "parallel":
-                    return await self._run_parallel(*prompts)
-                case "sequential":
-                    return await self._run_sequential(*prompts)
-                case _:
-                    msg = f"Invalid mode: {self.mode}"
-                    raise ValueError(msg)
-        finally:
-            pass
 
     @property
     def stats(self) -> ExtendedTeamTalk:
@@ -274,23 +258,23 @@ if __name__ == "__main__":
 
             # Create team and get monitored execution
             team = agent1 & agent2 & agent3
-            execution = team.monitored(mode="sequential")
+            run = team.monitored(mode="sequential")
 
             text = "The quick brown fox jumps over the lazy dog."
             print(f"\nProcessing text: {text}\n")
 
-            # Start execution and get stats object (ExtendedTeamTalk)
-            stats = execution.start_background(text)
+            # Start run and get stats object (ExtendedTeamTalk)
+            stats = run.run_in_background(text)
 
             # Poll stats while running
-            while execution.is_running:
+            while run.is_running:
                 print("\nCurrent status:")
                 print(f"Number of active connections: {len(stats)}")
                 print("Errors:", len(stats.errors))
                 await asyncio.sleep(0.5)
 
             # Wait for completion and get results
-            result = await execution.wait()
+            result = await run.wait()
             print("\nFinal Results:")
             for resp in result:
                 print(f"\n{resp.agent_name}:")

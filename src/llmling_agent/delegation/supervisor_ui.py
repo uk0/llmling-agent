@@ -107,7 +107,7 @@ if __name__ == "__main__":
             analyzer = await pool.add_agent("analyzer", model=model, system_prompt=prompt)
             prompt = "You are a hippie."
             _planner = await pool.add_agent("planner", model=model, system_prompt=prompt)
-            await analyzer.run_continuous("Tell a joke", max_count=5, interval=10)
+            await analyzer.run_in_background("Tell a joke", max_count=5, interval=10)
             pool.start_supervision()
 
     try:

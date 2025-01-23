@@ -75,7 +75,7 @@ for response in results:
 Get stats while run is executing in background:
 ```python
 # Start run and get stats object
-stats = run.start_background("Process this task")
+stats = run.run_in_background("Process this task")
 
 # Monitor progress by polling stats
 while run.is_running:

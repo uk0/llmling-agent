@@ -1241,7 +1241,7 @@ class Agent[TDeps](TaskManagerMixin):
             logger.exception(msg)
             raise JobError(msg) from e
 
-    async def run_continuous(
+    async def run_in_background(
         self,
         prompt: AnyPromptType,
         *,

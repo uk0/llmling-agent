@@ -44,8 +44,8 @@ async def test_agent_piping_with_monitoring():
 
     pipeline = agent1 | transform
 
-    # Get stats object directly from start_background
-    stats = pipeline.start_background("test")
+    # Get stats object directly from run_in_background
+    stats = pipeline.run_in_background("test")
 
     # Monitor progress
     updates = []
