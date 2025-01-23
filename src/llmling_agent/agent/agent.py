@@ -548,6 +548,10 @@ class Agent[TDeps](TaskManagerMixin):
                 from llmling_agent_providers.litellm_provider import LiteLLMProvider
 
                 self._provider = LiteLLMProvider(model=model)
+            case Callable():
+                from llmling_agent_providers.callback import CallbackProvider
+
+                self._provider = CallbackProvider(value)
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
