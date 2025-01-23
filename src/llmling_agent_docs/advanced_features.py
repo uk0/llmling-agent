@@ -80,7 +80,7 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/advanced/agent_state.md")
 
 
-@nav.route.page("Document conversion", icon="octicon:file-symlink-16")
+@nav.route.page("Document conversion", icon="octicon:project-symlink-16")
 def _(page: mk.MkPage):
     """Document conversion."""
     page += mk.MkTemplate("docs/advanced/document_conversion.md")

@@ -36,17 +36,18 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 
 ## ✨ Unique Features
 - 🔄 Modern python written from ground up with Python 3.12
-- ⚡ True async framework. Easy set-up of complex async agent flows. Faster initializations of "heavy" agents (and first experimentations with async "UI", supervision of Agents in real-time)
+- ⚡ True async framework. Easy set-up of complex async agent flows. Faster initializations of "heavy" agents (and first experimentations with async UI supervision f Agents in real-time)
 - 📝 Easy consistent APIs
 - 🛡️ Complete agent defintion via YAML files including extensive JSON schema to help with creating configurations.
 - 🔒 Leveraging the complete pydantic-based type-safe stack and bringing it to the multi-agent world
 - 🎮 Complete integrated command sytem to control agents from prompt-based interfaces
 - 🔌 Agent MCP server support, initialized when entering the async context.
-- 👁️ Multi-modal support for both LiteLLM and Pydantic-AI (currently Images only)
+- 👁️ Multi-modal support for both LiteLLM and Pydantic-AI (currently Images and PDFs if model support is given)
 - 💾 Storage providers to allow writing to local files, databases, etc. with many customizable backends. Log to SQL databases and pretty-print to a file according to your own wishes.
-- 🧩 Support for creating prompts for many common python type(s / instances). Your agent understands common datatypes.
+- 🧩 Support for creating "description prompts" for many common python type(s / instances). Your agent understands common datatypes.
+- 🔗 Unique powerful connection-based messaging approach for object-oriented routing and observation.
 - 🎯 Integration of Meta-Model system based on [LLMling-models](https://github.com/phil65/llmling-models), also configurable via YAML.
-- 🔐 Structured responses. With pydantic-AI at its core, the Agents allow injecting dependencies as well as defining a return type while keeping type safety.
+- 🔐 Deep integration of structured responses into workflows and (generic) typing system.
 - 📋 Response type definition via YAML. Structured response Agents can be defined in the agent config.
 - 🛡️ Capabilites system allowing runtime modifications and "special" commands (on-the-fly agent generation, history lookups)
 - 📊 Complete database logging of Agent interactions including easy recovery based on query parameters.
@@ -70,28 +71,21 @@ Why another framework you may ask? The framework stands out through three core p
 
 
 #### 🛡️ Type Safety and Structure
-Unlike other frameworks that rely on free-form text exchanges, LLMling-agent enforces type safety throughout the entire agent interaction chain. From input validation to structured outputs, every data flow is typed and validated, making it significantly more reliable for production systems.
+Unlike other frameworks that rely on free-form text exchanges, LLMling-agent enforces type safety throughout the entire agent interaction chain.
+From input validation to structured outputs, every data flow is typed and validated, making it significantly more reliable for production systems.
+
+#### 💬 Object-oriented async messaging and routing system
+A powerful approach to messaging using Connection ("Talk") objects which allow all kind of new patterns for async agent communication
 
 #### ⚙️ Rich Configuration System
-While other frameworks require extensive Python code for setup, LLMling-agent introduces a comprehensive YAML configuration system. This allows defining complex agent behaviors, capabilities, and interactions declaratively. The configuration supports inheritance, composition, and strong validation, making it easier to manage large-scale agent deployments.
+While other frameworks require extensive Python code for setup, LLMling-agent introduces a comprehensive YAML configuration system.
+This allows defining complex agent behaviors, capabilities, and interactions declaratively.
+The configuration supports inheritance, composition, and strong validation, making it easier to manage large-scale agent deployments.
 
 #### 🤝 Human-AI Collaboration
-Instead of choosing between fully autonomous or human-controlled operations, LLMling-agent offers flexible human-in-the-loop integration. From full human control to selective oversight of critical actions, the framework makes it natural to build systems that combine AI capabilities with human expertise.
-
-
-### Comparison with Other Frameworks
-
-**AutoGen** focuses on autonomous multi-agent conversations, making it great for research and exploration but less suited for production systems that need strict controls and validation.
-
-**CrewAI** emphasizes sequential task execution with role-based agents, providing good structure but less flexibility in agent interactions and limited type safety.
-
-**LLMling-agent** takes the best from both:
-- AutoGen's flexible agent communication patterns
-- CrewAI's structured task execution
-- And adds:
-  - End-to-end type safety leveraging the whole pydantic-stack
-  - Rich YAML configuration which goes way beyond what CrewAI offers
-  - Human oversight capabilities in many different forms
+Instead of choosing between fully autonomous or human-controlled operations, LLMling-agent offers flexible human-in-the-loop integration.
+From full human control to selective oversight of critical actions, or hooking in remotely via Network,
+the framework makes it natural to build systems that combine AI capabilities with human supervision and interaction.
 
 
 ## Quick Start
@@ -105,6 +99,7 @@ uvx llmling-agent quickstart openai:gpt-4o-mini
 This creates a temporary agent ready for chat - no configuration needed!
 The according API keys need to be set as environment variables.
 
+Use `help` to see what commands are at your disposal.
 
 ## Provider support
 
@@ -181,8 +176,9 @@ llmling-agent run assistant --config agents.yml "whats your favourite holiday de
 llmling-agent quickstart --model openai:gpt-4o-mini
 # Create browser assistant
 /create-agent browser --system-prompt "Open Wikipedia pages matching the topics you receive." --tools webbrowser.open
-# Connect and try it
+# Connect the agents
 /connect browser
+# Speak to the main agent, which will auto-forward.
 > What's your favorite holiday destination?
 ```
 
@@ -400,7 +396,7 @@ agents:
     environment:
       tools:
         download_file:
-          import_path: llmling_agent_tools.download_file
+          import_path: llmling_agent_tools.download_file  # a simple httpx based async callable
     system_prompts:
       - |
         You are a download specialist. Just use the download_file tool
@@ -436,37 +432,39 @@ async def main():
         result = await overseer.run(
             "Download https://example.com/file.zip by delegating to all workers available!"
         )
+```
 
 ### Advanced Connection Features
 
 Connections between agents are highly configurable and support various patterns:
 
 ```python
-# Basic connection
+# Basic connection in shorthand form.
 connection = agent_a >> agent_b  # Forward all messages
 
-# Queued connection (manual processing)
+# Extended setup: Queued connection (manual processing)
 connection = agent_a.pass_results_to(
     agent_b,
     queued=True,
     queue_strategy="latest",  # or "concat", "buffer"
 )
-await connection.trigger(optional_additional_prompt)  # Process queued messages
+# messages can queue up now
+await connection.trigger(optional_additional_prompt)  # Process queued messages sequentially
 
-# Filtered connection
+# Filtered connection (example: filter by keyword):
 connection = agent_a.pass_results_to(
     agent_b,
-    filter_condition=lambda message, target_agent, stats: stats.total_cost < 10.0,
+    filter_condition=lambda message, target_agent, stats: "keyword" in message,
 )
 
-# Conditional disconnection
+# Conditional disconnection (example: disconnect after cost limit):
 connection = agent_a.pass_results_to(
     agent_b,
-    filter_condition=lambda _, _, stats: stats.message_count > 10,
+    filter_condition=lambda _, _, stats: stats.total_cost > 1.0,
 
 )
 
-# Message transformation
+# Message transformations
 async def transform_message(message: str) -> str:
     return f"Transformed: {message}"
 
@@ -478,28 +476,6 @@ print(f"Total tokens: {connection.stats.token_count}")
 print(f"Total cost: ${connection.stats.total_cost:.2f}")
 ```
 
-### Team Operations
-
-Teams allow coordinating multiple agents efficiently.
-They represent a parallel execution group.
-
-```python
-async with AgentPool() as pool:
-    # Create a team
-    team = pool.create_team(["analyzer", "planner", "executor"])
-
-    # Run in parallel
-    results = await team.run_parallel("Analyze this project")
-
-    # Custom execution monitoring
-    async def monitor_progress(stats: TeamRunStats):
-        print(f"Active agents: {stats.active_agents}")
-        print(f"Messages: {stats.message_counts}")
-
-    execution = team.monitored("parallel")
-    execution.monitor(monitor_progress, interval=1.0)
-    await execution.run("Complex task...")
-```
 
 ### Human-in-the-Loop Integration
 
@@ -569,8 +545,8 @@ import PIL.Image
 from llmling_agent import Agent
 
 async with Agent.open() as agent:
-    image = PIL.Image.open("image.jpg")
-    result = await agent.run("What's in this image?", image)
+    result = await agent.run("What's in this image?", PIL.Image.open("image.jpg"))
+    result = await agent.run("What's in this image?", pathlib.Path("image.jpg"))
     result = await agent.run("What's in this PDF?", pathlib.Path("document.pdf"))
 ```
 
@@ -589,7 +565,7 @@ Extensive slash commands available in all interfaces:
 
 ### Storage & Analytics
 
-All interaction is tracked using configurable storage providers.
+All interaction is tracked using (multiple) configurable storage providers.
 Information can get fetched programmatically or via CLI.
 
 ```python

@@ -82,6 +82,9 @@ plugins:
 markdown_extensions:
   - attr_list
   - pymdownx.emoji
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
   - toc:
       permalink: true
 
