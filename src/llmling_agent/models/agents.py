@@ -6,7 +6,7 @@ from datetime import datetime
 from functools import cached_property
 import logging
 from typing import TYPE_CHECKING, Any, Literal, Self
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from llmling import (
     BasePrompt,
@@ -759,7 +759,7 @@ class ToolCallInfo(BaseModel):
     result: Any
     """Result returned by the tool."""
 
-    tool_call_id: str | None
+    tool_call_id: str = Field(default_factory=lambda: str(uuid4()))
     """ID provided by the model (e.g. OpenAI function call ID)."""
 
     timestamp: datetime = Field(default_factory=datetime.now)
