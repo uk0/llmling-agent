@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
     from llmling_agent.delegation.team import Team
+    from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.models.agents import AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.session import SessionQuery
@@ -171,6 +172,69 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self.clear()
 
     @overload
+    def create_team_run(
+        self,
+        agents: Sequence[str],
+        validator: AnyAgent[Any, Any] | None = None,
+        *,
+        model_override: str | None = None,
+        shared_prompt: str | None = None,
+    ) -> TeamRun[TPoolDeps, Any]: ...
+
+    @overload
+    def create_team_run[TDeps](
+        self,
+        agents: Sequence[AnyAgent[TDeps, Any]],
+        validator: AnyAgent[Any, Any] | None = None,
+        *,
+        model_override: str | None = None,
+        shared_prompt: str | None = None,
+    ) -> TeamRun[TDeps, Any]: ...
+
+    @overload
+    def create_team_run(
+        self,
+        agents: Sequence[AgentName | AnyAgent[Any, Any]],
+        validator: AnyAgent[Any, Any] | None = None,
+        *,
+        model_override: str | None = None,
+        shared_prompt: str | None = None,
+    ) -> TeamRun[Any, Any]: ...
+
+    def create_team_run(
+        self,
+        agents: Sequence[AgentName | AnyAgent[Any, Any]] | None = None,
+        validator: AnyAgent[Any, Any] | None = None,
+        *,
+        model_override: str | None = None,
+        shared_prompt: str | None = None,
+    ) -> TeamRun[Any, Any]:
+        """Create a a sequential TeamRun from a list of Agents.
+
+        Args:
+            agents: List of agent names or instances (all if None)
+            validator: Agent to validate the results of the TeamRun
+            model_override: Optional model to use for all agents
+            shared_prompt: Optional prompt for all agents
+        """
+        from llmling_agent.delegation.teamrun import TeamRun
+
+        if agents is None:
+            agents = list(self.agents.keys())
+
+        # First resolve/configure agents
+        resolved_agents: list[AnyAgent[Any, Any]] = []
+        for agent in agents:
+            if isinstance(agent, str):
+                agent = self.get_agent(agent, model_override=model_override)
+            resolved_agents.append(agent)
+        return TeamRun(
+            agents=resolved_agents,
+            validator=validator,
+            shared_prompt=shared_prompt,
+        )
+
+    @overload
     def create_team(
         self,
         agents: Sequence[str],
@@ -191,7 +255,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
     @overload
     def create_team(
         self,
-        agents: Sequence[str | AnyAgent[Any, Any]],
+        agents: Sequence[AgentName | AnyAgent[Any, Any]],
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
@@ -199,7 +263,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
     def create_team(
         self,
-        agents: Sequence[str | AnyAgent[Any, Any]] | None = None,
+        agents: Sequence[AgentName | AnyAgent[Any, Any]] | None = None,
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,

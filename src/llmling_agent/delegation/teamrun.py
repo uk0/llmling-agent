@@ -4,26 +4,28 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Callable
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from itertools import pairwise
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal
 
+from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import AgentResponse, ChatMessage, TeamResponse
 from llmling_agent.talk.talk import Talk, TeamTalk
-from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent_providers.base import StreamingResponseProtocol
 
 
 if TYPE_CHECKING:
     import os
 
     import PIL.Image
+    from tokonomics.pydanticai_cost import Usage
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.agent.agent import Agent
     from llmling_agent.delegation import Team
 
 
@@ -49,39 +51,39 @@ class ExtendedTeamTalk(TeamTalk):
         return self.errors
 
 
-class TeamRun[TDeps](TaskManagerMixin):
+class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
     """Handles team operations with monitoring."""
 
     def __init__(
         self,
-        team: Team[TDeps],
-        mode: ExecutionMode,
+        agents: list[AnyAgent[TDeps, Any]],
+        *,
+        name: str | None = None,
+        shared_prompt: str | None = None,
+        validator: AnyAgent[Any, TResult] | None = None,
     ):
-        super().__init__()
-        self.team = team
-        self.mode = mode
-        self._team_talk = ExtendedTeamTalk()
-        self._main_task: asyncio.Task[TeamResponse] | None = None
+        super().__init__(agents, name=name, shared_prompt=shared_prompt)
+        self.validator = validator
 
-    def __or__(self, other: Agent | Callable | Team | TeamRun) -> TeamRun:
-        from llmling_agent import Agent, Team
+    def __or__(self, other: AnyAgent | Callable | Team | TeamRun) -> TeamRun:
+        from llmling_agent import Agent, StructuredAgent, Team
         from llmling_agent_providers.callback import CallbackProvider
 
         match other:
-            case Agent():
-                self.team.agents.append(other)
+            case Agent() | StructuredAgent():
+                self.agents.append(other)
             case Callable():
                 provider = CallbackProvider(other)
-                position = len(self.team.agents) + 1
+                position = len(self.agents) + 1
                 name = f"{other.__name__}_{position}"
                 new_agent = Agent(provider=provider, name=name)
-                self.team.agents.append(new_agent)
+                self.agents.append(new_agent)
             case Team():
                 # Flatten team
-                self.team.agents.extend(other.agents)
+                self.agents.extend(other.agents)
             case TeamRun():
                 # Merge executions
-                self.team.agents.extend(other.team.agents)
+                self.agents.extend(other.agents)
         return self
 
     async def run(
@@ -91,77 +93,14 @@ class TeamRun[TDeps](TaskManagerMixin):
     ) -> TeamResponse:
         """Start execution with optional monitoring."""
         self._team_talk = ExtendedTeamTalk()
-        try:
-            match self.mode:
-                case "parallel":
-                    return await self._run_parallel(*prompts)
-                case "sequential":
-                    return await self._run_sequential(*prompts)
-                case _:
-                    msg = f"Invalid mode: {self.mode}"
-                    raise ValueError(msg)
-        finally:
-            pass
-
-    def run_in_background(
-        self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
-        **kwargs: Any,
-    ) -> ExtendedTeamTalk:
-        if self._main_task:
-            msg = "Execution already running"
-            raise RuntimeError(msg)
-        coro = self.run(*prompts, **kwargs)
-        self._main_task = self.create_task(coro, name="main_execution")
-        return self._team_talk
-
-    @property
-    def is_running(self) -> bool:
-        """Whether execution is currently running."""
-        return bool(self._main_task and not self._main_task.done())
-
-    async def wait(self) -> TeamResponse:
-        if not self._main_task:
-            msg = "No execution running"
-            raise RuntimeError(msg)
-        try:
-            return await self._main_task
-        finally:
-            await self.cleanup_tasks()
-
-    async def cancel(self) -> None:
-        """Cancel execution and cleanup."""
-        if self._main_task:
-            self._main_task.cancel()
-        await self.cleanup_tasks()
-
-    @property
-    def stats(self) -> ExtendedTeamTalk:
-        """Get current execution statistics."""
-        return self._team_talk
-
-    async def _run_parallel(
-        self,
-        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
-    ) -> TeamResponse:
-        """Execute in parallel mode."""
         start_time = datetime.now()
-        final_prompt = list(prompt)
-        if self.team.shared_prompt:
-            final_prompt.insert(0, self.team.shared_prompt)
+        final_prompt = list(prompts)
+        if self.shared_prompt:
+            final_prompt.insert(0, self.shared_prompt)
 
-        async def run_agent(agent: AnyAgent[TDeps, Any]) -> AgentResponse[Any]:
-            try:
-                start = perf_counter()
-                message = await agent.run(*final_prompt)
-                timing = perf_counter() - start
-                return AgentResponse(agent.name, message=message, timing=timing)
-            except Exception as e:  # noqa: BLE001
-                msg = ChatMessage(content="", role="assistant")
-                self._team_talk.add_error(agent.name, str(e))
-                return AgentResponse(agent_name=agent.name, message=msg, error=str(e))
-
-        responses = await asyncio.gather(*[run_agent(a) for a in self.team.agents])
+        responses = [
+            i async for i in self.run_iter(*final_prompt) if isinstance(i, AgentResponse)
+        ]
         return TeamResponse(responses, start_time)
 
     async def run_iter(
@@ -169,10 +108,10 @@ class TeamRun[TDeps](TaskManagerMixin):
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
     ) -> AsyncIterator[Talk[Any] | AgentResponse[Any]]:
         try:
-            first = self.team[0]
+            first = self.agents[0]
             connections = [
                 source.pass_results_to(target, queued=True)
-                for source, target in pairwise(self.team)
+                for source, target in pairwise(self.agents)
             ]
             for conn in connections:
                 self._team_talk.append(conn)
@@ -192,7 +131,7 @@ class TeamRun[TDeps](TaskManagerMixin):
                     start = perf_counter()
                     messages = await connection.trigger()
                     # If this is the last agent
-                    if target == self.team.agents[-1]:
+                    if target == self.agents[-1]:
                         # Create Talk for stats collection only
                         last_talk = Talk[Any](target, [], connection_type="run")
                         # Add its message to the Talk's stats
@@ -217,19 +156,95 @@ class TeamRun[TDeps](TaskManagerMixin):
             for connection in connections:
                 connection.disconnect()
 
-    async def _run_sequential(
-        self, *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str]
-    ) -> TeamResponse:
-        """Execute in sequential mode."""
-        start_time = datetime.now()
-        final_prompt = list(prompt)
-        if self.team.shared_prompt:
-            final_prompt.insert(0, self.team.shared_prompt)
+    async def chain(
+        self,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        require_all: bool = True,
+    ) -> ChatMessage:
+        """Pass message through the chain of team members.
 
-        responses = [
-            i async for i in self.run_iter(*final_prompt) if isinstance(i, AgentResponse)
-        ]
-        return TeamResponse(responses, start_time)
+        Each agent processes the result of the previous one.
+
+        Args:
+            prompts: Initial messages to process
+            require_all: If True, all agents must succeed
+
+        Returns:
+            Final processed message
+
+        Raises:
+            ValueError: If chain breaks and require_all=True
+        """
+        current_message = prompts
+
+        for agent in self.agents:
+            try:
+                result = await agent.run(*current_message)
+                current_message = (result.content,)
+            except Exception as e:
+                if require_all:
+                    msg = f"Chain broken at {agent.name}: {e}"
+                    raise ValueError(msg) from e
+                logger.warning("Chain handler %s failed: %s", agent.name, e)
+
+        return result
+
+    @asynccontextmanager
+    async def chain_stream(
+        self,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        require_all: bool = True,
+    ) -> AsyncIterator[StreamingResponseProtocol]:
+        """Stream results through chain of team members."""
+        async with AsyncExitStack() as stack:
+            streams: list[StreamingResponseProtocol[str]] = []
+            current_message = prompts
+
+            # Set up all streams
+            for agent in self.agents:
+                try:
+                    stream = await stack.enter_async_context(
+                        agent.run_stream(*current_message)
+                    )
+                    streams.append(stream)
+                    # Wait for complete response for next agent
+                    async for chunk in stream.stream():
+                        current_message = chunk
+                        if stream.is_complete:
+                            current_message = (stream.formatted_content,)  # type: ignore
+                            break
+                except Exception as e:
+                    if require_all:
+                        msg = f"Chain broken at {agent.name}: {e}"
+                        raise ValueError(msg) from e
+                    logger.warning("Chain handler %s failed: %s", agent.name, e)
+
+            # Create a stream-like interface for the chain
+            class ChainStream(StreamingResponseProtocol[str]):
+                def __init__(self):
+                    self.streams = streams
+                    self.current_stream_idx = 0
+                    self.is_complete = False
+                    self.model_name = None
+
+                def usage(self) -> Usage:
+                    @dataclass
+                    class Usage:
+                        total_tokens: int | None
+                        request_tokens: int | None
+                        response_tokens: int | None
+
+                    return Usage(0, 0, 0)
+
+                async def stream(self) -> AsyncIterator[str]:  # type: ignore
+                    for idx, stream in enumerate(self.streams):
+                        self.current_stream_idx = idx
+                        async for chunk in stream.stream():
+                            yield chunk
+                            if idx == len(self.streams) - 1 and stream.is_complete:
+                                self.is_complete = True
+
+            yield ChainStream()
 
 
 if __name__ == "__main__":
@@ -257,8 +272,7 @@ if __name__ == "__main__":
             )
 
             # Create team and get monitored execution
-            team = agent1 & agent2 & agent3
-            run = team.monitored(mode="sequential")
+            run = agent1 | agent2 | agent3
 
             text = "The quick brown fox jumps over the lazy dog."
             print(f"\nProcessing text: {text}\n")

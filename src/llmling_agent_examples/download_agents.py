@@ -126,7 +126,6 @@ async def run(config_path: str):
         # Create second agent by cloning. Both do the same job, so same prompt & tools.
         worker_2 = await pool.clone_agent(worker_1, new_name="file_getter_2")
 
-        team = worker_1 & worker_2
         fan = pool.get_agent("fan")
         progress = CheerProgress()
 
@@ -135,9 +134,11 @@ async def run(config_path: str):
         # now lets do some downloading. After each sequence, we tell the fan about the
         # duration so he can adapt his cheering to the current happenings.
         progress.update("Sequential downloads starting - let's see how they do!")
-        sequential = await team.run_sequential(TEAM_PROMPT)
+        sequential_team = worker_1 | worker_2
+        sequential = await sequential_team.run(TEAM_PROMPT)
         progress.update(f"Downloads completed in {sequential.duration:.2f} secs!")
-        parallel = await team.run_parallel(TEAM_PROMPT)
+        parallel_team = worker_1 & worker_2
+        parallel = await parallel_team.run(TEAM_PROMPT)
         progress.update(f"Downloads completed in {parallel.duration:.2f} secs!")
         overseer: Agent[None] = pool.get_agent("overseer")
         # this call will make the overseer use his ability to list pool agents

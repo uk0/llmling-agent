@@ -13,6 +13,7 @@ from llmling_agent.models import AgentsManifest
 
 if TYPE_CHECKING:
     from llmling_agent.delegation.team import Team
+    from llmling_agent.delegation.teamrun import TeamRun
 
 
 class _TestOutput(BaseModel):
@@ -70,7 +71,7 @@ async def test_parallel_execution():
         group: Team[Any] = pool.create_team(["agent_1", "agent_2"])
 
         prompt = "Test input"
-        responses = await group.run_parallel(prompt)
+        responses = await group.run(prompt)
         # Verify execution
         assert len(responses) == 2  # noqa: PLR2004
         assert all(r.success for r in responses)
@@ -87,10 +88,10 @@ async def test_sequential_execution():
     manifest: AgentsManifest[Any] = AgentsManifest.from_yaml(TEST_CONFIG)
 
     async with AgentPool[None](manifest) as pool:
-        group: Team[Any] = pool.create_team(["agent_1", "agent_2"])
+        group: TeamRun[Any, Any] = pool.create_team_run(["agent_1", "agent_2"])
 
         prompt = "Test input"
-        responses = await group.run_sequential(prompt)
+        responses = await group.run(prompt)
 
         # Verify execution order
         assert len(responses) == 2  # noqa: PLR2004

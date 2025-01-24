@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import AgentName, AnyFilterFn, AnyTransformFn
+    from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.delegation.team import Team
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
@@ -31,7 +32,7 @@ class ConnectionManager:
     agent_connected = Signal(object)  # Agent
     connection_added = Signal(Talk)  # Agent
 
-    def __init__(self, owner: AnyAgent[Any, Any] | Team[Any]):
+    def __init__(self, owner: AnyAgent[Any, Any] | BaseTeam[Any, Any]):
         self.owner = owner
         self._connections: list[Talk | TeamTalk] = []
         self._wait_states: dict[AgentName, bool] = {}

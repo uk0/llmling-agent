@@ -1,127 +1,143 @@
 # Team Execution and Monitoring
 
-The Team class provides different ways to execute tasks across multiple agents. This guide explains both the basic execution methods and the advanced monitoring capabilities.
+LLMling provides two main classes for team operations:
 
-## Basic Execution Methods
+- `Team`: A group of agents that can work together
+- `TeamRun`: A sequential execution pipeline of agents
 
-The Team class offers three primary execution modes:
+This guide focuses on execution monitoring and progress tracking.
+
+## Basic Team Operation
+
+Teams can be created and connected in different ways:
 
 ```python
-# Simple parallel run
-result = await team.run_parallel("Analyze this text")
+# Create team from agents
+team = Team([agent1, agent2, agent3])
 
-# Sequential run
-result = await team.run_sequential("Process in order")
+# Create team through pool
+team = pool.create_team(["analyzer", "planner", "executor"])
 
+# Connect team to target
+team >> target_agent  # All team members forward to target
 ```
 
-## Monitored Execution
+## Sequential Execution with TeamRun
 
-For more complex scenarios where you need to track progress, use the monitored interface:
+For monitored sequential processing, use TeamRun:
 
 ```python
-# Create monitored execution
-run = team.monitored("parallel")  # or "sequential"
+# Create execution pipeline
+run = agent1 | agent2 | agent3  # Direct creation
+# or
+run = pool.create_team_run(["analyzer", "planner", "executor"])
+```
 
-# Start in background
-connection = run.run_in_background("Task to execute")
+### Monitoring Execution
 
-# do something with connection....
+TeamRun provides built-in monitoring through its background execution:
 
-# Wait for completion
+```python
+# Start execution in background
+stats = run.run_in_background("Task to execute")
+
+# Check current status while running
+while run.is_running:
+    print(f"Active connections: {len(stats)}")
+    print(f"Messages processed: {len(stats.messages)}")
+    print(f"Errors: {len(stats.errors)}")
+    await asyncio.sleep(0.5)
+
+# Wait for completion and get results
 result = await run.wait()
 ```
 
-### The Monitor Object
+### The Stats Object
 
-Similar to how Talk objects manage agent connections, the TeamRunMonitor tracks execution progress through agent signals. It:
-
-- Captures message exchanges
-- Records tool usage
-- Tracks errors
-- Measures timing
-- Maintains execution state
-
-This happens asynchronously without blocking the main execution.
-
-### Stats Object
-
-The TeamRunStats object provides a complete view of the execution state:
+The TeamTalkStats object provides execution metrics and history:
 
 ```python
+# Access during or after run
 stats = run.stats
 
-# Raw data
-stats.received_messages  # All messages received by agents
-stats.sent_messages     # All messages sent by agents
-stats.tool_calls       # All tool calls made
-stats.error_log       # Any errors that occurred
+# Message information
+stats.messages         # All messages exchanged
+stats.message_count   # Total message count
+stats.tool_calls      # Tool calls made
 
-# Derived metrics
-stats.active_agents   # Currently processing agents
-stats.message_counts  # Messages per agent
-stats.total_tokens    # Total tokens used
-stats.total_cost     # Total cost incurred
-stats.duration       # Time elapsed
+# Timing and costs
+stats.token_count    # Total tokens used
+stats.total_cost     # Total cost in USD
+stats.byte_count     # Raw data transferred
+
+# Agent information
+stats.source_names   # Agents that sent messages
+stats.target_names   # Agents that received messages
+
+# Additional data
+stats.error_log      # Any errors that occurred
 ```
 
-### Control Methods
-
-The execution object provides several control methods:
+### Example: Monitored Execution
 
 ```python
-# Start pipeline
-run.run_in_background(prompt)  # Non-blocking start
-await run.run(prompt)       # Direct start
+from llmling_agent import AgentPool
 
-# Monitor progress
-run.monitor(callback)         # Register update callback
+async def main():
+    async with AgentPool() as pool:
+        # Create three agents with different roles
+        agent1 = await pool.add_agent(
+            "analyzer",
+            system_prompt="You analyze text and find key points."
+        )
+        agent2 = await pool.add_agent(
+            "summarizer",
+            system_prompt="You create concise summaries."
+        )
+        agent3 = await pool.add_agent(
+            "critic",
+            system_prompt="You evaluate and critique summaries."
+        )
 
-# Check state
-run.is_running               # Whether still processing
+        # Create execution pipeline
+        run = agent1 | agent2 | agent3
 
-# Control run
-await run.wait()            # Wait for completion
-await run.cancel()          # Cancel run
+        # Start run and get stats object
+        stats = run.run_in_background("Process this text...")
+
+        # Monitor progress
+        while run.is_running:
+            print("\nCurrent status:")
+            print(f"Processed messages: {stats.message_count}")
+            print(f"Active connections: {len(stats)}")
+            print(f"Errors: {len(stats.error_log)}")
+            await asyncio.sleep(0.5)
+
+        # Wait for completion
+        result = await run.wait()
+
+        # Final statistics
+        print(f"\nExecution complete:")
+        print(f"Total cost: ${stats.total_cost:.4f}")
+        print(f"Total tokens: {stats.token_count}")
 ```
 
-### Example: Progress Monitoring
+### Resource Management
 
-```python
-async def on_stats_update(stats: TeamRunStats):
-    print(f"Active agents: {stats.active_agents}")
-    print(f"Messages processed: {stats.message_counts}")
-    print(f"Tools used: {stats.tool_counts}")
+Both Team and TeamRun handle cleanup automatically:
 
-run = team.monitored("parallel")
-run.run_in_background("Task")
-run.monitor(on_stats_update)
-result = await run.wait()
-```
-
-### Cleanup
-
-All resources (signal connections, background tasks) are automatically cleaned up when:
-- Execution completes
-- cancel() is called
-- An error occurs
-
-### Integration with TaskManagerMixin
-
-The execution system integrates with TaskManagerMixin to provide:
-- Proper task management
-- Resource cleanup
-- Background task tracking
-- Error handling
+- Background tasks are tracked and cleaned up
+- Connections are properly closed
+- Resources are released on completion
 
 ## Summary
 
-The monitoring system provides a flexible way to:
-- Track run progress
-- Collect run metrics
-- Monitor agent activity
-- Analyze tool usage
-- Handle errors
-- Control run flow
+The current monitoring system provides:
 
-All while maintaining asynchronous operation and proper resource management.
+- Real-time execution tracking
+- Comprehensive statistics
+- Error logging
+- Cost tracking
+- Resource management
+
+All while maintaining clean separation between team organization (Team) and sequential execution (TeamRun).

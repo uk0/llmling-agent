@@ -79,14 +79,16 @@ def run_command(
                         agent.message_sent.connect(on_message)
 
                 agent_names = [name.strip() for name in agent_name.split(",")]
-                group = pool.create_team(agent_names, model_override=model)
-
                 for prompt in prompts:
                     match execution_mode:
                         case "parallel":
-                            responses = await group.run_parallel(prompt)
+                            team = pool.create_team(agent_names, model_override=model)
+                            responses = await team.run(prompt)
                         case "sequential":
-                            responses = await group.run_sequential(prompt)
+                            team_run = pool.create_team_run(
+                                agent_names, model_override=model
+                            )
+                            responses = await team_run.run(prompt)
                         # case "controlled":
                         #     responses = await group.run_controlled(prompt)
                         case _:

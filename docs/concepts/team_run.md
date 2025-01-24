@@ -2,32 +2,32 @@
 
 ## What is a TeamRun?
 
-A TeamRun represents the orchestrated execution of a prompt by a group of agents. Unlike simple agent groups (Teams) which just define membership, TeamRuns manage how agents work together - particularly their execution order and interaction patterns.
+A TeamRun represents a sequential execution pipeline of agents. Unlike Teams which define agent groups, TeamRuns manage how agents process data in sequence, with each agent receiving the output of the previous one.
 
-The key concept is that a TeamRun determines:
+The key aspects are:
 
-- Which agents participate in the execution
-- In what order they process the input
-- How they interact with each other
-- How the execution can be monitored
+- Sequential processing order
+- Message flow between agents
+- Execution monitoring
+- Resource management
 
 ## Creating TeamRuns
 
-### From Agent Groups
-```python
-# Create team
-team = pool.create_team(["analyzer", "planner", "executor"])
+### From Pool
 
-# Create observable execution object with specific mode
-execution = team.monitored("sequential")
-# or
-run = TeamRun(team, mode="sequential")
+```python
+# Create execution pipeline from agent names
+run = pool.create_team_run(["analyzer", "planner", "executor"])
 ```
 
 ### Using Pipeline Operator
+
 ```python
-# Create sequential pipeline
+# Create sequential pipeline from agents
 pipeline = analyzer | planner | executor
+
+def clean_data(msg: str) -> str:
+    return f"Cleaned: {msg}"
 
 # With function transformers
 pipeline = analyzer | clean_data | planner | execute_plan
@@ -36,31 +36,10 @@ pipeline = analyzer | clean_data | planner | execute_plan
 pipeline = analysis_team | planning_team | execution_team
 ```
 
-## Execution Modes
-
-### Parallel
-All agents process the input simultaneously:
-```python
-execution = team.monitored("parallel")
-results = await execution.run("Analyze this data")
-# All agents receive same input
-# No guaranteed order
-# Results contain all responses
-```
-
-### Sequential
-Agents process in order, each receiving previous agent's output:
-```python
-execution = team.monitored("sequential")
-results = await execution.run("Process this")
-# analyzer -> planner -> executor
-# Each agent receives previous output
-# Results contain all intermediate steps
-```
-
 ## Running a TeamRun
 
 ### Direct Execution
+
 Simple run that waits for completion:
 ```python
 # Run and wait for results
@@ -71,141 +50,154 @@ for response in results:
     print(f"{response.agent_name}: {response.message.content}")
 ```
 
-### Monitored Runs
-Get stats while run is executing in background:
+### Monitored Execution
+
+Get statistics while the run executes in background:
 ```python
 # Start run and get stats object
 stats = run.run_in_background("Process this task")
-
-# Monitor progress by polling stats
-while run.is_running:
-    # Access stats through TeamTalk interface
-    print(f"Active connections: {len(stats)}")
-    for talk in stats:
-        print(f"\nConnection: {talk.source_name} -> {talk.target_names}")
-        print(f"Messages: {len(talk.stats.messages)}")
-        print(f"Tool calls: {len(talk.stats.tool_calls)}")
-    if stats.errors:
-        print("\nErrors:")
-        for agent, error, time in stats.errors:
-            print(f"  {agent}: {error} at {time}")
-    await asyncio.sleep(0.5)
 
 # Wait for completion when needed
 results = await run.wait()
 ```
 
-## TeamRun Statistics
+For detailed monitoring capabilities, see [Task Monitoring](../advanced/task_monitoring.md).
 
-TeamRuns provide detailed run statistics:
-```python
-stats = run.stats
+## Iterating Over Execution
 
-# Activity monitoring
-print(f"Active agents: {stats.active_agents}")
-print(f"Duration: {stats.duration:.2f}s")
+For fine-grained control, you can use `run_iter()` which yields:
 
-# Message tracking
-print(f"Messages per agent: {stats.message_counts}")
-print(f"Total tokens: {stats.total_tokens}")
-print(f"Total cost: ${stats.total_cost:.4f}")
-
-# Tool usage
-print(f"Tools per agent: {stats.tool_counts}")
-
-# Error tracking
-if stats.has_errors:
-    for agent, error, time in stats.error_log:
-        print(f"{agent} failed at {time}: {error}")
-```
-
-## Monitoring Execution Flow
-
-For sequential executions, you can monitor and control the execution flow using `run_iter()`.
-This yields items in alternating order:
 - Connection objects (`Talk`) before they're used
 - Responses (`AgentResponse`) after each agent executes
 
-This allows you to configure routing before messages flow through connections and monitor the results.
+This allows you to:
 
-Here are common usage patterns:
+- Configure routing before messages flow
+- Monitor individual results
+- Handle errors per agent
+- Transform messages between agents
 
-### Basic Monitoring
-Simple progress tracking of the execution chain:
+Example:
 ```python
-execution = team.monitored("sequential")
-async for item in execution.run_iter("analyze this"):
+async for item in run.run_iter("analyze this"):
     match item:
         case Talk():
-            print(f"Next connection: {item.source.name} -> {item.target.name}")
+            print(f"Next: {item.source.name} -> {item.target.name}")
+            # Configure connection if needed
+            item.transform = lambda msg: f"Previous: {msg.content}"
         case AgentResponse():
-            print(f"Got response from {item.agent_name}: {item.data}")
+            if item.success:
+                print(f"✅ {item.agent_name}: {item.message.content}")
+            else:
+                print(f"❌ {item.agent_name}: {item.error}")
+                break
 ```
 
-### Error Handling
-Stop execution when an agent fails:
+## Resource Management
+
+TeamRuns handle cleanup automatically:
+
+- Background tasks are tracked
+- Connections are properly closed
+- Resources are released on completion
+
+You can also explicitly control the run:
 ```python
-execution = team.monitored("sequential")
-async for item in execution.run_iter("analyze"):
-    if isinstance(item, AgentResponse):
-        if not item.success:
-            print(f"Chain failed at {item.agent_name}: {item.error}")
-            break
-        print(f"✅ {item.agent_name}")
-```
-
-### Message Transformation
-Modify messages before they're forwarded:
-```python
-execution = team.monitored("sequential")
-async for item in execution.run_iter("analyze"):
-    if isinstance(item, Talk):
-        # Configure connection before it's used
-        item.transform = lambda msg: f"Previous: {msg.content}"
-```
-
-### Progress Tracking
-Integration with progress bars:
-```python
-from rich.progress import Progress
-async def track_progress():
-    with Progress() as progress:
-        task = progress.add_task("Processing...", total=len(team.agents))
-        async for item in execution.run_iter("analyze"):
-            if isinstance(item, AgentResponse):
-                progress.advance(task)
-```
-
-The alternating pattern of connection->response makes it clear when you can configure routing and when you receive results.
-
-## Advanced Features
-
-### Custom Monitoring
-```python
-# Monitor specific aspects
-run.monitor(
-    lambda stats: print(f"Tokens: {stats.total_tokens}"),
-    interval=0.5  # Check every 500ms
-)
-
-# Multiple monitors
-run.monitor(cost_tracker)
-run.monitor(progress_ui)
-run.monitor(error_logger)
-```
-
-### Run Control
-```python
-# Cancel run
+# Cancel execution
 await run.cancel()
-
-# Clean up resources
-await run.cleanup()
 
 # Check status
 if run.is_running:
     print("Still processing...")
 ```
 
-TeamRuns provide a flexible way to orchestrate multiple agents while maintaining visibility into their execution.
-The combination of different run modes and monitoring capabilities makes them suitable for both simple pipelines and complex multi-agent interactions.
+### Content Distribution
+
+The `distribute()` method allows sharing content and capabilities across all team members:
+
+```python
+# Share knowledge with all agents
+await run.distribute(
+    "Context: This is background information all agents should know.",
+    tools=["search_docs", "analyze_data"],  # Share specific tools
+    resources=["knowledge_base", "guidelines"],  # Share resources
+)
+```
+
+### Properties and Status
+
+```python
+# Access team members
+run.agents  # List of agents in the pipeline
+run.name    # Team name (defaults to concatenated agent names)
+
+# Check execution state
+run.is_running  # Whether execution is active
+run.stats      # Current execution statistics
+```
+
+## Team Statistics
+
+The `stats` property provides aggregated information about the execution:
+
+```python
+stats = run.stats
+
+# Basic information
+print(f"Team: {stats.source_names} → {stats.target_names}")
+print(f"Active connections: {stats.num_connections}")
+print(f"Messages: {stats.message_count}")
+
+# Cost tracking
+print(f"Total tokens: {stats.token_count}")
+print(f"Total cost: ${stats.total_cost:.4f}")
+print(f"Bytes transferred: {stats.byte_count}")
+
+# Message access
+for msg in stats.messages:
+    print(f"{msg.name}: {msg.content}")
+
+# Error tracking
+for agent, error, time in stats.errors:
+    print(f"{agent} failed at {time}: {error}")
+```
+
+## Running in Background
+
+The base class provides background execution support:
+
+```python
+# Start execution
+stats = run.run_in_background("Process this")
+
+# Wait for completion later
+results = await run.wait()
+
+# Or cancel if needed
+await run.cancel()
+```
+
+## Resource Management
+
+The base class handles:
+
+- Task tracking and cleanup
+- Connection management
+- Error propagation
+- Background task cancellation
+
+This ensures proper cleanup even in error cases:
+
+```python
+try:
+    stats = run.run_in_background("Process this")
+    # ... do other things ...
+    results = await run.wait()
+except Exception:
+    # Background tasks are automatically cleaned up
+    # Connections are properly closed
+    await run.cancel()  # Explicit cancellation if needed
+```
+
+
+The combination of sequential processing and monitoring capabilities makes TeamRuns suitable for both simple pipelines and complex multi-agent workflows.

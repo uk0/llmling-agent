@@ -448,12 +448,31 @@ class Agent[TDeps](TaskManagerMixin):
                 msg = f"Invalid agent type: {type(other)}"
                 raise ValueError(msg)
 
-    def __or__(self, other: Agent | Callable | Team | TeamRun) -> TeamRun:
+    @overload
+    def __or__(
+        self, other: AnyAgent[TDeps, Any] | Team[TDeps] | TeamRun[TDeps, Any]
+    ) -> TeamRun[TDeps, Any]: ...
+
+    @overload
+    def __or__[TOtherDeps](
+        self,
+        other: AnyAgent[TOtherDeps, Any] | Team[TOtherDeps] | TeamRun[TOtherDeps, Any],
+    ) -> TeamRun[Any, Any]: ...
+
+    @overload
+    def __or__(self, other: ProcessorCallback[Any]) -> TeamRun[Any, Any]: ...
+
+    def __or__(
+        self,
+        other: AnyAgent[Any, Any]
+        | ProcessorCallback[Any]
+        | Team[Any]
+        | TeamRun[Any, Any],
+    ) -> TeamRun:
         # Create new execution with sequential mode (for piping)
-        from llmling_agent.delegation.team import Team
         from llmling_agent.delegation.teamrun import TeamRun
 
-        execution = TeamRun(Team([self]), mode="sequential")
+        execution: TeamRun[Any, Any] = TeamRun([self])
         return execution | other
 
     @classmethod
