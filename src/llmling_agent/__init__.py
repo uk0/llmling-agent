@@ -1,7 +1,7 @@
 """Agent configuration and creation."""
 
 from llmling_agent.models import AgentsManifest, AgentConfig, AgentContext
-from llmling_agent.agent import Agent, StructuredAgent
+from llmling_agent.agent import Agent, StructuredAgent, AnyAgent
 
 from llmling_agent.delegation import AgentPool, Team, TeamRun
 from dotenv import load_dotenv
@@ -19,6 +19,7 @@ __all__ = [
     "AgentPool",
     "AgentPoolView",
     "AgentsManifest",
+    "AnyAgent",
     "ChatMessage",
     "StructuredAgent",
     "Team",
