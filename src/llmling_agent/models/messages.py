@@ -185,6 +185,9 @@ class ChatMessage[TContent]:
     forwarded_from: list[str] = field(default_factory=list)
     """List of agent names (the chain) that forwarded this message to the sender."""
 
+    provider_extra: dict[str, Any] = field(default_factory=dict)
+    """Provider specific metadata / extra information."""
+
     def to_text_message(self) -> ChatMessage[str]:
         """Convert this message to a text-only version."""
         return dataclasses.replace(self, content=str(self.content))  # type: ignore

@@ -181,6 +181,7 @@ class LiteLLMProvider(AgentProvider[Any]):
                 tool_calls=calls,
                 model_name=model_name,
                 cost_and_usage=cost_and_usage,
+                provider_extra=response.choices[0].message.provider_specific_fields,
             )
 
         except Exception as e:

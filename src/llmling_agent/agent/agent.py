@@ -1009,6 +1009,7 @@ class Agent[TDeps](TaskManagerMixin):
                 tool_calls=result.tool_calls,
                 cost_info=result.cost_and_usage,
                 response_time=time.perf_counter() - start_time,
+                provider_extra=result.provider_extra or {},
             )
             if self._debug:
                 import devtools
@@ -1143,6 +1144,7 @@ class Agent[TDeps](TaskManagerMixin):
                     message_id=message_id,
                     cost_info=cost_info,
                     response_time=time.perf_counter() - start_time,
+                    # provider_extra=result.provider_extra or {},
                 )
                 self.message_sent.emit(response_msg)
                 await self.connections.route_message(
