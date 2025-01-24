@@ -128,9 +128,7 @@ Teams provide rich response objects:
 ```python
 team_response = await team.run_parallel(prompt)
 
-# Success/failure information
-successful = team_response.successful  # List of successful responses
-failed = team_response.failed         # List of failed responses
+failed = team_response.failed_agents         # List of failed agents
 
 # Timing information
 print(f"Total duration: {team_response.duration}s")
@@ -207,8 +205,7 @@ await analysis_team.run_parallel("Analyze this code")
 team_response = await team.run_parallel(prompt)
 
 print(f"Execution time: {team_response.duration:.2f}s")
-print(f"Successful: {len(team_response.successful)}")
-print(f"Failed: {len(team_response.failed)}")
+print(f"Failed: {len(team_response.failed_agents)}")
 
 for response in team_response.failed:
     print(f"Error in {response.agent_name}: {response.error}")

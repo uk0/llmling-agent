@@ -41,6 +41,11 @@ class ExtendedTeamTalk(TeamTalk):
 
     errors: list[tuple[str, str, datetime]] = field(default_factory=list)
 
+    def clear(self):
+        """Reset all tracking data."""
+        super().clear()  # Clear base TeamTalk
+        self.errors.clear()
+
     def add_error(self, agent: str, error: str):
         """Track errors from AgentResponses."""
         self.errors.append((agent, error, datetime.now()))
@@ -90,9 +95,9 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         **kwargs: Any,
-    ) -> TeamResponse:
+    ) -> TeamResponse[TResult]:
         """Start execution with optional monitoring."""
-        self._team_talk = ExtendedTeamTalk()
+        self._team_talk.clear()
         start_time = datetime.now()
         final_prompt = list(prompts)
         if self.shared_prompt:
@@ -107,6 +112,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
     ) -> AsyncIterator[Talk[Any] | AgentResponse[Any]]:
+        connections: list[Talk[Any]] = []
         try:
             first = self.agents[0]
             connections = [
@@ -116,6 +122,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             for conn in connections:
                 self._team_talk.append(conn)
 
+            # First agent
             start = perf_counter()
             message = await first.run(*prompt)
             timing = perf_counter() - start
@@ -123,36 +130,32 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                 agent_name=first.name, message=message, timing=timing
             )
             yield response
+
+            # Process through chain
             for connection in connections:
                 target = connection.targets[0]
                 target_name = target.name
-                yield connection  # pyright: ignore
-                try:
-                    start = perf_counter()
-                    messages = await connection.trigger()
-                    # If this is the last agent
-                    if target == self.agents[-1]:
-                        # Create Talk for stats collection only
-                        last_talk = Talk[Any](target, [], connection_type="run")
-                        # Add its message to the Talk's stats
-                        if response.message:
-                            last_talk.stats.messages.append(response.message)
-                        # Add Talk to TeamTalk
-                        self._team_talk.append(last_talk)
-                    timing = perf_counter() - start
-                    response = AgentResponse[Any](
-                        agent_name=target_name, message=messages[0], timing=timing
-                    )
-                    yield response
+                yield connection
 
-                except Exception as e:  # noqa: BLE001
-                    self._team_talk.add_error(connection.targets[0].name, str(e))
-                    msg = ChatMessage(content="", role="assistant")
-                    response = AgentResponse[Any](
-                        agent_name=target_name, message=msg, error=str(e)
-                    )
-                    yield response
+                # Let errors propagate - they break the chain
+                start = perf_counter()
+                messages = await connection.trigger()
+
+                # If this is the last agent
+                if target == self.agents[-1]:
+                    last_talk = Talk[Any](target, [], connection_type="run")
+                    if response.message:
+                        last_talk.stats.messages.append(response.message)
+                    self._team_talk.append(last_talk)
+
+                timing = perf_counter() - start
+                response = AgentResponse[Any](
+                    agent_name=target_name, message=messages[0], timing=timing
+                )
+                yield response
+
         finally:
+            # Always clean up connections
             for connection in connections:
                 connection.disconnect()
 

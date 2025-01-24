@@ -5,6 +5,8 @@ import asyncio
 import pytest
 
 from llmling_agent import Agent
+from llmling_agent.models.messages import AgentResponse
+from llmling_agent.talk.talk import Talk
 
 
 @pytest.mark.asyncio
@@ -66,16 +68,65 @@ async def test_agent_piping_errors():
     )
 
     pipeline = agent1 | failing
-    result = await pipeline.run("test")
 
-    assert result[0].success
-    assert result[0].message
-    assert result[0].message.data == "model: test"
-    assert not result[1].success
-    assert result[1].error is not None
-    assert "Transform error" in result[1].error
+    # The pipeline should break at the failing transform
+    with pytest.raises(RuntimeError, match="Transform error"):
+        await pipeline.run("test")
 
-    assert pipeline.stats.errors
+    # Check that we can still access stats about what happened before the error
+    assert len(pipeline.stats) == 1  # Only the successful connection
+    assert len(pipeline.stats.stats.messages) == 1  # Only the first message
+    assert pipeline.stats.stats.messages[0].content == "model: test"
+
+
+@pytest.mark.asyncio
+async def test_agent_piping_iter():
+    """Test that run_iter allows tracking the pipeline step by step."""
+    agent1 = Agent[None].from_callback(lambda x: f"model: {x}", name="agent1")
+    failing = Agent[None].from_callback(
+        lambda x: exec('raise ValueError("Transform error")'),  # type: ignore
+        name="failing_transform",
+    )
+
+    pipeline = agent1 | failing
+
+    items = []  # Define items before the try block
+
+    try:
+        async for item in pipeline.run_iter("test"):
+            items.append(item)  # noqa: PERF401
+    except RuntimeError as e:
+        assert "Transform error" in str(e)  # noqa: PT017
+
+    # We should see:
+    # 1. First agent's response
+    # 2. The connection object
+    # Then it should fail
+    assert len(items) == 2  # noqa: PLR2004
+    assert isinstance(items[0], AgentResponse)
+    assert isinstance(items[1], Talk)
+    assert items[0].message.content == "model: test"  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_agent_piping_background_error():
+    """Test that background execution properly handles errors."""
+    agent1 = Agent[None].from_callback(lambda x: f"model: {x}", name="agent1")
+
+    def failing_transform(text: str) -> str:
+        """Transformer that always fails."""
+        msg = "Transform error"
+        raise ValueError(msg)
+
+    pipeline = agent1 | failing_transform
+    stats = pipeline.run_in_background("test")
+
+    # Wait for execution to complete
+    with pytest.raises(RuntimeError, match="Transform error"):
+        await pipeline.wait()
+    # Stats should reflect what happened before the error
+    assert len(stats) == 1  # Only the successful connection
+    assert len(stats.stats.messages) == 1  # Only the first message
 
 
 @pytest.mark.asyncio
@@ -91,9 +142,13 @@ async def test_agent_piping_async():
     pipeline = agent1 | transform
     result = await pipeline.run("test")
 
-    assert result.successful
+    assert result.success
     assert len(result) == 2  # noqa: PLR2004
     assert result[0].message
     assert result[1].message
     assert result[0].message.data == "model: test"
     assert result[1].message.data == "transform: model: test"
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

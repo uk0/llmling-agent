@@ -79,12 +79,12 @@ class TeamResponse(list[AgentResponse]):
         """Total execution time."""
 
     @property
-    def successful(self) -> list[AgentResponse]:
-        """Get only successful responses."""
+    def success(self) -> bool:
+        """Whether all agents completed successfully."""
 
     @property
-    def failed(self) -> list[AgentResponse]:
-        """Get failed responses."""
+    def failed_agents(self) -> list[str]:
+        """Names of agents that failed."""
 
     def by_agent(self, name: str) -> AgentResponse | None:
         """Get response from specific agent."""

@@ -10,7 +10,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import AgentResponse, ChatMessage, TeamResponse
+from llmling_agent.models.messages import AgentResponse, TeamResponse
 from llmling_agent.utils.inspection import has_return_type
 
 
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.providers import ProcessorCallback
+    from llmling_agent.models.task import Job
     from llmling_agent.talk import QueueStrategy, TeamTalk
 
 
@@ -155,23 +156,107 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
     async def run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        **kwargs: Any,
     ) -> TeamResponse:
         """Run all agents in parallel."""
         start_time = datetime.now()
         final_prompt = list(prompts)
+        responses: list[AgentResponse[Any]] = []
+        errors: dict[str, Exception] = {}
+
         if self.shared_prompt:
             final_prompt.insert(0, self.shared_prompt)
 
-        async def run_agent(agent: AnyAgent[TDeps, Any]) -> AgentResponse[Any]:
+        async def run_agent(agent: AnyAgent[TDeps, Any]) -> None:
             try:
                 start = perf_counter()
-                message = await agent.run(*final_prompt)
+                message = await agent.run(*prompts, **kwargs)
                 timing = perf_counter() - start
-                return AgentResponse(agent.name, message=message, timing=timing)
+                r = AgentResponse(agent_name=agent.name, message=message, timing=timing)
+                responses.append(r)
             except Exception as e:  # noqa: BLE001
-                msg = ChatMessage(content="", role="assistant")
-                self._team_talk.add_error(agent.name, str(e))
-                return AgentResponse(agent_name=agent.name, message=msg, error=str(e))
+                errors[agent.name] = e
 
-        responses = await asyncio.gather(*[run_agent(a) for a in self.agents])
-        return TeamResponse(responses, start_time)
+        # Run all agents in parallel
+        await asyncio.gather(*[run_agent(agent) for agent in self.agents])
+
+        return TeamResponse(responses=responses, start_time=start_time, errors=errors)
+
+    async def run_job[TResult](
+        self,
+        job: Job[TDeps, TResult],
+        *,
+        store_history: bool = True,
+        include_agent_tools: bool = True,
+    ) -> list[AgentResponse[TResult]]:
+        """Execute a job across all team members in parallel.
+
+        Args:
+            job: Job configuration to execute
+            store_history: Whether to add job execution to conversation history
+            include_agent_tools: Whether to include agent's tools alongside job tools
+
+        Returns:
+            List of responses from all agents
+
+        Raises:
+            JobError: If job execution fails for any agent
+            ValueError: If job configuration is invalid
+        """
+        from llmling_agent.tasks import JobError
+
+        responses: list[AgentResponse[TResult]] = []
+        errors: dict[str, Exception] = {}
+        start_time = datetime.now()
+
+        # Validate dependencies for all agents
+        if job.required_dependency is not None:
+            invalid_agents = [
+                agent.name
+                for agent in self.agents
+                if not isinstance(agent.context.data, job.required_dependency)
+            ]
+            if invalid_agents:
+                msg = (
+                    f"Agents {', '.join(invalid_agents)} don't have required "
+                    f"dependency type: {job.required_dependency}"
+                )
+                raise JobError(msg)
+
+        try:
+            # Load knowledge for all agents if provided
+            if job.knowledge:
+                # TODO: resources
+                await self.distribute(
+                    content="",  # Knowledge loaded through resources
+                    tools=[t.name for t in job.get_tools()],
+                    # resources=job.knowledge.get_resources(),
+                )
+
+            # Get prompt
+            prompt = await job.get_prompt()
+
+            # Run job in parallel on all agents
+            async def run_agent(agent: AnyAgent[TDeps, TResult]) -> None:
+                try:
+                    with agent.tools.temporary_tools(
+                        job.get_tools(), exclusive=not include_agent_tools
+                    ):
+                        start = perf_counter()
+                        resp = AgentResponse(
+                            agent_name=agent.name,
+                            message=await agent.run(prompt, store_history=store_history),
+                            timing=perf_counter() - start,
+                        )
+                        responses.append(resp)
+                except Exception as e:  # noqa: BLE001
+                    errors[agent.name] = e
+
+            await asyncio.gather(*[run_agent(agent) for agent in self.agents])
+
+            return TeamResponse(responses=responses, start_time=start_time, errors=errors)
+
+        except Exception as e:
+            msg = "Job execution failed"
+            logger.exception(msg)
+            raise JobError(msg) from e
