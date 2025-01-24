@@ -58,16 +58,8 @@ async def run_agent_pipeline(
     prompt: AnyPromptType | list[AnyPromptType],
     config: str | AgentsManifest,
     *,
-    model: str | None = None,
     output_format: Literal["raw"] = "raw",
-    environment: str | Config | AgentEnvironment | None = None,
-    error_handling: ErrorHandling = "raise",
     result_type: type[T] | None = None,
-    retries: int | None = None,
-    capabilities: dict[str, bool] | None = None,
-    tool_choice: bool | str | list[str] = True,
-    tools: list[ToolType] | None = None,
-    model_settings: dict[str, Any] | None = None,
 ) -> T: ...
 
 
@@ -80,7 +72,7 @@ async def run_agent_pipeline(
     model: str | None = None,
     output_format: OutputFormat,
     environment: str | Config | AgentEnvironment | None = None,
-    error_handling: ErrorHandling = "raise",
+    error_handling: ErrorHandling,
     result_type: type[T] | None = None,
     retries: int | None = None,
     capabilities: dict[str, bool] | None = None,
@@ -105,7 +97,7 @@ async def run_agent_pipeline(  # noqa: PLR0911
     tool_choice: bool | str | list[str] = True,
     tools: list[ToolType] | None = None,
     model_settings: dict[str, Any] | None = None,
-) -> T | str | AsyncIterator[str]:
+) -> T | str:
     """Execute complete agent pipeline.
 
     This is a high-level function that:
@@ -242,13 +234,7 @@ async def run_with_model(
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: None = None,
-    system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
     output_format: Literal["text", "json", "yaml"] = "text",
-    model_settings: dict[str, Any] | None = None,
-    tool_choice: bool | str | list[str] = True,
-    tools: list[ToolType] | None = None,
-    environment: str | Config | AgentEnvironment | None = None,
-    error_handling: ErrorHandling = "raise",
 ) -> str: ...
 
 
@@ -354,13 +340,7 @@ def run_with_model_sync(
     model: str | models.Model | models.KnownModelName,
     *,
     result_type: None = None,
-    system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
     output_format: Literal["text", "json", "yaml"] = "text",
-    model_settings: dict[str, Any] | None = None,
-    tool_choice: bool | str | list[str] = True,
-    tools: list[ToolType] | None = None,
-    environment: str | Config | AgentEnvironment | None = None,
-    error_handling: ErrorHandling = "raise",
 ) -> str: ...
 
 
