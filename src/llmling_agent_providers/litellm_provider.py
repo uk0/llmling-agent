@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import json
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
+import tokonomics
 from tokonomics import get_available_models
 from tokonomics.toko_types import TokenUsage
 
@@ -14,16 +16,29 @@ from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.content import BaseContent, Content
 from llmling_agent.models.messages import ChatMessage, TokenCost
-from llmling_agent_providers.base import AgentProvider, ProviderResponse
+from llmling_agent_providers.base import (
+    AgentProvider,
+    ProviderResponse,
+    StreamingResponseProtocol,
+)
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
     from litellm import ChatCompletionMessageToolCall
 
     from llmling_agent.tools.base import ToolInfo
 
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class Usage:
+    total_tokens: int | None
+    request_tokens: int | None
+    response_tokens: int | None
 
 
 class LiteLLMModel:
@@ -44,6 +59,53 @@ class LiteLLMRunContext:
     model: LiteLLMModel
     prompt: str
     deps: Any
+
+
+@dataclass
+class LiteLLMStream[TResult]:
+    """Wrapper to match StreamingResponseProtocol."""
+
+    _stream: Any
+    _response: Any | None = None
+    model_name: str | None = None
+    formatted_content: TResult | None = None
+    is_complete: bool = False
+    _accumulated_content: str = ""
+    _final_usage: Usage | None = None
+
+    async def stream(self) -> AsyncIterator[TResult]:
+        """Stream chunks as they arrive."""
+        try:
+            final_chunk = None
+            async for chunk in self._stream:
+                if content := chunk.choices[0].delta.content:
+                    self._accumulated_content += content
+                    # Cast to expected type (usually str)
+                    yield content  # type: ignore
+                final_chunk = chunk
+
+            self.is_complete = True
+            self.formatted_content = self._accumulated_content  # type: ignore
+
+            # Store usage from final chunk if available
+            if final_chunk and hasattr(final_chunk, "usage"):
+                self._final_usage = TokenUsage(
+                    total_tokens=final_chunk.usage.total_tokens,  # type: ignore
+                    request_tokens=final_chunk.usage.prompt_tokens,  # type: ignore
+                    response_tokens=final_chunk.usage.completion_tokens,  # type: ignore
+                )
+
+        except Exception as e:
+            logger.exception("Error during streaming")
+            self.is_complete = True
+            msg = "Streaming failed"
+            raise RuntimeError(msg) from e
+
+    def usage(self) -> Usage:
+        """Get token usage statistics."""
+        if not self._final_usage:
+            return Usage(total_tokens=0, request_tokens=0, response_tokens=0)
+        return self._final_usage
 
 
 class LiteLLMProvider(AgentProvider[Any]):
@@ -166,10 +228,24 @@ class LiteLLMProvider(AgentProvider[Any]):
                 request_tokens=response.usage.prompt_tokens,  # type: ignore
                 response_tokens=response.usage.completion_tokens,  # type: ignore
             )
-            cost_and_usage = TokenCost(
-                token_usage=usage,
-                total_cost=response.usage.cost,  # type: ignore
-            )
+            try:
+                cost_and_usage = TokenCost(
+                    token_usage=usage,
+                    total_cost=response.usage.cost,  # type: ignore
+                )
+            except Exception:  # noqa: BLE001
+                cost = await tokonomics.calculate_token_cost(
+                    model_name,
+                    completion_tokens=response.usage.completion_tokens,  # type: ignore
+                    prompt_tokens=response.usage.prompt_tokens,  # type: ignore
+                )
+                if cost:
+                    cost_and_usage = TokenCost(
+                        token_usage=usage,
+                        total_cost=cost.total_cost,  # type: ignore
+                    )
+                else:
+                    cost_and_usage = None
             # Store in history if requested
             if store_history:
                 request_msgs = [ChatMessage(role="user", content=str(p)) for p in prompts]
@@ -218,41 +294,114 @@ class LiteLLMProvider(AgentProvider[Any]):
         # different message types and parts
         return [{"role": "user", "content": str(message)}]
 
-    # async def stream_response(
-    #     self,
-    #     *prompts: str | Content,
-    #     message_id: str,
-    #     *,
-    #     result_type: type[Any] | None = None,
-    #     model: LiteLLMModel | str | None = None,
-    #     store_history: bool = True,
-    #     system_prompt: str | None = None,
+    @asynccontextmanager
+    async def stream_response(
+        self,
+        *prompts: str | Content,
+        message_id: str,
+        result_type: type[Any] | None = None,
+        model: ModelProtocol | str | None = None,
+        store_history: bool = True,
+        system_prompt: str | None = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[StreamingResponseProtocol[Any]]:
+        """Stream responses from LiteLLM."""
+        from litellm import acompletion
 
-    #     **kwargs: Any,
-    # ) -> AbstractAsyncContextManager[StreamingResponseProtocol]:
-    #     """Stream response from LiteLLM.
+        model_name = self._get_model_name(model)
+        messages: list[dict[str, Any]] = []
 
-    #     Not implemented yet - would need to handle streaming responses.
-    #     """
-    #     msg = "Streaming not yet supported"
-    #     raise NotImplementedError(msg)
+        # Add system prompt if provided
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+
+        # Add conversation history
+        if store_history:
+            for msg in self.conversation.get_history():
+                messages.extend(self._convert_message_to_chat(msg))
+
+        # Convert new prompts to message content
+        content_parts: list[dict[str, Any]] = []
+        for p in prompts:
+            match p:
+                case str():
+                    content_parts.append({"type": "text", "text": p})
+                case BaseContent():
+                    content_parts.append(p.to_openai_format())
+        messages.append({"role": "user", "content": content_parts})
+
+        try:
+            # Get streaming completion
+            completion_stream = await acompletion(
+                stream=True,  # Enable streaming
+                model=model_name,
+                messages=messages,
+                response_format=result_type
+                if result_type and issubclass(result_type, BaseModel)
+                else None,
+                num_retries=self.num_retries,
+                **kwargs,
+            )
+
+            # Create stream wrapper that matches our protocol
+            stream = LiteLLMStream[Any](
+                _stream=completion_stream,
+                model_name=model_name,
+            )
+
+            try:
+                yield stream
+
+                # Store in history if requested and stream completed
+                if store_history and stream.is_complete:
+                    request_msgs = [
+                        ChatMessage(role="user", content=str(p)) for p in prompts
+                    ]
+                    response_msg = ChatMessage(
+                        role="assistant",
+                        content=stream.formatted_content,
+                    )
+                    self.conversation.add_chat_messages([*request_msgs, response_msg])
+
+            except Exception as e:
+                logger.exception("Error during stream processing")
+                error_msg = "Stream processing failed"
+                raise RuntimeError(error_msg) from e
+
+        except Exception as e:
+            logger.exception("Failed to create stream")
+            error_msg = "Stream creation failed"
+            raise RuntimeError(error_msg) from e
 
 
 if __name__ == "__main__":
+    import asyncio
     import logging
 
     from llmling_agent import Agent
 
     logging.basicConfig(level=logging.INFO)
 
-    # Create agent with LiteLLM provider
-    agent = Agent[Any](provider="litellm", model="openai/gpt-3.5-turbo", name="test")
+    async def main():
+        # Create agent with LiteLLM provider
+        agent = Agent[Any](provider="litellm", model="openai/gpt-3.5-turbo", name="test")
 
-    # Use run_sync for simple testing
-    response = agent.run_sync("Tell me a short joke about Python programming.")
+        # Test normal completion
+        print("\nNormal completion:")
+        response = await agent.run("Tell me a short joke about Python programming.")
+        print(f"Response from {agent.model_name}:")
+        print(f"Content: {response.content}")
 
-    print(f"\nResponse from {agent.model_name}:")
-    print(f"Content: {response.content}")
-    if response.cost_info:
-        print(f"Tokens: {response.cost_info.token_usage}")
-        print(f"Cost: ${response.cost_info.total_cost:.4f}")
+        # Test streaming
+        print("\nStreaming completion:")
+        async with agent.run_stream("Write a haiku about coding.") as stream:
+            print("Streaming chunks:")
+            async for chunk in stream.stream():
+                print(chunk, end="", flush=True)
+            print("\n")
+            print(f"Final content: {stream.formatted_content}")
+            usage = stream.usage()
+            print(f"Total tokens: {usage.total_tokens}")
+            print(f"Model used: {stream.model_name}")
+
+    asyncio.run(main())
