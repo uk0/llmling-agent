@@ -41,7 +41,7 @@ responses:
 agents:
   support:
     name: Support Agent
-    model: openai:gpt-4
+    model: openai:gpt-4o-mini
     model_settings:
       retries: 3
       result_retries: 2
@@ -51,7 +51,7 @@ agents:
       - "Context: {data}"
   researcher:
     name: Research Agent
-    model: openai:gpt-4
+    model: openai:gpt-4o-mini
     result_type: ResearchResult
     system_prompts:
       - You are a researcher

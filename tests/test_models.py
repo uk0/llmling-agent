@@ -34,7 +34,7 @@ agents:
   test_agent:  # Key is the agent ID
     name: Test Agent
     description: A test agent
-    model: openai:gpt-4
+    model: test
     model_settings: {}
     result_type: TestResponse
     system_prompts:
@@ -45,7 +45,7 @@ INVALID_RESPONSE_CONFIG = """\
 responses: {}
 agent:
   name: Test Agent
-  model: openai:gpt-4
+  model: test
   result_type: NonExistentResponse
   system_prompts: []
 """

@@ -27,7 +27,7 @@ responses:
 agents:
   test_agent:
     name: test_agent
-    model: openai:gpt-4o-mini
+    model: test
     result_type: BasicResult
     system_prompts:
       - You are a test agent.

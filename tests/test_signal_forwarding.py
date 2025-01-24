@@ -14,21 +14,21 @@ if TYPE_CHECKING:
 BASIC_FORWARDING = """\
 agents:
     agent1:
-        model: openai:gpt-4o-mini
+        model: test
         name: TestAgent 1
         connections:
             - type: agent
               name: agent2
 
     agent2:
-        model: openai:gpt-4o-mini
+        model: test
         name: TestAgent 2
         connections:
             - type: agent
               name: agent3
 
     agent3:
-        model: openai:gpt-4o-mini
+        model: test
         name: TestAgent 3
 """
 
@@ -36,7 +36,7 @@ agents:
 INVALID_FORWARD = """\
 agents:
     agent1:
-        model: openai:gpt-4o-mini
+        model: test
         name: TestAgent
         connections:
             - type: agent
@@ -47,14 +47,14 @@ agents:
 PARTIAL_FORWARDING = """\
 agents:
     agent1:
-        model: openai:gpt-4o-mini
+        model: test
         name: TestAgent 1
         connections:
             - type: agent
               name: agent2
 
     agent2:
-        model: openai:gpt-4o-mini
+        model: test
         name: TestAgent 2
 """
 
@@ -141,3 +141,7 @@ async def test_invalid_forward_target(invalid_config: Path):
     with pytest.raises(ValueError, match="Forward target.*not found"):
         async with AgentPool[None](manifest):
             pass
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])
