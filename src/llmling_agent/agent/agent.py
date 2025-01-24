@@ -1157,6 +1157,45 @@ class Agent[TDeps](TaskManagerMixin):
             self.run_failed.emit("Agent stream failed", e)
             raise
 
+    async def run_iter(
+        self,
+        *prompt_groups: Sequence[AnyPromptType | PIL.Image.Image | os.PathLike[str]],
+        result_type: type[TResult] | None = None,
+        model: ModelType = None,
+        store_history: bool = True,
+        wait_for_connections: bool | None = None,
+    ) -> AsyncIterator[ChatMessage[TResult]]:
+        """Run agent sequentially on multiple prompt groups.
+
+        Args:
+            prompt_groups: Groups of prompts to process sequentially
+            result_type: Optional type for structured responses
+            model: Optional model override
+            store_history: Whether to store in conversation history
+            wait_for_connections: Whether to wait for connected agents
+
+        Yields:
+            Response messages in sequence
+
+        Example:
+            questions = [
+                ["What is your name?"],
+                ["How old are you?", image1],
+                ["Describe this image", image2],
+            ]
+            async for response in agent.run_iter(*questions):
+                print(response.content)
+        """
+        for prompts in prompt_groups:
+            response = await self.run(
+                *prompts,
+                result_type=result_type,
+                model=model,
+                store_history=store_history,
+                wait_for_connections=wait_for_connections,
+            )
+            yield response
+
     def run_sync(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
