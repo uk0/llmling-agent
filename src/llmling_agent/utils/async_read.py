@@ -12,22 +12,22 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from os import PathLike
+    from llmling_agent.common_types import StrPath
 
 
 logger = get_logger(__name__)
 
 
 @overload
-async def read_path(path: str | PathLike[str], mode: Literal["rt"] = "rt") -> str: ...
+async def read_path(path: StrPath, mode: Literal["rt"] = "rt") -> str: ...
 
 
 @overload
-async def read_path(path: str | PathLike[str], mode: Literal["rb"]) -> bytes: ...
+async def read_path(path: StrPath, mode: Literal["rb"]) -> bytes: ...
 
 
 async def read_path(
-    path: str | PathLike[str],
+    path: StrPath,
     mode: Literal["rt", "rb"] = "rt",
 ) -> str | bytes:
     """Read file content asynchronously when possible.
@@ -49,7 +49,6 @@ async def read_path(
 
         if not isinstance(fs, AsyncFileSystem):
             fs = AsyncFileSystemWrapper(path_obj.fs)
-
     f = await fs.open_async(path_obj.path, mode=mode)
     async with f:
         return await f.read()

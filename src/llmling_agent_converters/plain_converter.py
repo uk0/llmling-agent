@@ -10,7 +10,7 @@ from llmling_agent_converters.base import DocumentConverter
 
 
 if TYPE_CHECKING:
-    from os import PathLike
+    from llmling_agent.common_types import StrPath
 
 
 logger = get_logger(__name__)
@@ -22,7 +22,7 @@ class PlainConverter(DocumentConverter):
     def __init__(self, config: PlainConverterConfig | None = None):
         self.config = config or PlainConverterConfig()
 
-    def supports_file(self, path: str | PathLike[str]) -> bool:
+    def supports_file(self, path: StrPath) -> bool:
         """Support text files or unknown types as last resort."""
         import mimetypes
 
@@ -33,7 +33,7 @@ class PlainConverter(DocumentConverter):
         """Accept any content we can convert to string."""
         return True
 
-    def convert_file(self, path: str | PathLike[str]) -> str:
+    def convert_file(self, path: StrPath) -> str:
         """Just read the file as text."""
         try:
             return UPath(path).read_text()

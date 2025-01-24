@@ -8,13 +8,13 @@ from upath import UPath
 
 
 if TYPE_CHECKING:
-    from os import PathLike
+    from llmling_agent.common_types import StrPath
 
 
 class DocumentConverter(ABC):
     """Base class for document converters."""
 
-    def convert_file(self, path: str | PathLike[str]) -> str:
+    def convert_file(self, path: StrPath) -> str:
         """Convert document file to markdown."""
         path_obj = UPath(path)
         content = path_obj.read_bytes()
@@ -25,7 +25,7 @@ class DocumentConverter(ABC):
         """Convert content to markdown."""
 
     @abstractmethod
-    def supports_file(self, path: str | PathLike[str]) -> bool:
+    def supports_file(self, path: StrPath) -> bool:
         """Check if converter can handle this file type."""
 
     @abstractmethod

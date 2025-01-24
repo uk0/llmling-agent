@@ -1,11 +1,10 @@
 from datetime import datetime
-from os import PathLike
 from typing import Any, ClassVar
 
 from jinja2 import Template
 from upath import UPath
 
-from llmling_agent.common_types import JsonValue
+from llmling_agent.common_types import JsonValue, StrPath
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.storage import LogFormat, TextLogConfig
@@ -107,7 +106,7 @@ class TextLogProvider(StorageProvider):
 
     def _load_template(
         self,
-        template: LogFormat | str | PathLike[str] | None,
+        template: LogFormat | StrPath | None,
     ) -> Template:
         """Load template from predefined or file."""
         if template is None:
