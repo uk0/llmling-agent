@@ -42,10 +42,10 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         self,
         callback: ProcessorCallback[Any],
         *,
-        name: str = "processor",
+        name: str = "",
         debug: bool = False,
     ):
-        super().__init__(name=name, debug=debug)
+        super().__init__(name=name or callback.__name__, debug=debug)
         self.callback = callback
         self._wants_context = has_argument_type(callback, "AgentContext")
         self._is_async = inspect.iscoroutinefunction(callback)
@@ -91,7 +91,9 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
 
         except Exception as e:
             logger.exception("Processor callback failed")
-            msg = f"Processor error: {e}"
+            # Include callable name in error message
+            name = getattr(self.callback, "__name__", str(self.callback))
+            msg = f"Processor error in {name!r}: {e}"
             raise RuntimeError(msg) from e
 
     @asynccontextmanager
