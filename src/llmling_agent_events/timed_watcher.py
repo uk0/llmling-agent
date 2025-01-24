@@ -6,9 +6,6 @@ import asyncio
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
-import zoneinfo
-
-from croniter import croniter
 
 from llmling_agent.events.sources import EventData, TimeEventConfig
 from llmling_agent_events.base import EventSource
@@ -37,12 +34,16 @@ class TimeEventSource(EventSource):
     """Generates events based on cron schedule."""
 
     def __init__(self, config: TimeEventConfig):
+        import zoneinfo
+
         self.config = config
         self._stop_event = asyncio.Event()
         self._tz = zoneinfo.ZoneInfo(config.timezone) if config.timezone else None
 
     async def connect(self):
         """Validate cron expression."""
+        from croniter import croniter
+
         try:
             now = datetime.now(self._tz)
             croniter(self.config.schedule, now)
@@ -56,6 +57,8 @@ class TimeEventSource(EventSource):
 
     async def events(self) -> AsyncGenerator[EventData, None]:
         """Generate events based on schedule."""
+        from croniter import croniter
+
         while not self._stop_event.is_set():
             now = datetime.now(self._tz)
             cron = croniter(self.config.schedule, now)

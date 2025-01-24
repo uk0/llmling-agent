@@ -2,10 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, overload
 
-import fsspec
-from fsspec.asyn import AsyncFileSystem
-from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
-from morefs.asyn_local import AsyncLocalFileSystem
 from upath import UPath
 
 from llmling_agent.log import get_logger
@@ -39,6 +35,11 @@ async def read_path(
     Returns:
         File content as string or bytes depending on mode
     """
+    import fsspec
+    from fsspec.asyn import AsyncFileSystem
+    from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+    from morefs.asyn_local import AsyncLocalFileSystem
+
     path_obj = UPath(path)
 
     # Try to get native async filesystem first

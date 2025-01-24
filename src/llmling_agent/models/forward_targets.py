@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 import inspect
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from jinja2 import Template
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 from upath import UPath
 
@@ -137,6 +136,8 @@ class FileConnectionConfig(ConnectionConfig):
 
     def get_provider(self) -> CallbackProvider[str]:
         """Get provider for file writing."""
+        from jinja2 import Template
+
         from llmling_agent_providers.callback import CallbackProvider
 
         path_obj = UPath(self.path)

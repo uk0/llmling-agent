@@ -6,28 +6,18 @@ from asyncio import Event
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
-from watchfiles import Change, awatch
-from watchfiles.filters import DefaultFilter
-
-from llmling_agent.events.sources import EventData
+from llmling_agent.events.sources import EventData, FileWatchConfig
 from llmling_agent_events.base import EventSource
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, AsyncIterator
 
+    from watchfiles import Change
     from watchfiles.main import FileChange
-
-    from llmling_agent.events.sources import FileWatchConfig
 
 
 ChangeType = Literal["added", "modified", "deleted"]
-
-CHANGE_TO_TYPE: dict[Change, ChangeType] = {
-    Change.added: "added",
-    Change.modified: "modified",
-    Change.deleted: "deleted",
-}
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -51,6 +41,8 @@ class ExtensionFilter:
             extensions: File extensions to watch (e.g. ['.py', '.md'])
             ignore_paths: Paths to ignore
         """
+        from watchfiles.filters import DefaultFilter
+
         self.extensions = tuple(
             ext if ext.startswith(".") else f".{ext}" for ext in extensions
         )
@@ -80,6 +72,8 @@ class FileSystemEventSource(EventSource):
             msg = "No paths specified to watch"
             raise ValueError(msg)
 
+        from watchfiles.main import awatch
+
         self._stop_event = Event()
 
         # Create filter from extensions if provided
@@ -106,13 +100,19 @@ class FileSystemEventSource(EventSource):
     async def events(self) -> AsyncGenerator[EventData, None]:
         """Get file system events."""
         watch = self._watch
+        from watchfiles import Change
+
         if not watch:
             msg = "Source not connected"
             raise RuntimeError(msg)
-
+        change_to_type: dict[Change, ChangeType] = {
+            Change.added: "added",
+            Change.modified: "modified",
+            Change.deleted: "deleted",
+        }
         async for changes in watch:
             for change, path in changes:
-                if change not in CHANGE_TO_TYPE:
+                if change not in change_to_type:
                     continue
-                typ = CHANGE_TO_TYPE[change]
+                typ = change_to_type[change]
                 yield FileEvent.create(source=self.config.name, path=str(path), type=typ)
