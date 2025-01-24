@@ -13,7 +13,6 @@ import typer as t
 
 from llmling_agent.delegation import AgentPool
 from llmling_agent.log import set_handler_level
-from llmling_agent_cli.chat_session.session import start_interactive_session
 
 
 THEME_HELP = "UI theme (soft/base/monochrome/glass/default)"
@@ -40,6 +39,7 @@ def quickstart_command(
     """Start an ephemeral chat session with minimal setup."""
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)
+    from llmling_agent_cli.chat_session.session import start_interactive_session
 
     try:
         # Create temporary agent config

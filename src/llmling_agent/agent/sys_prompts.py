@@ -3,9 +3,6 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Literal
 
-from jinja2 import Environment
-from toprompt import to_prompt
-
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -67,6 +64,9 @@ class SystemPrompts:
         tool_usage_style: ToolUsageStyle = "suggestive",
     ):
         """Initialize prompt manager."""
+        from jinja2 import Environment
+        from toprompt import to_prompt
+
         match prompts:
             case list():
                 self.prompts = prompts
@@ -123,6 +123,8 @@ class SystemPrompts:
 
     async def refresh_cache(self) -> None:
         """Force re-evaluation of prompts."""
+        from toprompt import to_prompt
+
         evaluated = []
         for prompt in self.prompts:
             result = await to_prompt(prompt)
@@ -141,6 +143,8 @@ class SystemPrompts:
             exclusive: Whether to only use given prompt. If False, prompt will be
                        appended to the agents prompts temporarily.
         """
+        from toprompt import to_prompt
+
         original_prompts = self.prompts.copy()
         new_prompt = await to_prompt(prompt)
         self.prompts = [new_prompt] if not exclusive else [*self.prompts, new_prompt]

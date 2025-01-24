@@ -6,14 +6,13 @@ from collections.abc import AsyncIterator, Callable, Mapping
 from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 from llmling import LLMCallableTool
-from py2openai import create_constructor_schema
 from pydantic import BaseModel
-from toprompt import to_prompt
 from typing_extensions import TypeVar
 
 from llmling_agent.delegation.pool import AgentPool
 from llmling_agent.delegation.team import Team
 from llmling_agent.log import get_logger
+from llmling_agent.models.messages import ChatMessage
 from llmling_agent.utils.basemodel_convert import get_ctor_basemodel
 
 
@@ -24,9 +23,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import Agent, AnyAgent, StructuredAgent
     from llmling_agent.common_types import AgentName
-    from llmling_agent.delegation.router import (
-        ChatMessage,
-    )
 
 
 logger = get_logger(__name__)
@@ -260,6 +256,8 @@ class Interactions[TDeps, TResult]:
             ValueError: If no choices available or invalid selection
         """
         # Get items and create label mapping
+        from toprompt import to_prompt
+
         match selections:
             case dict():
                 label_map = selections
@@ -366,6 +364,8 @@ Select ONE option by its exact label."""
             max_picks: Maximum number of selections (None for unlimited)
             prompt: Optional custom selection prompt
         """
+        from toprompt import to_prompt
+
         match selections:
             case Mapping():
                 label_map = selections
@@ -450,6 +450,8 @@ List your selections, one per line, followed by your reasoning."""
             prompt: Optional custom prompt
             include_tools: Whether to include other tools (tool_calls mode only)
         """
+        from py2openai import create_constructor_schema
+
         # Create model for single instance
         item_model = get_ctor_basemodel(as_type)
 
@@ -510,6 +512,8 @@ List your selections, one per line, followed by your reasoning."""
             prompt: Optional custom prompt
             include_tools: Whether to include other tools (tool_calls mode only)
         """
+        from py2openai import create_constructor_schema
+
         item_model = get_ctor_basemodel(as_type)
 
         instances: list[T] = []

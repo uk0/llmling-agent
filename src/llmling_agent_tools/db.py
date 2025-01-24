@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-import sqlalchemy as sa
-from sqlmodel import SQLModel
-from toprompt.sqlmodel_types import generate_schema_description
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    import sqlalchemy as sa
+    from sqlmodel import SQLModel
 
 
 def generate_db_description(models: list[type[SQLModel]]) -> str:
@@ -14,6 +17,8 @@ def generate_db_description(models: list[type[SQLModel]]) -> str:
         "Available tables and their structure:",
         "",
     ]
+
+    from toprompt.sqlmodel_types import generate_schema_description
 
     # Add each model's documentation
     for model in models:
@@ -36,6 +41,8 @@ class DatabaseQueryTool:
         The query must be a SELECT statement for safety.
         Returns results formatted as a table.
         """
+        import sqlalchemy as sa
+
         # Basic safety check
         if not sql.lstrip().lower().startswith("select"):
             return "Error: Only SELECT queries are allowed"
@@ -82,26 +89,3 @@ class DatabaseQueryTool:
     def get_schema_doc(self) -> str:
         """Get the database schema documentation."""
         return self.schema_doc
-
-
-if __name__ == "__main__":
-    from sqlmodel import create_engine
-
-    from llmling_agent_storage.sql_provider.models import CommandHistory
-
-    # Create tool
-    engine = create_engine("sqlite:///blog.db")
-    db_tool = DatabaseQueryTool(engine, [CommandHistory])
-    print(db_tool.get_schema_doc())
-    # Register with agent
-    # agent.tools.register_tool(
-    #     db_tool.query,
-    #     name="query_database",
-    #     description=dedent("""
-    #         Execute SQL SELECT queries against the database.
-
-    #         Schema Information:
-    #         ------------------
-    #         {db_tool.get_schema_doc()}
-    #     """),
-    # )

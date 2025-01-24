@@ -6,9 +6,6 @@ from contextlib import AsyncExitStack, suppress
 import sys
 from typing import TYPE_CHECKING, Any, Self, TextIO
 
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
-from mcp.types import EmbeddedResource, ImageContent, Tool as MCPTool
 from py2openai.functionschema import FunctionSchema
 
 from llmling_agent.log import get_logger
@@ -18,7 +15,8 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from types import TracebackType
 
-    from mcp.types import Tool
+    from mcp import ClientSession
+    from mcp.types import Tool, Tool as MCPTool
 
 logger = get_logger(__name__)
 
@@ -97,6 +95,9 @@ class MCPClient:
             env: Optional environment variables
             url: Server URL (for SSE servers)
         """
+        from mcp import ClientSession, StdioServerParameters
+        from mcp.client.stdio import stdio_client
+
         if url:
             # SSE connection - just a placeholder for now
             logger.info("SSE servers not yet implemented")
@@ -144,6 +145,8 @@ class MCPClient:
 
     async def call_tool(self, name: str, arguments: dict | None = None) -> str:
         """Call an MCP tool."""
+        from mcp.types import EmbeddedResource, ImageContent
+
         if not self.session:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
