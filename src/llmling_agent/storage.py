@@ -13,10 +13,6 @@ from llmling_agent.models.storage import (
     TextLogConfig,
 )
 from llmling_agent.utils.tasks import TaskManagerMixin
-from llmling_agent_storage.file_provider import FileProvider
-from llmling_agent_storage.memory_provider import MemoryStorageProvider
-from llmling_agent_storage.sql_provider import SQLModelProvider
-from llmling_agent_storage.text_log_provider import TextLogProvider
 
 
 if TYPE_CHECKING:
@@ -94,15 +90,23 @@ class StorageManager(TaskManagerMixin):
             case SQLStorageConfig():
                 from sqlmodel import create_engine
 
+                from llmling_agent_storage.sql_provider import SQLModelProvider
+
                 engine = create_engine(
                     provider_config.url, pool_size=provider_config.pool_size
                 )
                 return SQLModelProvider(provider_config, engine)
             case FileStorageConfig():
+                from llmling_agent_storage.file_provider import FileProvider
+
                 return FileProvider(provider_config)
             case TextLogConfig():
+                from llmling_agent_storage.text_log_provider import TextLogProvider
+
                 return TextLogProvider(provider_config)
             case MemoryStorageConfig():
+                from llmling_agent_storage.memory_provider import MemoryStorageProvider
+
                 return MemoryStorageProvider(provider_config)
             case _:
                 msg = f"Unknown provider type: {provider_config}"
