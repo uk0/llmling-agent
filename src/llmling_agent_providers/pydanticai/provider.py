@@ -97,7 +97,10 @@ class PydanticAIProvider(AgentProvider):
         return list(get_args(KnownModelName)) + list(get_args(AllModels))
 
     def get_agent(self, system_prompt: str) -> PydanticAgent[Any, Any]:
-        agent = PydanticAgent(system_prompt=system_prompt, **self._kwargs)  # type: ignore
+        kwargs = self._kwargs.copy()
+        model = kwargs.pop("model", None)
+        model = infer_model(model) if isinstance(model, str) else model
+        agent = PydanticAgent(model=model, system_prompt=system_prompt, **kwargs)  # type: ignore
         tools = [t for t in self.tool_manager.values() if t.enabled]
         for tool in tools:
             wrapped = (
@@ -221,11 +224,13 @@ class PydanticAIProvider(AgentProvider):
                 message_history = [*message_history, *prompts_msgs]
 
             # Run with complete history
+            to_use = model or self.model
+            to_use = infer_model(to_use) if isinstance(to_use, str) else to_use
             result = await agent.run(
                 prompt,
                 deps=self._context,  # type: ignore
                 message_history=[to_model_message(m) for m in message_history],
-                model=model or self.model,  # type: ignore
+                model=to_use,  # type: ignore
                 result_type=result_type or str,
             )
 
