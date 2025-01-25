@@ -55,10 +55,10 @@ manifest = AgentsManifest.from_file("agents.yml")
 pool = AgentPool(manifest)
 
 # Create with specific agents
-pool = AgentPool(manifest, agents_to_load=["analyzer", "summarizer"])
+pool = AgentPool(manifest, nodes_to_load=["analyzer", "summarizer"])
 
 # Create with manual configuration
-pool = AgentPool(manifest, connect_agents=False)
+pool = AgentPool(manifest, connect_nodes=False)
 
 # Create with confirmation callback
 pool = AgentPool(manifest, confirmation_callback=my_callback)

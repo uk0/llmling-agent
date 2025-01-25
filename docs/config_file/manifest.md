@@ -101,6 +101,20 @@ agents:
     provider: "human"
     # ... configuration for planner agent
 
+teams:
+  # Complex workflows via YAML
+  full_pipeline:
+    mode: sequential
+    members:
+      - analyzer
+      - planner
+    connections:
+      - type: agent
+        name: final_reviewer
+        wait_for_completion: true
+      - type: file
+        path: "reports/{date}_workflow.txt"
+
 # Shared response definitions
 responses:
   AnalysisResult:

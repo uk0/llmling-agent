@@ -1,12 +1,29 @@
-# Agent Connection System
+# Node Connection System
 
 ## Overview
-LLMling provides a robust, object-oriented approach to managing agent communications through dedicated connection objects. The system supports various connection patterns and offers fine-grained control over message flow and monitoring. Connections can be defined both programmatically and through YAML configuration.
+LLMling provides a clean, object-oriented approach to message routing through a simple but powerful concept:
+Every entity that can process messages is a message node and can be connected to other nodes.
+This creates a flexible and composable system for building complex message flows.
 
 ## Core Components
 
-### Talk
+### Message Nodes
+
+Any entity that:
+
+- Can receive and process messages (run())
+- Has an outbox signal for emitting messages
+- Can be connected to other nodes
+
+Types of nodes:
+
+- Agents (LLM-based , Human-in-the-loop, or Callables)
+- Teams (Parallel execution groups)
+- TeamRuns (Sequential execution chains)
+
+#### Talk
 The fundamental connection unit representing a one-to-many relationship between agents:
+
 ```python
 class Talk:
     def __init__(
@@ -23,14 +40,14 @@ class Talk:
     )
 ```
 
-### Connection Types
+#### Connection Types
 Three different ways messages can be handled:
 
 - `run`: Execute message as a new run in target agent
 - `context`: Add message as context to target's conversation
 - `forward`: Forward message directly to target's outbox
 
-### Connection Management
+#### Connection Management
 
 Connections are managed by the `ConnectionManager`, which provides:
 
@@ -86,7 +103,23 @@ team_b = agent_3 & agent_4
 connection = team_a.connect_to(team_b)
 ```
 
-In this scenario each team member of team_a gets connected to all team members of team b.
+### Complex Structures
+Nodes can be combined in any way:
+```python
+# Create teams for parallel execution
+team_1 = analyzer & planner  # Team of two agents
+team_2 = validator & reporter  # Another team
+
+# Create sequential chain
+chain = processor_1 | processor_2  # Sequential processing
+
+# Combine in any way
+nested_team = Team([team_1, chain, team_2])  # Team containing teams and chains!
+complex_chain = team_1 | processor | team_2  # Teams in a chain
+
+# Connect complex structures
+connection = nested_team >> final_processor
+```
 
 ## Message Flow Control
 

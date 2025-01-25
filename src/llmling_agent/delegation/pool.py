@@ -12,6 +12,8 @@ from typing_extensions import TypeVar
 
 from llmling_agent.agent import AnyAgent
 from llmling_agent.common_types import AgentName
+from llmling_agent.delegation.team import Team
+from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
 from llmling_agent.models.forward_targets import (
@@ -32,8 +34,6 @@ if TYPE_CHECKING:
     from llmling_agent.agent import Agent, StructuredAgent
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
-    from llmling_agent.delegation.team import Team
-    from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.models.agents import AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.session import SessionQuery
@@ -65,8 +65,8 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         manifest: StrPath | AgentsManifest[Any] | None = None,
         *,
         shared_deps: TPoolDeps | None = None,
-        agents_to_load: list[AgentName] | None = None,
-        connect_agents: bool = True,
+        nodes_to_load: list[AgentName] | None = None,
+        connect_nodes: bool = True,
         confirmation_callback: ConfirmationCallback | None = None,
         parallel_agent_load: bool = True,
     ):
@@ -75,9 +75,9 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         Args:
             manifest: Agent configuration manifest
             shared_deps: Dependencies to share across all agents
-            agents_to_load: Optional list of agent names to initialize
+            nodes_to_load: Optional list of agent names to initialize
                           If None, all agents from manifest are loaded
-            connect_agents: Whether to set up forwarding connections
+            connect_nodes: Whether to set up forwarding connections
             confirmation_callback: Handler callback for tool / step confirmations
             parallel_agent_load: Whether to load agents in parallel (async)
 
@@ -104,9 +104,10 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self.exit_stack = AsyncExitStack()
         self.parallel_agent_load = parallel_agent_load
         self.storage = StorageManager(self.manifest.storage)
+        self._teams: dict[str, Team[Any] | TeamRun[Any, Any]] = {}
 
         # Validate requested agents exist
-        to_load = set(agents_to_load) if agents_to_load else set(self.manifest.agents)
+        to_load = set(nodes_to_load) if nodes_to_load else set(self.manifest.agents)
         if invalid := (to_load - set(self.manifest.agents)):
             msg = f"Unknown agents: {', '.join(invalid)}"
             raise ValueError(msg)
@@ -116,7 +117,8 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         for name, task in self.manifest.jobs.items():
             self._tasks.register(name, task)
         self.pool_talk = TeamTalk.from_agents(list(self.agents.values()))
-        # Create requested agents immediately using sync initialization
+
+        # Create requested agents immediately
         for name in to_load:
             agent = self.manifest.get_agent(name, deps=shared_deps)
             self.register(name, agent)
@@ -127,8 +129,8 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
                 self.setup_agent_workers(self[name], config.workers)
 
         # Set up forwarding connections
-        if connect_agents:
-            self._connect_signals()
+        if connect_nodes:
+            self._connect_nodes()
 
     async def __aenter__(self) -> Self:
         """Enter async context and initialize all agents."""
@@ -363,46 +365,82 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         item.context.pool = self
         return item
 
-    def _connect_signals(self):
-        """Set up forwarding connections between agents."""
-        from llmling_agent.agent import Agent
+    def _create_teams(self) -> None:
+        """Create all teams in two phases to allow nesting."""
+        # Phase 1: Create empty teams
+        empty_teams: dict[str, Team[Any] | TeamRun[Any, Any]] = {}
+        for name, config in self.manifest.teams.items():
+            if config.mode == "parallel":
+                empty_teams[name] = Team(
+                    [], name=name, shared_prompt=config.shared_prompt
+                )
+            else:
+                empty_teams[name] = TeamRun(
+                    [], name=name, shared_prompt=config.shared_prompt
+                )
 
-        for name, config in self.manifest.agents.items():
-            if name not in self.agents:
-                continue
+        # Phase 2: Resolve members
+        for name, config in self.manifest.teams.items():
+            team = empty_teams[name]
+            members = []
+            for member in config.members:
+                if member in self.agents:
+                    members.append(self.agents[member])
+                elif member in empty_teams:
+                    members.append(empty_teams[member])
+                else:
+                    msg = f"Unknown team member: {member}"
+                    raise ValueError(msg)
+            team.agents.extend(members)
 
-            source_agent = self.agents[name]
-            for target in config.connections:
+        self._teams = empty_teams
+
+    def _connect_nodes(self) -> None:
+        """Set up connections defined in manifest."""
+        # Merge agent and team configs into one dict of nodes with connections
+        node_map = {
+            name: cfg
+            for collection in (self.manifest.agents, self.manifest.teams)
+            for name, cfg in collection.items()
+            if cfg.connections
+        }
+
+        for name, config in node_map.items():
+            source = self[name] if name in self else self._teams[name]
+            for target in config.connections or []:
                 match target:
                     case AgentConnectionConfig():
-                        if target.name not in self.agents:
+                        if target.name not in self and target.name not in self._teams:
                             msg = f"Forward target {target.name} not found for {name}"
                             raise ValueError(msg)
-                        target_agent = self.agents[target.name]
+                        target_node = (
+                            self[target.name]
+                            if target.name in self
+                            else self._teams[target.name]
+                        )
                     case FileConnectionConfig() | CallableConnectionConfig():
-                        target_agent = Agent(provider=target.get_provider())
+                        target_node = Agent(provider=target.get_provider())
 
-                _talk = source_agent.connect_to(
-                    target_agent,
+                source.connect_to(
+                    target_node,
                     connection_type=target.connection_type,
                     priority=target.priority,
                     delay=target.delay,
                     queued=target.queued,
                     queue_strategy=target.queue_strategy,
                     transform=target.transform,
-                    stop_condition=target.stop_condition.check
-                    if target.stop_condition
-                    else None,
                     filter_condition=target.filter_condition.check
                     if target.filter_condition
+                    else None,
+                    stop_condition=target.stop_condition.check
+                    if target.stop_condition
                     else None,
                     exit_condition=target.exit_condition.check
                     if target.exit_condition
                     else None,
                 )
-
-                source_agent.connections.set_wait_state(
-                    target_agent,
+                source.connections.set_wait_state(
+                    target_node,
                     wait=target.wait_for_completion,
                 )
 
@@ -449,7 +487,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         Returns:
             The new agent instance
         """
-        from llmling_agent.agent.structured import Agent, StructuredAgent
+        from llmling_agent.agent import Agent, StructuredAgent
 
         # Get original config
         if isinstance(agent, str):

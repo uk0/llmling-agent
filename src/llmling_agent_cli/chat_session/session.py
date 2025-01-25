@@ -71,7 +71,7 @@ class InteractiveSession:
         self._chat_session.tool_added.connect(self._on_tool_added)
         self._chat_session.tool_removed.connect(self._on_tool_removed)
         self._chat_session.tool_changed.connect(self._on_tool_changed)
-        self._chat_session._agent.connections.agent_connected.connect(
+        self._chat_session._agent.connections.node_connected.connect(
             self._on_agent_connected
         )
         if self._chat_session.pool:

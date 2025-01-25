@@ -314,7 +314,19 @@ agents:
         paths: ["src/**/*.py"]
         extensions: [".py"]
         debounce: 1000  # ms
-
+teams:
+  # Complex workflows via YAML
+  full_pipeline:
+    mode: sequential
+    members:
+      - analyzer
+      - planner
+    connections:
+      - type: agent
+        name: final_reviewer
+        wait_for_completion: true
+      - type: file
+        path: "reports/{date}_workflow.txt"
 # Response type definitions
 responses:
   AnalysisResult:
@@ -438,42 +450,113 @@ async def main():
 
 ## Message System
 
-LLMling provides a unified messaging system with three types of message handlers:
+LLMling provides a unified messaging system based on a simple but powerful concept: Every entity that can process messages is a message node. This creates a clean, composable architecture where all nodes:
 
-1. **Agents**: Individual LLM-powered actors that process and respond to messages
-   ```python
-   # Single agent processing
-   analyzer = pool.get_agent("analyzer")
-   result = await analyzer.run("analyze this")
-   ```
+1. Share a common interface:
+   - `run()` -> Returns ChatMessage
+   - `connect_to()` -> Creates connections
+   - `outbox` signal for message emission
 
-2. **Teams**: Groups of agents that execute in parallel
-   ```python
-   # Parallel team execution
-   team = analyzer & planner & executor
-   results = await team.run("handle this task")
-   ```
-
-3. **TeamRuns**: Sequential chains of agents
-   ```python
-   # Sequential processing chain
-   chain = analyzer >> planner >> executor
-   results = await chain.run("process in sequence")
-   ```
-
-All three types integrate into a single messaging system and can be freely connected:
+2. Can be freely connected:
 ```python
-# Connect any combination
-team.connect_to(reviewer)          # Team to Agent
-analyzer.connect_to(team)          # Agent to Team
-chain.connect_to(other_chain)      # Chain to Chain
-
-# Create complex flows
-(analyzer & planner) >> executor   # Team to Agent
-team_a >> team_b >> final_review  # Team to Team to Agent
-agent_a >> [agent_b, agent_c]        # Two separate connections, a -> b, and a -> c
-team_a >> [team_b, agent_c]        # Also works with teams mixed in!
+# Any message node can connect to any other
+node_a.connect_to(node_b)
+node_a >> node_b  # Shorthand syntax
 ```
+
+The framework provides three types of message nodes:
+
+1. **Agents**: Individual LLM-powered actors
+```python
+# Single agent processing
+analyzer = pool.get_agent("analyzer")
+result = await analyzer.run("analyze this")
+```
+
+2. **Teams**: Groups for parallel execution
+```python
+# Create team using & operator
+team = analyzer & planner & executor
+results = await team.run("handle this task")
+```
+
+3. **TeamRuns**: Sequential execution chains
+```python
+# Create chain using | operator
+chain = analyzer | planner | executor
+results = await chain.run("process in sequence")
+```
+
+The beauty of this system is that these nodes are completely composable:
+
+```python
+
+def process_text(text: str) -> str:
+    return text.upper()
+
+# Nested structures work naturally
+team_1 = analyzer & planner  # Team
+team_2 = validator & reporter  # Another team
+chain = team_1 | process_text | team_2  # Teams and Callables in a chain
+
+# Complex workflows become intuitive
+(analyzer & planner) | validator  # Team followed by validator
+team_1 | (team_2 & agent_3)  # Chain with parallel components
+
+# Every node has the same core interface
+async for message in node.run_iter("prompt"):
+    print(message.content)
+
+# Monitoring works the same for all types
+print(f"Messages: {node.stats.message_count}")
+print(f"Cost: ${node.stats.total_cost:.2f}")
+```
+(note: the operator overloading is just syntactic sugar. In general, teams should be created
+using pool.create_team()/ pool.create_team_run() or agent/team.connect_to())
+)
+All message nodes support the same execution patterns:
+```python
+# Single execution
+result = await node.run("prompt")
+
+# Streaming
+async with node.run_stream("prompt") as stream:
+    async for chunk in stream:
+        print(chunk)
+
+# Iterator
+async for message in node.run_iter("prompt"):
+    print(message)
+
+# Background execution
+stats = node.run_in_background("prompt", max_count=5)
+await node.wait()  # Wait for completion
+
+# Nested teams work naturally
+team_1 = analyzer & planner  # First team
+team_2 = validator & reporter  # Second team
+parallel_team = Team([team_1, agent_3, team_2])  # Team containing teams!
+
+# This means you can create sophisticated structures:
+result = await parallel_team.run("analyze this")  # Will execute:
+# - team_1 (analyzer & planner) in parallel
+# - agent_3 in parallel
+# - team_2 (validator & reporter) in parallel
+
+# And still use all the standard patterns:
+async for msg in parallel_team.run_iter("prompt"):
+    print(msg.content)
+
+# With full monitoring capabilities:
+print(f"Total cost: ${parallel_team.stats.total_cost:.2f}")
+
+```
+
+This unified system makes it easy to:
+- Build complex workflows
+- Monitor message flow
+- Compose nodes in any combination
+- Use consistent patterns across all node types
 
 Each message in the system carries content, metadata, and execution information, providing a consistent interface across all types of interactions. See [Message System](docs/concepts/messages.md) for details.
 
@@ -505,7 +588,6 @@ connection = agent_a.connect_to(
 connection = agent_a.connect_to(
     agent_b,
     filter_condition=lambda _, _, stats: stats.total_cost > 1.0,
-
 )
 
 # Message transformations
@@ -520,6 +602,7 @@ print(f"Total tokens: {connection.stats.token_count}")
 print(f"Total cost: ${connection.stats.total_cost:.2f}")
 ```
 
+All these connections for both teams and agents can also get set up intiuiviely in the YAML file.
 
 ### Human-in-the-Loop Integration
 

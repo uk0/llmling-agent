@@ -286,7 +286,6 @@ class Talk[TTransmittedData]:
         """Process queued messages."""
         if not self._pending_messages:
             return []
-
         match self.queue_strategy:
             case "buffer":
                 results: list[ChatMessage[TTransmittedData]] = []
@@ -313,6 +312,7 @@ class Talk[TTransmittedData]:
                         ):
                             results.append(response)
                         queue.clear()
+                    print()
                 return results
 
             case "concat":

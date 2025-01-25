@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn, ModelType
+    from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.models.context import AgentContext
@@ -396,7 +397,7 @@ class StructuredAgent[TDeps, TResult]:
     @overload
     def connect_to(
         self,
-        other: AnyAgent[Any, Any] | Team[Any],
+        other: AnyAgent[Any, Any] | BaseTeam[Any, Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -411,7 +412,7 @@ class StructuredAgent[TDeps, TResult]:
 
     def connect_to(
         self,
-        other: AnyAgent[Any, Any] | Team[Any],
+        other: AnyAgent[Any, Any] | BaseTeam[Any, Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,

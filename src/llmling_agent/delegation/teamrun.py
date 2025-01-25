@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -19,6 +18,7 @@ from llmling_agent_providers.base import StreamingResponseProtocol
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Sequence
     import os
 
     import PIL.Image
@@ -26,7 +26,6 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.delegation import Team
 
 
 logger = get_logger(__name__)
@@ -61,7 +60,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
     def __init__(
         self,
-        agents: list[AnyAgent[TDeps, Any]],
+        agents: Sequence[AnyAgent[TDeps, Any] | BaseTeam[TDeps, Any]],
         *,
         name: str | None = None,
         shared_prompt: str | None = None,
@@ -70,36 +69,20 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         super().__init__(agents, name=name, shared_prompt=shared_prompt)
         self.validator = validator
 
-    def __or__(self, other: AnyAgent | Callable | Team | TeamRun) -> TeamRun:
-        from llmling_agent import Agent, StructuredAgent, Team
-        from llmling_agent_providers.callback import CallbackProvider
-
-        match other:
-            case Agent() | StructuredAgent():
-                self.agents.append(other)
-            case Callable():
-                provider = CallbackProvider(other)
-                position = len(self.agents) + 1
-                name = f"{other.__name__}_{position}"
-                new_agent = Agent(provider=provider, name=name)
-                self.agents.append(new_agent)
-            case Team():
-                # Flatten team
-                self.agents.extend(other.agents)
-            case TeamRun():
-                # Merge executions
-                self.agents.extend(other.agents)
-        return self
-
     async def run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        wait_for_connections: bool | None = None,
         **kwargs: Any,
     ) -> ChatMessage[Any]:
-        """Run agents sequentially and return combined message."""
+        """Run agents sequentially and return combined message.
+
+        This message wraps execute and extracts the ChatMessage in order to fulfill
+        the "message protocol".
+        """
         result = await self.execute(*prompts, **kwargs)
 
-        return ChatMessage(
+        msg = ChatMessage(
             content=[r.message.content for r in result if r.message],
             role="assistant",
             name=self.name,
@@ -110,6 +93,8 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                 "execution_order": [r.agent_name for r in result],
             },
         )
+        await self.connections.route_message(msg, wait=wait_for_connections)
+        return msg
 
     async def execute(
         self,
@@ -234,6 +219,9 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         require_all: bool = True,
     ) -> AsyncIterator[StreamingResponseProtocol]:
         """Stream results through chain of team members."""
+        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.delegation import TeamRun
+
         async with AsyncExitStack() as stack:
             streams: list[StreamingResponseProtocol[str]] = []
             current_message = prompts
@@ -241,10 +229,13 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             # Set up all streams
             for agent in self.agents:
                 try:
+                    assert isinstance(agent, TeamRun | Agent | StructuredAgent), (
+                        "Cannot stream teams!"
+                    )
                     stream = await stack.enter_async_context(
                         agent.run_stream(*current_message)
                     )
-                    streams.append(stream)
+                    streams.append(stream)  # type: ignore
                     # Wait for complete response for next agent
                     async for chunk in stream.stream():
                         current_message = chunk

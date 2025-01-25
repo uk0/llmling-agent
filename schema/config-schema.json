@@ -5007,6 +5007,82 @@
       "title": "SystemPrompt",
       "type": "object"
     },
+    "TeamConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for a team or chain of message nodes.\n\nTeams can be either parallel execution groups or sequential chains.\nThey can contain both agents and other teams as members.",
+      "properties": {
+        "mode": {
+          "description": "Execution mode for team members.",
+          "enum": [
+            "parallel",
+            "sequential"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "members": {
+          "description": "Names of agents or other teams that are part of this team.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Members",
+          "type": "array"
+        },
+        "connections": {
+          "anyOf": [
+            {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "agent": "#/$defs/AgentConnectionConfig",
+                    "callable": "#/$defs/CallableConnectionConfig",
+                    "file": "#/$defs/FileConnectionConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/AgentConnectionConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/FileConnectionConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/CallableConnectionConfig"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional message forwarding targets for this team.",
+          "title": "Connections"
+        },
+        "shared_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional shared prompt for this team.",
+          "title": "Shared Prompt"
+        }
+      },
+      "required": [
+        "mode",
+        "members"
+      ],
+      "title": "TeamConfig",
+      "type": "object"
+    },
     "TestModel": {
       "properties": {
         "call_tools": {
@@ -5759,6 +5835,14 @@
       },
       "description": "Mapping of agent IDs to their configurations",
       "title": "Agents",
+      "type": "object"
+    },
+    "teams": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TeamConfig"
+      },
+      "description": "Mapping of team IDs to their configurations",
+      "title": "Teams",
       "type": "object"
     },
     "storage": {

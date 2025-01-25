@@ -26,6 +26,12 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/config_file/model_config.md")
 
 
+@nav.route.page("Team Configuration", icon="fluent:people-team-toolbox-24-regular")
+def _(page: mk.MkPage):
+    """Team configuration and setup."""
+    page += mk.MkTemplate("docs/config_file/team_config.md")
+
+
 @nav.route.page("Capabilities", icon="octicon:shield-check-16")
 def _(page: mk.MkPage):
     """Agent capabilities and permissions."""

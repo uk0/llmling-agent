@@ -968,8 +968,6 @@ class Agent[TDeps](TaskManagerMixin):
                         raise TypeError(msg)
         else:
             targets = target  # type: ignore
-
-        self.connections.agent_connected.emit(targets)
         return self.connections.create_connection(
             self,
             targets,

@@ -105,7 +105,7 @@ async def test_agent_pool_validation():
 
     # Test initialization with non-existent agent
     with pytest.raises(ValueError, match="Unknown agents"):
-        AgentPool(manifest, agents_to_load=["nonexistent"])
+        AgentPool(manifest, nodes_to_load=["nonexistent"])
 
     # Test getting non-existent agent
     async with AgentPool[None](manifest) as pool:

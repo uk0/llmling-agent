@@ -39,6 +39,7 @@ from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.models.storage import StorageConfig
 from llmling_agent.models.task import Job  # noqa: TC001
+from llmling_agent.models.teams import TeamConfig  # noqa: TC001
 from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
 
 
@@ -477,6 +478,9 @@ class AgentsManifest[TDeps](ConfigModel):
 
     agents: dict[str, AgentConfig] = Field(default_factory=dict)
     """Mapping of agent IDs to their configurations"""
+
+    teams: dict[str, TeamConfig] = Field(default_factory=dict)
+    """Mapping of team IDs to their configurations"""
 
     storage: StorageConfig = Field(default_factory=StorageConfig)
     """Storage provider configuration."""

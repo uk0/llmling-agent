@@ -19,12 +19,10 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import (
         AgentName,
-        AnyFilterFn,
         AnyTransformFn,
         AsyncFilterFn,
     )
     from llmling_agent.delegation.base_team import BaseTeam
-    from llmling_agent.delegation.team import Team
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.talk.talk import AnyTeamOrAgent, QueueStrategy
@@ -35,7 +33,7 @@ logger = get_logger(__name__)
 class ConnectionManager:
     """Manages connections for both Agents and Teams."""
 
-    agent_connected = Signal(object)  # Agent
+    node_connected = Signal(object)  # Agent
     connection_added = Signal(Talk)  # Agent
 
     def __init__(self, owner: AnyAgent[Any, Any] | BaseTeam[Any, Any]):
@@ -46,7 +44,11 @@ class ConnectionManager:
     def __repr__(self):
         return f"ConnectionManager({self.owner})"
 
-    def set_wait_state(self, target: AnyAgent[Any, Any] | AgentName, wait: bool = True):
+    def set_wait_state(
+        self,
+        target: AnyAgent[Any, Any] | BaseTeam[Any, Any] | AgentName,
+        wait: bool = True,
+    ):
         """Set waiting behavior for target."""
         target_name = target if isinstance(target, str) else target.name
         self._wait_states[target_name] = wait
@@ -164,104 +166,6 @@ class ConnectionManager:
         self._connections.append(talk)
         self.connection_added.emit(talk)
         return talk
-
-    def add_connection(
-        self,
-        source: AnyAgent[Any, Any],
-        targets: list[AnyAgent[Any, Any]],
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
-        filter_condition: AnyFilterFn | None = None,
-        stop_condition: AnyFilterFn | None = None,
-        exit_condition: AnyFilterFn | None = None,
-    ) -> Talk[Any]:
-        """Add a connection to the manager."""
-        connection = Talk(
-            source,
-            targets,
-            connection_type=connection_type,
-            priority=priority,
-            delay=delay,
-            queued=queued,
-            queue_strategy=queue_strategy,
-            transform=transform,
-            filter_condition=filter_condition,
-            stop_condition=stop_condition,
-            exit_condition=exit_condition,
-        )
-        self.connection_added.emit(connection)
-        self._connections.append(connection)
-        return connection
-
-    def connect_group_to(
-        self,
-        other: AnyAgent[Any, Any] | Team[Any] | AgentName,
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
-        filter_condition: AnyFilterFn | None = None,
-        stop_condition: AnyFilterFn | None = None,
-        exit_condition: AnyFilterFn | None = None,
-        **kwargs: Any,
-    ) -> TeamTalk:
-        """Handle group connections."""
-        from llmling_agent.delegation.team import BaseTeam
-
-        if not isinstance(self.owner, BaseTeam):
-            msg = "connect_group_to can only be used with agent groups"
-            raise TypeError(msg)
-
-        targets = self._resolve_targets(other)
-        for target in targets:
-            self.agent_connected.emit(target)
-
-        conns = [
-            self.add_connection(
-                src,
-                [t],
-                connection_type=connection_type,
-                priority=priority,
-                delay=delay,
-                queued=queued,
-                queue_strategy=queue_strategy,
-                transform=transform,
-                filter_condition=filter_condition,
-                stop_condition=stop_condition,
-                exit_condition=exit_condition,
-            )
-            for src in self.owner.agents
-            for t in targets
-        ]
-        return TeamTalk(conns)
-
-    def _resolve_targets(
-        self, other: AnyAgent[Any, Any] | BaseTeam[Any, Any] | AgentName
-    ) -> list[AnyAgent[Any, Any]]:
-        """Resolve target(s) to connect to."""
-        from llmling_agent.agent import Agent, StructuredAgent
-        from llmling_agent.delegation.base_team import BaseTeam
-
-        match other:
-            case str():
-                if (
-                    not isinstance(self.owner, Agent | StructuredAgent)
-                    or not self.owner.context.pool
-                ):
-                    msg = "Pool required for forwarding to agent by name"
-                    raise ValueError(msg)
-                return [self.owner.context.pool.get_agent(other)]
-            case BaseTeam():
-                return list(other.agents)
-        return [other]
 
     async def trigger_all(self) -> dict[AgentName, list[ChatMessage[Any]]]:
         """Trigger all queued connections."""

@@ -74,7 +74,7 @@ Signals for agent communication:
 ```python
 message_received = Signal(ChatMessage)   # Original message
 message_forwarded = Signal(ChatMessage)  # After transformation
-agent_connected = Signal(object)         # Agent connection established
+node_connected = Signal(object)         # Message connection established
 connection_added = Signal(Talk)          # New connection created
 ```
 
