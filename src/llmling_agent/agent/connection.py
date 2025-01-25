@@ -111,6 +111,7 @@ class ConnectionManager:
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
+        name: str | None = None,
     ) -> Talk[Any] | TeamTalk:
         """Create connection(s) to target(s).
 
@@ -126,6 +127,7 @@ class ConnectionManager:
             filter_condition: When to filter messages
             stop_condition: When to disconnect
             exit_condition: When to exit application
+            name: Optional name for cross-referencing connections
         """
         if isinstance(target, Sequence):
             # Multiple targets -> TeamTalk
@@ -165,6 +167,10 @@ class ConnectionManager:
         )
         self._connections.append(talk)
         self.connection_added.emit(talk)
+        from llmling_agent.talk.talk import _CONNECTION_REGISTRY
+
+        if name:
+            _CONNECTION_REGISTRY.register(name, talk)
         return talk
 
     async def trigger_all(self) -> dict[AgentName, list[ChatMessage[Any]]]:

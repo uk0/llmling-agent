@@ -9,8 +9,10 @@ from pydantic import BaseModel, ConfigDict, Field, ImportString
 
 
 if TYPE_CHECKING:
+    from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.talk import TalkStats
+    from llmling_agent.talk.talk import ConnectionRegistry
 
 
 class ConnectionCondition(BaseModel):
@@ -19,9 +21,18 @@ class ConnectionCondition(BaseModel):
     type: str = Field(init=False)
     """Discriminator for condition types."""
 
+    name: str | None = None
+    """Optional name for the condition for referencing."""
+
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
-    async def check(self, message: ChatMessage[Any], stats: TalkStats) -> bool:
+    async def check(
+        self,
+        message: ChatMessage[Any],
+        target: MessageNode,
+        stats: TalkStats,
+        registry: ConnectionRegistry,
+    ) -> bool:
         """Check if condition is met."""
         raise NotImplementedError
 
@@ -44,7 +55,13 @@ class WordMatchCondition(ConnectionCondition):
     - all: Require all words to match
     """
 
-    async def check(self, message: ChatMessage[Any], stats: TalkStats) -> bool:
+    async def check(
+        self,
+        message: ChatMessage[Any],
+        target: MessageNode,
+        stats: TalkStats,
+        registry: ConnectionRegistry,
+    ) -> bool:
         """Check if message contains specified words."""
         text = str(message.content)
         if not self.case_sensitive:
@@ -72,7 +89,13 @@ class MessageCountCondition(ConnectionCondition):
     - per_agent: Messages from each agent separately
     """
 
-    async def check(self, message: ChatMessage[Any], stats: TalkStats) -> bool:
+    async def check(
+        self,
+        message: ChatMessage[Any],
+        target: MessageNode,
+        stats: TalkStats,
+        registry: ConnectionRegistry,
+    ) -> bool:
         """Check if message count threshold is reached."""
         if self.count_mode == "total":
             return stats.message_count >= self.max_messages
@@ -91,7 +114,13 @@ class TimeCondition(ConnectionCondition):
     duration: timedelta
     """How long the connection should stay active."""
 
-    async def check(self, message: ChatMessage[Any], stats: TalkStats) -> bool:
+    async def check(
+        self,
+        message: ChatMessage[Any],
+        target: MessageNode,
+        stats: TalkStats,
+        registry: ConnectionRegistry,
+    ) -> bool:
         """Check if time duration has elapsed."""
         elapsed = datetime.now() - stats.start_time
         return elapsed >= self.duration
@@ -113,7 +142,13 @@ class TokenThresholdCondition(ConnectionCondition):
     - completion: Only completion tokens
     """
 
-    async def check(self, message: ChatMessage[Any], stats: TalkStats) -> bool:
+    async def check(
+        self,
+        message: ChatMessage[Any],
+        target: MessageNode,
+        stats: TalkStats,
+        registry: ConnectionRegistry,
+    ) -> bool:
         """Check if token threshold is reached."""
         if not message.cost_info:
             return False
@@ -136,7 +171,13 @@ class CostCondition(ConnectionCondition):
     max_cost: float
     """Maximum cost in USD."""
 
-    async def check(self, message: ChatMessage[Any], stats: TalkStats) -> bool:
+    async def check(
+        self,
+        message: ChatMessage[Any],
+        target: MessageNode,
+        stats: TalkStats,
+        registry: ConnectionRegistry,
+    ) -> bool:
         """Check if cost limit is reached."""
         return stats.total_cost >= self.max_cost
 
@@ -150,7 +191,13 @@ class CostLimitCondition(ConnectionCondition):
     max_cost: float
     """Maximum cost in USD before triggering."""
 
-    async def check(self, message: ChatMessage[Any], stats: TalkStats) -> bool:
+    async def check(
+        self,
+        message: ChatMessage[Any],
+        target: MessageNode,
+        stats: TalkStats,
+        registry: ConnectionRegistry,
+    ) -> bool:
         """Check if cost limit is reached."""
         if not message.cost_info:
             return False
@@ -172,7 +219,13 @@ class CallableCondition(ConnectionCondition):
         Whether condition is met
     """
 
-    async def check(self, message: ChatMessage[Any], stats: TalkStats) -> bool:
+    async def check(
+        self,
+        message: ChatMessage[Any],
+        target: MessageNode,
+        stats: TalkStats,
+        registry: ConnectionRegistry,
+    ) -> bool:
         """Execute predicate function."""
         result = self.predicate(message, stats)
         if inspect.isawaitable(result):
@@ -189,9 +242,20 @@ class AndCondition(ConnectionCondition):
     conditions: list[ConnectionCondition]
     """List of conditions to check."""
 
-    async def check(self, message: ChatMessage[Any], stats: TalkStats) -> bool:
+    async def check(
+        self,
+        message: ChatMessage[Any],
+        target: MessageNode,
+        stats: TalkStats,
+        registry: ConnectionRegistry,
+    ) -> bool:
         """Check if all conditions are met."""
-        results = [await c.check(message, stats) for c in self.conditions]
+        from llmling_agent.talk.talk import _CONNECTION_REGISTRY
+
+        results = [
+            await c.check(message, target, stats, _CONNECTION_REGISTRY)
+            for c in self.conditions
+        ]
         return all(results)
 
 
@@ -204,9 +268,20 @@ class OrCondition(ConnectionCondition):
     conditions: list[ConnectionCondition]
     """List of conditions to check."""
 
-    async def check(self, message: ChatMessage[Any], stats: TalkStats) -> bool:
+    async def check(
+        self,
+        message: ChatMessage[Any],
+        target: MessageNode,
+        stats: TalkStats,
+        registry: ConnectionRegistry,
+    ) -> bool:
         """Check if any condition is met."""
-        results = [await c.check(message, stats) for c in self.conditions]
+        from llmling_agent.talk.talk import _CONNECTION_REGISTRY
+
+        results = [
+            await c.check(message, target, stats, _CONNECTION_REGISTRY)
+            for c in self.conditions
+        ]
         return any(results)
 
 

@@ -7,6 +7,7 @@ from dataclasses import replace
 import inspect
 from typing import TYPE_CHECKING, Any, Literal, Self
 
+from llmling import BaseRegistry, LLMLingError
 from psygnal import Signal
 from typing_extensions import TypeVar
 
@@ -133,8 +134,10 @@ class Talk[TTransmittedData]:
                 result = condition(message, target)
             case 3:
                 result = condition(message, target, self.stats)
+            case 4:
+                result = condition(message, target, self.stats, _CONNECTION_REGISTRY)
             case _:
-                msg = f"Condition must take 1-3 parameters, got {param_count}"
+                msg = f"Condition must take 1-4 parameters, got {param_count}"
                 raise ValueError(msg)
 
         if inspect.isawaitable(result):
@@ -439,3 +442,31 @@ class TeamTalk(list["Talk | TeamTalk"]):
         """Disconnect all connections in group."""
         for talk in self:
             talk.disconnect()
+
+
+class ConnectionRegistryError(LLMLingError):
+    """Errors related to connection registration."""
+
+
+class ConnectionRegistry(BaseRegistry[str, Talk]):
+    """Registry for managing named connections.
+
+    Allows looking up Talk instances by their name. Only named
+    connections get registered.
+    """
+
+    @property
+    def _error_class(self) -> type[ConnectionRegistryError]:
+        return ConnectionRegistryError
+
+    def _validate_item(self, item: Any) -> Talk:
+        """Ensure only Talk instances can be registered."""
+        if not isinstance(item, Talk):
+            msg = f"Expected Talk instance, got {type(item)}"
+            raise self._error_class(msg)
+
+        return item
+
+
+# shame on us for using a global.
+_CONNECTION_REGISTRY = ConnectionRegistry()
