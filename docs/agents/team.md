@@ -100,8 +100,8 @@ team >> other_agent
 # Create complex routing
 (team1 & team2) >> coordinator  # Union of teams
 
-# Using pass_results_to
-agent.pass_results_to(
+# Using connect_to
+agent.connect_to(
     team,
     connection_type="run",    # How to handle messages
     priority=1,              # Task priority
@@ -161,7 +161,7 @@ Fine-tune how messages flow through the team:
 
 ```python
 # Connect with specific settings
-team.pass_results_to(
+team.connect_to(
     target,
     connection_type="context",  # Add as context
     priority=1,                # Higher priority

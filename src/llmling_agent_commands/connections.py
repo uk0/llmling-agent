@@ -71,7 +71,7 @@ async def connect_command(
     try:
         assert ctx.context.pool
         target_agent = ctx.context.pool.get_agent(target)
-        ctx.context.agent.pass_results_to(target_agent)
+        ctx.context.agent.connect_to(target_agent)
         ctx.context.agent.connections.set_wait_state(
             target, wait if wait is not None else True
         )

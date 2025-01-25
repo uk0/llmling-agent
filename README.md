@@ -436,6 +436,46 @@ async def main():
         )
 ```
 
+## Message System
+
+LLMling provides a unified messaging system with three types of message handlers:
+
+1. **Agents**: Individual LLM-powered actors that process and respond to messages
+   ```python
+   # Single agent processing
+   analyzer = pool.get_agent("analyzer")
+   result = await analyzer.run("analyze this")
+   ```
+
+2. **Teams**: Groups of agents that execute in parallel
+   ```python
+   # Parallel team execution
+   team = analyzer & planner & executor
+   results = await team.run("handle this task")
+   ```
+
+3. **TeamRuns**: Sequential chains of agents
+   ```python
+   # Sequential processing chain
+   chain = analyzer >> planner >> executor
+   results = await chain.run("process in sequence")
+   ```
+
+All three types integrate into a single messaging system and can be freely connected:
+```python
+# Connect any combination
+team.connect_to(reviewer)          # Team to Agent
+analyzer.connect_to(team)          # Agent to Team
+chain.connect_to(other_chain)      # Chain to Chain
+
+# Create complex flows
+(analyzer & planner) >> executor   # Team to Agent
+team_a >> team_b >> final_review  # Team to Team to Agent
+```
+
+Each message in the system carries content, metadata, and execution information, providing a consistent interface across all types of interactions. See [Message System](docs/concepts/messages.md) for details.
+
+
 ### Advanced Connection Features
 
 Connections between agents are highly configurable and support various patterns:
@@ -445,7 +485,7 @@ Connections between agents are highly configurable and support various patterns:
 connection = agent_a >> agent_b  # Forward all messages
 
 # Extended setup: Queued connection (manual processing)
-connection = agent_a.pass_results_to(
+connection = agent_a.connect_to(
     agent_b,
     queued=True,
     queue_strategy="latest",  # or "concat", "buffer"
@@ -454,13 +494,13 @@ connection = agent_a.pass_results_to(
 await connection.trigger(optional_additional_prompt)  # Process queued messages sequentially
 
 # Filtered connection (example: filter by keyword):
-connection = agent_a.pass_results_to(
+connection = agent_a.connect_to(
     agent_b,
     filter_condition=lambda message, target_agent, stats: "keyword" in message,
 )
 
 # Conditional disconnection (example: disconnect after cost limit):
-connection = agent_a.pass_results_to(
+connection = agent_a.connect_to(
     agent_b,
     filter_condition=lambda _, _, stats: stats.total_cost > 1.0,
 
@@ -470,7 +510,7 @@ connection = agent_a.pass_results_to(
 async def transform_message(message: str) -> str:
     return f"Transformed: {message}"
 
-connection = agent_a.pass_results_to(agent_b, transform=transform_message)
+connection = agent_a.connect_to(agent_b, transform=transform_message)
 
 # Connection statistics
 print(f"Messages processed: {connection.stats.message_count}")

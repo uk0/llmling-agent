@@ -81,7 +81,7 @@ class AgentPoolView:
         """
         assert self.pool
         target_agent = self.pool.get_agent(target)
-        self._agent.pass_results_to(target_agent)
+        self._agent.connect_to(target_agent)
         self._agent.connections.set_wait_state(target, wait if wait is not None else True)
 
     async def cleanup(self):

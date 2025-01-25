@@ -43,7 +43,7 @@ pipeline = analysis_team | planning_team | execution_team
 Simple run that waits for completion:
 ```python
 # Run and wait for results
-results = await run.run("Process this task")
+results = await run.execute("Process this task")
 
 # Access results
 for response in results:

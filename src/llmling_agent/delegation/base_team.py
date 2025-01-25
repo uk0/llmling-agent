@@ -3,9 +3,11 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
+from psygnal import Signal
 from psygnal.containers import EventedList
 
 from llmling_agent.agent.connection import ConnectionManager
+from llmling_agent.models.messages import ChatMessage
 from llmling_agent.utils.tasks import TaskManagerMixin
 
 
@@ -24,6 +26,8 @@ if TYPE_CHECKING:
 
 class BaseTeam[TDeps, TResult](TaskManagerMixin):
     """Base class for Team and TeamRun."""
+
+    outbox = Signal(ChatMessage)
 
     def __init__(
         self,
@@ -86,7 +90,7 @@ class BaseTeam[TDeps, TResult](TaskManagerMixin):
         if self._main_task:
             msg = "Execution already running"
             raise RuntimeError(msg)
-        coro = self.run(*prompts, **kwargs)
+        coro = self.execute(*prompts, **kwargs)
         self._main_task = self.create_task(coro, name="main_execution")
         return self._team_talk
 
@@ -107,11 +111,14 @@ class BaseTeam[TDeps, TResult](TaskManagerMixin):
         *,
         tools: list[str] | None = None,
         resources: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """Distribute content and capabilities to all team members."""
         for agent in self.agents:
             # Add context message
-            agent.conversation.add_context_message(content, source="distribution")
+            agent.conversation.add_context_message(
+                content, source="distribution", metadata=metadata
+            )
 
             # Register tools if provided
             if tools:
@@ -124,7 +131,13 @@ class BaseTeam[TDeps, TResult](TaskManagerMixin):
                     await agent.conversation.load_context_source(resource)
 
     @abstractmethod
-    async def run(
+    async def execute(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
     ) -> TeamResponse: ...
+
+    @abstractmethod
+    async def run(
+        self,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+    ) -> ChatMessage: ...

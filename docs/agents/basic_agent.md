@@ -89,7 +89,7 @@ response = await agent1.talk.ask(
 )
 
 # Setting up forwarding
-agent1.pass_results_to(agent2)
+agent1.connect_to(agent2)
 agent1.stop_passing_results_to(agent2)
 ```
 

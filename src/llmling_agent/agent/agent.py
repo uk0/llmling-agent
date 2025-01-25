@@ -58,6 +58,7 @@ if TYPE_CHECKING:
         ToolType,
     )
     from llmling_agent.config.capabilities import Capabilities
+    from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.models.context import ConfirmationCallback
@@ -411,7 +412,7 @@ class Agent[TDeps](TaskManagerMixin):
             agent >> (agent2 & agent3)  # Connect to group
             agent >> "other_agent"  # Connect by name (needs pool)
         """
-        return self.pass_results_to(other)
+        return self.connect_to(other)
 
     @overload
     def __and__(
@@ -890,7 +891,7 @@ class Agent[TDeps](TaskManagerMixin):
             self.stop_passing_results_to(target)
 
     @overload
-    def pass_results_to(
+    def connect_to(
         self,
         other: AnyAgent[Any, Any] | ProcessorCallback[Any],
         *,
@@ -906,9 +907,9 @@ class Agent[TDeps](TaskManagerMixin):
     ) -> Talk[str]: ...
 
     @overload
-    def pass_results_to(
+    def connect_to(
         self,
-        other: Team[Any],
+        other: BaseTeam[Any, Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -921,9 +922,9 @@ class Agent[TDeps](TaskManagerMixin):
         exit_condition: AsyncFilterFn | None = None,
     ) -> TeamTalk: ...
 
-    def pass_results_to(
+    def connect_to(
         self,
-        other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[Any],
+        other: AnyAgent[Any, Any] | BaseTeam[Any, Any] | ProcessorCallback[Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -957,7 +958,7 @@ class Agent[TDeps](TaskManagerMixin):
             exit_condition=exit_condition,
         )
 
-    def stop_passing_results_to(self, other: AnyAgent[Any, Any]):
+    def stop_passing_results_to(self, other: AnyAgent[Any, Any] | BaseTeam[Any, Any]):
         """Stop forwarding results to another agent."""
         self.connections.disconnect(other)
 

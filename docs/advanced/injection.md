@@ -182,7 +182,7 @@ async def monitor_system(
         interval=300,  # every 5 minutes
         max_count=None,  # run indefinitely
     )
-    watcher.pass_results_to(alerter)
+    watcher.connect_to(alerter)
 ```
 
 ## Tips and Best Practices

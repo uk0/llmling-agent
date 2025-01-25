@@ -362,7 +362,7 @@ class StructuredAgent[TDeps, TResult]:
         return cls(agent, return_type or str)  # type: ignore
 
     @overload
-    def pass_results_to(
+    def connect_to(
         self,
         other: AnyAgent[Any, Any],
         *,
@@ -378,7 +378,7 @@ class StructuredAgent[TDeps, TResult]:
     ) -> Talk[str]: ...
 
     @overload
-    def pass_results_to(
+    def connect_to(
         self,
         other: AnyAgent[Any, Any],
         *,
@@ -394,7 +394,7 @@ class StructuredAgent[TDeps, TResult]:
     ) -> Talk[TResult]: ...
 
     @overload
-    def pass_results_to(
+    def connect_to(
         self,
         other: AnyAgent[Any, Any] | Team[Any],
         *,
@@ -409,7 +409,7 @@ class StructuredAgent[TDeps, TResult]:
         exit_condition: AsyncFilterFn | None = None,
     ) -> TeamTalk: ...
 
-    def pass_results_to(
+    def connect_to(
         self,
         other: AnyAgent[Any, Any] | Team[Any],
         *,

@@ -17,7 +17,7 @@ class MessageNode[TDeps, TResult](Protocol):
 
     async def run(self, *prompts: Any, **kwargs: Any) -> ChatMessage[TResult]: ...
 
-    def pass_results_to(
+    def connect_to(
         self,
         other: AnyAgent[Any, Any] | Team[Any] | MessageNode[Any, Any],
         **kwargs: Any,

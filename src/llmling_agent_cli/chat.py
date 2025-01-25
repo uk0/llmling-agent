@@ -83,7 +83,7 @@ def chat_command(
                 if connections:
                     for target in connections:
                         target_agent = pool.get_agent(target)
-                        agent.pass_results_to(target_agent)
+                        agent.connect_to(target_agent)
 
                 await start_interactive_session(agent, pool=pool, stream=stream)
 

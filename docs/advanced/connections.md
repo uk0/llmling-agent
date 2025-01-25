@@ -65,7 +65,7 @@ agents:
 Simple connection between two agents:
 ```python
 # Direct connection
-connection = agent_a.pass_results_to(agent_b)
+connection = agent_a.connect_to(agent_b)
 ```
 
 ### Agent-to-Team
@@ -75,7 +75,7 @@ Connect an agent to multiple targets:
 team = agent_b & agent_c & agent_d
 
 # Connect agent to team
-connection = agent_a.pass_results_to(team)
+connection = agent_a.connect_to(team)
 ```
 
 ### Team-to-Team
@@ -83,7 +83,7 @@ Connect groups of agents:
 ```python
 team_a = agent_1 & agent_2
 team_b = agent_3 & agent_4
-connection = team_a.pass_results_to(team_b)
+connection = team_a.connect_to(team_b)
 ```
 
 In this scenario each team member of team_a gets connected to all team members of team b.
@@ -124,7 +124,7 @@ Each connection tracks:
 
 ```python
 # Set up connection with control
-talk = agent.pass_results_to(
+talk = agent.connect_to(
     target,
     priority=1,
     delay=timedelta(seconds=5),
@@ -191,7 +191,7 @@ executor = Agent(name="executor")
 planning_team = planner & executor
 
 # Set up connection with control
-talk = analyzer.pass_results_to(
+talk = analyzer.connect_to(
     planning_team,
     connection_type="run",
     transform=lambda msg: preprocess_message(msg),

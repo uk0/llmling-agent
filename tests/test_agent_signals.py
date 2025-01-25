@@ -33,7 +33,7 @@ async def test_message_chain(test_agent: Agent[None]):
         agent_b.outbox.connect(collect)
 
         # Connect the chain
-        test_agent.pass_results_to(agent_b)
+        test_agent.connect_to(agent_b)
 
         # When test_agent sends a message
         await test_agent.run("Start message")
@@ -61,7 +61,7 @@ async def test_run_result_not_modified_by_connections():
     async with Agent[None](name="agent-a", model=model) as agent_a:  # noqa: SIM117
         async with Agent[None](name="agent-b", model=model) as agent_b:
             # Connect A to B
-            agent_a.pass_results_to(agent_b)
+            agent_a.connect_to(agent_b)
 
             # When A runs
             result = await agent_a.run("Test message")

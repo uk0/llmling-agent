@@ -124,7 +124,7 @@ async def spawn_delegate[TDeps](
 
     if connect_back:
         assert ctx.deps.agent
-        ctx.deps.agent.pass_results_to(agent)
+        ctx.deps.agent.connect_to(agent)
 
     await agent.run(task)
     return f"Spawned delegate {name} for task"

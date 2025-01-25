@@ -21,7 +21,7 @@ async def test_agent_piping():
     )
 
     pipeline = agent1 | transform1 | transform2
-    result = await pipeline.run("test")
+    result = await pipeline.execute("test")
 
     # Check message flow
     assert result[0].message
@@ -71,7 +71,7 @@ async def test_agent_piping_errors():
 
     # The pipeline should break at the failing transform
     with pytest.raises(RuntimeError, match="Transform error"):
-        await pipeline.run("test")
+        await pipeline.execute("test")
 
     # Check that we can still access stats about what happened before the error
     assert len(pipeline.stats) == 1  # Only the successful connection
@@ -140,7 +140,7 @@ async def test_agent_piping_async():
         return f"transform: {text}"
 
     pipeline = agent1 | transform
-    result = await pipeline.run("test")
+    result = await pipeline.execute("test")
 
     assert result.success
     assert len(result) == 2  # noqa: PLR2004

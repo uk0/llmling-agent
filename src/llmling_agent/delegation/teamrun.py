@@ -95,6 +95,26 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         **kwargs: Any,
+    ) -> ChatMessage[Any]:
+        """Run agents sequentially and return combined message."""
+        result = await self.execute(*prompts, **kwargs)
+
+        return ChatMessage(
+            content=[r.message.content for r in result if r.message],
+            role="assistant",
+            name=self.name,
+            metadata={
+                "agent_names": [r.agent_name for r in result],
+                "errors": {name: str(error) for name, error in result.errors.items()},
+                "start_time": result.start_time.isoformat(),
+                "execution_order": [r.agent_name for r in result],
+            },
+        )
+
+    async def execute(
+        self,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        **kwargs: Any,
     ) -> TeamResponse[TResult]:
         """Start execution with optional monitoring."""
         self._team_talk.clear()
@@ -116,7 +136,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         try:
             first = self.agents[0]
             connections = [
-                source.pass_results_to(target, queued=True)
+                source.connect_to(target, queued=True)  # pyright: ignore
                 for source, target in pairwise(self.agents)
             ]
             for conn in connections:

@@ -13,7 +13,7 @@ async def test_basic_single_connection():
         Agent[str](model="test") as target,
     ):
         # Create explicit connection
-        talk = source.pass_results_to(target)
+        talk = source.connect_to(target)
 
         # Send a message
         await source.run("test message")
@@ -33,8 +33,8 @@ async def test_multiple_targets():
         Agent[str](model="test") as target2,
     ):
         # Create separate connections
-        talk1 = source.pass_results_to(target1)
-        talk2 = source.pass_results_to(target2)
+        talk1 = source.connect_to(target1)
+        talk2 = source.connect_to(target2)
 
         # Send two messages
         await source.run("message 1")  # One message through each talk
@@ -57,7 +57,7 @@ async def test_connection_filtering():
         Agent[str](model="test") as target,
     ):
         # Only forward messages containing "important"
-        talk = source.pass_results_to(target)
+        talk = source.connect_to(target)
         talk.when(lambda msg, agent, _stats: "important" in msg.content)
 
         # First message with default test model response
@@ -77,7 +77,7 @@ async def test_disconnect():
         Agent[str](model="test") as source,
         Agent[str](model="test") as target,
     ):
-        talk = source.pass_results_to(target)
+        talk = source.connect_to(target)
 
         # Send message while connected
         await source.run("message 1")
@@ -95,7 +95,7 @@ async def test_token_tracking():
         Agent[str](model="test") as source,
         Agent[str](model="test") as target,
     ):
-        talk = source.pass_results_to(target)
+        talk = source.connect_to(target)
         await source.run("test message")
 
         assert talk.stats.token_count > 0  # Actual number depends on model
@@ -110,7 +110,7 @@ async def test_group_stats_aggregation():
     ):
         # Create team connection
         team = target1 & target2
-        team_talk = source.pass_results_to(team)
+        team_talk = source.connect_to(team)
 
         # Send message
         await source.run("test message")

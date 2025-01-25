@@ -46,10 +46,10 @@ Connections are managed by the `ConnectionManager`, which provides:
 Simple connection between two agents:
 ```python
 # Direct connection
-agent_a.pass_results_to(agent_b)
+agent_a.connect_to(agent_b)
 
 # Named connection (using pool)
-agent_a.pass_results_to("agent_b")
+agent_a.connect_to("agent_b")
 ```
 
 ### Agent-to-Team
@@ -60,7 +60,7 @@ Connect an agent to multiple targets:
 team = agent_b & agent_c & agent_d
 
 # Connect agent to team
-agent_a.pass_results_to(team)
+agent_a.connect_to(team)
 ```
 
 ### Team-to-Team
@@ -69,7 +69,7 @@ Connect groups of agents:
 ```python
 team_a = agent_1 & agent_2
 team_b = agent_3 & agent_4
-team_a.pass_results_to(team_b)
+team_a.connect_to(team_b)
 ```
 
 ## Message Flow Control
@@ -105,7 +105,7 @@ Connections support:
 
 ```python
 # Set up connection with control
-talk = agent.pass_results_to(
+talk = agent.connect_to(
     target,
     priority=1,
     delay=timedelta(seconds=5)
@@ -163,7 +163,7 @@ Connections can be configured for manual message processing using `queued=True`.
 
 ```python
 # Create queued connection
-talk = agent_a.pass_results_to(
+talk = agent_a.connect_to(
     agent_b,
     queued=True,
     queue_strategy="latest"  # Only process most recent message
@@ -183,14 +183,14 @@ When using queued connections, different strategies are available for processing
 
 ```python
 # Process all messages
-talk = source.pass_results_to(
+talk = source.connect_to(
     target,
     queued=True,
     queue_strategy="buffer"
 )
 
 # Combine pending messages
-talk = source.pass_results_to(
+talk = source.connect_to(
     target,
     queued=True,
     queue_strategy="concat"
@@ -216,7 +216,7 @@ talk.disconnect()
 Messages can be transformed before being forwarded:
 
 ```python
-talk = agent_a.pass_results_to(
+talk = agent_a.connect_to(
     agent_b,
     transform=lambda msg: f"Processed: {msg.content}"
 )
@@ -226,7 +226,7 @@ async def add_metadata(msg):
     msg.metadata["processed"] = True
     return msg
 
-talk = agent_a.pass_results_to(
+talk = agent_a.connect_to(
     agent_b,
     transform=add_metadata
 )
@@ -237,7 +237,7 @@ talk = agent_a.pass_results_to(
 Fine-grained control over message execution:
 
 ```python
-talk = agent_a.pass_results_to(
+talk = agent_a.connect_to(
     agent_b,
     priority=1,  # Lower numbers = higher priority
     delay=timedelta(seconds=5),  # Delay before processing
@@ -251,13 +251,13 @@ Connections support conditions for stopping or exiting:
 
 ```python
 # Stop this connection when condition met
-talk = agent_a.pass_results_to(
+talk = agent_a.connect_to(
     agent_b,
     stop_condition=lambda msg: "stop" in str(msg.content)
 )
 
 # Exit the application when condition met
-talk = agent_a.pass_results_to(
+talk = agent_a.connect_to(
     agent_b,
     exit_condition=lambda msg: "emergency" in str(msg.content)
 )
@@ -280,7 +280,7 @@ talk.message_forwarded.connect(lambda msg: print(f"Forwarded: {msg}"))
 Queued connections store messages per target:
 
 ```python
-talk = agent_a.pass_results_to(
+talk = agent_a.connect_to(
     agent_b,
     queued=True
 )
@@ -331,7 +331,7 @@ executor = Agent(name="executor")
 planning_team = planner & executor
 
 # Set up connection
-talk =analyzer.pass_results_to(planning_team, connection_type="run")
+talk =analyzer.connect_to(planning_team, connection_type="run")
 
 talk.when(lambda msg: msg.metadata.get("priority") == "high")
 

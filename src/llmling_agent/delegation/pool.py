@@ -10,8 +10,7 @@ from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 from llmling import BaseRegistry, LLMLingError
 from typing_extensions import TypeVar
 
-from llmling_agent.agent import Agent, AnyAgent
-from llmling_agent.agent.structured import StructuredAgent
+from llmling_agent.agent import AnyAgent
 from llmling_agent.common_types import AgentName
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
@@ -30,6 +29,7 @@ if TYPE_CHECKING:
 
     from psygnal.containers import EventedDict
 
+    from llmling_agent.agent import Agent, StructuredAgent
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
     from llmling_agent.delegation.team import Team
@@ -355,6 +355,8 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         Raises:
             LLMlingError: If item is not a valid agent
         """
+        from llmling_agent.agent import Agent, StructuredAgent
+
         if not isinstance(item, Agent | StructuredAgent):
             msg = f"Item must be Agent, got {type(item)}"
             raise self._error_class(msg)
@@ -363,6 +365,8 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
     def _connect_signals(self):
         """Set up forwarding connections between agents."""
+        from llmling_agent.agent import Agent
+
         for name, config in self.manifest.agents.items():
             if name not in self.agents:
                 continue
@@ -378,7 +382,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
                     case FileConnectionConfig() | CallableConnectionConfig():
                         target_agent = Agent(provider=target.get_provider())
 
-                _talk = source_agent.pass_results_to(
+                _talk = source_agent.connect_to(
                     target_agent,
                     connection_type=target.connection_type,
                     priority=target.priority,
@@ -445,6 +449,8 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         Returns:
             The new agent instance
         """
+        from llmling_agent.agent.structured import Agent, StructuredAgent
+
         # Get original config
         if isinstance(agent, str):
             if agent not in self.manifest.agents:
@@ -688,6 +694,8 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             KeyError: If agent name not found
             ValueError: If configuration is invalid
         """
+        from llmling_agent.agent import Agent
+
         # Get base agent
         base = agent if isinstance(agent, Agent) else self.agents[agent]
 
@@ -761,6 +769,8 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         Returns:
             Either a regular Agent or StructuredAgent depending on result_type
         """
+        from llmling_agent.agent import Agent
+
         agent = Agent(name=name, **kwargs)
         agent = await self.exit_stack.enter_async_context(agent)
 
@@ -815,6 +825,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
 
 if __name__ == "__main__":
+    from llmling_agent.agent import Agent
 
     async def main():
         path = "src/llmling_agent/config/resources/agents.yml"

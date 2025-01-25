@@ -71,7 +71,7 @@ async def test_parallel_execution():
         group: Team[Any] = pool.create_team(["agent_1", "agent_2"])
 
         prompt = "Test input"
-        responses = await group.run(prompt)
+        responses = await group.execute(prompt)
         # Verify execution
         assert len(responses) == 2  # noqa: PLR2004
         assert all(r.success for r in responses)
@@ -91,7 +91,7 @@ async def test_sequential_execution():
         group: TeamRun[Any, Any] = pool.create_team_run(["agent_1", "agent_2"])
 
         prompt = "Test input"
-        responses = await group.run(prompt)
+        responses = await group.execute(prompt)
 
         # Verify execution order
         assert len(responses) == 2  # noqa: PLR2004

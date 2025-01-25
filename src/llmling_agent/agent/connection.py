@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.team import Team
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
-    from llmling_agent.talk.talk import QueueStrategy
+    from llmling_agent.talk.talk import AnyTeamOrAgent, QueueStrategy
 
 logger = get_logger(__name__)
 
@@ -60,7 +60,7 @@ class ConnectionManager:
 
     def get_targets(
         self, recursive: bool = False, _seen: set[AgentName] | None = None
-    ) -> set[AnyAgent[Any, Any]]:
+    ) -> set[AnyTeamOrAgent[Any, Any]]:
         """Get all currently connected target agents.
 
         Args:
@@ -85,7 +85,7 @@ class ConnectionManager:
 
         return all_targets
 
-    def has_connection_to(self, target: AnyAgent[Any, Any]) -> bool:
+    def has_connection_to(self, target: BaseTeam[Any, Any] | AnyAgent[Any, Any]) -> bool:
         """Check if target is connected."""
         return any(target in conn.targets for conn in self._connections if conn.active)
 
@@ -108,7 +108,7 @@ class ConnectionManager:
     @overload
     def connect_agent_to(
         self,
-        other: Team[Any],
+        other: BaseTeam[Any, Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -123,7 +123,7 @@ class ConnectionManager:
 
     def connect_agent_to(
         self,
-        other: AnyAgent[Any, Any] | Team[Any] | AgentName,
+        other: AnyAgent[Any, Any] | BaseTeam[Any, Any] | AgentName,
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -259,11 +259,11 @@ class ConnectionManager:
         return TeamTalk(conns)
 
     def _resolve_targets(
-        self, other: AnyAgent[Any, Any] | Team[Any] | AgentName
+        self, other: AnyAgent[Any, Any] | BaseTeam[Any, Any] | AgentName
     ) -> list[AnyAgent[Any, Any]]:
         """Resolve target(s) to connect to."""
         from llmling_agent.agent import Agent, StructuredAgent
-        from llmling_agent.delegation.team import Team
+        from llmling_agent.delegation.base_team import BaseTeam
 
         match other:
             case str():
@@ -274,7 +274,7 @@ class ConnectionManager:
                     msg = "Pool required for forwarding to agent by name"
                     raise ValueError(msg)
                 return [self.owner.context.pool.get_agent(other)]
-            case Team():
+            case BaseTeam():
                 return list(other.agents)
         return [other]
 
@@ -304,7 +304,7 @@ class ConnectionManager:
             conn.disconnect()
         self._connections.clear()
 
-    def disconnect(self, agent: AnyAgent[Any, Any]):
+    def disconnect(self, agent: BaseTeam[Any, Any] | AnyAgent[Any, Any]):
         """Disconnect a specific agent."""
         to_disconnect: list[Talk | TeamTalk] = []
         for talk in self._connections:

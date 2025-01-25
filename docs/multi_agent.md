@@ -28,7 +28,7 @@ executor = Agent("executor")
 analyzer >> planner >> executor
 
 # Or with configuration
-analyzer.pass_results_to(planner, connection_type="run")
+analyzer.connect_to(planner, connection_type="run")
 ```
 
 ## 2. Agent as Tool (Hierarchical)

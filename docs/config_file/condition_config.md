@@ -111,7 +111,7 @@ connections:
 
 Programmatically:
 ```python
-agent.pass_results_to(
+agent.connect_to(
     other,
     stop_condition=lambda msg: msg.metadata.get("complete", False)
 )
@@ -130,7 +130,7 @@ connections:
 
 Programmatically:
 ```python
-agent.pass_results_to(
+agent.connect_to(
     other,
     exit_condition=lambda msg: msg.metadata.get("emergency", False)
 )
@@ -162,7 +162,7 @@ async def check_rate_limit(message: ChatMessage[Any]) -> bool:
     return rate < MAX_RATE
 
 # Use as any condition type
-agent.pass_results_to(
+agent.connect_to(
     other,
     filter_condition=check_rate_limit  # or stop_condition/exit_condition
 )
