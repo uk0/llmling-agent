@@ -98,13 +98,6 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             case _:
                 msg = f"Invalid pipeline element: {other}"
                 raise ValueError(msg)
-
-        # Setup connections for sequential processing
-        for i in range(len(execution.agents) - 1):
-            current = execution.agents[i]
-            next_agent = execution.agents[i + 1]
-            current.connect_to(next_agent)
-
         return execution
 
     def __rshift__(
