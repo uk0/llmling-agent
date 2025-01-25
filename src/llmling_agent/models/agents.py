@@ -80,7 +80,7 @@ class WorkerConfig(BaseModel):
     True: Worker has access to parent's context data
     False (default): Worker uses own isolated context"""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     @classmethod
     def from_str(cls, name: str) -> WorkerConfig:
@@ -793,7 +793,7 @@ class ToolCallInfo(BaseModel):
     agent_tool_name: str | None = None
     """If this tool is agent-based, the name of that agent."""
 
-    model_config = ConfigDict(use_attribute_docstrings=True)
+    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
 
 if __name__ == "__main__":

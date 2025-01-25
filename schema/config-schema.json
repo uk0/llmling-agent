@@ -447,6 +447,7 @@
       "type": "object"
     },
     "AgentConnectionConfig": {
+      "additionalProperties": false,
       "description": "Forward messages to another agent.\n\nThis configuration defines how messages should flow from one agent to another,\nincluding:\n- Basic routing (which agent, what type of connection)\n- Message queueing and processing strategies\n- Timing controls (priority, delay)\n- Execution behavior (wait for completion)",
       "properties": {
         "type": {
@@ -689,6 +690,7 @@
       "type": "object"
     },
     "AndCondition": {
+      "additionalProperties": false,
       "description": "Require all conditions to be met.",
       "properties": {
         "type": {
@@ -697,6 +699,19 @@
           "description": "Type discriminator.",
           "title": "Type",
           "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the condition for referencing.",
+          "title": "Name"
         },
         "conditions": {
           "description": "List of conditions to check.",
@@ -872,6 +887,7 @@
       "type": "object"
     },
     "CallableCondition": {
+      "additionalProperties": false,
       "description": "Custom predicate function.",
       "properties": {
         "type": {
@@ -880,6 +896,19 @@
           "description": "Type discriminator.",
           "title": "Type",
           "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the condition for referencing.",
+          "title": "Name"
         },
         "predicate": {
           "description": "Function to evaluate condition:\nArgs:\n    message: Current message being processed\n    stats: Current connection statistics\nReturns:\n    Whether condition is met",
@@ -894,6 +923,7 @@
       "type": "object"
     },
     "CallableConnectionConfig": {
+      "additionalProperties": false,
       "description": "Forward messages to a callable.\n\nThe callable can be either sync or async and should have the signature:\ndef process_message(message: ChatMessage[Any], **kwargs) -> Any\n\nAny additional kwargs specified in the config will be passed to the callable.",
       "properties": {
         "type": {
@@ -1214,6 +1244,7 @@
       "type": "object"
     },
     "CallbackProviderConfig": {
+      "additionalProperties": false,
       "description": "Configuration for callback-based provider.\n\nAllows defining processor functions through:\n- Import path to callback function\n- Generic type for result validation",
       "properties": {
         "type": {
@@ -1379,12 +1410,26 @@
       "type": "object"
     },
     "ConnectionCondition": {
+      "additionalProperties": false,
       "description": "Base class for connection control conditions.",
       "properties": {
         "type": {
           "description": "Discriminator for condition types.",
           "title": "Type",
           "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the condition for referencing.",
+          "title": "Name"
         }
       },
       "required": [
@@ -1461,6 +1506,7 @@
       "type": "object"
     },
     "CostLimitCondition": {
+      "additionalProperties": false,
       "description": "Disconnect when cost limit is reached.",
       "properties": {
         "type": {
@@ -1469,6 +1515,19 @@
           "description": "Type discriminator.",
           "title": "Type",
           "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the condition for referencing.",
+          "title": "Name"
         },
         "max_cost": {
           "description": "Maximum cost in USD before triggering.",
@@ -1615,6 +1674,7 @@
       "type": "object"
     },
     "DoclingConverterConfig": {
+      "additionalProperties": false,
       "description": "Configuration for docling-based converter.",
       "properties": {
         "type": {
@@ -1912,6 +1972,7 @@
       "type": "object"
     },
     "FileConnectionConfig": {
+      "additionalProperties": false,
       "description": "Write messages to a file using a template.\n\nThe template receives the full message object for formatting.\nAvailable fields include:\n- timestamp: When the message was created\n- name: Name of the sender\n- content: Message content\n- role: Message role (user/assistant/system)\n- model: Model used (if any)\n- cost_info: Token usage and cost info\n- forwarded_from: Chain of message forwarding",
       "properties": {
         "type": {
@@ -2274,6 +2335,7 @@
       "type": "object"
     },
     "FileStorageConfig": {
+      "additionalProperties": false,
       "description": "File storage configuration.",
       "properties": {
         "type": {
@@ -2551,6 +2613,7 @@
       "type": "object"
     },
     "HumanProviderConfig": {
+      "additionalProperties": false,
       "description": "Configuration for human-in-the-loop provider.\n\nThis provider enables direct human interaction for responses and decisions.\nUseful for testing, training, and oversight of agent operations.",
       "properties": {
         "type": {
@@ -3113,6 +3176,7 @@
       "type": "object"
     },
     "Job": {
+      "additionalProperties": false,
       "description": "A task is a piece of work that can be executed by an agent.\n\nRequirements:\n- The agent must have compatible dependencies (required_dependency)\n- The agent must produce the specified result type (required_return_type)\n\nEquipment:\n- The task provides necessary tools for execution (tools)\n- Tools are temporarily available during task execution",
       "properties": {
         "name": {
@@ -3351,6 +3415,7 @@
       "type": "object"
     },
     "LiteLLMProviderConfig": {
+      "additionalProperties": false,
       "description": "Configuration for LiteLLM-based provider.",
       "properties": {
         "type": {
@@ -3409,6 +3474,7 @@
       "type": "object"
     },
     "MarkItDownConfig": {
+      "additionalProperties": false,
       "description": "Configuration for MarkItDown-based converter.",
       "properties": {
         "type": {
@@ -3442,6 +3508,7 @@
       "type": "object"
     },
     "MemoryConfig": {
+      "additionalProperties": false,
       "description": "Configuration for agent memory and history handling.",
       "properties": {
         "enable": {
@@ -3506,6 +3573,7 @@
       "type": "object"
     },
     "MemoryStorageConfig": {
+      "additionalProperties": false,
       "description": "In-memory storage configuration for testing.",
       "properties": {
         "type": {
@@ -3603,6 +3671,7 @@
       "type": "object"
     },
     "MessageCountCondition": {
+      "additionalProperties": false,
       "description": "Disconnect after N messages.",
       "properties": {
         "type": {
@@ -3611,6 +3680,19 @@
           "description": "Type discriminator.",
           "title": "Type",
           "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the condition for referencing.",
+          "title": "Name"
         },
         "max_messages": {
           "description": "Maximum number of messages before triggering.",
@@ -3820,6 +3902,7 @@
       "type": "object"
     },
     "OrCondition": {
+      "additionalProperties": false,
       "description": "Require any condition to be met.",
       "properties": {
         "type": {
@@ -3828,6 +3911,19 @@
           "description": "Type discriminator.",
           "title": "Type",
           "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the condition for referencing.",
+          "title": "Name"
         },
         "conditions": {
           "description": "List of conditions to check.",
@@ -3927,6 +4023,7 @@
       "type": "object"
     },
     "PlainConverterConfig": {
+      "additionalProperties": false,
       "description": "Configuration for plain text fallback converter.",
       "properties": {
         "type": {
@@ -4046,6 +4143,7 @@
       "type": "object"
     },
     "PromptConfig": {
+      "additionalProperties": false,
       "description": "Complete prompt configuration.",
       "properties": {
         "system_prompts": {
@@ -4176,6 +4274,7 @@
       "type": "object"
     },
     "PydanticAIProviderConfig": {
+      "additionalProperties": false,
       "description": "Configuration for PydanticAI-based provider.\n\nThis provider uses PydanticAI for handling model interactions, tool calls,\nand structured outputs. It provides fine-grained control over model behavior\nand validation.",
       "properties": {
         "type": {
@@ -4420,6 +4519,7 @@
       "type": "object"
     },
     "SQLStorageConfig": {
+      "additionalProperties": false,
       "description": "SQL database storage configuration.",
       "properties": {
         "type": {
@@ -4497,6 +4597,7 @@
       "type": "object"
     },
     "SSEMCPServer": {
+      "additionalProperties": false,
       "description": "MCP server using Server-Sent Events transport.\n\nConnects to a server over HTTP with SSE for real-time communication.",
       "properties": {
         "type": {
@@ -4541,6 +4642,7 @@
       "type": "object"
     },
     "SessionQuery": {
+      "additionalProperties": false,
       "description": "Query configuration for session recovery.",
       "properties": {
         "name": {
@@ -4802,6 +4904,7 @@
       "type": "object"
     },
     "StdioMCPServer": {
+      "additionalProperties": false,
       "description": "MCP server started via stdio.\n\nUses subprocess communication through standard input/output streams.",
       "properties": {
         "type": {
@@ -4981,6 +5084,7 @@
       "type": "object"
     },
     "SystemPrompt": {
+      "additionalProperties": false,
       "description": "Individual system prompt definition.",
       "properties": {
         "content": {
@@ -5175,6 +5279,7 @@
       "type": "object"
     },
     "TextLogConfig": {
+      "additionalProperties": false,
       "description": "Text log configuration.",
       "properties": {
         "type": {
@@ -5353,6 +5458,7 @@
       "type": "object"
     },
     "TimeCondition": {
+      "additionalProperties": false,
       "description": "Disconnect after time period.",
       "properties": {
         "type": {
@@ -5361,6 +5467,19 @@
           "description": "Type discriminator.",
           "title": "Type",
           "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the condition for referencing.",
+          "title": "Name"
         },
         "duration": {
           "description": "How long the connection should stay active.",
@@ -5489,6 +5608,7 @@
       "type": "object"
     },
     "TokenThresholdCondition": {
+      "additionalProperties": false,
       "description": "Disconnect after token threshold is reached.",
       "properties": {
         "type": {
@@ -5497,6 +5617,19 @@
           "description": "Type discriminator.",
           "title": "Type",
           "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the condition for referencing.",
+          "title": "Name"
         },
         "max_tokens": {
           "description": "Maximum number of tokens allowed.",
@@ -5713,6 +5846,7 @@
       "type": "object"
     },
     "WordMatchCondition": {
+      "additionalProperties": false,
       "description": "Disconnect when word/phrase is found in message.",
       "properties": {
         "type": {
@@ -5721,6 +5855,19 @@
           "description": "Type discriminator.",
           "title": "Type",
           "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the condition for referencing.",
+          "title": "Name"
         },
         "words": {
           "description": "Words or phrases to match in messages.",
@@ -5754,6 +5901,7 @@
       "type": "object"
     },
     "WorkerConfig": {
+      "additionalProperties": false,
       "description": "Configuration for a worker agent.\n\nWorker agents are agents that are registered as tools with a parent agent.\nThis allows building hierarchies and specializations of agents.",
       "properties": {
         "name": {

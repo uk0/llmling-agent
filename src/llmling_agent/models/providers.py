@@ -35,7 +35,7 @@ class BaseProviderConfig(BaseModel):
     model_settings: ModelSettings | None = None
     """Optional settings to configure the LLM behavior."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
 class PydanticAIProviderConfig(BaseProviderConfig):

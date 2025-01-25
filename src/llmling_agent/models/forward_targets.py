@@ -58,7 +58,7 @@ class ConnectionConfig(BaseModel):
     transform: ImportString[Callable[[Any], Any | Awaitable[Any]]] | None = None
     """Optional function to transform messages before forwarding."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
 class AgentConnectionConfig(ConnectionConfig):

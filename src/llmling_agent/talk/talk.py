@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from dataclasses import replace
+from dataclasses import dataclass, replace
 import inspect
 from typing import TYPE_CHECKING, Any, Literal, Self
 
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import AnyFilterFn, AnyTransformFn
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent.models.conditions import ConnectionCondition
 
     type AnyTeamOrAgent[TDeps, TResult] = (
         AnyAgent[TDeps, TResult] | BaseTeam[TDeps, TResult]
@@ -446,6 +447,19 @@ class TeamTalk(list["Talk | TeamTalk"]):
 
 class ConnectionRegistryError(LLMLingError):
     """Errors related to connection registration."""
+
+
+@dataclass(frozen=True)
+class TriggerContext:
+    """Complete context for a trigger event."""
+
+    talk: Talk
+    condition: ConnectionCondition
+    event_type: Literal["condition_met", "message_processed", "disconnected"]
+    message: ChatMessage[Any]
+    target: MessageNode
+    stats: TalkStats
+    registry: ConnectionRegistry
 
 
 class ConnectionRegistry(BaseRegistry[str, Talk]):

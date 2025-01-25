@@ -43,7 +43,7 @@ class BaseStorageProviderConfig(BaseModel):
     log_context: bool = True
     """Whether to log context messages."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
 class SQLStorageConfig(BaseStorageProviderConfig):

@@ -37,7 +37,7 @@ class SystemPrompt(BaseModel):
     type: SystemPromptCategory = "role"
     """Categorization for template organization."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
 class PromptConfig(BaseModel):
@@ -50,7 +50,7 @@ class PromptConfig(BaseModel):
     """Optional template for combining prompts.
     Has access to prompts grouped by type."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     def format_prompts(self, identifiers: list[str] | None = None) -> str:
         """Format selected prompts using template.

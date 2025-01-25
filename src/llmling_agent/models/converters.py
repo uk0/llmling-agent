@@ -12,7 +12,7 @@ class BaseConverterConfig(BaseModel):
     enabled: bool = True
     """Whether this converter is currently active."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
 class DoclingConverterConfig(BaseConverterConfig):

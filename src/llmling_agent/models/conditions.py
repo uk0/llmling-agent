@@ -24,7 +24,7 @@ class ConnectionCondition(BaseModel):
     name: str | None = None
     """Optional name for the condition for referencing."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     async def check(
         self,

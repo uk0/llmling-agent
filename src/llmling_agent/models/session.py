@@ -29,7 +29,7 @@ class MemoryConfig(BaseModel):
     """Override default storage provider for this agent.
     If None, uses manifest's default provider or first available."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     @classmethod
     def from_value(cls, value: bool | int | str | SessionQuery | UUID | None) -> Self:
@@ -77,7 +77,7 @@ class SessionQuery(BaseModel):
     include_forwarded: bool = True
     """Whether to include messages forwarded through agents."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     def get_time_cutoff(self) -> datetime | None:
         """Get datetime from time period string."""

@@ -17,7 +17,7 @@ class MCPServerBase(BaseModel):
     environment: dict[str, str] | None = None
     """Environment variables to pass to the server process."""
 
-    model_config = ConfigDict(use_attribute_docstrings=True)
+    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
 
 class StdioMCPServer(MCPServerBase):

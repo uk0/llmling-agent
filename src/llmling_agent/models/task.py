@@ -64,7 +64,7 @@ class Job[TDeps, TResult](BaseModel):
     min_context_tokens: int | None = None
     """Minimum amount of required context size."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     async def can_be_executed_by(self, agent: AnyAgent[Any, Any]) -> bool:
         """Check if agent meets all requirements for this task."""
