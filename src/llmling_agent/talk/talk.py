@@ -305,7 +305,6 @@ class Talk[TTransmittedData]:
                         ):
                             results.append(response)
                         queue.clear()
-                    print()
                 return results
 
             case "concat":

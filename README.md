@@ -561,6 +561,8 @@ This unified system makes it easy to:
 Each message in the system carries content, metadata, and execution information, providing a consistent interface across all types of interactions. See [Message System](docs/concepts/messages.md) for details.
 
 
+
+
 ### Advanced Connection Features
 
 Connections between agents are highly configurable and support various patterns:
@@ -602,7 +604,34 @@ print(f"Total tokens: {connection.stats.token_count}")
 print(f"Total cost: ${connection.stats.total_cost:.2f}")
 ```
 
-All these connections for both teams and agents can also get set up intiuiviely in the YAML file.
+The two basic programmatic patterns of this librry are:
+
+1. Tree-like workflows (hierarchical):
+```python
+# Can be modeled purely with teams/chains using & and |
+team_a = agent1 & agent2  # Parallel branch 1
+team_b = agent3 & agent4  # Parallel branch 2
+chain = preprocessor | team_a | postprocessor  # Sequential with team
+nested = Team([chain, team_b])  # Hierarchical nesting
+```
+
+2. DAG (Directed Acyclic Graph) workflows:
+```python
+# Needs explicit signal connections for non-tree patterns
+analyzer = Agent("analyzer")
+planner = Agent("planner")
+executor = Agent("executor")
+validator = Agent("validator")
+
+# Can't model this with just teams - need explicit connections
+analyzer.connect_to(planner)
+analyzer.connect_to(executor)  # Same source to multiple targets
+planner.connect_to(validator)
+executor.connect_to(validator) # Multiple sources to same target
+validator.connect_to(executor) # Cyclic connections
+```
+
+BOTH connection types can be set up for BOTH teams and agents intiuiviely in the YAML file.
 
 ### Human-in-the-Loop Integration
 
