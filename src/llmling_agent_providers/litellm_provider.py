@@ -194,7 +194,7 @@ class LiteLLMProvider(AgentProvider[Any]):
             # Add the multi-modal content as user message
             messages.append({"role": "user", "content": content_parts})
 
-            schemas = [t.get_schema() for t in self.tool_manager.get_tools("enabled")]
+            schemas = [t.schema for t in await self.tool_manager.get_tools("enabled")]
             # Get completion
             response = await acompletion(
                 stream=False,

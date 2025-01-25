@@ -132,7 +132,7 @@ async def test_get_conversations(provider: SQLModelProvider, sample_data: None):
     results = await provider.get_conversations(filters)
     assert len(results) == 1
     conv, msgs = results[0]
-    assert conv["agent"] == "test_agent"  # Note: Changed from agent_name to agent
+    assert conv["agent"] == "test_agent"
     assert len(msgs) == 2  # noqa: PLR2004
 
     # Filter by time

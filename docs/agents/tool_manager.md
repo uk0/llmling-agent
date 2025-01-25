@@ -32,7 +32,7 @@ agent.tools.register_tool(
 )
 
 # Get available tools
-tools = agent.tools.get_tools(state="enabled")  # filter options
+tools = await agent.tools.get_tools(state="enabled")  # filter options
 # Get individual tool info
 tool_info = manager["tool_name"]  # Dict-like access
 ```
@@ -45,9 +45,6 @@ tool_info = manager["tool_name"]  # Dict-like access
 agent.tools.enable_tool("tool_name")
 agent.tools.disable_tool("tool_name")
 agent.tools.is_tool_enabled("tool_name")  # -> bool
-
-# List all tools and their states
-tool_states = agent.tools.list_tools()  # -> dict[str, bool]
 
 # Reset all tools to default state
 agent.tools.reset_states()  # Emits tool_states_reset event

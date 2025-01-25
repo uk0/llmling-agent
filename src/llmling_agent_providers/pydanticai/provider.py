@@ -96,12 +96,12 @@ class PydanticAIProvider(AgentProvider):
         """Get list of all known model names."""
         return list(get_args(KnownModelName)) + list(get_args(AllModels))
 
-    def get_agent(self, system_prompt: str) -> PydanticAgent[Any, Any]:
+    async def get_agent(self, system_prompt: str) -> PydanticAgent[Any, Any]:
         kwargs = self._kwargs.copy()
         model = kwargs.pop("model", None)
         model = infer_model(model) if isinstance(model, str) else model
         agent = PydanticAgent(model=model, system_prompt=system_prompt, **kwargs)  # type: ignore
-        tools = [t for t in self.tool_manager.values() if t.enabled]
+        tools = await self.tool_manager.get_tools(state="enabled")
         for tool in tools:
             wrapped = (
                 self.wrap_tool(tool, self._context)
@@ -203,7 +203,7 @@ class PydanticAIProvider(AgentProvider):
         Returns:
             Response message with optional structured content
         """
-        agent = self.get_agent(system_prompt or "")
+        agent = await self.get_agent(system_prompt or "")
         message_history = self.conversation.get_history()
         use_model = model or self.model
         if isinstance(use_model, str):
@@ -327,7 +327,7 @@ class PydanticAIProvider(AgentProvider):
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response using pydantic-ai."""
         message_history = self.conversation.get_history()
-        agent = self.get_agent(system_prompt or "")
+        agent = await self.get_agent(system_prompt or "")
         use_model = model or self.model
         if isinstance(use_model, str):
             use_model = infer_model(use_model)

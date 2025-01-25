@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.context import AgentContext
 
 
-ToolInjectionMode = Literal["off", "all", "required"]
+ToolInjectionMode = Literal["off", "all"]
 ToolUsageStyle = Literal["suggestive", "strict"]
 
 
@@ -22,7 +22,7 @@ DEFAULT_TEMPLATE = """\
 
 {% endif -%}
 {%- if inject_tools != "off" -%}
-{%- set tools = agent.tools.get_tools("enabled") if inject_tools == "all" else agent.tools.get_required_tools() -%}
+{%- set tools = agent.tools.get_tools("enabled") -%}
 {%- if tools %}
 
 {%- if tool_usage_style == "strict" %}

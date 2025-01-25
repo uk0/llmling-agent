@@ -151,6 +151,55 @@ class TalkStats:
     last_message_time: datetime | None
 ```
 
+
+### Jinja2 Template
+Flexible conditions using Jinja2 templates with full context access:
+```yaml
+filter_condition:
+  type: jinja2
+  template: >
+    {% set other = ctx.registry["other_player"] %}
+    {% if other.stats.message_count > 0 and ctx.stats.message_count > 0 %}
+      {% if (now - other.stats.last_message_time).seconds < 30 %}
+        true
+      {% endif %}
+    {% endif %}
+```
+
+Example templates:
+```yaml
+# Cost monitoring across connections
+template: >
+  {% set total_cost = 0 %}
+  {% for conn in ctx.registry.values() %}
+    {% set total_cost = total_cost + conn.stats.total_cost %}
+  {% endfor %}
+  {{ total_cost < 1.0 }}
+
+# Complex message patterns
+template: >
+  {% set responses = ctx.stats.messages|selectattr("role", "eq", "assistant")|list %}
+  {% if responses|length >= 3 %}
+    {% set last_three = responses[-3:] %}
+    {{ all(msg.metadata.get("quality", 0) > 0.8 for msg in last_three) }}
+  {% endif %}
+```
+
+## Context Access
+
+All conditions receive an EventContext with complete state access:
+
+```python
+@dataclass(frozen=True)
+class EventContext:
+    """Context for condition checks."""
+    message: ChatMessage[Any]     # Current message
+    target: MessageNode          # Target receiving message
+    stats: TalkStats            # Connection statistics
+    registry: ConnectionRegistry # All named connections
+    talk: Talk                  # Current connection
+```
+
 ## Custom Conditions
 
 Create custom conditions using callable functions:

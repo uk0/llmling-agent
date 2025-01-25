@@ -62,6 +62,11 @@ agent = Agent(
 )
 ```
 
+!!! info
+    You can basically use any structured context or "dataclass-ish" objects
+    from stdlib as well as dataclass-equivalents of many libraries as prompts.
+    This also applies to the Agent.run() methods.
+
 ## Tool Integration
 
 System prompts can include information about available tools:
@@ -156,7 +161,7 @@ agent.sys_prompts.inject_agent_info = False  # Disable
 
 ## Custom Templates
 
-While rarely needed, you can customize the complete template:
+While rarely needed, you can customize the complete template used to generate the system prompt.
 
 ```python
 agent.sys_prompts.template = custom_template
@@ -185,6 +190,7 @@ For further information, check out agent/sys_prompts.py in the codebase.
 LLMling includes a library of pre-defined system prompts that can be used across agents. These prompts are organized by type:
 
 ### Prompt Types
+
 - `role`: Defines WHO the agent is (identity, expertise, personality)
 - `methodology`: Defines HOW the agent approaches tasks (process, methods)
 - `tone`: Defines the STYLE of communication (language, attitude)

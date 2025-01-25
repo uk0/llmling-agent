@@ -77,7 +77,7 @@ MCP tools become available like any other agent tool:
 ```python
 async with Agent(mcp_servers=servers) as agent:
     # List available tools
-    tools = agent.tools.get_tools(source="mcp")
+    tools = await agent.tools.get_tools(source="mcp")
 
     # Use MCP tools in prompts
     result = await agent.run("""

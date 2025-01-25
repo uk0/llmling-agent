@@ -79,6 +79,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         self.context = context
         self._mcp_clients: dict[str, MCPClient] = {}
         self.exit_stack = AsyncExitStack()
+        self._tool_providers: list[Callable[[], list[ToolInfo]]] = []
 
         # Register initial tools
         for tool in tools or []:
@@ -194,10 +195,10 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         """Get a mapping of all tools and their enabled status."""
         return {name: info.enabled for name, info in self.items()}
 
-    def get_tools(
+    async def get_tools(
         self,
         state: Literal["all", "enabled", "disabled"] = "all",
-    ) -> list[LLMCallableTool]:
+    ) -> list[ToolInfo]:
         """Get tool objects based on filters."""
         tools = list(self.values())
         match self.tool_choice:
@@ -209,7 +210,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 tools = tools
             case _:
                 tools = []
-        filtered_tools = [info.callable for info in tools if info.matches_filter(state)]
+        filtered_tools = [info for info in tools if info.matches_filter(state)]
         # Sort by priority (if any have non-default priority)
         if any(self[t.name].priority != 100 for t in filtered_tools):  # noqa: PLR2004
             filtered_tools.sort(key=lambda t: self[t.name].priority)

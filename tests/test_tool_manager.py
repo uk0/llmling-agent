@@ -25,7 +25,8 @@ def test_basic_tool_management():
     assert manager.is_tool_enabled("tool1")
 
 
-def test_priority_sorting():
+@pytest.mark.asyncio
+async def test_priority_sorting():
     """Test tools are sorted by priority."""
     tool1 = LLMCallableTool.from_callable(lambda x: x, name_override="tool1")
     tool2 = LLMCallableTool.from_callable(lambda x: x, name_override="tool2")
@@ -34,11 +35,12 @@ def test_priority_sorting():
     manager["tool1"].priority = 200
     manager["tool2"].priority = 100
 
-    tools = manager.get_tools()
+    tools = await manager.get_tools()
     assert [t.name for t in tools] == ["tool2", "tool1"]
 
 
-def test_state_filtering():
+@pytest.mark.asyncio
+async def test_state_filtering():
     """Test filtering tools by state."""
     tool1 = LLMCallableTool.from_callable(lambda x: x, name_override="tool1")
     tool2 = LLMCallableTool.from_callable(lambda x: x, name_override="tool2")
@@ -46,11 +48,11 @@ def test_state_filtering():
     manager = ToolManager([tool1, tool2])
     manager.disable_tool("tool1")
 
-    enabled = manager.get_tools(state="enabled")
+    enabled = await manager.get_tools(state="enabled")
     assert len(enabled) == 1
     assert enabled[0].name == "tool2"
 
-    disabled = manager.get_tools(state="disabled")
+    disabled = await manager.get_tools(state="disabled")
     assert len(disabled) == 1
     assert disabled[0].name == "tool1"
 

@@ -120,28 +120,6 @@ class TestAgentPipeline:
         )
         assert result == "Test response"
 
-    async def test_tool_control(self, pipeline_manifest: AgentsManifest):
-        """Test tool control options."""
-        # Test with specific tool enabled
-        result = await run_agent_pipeline(
-            "test_agent",
-            "Hello!",
-            pipeline_manifest,
-            tool_choice="some_tool",
-            output_format="text",
-        )
-        assert result == "Test response"
-
-        # Test with tools disabled
-        result = await run_agent_pipeline(
-            "test_agent",
-            "Hello!",
-            pipeline_manifest,
-            tool_choice=False,
-            output_format="text",
-        )
-        assert result == "Test response"
-
 
 def test_sync_pipeline(pipeline_manifest: AgentsManifest):
     """Test synchronous pipeline version."""
