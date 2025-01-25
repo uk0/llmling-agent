@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from contextlib import asynccontextmanager
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
@@ -97,7 +98,7 @@ class ConnectionManager:
     def create_connection(
         self,
         source: AnyTeamOrAgent[Any, Any],
-        target: AnyTeamOrAgent[Any, Any],
+        target: AnyTeamOrAgent[Any, Any] | Sequence[AnyTeamOrAgent[Any, Any]],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -109,37 +110,27 @@ class ConnectionManager:
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
     ) -> Talk[Any] | TeamTalk:
-        """Create appropriate connection based on target type."""
-        from llmling_agent.delegation.base_team import BaseTeam
+        """Create connection(s) to target(s).
 
-        match target:
-            case BaseTeam():
-                # Create individual connections for each team member
-                conns = [
-                    Talk(
-                        source=source,
-                        targets=[member],
-                        connection_type=connection_type,
-                        priority=priority,
-                        delay=delay,
-                        queued=queued,
-                        queue_strategy=queue_strategy,
-                        transform=transform,
-                        filter_condition=filter_condition,
-                        stop_condition=stop_condition,
-                        exit_condition=exit_condition,
-                    )
-                    for member in target.agents
-                ]
-                for conn in conns:
-                    self._connections.append(conn)
-                    self.connection_added.emit(conn)
-                return TeamTalk(conns)
-            case _:
-                # Single connection
-                talk = Talk(
+        Args:
+            source: Source agent or team
+            target: Single target or sequence of targets
+            connection_type: How to handle messages
+            priority: Task priority (lower = higher priority)
+            delay: Optional delay before processing
+            queued: Whether to queue messages for manual processing
+            queue_strategy: How to process queued messages
+            transform: Optional message transformation
+            filter_condition: When to filter messages
+            stop_condition: When to disconnect
+            exit_condition: When to exit application
+        """
+        if isinstance(target, Sequence):
+            # Multiple targets -> TeamTalk
+            talks = [
+                Talk(
                     source=source,
-                    targets=[target],
+                    targets=[t],
                     connection_type=connection_type,
                     priority=priority,
                     delay=delay,
@@ -150,9 +141,29 @@ class ConnectionManager:
                     stop_condition=stop_condition,
                     exit_condition=exit_condition,
                 )
+                for t in target
+            ]
+            for talk in talks:
                 self._connections.append(talk)
                 self.connection_added.emit(talk)
-                return talk
+            return TeamTalk(talks)
+        # Single target -> Talk
+        talk = Talk(
+            source=source,
+            targets=[target],
+            connection_type=connection_type,
+            priority=priority,
+            delay=delay,
+            queued=queued,
+            queue_strategy=queue_strategy,
+            transform=transform,
+            filter_condition=filter_condition,
+            stop_condition=stop_condition,
+            exit_condition=exit_condition,
+        )
+        self._connections.append(talk)
+        self.connection_added.emit(talk)
+        return talk
 
     def add_connection(
         self,

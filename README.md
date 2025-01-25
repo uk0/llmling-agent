@@ -471,6 +471,8 @@ chain.connect_to(other_chain)      # Chain to Chain
 # Create complex flows
 (analyzer & planner) >> executor   # Team to Agent
 team_a >> team_b >> final_review  # Team to Team to Agent
+agent_a >> [agent_b, agent_c]        # Two separate connections, a -> b, and a -> c
+team_a >> [team_b, agent_c]        # Also works with teams mixed in!
 ```
 
 Each message in the system carries content, metadata, and execution information, providing a consistent interface across all types of interactions. See [Message System](docs/concepts/messages.md) for details.

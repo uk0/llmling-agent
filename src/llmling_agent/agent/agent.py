@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable, Coroutine, Sequence
 from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -36,7 +36,7 @@ from llmling_agent_providers.base import AgentProvider, StreamingResponseProtoco
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncIterator
     from datetime import timedelta
     from types import TracebackType
 
@@ -67,6 +67,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.task import Job
     from llmling_agent.responses.models import ResponseDefinition
     from llmling_agent.talk import QueueStrategy, Talk, TeamTalk
+    from llmling_agent.talk.talk import AnyTeamOrAgent
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -893,7 +894,7 @@ class Agent[TDeps](TaskManagerMixin):
     @overload
     def connect_to(
         self,
-        other: AnyAgent[Any, Any] | ProcessorCallback[Any],
+        target: AnyTeamOrAgent[Any, Any] | ProcessorCallback[Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -904,12 +905,12 @@ class Agent[TDeps](TaskManagerMixin):
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
-    ) -> Talk[str]: ...
+    ) -> Talk[Any]: ...
 
     @overload
     def connect_to(
         self,
-        other: BaseTeam[Any, Any],
+        target: Sequence[AnyTeamOrAgent[Any, Any] | ProcessorCallback[Any]],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -924,7 +925,9 @@ class Agent[TDeps](TaskManagerMixin):
 
     def connect_to(
         self,
-        other: AnyAgent[Any, Any] | BaseTeam[Any, Any] | ProcessorCallback[Any],
+        target: AnyTeamOrAgent[Any, Any]
+        | ProcessorCallback[Any]
+        | Sequence[AnyTeamOrAgent[Any, Any] | ProcessorCallback[Any]],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -935,19 +938,40 @@ class Agent[TDeps](TaskManagerMixin):
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
-    ) -> Talk[str] | TeamTalk:
-        """Forward results to another agent or all agents in a team."""
-        if callable(other):
-            if has_return_type(other, str):
-                other = Agent.from_callback(other)
+    ) -> Talk[Any] | TeamTalk:
+        """Create connection(s) to target(s)."""
+        # Handle callable case
+        from llmling_agent.agent.structured import StructuredAgent
+        from llmling_agent.delegation.base_team import BaseTeam
+
+        if callable(target):
+            if has_return_type(target, str):
+                target = Agent.from_callback(target)
             else:
-                from llmling_agent.agent.structured import StructuredAgent
+                target = StructuredAgent.from_callback(target)
+        # we are explicit here just to make disctinction clear, we only want sequences
+        # of message units
+        if isinstance(target, Sequence) and not isinstance(target, BaseTeam):
+            targets: list[Agent | StructuredAgent] = []
+            for t in target:
+                match t:
+                    case _ if callable(t):
+                        if has_return_type(t, str):
+                            targets.append(Agent.from_callback(t))
+                        else:
+                            targets.append(StructuredAgent.from_callback(t))
+                    case Agent() | StructuredAgent():
+                        targets.append(t)
+                    case _:
+                        msg = f"Invalid agent type: {type(t)}"
+                        raise TypeError(msg)
+        else:
+            targets = target  # type: ignore
 
-                other = StructuredAgent.from_callback(other)
-
+        self.connections.agent_connected.emit(targets)
         return self.connections.create_connection(
             self,
-            other,
+            targets,
             connection_type=connection_type,
             priority=priority,
             delay=delay,

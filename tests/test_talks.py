@@ -4,6 +4,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import Agent
+from llmling_agent.talk.talk import Talk, TeamTalk
 
 
 async def test_basic_single_connection():
@@ -109,7 +110,7 @@ async def test_group_stats_aggregation():
         Agent[str](model="test", name="target2") as target2,
     ):
         # Create team connection
-        team = target1 & target2
+        team = [target1, target2]
         team_talk = source.connect_to(team)
 
         # Send message
@@ -123,6 +124,39 @@ async def test_group_stats_aggregation():
         assert len(group_stats.target_names) == 2  # noqa: PLR2004
         assert group_stats.start_time is not None
         assert group_stats.last_message_time is not None
+
+    async def test_team_connection():
+        """Test connecting directly to a Team instance."""
+        async with (
+            Agent[str](model="test", name="source") as source,
+            Agent[str](model="test", name="team1") as team1_member1,
+            Agent[str](model="test", name="team2") as team1_member2,
+            Agent[str](model="test", name="team3") as team2_member1,
+        ):
+            # Create two teams
+            team1 = team1_member1 & team1_member2
+            team2 = team2_member1
+
+            # Connect to both teams directly
+            talk = source.connect_to([team1, team2])
+
+            # Send message
+            await source.run("test message")
+
+            # Should create separate talks under a TeamTalk
+            assert isinstance(talk, TeamTalk)
+            assert len(talk.stats.source_names) == 1  # source
+            assert len(talk.stats.target_names) == 2  # team1 and team2  # noqa: PLR2004
+            assert (
+                talk.stats.message_count == 2  # noqa: PLR2004
+            )  # One message to each team
+
+            # Test connection to single team
+            single_team_talk = source.connect_to(team1)
+            assert isinstance(single_team_talk, Talk)  # Single Talk for team
+
+            await source.run("another message")
+            assert single_team_talk.stats.message_count == 1
 
 
 if __name__ == "__main__":
