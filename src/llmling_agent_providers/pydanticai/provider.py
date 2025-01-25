@@ -64,7 +64,7 @@ class PydanticAIProvider(AgentProvider):
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         debug: bool = False,
-        **kwargs: Any,
+        model_settings: dict[str, Any] | None = None,
     ):
         """Initialize pydantic-ai backend.
 
@@ -76,11 +76,12 @@ class PydanticAIProvider(AgentProvider):
             end_strategy: How to handle tool calls with final result
             defer_model_check: Whether to defer model validation
             debug: Whether to enable debug mode
-            kwargs: Additional arguments for PydanticAI agent
+            model_settings: Additional model-specific settings
         """
         super().__init__(model=model)
         self._debug = debug
-        self._kwargs = dict(
+        self.model_settings = model_settings or {}
+        self._kwargs: dict[str, Any] = dict(
             model=model,
             name=name,
             tools=[],
@@ -89,7 +90,6 @@ class PydanticAIProvider(AgentProvider):
             result_retries=result_retries,
             defer_model_check=defer_model_check,
             deps_type=AgentContext,
-            **kwargs,
         )
 
     async def get_model_names(self) -> list[str]:
@@ -232,6 +232,7 @@ class PydanticAIProvider(AgentProvider):
                 message_history=[to_model_message(m) for m in message_history],
                 model=to_use,  # type: ignore
                 result_type=result_type or str,
+                model_settings=self.model_settings,  # type: ignore
             )
 
             # Extract tool calls and set message_id
@@ -354,6 +355,7 @@ class PydanticAIProvider(AgentProvider):
             message_history=model_messages,
             model=model or self.model,  # type: ignore
             result_type=result_type or str,
+            model_settings=self.model_settings,  # type: ignore
         ) as stream_result:
             stream_result = cast(StreamedRunResult[AgentContext[Any], Any], stream_result)
             original_stream = stream_result.stream

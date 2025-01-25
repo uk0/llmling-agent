@@ -117,11 +117,13 @@ class LiteLLMProvider(AgentProvider[Any]):
         model: str | ModelProtocol | None = None,
         *,
         debug: bool = False,
+        model_settings: dict[str, Any] | None = None,
         retries: int = 1,
     ):
         super().__init__(name=name, debug=debug)
         self._model = model
         self.num_retries = retries
+        self.model_settings = model_settings or {}
 
     async def get_model_names(self) -> list[str]:
         """Get list of all known model names."""
@@ -204,7 +206,7 @@ class LiteLLMProvider(AgentProvider[Any]):
                 num_retries=self.num_retries,
                 tools=schemas or None,
                 tool_choice=self.get_tool_choice() if schemas else None,
-                **kwargs,
+                **self.model_settings,
             )
             assert isinstance(response, ModelResponse)
             assert isinstance(response.choices[0], Choices)
@@ -340,7 +342,7 @@ class LiteLLMProvider(AgentProvider[Any]):
                 if result_type and issubclass(result_type, BaseModel)
                 else None,
                 num_retries=self.num_retries,
-                **kwargs,
+                **self.model_settings,
             )
 
             # Create stream wrapper that matches our protocol
