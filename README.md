@@ -581,13 +581,13 @@ await connection.trigger(optional_additional_prompt)  # Process queued messages 
 # Filtered connection (example: filter by keyword):
 connection = agent_a.connect_to(
     agent_b,
-    filter_condition=lambda message, target_agent, stats: "keyword" in message,
+    filter_condition=lambda ctx: "keyword" in ctx.message.content,
 )
 
 # Conditional disconnection (example: disconnect after cost limit):
 connection = agent_a.connect_to(
     agent_b,
-    filter_condition=lambda _, _, stats: stats.total_cost > 1.0,
+    filter_condition=lambda ctx: ctx.stats.total_cost > 1.0,
 )
 
 # Message transformations

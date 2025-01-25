@@ -113,7 +113,7 @@ Programmatically:
 ```python
 agent.connect_to(
     other,
-    stop_condition=lambda msg: msg.metadata.get("complete", False)
+    stop_condition=lambda ctx: ctx.message.metadata.get("complete", False)
 )
 ```
 

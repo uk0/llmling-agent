@@ -137,7 +137,8 @@ Each connection tracks:
 1. **Message Filtering**:
    ```python
    # Using lambda
-   talk.when(lambda msg: "important" in msg.content)
+   # Rich context object with access to message, stats, other connections etc
+   talk.when(lambda ctx: "important" in ctx.message.content)
 
    # Using YAML
    filter_condition:
@@ -161,8 +162,8 @@ talk = agent.connect_to(
     target,
     priority=1,
     delay=timedelta(seconds=5),
-    stop_condition=lambda msg: msg.content == "STOP",
-    exit_condition=lambda msg: msg.content == "EXIT"
+    stop_condition=lambda ctx: ctx.message.content == "STOP",
+    exit_condition=lambda ctx: ctx.message.content == "EXIT"
 )
 ```
 
@@ -227,12 +228,12 @@ planning_team = planner & executor
 talk = analyzer.connect_to(
     planning_team,
     connection_type="run",
-    transform=lambda msg: preprocess_message(msg),
-    stop_condition=lambda msg: msg.metadata.get("complete", False),
-    exit_condition=lambda msg: msg.metadata.get("error", False)
+    transform=lambda ctx: preprocess_message(ctx.message),
+    stop_condition=lambda ctx: ctx.message.metadata.get("complete", False),
+    exit_condition=lambda ctx: ctx.message.metadata.get("error", False)
 )
 
-talk.when(lambda msg: msg.metadata.get("priority") == "high")
+talk.when(lambda ctx: ctx.message.metadata.get("priority") == "high")
 
 # Monitor
 print(f"Processed {talk.stats.message_count} messages")

@@ -122,28 +122,15 @@ class Talk[TTransmittedData]:
         """Evaluate a condition with flexible parameter handling."""
         if not condition:
             return default_return
-
-        # Get number of parameters
-        sig = inspect.signature(condition)
-        param_count = len(sig.parameters)
-
-        # Call with appropriate number of arguments
-        match param_count:
-            case 1:
-                result = condition(message)
-            case 2:
-                result = condition(message, target)
-            case 3:
-                result = condition(message, target, self.stats)
-            case 4:
-                result = condition(message, target, self.stats, _CONNECTION_REGISTRY)
-            case _:
-                msg = f"Condition must take 1-4 parameters, got {param_count}"
-                raise ValueError(msg)
-
-        if inspect.isawaitable(result):
-            return await result
-        return result
+        ctx = EventContext(
+            message=message,
+            target=target,
+            stats=self.stats,
+            registry=_CONNECTION_REGISTRY,
+            talk=self,
+        )
+        result = condition(ctx)
+        return await result if inspect.isawaitable(result) else result
 
     async def _should_route_to(
         self,
@@ -450,10 +437,10 @@ class ConnectionRegistryError(LLMLingError):
 
 
 @dataclass(frozen=True)
-class EventContext:
+class EventContext[TMessageContent]:
     """Base context for all condition/event operations."""
 
-    message: ChatMessage[Any]
+    message: ChatMessage[TMessageContent]
     """The message being processed."""
 
     target: MessageNode
@@ -470,7 +457,7 @@ class EventContext:
 
 
 @dataclass(frozen=True)
-class TriggerContext(EventContext):
+class TriggerContext[TMessageContent](EventContext[TMessageContent]):
     """Context for trigger events, extending base context with event information."""
 
     event_type: Literal["condition_met", "message_processed", "disconnected"]

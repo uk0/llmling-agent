@@ -3,16 +3,13 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable  # noqa: TC003
 from datetime import datetime, timedelta
 import inspect
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 
 
 if TYPE_CHECKING:
-    from llmling_agent.messaging.messagenode import MessageNode
-    from llmling_agent.models.messages import ChatMessage
-    from llmling_agent.talk import TalkStats
-    from llmling_agent.talk.talk import ConnectionRegistry
+    from llmling_agent.talk.talk import EventContext
 
 
 class ConnectionCondition(BaseModel):
@@ -26,13 +23,7 @@ class ConnectionCondition(BaseModel):
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
-    async def check(
-        self,
-        message: ChatMessage[Any],
-        target: MessageNode,
-        stats: TalkStats,
-        registry: ConnectionRegistry,
-    ) -> bool:
+    async def check(self, context: EventContext) -> bool:
         """Check if condition is met."""
         raise NotImplementedError
 
@@ -55,15 +46,9 @@ class WordMatchCondition(ConnectionCondition):
     - all: Require all words to match
     """
 
-    async def check(
-        self,
-        message: ChatMessage[Any],
-        target: MessageNode,
-        stats: TalkStats,
-        registry: ConnectionRegistry,
-    ) -> bool:
+    async def check(self, context: EventContext) -> bool:
         """Check if message contains specified words."""
-        text = str(message.content)
+        text = str(context.message.content)
         if not self.case_sensitive:
             text = text.lower()
             words = [w.lower() for w in self.words]
@@ -89,19 +74,15 @@ class MessageCountCondition(ConnectionCondition):
     - per_agent: Messages from each agent separately
     """
 
-    async def check(
-        self,
-        message: ChatMessage[Any],
-        target: MessageNode,
-        stats: TalkStats,
-        registry: ConnectionRegistry,
-    ) -> bool:
+    async def check(self, context: EventContext) -> bool:
         """Check if message count threshold is reached."""
         if self.count_mode == "total":
-            return stats.message_count >= self.max_messages
+            return context.stats.message_count >= self.max_messages
 
         # Count per agent
-        agent_messages = [m for m in stats.messages if m.name == message.name]
+        agent_messages = [
+            m for m in context.stats.messages if m.name == context.message.name
+        ]
         return len(agent_messages) >= self.max_messages
 
 
@@ -114,15 +95,9 @@ class TimeCondition(ConnectionCondition):
     duration: timedelta
     """How long the connection should stay active."""
 
-    async def check(
-        self,
-        message: ChatMessage[Any],
-        target: MessageNode,
-        stats: TalkStats,
-        registry: ConnectionRegistry,
-    ) -> bool:
+    async def check(self, context: EventContext) -> bool:
         """Check if time duration has elapsed."""
-        elapsed = datetime.now() - stats.start_time
+        elapsed = datetime.now() - context.stats.start_time
         return elapsed >= self.duration
 
 
@@ -142,24 +117,20 @@ class TokenThresholdCondition(ConnectionCondition):
     - completion: Only completion tokens
     """
 
-    async def check(
-        self,
-        message: ChatMessage[Any],
-        target: MessageNode,
-        stats: TalkStats,
-        registry: ConnectionRegistry,
-    ) -> bool:
+    async def check(self, context: EventContext) -> bool:
         """Check if token threshold is reached."""
-        if not message.cost_info:
+        if not context.message.cost_info:
             return False
 
         match self.count_type:
             case "total":
-                return stats.token_count >= self.max_tokens
+                return context.stats.token_count >= self.max_tokens
             case "prompt":
-                return message.cost_info.token_usage["prompt"] >= self.max_tokens
+                return context.message.cost_info.token_usage["prompt"] >= self.max_tokens
             case "completion":
-                return message.cost_info.token_usage["completion"] >= self.max_tokens
+                return (
+                    context.message.cost_info.token_usage["completion"] >= self.max_tokens
+                )
 
 
 class CostCondition(ConnectionCondition):
@@ -171,15 +142,9 @@ class CostCondition(ConnectionCondition):
     max_cost: float
     """Maximum cost in USD."""
 
-    async def check(
-        self,
-        message: ChatMessage[Any],
-        target: MessageNode,
-        stats: TalkStats,
-        registry: ConnectionRegistry,
-    ) -> bool:
+    async def check(self, context: EventContext) -> bool:
         """Check if cost limit is reached."""
-        return stats.total_cost >= self.max_cost
+        return context.stats.total_cost >= self.max_cost
 
 
 class CostLimitCondition(ConnectionCondition):
@@ -191,17 +156,11 @@ class CostLimitCondition(ConnectionCondition):
     max_cost: float
     """Maximum cost in USD before triggering."""
 
-    async def check(
-        self,
-        message: ChatMessage[Any],
-        target: MessageNode,
-        stats: TalkStats,
-        registry: ConnectionRegistry,
-    ) -> bool:
+    async def check(self, context: EventContext) -> bool:
         """Check if cost limit is reached."""
-        if not message.cost_info:
+        if not context.message.cost_info:
             return False
-        return float(message.cost_info.total_cost) >= self.max_cost
+        return float(context.message.cost_info.total_cost) >= self.max_cost
 
 
 class CallableCondition(ConnectionCondition):
@@ -219,15 +178,9 @@ class CallableCondition(ConnectionCondition):
         Whether condition is met
     """
 
-    async def check(
-        self,
-        message: ChatMessage[Any],
-        target: MessageNode,
-        stats: TalkStats,
-        registry: ConnectionRegistry,
-    ) -> bool:
+    async def check(self, context: EventContext) -> bool:
         """Execute predicate function."""
-        result = self.predicate(message, stats)
+        result = self.predicate(context.message, context.stats)
         if inspect.isawaitable(result):
             return await result
         return result
@@ -242,20 +195,9 @@ class AndCondition(ConnectionCondition):
     conditions: list[ConnectionCondition]
     """List of conditions to check."""
 
-    async def check(
-        self,
-        message: ChatMessage[Any],
-        target: MessageNode,
-        stats: TalkStats,
-        registry: ConnectionRegistry,
-    ) -> bool:
+    async def check(self, context: EventContext) -> bool:
         """Check if all conditions are met."""
-        from llmling_agent.talk.talk import _CONNECTION_REGISTRY
-
-        results = [
-            await c.check(message, target, stats, _CONNECTION_REGISTRY)
-            for c in self.conditions
-        ]
+        results = [await c.check(context) for c in self.conditions]
         return all(results)
 
 
@@ -268,20 +210,9 @@ class OrCondition(ConnectionCondition):
     conditions: list[ConnectionCondition]
     """List of conditions to check."""
 
-    async def check(
-        self,
-        message: ChatMessage[Any],
-        target: MessageNode,
-        stats: TalkStats,
-        registry: ConnectionRegistry,
-    ) -> bool:
+    async def check(self, context: EventContext) -> bool:
         """Check if any condition is met."""
-        from llmling_agent.talk.talk import _CONNECTION_REGISTRY
-
-        results = [
-            await c.check(message, target, stats, _CONNECTION_REGISTRY)
-            for c in self.conditions
-        ]
+        results = [await c.check(context) for c in self.conditions]
         return any(results)
 
 

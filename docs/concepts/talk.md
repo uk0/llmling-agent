@@ -253,7 +253,7 @@ Connections support conditions for stopping or exiting:
 # Stop this connection when condition met
 talk = agent_a.connect_to(
     agent_b,
-    stop_condition=lambda msg: "stop" in str(msg.content)
+    stop_condition=lambda ctx: "stop" in ctx.message.content
 )
 
 # Exit the application when condition met
