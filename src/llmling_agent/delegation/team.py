@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
 from datetime import datetime
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, overload
@@ -200,6 +200,43 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         await asyncio.gather(*[run_agent(agent) for agent in self.agents])
 
         return TeamResponse(responses=responses, start_time=start_time, errors=errors)
+
+    async def run_iter(
+        self,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+    ) -> AsyncIterator[ChatMessage[Any]]:
+        """Yield messages as they arrive from parallel execution."""
+        # Create queue for collecting results
+        queue: asyncio.Queue[ChatMessage[Any]] = asyncio.Queue()
+        errors: dict[str, Exception] = {}
+
+        async def run_agent(agent: AnyAgent[TDeps, Any]) -> None:
+            try:
+                message = await agent.run(*prompts)
+                await queue.put(message)
+            except Exception as e:  # noqa: BLE001
+                errors[agent.name] = e
+
+        # Start all agents
+        tasks = [
+            asyncio.create_task(run_agent(agent), name=f"run_{agent.name}")
+            for agent in self.agents
+        ]
+
+        # Yield messages as they arrive
+        completed = 0
+        while completed < len(self.agents):
+            message = await queue.get()
+            yield message
+            completed += 1
+
+        # Wait for all tasks to complete (for error handling)
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+        if errors:
+            # Maybe raise an exception with all errors?
+            first_error = next(iter(errors.values()))
+            raise first_error
 
     async def run(
         self,

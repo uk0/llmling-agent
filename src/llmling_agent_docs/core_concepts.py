@@ -44,6 +44,12 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/concepts/team_run.md")
 
 
+@nav.route.page("Run interface", icon="codicon:run-all")
+def _(page: mk.MkPage):
+    """Agent / Team run interface."""
+    page += mk.MkTemplate("docs/concepts/run_methods.md")
+
+
 @nav.route.page("Talk & TeamTalk", icon="octicon:comment-discussion-16")
 def _(page: mk.MkPage):
     """Agent communication system."""

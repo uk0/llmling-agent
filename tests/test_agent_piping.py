@@ -81,7 +81,7 @@ async def test_agent_piping_errors():
 
 @pytest.mark.asyncio
 async def test_agent_piping_iter():
-    """Test that run_iter allows tracking the pipeline step by step."""
+    """Test that execute_iter allows tracking the pipeline step by step."""
     agent1 = Agent[None].from_callback(lambda x: f"model: {x}", name="agent1")
     failing = Agent[None].from_callback(
         lambda x: exec('raise ValueError("Transform error")'),  # type: ignore
@@ -93,7 +93,7 @@ async def test_agent_piping_iter():
     items = []  # Define items before the try block
 
     try:
-        async for item in pipeline.run_iter("test"):
+        async for item in pipeline.execute_iter("test"):
             items.append(item)  # noqa: PERF401
     except RuntimeError as e:
         assert "Transform error" in str(e)  # noqa: PT017

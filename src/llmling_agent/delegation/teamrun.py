@@ -124,11 +124,26 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             final_prompt.insert(0, self.shared_prompt)
 
         responses = [
-            i async for i in self.run_iter(*final_prompt) if isinstance(i, AgentResponse)
+            i
+            async for i in self.execute_iter(*final_prompt)
+            if isinstance(i, AgentResponse)
         ]
         return TeamResponse(responses, start_time)
 
     async def run_iter(
+        self,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+    ) -> AsyncIterator[ChatMessage[Any]]:
+        """Yield messages from the execution chain."""
+        async for item in self.execute_iter(*prompts):
+            match item:
+                case AgentResponse():
+                    if item.message:
+                        yield item.message
+                case Talk():
+                    pass
+
+    async def execute_iter(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
     ) -> AsyncIterator[Talk[Any] | AgentResponse[Any]]:
@@ -268,6 +283,19 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                                 self.is_complete = True
 
             yield ChainStream()
+
+    @asynccontextmanager
+    async def run_stream(
+        self,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        **kwargs: Any,
+    ) -> AsyncIterator[StreamingResponseProtocol[TResult]]:
+        """Stream responses through the chain.
+
+        Provides same interface as Agent.run_stream.
+        """
+        async with self.chain_stream(*prompts, **kwargs) as stream:
+            yield stream
 
 
 if __name__ == "__main__":

@@ -65,7 +65,7 @@ For detailed monitoring capabilities, see [Task Monitoring](../advanced/task_mon
 
 ## Iterating Over Execution
 
-For fine-grained control, you can use `run_iter()` which yields:
+For fine-grained control, you can use `execute_iter()` which yields:
 
 - Connection objects (`Talk`) before they're used
 - Responses (`AgentResponse`) after each agent executes
@@ -79,7 +79,7 @@ This allows you to:
 
 Example:
 ```python
-async for item in run.run_iter("analyze this"):
+async for item in run.execute_iter("analyze this"):
     match item:
         case Talk():
             print(f"Next: {item.source.name} -> {item.target.name}")

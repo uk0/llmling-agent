@@ -135,10 +135,29 @@ class BaseTeam[TDeps, TResult](TaskManagerMixin):
     async def execute(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        **kwargs: Any,
     ) -> TeamResponse: ...
 
     @abstractmethod
     async def run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        **kwargs: Any,
     ) -> ChatMessage: ...
+
+    def run_sync(
+        self,
+        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        store_history: bool = True,
+    ) -> ChatMessage[TResult]:
+        """Run agent synchronously (convenience wrapper).
+
+        Args:
+            prompt: User query or instruction
+            store_history: Whether the message exchange should be added to the
+                           context window
+        Returns:
+            Result containing response and run information
+        """
+        coro = self.run(*prompt, store_history=store_history)
+        return self.run_task_sync(coro)
