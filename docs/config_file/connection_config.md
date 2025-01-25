@@ -11,7 +11,7 @@ Forward messages to another agent:
 agents:
   analyzer:
     connections:
-      - type: "agent"
+      - type: node
         name: "summarizer"              # Target agent name
         connection_type: "run"          # How to handle messages
         wait_for_completion: true       # Wait for target to finish
@@ -51,7 +51,7 @@ The `connection_type` field determines how messages are processed:
 Executes the message as a new prompt in the target agent. The target will process it as if it received a new user request:
 ```yaml
 connections:
-  - type: "agent"
+  - type: node
     name: "summarizer"
     connection_type: "run"          # Process as new prompt
 ```
@@ -60,7 +60,7 @@ connections:
 Adds the message to target's conversation context. This provides background information without triggering immediate processing:
 ```yaml
 connections:
-  - type: "agent"
+  - type: node
     name: "writer"
     connection_type: "context"      # Add as context
 ```
@@ -69,7 +69,7 @@ connections:
 Simply forwards the message to the target's outbox. Useful for observation or logging:
 ```yaml
 connections:
-  - type: "agent"
+  - type: node
     name: "logger"
     connection_type: "forward"      # Pass through
 ```
@@ -81,7 +81,7 @@ All target types support these configuration options:
 ### Basic Control
 ```yaml
 connections:
-  - type: "agent"  # or "file" or "callable"
+  - type: node  # or "file" or "callable"
     wait_for_completion: true    # Wait for target to complete before continuing
     queued: false               # Queue messages for batch processing
     queue_strategy: "latest"    # How to handle queued messages:
@@ -96,7 +96,7 @@ connections:
 Control when and how messages are processed:
 ```yaml
 connections:
-  - type: "agent"
+  - type: node
     name: "expensive_model"
 
     # Transform messages before processing
@@ -143,7 +143,7 @@ agents:
   analyzer:
     connections:
       # Standard processing with conditions
-      - type: "agent"
+      - type: node
         name: "summarizer"  # agent name
         connection_type: "run"
         wait_for_completion: true
@@ -177,7 +177,7 @@ agents:
           Cost: ${cost_info.total_cost}
 
       # Context addition with delay
-      - type: "agent"
+      - type: node
         name: "reviewer"
         connection_type: "context"
         wait_for_completion: false

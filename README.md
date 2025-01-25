@@ -288,7 +288,7 @@ agents:
 
     # Message forwarding
     connections:
-      - type: "agent"
+      - type: node
         name: "reporter"
         connection_type: "run"  # "run" | "context" | "forward"
         priority: 1

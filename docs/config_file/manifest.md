@@ -83,7 +83,7 @@ agents:
 
     # Message routing
     connections:
-      - type: "agent"
+      - type: node
         name: "reporter"
         connection_type: "run"  # "run" | "context" | "forward"
         wait_for_completion: true
