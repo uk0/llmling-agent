@@ -450,16 +450,34 @@ class ConnectionRegistryError(LLMLingError):
 
 
 @dataclass(frozen=True)
-class TriggerContext:
-    """Complete context for a trigger event."""
+class EventContext:
+    """Base context for all condition/event operations."""
+
+    message: ChatMessage[Any]
+    """The message being processed."""
+
+    target: MessageNode
+    """The target node this message is being sent to."""
+
+    stats: TalkStats
+    """Statistics for the current connection."""
+
+    registry: ConnectionRegistry
+    """Registry of all named connections."""
 
     talk: Talk
-    condition: ConnectionCondition
+    """The Talk instance handling this message flow."""
+
+
+@dataclass(frozen=True)
+class TriggerContext(EventContext):
+    """Context for trigger events, extending base context with event information."""
+
     event_type: Literal["condition_met", "message_processed", "disconnected"]
-    message: ChatMessage[Any]
-    target: MessageNode
-    stats: TalkStats
-    registry: ConnectionRegistry
+    """Type of event that triggered this call."""
+
+    condition: ConnectionCondition
+    """The condition that was triggered (if event_type is condition_met)."""
 
 
 class ConnectionRegistry(BaseRegistry[str, Talk]):
