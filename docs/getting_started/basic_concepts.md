@@ -13,6 +13,7 @@ Currently LLMling-Agents are backed by 4 possible providers:
 - LiteLLM Provider: Uses LiteLLM for model access
 
 Key aspects:
+
 - Manages infrastructure (tools, history, connections, events, resources)
 - Handles message routing and tool execution
 - Provides type safety and validation
@@ -22,6 +23,7 @@ Key aspects:
 The actual agent behavior (language model, human input, etc.) is pluggable via providers.
 
 ### Configuration and YAML
+
 LLMling-agent excels at static definition of agents using YAML files and Pydantic models:
 
 ```yaml
@@ -51,18 +53,23 @@ It is possible to:
 
 
 The hierarchy is:
+
 - **AgentsManifest**: Top-level configuration (YAML file)
-  - Defines available agents
-  - Sets up shared resources
-  - Configures storage providers
-  - Defines response types
+
+- Defines available agents
+- Sets up shared resources
+- Configures storage providers
+- Defines response types
+
 - **AgentConfig**: Per-agent configuration (YAML section)
-  - Sets model/provider
-  - Defines capabilities
-  - Configures environment
-  - Sets up knowledge sources
+
+- Sets model/provider
+- Defines capabilities
+- Configures environment
+- Sets up knowledge sources
 
 All configuration is validated using Pydantic models, providing:
+
 - Type safety
 - Schema validation
 - IDE support
@@ -78,6 +85,7 @@ Providers implement the actual "agent behavior". The Agent class provides the fr
 
 ### Pools
 A Pool is a collection of agents that can:
+
 - Share resources and knowledge
 - Discover each other
 - Communicate and delegate tasks
@@ -87,26 +95,34 @@ Think of a pool as a workspace where agents can collaborate.
 
 ### Teams
 Teams are dynamic groups of agents from a pool that work together on specific tasks. They support:
+
 - Parallel execution
 - Sequential processing
 - Controlled communication
 - Result aggregation
 
 ### Connections
+
 Connections define how agents communicate. They include:
+
 - Direct message forwarding
 - Context sharing
 - Task delegation
 - Response awaiting
 
 Connections can be:
+
 - One-to-one
 - One-to-many
 - Temporary or permanent
 - Conditional or unconditional
+- Queued, accumulated, debounced, filtered
+- Team-to-Team, Team-to-Callable, Team-to-Agent
 
 ### Tasks
+
 Tasks are pre-defined operations that agents can execute. They include:
+
 - Prompt templates
 - Required tools
 - Knowledge sources
@@ -115,11 +131,13 @@ Tasks are pre-defined operations that agents can execute. They include:
 ## Mental Model
 
 ### Message Flow
+
 1. User/system sends message to agent (run call)
 2. Agent processes via provider
 3. Provider may use tools
 4. Response is generated
-5. Message gets returned and possibly also forwarded via connections, which in turn may invoke other run calls
+5. Message gets returned and possibly also forwarded via connections into the connection layer.
+6. Depending on the connection set up, we can start at step 2 again
 
 
 ## Key Patterns
