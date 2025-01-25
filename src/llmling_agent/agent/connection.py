@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any
 
 from psygnal import Signal
 
@@ -16,7 +16,12 @@ if TYPE_CHECKING:
     from datetime import timedelta
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.common_types import AgentName, AnyFilterFn, AnyTransformFn
+    from llmling_agent.common_types import (
+        AgentName,
+        AnyFilterFn,
+        AnyTransformFn,
+        AsyncFilterFn,
+    )
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.delegation.team import Team
     from llmling_agent.models.forward_targets import ConnectionType
@@ -89,10 +94,10 @@ class ConnectionManager:
         """Check if target is connected."""
         return any(target in conn.targets for conn in self._connections if conn.active)
 
-    @overload
-    def connect_agent_to(
+    def create_connection(
         self,
-        other: AnyAgent[Any, Any] | AgentName,
+        source: AnyTeamOrAgent[Any, Any],
+        target: AnyTeamOrAgent[Any, Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -100,58 +105,41 @@ class ConnectionManager:
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
         transform: AnyTransformFn | None = None,
-        filter_condition: AnyFilterFn | None = None,
-        stop_condition: AnyFilterFn | None = None,
-        exit_condition: AnyFilterFn | None = None,
-    ) -> Talk[Any]: ...
-
-    @overload
-    def connect_agent_to(
-        self,
-        other: BaseTeam[Any, Any],
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
-        filter_condition: AnyFilterFn | None = None,
-        stop_condition: AnyFilterFn | None = None,
-        exit_condition: AnyFilterFn | None = None,
-    ) -> TeamTalk: ...
-
-    def connect_agent_to(
-        self,
-        other: AnyAgent[Any, Any] | BaseTeam[Any, Any] | AgentName,
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
-        filter_condition: AnyFilterFn | None = None,
-        stop_condition: AnyFilterFn | None = None,
-        exit_condition: AnyFilterFn | None = None,
+        filter_condition: AsyncFilterFn | None = None,
+        stop_condition: AsyncFilterFn | None = None,
+        exit_condition: AsyncFilterFn | None = None,
     ) -> Talk[Any] | TeamTalk:
-        """Handle single agent connections."""
-        from llmling_agent.agent import Agent, StructuredAgent
-        from llmling_agent.delegation.team import Team
+        """Create appropriate connection based on target type."""
+        from llmling_agent.delegation.base_team import BaseTeam
 
-        if not isinstance(self.owner, Agent | StructuredAgent):
-            msg = "connect_agent_to can only be used with single agents"
-            raise TypeError(msg)
-
-        targets = self._resolve_targets(other)
-        for target in targets:
-            self.agent_connected.emit(target)
-
-        if isinstance(other, Team):
-            conns = [
-                self.add_connection(
-                    self.owner,
-                    [target],
+        match target:
+            case BaseTeam():
+                # Create individual connections for each team member
+                conns = [
+                    Talk(
+                        source=source,
+                        targets=[member],
+                        connection_type=connection_type,
+                        priority=priority,
+                        delay=delay,
+                        queued=queued,
+                        queue_strategy=queue_strategy,
+                        transform=transform,
+                        filter_condition=filter_condition,
+                        stop_condition=stop_condition,
+                        exit_condition=exit_condition,
+                    )
+                    for member in target.agents
+                ]
+                for conn in conns:
+                    self._connections.append(conn)
+                    self.connection_added.emit(conn)
+                return TeamTalk(conns)
+            case _:
+                # Single connection
+                talk = Talk(
+                    source=source,
+                    targets=[target],
                     connection_type=connection_type,
                     priority=priority,
                     delay=delay,
@@ -162,23 +150,9 @@ class ConnectionManager:
                     stop_condition=stop_condition,
                     exit_condition=exit_condition,
                 )
-                for target in targets
-            ]
-            return TeamTalk(conns)
-
-        return self.add_connection(
-            self.owner,
-            targets,
-            connection_type=connection_type,
-            priority=priority,
-            delay=delay,
-            queued=queued,
-            queue_strategy=queue_strategy,
-            transform=transform,
-            filter_condition=filter_condition,
-            stop_condition=stop_condition,
-            exit_condition=exit_condition,
-        )
+                self._connections.append(talk)
+                self.connection_added.emit(talk)
+                return talk
 
     def add_connection(
         self,
@@ -229,9 +203,9 @@ class ConnectionManager:
         **kwargs: Any,
     ) -> TeamTalk:
         """Handle group connections."""
-        from llmling_agent.delegation.team import Team
+        from llmling_agent.delegation.team import BaseTeam
 
-        if not isinstance(self.owner, Team):
+        if not isinstance(self.owner, BaseTeam):
             msg = "connect_group_to can only be used with agent groups"
             raise TypeError(msg)
 

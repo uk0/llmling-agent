@@ -424,7 +424,7 @@ class StructuredAgent[TDeps, TResult]:
         exit_condition: AsyncFilterFn | None = None,
     ) -> Talk[TResult] | Talk[str] | TeamTalk:
         """Forward results to another agent or all agents in a team."""
-        return self._agent.connections.connect_agent_to(
+        return self._agent.connect_to(
             other,
             connection_type=connection_type,
             priority=priority,

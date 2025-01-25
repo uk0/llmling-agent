@@ -945,7 +945,8 @@ class Agent[TDeps](TaskManagerMixin):
 
                 other = StructuredAgent.from_callback(other)
 
-        return self.connections.connect_agent_to(
+        return self.connections.create_connection(
+            self,
             other,
             connection_type=connection_type,
             priority=priority,

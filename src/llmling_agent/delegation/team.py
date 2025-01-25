@@ -172,7 +172,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         # Create Talk connections for monitoring this execution
         execution_talks: list[Talk[Any]] = []
         for agent in self.agents:
-            talk = Talk(
+            talk = Talk[Any](
                 agent,
                 [],  # No actual forwarding, just for tracking
                 connection_type="run",

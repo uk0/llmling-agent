@@ -28,6 +28,7 @@ class BaseTeam[TDeps, TResult](TaskManagerMixin):
     """Base class for Team and TeamRun."""
 
     outbox = Signal(ChatMessage)
+    name: str
 
     def __init__(
         self,
