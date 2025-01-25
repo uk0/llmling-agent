@@ -28,6 +28,32 @@ class ConnectionCondition(BaseModel):
         raise NotImplementedError
 
 
+class Jinja2Condition(ConnectionCondition):
+    """Evaluate condition using Jinja2 template."""
+
+    type: Literal["jinja2"] = Field("jinja2", init=False)
+    """Type discriminator."""
+
+    template: str
+    """Jinja2 template to evaluate."""
+
+    async def check(self, ctx: EventContext) -> bool:
+        from datetime import datetime
+
+        from jinja2 import Environment
+
+        env = Environment(trim_blocks=True, lstrip_blocks=True)
+        template = env.from_string(self.template)
+
+        # Just pass the entire context to the template
+        result = template.render(
+            ctx=ctx,
+            now=datetime.now(),  # Extra convenience
+        )
+
+        return result.strip().lower() == "true" or bool(result)
+
+
 class WordMatchCondition(ConnectionCondition):
     """Disconnect when word/phrase is found in message."""
 
@@ -224,6 +250,7 @@ Condition = Annotated[
     | TokenThresholdCondition
     | CostLimitCondition
     | CallableCondition
+    | Jinja2Condition
     | AndCondition
     | OrCondition,
     Field(discriminator="type"),
