@@ -261,7 +261,7 @@ class Interactions[TDeps, TResult]:
         match selections:
             case dict():
                 label_map = selections
-                items = list(selections.values())
+                items: list[Any] = list(selections.values())
             case Team():
                 items = list(selections.agents)
                 label_map = {get_label(item): item for item in items}

@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import Agent, StructuredAgent
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
+    from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.models.agents import AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.session import SessionQuery
@@ -104,7 +105,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self.exit_stack = AsyncExitStack()
         self.parallel_agent_load = parallel_agent_load
         self.storage = StorageManager(self.manifest.storage)
-        self._teams: dict[str, Team[Any] | TeamRun[Any, Any]] = {}
+        self._teams: dict[str, BaseTeam[Any, Any]] = {}
 
         # Validate requested agents exist
         to_load = set(nodes_to_load) if nodes_to_load else set(self.manifest.agents)
@@ -368,7 +369,8 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
     def _create_teams(self) -> None:
         """Create all teams in two phases to allow nesting."""
         # Phase 1: Create empty teams
-        empty_teams: dict[str, Team[Any] | TeamRun[Any, Any]] = {}
+
+        empty_teams: dict[str, BaseTeam[Any, Any]] = {}
         for name, config in self.manifest.teams.items():
             if config.mode == "parallel":
                 empty_teams[name] = Team(
@@ -382,7 +384,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         # Phase 2: Resolve members
         for name, config in self.manifest.teams.items():
             team = empty_teams[name]
-            members = []
+            members: list[BaseTeam[Any, Any] | AnyAgent[Any, Any]] = []
             for member in config.members:
                 if member in self.agents:
                     members.append(self.agents[member])
