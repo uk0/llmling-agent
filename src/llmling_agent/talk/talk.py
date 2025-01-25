@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import AnyFilterFn, AnyTransformFn
     from llmling_agent.delegation.base_team import BaseTeam
+    from llmling_agent.messaging.messagenode import MessageNode
 
     type AnyTeamOrAgent[TDeps, TResult] = (
         AnyAgent[TDeps, TResult] | BaseTeam[TDeps, TResult]
@@ -41,13 +42,13 @@ logger = get_logger(__name__)
 class Talk[TTransmittedData]:
     """Manages message flow between agents/groups."""
 
-    message_received = Signal(ChatMessage[TTransmittedData])  # Original message
-    message_forwarded = Signal(ChatMessage[Any])  # After any transformation
+    message_received = Signal(ChatMessage)  # Original message
+    message_forwarded = Signal(ChatMessage)  # After any transformation
 
     def __init__(
         self,
-        source: AnyTeamOrAgent[Any, TTransmittedData],
-        targets: Sequence[AnyTeamOrAgent[Any, Any]],
+        source: MessageNode,
+        targets: Sequence[MessageNode],
         group: TeamTalk | None = None,
         *,
         connection_type: ConnectionType = "run",
@@ -112,7 +113,7 @@ class Talk[TTransmittedData]:
         self,
         condition: Callable[..., bool | Awaitable[bool]] | None,
         message: ChatMessage[Any],
-        target: AnyTeamOrAgent[Any, Any],
+        target: MessageNode,
         *,
         default_return: bool = False,
     ) -> bool:
@@ -143,7 +144,7 @@ class Talk[TTransmittedData]:
     async def _should_route_to(
         self,
         message: ChatMessage[Any],
-        target: AnyTeamOrAgent[Any, Any],
+        target: MessageNode,
     ) -> bool:
         """Determine if message should be routed to target."""
         return await self._evaluate_condition(
@@ -214,10 +215,11 @@ class Talk[TTransmittedData]:
     async def _process_for_target(
         self,
         message: ChatMessage[Any],
-        target: AnyTeamOrAgent[Any, Any],
+        target: MessageNode,
         prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None = None,
     ) -> ChatMessage[Any] | None:
         """Process message for a single target."""
+        from llmling_agent.agent import Agent, StructuredAgent
         from llmling_agent.delegation.base_team import BaseTeam
 
         match self.connection_type:
@@ -247,7 +249,7 @@ class Talk[TTransmittedData]:
                         case BaseTeam():
                             # Use distribute for teams
                             await target.distribute(str(message.content), metadata=meta)
-                        case _:  # Agent case
+                        case Agent() | StructuredAgent():  # Agent case
                             # Use existing context message approach
                             target.conversation.add_context_message(
                                 str(message.content),
@@ -379,7 +381,7 @@ class TeamTalk(list["Talk | TeamTalk"]):
         return f"TeamTalk({list(self)})"
 
     @property
-    def targets(self) -> list[AnyTeamOrAgent[Any, Any]]:
+    def targets(self) -> list[MessageNode]:
         """Get all targets from all connections."""
         return [t for talk in self for t in talk.targets]
 
@@ -398,8 +400,8 @@ class TeamTalk(list["Talk | TeamTalk"]):
     @classmethod
     def from_agents(
         cls,
-        agents: Sequence[AnyTeamOrAgent[Any, Any]],
-        targets: list[AnyTeamOrAgent[Any, Any]] | None = None,
+        agents: Sequence[MessageNode],
+        targets: list[MessageNode] | None = None,
     ) -> Self:
         """Create TeamTalk from a collection of agents."""
         return cls([Talk(agent, targets or []) for agent in agents])

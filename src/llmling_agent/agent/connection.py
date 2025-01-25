@@ -22,10 +22,10 @@ if TYPE_CHECKING:
         AnyTransformFn,
         AsyncFilterFn,
     )
-    from llmling_agent.delegation.base_team import BaseTeam
+    from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
-    from llmling_agent.talk.talk import AnyTeamOrAgent, QueueStrategy
+    from llmling_agent.talk.talk import QueueStrategy
 
 logger = get_logger(__name__)
 
@@ -36,7 +36,7 @@ class ConnectionManager:
     node_connected = Signal(object)  # Agent
     connection_added = Signal(Talk)  # Agent
 
-    def __init__(self, owner: AnyAgent[Any, Any] | BaseTeam[Any, Any]):
+    def __init__(self, owner: MessageNode):
         self.owner = owner
         self._connections: list[Talk | TeamTalk] = []
         self._wait_states: dict[AgentName, bool] = {}
@@ -46,7 +46,7 @@ class ConnectionManager:
 
     def set_wait_state(
         self,
-        target: AnyAgent[Any, Any] | BaseTeam[Any, Any] | AgentName,
+        target: MessageNode | AgentName,
         wait: bool = True,
     ):
         """Set waiting behavior for target."""
@@ -68,7 +68,7 @@ class ConnectionManager:
 
     def get_targets(
         self, recursive: bool = False, _seen: set[AgentName] | None = None
-    ) -> set[AnyTeamOrAgent[Any, Any]]:
+    ) -> set[MessageNode]:
         """Get all currently connected target agents.
 
         Args:
@@ -93,14 +93,14 @@ class ConnectionManager:
 
         return all_targets
 
-    def has_connection_to(self, target: BaseTeam[Any, Any] | AnyAgent[Any, Any]) -> bool:
+    def has_connection_to(self, target: MessageNode) -> bool:
         """Check if target is connected."""
         return any(target in conn.targets for conn in self._connections if conn.active)
 
     def create_connection(
         self,
-        source: AnyTeamOrAgent[Any, Any],
-        target: AnyTeamOrAgent[Any, Any] | Sequence[AnyTeamOrAgent[Any, Any]],
+        source: MessageNode,
+        target: MessageNode | Sequence[MessageNode],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -129,7 +129,7 @@ class ConnectionManager:
         """
         if isinstance(target, Sequence):
             # Multiple targets -> TeamTalk
-            talks = [
+            talks: list[Talk[Any]] = [
                 Talk(
                     source=source,
                     targets=[t],
@@ -193,7 +193,7 @@ class ConnectionManager:
             conn.disconnect()
         self._connections.clear()
 
-    def disconnect(self, agent: BaseTeam[Any, Any] | AnyAgent[Any, Any]):
+    def disconnect(self, agent: MessageNode):
         """Disconnect a specific agent."""
         to_disconnect: list[Talk | TeamTalk] = []
         for talk in self._connections:

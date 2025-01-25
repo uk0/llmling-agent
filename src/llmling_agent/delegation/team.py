@@ -96,6 +96,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
     async def run_iter(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        **kwargs: Any,
     ) -> AsyncIterator[ChatMessage[Any]]:
         """Yield messages as they arrive from parallel execution."""
         # Create queue for collecting results
@@ -104,7 +105,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
 
         async def _run(agent: AnyAgent[TDeps, Any] | BaseTeam[TDeps, Any]) -> None:
             try:
-                message = await agent.run(*prompts)
+                message = await agent.run(*prompts, **kwargs)
                 await queue.put(message)
             except Exception as e:  # noqa: BLE001
                 errors[agent.name] = e
@@ -130,7 +131,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             first_error = next(iter(errors.values()))
             raise first_error
 
-    async def run(
+    async def _run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         wait_for_connections: bool | None = None,
@@ -139,7 +140,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         """Run all agents in parallel and return combined message."""
         result = await self.execute(*prompts, **kwargs)
 
-        msg = ChatMessage(
+        return ChatMessage(
             content=[r.message.content for r in result if r.message],
             role="assistant",
             name=self.name,
@@ -149,8 +150,6 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
                 "start_time": result.start_time.isoformat(),
             },
         )
-        await self.connections.route_message(msg, wait=wait_for_connections)
-        return msg
 
     async def run_job[TResult](
         self,

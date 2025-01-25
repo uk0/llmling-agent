@@ -19,9 +19,9 @@ from psygnal import Signal
 from pydantic_ai import RunContext  # noqa: TC002
 from typing_extensions import TypeVar
 
-from llmling_agent.agent.connection import ConnectionManager
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.mcp_server import MCPServerConfig, StdioMCPServer
@@ -30,14 +30,13 @@ from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
-from llmling_agent.utils.inspection import call_with_context, has_return_type
+from llmling_agent.utils.inspection import call_with_context
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_providers.base import AgentProvider, StreamingResponseProtocol
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-    from datetime import timedelta
     from types import TracebackType
 
     from llmling.config.models import Resource
@@ -46,11 +45,10 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
+    from llmling_agent.agent.connection import ConnectionManager
     from llmling_agent.agent.interactions import Interactions
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import (
-        AnyTransformFn,
-        AsyncFilterFn,
         EndStrategy,
         ModelType,
         SessionIdType,
@@ -58,16 +56,13 @@ if TYPE_CHECKING:
         ToolType,
     )
     from llmling_agent.config.capabilities import Capabilities
-    from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.models.context import ConfirmationCallback
-    from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.models.task import Job
     from llmling_agent.responses.models import ResponseDefinition
-    from llmling_agent.talk import QueueStrategy, Talk, TeamTalk
-    from llmling_agent.talk.talk import AnyTeamOrAgent
+    from llmling_agent.talk import Talk, TeamTalk
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -113,7 +108,7 @@ class AgentKwargs(TypedDict, total=False):
     debug: bool
 
 
-class Agent[TDeps](TaskManagerMixin):
+class Agent[TDeps](MessageNode, TaskManagerMixin):
     """Agent for AI-powered interaction with LLMling resources and tools.
 
     Generically typed with: LLMLingAgent[Type of Dependencies, Type of Result]
@@ -148,7 +143,6 @@ class Agent[TDeps](TaskManagerMixin):
     tool_used = Signal(ToolCallInfo)
     model_changed = Signal(object)  # Model | None
     chunk_streamed = Signal(str, str)  # (chunk, message_id)
-    outbox = Signal(ChatMessage[Any], str)  # message, prompt
     run_failed = Signal(str, Exception)
     agent_reset = Signal(AgentReset)
 
@@ -213,7 +207,7 @@ class Agent[TDeps](TaskManagerMixin):
         from llmling_agent.agent.sys_prompts import SystemPrompts
         from llmling_agent.events import EventManager
 
-        super().__init__()
+        super().__init__(name=name)
 
         self._infinite = False
         # save some stuff for asnyc init
@@ -304,7 +298,6 @@ class Agent[TDeps](TaskManagerMixin):
         self._provider.tool_used.connect(self.tool_used.emit)
         self._provider.model_changed.connect(self.model_changed.emit)
 
-        self.connections = ConnectionManager(self)
         self.talk = Interactions(self)
         self._logger = AgentLogger(self, enable_db_logging=memory_cfg.enable)
         self._events = EventManager(self, enable_events=True)
@@ -892,97 +885,7 @@ class Agent[TDeps](TaskManagerMixin):
         for target in list(self.connections.get_targets()):
             self.stop_passing_results_to(target)
 
-    @overload
-    def connect_to(
-        self,
-        target: AnyTeamOrAgent[Any, Any] | ProcessorCallback[Any],
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        stop_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
-    ) -> Talk[Any]: ...
-
-    @overload
-    def connect_to(
-        self,
-        target: Sequence[AnyTeamOrAgent[Any, Any] | ProcessorCallback[Any]],
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        stop_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
-    ) -> TeamTalk: ...
-
-    def connect_to(
-        self,
-        target: AnyTeamOrAgent[Any, Any]
-        | ProcessorCallback[Any]
-        | Sequence[AnyTeamOrAgent[Any, Any] | ProcessorCallback[Any]],
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        stop_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
-    ) -> Talk[Any] | TeamTalk:
-        """Create connection(s) to target(s)."""
-        # Handle callable case
-        from llmling_agent.agent.structured import StructuredAgent
-        from llmling_agent.delegation.base_team import BaseTeam
-
-        if callable(target):
-            if has_return_type(target, str):
-                target = Agent.from_callback(target)
-            else:
-                target = StructuredAgent.from_callback(target)
-        # we are explicit here just to make disctinction clear, we only want sequences
-        # of message units
-        if isinstance(target, Sequence) and not isinstance(target, BaseTeam):
-            targets: list[Agent | StructuredAgent] = []
-            for t in target:
-                match t:
-                    case _ if callable(t):
-                        if has_return_type(t, str):
-                            targets.append(Agent.from_callback(t))
-                        else:
-                            targets.append(StructuredAgent.from_callback(t))
-                    case Agent() | StructuredAgent():
-                        targets.append(t)
-                    case _:
-                        msg = f"Invalid agent type: {type(t)}"
-                        raise TypeError(msg)
-        else:
-            targets = target  # type: ignore
-        return self.connections.create_connection(
-            self,
-            targets,
-            connection_type=connection_type,
-            priority=priority,
-            delay=delay,
-            queued=queued,
-            queue_strategy=queue_strategy,
-            transform=transform,
-            filter_condition=filter_condition,
-            stop_condition=stop_condition,
-            exit_condition=exit_condition,
-        )
-
-    def stop_passing_results_to(self, other: AnyAgent[Any, Any] | BaseTeam[Any, Any]):
+    def stop_passing_results_to(self, other: MessageNode):
         """Stop forwarding results to another agent."""
         self.connections.disconnect(other)
 
@@ -996,7 +899,7 @@ class Agent[TDeps](TaskManagerMixin):
         return self._provider.model_name
 
     @logfire.instrument("Calling Agent.run: {prompt}:")
-    async def run(
+    async def _run(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
         result_type: type[TResult] | None = None,
@@ -1061,7 +964,6 @@ class Agent[TDeps](TaskManagerMixin):
                 devtools.debug(response_msg)
 
             self.message_sent.emit(response_msg)
-            await self.connections.route_message(response_msg, wait=wait_for_connections)
 
         except Exception as e:
             logger.exception("Agent run failed")

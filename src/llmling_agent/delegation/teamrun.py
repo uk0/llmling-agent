@@ -69,7 +69,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         super().__init__(agents, name=name, shared_prompt=shared_prompt)
         self.validator = validator
 
-    async def run(
+    async def _run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         wait_for_connections: bool | None = None,
@@ -82,7 +82,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         """
         result = await self.execute(*prompts, **kwargs)
 
-        msg = ChatMessage(
+        return ChatMessage(
             content=[r.message.content for r in result if r.message],
             role="assistant",
             name=self.name,
@@ -93,8 +93,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                 "execution_order": [r.agent_name for r in result],
             },
         )
-        await self.connections.route_message(msg, wait=wait_for_connections)
-        return msg
 
     async def execute(
         self,
@@ -118,9 +116,10 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
     async def run_iter(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        **kwargs: Any,
     ) -> AsyncIterator[ChatMessage[Any]]:
         """Yield messages from the execution chain."""
-        async for item in self.execute_iter(*prompts):
+        async for item in self.execute_iter(*prompts, **kwargs):
             match item:
                 case AgentResponse():
                     if item.message:
@@ -131,6 +130,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
     async def execute_iter(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        **kwargs: Any,
     ) -> AsyncIterator[Talk[Any] | AgentResponse[Any]]:
         connections: list[Talk[Any]] = []
         try:
@@ -144,7 +144,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
             # First agent
             start = perf_counter()
-            message = await first.run(*prompt)
+            message = await first.run(*prompt, **kwargs)
             timing = perf_counter() - start
             response = AgentResponse[Any](
                 agent_name=first.name, message=message, timing=timing
@@ -183,6 +183,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         require_all: bool = True,
+        **kwargs: Any,
     ) -> ChatMessage:
         """Pass message through the chain of team members.
 
@@ -191,6 +192,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         Args:
             prompts: Initial messages to process
             require_all: If True, all agents must succeed
+            kwargs: Additional arguments for agents
 
         Returns:
             Final processed message
@@ -202,7 +204,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
         for agent in self.agents:
             try:
-                result = await agent.run(*current_message)
+                result = await agent.run(*current_message, **kwargs)
                 current_message = (result.content,)
             except Exception as e:
                 if require_all:
@@ -217,6 +219,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         require_all: bool = True,
+        **kwargs: Any,
     ) -> AsyncIterator[StreamingResponseProtocol]:
         """Stream results through chain of team members."""
         from llmling_agent.agent import Agent, StructuredAgent
@@ -233,7 +236,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                         "Cannot stream teams!"
                     )
                     stream = await stack.enter_async_context(
-                        agent.run_stream(*current_message)
+                        agent.run_stream(*current_message, **kwargs)
                     )
                     streams.append(stream)  # type: ignore
                     # Wait for complete response for next agent

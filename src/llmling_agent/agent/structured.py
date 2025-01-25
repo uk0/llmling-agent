@@ -2,35 +2,40 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Literal, Self, get_type_hints, overload
+from collections.abc import AsyncIterator, Callable, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Self,
+    get_type_hints,
+    overload,
+)
 
 from pydantic import ValidationError
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.responses.models import BaseResponseDefinition, ResponseDefinition
 from llmling_agent.responses.utils import to_type
 
 
 if TYPE_CHECKING:
-    from datetime import timedelta
+    import os
     from types import TracebackType
 
     from llmling.config.models import Resource
+    import PIL.Image
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
-    from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn, ModelType
-    from llmling_agent.delegation.base_team import BaseTeam
+    from llmling_agent.common_types import ModelType
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.models.context import AgentContext
-    from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.task import Job
-    from llmling_agent.talk import QueueStrategy, Talk, TeamTalk
     from llmling_agent.tools.manager import ToolManager
     from llmling_agent_providers.callback import ProcessorCallback
 
@@ -41,7 +46,7 @@ TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=None)
 
 
-class StructuredAgent[TDeps, TResult]:
+class StructuredAgent[TDeps, TResult](MessageNode):
     """Wrapper for Agent that enforces a specific result type.
 
     This wrapper ensures the agent always returns results of the specified type.
@@ -87,6 +92,8 @@ class StructuredAgent[TDeps, TResult]:
                 msg = "Invalid agent type"
                 raise ValueError(msg)
 
+        super().__init__(name=self._agent.name)
+
         self._result_type = to_type(result_type)
         agent.set_result_type(result_type)
 
@@ -129,14 +136,14 @@ class StructuredAgent[TDeps, TResult]:
     def __or__(self, other: Agent | ProcessorCallback | Team | TeamRun) -> TeamRun:
         return self._agent.__or__(other)
 
-    async def run(
+    async def _run(
         self,
         *prompt: AnyPromptType | TResult,
         result_type: type[TResult] | None = None,
         deps: TDeps | None = None,
         model: ModelType = None,
         store_history: bool = True,
-        wait_for_connections: bool = False,
+        wait_for_connections: bool | None = None,
     ) -> ChatMessage[TResult]:
         """Run with fixed result type.
 
@@ -242,6 +249,15 @@ class StructuredAgent[TDeps, TResult]:
             tool_name=tool_name,
             tool_description=tool_description,
         )
+
+    async def run_iter(
+        self,
+        *prompt_groups: Sequence[AnyPromptType | PIL.Image.Image | os.PathLike[str]],
+        **kwargs: Any,
+    ) -> AsyncIterator[ChatMessage[Any]]:
+        """Forward run_iter to wrapped agent."""
+        async for message in self._agent.run_iter(*prompt_groups, **kwargs):
+            yield message
 
     async def run_job(
         self,
@@ -361,79 +377,3 @@ class StructuredAgent[TDeps, TResult]:
             if return_type.__origin__ is Awaitable:
                 return_type = return_type.__args__[0]
         return cls(agent, return_type or str)  # type: ignore
-
-    @overload
-    def connect_to(
-        self,
-        other: AnyAgent[Any, Any],
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: Literal["concat"],
-        transform: AnyTransformFn | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        stop_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
-    ) -> Talk[str]: ...
-
-    @overload
-    def connect_to(
-        self,
-        other: AnyAgent[Any, Any],
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy,
-        transform: AnyTransformFn | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        stop_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
-    ) -> Talk[TResult]: ...
-
-    @overload
-    def connect_to(
-        self,
-        other: AnyAgent[Any, Any] | BaseTeam[Any, Any],
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        stop_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
-    ) -> TeamTalk: ...
-
-    def connect_to(
-        self,
-        other: AnyAgent[Any, Any] | BaseTeam[Any, Any],
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        stop_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
-    ) -> Talk[TResult] | Talk[str] | TeamTalk:
-        """Forward results to another agent or all agents in a team."""
-        return self._agent.connect_to(
-            other,
-            connection_type=connection_type,
-            priority=priority,
-            delay=delay,
-            queued=queued,
-            queue_strategy=queue_strategy,
-            transform=transform,
-            filter_condition=filter_condition,
-            stop_condition=stop_condition,
-            exit_condition=exit_condition,
-        )

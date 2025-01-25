@@ -2,45 +2,34 @@ from __future__ import annotations
 
 from abc import abstractmethod
 import asyncio
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, overload
 
-from psygnal import Signal
 from psygnal.containers import EventedList
 
-from llmling_agent.agent.connection import ConnectionManager
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.utils.inspection import has_return_type
 from llmling_agent.utils.tasks import TaskManagerMixin
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
-    from datetime import timedelta
+    from collections.abc import Iterator, Sequence
     import os
 
     import PIL.Image
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
-    from llmling_agent.models.forward_targets import ConnectionType
-    from llmling_agent.models.messages import TeamResponse
+    from llmling_agent.models.messages import ChatMessage, TeamResponse
     from llmling_agent.models.providers import ProcessorCallback
-    from llmling_agent.talk import Talk
-    from llmling_agent.talk.talk import AnyTeamOrAgent, QueueStrategy, TeamTalk
 
 logger = get_logger(__name__)
 
 
-class BaseTeam[TDeps, TResult](TaskManagerMixin):
+class BaseTeam[TDeps, TResult](MessageNode, TaskManagerMixin):
     """Base class for Team and TeamRun."""
-
-    outbox = Signal(ChatMessage)
-    name: str
 
     def __init__(
         self,
@@ -52,13 +41,11 @@ class BaseTeam[TDeps, TResult](TaskManagerMixin):
         """Common variables only for typing."""
         from llmling_agent.delegation.teamrun import ExtendedTeamTalk
 
-        super().__init__()
+        name = name or " & ".join([i.name for i in agents])
+        super().__init__(name=name)
         self.agents = EventedList(list(agents))
-        self.connections: ConnectionManager
         self._team_talk = ExtendedTeamTalk()
         self.shared_prompt = shared_prompt
-        self.name = name or " & ".join([i.name for i in agents])
-        self.connections = ConnectionManager(self)
         self._main_task: asyncio.Task[Any] | None = None
         self._infinite = False
 
@@ -218,95 +205,24 @@ class BaseTeam[TDeps, TResult](TaskManagerMixin):
             self._main_task.cancel()
         await self.cleanup_tasks()
 
-    @overload
-    def connect_to(
-        self,
-        target: AnyTeamOrAgent[Any, Any] | ProcessorCallback[Any],
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        stop_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
-    ) -> Talk[Any]: ...
+    def get_structure_diagram(self) -> str:
+        """Generate mermaid flowchart of node hierarchy."""
+        lines = ["flowchart TD"]
 
-    @overload
-    def connect_to(
-        self,
-        target: Sequence[AnyTeamOrAgent[Any, Any] | ProcessorCallback[Any]],
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        stop_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
-    ) -> TeamTalk: ...
+        def add_node(node: MessageNode[Any, Any], parent: str | None = None) -> None:
+            node_id = f"node_{id(node)}"
+            lines.append(f"    {node_id}[{node.name}]")
+            if parent:
+                lines.append(f"    {parent} --> {node_id}")
+            if hasattr(node, "tree"):
+                for child in node.tree.nodes:  # type: ignore
+                    add_node(child, node_id)
 
-    def connect_to(
-        self,
-        target: AnyTeamOrAgent[Any, Any]
-        | ProcessorCallback[Any]
-        | Sequence[AnyTeamOrAgent[Any, Any] | ProcessorCallback[Any]],
-        *,
-        connection_type: ConnectionType = "run",
-        priority: int = 0,
-        delay: timedelta | None = None,
-        queued: bool = False,
-        queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
-        filter_condition: AsyncFilterFn | None = None,
-        stop_condition: AsyncFilterFn | None = None,
-        exit_condition: AsyncFilterFn | None = None,
-    ) -> Talk[Any] | TeamTalk:
-        """Create connection(s) to target(s)."""
-        # Handle callable case
-        from llmling_agent.agent import Agent, StructuredAgent
-        from llmling_agent.delegation.base_team import BaseTeam
+        # Start with root nodes
+        for node in self.agents:
+            add_node(node)
 
-        if callable(target):
-            if has_return_type(target, str):
-                target = Agent.from_callback(target)
-            else:
-                target = StructuredAgent.from_callback(target)
-        # we are explicit here just to make disctinction clear, we only want sequences
-        # of message units
-        if isinstance(target, Sequence) and not isinstance(target, BaseTeam):
-            targets: list[Agent | StructuredAgent] = []
-            for t in target:
-                match t:
-                    case _ if callable(t):
-                        if has_return_type(t, str):
-                            targets.append(Agent.from_callback(t))
-                        else:
-                            targets.append(StructuredAgent.from_callback(t))
-                    case Agent() | StructuredAgent():
-                        targets.append(t)
-                    case _:
-                        msg = f"Invalid agent type: {type(t)}"
-                        raise TypeError(msg)
-        else:
-            targets = target  # type: ignore
-        return self.connections.create_connection(
-            self,
-            targets,
-            connection_type=connection_type,
-            priority=priority,
-            delay=delay,
-            queued=queued,
-            queue_strategy=queue_strategy,
-            transform=transform,
-            filter_condition=filter_condition,
-            stop_condition=stop_condition,
-            exit_condition=exit_condition,
-        )
+        return "\n".join(lines)
 
     def iter_agents(self) -> Iterator[AnyAgent[Any, Any]]:
         """Recursively iterate over all child agents."""
@@ -348,13 +264,6 @@ class BaseTeam[TDeps, TResult](TaskManagerMixin):
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         **kwargs: Any,
     ) -> TeamResponse: ...
-
-    @abstractmethod
-    async def run(
-        self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
-        **kwargs: Any,
-    ) -> ChatMessage: ...
 
     def run_sync(
         self,
