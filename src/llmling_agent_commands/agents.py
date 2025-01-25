@@ -159,21 +159,25 @@ async def list_agents(
 ):
     """List all available agents."""
     # Get agent definition through context
-    definition = ctx.context.agent.context.definition
+    if not ctx.context.pool:
+        msg = "No agent pool available"
+        raise CommandError(msg)
 
     await ctx.output.print("\nAvailable agents:")
-    for name, agent in definition.agents.items():
-        # Keep the name clean and prominent
+
+    # List from pool instead of manifest
+    for name, agent in ctx.context.pool.agents.items():
         name_part = name
-
-        # Keep extra info simple with consistent width
-        model_part = str(agent.model) if agent.model else ""
+        model_part = str(agent.model_name or "")
         desc_part = agent.description if agent.description else ""
-        env_part = f"📄 {agent.environment}" if agent.environment else ""
 
-        # Use dim style but maintain alignment
+        # For dynamically created ones, add indicator
+        dynamic = (
+            "[dim](dynamic)[/dim] " if name not in ctx.context.definition.agents else ""
+        )
+
         await ctx.output.print(
-            f"  {name_part:<20}[dim]{model_part:<15}{desc_part:<30}{env_part}[/dim]"
+            f"  {name_part:<20}{dynamic}[dim]{model_part:<15}{desc_part}[/dim]"
         )
 
 
