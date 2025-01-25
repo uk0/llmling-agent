@@ -10,12 +10,8 @@ It serves both as a messaging protocol and a public API.
 Executes a prompt and returns a single ChatMessage:
 
 ```python
-# Common kwargs for all run methods:
-store_history: bool = True  # Whether to store in conversation history
-wait_for_connections: bool | None = None  # Wait for forwarded messages
-model: ModelType | None = None  # Optional model override
 
-msg = await agent.run("analyze this", store_history=True)
+msg = await agent.run("analyze this")
 msg = await team.run("analyze this")  # parallel execution
 msg = await team_run.run("analyze this")  # sequential chain
 ```

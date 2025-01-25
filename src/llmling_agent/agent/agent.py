@@ -215,6 +215,7 @@ class Agent[TDeps](TaskManagerMixin):
 
         super().__init__()
 
+        self._infinite = False
         # save some stuff for asnyc init
         self._owns_runtime = False
         self._mcp_servers = [
@@ -1389,6 +1390,19 @@ class Agent[TDeps](TaskManagerMixin):
         if self._background_task and not self._background_task.done():
             self._background_task.cancel()
             await self._background_task
+            self._background_task = None
+
+    async def wait(self) -> ChatMessage[TResult]:
+        """Wait for background execution to complete."""
+        if not self._background_task:
+            msg = "No background task running"
+            raise RuntimeError(msg)
+        if self._infinite:
+            msg = "Cannot wait on infinite execution"
+            raise RuntimeError(msg)
+        try:
+            return await self._background_task
+        finally:
             self._background_task = None
 
     def clear_history(self):
