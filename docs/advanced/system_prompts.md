@@ -30,7 +30,6 @@ System prompts can be dynamic, either evaluating once on first run or for each i
 
 ```python
 from llmling import Agent
-from toprompt import DynamicPrompt
 
 async def get_weather_context():
     weather = await fetch_weather()
@@ -40,7 +39,7 @@ agent = Agent(
     name="weather_advisor",
     system_prompt=[
         "You are a weather advisor.",
-        DynamicPrompt(get_weather_context)  # Updates each run
+        get_weather_context  # Updates each run
     ]
 )
 agent.sys_prompts.dynamic = True  # Already default
