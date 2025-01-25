@@ -369,7 +369,7 @@ Select ONE option by its exact label."""
         match selections:
             case Mapping():
                 label_map = selections
-                items = list(selections.values())
+                items: list[Any] = list(selections.values())
             case Team():
                 items = list(selections.agents)
                 label_map = {get_label(item): item for item in items}
