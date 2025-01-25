@@ -4,7 +4,7 @@
       "additionalProperties": false,
       "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\ncapabilities, and behavior settings. Each agent can have its own:\n- Language model configuration\n- Environment setup (tools and resources)\n- Response type definitions\n- System prompts and default user prompts\n- Role-based capabilities\n\nThe configuration can be loaded from YAML or created programmatically.",
       "properties": {
-        "type": {
+        "provider": {
           "anyOf": [
             {
               "discriminator": {
@@ -42,7 +42,7 @@
           ],
           "default": "pydantic_ai",
           "description": "Provider configuration or shorthand type",
-          "title": "Type"
+          "title": "Provider"
         },
         "name": {
           "anyOf": [
@@ -1235,6 +1235,18 @@
           "default": null,
           "description": "Optional name for the provider instance.",
           "title": "Name"
+        },
+        "model_settings": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional settings to configure the LLM behavior."
         },
         "callback": {
           "description": "Import path to processor callback.",
@@ -2561,6 +2573,18 @@
           "description": "Optional name for the provider instance.",
           "title": "Name"
         },
+        "model_settings": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional settings to configure the LLM behavior."
+        },
         "timeout": {
           "anyOf": [
             {
@@ -3327,7 +3351,7 @@
       "type": "object"
     },
     "LiteLLMProviderConfig": {
-      "description": "Configuration for LiteLLM-based provider.\n\nThis provider uses LiteLLM for handling model interactions, tool calls,\nand structured outputs. It provides fine-grained control over model behavior\nand validation.",
+      "description": "Configuration for LiteLLM-based provider.",
       "properties": {
         "type": {
           "const": "litellm",
@@ -3349,6 +3373,18 @@
           "description": "Optional name for the provider instance.",
           "title": "Name"
         },
+        "model_settings": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional settings to configure the LLM behavior."
+        },
         "retries": {
           "default": 1,
           "description": "Maximum retries for model calls.",
@@ -3367,11 +3403,6 @@
           "default": null,
           "description": "Optional model name to use. If not specified, uses default model.",
           "title": "Model"
-        },
-        "model_settings": {
-          "description": "Additional model-specific settings passed to PydanticAI.",
-          "title": "Model Settings",
-          "type": "object"
         }
       },
       "title": "LiteLLMProviderConfig",
@@ -3601,6 +3632,142 @@
         "max_messages"
       ],
       "title": "MessageCountCondition",
+      "type": "object"
+    },
+    "ModelSettings": {
+      "additionalProperties": false,
+      "description": "Settings to configure an LLM.",
+      "properties": {
+        "max_tokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The maximum number of tokens to generate.",
+          "title": "Max Tokens"
+        },
+        "temperature": {
+          "anyOf": [
+            {
+              "maximum": 2.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Amount of randomness in the response (0.0 - 2.0).",
+          "title": "Temperature"
+        },
+        "top_p": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An alternative to sampling with temperature, called nucleus sampling.",
+          "title": "Top P"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Override the client-level default timeout for a request, in seconds.",
+          "title": "Timeout"
+        },
+        "parallel_tool_calls": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether to allow parallel tool calls.",
+          "title": "Parallel Tool Calls"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The random seed to use for the model.",
+          "title": "Seed"
+        },
+        "presence_penalty": {
+          "anyOf": [
+            {
+              "maximum": 2.0,
+              "minimum": -2.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Penalize new tokens based on whether they have appeared in the text so far.",
+          "title": "Presence Penalty"
+        },
+        "frequency_penalty": {
+          "anyOf": [
+            {
+              "maximum": 2.0,
+              "minimum": -2.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Penalize new tokens based on their existing frequency in the text so far.",
+          "title": "Frequency Penalty"
+        },
+        "logit_bias": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Modify the likelihood of specified tokens appearing in the completion.",
+          "title": "Logit Bias"
+        }
+      },
+      "title": "ModelSettings",
       "type": "object"
     },
     "OpenAPIToolsetConfig": {
@@ -4031,6 +4198,18 @@
           "description": "Optional name for the provider instance.",
           "title": "Name"
         },
+        "model_settings": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional settings to configure the LLM behavior."
+        },
         "end_strategy": {
           "default": "early",
           "description": "How to handle tool calls when final result found:\n- early: Stop when valid result found\n- complete: Run all requested tools\n- confirm: Ask user what to do",
@@ -4121,11 +4300,6 @@
           "description": "Whether to defer model evaluation until first run.\nTrue can speed up initialization but might fail later.",
           "title": "Defer Model Check",
           "type": "boolean"
-        },
-        "model_settings": {
-          "description": "Additional model-specific settings passed to PydanticAI.",
-          "title": "Model Settings",
-          "type": "object"
         },
         "validation_enabled": {
           "default": true,
