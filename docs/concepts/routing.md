@@ -66,8 +66,8 @@ Filter functions can make routing decisions based on:
 
 #### Load Balancing
 ```python
-def least_busy(msg: ChatMessage, target: AnyAgent):
-    return not target.is_busy()
+def least_busy(context: EventContext):
+    return not context.target.is_busy()
 
 source >> team.when(least_busy)
 ```
@@ -75,11 +75,70 @@ source >> team.when(least_busy)
 
 #### Cost-Aware Routing
 ```python
-def within_budget(msg: ChatMessage, target: AnyAgent, stats):
-    return stats.total_cost < 1.0  # $1 limit
+def within_budget(context: EventContext):
+    return context.stats.total_cost < 1.0  # $1 limit
 
 source >> target.when(within_budget)
 ```
+
+### Context Object
+
+All conditions and triggers receive a rich context object providing access to the complete state:
+
+```python
+@dataclass(frozen=True)
+class EventContext:
+    """Context for condition checks and event handling."""
+
+    message: ChatMessage[Any]
+    """The message being processed."""
+
+    target: MessageNode
+    """The target node this message is being sent to."""
+
+    stats: TalkStats
+    """Statistics for the current connection."""
+
+    registry: ConnectionRegistry
+    """Registry of all named connections."""
+
+    talk: Talk
+    """The Talk instance handling this message flow."""
+```
+
+This context allows conditions to:
+
+- Inspect the current message
+- Access connection statistics
+- Look up other connections by name
+- Make decisions based on complete state
+
+Example usage:
+```python
+def check_condition(ctx: EventContext) -> bool:
+    # Check current message
+    if "error" in ctx.message.content:
+        return False
+
+    # Check connection stats
+    if ctx.stats.message_count > 10:
+        return False
+
+    # Look up other connection
+    if other := ctx.registry.get("other_connection"):
+        if other.stats.message_count > 5:
+            return False
+
+    return True
+
+# Use in connection
+connection = agent.connect_to(
+    other_agent,
+    filter_condition=check_condition
+)
+```
+
+The context object provides a clean interface for accessing all relevant information in one place, making conditions both powerful and easy to write.
 
 ### Async Support
 

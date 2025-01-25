@@ -5,6 +5,7 @@ LLMling's messaging system provides a unified way to handle communication betwee
 ## Message Flow
 
 Messages in LLMling-Agent can flow between:
+
 - Individual agents
 - Teams of agents
 - Agents and teams
@@ -15,21 +16,25 @@ Each message carries not just its content, but also metadata about its journey t
 ## Message Types
 
 The system uses two main message types:
+
 1. **ChatMessage**: The basic unit of communication
-   - Can contain either text or structured data
-   - Tracks metadata, costs, and routing information
-   - Used by both individual agents and teams
-   - Supports various formatting options for different interfaces
+
+- Can contain either text or structured data
+- Tracks metadata, costs, and routing information
+- Used by both individual agents and teams
+- Supports various formatting options for different interfaces
 
 2. **TeamResponse**: Specialized response type for team operations
-   - Represents parallel or sequential execution results
-   - Contains individual agent responses
-   - Provides aggregated team statistics
-   - Can be converted to ChatMessage for unified handling
+
+- Represents parallel or sequential execution results
+- Contains individual agent responses
+- Provides aggregated team statistics
+- Can be converted to ChatMessage for unified handling
 
 ## Message Connections
 
 Agents and teams can be connected to create message flows:
+
 ```python
 # Direct connection
 analyzer.connect_to(summarizer)
@@ -42,6 +47,7 @@ analyzer >> planner >> executor
 ```
 
 Messages flowing through these connections maintain their metadata and can be:
+
 - Transformed
 - Filtered
 - Queued
@@ -162,4 +168,5 @@ print(response.format_durations())
 combined = response.to_chat_message()
 ```
 
-Both ChatMessage and TeamResponse provide clean abstractions over the complexity of agent interactions, making it easy to work with both individual and group responses in a consistent way.
+Both ChatMessage and TeamResponse provide clean abstractions over the complexity of agent interactions,
+making it easy to work with both individual and group responses in a consistent way.
