@@ -109,7 +109,7 @@ teams:
       - analyzer
       - planner
     connections:
-      - type: agent
+      - type: node
         name: final_reviewer
         wait_for_completion: true
       - type: file

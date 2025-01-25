@@ -61,18 +61,18 @@ class ConnectionConfig(BaseModel):
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
-class AgentConnectionConfig(ConnectionConfig):
-    """Forward messages to another agent.
+class NodeConnectionConfig(ConnectionConfig):
+    """Forward messages to another node.
 
-    This configuration defines how messages should flow from one agent to another,
+    This configuration defines how messages should flow from one node to another,
     including:
-    - Basic routing (which agent, what type of connection)
+    - Basic routing (which node, what type of connection)
     - Message queueing and processing strategies
     - Timing controls (priority, delay)
     - Execution behavior (wait for completion)
     """
 
-    type: Literal["agent"] = Field("agent", init=False)
+    type: Literal["node"] = Field("node", init=False)
     """Type discriminator for agent targets."""
 
     name: str
@@ -187,6 +187,6 @@ class CallableConnectionConfig(ConnectionConfig):
 
 
 ForwardingTarget = Annotated[
-    AgentConnectionConfig | FileConnectionConfig | CallableConnectionConfig,
+    NodeConnectionConfig | FileConnectionConfig | CallableConnectionConfig,
     Field(discriminator="type"),
 ]

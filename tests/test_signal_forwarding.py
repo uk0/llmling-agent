@@ -17,14 +17,14 @@ agents:
         model: test
         name: TestAgent 1
         connections:
-            - type: agent
+            - type: node
               name: agent2
 
     agent2:
         model: test
         name: TestAgent 2
         connections:
-            - type: agent
+            - type: node
               name: agent3
 
     agent3:
@@ -39,7 +39,7 @@ agents:
         model: test
         name: TestAgent
         connections:
-            - type: agent
+            - type: node
               name: nonexistent
 """
 
@@ -50,7 +50,7 @@ agents:
         model: test
         name: TestAgent 1
         connections:
-            - type: agent
+            - type: node
               name: agent2
 
     agent2:

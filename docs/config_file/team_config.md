@@ -26,7 +26,7 @@ teams:
       - planner
     shared_prompt: "Focus on performance issues."  # Added to all members' prompts
     connections:
-      - type: agent
+      - type: node
         name: executor
         wait_for_completion: true
 
@@ -77,7 +77,7 @@ teams:
 Message forwarding configuration:
 ```yaml
 connections:
-  - type: agent
+  - type: node
     name: final_reviewer
     queued: true
     queue_strategy: latest
@@ -107,7 +107,7 @@ teams:
       - analysis  # Parallel team
       - execution  # Sequential chain
     connections:
-      - type: agent
+      - type: node
         name: final_review
 ```
 
@@ -167,7 +167,7 @@ teams:
       - planning  # Sequential planning
       - execution  # Parallel execution
     connections:
-      - type: agent
+      - type: node
         name: final_reviewer
         wait_for_completion: true
       - type: file

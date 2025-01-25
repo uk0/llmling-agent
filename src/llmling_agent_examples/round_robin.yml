@@ -11,7 +11,7 @@ agents:
     library_system_prompts:
       - word_chain
     connections:
-      - type: agent
+      - type: node
         name: player2
         connection_type: run
 
@@ -20,7 +20,7 @@ agents:
     library_system_prompts:
       - word_chain
     connections:
-      - type: agent
+      - type: node
         name: player3
         connection_type: run
         stop_condition:
@@ -32,6 +32,6 @@ agents:
     library_system_prompts:
       - word_chain
     connections:
-      - type: agent
+      - type: node
         name: player1
         connection_type: run

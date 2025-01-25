@@ -19,7 +19,7 @@ agents:
     library_system_prompts:
       - word_chain
     connections:
-      - type: agent
+      - type: node
         name: player2  # All messages are forwarded in a circle
 
   player2:
@@ -27,7 +27,7 @@ agents:
     library_system_prompts:
       - word_chain
     connections:
-      - type: agent
+      - type: node
         name: player3
 
   player3:
@@ -35,7 +35,7 @@ agents:
     library_system_prompts:
       - word_chain
     connections:
-      - type: agent
+      - type: node
         name: player1
         stop_condition:  # NOTE: this only checks the cost for this "connection"
           type: cost_limit

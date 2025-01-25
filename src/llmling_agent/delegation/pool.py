@@ -17,9 +17,9 @@ from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
 from llmling_agent.models.context import AgentContext
 from llmling_agent.models.forward_targets import (
-    AgentConnectionConfig,
     CallableConnectionConfig,
     FileConnectionConfig,
+    NodeConnectionConfig,
 )
 from llmling_agent.talk import Talk, TeamTalk
 from llmling_agent.tasks import TaskRegistry
@@ -411,7 +411,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             source = self[name] if name in self else self._teams[name]
             for target in config.connections or []:
                 match target:
-                    case AgentConnectionConfig():
+                    case NodeConnectionConfig():
                         if target.name not in self and target.name not in self._teams:
                             msg = f"Forward target {target.name} not found for {name}"
                             raise ValueError(msg)

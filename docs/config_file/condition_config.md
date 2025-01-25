@@ -86,7 +86,7 @@ LLMling provides three levels of control through conditions:
 Controls which messages pass through the connection:
 ```yaml
 connections:
-  - type: agent
+  - type: node
     name: summarizer
     filter_condition:
       type: word_match
@@ -102,7 +102,7 @@ talk.when(lambda msg: "summarize" in msg.content)
 Triggers disconnection of this specific connection:
 ```yaml
 connections:
-  - type: agent
+  - type: node
     name: expensive_model
     stop_condition:
       type: cost_limit
@@ -121,7 +121,7 @@ agent.connect_to(
 Stops the entire process by raising SystemExit:
 ```yaml
 connections:
-  - type: agent
+  - type: node
     name: critical_processor
     exit_condition:
       type: token_threshold
@@ -178,7 +178,7 @@ agent.connect_to(
 ### 2. Cost Control
 ```yaml
 connections:
-  - type: agent
+  - type: node
     name: gpt4_agent
     # Stop this connection if too expensive
     stop_condition:
@@ -198,7 +198,7 @@ connections:
 ### 4. Safety
 ```yaml
 connections:
-  - type: agent
+  - type: node
     name: assistant
     # Monitor token usage
     filter_condition:
@@ -220,7 +220,7 @@ connections:
 agents:
   analyzer:
     connections:
-      - type: agent
+      - type: node
         name: expensive_processor
         connection_type: run
 

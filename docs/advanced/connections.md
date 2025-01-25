@@ -65,7 +65,7 @@ agents:
   analyzer:
     # ... other config ...
     connections:
-      - type: agent
+      - type: node
         name: planner
         filter_condition:
           type: word_match
@@ -166,6 +166,7 @@ talk = agent.connect_to(
     exit_condition=lambda ctx: ctx.message.content == "EXIT"
 )
 ```
+
 
 ### Team Management
 

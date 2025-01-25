@@ -162,7 +162,7 @@ agents:
   assistant:
     model: openai:gpt-4o-mini
     connections:  # this forwards any output to the 2nd agent
-      - type: agent
+      - type: node
         name: browser
 ```
 
@@ -322,7 +322,7 @@ teams:
       - analyzer
       - planner
     connections:
-      - type: agent
+      - type: node
         name: final_reviewer
         wait_for_completion: true
       - type: file
