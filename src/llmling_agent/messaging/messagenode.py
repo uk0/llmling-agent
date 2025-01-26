@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Coroutine, Sequence
-from typing import TYPE_CHECKING, Any, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
 from psygnal import Signal
 
@@ -84,6 +84,15 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         self,
         target: MessageNode[Any, Any] | ProcessorCallback[Any],
         *,
+        queued: Literal[True],
+        queue_strategy: Literal["concat"],
+    ) -> Talk[str]: ...
+
+    @overload
+    def connect_to(
+        self,
+        target: MessageNode[Any, Any] | ProcessorCallback[Any],
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
@@ -93,7 +102,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,
-    ) -> Talk[Any]: ...
+    ) -> Talk[TResult]: ...
 
     @overload
     def connect_to(
