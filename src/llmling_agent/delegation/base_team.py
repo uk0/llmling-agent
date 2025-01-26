@@ -9,7 +9,6 @@ from psygnal.containers import EventedList
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.utils.inspection import has_return_type
-from llmling_agent.utils.tasks import TaskManagerMixin
 
 
 if TYPE_CHECKING:
@@ -28,7 +27,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class BaseTeam[TDeps, TResult](MessageNode, TaskManagerMixin):
+class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
     """Base class for Team and TeamRun."""
 
     def __init__(
