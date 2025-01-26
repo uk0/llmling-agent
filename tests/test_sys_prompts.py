@@ -132,3 +132,23 @@ async def test_dynamic_evaluation(agent):
     result4 = await agent.sys_prompts.format_system_prompt(agent)
     assert "Count: 3" in result3
     assert "Count: 3" in result4  # Same as before due to caching
+
+
+@pytest.mark.asyncio
+async def test_tool_capability_rendering(agent):
+    """Test rendering of tool capabilities."""
+
+    def add_3(a: int, b: int) -> int:
+        """Add two numbers."""
+        return a + b
+
+    agent.tools.register_tool(
+        LLMCallableTool.from_callable(add_3), requires_capability="can_add"
+    )
+    agent.sys_prompts.inject_tools = "all"
+    result = await agent.sys_prompts.format_system_prompt(agent)
+    assert "(requires can_add)" in result
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])
