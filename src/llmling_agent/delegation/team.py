@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.models.task import Job
     from llmling_agent.talk import Talk
 
@@ -32,17 +31,6 @@ TDeps = TypeVar("TDeps", default=None)
 
 class Team[TDeps](BaseTeam[TDeps, Any]):
     """Group of agents that can execute together."""
-
-    def __rshift__(
-        self, other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[Any]
-    ) -> Talk:
-        """Connect group to target agent(s).
-
-        Returns:
-            - list[Talk] when connecting to single agent (one Talk per source)
-            - list[TeamTalk] when connecting to team (one TeamTalk per source)
-        """
-        return self.connect_to(other)
 
     async def execute(
         self,

@@ -24,16 +24,9 @@ if TYPE_CHECKING:
     import PIL.Image
     from toprompt import AnyPromptType
 
-    from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import AnyFilterFn, AnyTransformFn
-    from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.conditions import ConnectionCondition
-
-    type AnyTeamOrAgent[TDeps, TResult] = (
-        AnyAgent[TDeps, TResult] | BaseTeam[TDeps, TResult]
-    )
-
     from llmling_agent.models.forward_targets import ConnectionType
 
 TContent = TypeVar("TContent")

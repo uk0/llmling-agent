@@ -25,7 +25,6 @@ if TYPE_CHECKING:
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.talk import QueueStrategy, Talk, TeamTalk
-    from llmling_agent.talk.talk import AnyTeamOrAgent
 
 
 NodeType = TypeVar("NodeType", bound="MessageNode")
@@ -56,9 +55,34 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         self._name = value
 
     @overload
+    def __rshift__(
+        self, other: MessageNode[Any, Any] | ProcessorCallback[Any]
+    ) -> Talk[TResult]: ...
+
+    @overload
+    def __rshift__(
+        self, other: Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]]
+    ) -> TeamTalk: ...
+
+    def __rshift__(
+        self,
+        other: MessageNode[Any, Any]
+        | ProcessorCallback[Any]
+        | Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]],
+    ) -> Talk[Any] | TeamTalk:
+        """Connect agent to another agent or group.
+
+        Example:
+            agent >> other_agent  # Connect to single agent
+            agent >> (agent2 & agent3)  # Connect to group
+            agent >> "other_agent"  # Connect by name (needs pool)
+        """
+        return self.connect_to(other)
+
+    @overload
     def connect_to(
         self,
-        target: AnyTeamOrAgent[Any, Any] | ProcessorCallback[Any],
+        target: MessageNode[Any, Any] | ProcessorCallback[Any],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -74,7 +98,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
     @overload
     def connect_to(
         self,
-        target: Sequence[AnyTeamOrAgent[Any, Any] | ProcessorCallback[Any]],
+        target: Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -89,9 +113,9 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
 
     def connect_to(
         self,
-        target: AnyTeamOrAgent[Any, Any]
+        target: MessageNode[Any, Any]
         | ProcessorCallback[Any]
-        | Sequence[AnyTeamOrAgent[Any, Any] | ProcessorCallback[Any]],
+        | Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,

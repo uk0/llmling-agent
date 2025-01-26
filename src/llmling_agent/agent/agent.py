@@ -62,7 +62,6 @@ if TYPE_CHECKING:
     from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.models.task import Job
     from llmling_agent.responses.models import ResponseDefinition
-    from llmling_agent.talk import Talk, TeamTalk
     from llmling_agent.tools.base import ToolInfo
 
 
@@ -108,7 +107,7 @@ class AgentKwargs(TypedDict, total=False):
     debug: bool
 
 
-class Agent[TDeps](MessageNode, TaskManagerMixin):
+class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     """Agent for AI-powered interaction with LLMling resources and tools.
 
     Generically typed with: LLMLingAgent[Type of Dependencies, Type of Result]
@@ -388,26 +387,6 @@ class Agent[TDeps](MessageNode, TaskManagerMixin):
         finally:
             if self._owns_runtime and self.context.runtime:
                 await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)
-
-    @overload
-    def __rshift__(
-        self, other: AnyAgent[Any, Any] | ProcessorCallback[Any]
-    ) -> Talk[str]: ...
-
-    @overload
-    def __rshift__(self, other: Team[Any]) -> TeamTalk: ...
-
-    def __rshift__(
-        self, other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[Any]
-    ) -> Talk[str] | TeamTalk:
-        """Connect agent to another agent or group.
-
-        Example:
-            agent >> other_agent  # Connect to single agent
-            agent >> (agent2 & agent3)  # Connect to group
-            agent >> "other_agent"  # Connect by name (needs pool)
-        """
-        return self.connect_to(other)
 
     @overload
     def __and__(
@@ -1168,15 +1147,15 @@ class Agent[TDeps](MessageNode, TaskManagerMixin):
             store_history=store_history,
             result_type=result_type,
         )
-        return self.run_task_sync(coro)
+        return self.run_task_sync(coro)  # type: ignore
 
-    async def run_job[TResult](
+    async def run_job(
         self,
-        job: Job[TDeps, TResult],
+        job: Job[TDeps, str | None],
         *,
         store_history: bool = True,
         include_agent_tools: bool = True,
-    ) -> ChatMessage[TResult]:
+    ) -> ChatMessage[str]:
         """Execute a pre-defined task.
 
         Args:

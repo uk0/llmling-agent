@@ -46,7 +46,7 @@ TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=None)
 
 
-class StructuredAgent[TDeps, TResult](MessageNode):
+class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
     """Wrapper for Agent that enforces a specific result type.
 
     This wrapper ensures the agent always returns results of the specified type.
@@ -160,7 +160,7 @@ class StructuredAgent[TDeps, TResult](MessageNode):
             wait_for_connections: Whether to wait for all connections to complete
         """
         typ = result_type or self._result_type
-        return await self._agent.run(
+        return await self._agent._run(
             *prompt,
             result_type=typ,
             model=model,
