@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 import asyncio
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, overload
 
 from psygnal.containers import EventedList
@@ -19,12 +20,18 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
+    from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
     from llmling_agent.models.messages import ChatMessage, TeamResponse
     from llmling_agent.models.providers import ProcessorCallback
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class TeamContext:
+    pool: AgentPool
 
 
 class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
@@ -231,6 +238,29 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                     yield from node.iter_agents()
                 case _:  # Agent case
                     yield node
+
+    @property
+    def context(self) -> TeamContext | None:
+        """Get shared pool from team members.
+
+        Raises:
+            ValueError: If team members belong to different pools
+        """
+        pools: set[AgentPool] = set()
+        for agent in self.iter_agents():
+            if agent.context and agent.context.pool:
+                pools.add(agent.context.pool)
+
+        if not pools:
+            msg = f"No pool found for team {self.name}."
+            logger.info(msg)
+            return None
+
+        if len(pools) > 1:
+            ids = [id(p) for p in pools]
+            msg = f"Team members in {self.name} belong to different pools: {ids}"
+            raise ValueError(msg)
+        return TeamContext(pool=pools.pop())
 
     async def distribute(
         self,
