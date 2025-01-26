@@ -5,7 +5,9 @@ LLMling offers a powerful condition system for controlling message flow, connect
 ## Condition Types
 
 ### Word Match
+
 Checks for specific words or phrases in messages:
+
 ```yaml
 filter_condition:
   type: word_match
@@ -15,7 +17,9 @@ filter_condition:
 ```
 
 ### Message Count
+
 Controls based on number of messages:
+
 ```yaml
 filter_condition:
   type: message_count
@@ -25,7 +29,9 @@ filter_condition:
 ```
 
 ### Time Based
+
 Controls based on elapsed time:
+
 ```yaml
 filter_condition:
   type: time
@@ -33,7 +39,9 @@ filter_condition:
 ```
 
 ### Token Threshold
+
 Monitors token usage:
+
 ```yaml
 filter_condition:
   type: token_threshold
@@ -43,7 +51,9 @@ filter_condition:
 ```
 
 ### Cost Limit
+
 Controls based on accumulated costs:
+
 ```yaml
 filter_condition:
   type: cost_limit
@@ -55,7 +65,9 @@ filter_condition:
 Combine multiple conditions using AND/OR logic:
 
 ### AND Condition
+
 All conditions must be met:
+
 ```yaml
 filter_condition:
   type: and
@@ -67,7 +79,9 @@ filter_condition:
 ```
 
 ### OR Condition
+
 Any condition can be met:
+
 ```yaml
 filter_condition:
   type: or
@@ -83,7 +97,9 @@ filter_condition:
 LLMling provides three levels of control through conditions:
 
 ### 1. Filter Condition
+
 Controls which messages pass through the connection:
+
 ```yaml
 connections:
   - type: node
@@ -94,11 +110,13 @@ connections:
 ```
 
 Programmatically:
+
 ```python
 talk.when(lambda msg: "summarize" in msg.content)
 ```
 
 ### 2. Stop Condition
+
 Triggers disconnection of this specific connection:
 ```yaml
 connections:
@@ -110,6 +128,7 @@ connections:
 ```
 
 Programmatically:
+
 ```python
 agent.connect_to(
     other,
@@ -118,7 +137,9 @@ agent.connect_to(
 ```
 
 ### 3. Exit Condition
+
 Stops the entire process by raising SystemExit:
+
 ```yaml
 connections:
   - type: node
@@ -129,6 +150,7 @@ connections:
 ```
 
 Programmatically:
+
 ```python
 agent.connect_to(
     other,
@@ -157,33 +179,11 @@ Flexible conditions using Jinja2 templates with full context access:
 ```yaml
 filter_condition:
   type: jinja2
-  template: >
-    {% set other = ctx.registry["other_player"] %}
-    {% if other.stats.message_count > 0 and ctx.stats.message_count > 0 %}
-      {% if (now - other.stats.last_message_time).seconds < 30 %}
-        true
-      {% endif %}
-    {% endif %}
+  template: # your jinja temlate
 ```
 
-Example templates:
-```yaml
-# Cost monitoring across connections
-template: >
-  {% set total_cost = 0 %}
-  {% for conn in ctx.registry.values() %}
-    {% set total_cost = total_cost + conn.stats.total_cost %}
-  {% endfor %}
-  {{ total_cost < 1.0 }}
-
-# Complex message patterns
-template: >
-  {% set responses = ctx.stats.messages|selectattr("role", "eq", "assistant")|list %}
-  {% if responses|length >= 3 %}
-    {% set last_three = responses[-3:] %}
-    {{ all(msg.metadata.get("quality", 0) > 0.8 for msg in last_three) }}
-  {% endif %}
-```
+You have access to the context of the current connection through `ctx`.
+return `True` to pass the condition.
 
 ## Context Access
 
