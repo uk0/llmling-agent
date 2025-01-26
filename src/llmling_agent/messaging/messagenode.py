@@ -109,6 +109,31 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         self,
         target: Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]],
         *,
+        queued: Literal[True],
+        queue_strategy: Literal["concat"],
+    ) -> TeamTalk[str]: ...
+
+    @overload
+    def connect_to(
+        self,
+        target: Sequence[MessageNode[Any, TResult] | ProcessorCallback[TResult]],
+        *,
+        connection_type: ConnectionType = ...,
+        priority: int = ...,
+        delay: timedelta | None = ...,
+        queued: bool = ...,
+        queue_strategy: QueueStrategy = ...,
+        transform: AnyTransformFn | None = ...,
+        filter_condition: AsyncFilterFn | None = ...,
+        stop_condition: AsyncFilterFn | None = ...,
+        exit_condition: AsyncFilterFn | None = ...,
+    ) -> TeamTalk[TResult]: ...
+
+    @overload
+    def connect_to(
+        self,
+        target: Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]],
+        *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,

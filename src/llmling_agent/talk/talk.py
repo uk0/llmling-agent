@@ -350,10 +350,12 @@ class Talk[TTransmittedData]:
         return self._stats
 
 
-class TeamTalk(list["Talk | TeamTalk"]):
+class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
     """Group of connections with aggregate operations."""
 
-    def __init__(self, talks: Sequence[Talk | TeamTalk]):
+    def __init__(
+        self, talks: Sequence[Talk[TTransmittedData] | TeamTalk[TTransmittedData]]
+    ):
         super().__init__(talks)
         self._filter_condition: AnyFilterFn | None = None
         self.active = True

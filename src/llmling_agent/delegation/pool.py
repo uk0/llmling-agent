@@ -117,7 +117,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         # Register tasks from manifest
         for name, task in self.manifest.jobs.items():
             self._tasks.register(name, task)
-        self.pool_talk = TeamTalk.from_agents(list(self.agents.values()))
+        self.pool_talk = TeamTalk[Any].from_agents(list(self.agents.values()))
 
         # Create requested agents immediately
         for name in to_load:
