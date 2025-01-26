@@ -21,8 +21,7 @@ if TYPE_CHECKING:
 
     from toprompt import AnyPromptType
 
-    from llmling_agent.agent import Agent, AnyAgent, StructuredAgent
-    from llmling_agent.common_types import AgentName
+    from llmling_agent.agent import AnyAgent
 
 
 logger = get_logger(__name__)
@@ -141,56 +140,6 @@ class Interactions[TDeps, TResult]:
             current_agent = other if current_agent == self.agent else self.agent
             current_message = response.content
             rounds += 1
-
-    def _resolve_agent(
-        self, target: AgentName | AnyAgent[TDeps, Any]
-    ) -> AnyAgent[TDeps, Any]:
-        """Resolve string agent name to instance."""
-        if isinstance(target, str):
-            if not self.agent.context.pool:
-                msg = "Pool required for resolving agent names"
-                raise ValueError(msg)
-            return self.agent.context.pool.get_agent(target)
-        return target
-
-    @overload
-    async def ask(
-        self,
-        target: AgentName | Agent[TDeps],
-        message: str,
-        *,
-        include_history: bool = False,
-        max_tokens: int | None = None,
-    ) -> ChatMessage[str]: ...
-
-    @overload
-    async def ask[TOtherResult](
-        self,
-        target: str | StructuredAgent[TDeps, TOtherResult],
-        message: TOtherResult,
-        *,
-        include_history: bool = False,
-        max_tokens: int | None = None,
-    ) -> ChatMessage[TOtherResult]: ...
-
-    async def ask[TOtherResult](
-        self,
-        target: AgentName | AnyAgent[TDeps, TOtherResult],
-        message: str | TOtherResult,
-        *,
-        include_history: bool = False,
-        max_tokens: int | None = None,
-    ) -> ChatMessage[TOtherResult]:
-        """Send message to another agent and wait for response."""
-        target_agent = self._resolve_agent(target)
-
-        if include_history:
-            history = await self.agent.conversation.format_history(max_tokens=max_tokens)
-            target_agent.conversation.add_context_message(
-                history, source=self.agent.name, metadata={"type": "conversation_history"}
-            )
-
-        return await target_agent.run(message)
 
     @overload
     async def pick[T: AnyPromptType](

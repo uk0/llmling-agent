@@ -76,23 +76,6 @@ agent.model_changed.connect(handle_model_change)
 agent.chunk_streamed.connect(handle_chunk)  # For streaming
 ```
 
-## Agent Communication
-
-Agents can communicate with each other:
-
-```python
-# Direct communication
-response = await agent1.talk.ask(
-    "agent2",
-    "What do you think?",
-    include_history=True
-)
-
-# Setting up forwarding
-agent1.connect_to(agent2)
-agent1.stop_passing_results_to(agent2)
-```
-
 ## Continuous Operation
 
 Agents can run continuously:

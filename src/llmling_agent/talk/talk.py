@@ -195,10 +195,8 @@ class Talk[TTransmittedData]:
                 ):
                     responses.append(response)
         if is_forwarded:
-            self._stats = replace(
-                self._stats,
-                messages=[*self._stats.messages, processed_message],
-            )
+            messages = [*self._stats.messages, processed_message]
+            self._stats = replace(self._stats, messages=messages)
             # 9. Emit forwarded signal after processing
             self.message_forwarded.emit(processed_message)
         return responses
