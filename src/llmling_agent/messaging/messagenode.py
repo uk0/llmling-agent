@@ -62,14 +62,14 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
     @overload
     def __rshift__(
         self, other: Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]]
-    ) -> TeamTalk: ...
+    ) -> TeamTalk[TResult]: ...
 
     def __rshift__(
         self,
         other: MessageNode[Any, Any]
         | ProcessorCallback[Any]
         | Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]],
-    ) -> Talk[Any] | TeamTalk:
+    ) -> Talk[Any] | TeamTalk[Any]:
         """Connect agent to another agent or group.
 
         Example:

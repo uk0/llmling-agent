@@ -13,7 +13,7 @@ import logfire
 from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import KnownModelName, Model
-from pydantic_ai.result import StreamedRunResult
+from pydantic_ai.result import RunResult, StreamedRunResult
 
 from llmling_agent.common_types import EndStrategy, ModelProtocol
 from llmling_agent.log import get_logger
@@ -226,7 +226,7 @@ class PydanticAIProvider(AgentProvider):
             # Run with complete history
             to_use = model or self.model
             to_use = infer_model(to_use) if isinstance(to_use, str) else to_use
-            result = await agent.run(
+            result: RunResult = await agent.run(
                 prompt,
                 deps=self._context,  # type: ignore
                 message_history=[to_model_message(m) for m in message_history],
