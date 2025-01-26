@@ -90,10 +90,8 @@ class ImageURLContent(BaseImageContent):
 
     def to_openai_format(self) -> dict[str, Any]:
         """Convert to OpenAI API format for vision models."""
-        return {
-            "type": "image_url",
-            "image_url": {"url": self.url, "detail": self.detail or "auto"},
-        }
+        content = {"url": self.url, "detail": self.detail or "auto"}
+        return {"type": "image_url", "image_url": content}
 
 
 class ImageBase64Content(BaseImageContent):
@@ -108,10 +106,8 @@ class ImageBase64Content(BaseImageContent):
     def to_openai_format(self) -> dict[str, Any]:
         """Convert to OpenAI API format for vision models."""
         data_url = f"data:image/jpeg;base64,{self.data}"
-        return {
-            "type": "image_url",
-            "image_url": {"url": data_url, "detail": self.detail or "auto"},
-        }
+        content = {"url": data_url, "detail": self.detail or "auto"}
+        return {"type": "image_url", "image_url": content}
 
     @classmethod
     def from_bytes(
@@ -225,10 +221,8 @@ class AudioURLContent(AudioContent):
 
     def to_openai_format(self) -> dict[str, Any]:
         """Convert to OpenAI API format for audio models."""
-        return {
-            "type": "audio",
-            "audio": {"url": self.url, "format": self.format or "auto"},
-        }
+        content = {"url": self.url, "format": self.format or "auto"}
+        return {"type": "audio", "audio": content}
 
 
 class AudioBase64Content(AudioContent):
@@ -241,10 +235,8 @@ class AudioBase64Content(AudioContent):
     def to_openai_format(self) -> dict[str, Any]:
         """Convert to OpenAI API format for audio models."""
         data_url = f"data:audio/{self.format or 'mp3'};base64,{self.data}"
-        return {
-            "type": "audio",
-            "audio": {"url": data_url, "format": self.format or "auto"},
-        }
+        content = {"url": data_url, "format": self.format or "auto"}
+        return {"type": "audio", "audio": content}
 
     @classmethod
     def from_bytes(cls, data: bytes, audio_format: str = "mp3") -> Self:
