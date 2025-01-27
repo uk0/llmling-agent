@@ -8,7 +8,7 @@ from prompt_toolkit.history import History
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from llmling_agent.chat_session.base import AgentPoolView
+    from llmling_agent_cli.chat_session.base import AgentPoolView
 
 
 class SessionHistory(History):

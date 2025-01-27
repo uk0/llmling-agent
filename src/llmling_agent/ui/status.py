@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, ClassVar, Literal
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.models import SessionState
+    from llmling_agent_cli.chat_session.models import SessionState
 
 
 Alignment = Literal["left", "center", "right"]
