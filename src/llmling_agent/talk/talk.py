@@ -55,7 +55,7 @@ class Talk[TTransmittedData]:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
+        transform: AnyTransformFn[ChatMessage[TTransmittedData]] | None = None,
         filter_condition: AnyFilterFn | None = None,
         stop_condition: AnyFilterFn | None = None,
         exit_condition: AnyFilterFn | None = None,
@@ -374,7 +374,10 @@ class Talk[TTransmittedData]:
 
     def transform[TNewData](
         self,
-        transformer: Callable[[TTransmittedData], TNewData | Awaitable[TNewData]],
+        transformer: Callable[
+            [ChatMessage[TTransmittedData]],
+            ChatMessage[TNewData] | Awaitable[ChatMessage[TNewData]],
+        ],
         *,
         name: str | None = None,
         description: str | None = None,
@@ -405,7 +408,9 @@ class Talk[TTransmittedData]:
         if self._transform is not None:
             old_transform = self._transform
 
-            async def chained_transform(data: TTransmittedData) -> TNewData:
+            async def chained_transform(
+                data: ChatMessage[TTransmittedData],
+            ) -> ChatMessage[TNewData]:
                 intermediate = old_transform(data)
                 if inspect.isawaitable(intermediate):
                     intermediate = await intermediate
@@ -414,9 +419,9 @@ class Talk[TTransmittedData]:
                     return await result
                 return result
 
-            new_talk._transform = chained_transform
+            new_talk._transform = chained_transform  # type: ignore
         else:
-            new_talk._transform = transformer
+            new_talk._transform = transformer  # type: ignore
 
         return new_talk
 
