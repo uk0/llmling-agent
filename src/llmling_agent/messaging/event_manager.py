@@ -21,11 +21,11 @@ from llmling_agent.models.events import (
     TimeEventConfig,
     WebhookConfig,
 )
-from llmling_agent_events.base import EventSource
 
 
 if TYPE_CHECKING:
     from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent_events.base import EventSource
     from llmling_agent_events.timed_watcher import TimeEventSource
 
 
@@ -244,6 +244,7 @@ class EventManager:
             ValueError: If source already exists or is invalid
         """
         logger.debug("Setting up event source: %s (%s)", config.name, config.type)
+        from llmling_agent_events.base import EventSource
 
         if config.name in self._sources:
             msg = f"Event source already exists: {config.name}"

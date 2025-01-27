@@ -83,12 +83,12 @@ def run_command(
                     match execution_mode:
                         case "parallel":
                             team = pool.create_team(agent_names, model_override=model)
-                            responses = await team.run(prompt)
+                            responses = await team.execute(prompt)
                         case "sequential":
                             team_run = pool.create_team_run(
                                 agent_names, model_override=model
                             )
-                            responses = await team_run.run(prompt)
+                            responses = await team_run.execute(prompt)
                         # case "controlled":
                         #     responses = await group.run_controlled(prompt)
                         case _:

@@ -135,10 +135,10 @@ async def run(config_path: str):
         # duration so he can adapt his cheering to the current happenings.
         progress.update("Sequential downloads starting - let's see how they do!")
         sequential_team = worker_1 | worker_2
-        sequential = await sequential_team.run(TEAM_PROMPT)
+        sequential = await sequential_team.execute(TEAM_PROMPT)
         progress.update(f"Downloads completed in {sequential.duration:.2f} secs!")
         parallel_team = worker_1 & worker_2
-        parallel = await parallel_team.run(TEAM_PROMPT)
+        parallel = await parallel_team.execute(TEAM_PROMPT)
         progress.update(f"Downloads completed in {parallel.duration:.2f} secs!")
         overseer: Agent[None] = pool.get_agent("overseer")
         # this call will make the overseer use his ability to list pool agents
