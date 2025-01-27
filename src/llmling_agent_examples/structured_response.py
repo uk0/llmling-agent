@@ -1,7 +1,5 @@
 """Example of structured responses defined both in code and YAML."""
 
-from typing import Any
-
 from pydantic import BaseModel
 
 from llmling_agent import Agent
@@ -52,10 +50,10 @@ agents:
 
 async def example_structured_response():
     """Show both ways of defining structured responses."""
-    manifest = AgentsManifest[Any].from_yaml(AGENT_CONFIG)
+    manifest = AgentsManifest[None].from_yaml(AGENT_CONFIG)
 
     # Example 1: Python-defined structure
-    async with Agent[Any].open_agent(
+    async with Agent[None].open_agent(
         manifest, "summarizer", result_type=PythonResult
     ) as summarizer:
         result = await summarizer.run("I love this new feature!")
@@ -67,9 +65,9 @@ async def example_structured_response():
     # Example 2: YAML-defined structure
     # NOTE: this is not recommended for programmatic usage and is just a demo. Use this
     # only for complete YAML workflows, otherwise your linter wont like what you are doin.
-    async with Agent[Any].open_agent(manifest, "analyzer") as analyzer:
-        result = await analyzer.run("I'm really excited about this project!")
-        analysis = result.data
+    async with Agent[None].open_agent(manifest, "analyzer") as analyzer:
+        result_2 = await analyzer.run("I'm really excited about this project!")
+        analysis = result_2.data
         print("\nYAML-defined Response:")
         # Type checkers cant deal with dynamically generated Models, so we have to
         # git-ignore

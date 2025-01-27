@@ -315,7 +315,7 @@ class PydanticAIProvider(AgentProvider):
                 raise ValueError(msg)
 
     @asynccontextmanager
-    async def stream_response(
+    async def stream_response(  # type: ignore[override]
         self,
         *prompts: str | Content,
         message_id: str,

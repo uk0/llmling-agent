@@ -50,7 +50,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
     def __init__(self, name: str | None = None):
         """Initialize message node."""
         super().__init__()
-        from llmling_agent.agent.connection import ConnectionManager
+        from llmling_agent.messaging.connection_manager import ConnectionManager
         from llmling_agent.messaging.event_manager import EventManager
 
         self._name = name or self.__class__.__name__

@@ -15,13 +15,15 @@ from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import TokenCost
 from llmling_agent.utils.tasks import TaskManagerMixin
-from llmling_agent_providers.base import AgentProvider, ProviderResponse
+from llmling_agent_providers.base import (
+    AgentProvider,
+    ProviderResponse,
+    StreamingResponseProtocol,
+)
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-
-    from pydantic_ai.result import StreamedRunResult
 
     from llmling_agent.common_types import ModelType
     from llmling_agent.models.content import Content
@@ -284,7 +286,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         model: ModelType = None,
         store_history: bool = True,
         **kwargs: Any,
-    ) -> AsyncIterator[StreamedRunResult]:
+    ) -> AsyncIterator[StreamingResponseProtocol]:
         """Stream response from remote agent."""
         # Send context if first time
         if not self._ws:

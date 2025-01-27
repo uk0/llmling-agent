@@ -45,7 +45,6 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.agent.connection import ConnectionManager
     from llmling_agent.agent.interactions import Interactions
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import (
@@ -133,7 +132,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
     # this fixes weird mypy issue
     conversation: ConversationManager
-    connections: ConnectionManager
     talk: Interactions
     description: str | None
 

@@ -220,7 +220,7 @@ class LiteLLMProvider(AgentProvider[Any]):
                 calls.append(info)
                 messages.append(message)
             # Extract content
-            content = response.choices[0].message.content
+            content: Any = response.choices[0].message.content
             if content and result_type and issubclass(result_type, BaseModel):
                 # Parse JSON string into the requested model
                 content = result_type.model_validate_json(content)
