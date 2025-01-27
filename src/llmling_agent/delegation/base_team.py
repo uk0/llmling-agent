@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 import asyncio
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, overload
 
 from psygnal.containers import EventedList
@@ -24,8 +25,18 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
     from llmling_agent.models.messages import ChatMessage, TeamResponse
     from llmling_agent.models.providers import ProcessorCallback
+    from llmling_agent.models.teams import TeamConfig
 
 logger = get_logger(__name__)
+
+
+@dataclass(kw_only=True)
+class TeamContext(NodeContext):
+    pool: AgentPool | None = None
+    """Pool the team is part of."""
+
+    config: TeamConfig | None
+    """Current team's specific configuration."""
 
 
 class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
@@ -242,6 +253,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         """
         pool_ids: set[int] = set()
         shared_pool: AgentPool | None = None
+        team_config: TeamConfig | None = None
 
         for agent in self.iter_agents():
             if agent.context and agent.context.pool:
@@ -249,18 +261,19 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                 if pool_id not in pool_ids:
                     pool_ids.add(pool_id)
                     shared_pool = agent.context.pool
-
+                    if shared_pool.manifest.teams:
+                        team_config = shared_pool.manifest.teams.get(self.name)
         if not pool_ids:
             logger.info(
                 "No pool found for team %s.",
                 self.name,
             )
-            return NodeContext(pool=None)
+            return TeamContext(pool=None, config=team_config)
 
         if len(pool_ids) > 1:
             msg = f"Team members in {self.name} belong to different pools"
             raise ValueError(msg)
-        return NodeContext(pool=shared_pool)
+        return TeamContext(pool=shared_pool, config=team_config)
 
     @context.setter
     def context(self, value: NodeContext):
