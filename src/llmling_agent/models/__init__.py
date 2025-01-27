@@ -12,6 +12,7 @@ from llmling_agent.models.resources import ResourceInfo
 from llmling_agent.models.context import AgentContext
 from llmling_agent.models.forward_targets import ForwardingTarget
 from llmling_agent.models.session import SessionQuery
+from llmling_agent.models.teams import TeamConfig
 from llmling_agent.models.mcp_server import (
     MCPServerBase,
     StdioMCPServer,
@@ -32,6 +33,7 @@ __all__ = [
     "SSEMCPServer",
     "SessionQuery",
     "StdioMCPServer",
+    "TeamConfig",
     "TeamResponse",
     "TokenCost",
     "TokenUsage",
