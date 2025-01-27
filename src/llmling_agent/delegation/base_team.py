@@ -3,12 +3,13 @@ from __future__ import annotations
 from abc import abstractmethod
 import asyncio
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 from psygnal.containers import EventedList
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode, NodeContext
+from llmling_agent.models.teams import TeamConfig
 from llmling_agent.utils.inspection import has_return_type
 
 
@@ -25,18 +26,43 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
     from llmling_agent.models.messages import ChatMessage, TeamResponse
     from llmling_agent.models.providers import ProcessorCallback
-    from llmling_agent.models.teams import TeamConfig
 
 logger = get_logger(__name__)
 
 
 @dataclass(kw_only=True)
 class TeamContext(NodeContext):
+    team_name: str | None
+    """Pool the team is part of."""
+
+    config: TeamConfig
+    """Current team's specific configuration."""
+
     pool: AgentPool | None = None
     """Pool the team is part of."""
 
-    config: TeamConfig | None
-    """Current team's specific configuration."""
+    @classmethod
+    def create_default(
+        cls,
+        name: str,
+        mode: Literal["sequential", "parallel"] = "sequential",
+        pool: AgentPool | None = None,
+    ) -> TeamContext:
+        """Create a default agent context with minimal privileges.
+
+        Args:
+            name: Name of the agent
+            mode: Execution mode (sequential or parallel)
+            pool:(optional): Optional pool the agent is part of
+        """
+        from llmling_agent.models import TeamConfig
+
+        cfg = TeamConfig(name=name, mode=mode, members=[])
+        return cls(
+            team_name=name,
+            config=cfg,
+            pool=pool,
+        )
 
 
 class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
@@ -245,12 +271,14 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                     yield node
 
     @property
-    def context(self) -> NodeContext | None:
+    def context(self) -> TeamContext:
         """Get shared pool from team members.
 
         Raises:
             ValueError: If team members belong to different pools
         """
+        from llmling_agent.delegation.team import Team
+
         pool_ids: set[int] = set()
         shared_pool: AgentPool | None = None
         team_config: TeamConfig | None = None
@@ -263,17 +291,20 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                     shared_pool = agent.context.pool
                     if shared_pool.manifest.teams:
                         team_config = shared_pool.manifest.teams.get(self.name)
+        if not team_config:
+            mode = "parallel" if isinstance(self, Team) else "sequential"
+            team_config = TeamConfig(name=self.name, mode=mode, members=[])
         if not pool_ids:
             logger.info(
                 "No pool found for team %s.",
                 self.name,
             )
-            return TeamContext(pool=None, config=team_config)
+            return TeamContext(team_name=self.name, pool=shared_pool, config=team_config)
 
         if len(pool_ids) > 1:
             msg = f"Team members in {self.name} belong to different pools"
             raise ValueError(msg)
-        return TeamContext(pool=shared_pool, config=team_config)
+        return TeamContext(team_name=self.name, pool=shared_pool, config=team_config)
 
     @context.setter
     def context(self, value: NodeContext):

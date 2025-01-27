@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Coroutine, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, overload
 
 from psygnal import Signal
 
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from datetime import timedelta
     import os
+    from types import TracebackType
 
     import PIL.Image
     from toprompt import AnyPromptType
@@ -25,6 +26,7 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
+    from llmling_agent.models.nodes import NodeConfig
     from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.talk import QueueStrategy, Talk, TeamTalk
 
@@ -36,12 +38,12 @@ TResult = TypeVar("TResult")
 @dataclass(kw_only=True)
 class NodeContext:
     pool: AgentPool | None = None
+    config: NodeConfig
 
 
 class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
     """Base class for all message processing nodes."""
 
-    context: NodeContext | None
     outbox = Signal(object)  # ChatMessage
     """Signal emitted when node produces a message."""
 
@@ -49,9 +51,37 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         """Initialize message node."""
         super().__init__()
         from llmling_agent.agent.connection import ConnectionManager
+        from llmling_agent.events import EventManager
 
         self._name = name or self.__class__.__name__
         self.connections = ConnectionManager(self)
+        self._events = EventManager(self, enable_events=True)
+
+    async def __aenter__(self) -> Self:
+        """Initialize base message node."""
+        try:
+            await self._events.__aenter__()
+        except Exception as e:
+            await self.__aexit__(type(e), e, e.__traceback__)
+            msg = f"Failed to initialize {self.name}"
+            raise RuntimeError(msg) from e
+        else:
+            return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Clean up base resources."""
+        await self._events.cleanup()
+        await self.cleanup_tasks()
+
+    @property
+    def context(self) -> NodeContext:
+        """Get node context."""
+        raise NotImplementedError
 
     @property
     def name(self) -> str:
@@ -102,6 +132,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         target: MessageNode[Any, Any] | ProcessorCallback[Any],
         *,
         connection_type: ConnectionType = "run",
+        name: str | None = None,
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,

@@ -204,7 +204,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         from llmling_agent.agent import AgentLogger
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
-        from llmling_agent.events import EventManager
 
         super().__init__(name=name)
 
@@ -299,7 +298,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
         self.talk = Interactions(self)
         self._logger = AgentLogger(self, enable_db_logging=memory_cfg.enable)
-        self._events = EventManager(self, enable_events=True)
 
         # Set up system prompts
         config_prompts = ctx.config.system_prompts if ctx else []
@@ -338,7 +336,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 coros.append(runtime_ref.__aenter__())
 
             # Events initialization
-            coros.append(self._events.__aenter__())
+            coros.append(super().__aenter__())
 
             # MCP server setup
             if self._mcp_servers:
@@ -380,10 +378,9 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         exc_tb: TracebackType | None,
     ):
         """Exit async context."""
+        await super().__aexit__(exc_type, exc_val, exc_tb)
         try:
-            await self._events.cleanup()
             await self.tools.cleanup()
-            await self.cleanup_tasks()
         finally:
             if self._owns_runtime and self.context.runtime:
                 await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)

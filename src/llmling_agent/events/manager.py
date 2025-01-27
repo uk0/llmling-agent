@@ -25,7 +25,8 @@ from llmling_agent_events.base import EventSource
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent.messaging.messagenode import MessageNode
+
 
 logger = get_logger(__name__)
 
@@ -51,7 +52,7 @@ class EventManager:
 
     def __init__(
         self,
-        agent: AnyAgent[Any, Any],
+        agent: MessageNode[Any, Any],
         enable_events: bool = True,
         auto_run: bool = True,
     ):
@@ -306,7 +307,11 @@ class EventManager:
             return self
 
         # Set up triggers from config
-        if self.agent.context.config and self.agent.context.config.triggers:
+        if (
+            self.agent.context
+            and self.agent.context.config
+            and self.agent.context.config.triggers
+        ):
             for trigger in self.agent.context.config.triggers:
                 await self.add_source(trigger)
 
