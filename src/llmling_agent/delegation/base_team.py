@@ -240,22 +240,27 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         Raises:
             ValueError: If team members belong to different pools
         """
-        pools: set[AgentPool] = set()
+        pool_ids: set[int] = set()
+        shared_pool: AgentPool | None = None
+
         for agent in self.iter_agents():
             if agent.context and agent.context.pool:
-                pools.add(agent.context.pool)
+                pool_id = id(agent.context.pool)
+                if pool_id not in pool_ids:
+                    pool_ids.add(pool_id)
+                    shared_pool = agent.context.pool
 
-        if not pools:
-            msg = f"No pool found for team {self.name}."
-            logger.info(msg)
-            pool = None
-        else:
-            pool = pools.pop()
-        if len(pools) > 1:
-            ids = [id(p) for p in pools]
-            msg = f"Team members in {self.name} belong to different pools: {ids}"
+        if not pool_ids:
+            logger.info(
+                "No pool found for team %s.",
+                self.name,
+            )
+            return NodeContext(pool=None)
+
+        if len(pool_ids) > 1:
+            msg = f"Team members in {self.name} belong to different pools"
             raise ValueError(msg)
-        return NodeContext(pool=pool)
+        return NodeContext(pool=shared_pool)
 
     @context.setter
     def context(self, value: NodeContext):
