@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, replace
+from datetime import datetime
 import inspect
 from typing import TYPE_CHECKING, Any, Literal, Self
 
@@ -11,6 +12,7 @@ from llmling import BaseRegistry, LLMLingError
 from psygnal import Signal
 from typing_extensions import TypeVar
 
+from llmling_agent.events.sources import ConnectionEvent, ConnectionEventType, EventData
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.talk.stats import TalkStats, TeamTalkStats
@@ -143,6 +145,40 @@ class Talk[TTransmittedData]:
             target,
             default_return=True,
         )
+
+    def on_event(
+        self,
+        event_type: ConnectionEventType,
+        callback: Callable[[ConnectionEvent[TTransmittedData]], None | Awaitable[None]],
+    ) -> Self:
+        """Register callback for connection events."""
+
+        async def wrapped_callback(event: EventData) -> None:
+            if isinstance(event, ConnectionEvent) and event.event_type == event_type:
+                result = callback(event)
+                if inspect.isawaitable(result):
+                    await result
+
+        self.source._events.add_callback(wrapped_callback)
+        return self
+
+    async def _emit_connection_event(
+        self,
+        event_type: ConnectionEventType,
+        message: ChatMessage[TTransmittedData] | None,
+    ) -> None:
+        event = ConnectionEvent(
+            connection=self,
+            source="connection",
+            connection_name=self.name,
+            event_type=event_type,
+            message=message,
+            timestamp=datetime.now(),
+        )
+        # Propagate to all event managers through registry
+        if self.source.context and (pool := self.source.context.pool):
+            for connection in pool.connection_registry.values():
+                await connection.source._events.emit_event(event)
 
     async def _handle_message(
         self,
