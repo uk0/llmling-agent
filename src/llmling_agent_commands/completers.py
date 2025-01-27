@@ -12,7 +12,7 @@ from llmling_agent.prompts import DEFAULT_PROMPTS, PromptLibrary
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import AsyncIterator
 
     from slashed import CompletionContext
 
@@ -80,9 +80,9 @@ def _load_prompt_library() -> PromptLibrary | None:
 class MetaCompleter(CompletionProvider):
     """Smart completer for meta-prompts."""
 
-    def get_completions(
+    async def get_completions(
         self, ctx: CompletionContext[AgentContext]
-    ) -> Iterator[CompletionItem]:
+    ) -> AsyncIterator[CompletionItem]:
         """Complete meta command arguments."""
         current = ctx.current_word
         args = ctx.command_args
