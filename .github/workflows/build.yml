@@ -39,7 +39,7 @@ jobs:
           args: "format --check"
 
       - name: Static type checking (MyPy)
-        run: uv run --no-group docs mypy src/llmling_agent/
+        run: uv run --no-group docs mypy src/
 
       - name: Run tests
         env:
