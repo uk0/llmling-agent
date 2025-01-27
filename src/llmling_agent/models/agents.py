@@ -30,10 +30,9 @@ import yamling
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.config import Capabilities, Knowledge
 from llmling_agent.environment import AgentEnvironment, FileEnvironment, InlineEnvironment
-from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.converters import ConversionConfig
-from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, StdioMCPServer
+from llmling_agent.models.nodes import NodeConfig
 from llmling_agent.models.prompts import PromptConfig
 from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
 from llmling_agent.models.session import MemoryConfig, SessionQuery
@@ -88,7 +87,7 @@ class WorkerConfig(BaseModel):
         return cls(name=name)
 
 
-class AgentConfig(BaseModel):
+class AgentConfig(NodeConfig):
     """Configuration for a single agent in the system.
 
     Defines an agent's complete configuration including its model, environment,
@@ -105,14 +104,8 @@ class AgentConfig(BaseModel):
     provider: ProviderConfig | Literal["pydantic_ai", "human", "litellm"] = "pydantic_ai"
     """Provider configuration or shorthand type"""
 
-    name: str | None = None
-    """Name of the agent"""
-
     inherits: str | None = None
     """Name of agent config to inherit from"""
-
-    description: str | None = None
-    """Optional description of the agent's purpose"""
 
     model: str | AnyModel | None = None  # pyright: ignore[reportInvalidTypeForm]
     """The model to use for this agent. Can be either a simple model name
@@ -175,14 +168,8 @@ class AgentConfig(BaseModel):
     config_file_path: str | None = None
     """Config file path for resolving environment."""
 
-    triggers: list[EventConfig] = Field(default_factory=list)
-    """Event sources that activate this agent"""
-
     knowledge: Knowledge | None = None
     """Knowledge sources for this agent."""
-
-    connections: list[ForwardingTarget] = Field(default_factory=list)
-    """Targets to forward results to."""
 
     workers: list[WorkerConfig] = Field(default_factory=list)
     """Worker agents which will be available as tools."""
@@ -193,13 +180,6 @@ class AgentConfig(BaseModel):
     def is_structured(self) -> bool:
         """Check if this config defines a structured agent."""
         return self.result_type is not None
-
-    model_config = ConfigDict(
-        frozen=True,
-        arbitrary_types_allowed=True,
-        extra="forbid",
-        use_attribute_docstrings=True,
-    )
 
     @model_validator(mode="before")
     @classmethod
