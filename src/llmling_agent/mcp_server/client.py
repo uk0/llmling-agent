@@ -9,14 +9,16 @@ from typing import TYPE_CHECKING, Any, Self, TextIO
 from py2openai.functionschema import FunctionSchema
 
 from llmling_agent.log import get_logger
+from llmling_agent.models.resources import ResourceInfo
 
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from types import TracebackType
 
+    import mcp
     from mcp import ClientSession
-    from mcp.types import Tool, Tool as MCPTool
+    from mcp.types import Resource as MCPResource, Tool, Tool as MCPTool
 
 logger = get_logger(__name__)
 
@@ -25,6 +27,13 @@ def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
     """Convert MCP tool to OpenAI function schema."""
     desc = tool.description or "No description provided"
     return {"name": tool.name, "description": desc, "parameters": tool.inputSchema}
+
+
+async def convert_mcp_resource(resource: MCPResource) -> ResourceInfo:
+    """Convert MCP resource to ResourceInfo."""
+    return ResourceInfo(
+        name=resource.name, uri=str(resource.uri), description=resource.description
+    )
 
 
 class MCPClient:
@@ -125,6 +134,27 @@ class MCPClient:
             {"type": "function", "function": mcp_tool_to_fn_schema(tool)}
             for tool in self._available_tools
         ]
+
+    async def list_prompts(self) -> mcp.types.ListPromptsResult:
+        """Get available prompts from the server."""
+        if not self.session:
+            msg = "Not connected to MCP server"
+            raise RuntimeError(msg)
+        return await self.session.list_prompts()
+
+    async def list_resources(self) -> mcp.types.ListResourcesResult:
+        """Get available resources from the server."""
+        if not self.session:
+            msg = "Not connected to MCP server"
+            raise RuntimeError(msg)
+        return await self.session.list_resources()
+
+    async def get_prompt(self, name: str) -> mcp.types.GetPromptResult:
+        """Get a specific prompt's content."""
+        if not self.session:
+            msg = "Not connected to MCP server"
+            raise RuntimeError(msg)
+        return await self.session.get_prompt(name)
 
     def create_tool_callable(self, tool: MCPTool) -> Callable[..., Awaitable[str]]:
         """Create a properly typed callable from MCP tool schema."""
