@@ -336,6 +336,54 @@ class Talk[TTransmittedData]:
         self._filter_condition = condition
         return self
 
+    def transform[TNewData](
+        self,
+        transformer: Callable[[TTransmittedData], TNewData | Awaitable[TNewData]],
+        *,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> Talk[TNewData]:
+        """Chain a new transformation after existing ones.
+
+        Args:
+            transformer: Function to transform messages
+            name: Optional name for debugging
+            description: Optional description
+
+        Returns:
+            New Talk instance with chained transformation
+
+        Example:
+            ```python
+            talk = (agent1 >> agent2)
+                .transform(parse_json)      # str -> dict
+                .transform(extract_values)  # dict -> list
+            ```
+        """
+        new_talk = Talk[TNewData](
+            source=self.source,
+            targets=self.targets,
+            connection_type=self.connection_type,  # type: ignore
+        )
+
+        if self._transform is not None:
+            old_transform = self._transform
+
+            async def chained_transform(data: TTransmittedData) -> TNewData:
+                intermediate = old_transform(data)
+                if inspect.isawaitable(intermediate):
+                    intermediate = await intermediate
+                result = transformer(intermediate)
+                if inspect.isawaitable(result):
+                    return await result
+                return result
+
+            new_talk._transform = chained_transform
+        else:
+            new_talk._transform = transformer
+
+        return new_talk
+
     @asynccontextmanager
     async def paused(self):
         """Temporarily set inactive."""
