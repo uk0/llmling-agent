@@ -249,7 +249,7 @@ def launch_app(
     import platform
 
     if platform.system() == "Windows":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # type: ignore
     lib_names = ["llmling_agent", "llmling", "gradio"]
     with set_handler_level(logging.INFO, logger_names=lib_names):
         logger.info("Starting web interface")
