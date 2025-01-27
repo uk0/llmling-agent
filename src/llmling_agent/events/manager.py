@@ -26,6 +26,7 @@ from llmling_agent_events.base import EventSource
 
 if TYPE_CHECKING:
     from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent_events.timed_watcher import TimeEventSource
 
 
 logger = get_logger(__name__)
@@ -75,11 +76,11 @@ class EventManager:
         if prompt := event.to_prompt():  # Only run if event provides a prompt
             await self.agent.run(prompt)
 
-    async def add_callback(self, callback: EventCallback) -> None:
+    def add_callback(self, callback: EventCallback) -> None:
         """Register an event callback."""
         self._callbacks.append(callback)
 
-    async def remove_callback(self, callback: EventCallback) -> None:
+    def remove_callback(self, callback: EventCallback) -> None:
         """Remove a previously registered callback."""
         self._callbacks.remove(callback)
 
@@ -169,7 +170,7 @@ class EventManager:
         name: str | None = None,
         timezone: str | None = None,
         skip_missed: bool = False,
-    ) -> EventSource:
+    ) -> TimeEventSource:
         """Add time-based event source.
 
         Args:
@@ -186,7 +187,7 @@ class EventManager:
             timezone=timezone,
             skip_missed=skip_missed,
         )
-        return await self.add_source(config)
+        return await self.add_source(config)  # type: ignore
 
     async def add_email_watch(
         self,

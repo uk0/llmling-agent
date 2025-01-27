@@ -136,10 +136,10 @@ manager = agent.events
 async def on_event(event: EventData):
     print(f"Event received: {event}")
 
-await manager.add_callback(on_event)
+manager.add_callback(on_event)
 
 # Remove callback
-await manager.remove_callback(on_event)
+manager.remove_callback(on_event)
 ```
 
 Events can be handled in two ways:
@@ -174,10 +174,10 @@ async def handle_events(event: EventData) -> None:
             await agent.run(f"GitHub webhook received: {event.data}")
 
 # Register callback
-await agent.events.add_callback(handle_events)
+agent.events.add_callback(handle_events)
 
 # Remove callback
-await agent.events.remove_callback(handle_events)
+agent.events.remove_callback(handle_events)
 ```
 
 Callbacks can be both sync or async:
@@ -192,8 +192,8 @@ async def async_handler(event: EventData) -> None:
     await process_event(event)
 
 # Both work
-await agent.events.add_callback(sync_handler)
-await agent.events.add_callback(async_handler)
+agent.events.add_callback(sync_handler)
+agent.events.add_callback(async_handler)
 ```
 
 ## CLI Usage
@@ -336,6 +336,6 @@ async def special_handler(event: EventData) -> None:
         await handle_secret_file(event.path)
 
 # Register custom handler but keep auto-handling
-await agent.events.add_callback(special_handler)
+agent.events.add_callback(special_handler)
 # Auto-handling will still process other events
 ```

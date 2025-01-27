@@ -28,7 +28,7 @@ def event_manager(agent):
 class _TestEvent(EventData):
     """Simple event type for testing."""
 
-    message: str
+    message: str = ""
 
     def to_prompt(self) -> str:
         """Convert event to prompt format."""
@@ -42,7 +42,7 @@ async def test_event_manager_basic_callback(event_manager: EventManager):
     async def test_callback(event):
         received_events.append(event)
 
-    await event_manager.add_callback(test_callback)
+    event_manager.add_callback(test_callback)
     event = _TestEvent(source="test", timestamp=datetime.now(), message="test message")
     await event_manager.emit_event(event)
 
@@ -64,10 +64,10 @@ async def test_event_manager_multiple_callbacks(event_manager: EventManager):
         nonlocal counter2
         counter2 += 1
 
-    await event_manager.add_callback(callback1)
-    await event_manager.add_callback(callback2)
+    event_manager.add_callback(callback1)
+    event_manager.add_callback(callback2)
 
-    event = EventData(source="test", timestamp=datetime.now())
+    event = _TestEvent(source="test", timestamp=datetime.now())
     await event_manager.emit_event(event)
 
     assert counter1 == 1
@@ -83,8 +83,8 @@ async def test_event_manager_disabled(agent):
         nonlocal counter
         counter += 1
 
-    await manager.add_callback(callback)
-    event = EventData(source="test", timestamp=datetime.now())
+    manager.add_callback(callback)
+    event = _TestEvent(source="test", timestamp=datetime.now())
     await manager.emit_event(event)
 
     assert counter == 0
@@ -98,12 +98,12 @@ async def test_event_manager_remove_callback(event_manager: EventManager):
         nonlocal counter
         counter += 1
 
-    await event_manager.add_callback(callback)
-    event = EventData(source="test", timestamp=datetime.now())
+    event_manager.add_callback(callback)
+    event = _TestEvent(source="test", timestamp=datetime.now())
     await event_manager.emit_event(event)
     assert counter == 1
 
-    await event_manager.remove_callback(callback)
+    event_manager.remove_callback(callback)
     await event_manager.emit_event(event)
     assert counter == 1  # Shouldn't have increased
 
@@ -115,7 +115,7 @@ async def test_timed_event_basic(event_manager: EventManager):
     async def callback(event):
         events_received.append(event)
 
-    await event_manager.add_callback(callback)
+    event_manager.add_callback(callback)
 
     # Add timed event through public API
     source = await event_manager.add_timed_event(
