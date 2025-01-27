@@ -9,7 +9,7 @@ from llmling import Config, RuntimeConfig
 from slashed import Command, CommandContext, CommandError, PathCompleter
 from upath import UPath
 
-from llmling_agent.environment.models import FileEnvironment, InlineEnvironment
+from llmling_agent.models.environment import FileEnvironment, InlineEnvironment
 
 
 if TYPE_CHECKING:

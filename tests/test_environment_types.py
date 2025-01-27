@@ -10,7 +10,7 @@ from pydantic import ValidationError
 import pytest
 import yamling
 
-from llmling_agent.environment import FileEnvironment, InlineEnvironment
+from llmling_agent.models.environment import FileEnvironment, InlineEnvironment
 
 
 @pytest.fixture

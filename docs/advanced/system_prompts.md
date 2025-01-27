@@ -29,7 +29,7 @@ agent = Agent(
 System prompts can be dynamic, either evaluating once on first run or for each interaction:
 
 ```python
-from llmling import Agent
+from llmling_agent import Agent
 
 async def get_weather_context():
     weather = await fetch_weather()

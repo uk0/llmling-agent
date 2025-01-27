@@ -29,8 +29,12 @@ import yamling
 
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.config import Capabilities, Knowledge
-from llmling_agent.environment import AgentEnvironment, FileEnvironment, InlineEnvironment
 from llmling_agent.models.converters import ConversionConfig
+from llmling_agent.models.environment import (
+    AgentEnvironment,
+    FileEnvironment,
+    InlineEnvironment,
+)
 from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, StdioMCPServer
 from llmling_agent.models.nodes import NodeConfig
 from llmling_agent.models.prompts import PromptConfig
