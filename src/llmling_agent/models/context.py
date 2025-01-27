@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from pydantic_ai import RunContext
 from typing_extensions import TypeVar
 
+from llmling_agent.messaging.messagenode import NodeContext
 from llmling_agent.prompts.conversion_manager import ConversionManager
 from llmling_agent.tools.base import ToolInfo
 
@@ -29,8 +30,8 @@ if TYPE_CHECKING:
 TDeps = TypeVar("TDeps", default=Any)
 
 
-@dataclass
-class AgentContext[TDeps]:
+@dataclass(kw_only=True)
+class AgentContext[TDeps](NodeContext):
     """Runtime context for agent execution.
 
     Generically typed with AgentContext[Type of Dependencies]

@@ -46,6 +46,7 @@ class Talk[TTransmittedData]:
         targets: Sequence[MessageNode],
         group: TeamTalk | None = None,
         *,
+        name: str | None = None,
         connection_type: ConnectionType = "run",
         wait_for_connections: bool = False,
         priority: int = 0,
@@ -63,6 +64,7 @@ class Talk[TTransmittedData]:
             source: Agent sending messages
             targets: Agents receiving messages
             group: Optional group this talk belongs to
+            name: Optional name for this talk
             connection_type: How to handle messages:
                 - "run": Execute message as a new run in target
                 - "context": Add message as context to target
@@ -82,6 +84,8 @@ class Talk[TTransmittedData]:
         """
         self.source = source
         self.targets = targets
+        # Could perhaps better be an auto-inferring property
+        self.name = name or f"{source.name}->{[t.name for t in targets]}"
         self.group = group
         self.priority = priority
         self.delay = delay
@@ -119,7 +123,9 @@ class Talk[TTransmittedData]:
             message=message,
             target=target,
             stats=self.stats,
-            registry=_CONNECTION_REGISTRY,
+            registry=self.source.context.pool.connection_registry
+            if self.source.context and self.source.context.pool
+            else None,
             talk=self,
         )
         result = condition(ctx)
@@ -441,7 +447,7 @@ class EventContext[TMessageContent]:
     stats: TalkStats
     """Statistics for the current connection."""
 
-    registry: ConnectionRegistry
+    registry: ConnectionRegistry | None
     """Registry of all named connections."""
 
     talk: Talk
@@ -477,7 +483,3 @@ class ConnectionRegistry(BaseRegistry[str, Talk]):
             raise self._error_class(msg)
 
         return item
-
-
-# shame on us for using a global.
-_CONNECTION_REGISTRY = ConnectionRegistry()

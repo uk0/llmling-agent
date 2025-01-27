@@ -135,6 +135,7 @@ class ConnectionManager:
                 Talk(
                     source=source,
                     targets=[t],
+                    name=name,
                     connection_type=connection_type,
                     priority=priority,
                     delay=delay,
@@ -155,6 +156,7 @@ class ConnectionManager:
         talk = Talk(
             source=source,
             targets=[target],
+            name=name,
             connection_type=connection_type,
             priority=priority,
             delay=delay,
@@ -167,10 +169,10 @@ class ConnectionManager:
         )
         self._connections.append(talk)
         self.connection_added.emit(talk)
-        from llmling_agent.talk.talk import _CONNECTION_REGISTRY
 
-        if name:
-            _CONNECTION_REGISTRY.register(name, talk)
+        if name and source.context and (pool := source.context.pool):
+            pool.connection_registry.register(name, talk)
+
         return talk
 
     async def trigger_all(self) -> dict[AgentName, list[ChatMessage[Any]]]:

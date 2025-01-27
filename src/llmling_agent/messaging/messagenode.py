@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Coroutine, Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
 from psygnal import Signal
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn
+    from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.providers import ProcessorCallback
@@ -31,9 +33,15 @@ NodeType = TypeVar("NodeType", bound="MessageNode")
 TResult = TypeVar("TResult")
 
 
+@dataclass(kw_only=True)
+class NodeContext:
+    pool: AgentPool | None = None
+
+
 class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
     """Base class for all message processing nodes."""
 
+    context: NodeContext | None
     outbox = Signal(object)  # ChatMessage
     """Signal emitted when node produces a message."""
 
@@ -118,15 +126,16 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         self,
         target: Sequence[MessageNode[Any, TResult] | ProcessorCallback[TResult]],
         *,
-        connection_type: ConnectionType = ...,
-        priority: int = ...,
-        delay: timedelta | None = ...,
-        queued: bool = ...,
-        queue_strategy: QueueStrategy = ...,
-        transform: AnyTransformFn | None = ...,
-        filter_condition: AsyncFilterFn | None = ...,
-        stop_condition: AsyncFilterFn | None = ...,
-        exit_condition: AsyncFilterFn | None = ...,
+        connection_type: ConnectionType = "run",
+        name: str | None = None,
+        priority: int = 0,
+        delay: timedelta | None = None,
+        queued: bool = False,
+        queue_strategy: QueueStrategy = "latest",
+        transform: AnyTransformFn | None = None,
+        filter_condition: AsyncFilterFn | None = None,
+        stop_condition: AsyncFilterFn | None = None,
+        exit_condition: AsyncFilterFn | None = None,
     ) -> TeamTalk[TResult]: ...
 
     @overload
@@ -135,6 +144,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         target: Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]],
         *,
         connection_type: ConnectionType = "run",
+        name: str | None = None,
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
@@ -152,6 +162,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         | Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]],
         *,
         connection_type: ConnectionType = "run",
+        name: str | None = None,
         priority: int = 0,
         delay: timedelta | None = None,
         queued: bool = False,
@@ -194,6 +205,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
             targets,
             connection_type=connection_type,
             priority=priority,
+            name=name,
             delay=delay,
             queued=queued,
             queue_strategy=queue_strategy,

@@ -22,6 +22,7 @@ from llmling_agent.models.forward_targets import (
     NodeConnectionConfig,
 )
 from llmling_agent.talk import Talk, TeamTalk
+from llmling_agent.talk.talk import ConnectionRegistry
 from llmling_agent.tasks import TaskRegistry
 
 
@@ -106,6 +107,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self.parallel_agent_load = parallel_agent_load
         self.storage = StorageManager(self.manifest.storage)
         self._teams: dict[str, BaseTeam[Any, Any]] = {}
+        self.connection_registry = ConnectionRegistry()
 
         # Validate requested agents exist
         to_load = set(nodes_to_load) if nodes_to_load else set(self.manifest.agents)
@@ -422,10 +424,14 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
                         )
                     case FileConnectionConfig() | CallableConnectionConfig():
                         target_node = Agent(provider=target.get_provider())
+                    case _:
+                        msg = f"Invalid connection config: {target}"
+                        raise ValueError(msg)
 
                 source.connect_to(
-                    target_node,
+                    target_node,  # type: ignore  # recognized as "Any | BaseTeam[Any, Any]" by mypy?
                     connection_type=target.connection_type,
+                    name=name,
                     priority=target.priority,
                     delay=target.delay,
                     queued=target.queued,

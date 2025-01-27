@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from abc import abstractmethod
 import asyncio
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, overload
 
 from psygnal.containers import EventedList
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messagenode import MessageNode
+from llmling_agent.messaging.messagenode import MessageNode, NodeContext
 from llmling_agent.utils.inspection import has_return_type
 
 
@@ -27,11 +26,6 @@ if TYPE_CHECKING:
     from llmling_agent.models.providers import ProcessorCallback
 
 logger = get_logger(__name__)
-
-
-@dataclass
-class TeamContext:
-    pool: AgentPool
 
 
 class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
@@ -240,7 +234,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                     yield node
 
     @property
-    def context(self) -> TeamContext | None:
+    def context(self) -> NodeContext | None:
         """Get shared pool from team members.
 
         Raises:
@@ -254,13 +248,19 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         if not pools:
             msg = f"No pool found for team {self.name}."
             logger.info(msg)
-            return None
-
+            pool = None
+        else:
+            pool = pools.pop()
         if len(pools) > 1:
             ids = [id(p) for p in pools]
             msg = f"Team members in {self.name} belong to different pools: {ids}"
             raise ValueError(msg)
-        return TeamContext(pool=pools.pop())
+        return NodeContext(pool=pool)
+
+    @context.setter
+    def context(self, value: NodeContext):
+        msg = "Cannot set context on BaseTeam"
+        raise RuntimeError(msg)
 
     async def distribute(
         self,
