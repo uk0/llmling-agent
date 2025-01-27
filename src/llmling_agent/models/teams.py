@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from llmling_agent.events.sources import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 
 
@@ -28,6 +29,8 @@ class TeamConfig(BaseModel):
     shared_prompt: str | None = None
     """Optional shared prompt for this team."""
 
+    triggers: list[EventConfig] | None = None
+    """Optional event triggers for this team."""
     # Future extensions:
     # tools: list[str] | None = None
     # """Tools available to all team members."""
