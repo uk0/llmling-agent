@@ -263,7 +263,85 @@ class EmailConfig(EventSourceConfig):
     """Size limit for processed emails"""
 
 
+class ConnectionTriggerConfig(EventSourceConfig):
+    """Trigger config specifically for connection events."""
+
+    type: Literal["connection"] = Field("connection", init=False)
+    source: str | None = None
+    target: str | None = None
+    event: ConnectionEventType
+    condition: ConnectionEventConditionType | None = None
+
+    async def matches_event(self, event: ConnectionEvent[Any]) -> bool:
+        """Check if this trigger matches the event."""
+        # First check event type
+        if event.event_type != self.event:
+            return False
+
+        # Check source/target filters
+        if self.source and event.connection.source.name != self.source:
+            return False
+        if self.target and not any(
+            t.name == self.target for t in event.connection.targets
+        ):
+            return False
+
+        # Check condition if any
+        if self.condition:
+            return await self.condition.check(event)
+
+        return True
+
+
 EventConfig = Annotated[
-    FileWatchConfig | WebhookConfig | EmailConfig | TimeEventConfig,
+    FileWatchConfig
+    | WebhookConfig
+    | EmailConfig
+    | TimeEventConfig
+    | ConnectionTriggerConfig,
+    Field(discriminator="type"),
+]
+
+
+class ConnectionEventCondition(BaseModel):
+    """Base conditions specifically for connection events."""
+
+    type: str = Field(init=False)
+
+    async def check(self, event: ConnectionEvent[Any]) -> bool:
+        raise NotImplementedError
+
+
+class ConnectionContentCondition(ConnectionEventCondition):
+    """Simple content matching for connection events."""
+
+    type: Literal["content"] = Field("content", init=False)
+    words: list[str]
+    mode: Literal["any", "all"] = "any"
+
+    async def check(self, event: ConnectionEvent[Any]) -> bool:
+        if not event.message:
+            return False
+        text = str(event.message.content)
+        return any(word in text for word in self.words)
+
+
+class ConnectionJinja2Condition(ConnectionEventCondition):
+    """Flexible Jinja2 condition for connection events."""
+
+    type: Literal["jinja2"] = Field("jinja2", init=False)
+    template: str
+
+    async def check(self, event: ConnectionEvent[Any]) -> bool:
+        from jinja2 import Environment
+
+        env = Environment()
+        template = env.from_string(self.template)
+        result = template.render(event=event)
+        return result.strip().lower() == "true"
+
+
+ConnectionEventConditionType = Annotated[
+    ConnectionContentCondition | ConnectionJinja2Condition,
     Field(discriminator="type"),
 ]
