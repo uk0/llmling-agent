@@ -12,7 +12,8 @@ from typing import TYPE_CHECKING, Any, Self, TypeVar, overload
 
 from pydantic import SecretStr
 
-from llmling_agent.events.sources import (
+from llmling_agent.log import get_logger
+from llmling_agent.models.events import (
     EmailConfig,
     EventConfig,
     EventData,
@@ -20,7 +21,6 @@ from llmling_agent.events.sources import (
     TimeEventConfig,
     WebhookConfig,
 )
-from llmling_agent.log import get_logger
 from llmling_agent_events.base import EventSource
 
 

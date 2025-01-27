@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI, Request
 
-from llmling_agent.events.sources import EventData, WebhookConfig
+from llmling_agent.models.events import EventData, WebhookConfig
 from llmling_agent_events.base import EventSource
 
 

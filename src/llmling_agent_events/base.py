@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
-    from llmling_agent.events.sources import EventConfig, EventData
+    from llmling_agent.models.events import EventConfig, EventData
 
 
 class EventSource(ABC):
@@ -51,7 +51,7 @@ class EventSource(ABC):
         Raises:
             ValueError: If source type is unknown or disabled
         """
-        from llmling_agent.events.sources import (
+        from llmling_agent.models.events import (
             EmailConfig,
             FileWatchConfig,
             TimeEventConfig,

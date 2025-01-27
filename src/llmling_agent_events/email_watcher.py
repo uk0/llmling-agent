@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 
 import aioimaplib
 
-from llmling_agent.events.sources import EventData
 from llmling_agent.log import get_logger
+from llmling_agent.models.events import EventData
 from llmling_agent_events.base import EventSource
 
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
     from email.message import Message
 
-    from llmling_agent.events.sources import EmailConfig
+    from llmling_agent.models.events import EmailConfig
 
 logger = get_logger(__name__)
 

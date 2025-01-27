@@ -12,8 +12,8 @@ from llmling import BaseRegistry, LLMLingError
 from psygnal import Signal
 from typing_extensions import TypeVar
 
-from llmling_agent.events.sources import ConnectionEvent, ConnectionEventType, EventData
 from llmling_agent.log import get_logger
+from llmling_agent.models.events import ConnectionEvent, ConnectionEventType, EventData
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.talk.stats import TalkStats, TeamTalkStats
 

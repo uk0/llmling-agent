@@ -6,7 +6,7 @@ from datetime import datetime
 import pytest
 
 from llmling_agent.events import EventManager
-from llmling_agent.events.sources import EventData, TimeEventConfig
+from llmling_agent.models.events import EventData, TimeEventConfig
 from llmling_agent.models.messages import ChatMessage
 
 

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from llmling_agent.events.sources import EventData, TimeEventConfig
+from llmling_agent.models.events import EventData, TimeEventConfig
 from llmling_agent_events.base import EventSource
 
 

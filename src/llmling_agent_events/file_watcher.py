@@ -6,7 +6,7 @@ from asyncio import Event
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
-from llmling_agent.events.sources import EventData, FileWatchConfig
+from llmling_agent.models.events import EventData, FileWatchConfig
 from llmling_agent_events.base import EventSource
 
 
