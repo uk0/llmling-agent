@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from llmling import LLMCallableTool
 from llmling.utils.importing import import_callable
@@ -10,10 +10,7 @@ from slashed import Command, CommandContext, CommandError, CompletionContext
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.log import get_logger
-
-
-if TYPE_CHECKING:
-    from llmling_agent.models.context import AgentContext
+from llmling_agent.models.context import AgentContext  # noqa: TC001
 
 
 logger = get_logger(__name__)
