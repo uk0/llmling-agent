@@ -104,7 +104,7 @@ async with Agent.open_agent("agents.yml", "my-agent") as agent:
     # Managing tools
     agent.tools.enable_tool("search")  # Enable specific tool
     agent.tools.disable_tool("edit")   # Disable specific tool
-    print(agent.tools.list_tools())    # See all tools and their states
+    print(await agent.tools.list_tools())    # See all tools and their states
 
     # Working with conversation history
     history = agent.conversation.get_history()  # Get current history

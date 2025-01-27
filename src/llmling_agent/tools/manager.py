@@ -2,26 +2,22 @@
 
 from __future__ import annotations
 
-import asyncio
-from collections.abc import Callable, Sequence
-from contextlib import AsyncExitStack, contextmanager
+from collections.abc import Awaitable, Callable, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass, field, fields
 from datetime import datetime
-import os
-from typing import TYPE_CHECKING, Any, Literal, Self
+import inspect
+from typing import TYPE_CHECKING, Any, Literal
 
 from llmling import BaseRegistry, LLMCallableTool, ToolError
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
-from llmling_agent.mcp_server.client import MCPClient
-from llmling_agent.models.mcp_server import MCPServerConfig, SSEMCPServer, StdioMCPServer
 from llmling_agent.tools.base import ToolInfo
 
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-    from types import TracebackType
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
@@ -31,6 +27,10 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 MAX_LEN_DESCRIPTION = 1000
+
+SyncToolProvider = Callable[[], list[ToolInfo]]
+AsyncToolProvider = Callable[[], Awaitable[list[ToolInfo]]]
+ToolProvider = SyncToolProvider | AsyncToolProvider
 
 
 class ToolManager(BaseRegistry[str, ToolInfo]):
@@ -77,9 +77,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         super().__init__()
         self.tool_choice = tool_choice
         self.context = context
-        self._mcp_clients: dict[str, MCPClient] = {}
-        self.exit_stack = AsyncExitStack()
-        self._tool_providers: list[Callable[[], list[ToolInfo]]] = []
+        self._tool_providers: list[ToolProvider] = []
 
         # Register initial tools
         for tool in tools or []:
@@ -92,36 +90,9 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             return "No tools available"
         return f"Available tools: {', '.join(enabled_tools)}"
 
-    async def __aenter__(self) -> Self:
-        """Enter async context and set up MCP servers."""
-        try:
-            # Setup MCP servers if configured
-            if self.context and self.context.config and self.context.config.mcp_servers:
-                await self.setup_mcp_servers(self.context.config.get_mcp_servers())
-        except Exception as e:
-            # Clean up on error
-            await self.__aexit__(type(e), e, e.__traceback__)
-            msg = "Failed to initialize tool manager"
-            logger.exception(msg, exc_info=e)
-            raise RuntimeError(msg) from e
-        else:
-            return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ):
-        """Exit async context."""
-        try:
-            # Clean up MCP clients through exit stack
-            await self.exit_stack.aclose()
-            self._mcp_clients.clear()
-        except Exception as e:
-            msg = "Error during tool manager cleanup"
-            logger.exception(msg, exc_info=e)
-            raise RuntimeError(msg) from e
+    def add_provider(self, provider: ToolProvider) -> None:
+        """Add a function that provides tools."""
+        self._tool_providers.append(provider)
 
     def reset_states(self):
         """Reset all tools to their default enabled states."""
@@ -191,37 +162,57 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         """Check if a tool is currently enabled."""
         return self[tool_name].enabled if tool_name in self else False
 
-    def list_tools(self) -> dict[str, bool]:
+    async def list_tools(self) -> dict[str, bool]:
         """Get a mapping of all tools and their enabled status."""
-        return {name: info.enabled for name, info in self.items()}
+        return {tool.name: tool.enabled for tool in await self.get_tools()}
 
     async def get_tools(
         self,
         state: Literal["all", "enabled", "disabled"] = "all",
     ) -> list[ToolInfo]:
         """Get tool objects based on filters."""
-        tools = list(self.values())
+        tools: list[ToolInfo] = []
+
+        # Get tools from registry
+        tools.extend(t for t in self.values() if t.matches_filter(state))
+
+        # Get tools from providers
+        for provider in self._tool_providers:
+            try:
+                if inspect.iscoroutinefunction(provider):
+                    provider_tools = await provider()
+                else:
+                    provider_tools = provider()
+                # Only add tools that match state filter
+                tools.extend(t for t in provider_tools if t.matches_filter(state))
+            except Exception:
+                logger.exception("Failed to get tools from provider: %r", provider)
+                continue
+
+        # Apply tool_choice filtering
         match self.tool_choice:
             case str():
-                tools = [self[self.tool_choice]]
+                tools = [t for t in tools if t.name == self.tool_choice]
             case list():
-                tools = [self[name] for name in self.tool_choice]
-            case True | None:
-                tools = tools
-            case _:
+                tools = [t for t in tools if t.name in self.tool_choice]
+            case False:
                 tools = []
-        filtered_tools = [info for info in tools if info.matches_filter(state)]
-        # Sort by priority (if any have non-default priority)
-        if any(self[t.name].priority != 100 for t in filtered_tools):  # noqa: PLR2004
-            filtered_tools.sort(key=lambda t: self[t.name].priority)
+            case True | None:
+                pass  # Keep all tools
 
-        return filtered_tools
+        # Sort by priority if any have non-default priority
+        if any(t.priority != 100 for t in tools):  # noqa: PLR2004
+            tools.sort(key=lambda t: t.priority)
 
-    def get_tool_names(
+        return tools
+
+    async def get_tool_names(
         self, state: Literal["all", "enabled", "disabled"] = "all"
     ) -> set[str]:
         """Get tool names based on state."""
-        return {name for name, info in self.items() if info.matches_filter(state)}
+        return {
+            tool.name for tool in await self.get_tools() if tool.matches_filter(state)
+        }
 
     def register_tool(
         self,
@@ -314,100 +305,12 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
     def reset(self):
         """Reset tool states."""
-        old_tools = self.list_tools()
+        old_tools = {i.name: i.enabled for i in self._items.values()}
         self.reset_states()
-        new_tools = self.list_tools()
+        new_tools = {i.name: i.enabled for i in self._items.values()}
 
         event = self.ToolStateReset(old_tools, new_tools)
         self.tool_states_reset.emit(event)
-
-    async def setup_mcp_servers(self, servers: list[MCPServerConfig]):
-        """Set up multiple MCP server integrations.
-
-        Args:
-            servers: List of MCP server configurations
-        """
-        try:
-            for server in servers:
-                if not server.enabled:
-                    continue
-
-                match server:
-                    case StdioMCPServer():
-                        # Create client with stdio mode
-                        client = MCPClient(stdio_mode=True)
-                        client = await self.exit_stack.enter_async_context(client)
-                        env = os.environ.copy()
-                        # Update with server-specific environment if provided
-                        if server.environment:
-                            env.update(server.environment)
-                        # Ensure UTF-8 encoding
-                        env["PYTHONIOENCODING"] = "utf-8"
-                        await client.connect(server.command, args=server.args, env=env)
-                        # Store client
-                        client_id = f"{server.command}_{' '.join(server.args)}"
-                        self._mcp_clients[client_id] = client
-
-                        # Register tools
-                        self.register_mcp_tools(client)
-
-                    case SSEMCPServer():
-                        # SSE client without stdio mode
-                        client = MCPClient(stdio_mode=False)
-                        client = await self.exit_stack.enter_async_context(client)
-
-                        await client.connect(
-                            command="",  # Not used for SSE
-                            args=[],  # Not used for SSE
-                            url=server.url,
-                            env=server.environment,
-                        )
-
-                        # Store client
-                        client_id = f"sse_{server.url}"
-                        self._mcp_clients[client_id] = client
-
-                        # Register tools
-                        self.register_mcp_tools(client)
-
-        except Exception as e:
-            msg = "Failed to setup MCP servers"
-            logger.exception(msg, exc_info=e)
-            raise RuntimeError(msg) from e
-
-    async def cleanup(self):
-        """Clean up resources including all MCP clients."""
-        try:
-            # Store tools to remove
-            to_remove = [
-                name
-                for name, info in self.items()
-                if info.metadata.get("mcp_tool") is not None
-            ]
-
-            try:
-                # Clean up exit stack (which includes MCP clients)
-                await self.exit_stack.aclose()
-            except RuntimeError as e:
-                if "different task" in str(e):
-                    # Handle task context mismatch
-                    current_task = asyncio.current_task()
-                    if current_task:
-                        loop = asyncio.get_running_loop()
-                        await loop.create_task(self.exit_stack.aclose())
-                else:
-                    raise
-
-            self._mcp_clients.clear()
-
-            # Remove MCP tools
-            for name in to_remove:
-                del self._items[name]
-
-        except Exception as e:
-            msg = "Error during tool manager cleanup"
-            logger.exception(msg, exc_info=e)
-            raise RuntimeError(msg) from e
 
     @contextmanager
     def temporary_tools(
@@ -464,28 +367,6 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 for name_, was_enabled in original_states.items():
                     if t := self.get(name_):
                         t.enabled = was_enabled
-
-    def register_mcp_tools(
-        self,
-        mcp_client: MCPClient,
-    ) -> list[ToolInfo]:
-        """Register MCP tools with tool manager."""
-        registered = []
-
-        for mcp_tool in mcp_client._available_tools:
-            # Create properly typed callable from schema
-            tool_callable = mcp_client.create_tool_callable(mcp_tool)
-
-            # The function already has proper typing, so no schema override needed
-            llm_tool = LLMCallableTool.from_callable(tool_callable)
-
-            metadata = {"mcp_tool": mcp_tool.name}
-            tool_info = self.register_tool(llm_tool, source="mcp", metadata=metadata)
-            registered.append(tool_info)
-
-            logger.debug("Registered MCP tool: %s", mcp_tool.name)
-
-        return registered
 
     def tool(
         self,

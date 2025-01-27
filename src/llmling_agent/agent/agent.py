@@ -21,6 +21,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
+from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
@@ -208,10 +209,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self._infinite = False
         # save some stuff for asnyc init
         self._owns_runtime = False
-        self._mcp_servers = [
-            StdioMCPServer.from_string(s) if isinstance(s, str) else s
-            for s in (mcp_servers or [])
-        ]
         # prepare context
         ctx = context or AgentContext[TDeps].create_default(name)
         ctx.confirmation_callback = confirmation_callback
@@ -232,9 +229,18 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             case RuntimeConfig():
                 ctx.runtime = runtime
 
+        self.mcp = MCPManager(
+            servers=[
+                StdioMCPServer.from_string(s) if isinstance(s, str) else s
+                for s in (mcp_servers or [])
+            ],
+            context=context,
+        )
         # Initialize tool manager
         all_tools = list(tools or [])
         self._tool_manager = ToolManager(all_tools, tool_choice=tool_choice, context=ctx)
+        self._tool_manager.add_provider(self.mcp.get_tools)
+
         # Initialize conversation manager
         resources = list(resources)
         if ctx.config.knowledge:
@@ -337,13 +343,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             coros.append(super().__aenter__())
 
             # MCP server setup
-            if self._mcp_servers:
-                coros.append(self.tools.setup_mcp_servers(self._mcp_servers))
-
-            if self.context and self.context.config and self.context.config.mcp_servers:
-                coros.append(
-                    self.tools.setup_mcp_servers(self.context.config.get_mcp_servers())
-                )
+            coros.append(self.mcp.__aenter__())
 
             # Get conversation init tasks directly
             coros.extend(self.conversation.get_initialization_tasks())
@@ -378,7 +378,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         """Exit async context."""
         await super().__aexit__(exc_type, exc_val, exc_tb)
         try:
-            await self.tools.cleanup()
+            await self.mcp.__aexit__(exc_type, exc_val, exc_tb)
         finally:
             if self._owns_runtime and self.context.runtime:
                 await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)
@@ -1371,12 +1371,12 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         """
         self._provider.set_model(model)
 
-    def reset(self):
+    async def reset(self):
         """Reset agent state (conversation history and tool states)."""
-        old_tools = self.tools.list_tools()
+        old_tools = await self.tools.list_tools()
         self.conversation.clear()
         self.tools.reset_states()
-        new_tools = self.tools.list_tools()
+        new_tools = await self.tools.list_tools()
 
         event = self.AgentReset(
             agent_name=self.name,

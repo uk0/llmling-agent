@@ -279,8 +279,8 @@ async def write_tool(
         raise CommandError(msg) from e
 
 
-def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:
-    return list(ctx.command_context.context.agent.tools.keys())
+async def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:
+    return list(await ctx.command_context.context.agent.tools.get_tool_names())
 
 
 write_tool_cmd = Command(

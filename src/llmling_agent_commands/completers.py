@@ -19,9 +19,9 @@ if TYPE_CHECKING:
     from llmling_agent.models.context import AgentContext
 
 
-def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:
+async def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:
     """Get available tool names."""
-    return list(ctx.command_context.context.agent.tools.keys())
+    return list(await ctx.command_context.context.agent.tools.get_tool_names())
 
 
 def get_available_agents(ctx: CompletionContext[AgentContext]) -> list[str]:
