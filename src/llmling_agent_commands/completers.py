@@ -16,34 +16,34 @@ if TYPE_CHECKING:
 
     from slashed import CompletionContext
 
-    from llmling_agent.chat_session.base import AgentPoolView
+    from llmling_agent.models.context import AgentContext
 
 
-def get_tool_names(ctx: CompletionContext[AgentPoolView]) -> list[str]:
+def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:
     """Get available tool names."""
     return list(ctx.command_context.context._agent.tools.keys())
 
 
-def get_available_agents(ctx: CompletionContext[AgentPoolView]) -> list[str]:
+def get_available_agents(ctx: CompletionContext[AgentContext]) -> list[str]:
     """Get available agent names."""
     if not ctx.command_context.context.pool:
         return []
     return ctx.command_context.context.pool.list_agents()
 
 
-def get_resource_names(ctx: CompletionContext[AgentPoolView]) -> list[str]:
+def get_resource_names(ctx: CompletionContext[AgentContext]) -> list[str]:
     """Get available resource names."""
     resources = ctx.command_context.context._agent.runtime.get_resources()
     return [r.name or "" for r in resources]
 
 
-def get_prompt_names(ctx: CompletionContext[AgentPoolView]) -> list[str]:
+def get_prompt_names(ctx: CompletionContext[AgentContext]) -> list[str]:
     """Get available prompt names."""
     prompts = ctx.command_context.context._agent.runtime.get_prompts()
     return [p.name or "" for p in prompts]
 
 
-def get_model_names(ctx: CompletionContext[AgentPoolView]) -> list[str]:
+def get_model_names(ctx: CompletionContext[AgentContext]) -> list[str]:
     """Get available model names from pydantic-ai and current configuration.
 
     Returns:
@@ -81,7 +81,7 @@ class MetaCompleter(CompletionProvider):
     """Smart completer for meta-prompts."""
 
     def get_completions(
-        self, ctx: CompletionContext[AgentPoolView]
+        self, ctx: CompletionContext[AgentContext]
     ) -> Iterator[CompletionItem]:
         """Complete meta command arguments."""
         current = ctx.current_word
