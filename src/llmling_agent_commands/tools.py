@@ -13,7 +13,6 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from llmling_agent.chat_session.base import AgentPoolView
     from llmling_agent.models.context import AgentContext
 
 
@@ -280,8 +279,8 @@ async def write_tool(
         raise CommandError(msg) from e
 
 
-def get_tool_names(ctx: CompletionContext[AgentPoolView]) -> list[str]:
-    return list(ctx.command_context.context._agent.tools.keys())
+def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:
+    return list(ctx.command_context.context.agent.tools.keys())
 
 
 write_tool_cmd = Command(

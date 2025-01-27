@@ -199,10 +199,7 @@ class UIState(TaskManagerMixin):
             # Get agent from pool through handler
             self._agent = await self.handler.select_agent(agent_name, model)
 
-            # Create temporary AgentPoolView just for command context
-            from llmling_agent.chat_session.base import AgentPoolView
-
-            self.context = AgentPoolView(self._agent, pool=self.handler.state.pool)
+            self.context = self._agent.context
 
             # Connect signals
             self._connect_signals()

@@ -61,7 +61,6 @@ class HumanProvider(AgentProvider):
         self.commands = command_store or CommandStore()
         for cmd in get_commands():
             self.commands.register_command(cmd)
-        # create dummy AgentPoolView until tht part is untangled
 
     def __repr__(self) -> str:
         return f"Human({self.name!r})"
