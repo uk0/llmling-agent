@@ -16,6 +16,7 @@ import pytest
 import yamling
 
 from llmling_agent.agent import Agent
+from llmling_agent.delegation.pool import AgentPool
 from llmling_agent.models.messages import ChatMessage
 
 
@@ -60,8 +61,8 @@ async def test_agent_streaming(test_agent: Agent[None]):
 
 
 @pytest.mark.asyncio
-async def test_agent_streaming_with_history(test_agent: Agent[None]):
-    """Test streaming with message history."""
+async def test_agent_streaming_pydanticai_history(test_agent: Agent[None]):
+    """Test streaming pydantic-ai history."""
     history = [
         ChatMessage(role="user", content="Previous message"),
         ChatMessage(role="assistant", content="Previous response"),
@@ -74,7 +75,7 @@ async def test_agent_streaming_with_history(test_agent: Agent[None]):
         assert result == TEST_RESPONSE
 
         # Verify we get the current exchange messages
-        new_messages = stream.new_messages()
+        new_messages = stream.new_messages()  # type: ignore
         assert len(new_messages) == 2  # Current prompt + response  # noqa: PLR2004
 
         # Check prompt message
@@ -145,3 +146,44 @@ async def test_agent_context_manager(tmp_path: Path):
         # Check prompt message
         assert messages[0].content.strip() == SIMPLE_PROMPT
         assert messages[1].content == TEST_RESPONSE
+
+
+@pytest.mark.asyncio
+async def test_agent_forwarding():
+    """Test message forwarding between agents."""
+    async with AgentPool[None]() as pool:
+        main_agent = await pool.add_agent(
+            "main-agent", model=TestModel(custom_result_text="Main response")
+        )
+        helper_agent = await pool.add_agent(
+            "helper-agent", model=TestModel(custom_result_text="Helper response")
+        )
+
+        # Set up forwarding
+        main_agent.connect_to(helper_agent)
+
+        # Track messages from both agents
+        messages: list[ChatMessage] = []
+        main_agent.message_sent.connect(messages.append)
+        helper_agent.message_sent.connect(messages.append)
+
+        # Send message and wait for forwarding
+        message = "Hello, agent!"
+
+        await main_agent.run(message)
+        await main_agent.complete_tasks()
+        await helper_agent.complete_tasks()
+
+        # Verify both agents responded
+        assert len(messages) == 2  # noqa: PLR2004
+        assert any(m.name == "main-agent" for m in messages)
+        assert any(m.name == "helper-agent" for m in messages)
+        assert any(m.content == "Main response" for m in messages)
+        assert any(m.content == "Helper response" for m in messages)
+        # Verify metrics are present
+        assert all(m.cost_info is not None for m in messages)
+        assert all(m.response_time is not None for m in messages)
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])
