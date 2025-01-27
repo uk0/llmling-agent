@@ -5,10 +5,22 @@ from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Annotated, Any, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
+
+if TYPE_CHECKING:
+    from llmling_agent.models.messages import ChatMessage
+    from llmling_agent.talk.talk import Talk
+
+ConnectionEventType = Literal[
+    "message_received",
+    "message_processed",
+    "message_forwarded",
+    "queue_filled",
+    "queue_triggered",
+]
 
 DEFAULT_TEMPLATE = """
 {%- if include_timestamp %}at {{ timestamp }}{% endif %}
@@ -89,6 +101,30 @@ class UIEvent(EventData):
                 return f"Voice Command: {self.content}"
             case _:
                 raise ValueError(self.type)
+
+
+@dataclass(frozen=True)
+class ConnectionEvent[TTransmittedData](EventData):
+    """Event from connection activity."""
+
+    connection_name: str
+    """Name of the connection which fired an event."""
+
+    connection: Talk[TTransmittedData]
+    """The connection which fired the event."""
+
+    event_type: ConnectionEventType
+    """Type of event that occurred."""
+
+    message: ChatMessage[TTransmittedData] | None = None
+    """The message at the stage of the event."""
+
+    def to_prompt(self) -> str:
+        """Convert event to agent prompt."""
+        base = f"Connection '{self.connection_name}' event: {self.event_type}"
+        if self.message:
+            return f"{base}\nMessage content: {self.message.content}"
+        return base
 
 
 class EventSourceConfig(BaseModel):

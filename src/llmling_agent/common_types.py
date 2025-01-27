@@ -36,8 +36,8 @@ AnyCallable = Callable[..., Any]
 AsyncFilterFn = Callable[..., Awaitable[bool]]
 SyncFilterFn = Callable[..., bool]
 AnyFilterFn = Callable[..., bool | Awaitable[bool]]
-AnyTransformFn = Callable[[Any], Any | Awaitable[Any]]
 T = TypeVar("T")
+type AnyTransformFn[T] = Callable[[T], T | Awaitable[T]]
 type OptionalAwaitable[T] = T | Awaitable[T]
 
 type ToolType = str | AnyCallable | LLMCallableTool
