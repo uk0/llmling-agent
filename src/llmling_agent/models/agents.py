@@ -249,12 +249,12 @@ class AgentConfig(NodeConfig):
             match prompt:
                 case str():
                     # Convert string to StaticPrompt
-                    prompt = StaticPrompt(
+                    static_prompt = StaticPrompt(
                         name="system",
                         description="System prompt",
                         messages=[PromptMessage(role="system", content=prompt)],
                     )
-                    prompts.append(prompt)
+                    prompts.append(static_prompt)
                 case BasePrompt():
                     prompts.append(prompt)
         return prompts
