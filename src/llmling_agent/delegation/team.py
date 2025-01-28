@@ -91,18 +91,15 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         queue: asyncio.Queue[ChatMessage[Any]] = asyncio.Queue()
         errors: dict[str, Exception] = {}
 
-        async def _run(agent: MessageNode[TDeps, Any]) -> None:
+        async def _run(node: MessageNode[TDeps, Any]) -> None:
             try:
-                message = await agent.run(*prompts, **kwargs)
+                message = await node.run(*prompts, **kwargs)
                 await queue.put(message)
             except Exception as e:  # noqa: BLE001
-                errors[agent.name] = e
+                errors[node.name] = e
 
         # Start all agents
-        tasks = [
-            asyncio.create_task(_run(agent), name=f"run_{agent.name}")
-            for agent in self.agents
-        ]
+        tasks = [asyncio.create_task(_run(n), name=f"run_{n.name}") for n in self.agents]
 
         # Yield messages as they arrive
         completed = 0
@@ -211,7 +208,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
                 except Exception as e:  # noqa: BLE001
                     errors[agent.name] = e
 
-            await asyncio.gather(*[_run(agent) for agent in self.agents])
+            await asyncio.gather(*[_run(node) for node in self.agents])
 
             return TeamResponse(responses=responses, start_time=start_time, errors=errors)
 

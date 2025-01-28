@@ -377,9 +377,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     @overload
     def __and__(self, other: ProcessorCallback[Any]) -> Team[TDeps]: ...
 
-    def __and__(
-        self, other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[Any]
-    ) -> Team[Any]:
+    def __and__(self, other: MessageNode[Any, Any] | ProcessorCallback[Any]) -> Team[Any]:
         """Create agent group using | operator.
 
         Example:
@@ -395,7 +393,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             case Callable():
                 agent_2 = StructuredAgent[TDeps, Any].from_callback(other)
                 return Team([self, agent_2])
-            case Agent() | StructuredAgent():
+            case MessageNode():
                 return Team([self, other])
             case _:
                 msg = f"Invalid agent type: {type(other)}"
