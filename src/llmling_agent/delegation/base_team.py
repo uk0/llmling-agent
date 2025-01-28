@@ -70,7 +70,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def __init__(
         self,
-        agents: Sequence[AnyAgent[TDeps, TResult] | BaseTeam[TDeps, TResult]],
+        agents: Sequence[MessageNode[TDeps, TResult]],
         *,
         name: str | None = None,
         shared_prompt: str | None = None,
@@ -96,13 +96,11 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         """Get number of team members."""
         return len(self.agents)
 
-    def __iter__(self) -> Iterator[AnyAgent[TDeps, TResult] | BaseTeam[TDeps, TResult]]:
+    def __iter__(self) -> Iterator[MessageNode[TDeps, TResult]]:
         """Iterate over team members."""
         return iter(self.agents)
 
-    def __getitem__(
-        self, index_or_name: int | str
-    ) -> AnyAgent[TDeps, TResult] | BaseTeam[TDeps, TResult]:
+    def __getitem__(self, index_or_name: int | str) -> MessageNode[TDeps, TResult]:
         """Get team member by index or name."""
         if isinstance(index_or_name, str):
             return next(agent for agent in self.agents if agent.name == index_or_name)

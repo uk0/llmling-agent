@@ -88,8 +88,6 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         from llmling_agent.resource_providers.base import ResourceProvider
 
         if isinstance(provider, ResourceProvider):
-            print(self._resource_providers)
-            print(provider)
             self._resource_providers.append(provider)
         else:
             # Wrap old-style callable in ResourceProvider

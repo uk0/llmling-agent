@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from itertools import pairwise
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
@@ -26,12 +26,10 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
+    from llmling_agent.messaging.messagenode import MessageNode
 
 
 logger = get_logger(__name__)
-
-ExecutionMode = Literal["parallel", "sequential"]
-"""The execution mode for a TeamRun."""
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -60,7 +58,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
     def __init__(
         self,
-        agents: Sequence[AnyAgent[TDeps, Any] | BaseTeam[TDeps, Any]],
+        agents: Sequence[MessageNode[TDeps, Any]],
         *,
         name: str | None = None,
         shared_prompt: str | None = None,
