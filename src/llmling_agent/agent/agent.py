@@ -25,7 +25,6 @@ from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.mcp_server import MCPServerConfig, StdioMCPServer
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.prompts.convert import convert_prompts
@@ -59,6 +58,7 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.models.context import ConfirmationCallback
+    from llmling_agent.models.mcp_server import MCPServerConfig
     from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.models.task import Job
     from llmling_agent.responses.models import ResponseDefinition
@@ -229,13 +229,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             case RuntimeConfig():
                 ctx.runtime = runtime
 
-        self.mcp = MCPManager(
-            servers=[
-                StdioMCPServer.from_string(s) if isinstance(s, str) else s
-                for s in (mcp_servers or [])
-            ],
-            context=context,
-        )
+        self.mcp = MCPManager(servers=mcp_servers or [], context=context)
         # Initialize tool manager
         all_tools = list(tools or [])
         self._tool_manager = ToolManager(all_tools, tool_choice=tool_choice)

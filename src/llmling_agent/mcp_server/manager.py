@@ -18,6 +18,8 @@ from llmling_agent.models.resources import ResourceInfo
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from mcp.types import Prompt as MCPPrompt, Resource as MCPResource
 
     from llmling_agent.models.context import AgentContext
@@ -32,10 +34,13 @@ class MCPManager:
 
     def __init__(
         self,
-        servers: list[MCPServerConfig] | None = None,
+        servers: Sequence[MCPServerConfig | str] | None = None,
         context: AgentContext | None = None,
     ):
-        self.servers = servers or []
+        self.servers = [
+            StdioMCPServer.from_string(s) if isinstance(s, str) else s
+            for s in (servers or [])
+        ]
         self.context = context
         self.clients: dict[str, MCPClient] = {}
         self.exit_stack = AsyncExitStack()
