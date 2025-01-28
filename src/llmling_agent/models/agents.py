@@ -590,6 +590,34 @@ class AgentsManifest[TDeps](ConfigModel):
         data["agents"] = resolved
         return data
 
+    def get_mcp_servers(self) -> list[MCPServerConfig]:
+        """Get processed MCP server configurations.
+
+        Converts string entries to StdioMCPServer configs by splitting
+        into command and arguments.
+
+        Returns:
+            List of MCPServerConfig instances
+
+        Raises:
+            ValueError: If string entry is empty
+        """
+        configs: list[MCPServerConfig] = []
+
+        for server in self.mcp_servers:
+            match server:
+                case str():
+                    parts = server.split()
+                    if not parts:
+                        msg = "Empty MCP server command"
+                        raise ValueError(msg)
+
+                    configs.append(StdioMCPServer(command=parts[0], args=parts[1:]))
+                case MCPServerBase():
+                    configs.append(server)
+
+        return configs
+
     # @model_validator(mode="after")
     # def validate_response_types(self) -> AgentsManifest:
     #     """Ensure all agent result_types exist in responses or are inline."""
