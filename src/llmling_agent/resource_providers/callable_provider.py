@@ -7,17 +7,22 @@ import inspect
 from typing import TYPE_CHECKING, TypeVar
 
 from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.tools.base import ToolInfo
 
 
 if TYPE_CHECKING:
     from llmling import BasePrompt
 
     from llmling_agent.models.resources import ResourceInfo
-    from llmling_agent.tools.base import ToolInfo
 
 
 T = TypeVar("T")
 ResourceCallable = Callable[[], T | Awaitable[T]]
+
+
+SyncToolProvider = Callable[[], list[ToolInfo]]
+AsyncToolProvider = Callable[[], Awaitable[list[ToolInfo]]]
+ToolProviderCallable = SyncToolProvider | AsyncToolProvider
 
 
 class CallableResourceProvider(ResourceProvider):

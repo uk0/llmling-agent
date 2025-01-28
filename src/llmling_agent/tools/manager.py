@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field, fields
 from datetime import datetime
@@ -13,7 +13,10 @@ from psygnal import Signal
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
-from llmling_agent.resource_providers.callable_provider import CallableResourceProvider
+from llmling_agent.resource_providers.callable_provider import (
+    CallableResourceProvider,
+    ToolProviderCallable,
+)
 from llmling_agent.tools.base import ToolInfo
 
 
@@ -27,10 +30,6 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 MAX_LEN_DESCRIPTION = 1000
-
-SyncToolProvider = Callable[[], list[ToolInfo]]
-AsyncToolProvider = Callable[[], Awaitable[list[ToolInfo]]]
-ToolProvider = SyncToolProvider | AsyncToolProvider
 
 
 class ToolManager(BaseRegistry[str, ToolInfo]):
@@ -87,7 +86,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             return "No tools available"
         return f"Available tools: {', '.join(enabled_tools)}"
 
-    def add_provider(self, provider: ResourceProvider | ToolProvider) -> None:
+    def add_provider(self, provider: ResourceProvider | ToolProviderCallable) -> None:
         """Add a resource provider or tool callable.
 
         Args:
@@ -103,7 +102,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             wrapped = CallableResourceProvider(provider)
             self._resource_providers.append(wrapped)
 
-    def remove_provider(self, provider: ResourceProvider | ToolProvider) -> None:
+    def remove_provider(self, provider: ResourceProvider | ToolProviderCallable) -> None:
         """Remove a resource provider."""
         if isinstance(provider, ResourceProvider):
             self._resource_providers.remove(provider)
