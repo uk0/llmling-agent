@@ -3,6 +3,7 @@
 ## Overview
 
 Teams in LLMling allow you to organize and orchestrate multiple agents as a group. Teams provide:
+
 - Parallel and sequential execution
 - Shared contexts and prompts
 - Controlled agent communication
