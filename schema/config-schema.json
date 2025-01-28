@@ -4,6 +4,121 @@
       "additionalProperties": false,
       "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\ncapabilities, and behavior settings. Each agent can have its own:\n- Language model configuration\n- Environment setup (tools and resources)\n- Response type definitions\n- System prompts and default user prompts\n- Role-based capabilities\n\nThe configuration can be loaded from YAML or created programmatically.",
       "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the Agent / Team",
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "title": "Description"
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "connection": "#/$defs/ConnectionTriggerConfig",
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              },
+              {
+                "$ref": "#/$defs/ConnectionTriggerConfig"
+              }
+            ]
+          },
+          "title": "Triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Connections",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServer\n- MCPServerConfig for full server configuration",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServer",
+                    "stdio": "#/$defs/StdioMCPServer"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServer"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServer"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "Mcp Servers",
+          "type": "array"
+        },
         "provider": {
           "anyOf": [
             {
@@ -44,19 +159,6 @@
           "description": "Provider configuration or shorthand type",
           "title": "Provider"
         },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Name of the agent",
-          "title": "Name"
-        },
         "inherits": {
           "anyOf": [
             {
@@ -69,19 +171,6 @@
           "default": null,
           "description": "Name of agent config to inherit from",
           "title": "Inherits"
-        },
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional description of the agent's purpose",
-          "title": "Description"
         },
         "model": {
           "anyOf": [
@@ -178,35 +267,6 @@
         "capabilities": {
           "$ref": "#/$defs/Capabilities",
           "description": "Current agent's capabilities."
-        },
-        "mcp_servers": {
-          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServer\n- MCPServerConfig for full server configuration",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "discriminator": {
-                  "mapping": {
-                    "sse": "#/$defs/SSEMCPServer",
-                    "stdio": "#/$defs/StdioMCPServer"
-                  },
-                  "propertyName": "type"
-                },
-                "oneOf": [
-                  {
-                    "$ref": "#/$defs/StdioMCPServer"
-                  },
-                  {
-                    "$ref": "#/$defs/SSEMCPServer"
-                  }
-                ]
-              }
-            ]
-          },
-          "title": "Mcp Servers",
-          "type": "array"
         },
         "session": {
           "anyOf": [
@@ -360,36 +420,6 @@
           "description": "Config file path for resolving environment.",
           "title": "Config File Path"
         },
-        "triggers": {
-          "description": "Event sources that activate this agent",
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "email": "#/$defs/EmailConfig",
-                "file": "#/$defs/FileWatchConfig",
-                "time": "#/$defs/TimeEventConfig",
-                "webhook": "#/$defs/WebhookConfig"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/FileWatchConfig"
-              },
-              {
-                "$ref": "#/$defs/WebhookConfig"
-              },
-              {
-                "$ref": "#/$defs/EmailConfig"
-              },
-              {
-                "$ref": "#/$defs/TimeEventConfig"
-              }
-            ]
-          },
-          "title": "Triggers",
-          "type": "array"
-        },
         "knowledge": {
           "anyOf": [
             {
@@ -401,32 +431,6 @@
           ],
           "default": null,
           "description": "Knowledge sources for this agent."
-        },
-        "connections": {
-          "description": "Targets to forward results to.",
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "agent": "#/$defs/AgentConnectionConfig",
-                "callable": "#/$defs/CallableConnectionConfig",
-                "file": "#/$defs/FileConnectionConfig"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/AgentConnectionConfig"
-              },
-              {
-                "$ref": "#/$defs/FileConnectionConfig"
-              },
-              {
-                "$ref": "#/$defs/CallableConnectionConfig"
-              }
-            ]
-          },
-          "title": "Connections",
-          "type": "array"
         },
         "workers": {
           "description": "Worker agents which will be available as tools.",
@@ -444,249 +448,6 @@
         }
       },
       "title": "AgentConfig",
-      "type": "object"
-    },
-    "AgentConnectionConfig": {
-      "additionalProperties": false,
-      "description": "Forward messages to another agent.\n\nThis configuration defines how messages should flow from one agent to another,\nincluding:\n- Basic routing (which agent, what type of connection)\n- Message queueing and processing strategies\n- Timing controls (priority, delay)\n- Execution behavior (wait for completion)",
-      "properties": {
-        "type": {
-          "const": "agent",
-          "default": "agent",
-          "description": "Type discriminator for agent targets.",
-          "title": "Type",
-          "type": "string"
-        },
-        "wait_for_completion": {
-          "default": true,
-          "description": "Whether to wait for the result before continuing.\n\nIf True, message processing will wait for the target to complete.\nIf False, message will be forwarded asynchronously.",
-          "title": "Wait For Completion",
-          "type": "boolean"
-        },
-        "queued": {
-          "default": false,
-          "description": "Whether messages should be queued for manual processing.",
-          "title": "Queued",
-          "type": "boolean"
-        },
-        "queue_strategy": {
-          "default": "latest",
-          "description": "How to process queued messages.",
-          "enum": [
-            "concat",
-            "latest",
-            "buffer"
-          ],
-          "title": "Queue Strategy",
-          "type": "string"
-        },
-        "priority": {
-          "default": 0,
-          "description": "Priority of the task. Lower = higher priority.",
-          "title": "Priority",
-          "type": "integer"
-        },
-        "delay": {
-          "anyOf": [
-            {
-              "format": "duration",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Delay before processing.",
-          "title": "Delay"
-        },
-        "filter_condition": {
-          "anyOf": [
-            {
-              "discriminator": {
-                "mapping": {
-                  "and": "#/$defs/AndCondition",
-                  "callable": "#/$defs/CallableCondition",
-                  "cost_limit": "#/$defs/CostLimitCondition",
-                  "message_count": "#/$defs/MessageCountCondition",
-                  "or": "#/$defs/OrCondition",
-                  "time": "#/$defs/TimeCondition",
-                  "token_threshold": "#/$defs/TokenThresholdCondition",
-                  "word_match": "#/$defs/WordMatchCondition"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/WordMatchCondition"
-                },
-                {
-                  "$ref": "#/$defs/MessageCountCondition"
-                },
-                {
-                  "$ref": "#/$defs/TimeCondition"
-                },
-                {
-                  "$ref": "#/$defs/TokenThresholdCondition"
-                },
-                {
-                  "$ref": "#/$defs/CostLimitCondition"
-                },
-                {
-                  "$ref": "#/$defs/CallableCondition"
-                },
-                {
-                  "$ref": "#/$defs/AndCondition"
-                },
-                {
-                  "$ref": "#/$defs/OrCondition"
-                }
-              ]
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "When to filter messages (using Talk.when()).",
-          "title": "Filter Condition"
-        },
-        "stop_condition": {
-          "anyOf": [
-            {
-              "discriminator": {
-                "mapping": {
-                  "and": "#/$defs/AndCondition",
-                  "callable": "#/$defs/CallableCondition",
-                  "cost_limit": "#/$defs/CostLimitCondition",
-                  "message_count": "#/$defs/MessageCountCondition",
-                  "or": "#/$defs/OrCondition",
-                  "time": "#/$defs/TimeCondition",
-                  "token_threshold": "#/$defs/TokenThresholdCondition",
-                  "word_match": "#/$defs/WordMatchCondition"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/WordMatchCondition"
-                },
-                {
-                  "$ref": "#/$defs/MessageCountCondition"
-                },
-                {
-                  "$ref": "#/$defs/TimeCondition"
-                },
-                {
-                  "$ref": "#/$defs/TokenThresholdCondition"
-                },
-                {
-                  "$ref": "#/$defs/CostLimitCondition"
-                },
-                {
-                  "$ref": "#/$defs/CallableCondition"
-                },
-                {
-                  "$ref": "#/$defs/AndCondition"
-                },
-                {
-                  "$ref": "#/$defs/OrCondition"
-                }
-              ]
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "When to disconnect the connection.",
-          "title": "Stop Condition"
-        },
-        "exit_condition": {
-          "anyOf": [
-            {
-              "discriminator": {
-                "mapping": {
-                  "and": "#/$defs/AndCondition",
-                  "callable": "#/$defs/CallableCondition",
-                  "cost_limit": "#/$defs/CostLimitCondition",
-                  "message_count": "#/$defs/MessageCountCondition",
-                  "or": "#/$defs/OrCondition",
-                  "time": "#/$defs/TimeCondition",
-                  "token_threshold": "#/$defs/TokenThresholdCondition",
-                  "word_match": "#/$defs/WordMatchCondition"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/WordMatchCondition"
-                },
-                {
-                  "$ref": "#/$defs/MessageCountCondition"
-                },
-                {
-                  "$ref": "#/$defs/TimeCondition"
-                },
-                {
-                  "$ref": "#/$defs/TokenThresholdCondition"
-                },
-                {
-                  "$ref": "#/$defs/CostLimitCondition"
-                },
-                {
-                  "$ref": "#/$defs/CallableCondition"
-                },
-                {
-                  "$ref": "#/$defs/AndCondition"
-                },
-                {
-                  "$ref": "#/$defs/OrCondition"
-                }
-              ]
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "When to exit the application (by raising SystemExit).",
-          "title": "Exit Condition"
-        },
-        "transform": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional function to transform messages before forwarding.",
-          "title": "Transform"
-        },
-        "name": {
-          "description": "Name of target agent.",
-          "title": "Name",
-          "type": "string"
-        },
-        "connection_type": {
-          "default": "run",
-          "description": "How messages should be handled by the target agent:\n- run: Execute message as a new run\n- context: Add message to agent's context\n- forward: Forward message to agent's outbox",
-          "enum": [
-            "run",
-            "context",
-            "forward"
-          ],
-          "title": "Connection Type",
-          "type": "string"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "AgentConnectionConfig",
       "type": "object"
     },
     "AndCondition": {
@@ -983,6 +744,7 @@
                   "and": "#/$defs/AndCondition",
                   "callable": "#/$defs/CallableCondition",
                   "cost_limit": "#/$defs/CostLimitCondition",
+                  "jinja2": "#/$defs/Jinja2Condition",
                   "message_count": "#/$defs/MessageCountCondition",
                   "or": "#/$defs/OrCondition",
                   "time": "#/$defs/TimeCondition",
@@ -1009,6 +771,9 @@
                 },
                 {
                   "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/Jinja2Condition"
                 },
                 {
                   "$ref": "#/$defs/AndCondition"
@@ -1034,6 +799,7 @@
                   "and": "#/$defs/AndCondition",
                   "callable": "#/$defs/CallableCondition",
                   "cost_limit": "#/$defs/CostLimitCondition",
+                  "jinja2": "#/$defs/Jinja2Condition",
                   "message_count": "#/$defs/MessageCountCondition",
                   "or": "#/$defs/OrCondition",
                   "time": "#/$defs/TimeCondition",
@@ -1060,6 +826,9 @@
                 },
                 {
                   "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/Jinja2Condition"
                 },
                 {
                   "$ref": "#/$defs/AndCondition"
@@ -1085,6 +854,7 @@
                   "and": "#/$defs/AndCondition",
                   "callable": "#/$defs/CallableCondition",
                   "cost_limit": "#/$defs/CostLimitCondition",
+                  "jinja2": "#/$defs/Jinja2Condition",
                   "message_count": "#/$defs/MessageCountCondition",
                   "or": "#/$defs/OrCondition",
                   "time": "#/$defs/TimeCondition",
@@ -1111,6 +881,9 @@
                 },
                 {
                   "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/Jinja2Condition"
                 },
                 {
                   "$ref": "#/$defs/AndCondition"
@@ -1436,6 +1209,165 @@
         "type"
       ],
       "title": "ConnectionCondition",
+      "type": "object"
+    },
+    "ConnectionContentCondition": {
+      "description": "Simple content matching for connection events.",
+      "properties": {
+        "type": {
+          "const": "content",
+          "default": "content",
+          "title": "Type",
+          "type": "string"
+        },
+        "words": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Words",
+          "type": "array"
+        },
+        "mode": {
+          "default": "any",
+          "enum": [
+            "any",
+            "all"
+          ],
+          "title": "Mode",
+          "type": "string"
+        }
+      },
+      "required": [
+        "words"
+      ],
+      "title": "ConnectionContentCondition",
+      "type": "object"
+    },
+    "ConnectionJinja2Condition": {
+      "description": "Flexible Jinja2 condition for connection events.",
+      "properties": {
+        "type": {
+          "const": "jinja2",
+          "default": "jinja2",
+          "title": "Type",
+          "type": "string"
+        },
+        "template": {
+          "title": "Template",
+          "type": "string"
+        }
+      },
+      "required": [
+        "template"
+      ],
+      "title": "ConnectionJinja2Condition",
+      "type": "object"
+    },
+    "ConnectionTriggerConfig": {
+      "description": "Trigger config specifically for connection events.",
+      "properties": {
+        "type": {
+          "const": "connection",
+          "default": "connection",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "description": "Unique identifier for this event source.",
+          "title": "Name",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this event source is active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "template": {
+          "default": "\n{%- if include_timestamp %}at {{ timestamp }}{% endif %}\nEvent from {{ source }}:\n{%- if include_metadata %}\nMetadata:\n{% for key, value in metadata.items() %}\n{{ key }}: {{ value }}\n{% endfor %}\n{% endif %}\n{{ content }}\n",
+          "description": "Jinja2 template for formatting events.",
+          "title": "Template",
+          "type": "string"
+        },
+        "include_metadata": {
+          "default": true,
+          "description": "Control metadata visibility in template.",
+          "title": "Include Metadata",
+          "type": "boolean"
+        },
+        "include_timestamp": {
+          "default": true,
+          "description": "Control timestamp visibility in template.",
+          "title": "Include Timestamp",
+          "type": "boolean"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target"
+        },
+        "event": {
+          "enum": [
+            "message_received",
+            "message_processed",
+            "message_forwarded",
+            "queue_filled",
+            "queue_triggered"
+          ],
+          "title": "Event",
+          "type": "string"
+        },
+        "condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "content": "#/$defs/ConnectionContentCondition",
+                  "jinja2": "#/$defs/ConnectionJinja2Condition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ConnectionContentCondition"
+                },
+                {
+                  "$ref": "#/$defs/ConnectionJinja2Condition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Condition"
+        }
+      },
+      "required": [
+        "name",
+        "event"
+      ],
+      "title": "ConnectionTriggerConfig",
       "type": "object"
     },
     "ConversionConfig": {
@@ -2032,6 +1964,7 @@
                   "and": "#/$defs/AndCondition",
                   "callable": "#/$defs/CallableCondition",
                   "cost_limit": "#/$defs/CostLimitCondition",
+                  "jinja2": "#/$defs/Jinja2Condition",
                   "message_count": "#/$defs/MessageCountCondition",
                   "or": "#/$defs/OrCondition",
                   "time": "#/$defs/TimeCondition",
@@ -2058,6 +1991,9 @@
                 },
                 {
                   "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/Jinja2Condition"
                 },
                 {
                   "$ref": "#/$defs/AndCondition"
@@ -2083,6 +2019,7 @@
                   "and": "#/$defs/AndCondition",
                   "callable": "#/$defs/CallableCondition",
                   "cost_limit": "#/$defs/CostLimitCondition",
+                  "jinja2": "#/$defs/Jinja2Condition",
                   "message_count": "#/$defs/MessageCountCondition",
                   "or": "#/$defs/OrCondition",
                   "time": "#/$defs/TimeCondition",
@@ -2109,6 +2046,9 @@
                 },
                 {
                   "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/Jinja2Condition"
                 },
                 {
                   "$ref": "#/$defs/AndCondition"
@@ -2134,6 +2074,7 @@
                   "and": "#/$defs/AndCondition",
                   "callable": "#/$defs/CallableCondition",
                   "cost_limit": "#/$defs/CostLimitCondition",
+                  "jinja2": "#/$defs/Jinja2Condition",
                   "message_count": "#/$defs/MessageCountCondition",
                   "or": "#/$defs/OrCondition",
                   "time": "#/$defs/TimeCondition",
@@ -2160,6 +2101,9 @@
                 },
                 {
                   "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/Jinja2Condition"
                 },
                 {
                   "$ref": "#/$defs/AndCondition"
@@ -3035,6 +2979,42 @@
       "title": "InputModel",
       "type": "object"
     },
+    "Jinja2Condition": {
+      "additionalProperties": false,
+      "description": "Evaluate condition using Jinja2 template.",
+      "properties": {
+        "type": {
+          "const": "jinja2",
+          "default": "jinja2",
+          "description": "Type discriminator.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for the condition for referencing.",
+          "title": "Name"
+        },
+        "template": {
+          "description": "Jinja2 template to evaluate.",
+          "title": "Template",
+          "type": "string"
+        }
+      },
+      "required": [
+        "template"
+      ],
+      "title": "Jinja2Condition",
+      "type": "object"
+    },
     "Jinja2Config": {
       "additionalProperties": false,
       "description": "Configuration for Jinja2 environment.\n\nSee: https://jinja.palletsprojects.com/en/3.1.x/api/#jinja2.Environment",
@@ -3850,6 +3830,261 @@
         }
       },
       "title": "ModelSettings",
+      "type": "object"
+    },
+    "NodeConnectionConfig": {
+      "additionalProperties": false,
+      "description": "Forward messages to another node.\n\nThis configuration defines how messages should flow from one node to another,\nincluding:\n- Basic routing (which node, what type of connection)\n- Message queueing and processing strategies\n- Timing controls (priority, delay)\n- Execution behavior (wait for completion)",
+      "properties": {
+        "type": {
+          "const": "node",
+          "default": "node",
+          "description": "Type discriminator for agent targets.",
+          "title": "Type",
+          "type": "string"
+        },
+        "wait_for_completion": {
+          "default": true,
+          "description": "Whether to wait for the result before continuing.\n\nIf True, message processing will wait for the target to complete.\nIf False, message will be forwarded asynchronously.",
+          "title": "Wait For Completion",
+          "type": "boolean"
+        },
+        "queued": {
+          "default": false,
+          "description": "Whether messages should be queued for manual processing.",
+          "title": "Queued",
+          "type": "boolean"
+        },
+        "queue_strategy": {
+          "default": "latest",
+          "description": "How to process queued messages.",
+          "enum": [
+            "concat",
+            "latest",
+            "buffer"
+          ],
+          "title": "Queue Strategy",
+          "type": "string"
+        },
+        "priority": {
+          "default": 0,
+          "description": "Priority of the task. Lower = higher priority.",
+          "title": "Priority",
+          "type": "integer"
+        },
+        "delay": {
+          "anyOf": [
+            {
+              "format": "duration",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Delay before processing.",
+          "title": "Delay"
+        },
+        "filter_condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "and": "#/$defs/AndCondition",
+                  "callable": "#/$defs/CallableCondition",
+                  "cost_limit": "#/$defs/CostLimitCondition",
+                  "jinja2": "#/$defs/Jinja2Condition",
+                  "message_count": "#/$defs/MessageCountCondition",
+                  "or": "#/$defs/OrCondition",
+                  "time": "#/$defs/TimeCondition",
+                  "token_threshold": "#/$defs/TokenThresholdCondition",
+                  "word_match": "#/$defs/WordMatchCondition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/WordMatchCondition"
+                },
+                {
+                  "$ref": "#/$defs/MessageCountCondition"
+                },
+                {
+                  "$ref": "#/$defs/TimeCondition"
+                },
+                {
+                  "$ref": "#/$defs/TokenThresholdCondition"
+                },
+                {
+                  "$ref": "#/$defs/CostLimitCondition"
+                },
+                {
+                  "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/Jinja2Condition"
+                },
+                {
+                  "$ref": "#/$defs/AndCondition"
+                },
+                {
+                  "$ref": "#/$defs/OrCondition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When to filter messages (using Talk.when()).",
+          "title": "Filter Condition"
+        },
+        "stop_condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "and": "#/$defs/AndCondition",
+                  "callable": "#/$defs/CallableCondition",
+                  "cost_limit": "#/$defs/CostLimitCondition",
+                  "jinja2": "#/$defs/Jinja2Condition",
+                  "message_count": "#/$defs/MessageCountCondition",
+                  "or": "#/$defs/OrCondition",
+                  "time": "#/$defs/TimeCondition",
+                  "token_threshold": "#/$defs/TokenThresholdCondition",
+                  "word_match": "#/$defs/WordMatchCondition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/WordMatchCondition"
+                },
+                {
+                  "$ref": "#/$defs/MessageCountCondition"
+                },
+                {
+                  "$ref": "#/$defs/TimeCondition"
+                },
+                {
+                  "$ref": "#/$defs/TokenThresholdCondition"
+                },
+                {
+                  "$ref": "#/$defs/CostLimitCondition"
+                },
+                {
+                  "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/Jinja2Condition"
+                },
+                {
+                  "$ref": "#/$defs/AndCondition"
+                },
+                {
+                  "$ref": "#/$defs/OrCondition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When to disconnect the connection.",
+          "title": "Stop Condition"
+        },
+        "exit_condition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "and": "#/$defs/AndCondition",
+                  "callable": "#/$defs/CallableCondition",
+                  "cost_limit": "#/$defs/CostLimitCondition",
+                  "jinja2": "#/$defs/Jinja2Condition",
+                  "message_count": "#/$defs/MessageCountCondition",
+                  "or": "#/$defs/OrCondition",
+                  "time": "#/$defs/TimeCondition",
+                  "token_threshold": "#/$defs/TokenThresholdCondition",
+                  "word_match": "#/$defs/WordMatchCondition"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/WordMatchCondition"
+                },
+                {
+                  "$ref": "#/$defs/MessageCountCondition"
+                },
+                {
+                  "$ref": "#/$defs/TimeCondition"
+                },
+                {
+                  "$ref": "#/$defs/TokenThresholdCondition"
+                },
+                {
+                  "$ref": "#/$defs/CostLimitCondition"
+                },
+                {
+                  "$ref": "#/$defs/CallableCondition"
+                },
+                {
+                  "$ref": "#/$defs/Jinja2Condition"
+                },
+                {
+                  "$ref": "#/$defs/AndCondition"
+                },
+                {
+                  "$ref": "#/$defs/OrCondition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When to exit the application (by raising SystemExit).",
+          "title": "Exit Condition"
+        },
+        "transform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional function to transform messages before forwarding.",
+          "title": "Transform"
+        },
+        "name": {
+          "description": "Name of target agent.",
+          "title": "Name",
+          "type": "string"
+        },
+        "connection_type": {
+          "default": "run",
+          "description": "How messages should be handled by the target agent:\n- run: Execute message as a new run\n- context: Add message to agent's context\n- forward: Forward message to agent's outbox",
+          "enum": [
+            "run",
+            "context",
+            "forward"
+          ],
+          "title": "Connection Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "NodeConnectionConfig",
       "type": "object"
     },
     "OpenAPIToolsetConfig": {
@@ -5115,6 +5350,121 @@
       "additionalProperties": false,
       "description": "Configuration for a team or chain of message nodes.\n\nTeams can be either parallel execution groups or sequential chains.\nThey can contain both agents and other teams as members.",
       "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the Agent / Team",
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "title": "Description"
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "connection": "#/$defs/ConnectionTriggerConfig",
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              },
+              {
+                "$ref": "#/$defs/ConnectionTriggerConfig"
+              }
+            ]
+          },
+          "title": "Triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Connections",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServer\n- MCPServerConfig for full server configuration",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServer",
+                    "stdio": "#/$defs/StdioMCPServer"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServer"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServer"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "Mcp Servers",
+          "type": "array"
+        },
         "mode": {
           "description": "Execution mode for team members.",
           "enum": [
@@ -5131,40 +5481,6 @@
           },
           "title": "Members",
           "type": "array"
-        },
-        "connections": {
-          "anyOf": [
-            {
-              "items": {
-                "discriminator": {
-                  "mapping": {
-                    "agent": "#/$defs/AgentConnectionConfig",
-                    "callable": "#/$defs/CallableConnectionConfig",
-                    "file": "#/$defs/FileConnectionConfig"
-                  },
-                  "propertyName": "type"
-                },
-                "oneOf": [
-                  {
-                    "$ref": "#/$defs/AgentConnectionConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/FileConnectionConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/CallableConnectionConfig"
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional message forwarding targets for this team.",
-          "title": "Connections"
         },
         "shared_prompt": {
           "anyOf": [
