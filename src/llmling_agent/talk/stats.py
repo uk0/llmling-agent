@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from llmling_agent.models.agents import ToolCallInfo
     from llmling_agent.models.messages import ChatMessage, FormatStyle
 
@@ -17,8 +19,6 @@ if TYPE_CHECKING:
 class MessageStats:
     """Statistics for a single connection."""
 
-    source_name: str | None
-    target_names: set[str]
     messages: list[ChatMessage[Any]] = field(default_factory=list)
     start_time: datetime = field(default_factory=datetime.now)
 
@@ -76,11 +76,11 @@ class TalkStats(MessageStats):
     target_names: set[str]
 
 
-@dataclass
-class TeamTalkStats:
+@dataclass(kw_only=True)
+class TeamStats:
     """Statistics aggregated from multiple connections."""
 
-    stats: list[TalkStats | TeamTalkStats] = field(default_factory=list)
+    stats: Sequence[MessageStats | TeamStats] = field(default_factory=list)
 
     # def __init__(self, stats: list[TalkStats | TeamTalkStats]):
     #     self.stats = stats
@@ -146,6 +146,13 @@ class TeamTalkStats:
     ) -> str:
         """Format all conversations in the team."""
         return "\n".join(msg.format(style, **kwargs) for msg in self.messages)
+
+
+@dataclass(kw_only=True)
+class TeamTalkStats(TeamStats):
+    """Statistics aggregated from multiple connections."""
+
+    stats: Sequence[TalkStats | TeamTalkStats] = field(default_factory=list)
 
     @cached_property
     def source_names(self) -> set[str]:

@@ -28,6 +28,7 @@ from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.responses.utils import to_type
+from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context
 from llmling_agent.utils.tasks import TaskManagerMixin
@@ -1358,6 +1359,10 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     @property
     def tools(self) -> ToolManager:
         return self._tool_manager
+
+    @property
+    def stats(self) -> MessageStats:
+        return MessageStats(messages=self._logger.message_history)
 
     @asynccontextmanager
     async def temporary_state(
