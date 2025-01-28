@@ -40,6 +40,9 @@ class MCPManager:
         self.clients: dict[str, MCPClient] = {}
         self.exit_stack = AsyncExitStack()
 
+    def __repr__(self) -> str:
+        return f"MCPManager({self.servers!r})"
+
     async def __aenter__(self) -> Self:
         try:
             # Setup directly provided servers
