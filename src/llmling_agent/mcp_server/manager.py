@@ -29,6 +29,27 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+async def convert_mcp_prompt(client: MCPClient, prompt: MCPPrompt) -> StaticPrompt:
+    """Convert MCP prompt to StaticPrompt."""
+    result = await client.get_prompt(prompt.name)
+    return StaticPrompt(
+        name=prompt.name,
+        description=prompt.description or "No description provided",
+        messages=[
+            PromptMessage(role="system", content=message.content.text)
+            for message in result.messages
+            if not isinstance(message.content, EmbeddedResource | ImageContent)
+        ],
+    )
+
+
+async def convert_mcp_resource(resource: MCPResource) -> ResourceInfo:
+    """Convert MCP resource to ResourceInfo."""
+    return ResourceInfo(
+        name=resource.name, uri=str(resource.uri), description=resource.description
+    )
+
+
 class MCPManager:
     """Manages MCP server connections and tools."""
 
@@ -37,13 +58,17 @@ class MCPManager:
         servers: Sequence[MCPServerConfig | str] | None = None,
         context: AgentContext | None = None,
     ):
-        self.servers = [
-            StdioMCPServer.from_string(s) if isinstance(s, str) else s
-            for s in (servers or [])
-        ]
+        self.servers: list[MCPServerConfig] = []
+        for server in servers or []:
+            self.add_server_config(server)
         self.context = context
         self.clients: dict[str, MCPClient] = {}
         self.exit_stack = AsyncExitStack()
+
+    def add_server_config(self, server: MCPServerConfig | str) -> None:
+        """Add a new MCP server to the manager."""
+        server = StdioMCPServer.from_string(server) if isinstance(server, str) else server
+        self.servers.append(server)
 
     def __repr__(self) -> str:
         return f"MCPManager({self.servers!r})"
@@ -122,27 +147,6 @@ class MCPManager:
 
         return tools
 
-    async def convert_mcp_prompt(
-        self, client: MCPClient, prompt: MCPPrompt
-    ) -> StaticPrompt:
-        """Convert MCP prompt to StaticPrompt."""
-        result = await client.get_prompt(prompt.name)
-        return StaticPrompt(
-            name=prompt.name,
-            description=prompt.description or "No description provided",
-            messages=[
-                PromptMessage(role="system", content=message.content.text)
-                for message in result.messages
-                if not isinstance(message.content, EmbeddedResource | ImageContent)
-            ],
-        )
-
-    async def convert_mcp_resource(self, resource: MCPResource) -> ResourceInfo:
-        """Convert MCP resource to ResourceInfo."""
-        return ResourceInfo(
-            name=resource.name, uri=str(resource.uri), description=resource.description
-        )
-
     async def list_prompts(self) -> list[StaticPrompt]:
         """Get all available prompts from MCP servers."""
         prompts = []
@@ -151,7 +155,7 @@ class MCPManager:
                 result = await client.list_prompts()
                 for prompt in result.prompts:
                     try:
-                        converted = await self.convert_mcp_prompt(client, prompt)
+                        converted = await convert_mcp_prompt(client, prompt)
                         prompts.append(converted)
                     except Exception:
                         logger.exception("Failed to convert prompt: %s", prompt.name)
@@ -167,7 +171,7 @@ class MCPManager:
                 result = await client.list_resources()
                 for resource in result.resources:
                     try:
-                        converted = await self.convert_mcp_resource(resource)
+                        converted = await convert_mcp_resource(resource)
                         resources.append(converted)
                     except Exception:
                         logger.exception("Failed to convert resource: %s", resource.name)
