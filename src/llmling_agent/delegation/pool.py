@@ -805,15 +805,15 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         """
         from llmling_agent.agent import Agent
 
-        agent = Agent(name=name, **kwargs)
+        agent: AnyAgent[Any, Any] = Agent(name=name, **kwargs)
         agent = await self.exit_stack.enter_async_context(agent)
 
         # Register in pool
-        self.register(name, agent)
         agent.tools.add_provider(self.mcp)
         # Convert to structured if needed
         if result_type is not None:
-            return agent.to_structured(result_type)
+            agent = agent.to_structured(result_type)
+        self.register(name, agent)
         return agent
 
     def get_mermaid_diagram(
