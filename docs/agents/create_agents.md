@@ -32,16 +32,8 @@ This ensures:
 For simpler cases, agents can be created directly:
 
 ```python
-# Basic async context
-async with Agent.open("config.yml") as agent:
-    result = await agent.run("Hello!")
-
-# With specific configuration
-async with Agent.open_agent(manifest, "agent_name") as agent:
-    result = await agent.run("Hello!")
-
 # Manual instantiation (requires more setup)
-agent = Agent(runtime=runtime, context=context)
+agent = Agent("agent_name", model="my_model")
 async with agent:
     result = await agent.run("Hello!")
 ```

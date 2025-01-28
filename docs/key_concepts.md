@@ -102,12 +102,10 @@ Both interfaces provide a consistent command system using slash commands:
 
 ### 3. Programmatic Usage
 
-For integration into larger applications:
-
 ```python
 from llmling_agent import Agent
 
-async with Agent.open_agent("agents.yml", "web_assistant") as agent:
+async with Agent(..., tools=["webbrowser.open"]) as agent:
     result = await agent.run("Open Python website")
 ```
 

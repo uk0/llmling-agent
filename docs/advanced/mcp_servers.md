@@ -97,12 +97,15 @@ Tools from MCP servers are registered with the agent's ToolManager:
 
 ```python
 # Configure agent with MCP server
-async with Agent.open_agent("config.yml", "my_agent") as agent:
-    # MCP tools are automatically available
+async with AgentPool("pool.yml") as pool:
+    # MCP tools from YAML defined mcp servers are automatically available
+    agent = self.get_agent("my_agent_from_yaml")
     result = await agent.run("Use MCP tool to process data")
 
     # Multiple servers
-    async with Agent(config=AgentConfig(
+    async with Agent(
+        name="agent_name",
+        model="...",
         mcp_servers=[
             "uvx server1",
             "uvx server2 --debug"

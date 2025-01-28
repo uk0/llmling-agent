@@ -117,12 +117,11 @@ agents:
     session: previous_chat  # Simple form with just ID
 ```
 
-When using `Agent.open_agent()`:
+When using `Agent.__init__()`:
 ```python
 # With session query
-async with Agent.open_agent(
-    "agents.yml",
-    "my_agent",
+async with Agent(
+    ...,
     session=SessionQuery(
         name="support_chat",
         since="1h"
@@ -131,9 +130,8 @@ async with Agent.open_agent(
     ...
 
 # With simple session ID
-async with Agent.open_agent(
-    "agents.yml",
-    "my_agent",
+async with Agent(
+    ...,
     session="previous_chat"
 ) as agent:
     ...

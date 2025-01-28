@@ -32,11 +32,6 @@ responses:
                     max_length: 20
 
 agents:
-    summarizer:
-        model: openai:gpt-4o-mini
-        system_prompts:
-            - Summarize text in a structured way.
-
     analyzer:
         model: openai:gpt-4o-mini
         system_prompts:
@@ -65,16 +60,16 @@ async def example_structured_response():
     manifest = AgentsManifest[Any].from_yaml("structured_agents.yml")
 
     # Example 1: Python-defined structure
-    async with Agent[Any].open_agent(
-        manifest,
-        "summarizer",
-        result_type=PythonResult
-    ) as summarizer:
-        result = await summarizer.run("I love this new feature!")
-        summary = result.data
-        print("\nPython-defined Response:")
-        print(f"Main point: {summary.main_point}")
-        print(f"Is positive: {summary.is_positive}")
+    agent = Agent[None](
+            model="openai:gpt-4o-mini",
+            system_prompt="Summarize text in a structured way.",
+        )
+        async with agent.to_structured(PythonResult) as summarizer:
+            result = await summarizer.run("I love this new feature!")
+            summary = result.data
+            print("\nPython-defined Response:")
+            print(f"Main point: {summary.main_point}")
+            print(f"Is positive: {summary.is_positive}")
 
     # Example 2: YAML-defined structure
     # Note: For programmatic use, Python definitions are recommended

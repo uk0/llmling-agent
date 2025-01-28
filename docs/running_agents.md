@@ -90,7 +90,7 @@ Use agents in your Python code:
 from llmling_agent import Agent
 
 # Basic usage
-async with Agent.open_agent("agents.yml", "my-agent") as agent:
+async with Agent(...) as agent:
 
     # Basic query
     result = await agent.run("What's the system status?")
