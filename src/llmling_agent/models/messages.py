@@ -179,6 +179,9 @@ class ChatMessage[TContent]:
     tool_calls: list[ToolCallInfo] = field(default_factory=list)
     """List of tool calls made during message generation."""
 
+    associated_messages: list[ChatMessage[Any]] = field(default_factory=list)
+    """List of messages which were generated during the the creation of this messsage."""
+
     name: str | None = None
     """Display name for the message sender in UI."""
 

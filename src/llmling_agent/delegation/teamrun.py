@@ -72,23 +72,24 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         wait_for_connections: bool | None = None,
         **kwargs: Any,
-    ) -> ChatMessage[Any]:
+    ) -> ChatMessage[TResult]:
         """Run agents sequentially and return combined message.
 
         This message wraps execute and extracts the ChatMessage in order to fulfill
         the "message protocol".
         """
         result = await self.execute(*prompts, **kwargs)
-
+        final_response = result[-1]
+        assert final_response.message, "Error during execution, returned None for TeamRun"
         return ChatMessage(
-            content=[r.message.content for r in result if r.message],
+            content=final_response.message.content,
             role="assistant",
             name=self.name,
+            associated_messages=[r.message for r in result[:-1] if r.message],
             metadata={
-                "agent_names": [r.agent_name for r in result],
-                "errors": {name: str(error) for name, error in result.errors.items()},
-                "start_time": result.start_time.isoformat(),
                 "execution_order": [r.agent_name for r in result],
+                "start_time": result.start_time.isoformat(),
+                "errors": {name: str(error) for name, error in result.errors.items()},
             },
         )
 
@@ -132,10 +133,13 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
     ) -> AsyncIterator[Talk[Any] | AgentResponse[Any]]:
         connections: list[Talk[Any]] = []
         try:
-            first = self.agents[0]
+            all_nodes = list(self.agents)
+            if self.validator:
+                all_nodes.append(self.validator)
+            first = all_nodes[0]
             connections = [
                 source.connect_to(target, queued=True)  # pyright: ignore
-                for source, target in pairwise(self.agents)
+                for source, target in pairwise(all_nodes)
             ]
             for conn in connections:
                 self._team_talk.append(conn)
@@ -159,8 +163,8 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                 start = perf_counter()
                 messages = await connection.trigger()
 
-                # If this is the last agent
-                if target == self.agents[-1]:
+                # If this is the last node
+                if target == all_nodes[-1]:
                     last_talk = Talk[Any](target, [], connection_type="run")
                     if response.message:
                         last_talk.stats.messages.append(response.message)
