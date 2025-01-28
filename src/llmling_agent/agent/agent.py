@@ -525,25 +525,27 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     @provider.setter
     def provider(self, value: AgentProvider, model: ModelType = None):
         """Set the underlying provider."""
+        name = self.name
+        debug = self._debug
         match value:
             case AgentProvider():
                 self._provider = value
             case "pydantic_ai":
                 from llmling_agent_providers.pydanticai import PydanticAIProvider
 
-                self._provider = PydanticAIProvider(model=model)
+                self._provider = PydanticAIProvider(model=model, name=name, debug=debug)
             case "human":
                 from llmling_agent_providers.human import HumanProvider
 
-                self._provider = HumanProvider()
+                self._provider = HumanProvider(name=name, debug=debug)
             case "litellm":
                 from llmling_agent_providers.litellm_provider import LiteLLMProvider
 
-                self._provider = LiteLLMProvider(model=model)
+                self._provider = LiteLLMProvider(model=model, name=name, debug=debug)
             case Callable():
                 from llmling_agent_providers.callback import CallbackProvider
 
-                self._provider = CallbackProvider(value)
+                self._provider = CallbackProvider(value, name=name, debug=debug)
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
