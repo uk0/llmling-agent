@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import AsyncExitStack
-import os
 from typing import TYPE_CHECKING, Self
 
 from llmling import LLMCallableTool
@@ -99,24 +98,17 @@ class MCPManager:
         """Set up a single MCP server connection."""
         if not config.enabled:
             return
-
+        env = config.get_env_vars()
         match config:
             case StdioMCPServer():
                 client = MCPClient(stdio_mode=True)
                 client = await self.exit_stack.enter_async_context(client)
-
-                env = os.environ.copy()
-                if config.environment:
-                    env.update(config.environment)
-                env["PYTHONIOENCODING"] = "utf-8"
-
                 await client.connect(config.command, args=config.args, env=env)
                 client_id = f"{config.command}_{' '.join(config.args)}"
-
             case SSEMCPServer():
                 client = MCPClient(stdio_mode=False)
                 client = await self.exit_stack.enter_async_context(client)
-                await client.connect("", [], url=config.url, env=config.environment)
+                await client.connect("", [], url=config.url, env=env)
                 client_id = f"sse_{config.url}"
 
         self.clients[client_id] = client

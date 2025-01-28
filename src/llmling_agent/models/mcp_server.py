@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -18,6 +19,14 @@ class MCPServerBase(BaseModel):
     """Environment variables to pass to the server process."""
 
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
+
+    def get_env_vars(self) -> dict[str, str]:
+        """Get environment variables for the server process."""
+        env = os.environ.copy()
+        if self.environment:
+            env.update(self.environment)
+        env["PYTHONIOENCODING"] = "utf-8"
+        return env
 
 
 class StdioMCPServer(MCPServerBase):
