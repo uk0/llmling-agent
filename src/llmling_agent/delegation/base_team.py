@@ -10,6 +10,7 @@ from psygnal.containers import EventedList
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode, NodeContext
 from llmling_agent.models.teams import TeamConfig
+from llmling_agent.talk.stats import TeamStats, TeamTalkStats
 from llmling_agent.utils.inspection import has_return_type
 
 
@@ -187,6 +188,11 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                 return Team([*self.agents, other])
 
     @property
+    def stats(self) -> TeamStats:
+        """Get aggregated stats from all team members."""
+        return TeamStats(stats=[agent.stats for agent in self.agents])
+
+    @property
     def is_running(self) -> bool:
         """Whether execution is currently running."""
         return bool(self._main_task and not self._main_task.done())
@@ -249,8 +255,13 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         return self._team_talk
 
     @property
-    def stats(self) -> ExtendedTeamTalk:
+    def execution_stats(self) -> TeamTalkStats:
         """Get current execution statistics."""
+        return self._team_talk.stats
+
+    @property
+    def talk(self) -> ExtendedTeamTalk:
+        """Get current connection."""
         return self._team_talk
 
     @property

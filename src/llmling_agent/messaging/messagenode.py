@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, overload
 from psygnal import Signal
 
 from llmling_agent.mcp_server.manager import MCPManager
-from llmling_agent.talk.stats import TeamTalkStats
+from llmling_agent.talk.stats import MessageStats, TeamStats, TeamTalkStats
 from llmling_agent.utils.inspection import has_return_type
 from llmling_agent.utils.tasks import TaskManagerMixin
 
@@ -88,6 +88,12 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         await self._events.cleanup()
         await self.mcp.__aexit__(exc_type, exc_val, exc_tb)
         await self.cleanup_tasks()
+
+    @property
+    @abstractmethod
+    def stats(self) -> MessageStats | TeamStats:
+        """Get stats for this node."""
+        raise NotImplementedError
 
     @property
     def connection_stats(self) -> TeamTalkStats:

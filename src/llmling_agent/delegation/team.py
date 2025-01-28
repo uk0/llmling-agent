@@ -40,6 +40,8 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         """Run all agents in parallel with monitoring."""
         from llmling_agent.talk.talk import Talk
 
+        self._team_talk.clear()
+
         start_time = datetime.now()
         final_prompt = list(prompts)
         responses: list[AgentResponse[Any]] = []

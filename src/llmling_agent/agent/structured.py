@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.task import Job
+    from llmling_agent.talk.stats import MessageStats
     from llmling_agent.tools.manager import ToolManager
     from llmling_agent_providers.callback import ProcessorCallback
 
@@ -249,6 +250,10 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
             tool_name=tool_name,
             tool_description=tool_description,
         )
+
+    @property
+    def stats(self) -> MessageStats:
+        return self._agent.stats
 
     async def run_iter(
         self,

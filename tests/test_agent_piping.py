@@ -30,7 +30,7 @@ async def test_agent_piping():
     assert result[0].message.data == "model: test"
     assert result[1].message.data == "transform1: model: test"
     assert result[2].message.data == "transform2: transform1: model: test"
-    assert pipeline.stats.stats.message_count == 3  # noqa: PLR2004
+    assert pipeline.execution_stats.message_count == 3  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
@@ -74,9 +74,9 @@ async def test_agent_piping_errors():
         await pipeline.execute("test")
 
     # Check that we can still access stats about what happened before the error
-    assert len(pipeline.stats) == 1  # Only the successful connection
-    assert len(pipeline.stats.stats.messages) == 1  # Only the first message
-    assert pipeline.stats.stats.messages[0].content == "model: test"
+    assert len(pipeline.talk) == 1  # Only the successful connection
+    assert len(pipeline.execution_stats.messages) == 1  # Only the first message
+    assert pipeline.execution_stats.messages[0].content == "model: test"
 
 
 @pytest.mark.asyncio
@@ -119,14 +119,14 @@ async def test_agent_piping_background_error():
         raise ValueError(msg)
 
     pipeline = agent1 | failing_transform
-    stats = pipeline.run_in_background("test")
+    talk = pipeline.run_in_background("test")
 
     # Wait for execution to complete
     with pytest.raises(RuntimeError, match="Transform error"):
         await pipeline.wait()
     # Stats should reflect what happened before the error
-    assert len(stats) == 1  # Only the successful connection
-    assert len(stats.stats.messages) == 1  # Only the first message
+    assert len(talk) == 1  # Only the successful connection
+    assert len(talk.stats.messages) == 1  # Only the first message
 
 
 @pytest.mark.asyncio

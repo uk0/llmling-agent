@@ -28,8 +28,8 @@ async def test_team_parallel_execution():
         assert agent_names == {"a1", "a2", "a3"}
 
         # Check that stats were collected
-        assert len(team.stats.stats.messages) == 3  # noqa: PLR2004
-        assert all(isinstance(msg, ChatMessage) for msg in team.stats.stats.messages)
+        assert len(team.execution_stats.messages) == 3  # noqa: PLR2004
+        assert all(isinstance(msg, ChatMessage) for msg in team.execution_stats.messages)
 
 
 @pytest.mark.asyncio
@@ -61,7 +61,7 @@ async def test_team_shared_prompt():
 @pytest.mark.asyncio
 async def test_nested_teams():
     """Test nesting Teams and TeamRuns inside each other."""
-    async with AgentPool() as pool:
+    async with AgentPool[None]() as pool:
         # Create basic agents
         a1 = await pool.add_agent("a1", model="test")
         a2 = await pool.add_agent("a2", model="test")
@@ -75,7 +75,7 @@ async def test_nested_teams():
         assert isinstance(result, ChatMessage)
         # Team's messages should be in the chain
         assert (
-            len(execution.stats.stats.messages) == 2  # noqa: PLR2004
+            len(execution.execution_stats.messages) == 2  # noqa: PLR2004
         )  # Team(a1+a2) + a3
 
         # Case 2: TeamRun inside Team
@@ -86,7 +86,7 @@ async def test_nested_teams():
         assert isinstance(result, ChatMessage)
         # Should have all messages
         assert (
-            len(parallel_team.stats.stats.messages) == 3  # noqa: PLR2004
+            len(parallel_team.execution_stats.messages) == 3  # noqa: PLR2004
         )  # TeamRun(a1+a2) + a3 + a4
 
         # # Test streaming with nested Team
@@ -164,12 +164,12 @@ async def test_nested_teams():
 #         result = await combined_1.run("test")
 #         assert isinstance(result, ChatMessage)
 #         # All agents should have executed
-#         assert len(combined_1.stats.stats.messages) == 4
+#         assert len(combined_1.execution_stats.messages) == 4
 
 #         result = await combined_2.run("test")
 #         assert isinstance(result, ChatMessage)
 #         # All agents should have executed
-#         assert len(combined_2.stats.stats.messages) == 4
+#         assert len(combined_2.execution_stats.messages) == 4
 
 
 if __name__ == "__main__":
