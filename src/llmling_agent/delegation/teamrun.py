@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from tokonomics.pydanticai_cost import Usage
     from toprompt import AnyPromptType
 
-    from llmling_agent.agent import AnyAgent
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent_providers.base import StreamingResponseProtocol
 
@@ -62,7 +61,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         *,
         name: str | None = None,
         shared_prompt: str | None = None,
-        validator: AnyAgent[Any, TResult] | None = None,
+        validator: MessageNode[Any, TResult] | None = None,
     ):
         super().__init__(agents, name=name, shared_prompt=shared_prompt)
         self.validator = validator

@@ -189,45 +189,45 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
     def create_team_run(
         self,
         agents: Sequence[str],
-        validator: AnyAgent[Any, Any] | None = None,
+        validator: MessageNode[Any, TResult] | None = None,
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
-    ) -> TeamRun[TPoolDeps, Any]: ...
+    ) -> TeamRun[TPoolDeps, TResult]: ...
 
     @overload
-    def create_team_run[TDeps](
+    def create_team_run[TDeps, TResult](
         self,
         agents: Sequence[MessageNode[TDeps, Any]],
-        validator: AnyAgent[Any, Any] | None = None,
+        validator: MessageNode[Any, TResult] | None = None,
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
-    ) -> TeamRun[TDeps, Any]: ...
+    ) -> TeamRun[TDeps, TResult]: ...
 
     @overload
     def create_team_run(
         self,
         agents: Sequence[AgentName | MessageNode[Any, Any]],
-        validator: AnyAgent[Any, Any] | None = None,
+        validator: MessageNode[Any, TResult] | None = None,
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
-    ) -> TeamRun[Any, Any]: ...
+    ) -> TeamRun[Any, TResult]: ...
 
     def create_team_run(
         self,
         agents: Sequence[AgentName | MessageNode[Any, Any]] | None = None,
-        validator: AnyAgent[Any, Any] | None = None,
+        validator: MessageNode[Any, TResult] | None = None,
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
-    ) -> TeamRun[Any, Any]:
+    ) -> TeamRun[Any, TResult]:
         """Create a a sequential TeamRun from a list of Agents.
 
         Args:
             agents: List of agent names or team/agent instances (all if None)
-            validator: Agent to validate the results of the TeamRun
+            validator: Node to validate the results of the TeamRun
             model_override: Optional model to use for all agents
             shared_prompt: Optional prompt for all agents
         """

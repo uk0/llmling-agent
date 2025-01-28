@@ -2,12 +2,15 @@
 
 ## What is a TeamRun?
 
-A TeamRun represents a sequential execution pipeline of agents. Unlike Teams which define agent groups, TeamRuns manage how agents process data in sequence, with each agent receiving the output of the previous one.
+A TeamRun represents a sequential execution pipeline of agents. Unlike Teams which define agent groups,
+TeamRuns manage how agents process data in sequence, with each agent receiving the output of the previous one.
+Optionally, a validator can be specified to create a final, structured output.
 
 The key aspects are:
 
 - Sequential processing order
 - Message flow between agents
+- Optional validation/structured output
 - Execution monitoring
 - Resource management
 
@@ -18,6 +21,12 @@ The key aspects are:
 ```python
 # Create execution pipeline from agent names
 run = pool.create_team_run(["analyzer", "planner", "executor"])
+
+# With validator for structured output
+run = pool.create_team_run(
+    ["analyzer", "planner"],
+    validator=conclusion_writer.to_structured(AnalysisReport)
+)
 ```
 
 ### Using Pipeline Operator
@@ -92,6 +101,8 @@ async for item in run.execute_iter("analyze this"):
                 print(f"❌ {item.agent_name}: {item.error}")
                 break
 ```
+
+
 
 ## Resource Management
 
