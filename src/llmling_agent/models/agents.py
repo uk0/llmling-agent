@@ -142,9 +142,6 @@ class AgentConfig(NodeConfig):
     end_strategy: EndStrategy = "early"
     """The strategy for handling multiple tool calls when a final result is found"""
 
-    # defer_model_check: bool = False
-    # """Whether to defer model evaluation until first run"""
-
     avatar: str | None = None
     """URL or path to agent's avatar image"""
 
@@ -252,13 +249,12 @@ class AgentConfig(NodeConfig):
             match prompt:
                 case str():
                     # Convert string to StaticPrompt
-                    prompts.append(
-                        StaticPrompt(
-                            name="system",
-                            description="System prompt",
-                            messages=[PromptMessage(role="system", content=prompt)],
-                        )
+                    prompt = StaticPrompt(
+                        name="system",
+                        description="System prompt",
+                        messages=[PromptMessage(role="system", content=prompt)],
                     )
+                    prompts.append(prompt)
                 case BasePrompt():
                     prompts.append(prompt)
         return prompts

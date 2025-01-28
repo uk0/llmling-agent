@@ -14,7 +14,6 @@ from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import AgentResponse, ChatMessage, TeamResponse
 from llmling_agent.talk.talk import Talk, TeamTalk
-from llmling_agent_providers.base import StreamingResponseProtocol
 
 
 if TYPE_CHECKING:
@@ -27,6 +26,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent_providers.base import StreamingResponseProtocol
 
 
 logger = get_logger(__name__)
@@ -222,6 +222,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         """Stream results through chain of team members."""
         from llmling_agent.agent import Agent, StructuredAgent
         from llmling_agent.delegation import TeamRun
+        from llmling_agent_providers.base import StreamingResponseProtocol
 
         async with AsyncExitStack() as stack:
             streams: list[StreamingResponseProtocol[str]] = []

@@ -31,7 +31,6 @@ from llmling_agent.responses.utils import to_type
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context
 from llmling_agent.utils.tasks import TaskManagerMixin
-from llmling_agent_providers.base import AgentProvider, StreamingResponseProtocol
 
 
 if TYPE_CHECKING:
@@ -62,15 +61,17 @@ if TYPE_CHECKING:
     from llmling_agent.models.task import Job
     from llmling_agent.responses.models import ResponseDefinition
     from llmling_agent.tools.base import ToolInfo
+    from llmling_agent_providers.base import AgentProvider, StreamingResponseProtocol
 
+    AgentType = (
+        Literal["pydantic_ai", "human", "litellm"] | AgentProvider | Callable[..., Any]
+    )
 
 logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=None)
-AgentType = (
-    Literal["pydantic_ai", "human", "litellm"] | AgentProvider | Callable[..., Any]
-)
+
 JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
 
 
@@ -199,6 +200,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         from llmling_agent.agent import AgentLogger
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
+        from llmling_agent_providers.base import AgentProvider
 
         self._infinite = False
         # save some stuff for asnyc init
@@ -506,6 +508,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     @provider.setter
     def provider(self, value: AgentProvider, model: ModelType = None):
         """Set the underlying provider."""
+        from llmling_agent_providers.base import AgentProvider
+
         name = self.name
         debug = self._debug
         match value:

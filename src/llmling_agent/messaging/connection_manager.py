@@ -16,7 +16,6 @@ from llmling_agent.talk import Talk, TeamTalk, TeamTalkStats
 if TYPE_CHECKING:
     from datetime import timedelta
 
-    from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import (
         AgentName,
         AnyTransformFn,
@@ -184,7 +183,7 @@ class ConnectionManager:
         return results
 
     async def trigger_for(
-        self, target: AgentName | AnyAgent[Any, Any]
+        self, target: AgentName | MessageNode[Any, Any]
     ) -> list[ChatMessage[Any]]:
         """Trigger queued connections to specific target."""
         target_name = target if isinstance(target, str) else target.name
