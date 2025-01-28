@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     import PIL.Image
     from toprompt import AnyPromptType
 
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.task import Job
     from llmling_agent.talk import Talk
 
@@ -61,7 +61,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             execution_talks.append(talk)
             self._team_talk.append(talk)  # Add to base class's TeamTalk
 
-        async def _run(agent: AnyAgent[TDeps, Any] | BaseTeam[TDeps, Any]) -> None:
+        async def _run(agent: MessageNode[TDeps, Any]) -> None:
             try:
                 start = perf_counter()
                 message = await agent.run(*final_prompt, **kwargs)
@@ -91,7 +91,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         queue: asyncio.Queue[ChatMessage[Any]] = asyncio.Queue()
         errors: dict[str, Exception] = {}
 
-        async def _run(agent: AnyAgent[TDeps, Any] | BaseTeam[TDeps, Any]) -> None:
+        async def _run(agent: MessageNode[TDeps, Any]) -> None:
             try:
                 message = await agent.run(*prompts, **kwargs)
                 await queue.put(message)
@@ -195,9 +195,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             prompt = await job.get_prompt()
 
             # Run job in parallel on all agents
-            async def _run(
-                agent: AnyAgent[TDeps, TResult] | BaseTeam[TDeps, TResult],
-            ) -> None:
+            async def _run(agent: MessageNode[TDeps, TResult]) -> None:
                 assert isinstance(agent, Agent | StructuredAgent)
                 try:
                     with agent.tools.temporary_tools(

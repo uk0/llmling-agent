@@ -82,8 +82,8 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
         self._name = name or " & ".join([i.name for i in agents])
         self.agents = EventedList[MessageNode]()
-        self.agents.events.inserted.connect(self._on_agent_added)
-        self.agents.events.removed.connect(self._on_agent_removed)
+        self.agents.events.inserted.connect(self._on_node_added)
+        self.agents.events.removed.connect(self._on_node_removed)
         super().__init__(name=self._name, context=self.context, mcp_servers=mcp_servers)
         self.agents.extend(list(agents))
         self._team_talk = ExtendedTeamTalk()
@@ -91,14 +91,14 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self._main_task: asyncio.Task[Any] | None = None
         self._infinite = False
 
-    def _on_agent_added(self, index: int, node: MessageNode[Any, Any]):
+    def _on_node_added(self, index: int, node: MessageNode[Any, Any]):
         """Handler for adding nodes to the team."""
         from llmling_agent.agent import Agent, StructuredAgent
 
         if isinstance(node, Agent | StructuredAgent):
             node.tools.add_provider(self.mcp)
 
-    def _on_agent_removed(self, index: int, node: MessageNode[Any, Any]):
+    def _on_node_removed(self, index: int, node: MessageNode[Any, Any]):
         """Handler for removing nodes from the team."""
         from llmling_agent.agent import Agent, StructuredAgent
 
