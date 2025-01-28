@@ -141,8 +141,8 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
         self,
         *prompt: AnyPromptType | TResult,
         result_type: type[TResult] | None = None,
-        deps: TDeps | None = None,
         model: ModelType = None,
+        tool_choice: bool | str | list[str] = True,
         store_history: bool = True,
         wait_for_connections: bool | None = None,
     ) -> ChatMessage[TResult]:
@@ -154,8 +154,12 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
                 - BaseModel / dataclasses
                 - Name of response definition in manifest
                 - Complete response definition instance
-            deps: Optional dependencies for the agent
             model: Optional model override
+            tool_choice: Control tool usage:
+                - True: Allow all tools
+                - False: No tools
+                - str: Use specific tool
+                - list[str]: Allow specific tools
             store_history: Whether the message exchange should be added to the
                            context window
             wait_for_connections: Whether to wait for all connections to complete
@@ -166,6 +170,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
             result_type=typ,
             model=model,
             store_history=store_history,
+            tool_choice=tool_choice,
             wait_for_connections=wait_for_connections,
         )
 
