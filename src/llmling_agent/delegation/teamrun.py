@@ -177,41 +177,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             for connection in connections:
                 connection.disconnect()
 
-    async def chain(
-        self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
-        require_all: bool = True,
-        **kwargs: Any,
-    ) -> ChatMessage:
-        """Pass message through the chain of team members.
-
-        Each agent processes the result of the previous one.
-
-        Args:
-            prompts: Initial messages to process
-            require_all: If True, all agents must succeed
-            kwargs: Additional arguments for agents
-
-        Returns:
-            Final processed message
-
-        Raises:
-            ValueError: If chain breaks and require_all=True
-        """
-        current_message = prompts
-
-        for agent in self.agents:
-            try:
-                result = await agent.run(*current_message, **kwargs)
-                current_message = (result.content,)
-            except Exception as e:
-                if require_all:
-                    msg = f"Chain broken at {agent.name}: {e}"
-                    raise ValueError(msg) from e
-                logger.warning("Chain handler %s failed: %s", agent.name, e)
-
-        return result
-
     @asynccontextmanager
     async def chain_stream(
         self,
@@ -309,14 +274,9 @@ if __name__ == "__main__":
                 system_prompt="You create concise summaries.",
                 model="openai:gpt-4o-mini",
             )
-            agent3 = await pool.add_agent(
-                "critic",
-                system_prompt="You evaluate and critique summaries.",
-                model="openai:gpt-4o-mini",
-            )
 
             # Create team and get monitored execution
-            run = agent1 | agent2 | agent3
+            run = agent1 | agent2
 
             text = "The quick brown fox jumps over the lazy dog."
             print(f"\nProcessing text: {text}\n")
