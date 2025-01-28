@@ -138,18 +138,13 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
     async def __aenter__(self) -> Self:
         """Enter async context and initialize all agents."""
         try:
+            agents = list(self.agents.values())
             if self.parallel_agent_load:
-                agents = await asyncio.gather(
-                    *(
-                        self.exit_stack.enter_async_context(agent)
-                        for agent in self.agents.values()
-                    )
+                await asyncio.gather(
+                    *(self.exit_stack.enter_async_context(a) for a in agents)
                 )
-                # Update references since enter_async_context might return new instances
-                for name, agent in zip(self.agents.keys(), agents):
-                    self.agents[name] = agent  # type: ignore[assignment]
             else:
-                for agent in self.agents.values():
+                for agent in agents:
                     await self.exit_stack.enter_async_context(agent)
         except Exception as e:
             await self.cleanup()
@@ -233,11 +228,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             if isinstance(agent, str):
                 agent = self.get_agent(agent, model_override=model_override)
             resolved_agents.append(agent)
-        return TeamRun(
-            agents=resolved_agents,
-            validator=validator,
-            shared_prompt=shared_prompt,
-        )
+        return TeamRun(resolved_agents, validator=validator, shared_prompt=shared_prompt)
 
     @overload
     def create_team(
@@ -568,8 +559,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         return_type: type[TResult],
         session: SessionIdType | SessionQuery = None,
         name_override: str | None = None,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
         model_override: str | None = None,
     ) -> StructuredAgent[TPoolDeps, TResult]: ...
 
@@ -582,8 +571,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         return_type: type[TResult],
         session: SessionIdType | SessionQuery = None,
         name_override: str | None = None,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
         model_override: str | None = None,
     ) -> StructuredAgent[TCustomDeps, TResult]: ...
 
@@ -595,8 +582,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         return_type: Any | None = None,
         session: SessionIdType | SessionQuery = None,
         name_override: str | None = None,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
         model_override: str | None = None,
     ) -> AnyAgent[Any, Any]:
         """Create a new agent instance from configuration.
@@ -607,8 +592,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             return_type: Optional type for structured responses
             session: Optional session ID or query to recover conversation
             name_override: Optional different name for this instance
-            tool_name: Optional name for result validation tool
-            tool_description: Optional description for result validation tool
             model_override: Optional model override
 
         Returns:
@@ -643,11 +626,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
         # Override structured configuration if provided
         if return_type is not None:
-            return agent.to_structured(
-                return_type,
-                tool_name=tool_name,
-                tool_description=tool_description,
-            )
+            return agent.to_structured(return_type)
 
         return agent
 
