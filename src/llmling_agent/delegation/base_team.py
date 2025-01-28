@@ -25,9 +25,9 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
+    from llmling_agent.models.mcp_server import MCPServerConfig
     from llmling_agent.models.messages import ChatMessage, TeamResponse
     from llmling_agent.models.providers import ProcessorCallback
-
 logger = get_logger(__name__)
 
 
@@ -75,17 +75,35 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         *,
         name: str | None = None,
         shared_prompt: str | None = None,
+        mcp_servers: list[str | MCPServerConfig] | None = None,
     ):
         """Common variables only for typing."""
         from llmling_agent.delegation.teamrun import ExtendedTeamTalk
 
-        name = name or " & ".join([i.name for i in agents])
-        super().__init__(name=name)
-        self.agents = EventedList(list(agents))
+        self._name = name or " & ".join([i.name for i in agents])
+        self.agents = EventedList[MessageNode]()
+        self.agents.events.inserted.connect(self._on_agent_added)
+        self.agents.events.removed.connect(self._on_agent_removed)
+        super().__init__(name=self._name, context=self.context, mcp_servers=mcp_servers)
+        self.agents.extend(list(agents))
         self._team_talk = ExtendedTeamTalk()
         self.shared_prompt = shared_prompt
         self._main_task: asyncio.Task[Any] | None = None
         self._infinite = False
+
+    def _on_agent_added(self, index: int, node: MessageNode[Any, Any]):
+        """Handler for adding nodes to the team."""
+        from llmling_agent.agent import Agent, StructuredAgent
+
+        if isinstance(node, Agent | StructuredAgent):
+            node.tools.add_provider(self.mcp)
+
+    def _on_agent_removed(self, index: int, node: MessageNode[Any, Any]):
+        """Handler for removing nodes from the team."""
+        from llmling_agent.agent import Agent, StructuredAgent
+
+        if isinstance(node, Agent | StructuredAgent):
+            node.tools.remove_provider(self.mcp)
 
     def __repr__(self) -> str:
         """Create readable representation."""
@@ -368,3 +386,19 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         """
         coro = self.run(*prompt, store_history=store_history)
         return self.run_task_sync(coro)
+
+
+if __name__ == "__main__":
+
+    async def main():
+        from llmling_agent import Agent, Team
+
+        agent = Agent[None]("My Agent")
+        agent_2 = Agent[None]("My Agent")
+        team = Team([agent, agent_2], mcp_servers=["uvx mcp-server-git"])
+        async with team:
+            print(await agent.tools.get_tools())
+
+    import asyncio
+
+    asyncio.run(main())

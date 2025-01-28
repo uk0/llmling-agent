@@ -142,17 +142,21 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             # Add MCP tool provider to all agents
             # Initialize MCP and agents through exit stack
             agents = list(self.agents.values())
+            teams = list(self._teams.values())
             for agent in agents:
                 agent.tools.add_provider(self.mcp)
             if self.parallel_agent_load:
                 await asyncio.gather(
                     self.exit_stack.enter_async_context(self.mcp),
                     *(self.exit_stack.enter_async_context(a) for a in agents),
+                    *(self.exit_stack.enter_async_context(t) for t in teams),
                 )
             else:
                 await self.exit_stack.enter_async_context(self.mcp)
                 for agent in agents:
                     await self.exit_stack.enter_async_context(agent)
+                for team in teams:
+                    await self.exit_stack.enter_async_context(team)
         except Exception as e:
             await self.cleanup()
             msg = "Failed to initialize agent pool"
