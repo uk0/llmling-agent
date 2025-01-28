@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
-    from llmling_agent.models.context import AgentContext
 
 
 logger = get_logger(__name__)
@@ -61,7 +60,6 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         tools: Sequence[ToolInfo | ToolType | dict[str, Any]] | None = None,
         *,
         tool_choice: bool | str | list[str] = True,
-        context: AgentContext[Any] | None = None,
     ):
         """Initialize tool manager.
 
@@ -72,11 +70,9 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 - False: No tools
                 - str: Use specific tool
                 - list[str]: Allow specific tools
-            context: Tool context
         """
         super().__init__()
         self.tool_choice = tool_choice
-        self.context = context
         self._tool_providers: list[ToolProvider] = []
 
         # Register initial tools
@@ -184,7 +180,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 else:
                     provider_tools = provider()
                 # Only add tools that match state filter
-                tools.extend(t for t in provider_tools if t.matches_filter(state))
+                tools.extend(t for t in provider_tools if t.matches_filter(state))  # pyright: ignore
             except Exception:
                 logger.exception("Failed to get tools from provider: %r", provider)
                 continue

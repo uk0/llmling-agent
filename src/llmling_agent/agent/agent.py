@@ -238,7 +238,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         )
         # Initialize tool manager
         all_tools = list(tools or [])
-        self._tool_manager = ToolManager(all_tools, tool_choice=tool_choice, context=ctx)
+        self._tool_manager = ToolManager(all_tools, tool_choice=tool_choice)
         self._tool_manager.add_provider(self.mcp.get_tools)
 
         # Initialize conversation manager
@@ -494,7 +494,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     def context(self, value: AgentContext[TDeps]):
         """Set agent context and propagate to provider."""
         self._provider.context = value
-        self._tool_manager.context = value
+        self.mcp.context = value
 
     def set_result_type(
         self,
