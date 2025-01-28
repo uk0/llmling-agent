@@ -1069,7 +1069,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 store_history=store_history,
                 wait_for_connections=wait_for_connections,
             )
-            yield response
+            yield response  # pyright: ignore
 
     def run_sync(
         self,

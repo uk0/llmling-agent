@@ -6,7 +6,6 @@ from typing import Any, Literal, Protocol, runtime_checkable
 from uuid import UUID
 
 from llmling import LLMCallableTool
-from typing_extensions import TypeVar
 
 
 @runtime_checkable
@@ -36,7 +35,6 @@ AnyCallable = Callable[..., Any]
 AsyncFilterFn = Callable[..., Awaitable[bool]]
 SyncFilterFn = Callable[..., bool]
 AnyFilterFn = Callable[..., bool | Awaitable[bool]]
-T = TypeVar("T")
 type AnyTransformFn[T] = Callable[[T], T | Awaitable[T]]
 type OptionalAwaitable[T] = T | Awaitable[T]
 

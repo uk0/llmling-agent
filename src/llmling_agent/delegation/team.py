@@ -201,7 +201,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
                         start = perf_counter()
                         resp = AgentResponse(
                             agent_name=agent.name,
-                            message=await agent.run(prompt, store_history=store_history),
+                            message=await agent.run(prompt, store_history=store_history),  # pyright: ignore
                             timing=perf_counter() - start,
                         )
                         responses.append(resp)
