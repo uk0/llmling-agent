@@ -90,6 +90,10 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         """Add a function that provides tools."""
         self._tool_providers.append(provider)
 
+    def remove_provider(self, provider: ToolProvider) -> None:
+        """Remove a function that provides tools."""
+        self._tool_providers.remove(provider)
+
     def reset_states(self):
         """Reset all tools to their default enabled states."""
         for info in self.values():
