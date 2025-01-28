@@ -267,12 +267,17 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def iter_agents(self) -> Iterator[AnyAgent[Any, Any]]:
         """Recursively iterate over all child agents."""
+        from llmling_agent.agent import Agent, StructuredAgent
+
         for node in self.agents:
             match node:
                 case BaseTeam():
                     yield from node.iter_agents()
-                case _:  # Agent case
+                case Agent() | StructuredAgent():
                     yield node
+                case _:
+                    msg = f"Invalid node type: {type(node)}"
+                    raise ValueError(msg)
 
     @property
     def context(self) -> TeamContext:
