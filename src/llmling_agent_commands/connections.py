@@ -14,7 +14,7 @@ from llmling_agent_commands.completers import get_available_agents
 
 if TYPE_CHECKING:
     from llmling_agent import AgentContext
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent.messaging.messagenode import MessageNode
 
 
 logger = get_logger(__name__)
@@ -45,12 +45,12 @@ Displays:
 """
 
 
-def format_agent_name(agent: AnyAgent[Any, Any], current: bool = False) -> str:
-    """Format agent name for display."""
-    name = agent.name
+def format_agent_name(node: MessageNode[Any, Any], current: bool = False) -> str:
+    """Format node name for display."""
+    name = node.name
     if current:
         return f"[bold blue]{name}[/]"
-    if agent.connections.get_targets():
+    if node.connections.get_targets():
         return f"[green]{name}[/]"
     return f"[dim]{name}[/]"
 
