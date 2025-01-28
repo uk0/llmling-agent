@@ -96,12 +96,15 @@ class PydanticAIProvider(AgentProvider):
         """Get list of all known model names."""
         return list(get_args(KnownModelName)) + list(get_args(AllModels))
 
-    async def get_agent(self, system_prompt: str) -> PydanticAgent[Any, Any]:
+    async def get_agent(
+        self,
+        system_prompt: str,
+        tools: list[ToolInfo],
+    ) -> PydanticAgent[Any, Any]:
         kwargs = self._kwargs.copy()
         model = kwargs.pop("model", None)
         model = infer_model(model) if isinstance(model, str) else model
         agent = PydanticAgent(model=model, system_prompt=system_prompt, **kwargs)  # type: ignore
-        tools = await self.tool_manager.get_tools(state="enabled")
         for tool in tools:
             wrapped = (
                 self.wrap_tool(tool, self._context)
@@ -185,25 +188,12 @@ class PydanticAIProvider(AgentProvider):
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
+        tools: list[ToolInfo] | None = None,
         system_prompt: str | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
-        """Generate response using pydantic-ai.
-
-        Args:
-            prompts: Texts / Image contents to respond to
-            message_id: ID to assign to the response and tool calls
-            result_type: Optional type for structured responses
-            model: Optional model override for this call
-            store_history: Whether the message exchange should be added to the
-                           context window
-            system_prompt: System prompt from SystemPrompts manager
-            kwargs: Additional arguments for pydantic-ai (unused)
-
-        Returns:
-            Response message with optional structured content
-        """
-        agent = await self.get_agent(system_prompt or "")
+        """Generate response using pydantic-ai."""
+        agent = await self.get_agent(system_prompt or "", tools=tools or [])
         message_history = self.conversation.get_history()
         use_model = model or self.model
         if isinstance(use_model, str):
@@ -237,17 +227,13 @@ class PydanticAIProvider(AgentProvider):
 
             # Extract tool calls and set message_id
             new_msgs = result.new_messages()
-            tool_calls = get_tool_calls(
-                new_msgs,
-                dict(self.tool_manager._items),
-                agent_name=self.name,
-            )
+            tool_dict = {i.name: i for i in tools or []}
+            tool_calls = get_tool_calls(new_msgs, tool_dict, agent_name=self.name)
             for call in tool_calls:
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
             if store_history:
-                tools = dict(self.tool_manager._items)
-                new = [convert_model_message(m, tools, self.name) for m in new_msgs]
+                new = [convert_model_message(m, tool_dict, self.name) for m in new_msgs]
                 self.conversation.add_chat_messages(new)
             resolved_model = (
                 use_model.name() if isinstance(use_model, Model) else str(use_model)
@@ -321,13 +307,14 @@ class PydanticAIProvider(AgentProvider):
         message_id: str,
         result_type: type[Any] | None = None,
         model: ModelType = None,
+        tools: list[ToolInfo] | None = None,
         store_history: bool = True,
         system_prompt: str | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response using pydantic-ai."""
         message_history = self.conversation.get_history()
-        agent = await self.get_agent(system_prompt or "")
+        agent = await self.get_agent(system_prompt or "", tools=tools or [])
         use_model = model or self.model
         if isinstance(use_model, str):
             use_model = infer_model(use_model)
@@ -372,19 +359,16 @@ class PydanticAIProvider(AgentProvider):
                 if stream_result.is_complete:
                     self.chunk_streamed.emit("", message_id)
                     messages = stream_result.new_messages()
+                    tool_dict = {i.name: i for i in tools or []}
                     if store_history:
-                        tools = dict(self.tool_manager._items)
                         new = [
-                            convert_model_message(m, tools, self.name) for m in messages
+                            convert_model_message(m, tool_dict, self.name)
+                            for m in messages
                         ]
                         self.conversation.add_chat_messages(new)
 
                     # Extract and update tool calls
-                    tool_calls = get_tool_calls(
-                        messages,
-                        dict(self.tool_manager._items),
-                        agent_name=self.name,
-                    )
+                    tool_calls = get_tool_calls(messages, tool_dict, agent_name=self.name)
                     for call in tool_calls:
                         call.message_id = message_id
                         call.context_data = self._context.data if self._context else None

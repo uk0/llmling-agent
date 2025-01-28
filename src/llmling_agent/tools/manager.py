@@ -58,21 +58,13 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
     def __init__(
         self,
         tools: Sequence[ToolInfo | ToolType | dict[str, Any]] | None = None,
-        *,
-        tool_choice: bool | str | list[str] = True,
     ):
         """Initialize tool manager.
 
         Args:
             tools: Initial tools to register
-            tool_choice: Control tool usage:
-                - True: Allow all tools
-                - False: No tools
-                - str: Use specific tool
-                - list[str]: Allow specific tools
         """
         super().__init__()
-        self.tool_choice = tool_choice
         self._resource_providers: list[ResourceProvider] = []
 
         # Register initial tools
@@ -210,18 +202,6 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             except Exception:
                 logger.exception("Failed to get tools from provider: %r", provider)
                 continue
-
-        # Apply tool_choice filtering
-        match self.tool_choice:
-            case str():
-                tools = [t for t in tools if t.name == self.tool_choice]
-            case list():
-                tools = [t for t in tools if t.name in self.tool_choice]
-            case False:
-                tools = []
-            case True | None:
-                pass  # Keep all tools
-
         # Sort by priority if any have non-default priority
         if any(t.priority != 100 for t in tools):  # noqa: PLR2004
             tools.sort(key=lambda t: t.priority)

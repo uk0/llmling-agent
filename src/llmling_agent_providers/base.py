@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.content import Content
     from llmling_agent.models.context import AgentContext
     from llmling_agent.models.messages import TokenCost
+    from llmling_agent.tools.base import ToolInfo
     from llmling_agent.tools.manager import ToolManager
 
 
@@ -150,6 +151,7 @@ class AgentProvider[TDeps]:
         message_id: str,
         result_type: type[Any] | None = None,
         model: ModelType = None,
+        tools: list[ToolInfo] | None = None,
         store_history: bool = True,
         **kwargs: Any,
     ) -> ProviderResponse:
@@ -162,6 +164,7 @@ class AgentProvider[TDeps]:
         message_id: str,
         result_type: type[Any] | None = None,
         model: ModelType = None,
+        tools: list[ToolInfo] | None = None,
         store_history: bool = True,
         **kwargs: Any,
     ) -> AbstractAsyncContextManager[StreamingResponseProtocol]:

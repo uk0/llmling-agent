@@ -135,7 +135,5 @@ async def pick_one[T](
     cfg = Config()
     async with Agent[None].open(cfg, model=model, system_prompt=sys_prompt) as agent:
         agent.tools.register_tool(select_option, enabled=True)
-        agent._tool_manager.tool_choice = "select_option"
-
         await agent.run(prompt)
         return instances["selected"]

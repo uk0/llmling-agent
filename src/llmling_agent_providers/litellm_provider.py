@@ -164,6 +164,7 @@ class LiteLLMProvider(AgentProvider[Any]):
         message_id: str,
         result_type: type[Any] | None = None,
         model: ModelProtocol | str | None = None,
+        tools: list[ToolInfo] | None = None,
         store_history: bool = True,
         system_prompt: str | None = None,
         **kwargs: Any,
@@ -194,7 +195,7 @@ class LiteLLMProvider(AgentProvider[Any]):
             # Add the multi-modal content as user message
             messages.append({"role": "user", "content": content_parts})
 
-            schemas = [t.schema for t in await self.tool_manager.get_tools("enabled")]
+            schemas = [t.schema for t in tools or []]
             # Get completion
             response = await acompletion(
                 stream=False,
@@ -205,7 +206,7 @@ class LiteLLMProvider(AgentProvider[Any]):
                 else None,
                 num_retries=self.num_retries,
                 tools=schemas or None,
-                tool_choice=self.get_tool_choice() if schemas else None,
+                tool_choice="auto" if schemas else None,
                 **self.model_settings,
             )
             assert isinstance(response, ModelResponse)
@@ -279,17 +280,6 @@ class LiteLLMProvider(AgentProvider[Any]):
             return self._model.replace(":", "/")
         return "openai/gpt-4o-mini"
 
-    def get_tool_choice(self) -> str:
-        match self.tool_manager.tool_choice:
-            case True:
-                return "auto"
-            case False:
-                return "none"
-            case str():
-                return self.tool_manager.tool_choice
-            case list():
-                return "auto"
-
     def _convert_message_to_chat(self, message: Any) -> list[dict[str, str]]:
         """Convert message to chat format."""
         # This is a basic implementation - would need to properly handle
@@ -303,6 +293,7 @@ class LiteLLMProvider(AgentProvider[Any]):
         message_id: str,
         result_type: type[Any] | None = None,
         model: ModelProtocol | str | None = None,
+        tools: list[ToolInfo] | None = None,
         store_history: bool = True,
         system_prompt: str | None = None,
         **kwargs: Any,
@@ -331,16 +322,19 @@ class LiteLLMProvider(AgentProvider[Any]):
                 case BaseContent():
                     content_parts.append(p.to_openai_format())
         messages.append({"role": "user", "content": content_parts})
+        schemas = [t.schema for t in tools or []]
 
         try:
             # Get streaming completion
             completion_stream = await acompletion(
-                stream=True,  # Enable streaming
+                stream=True,
                 model=model_name,
                 messages=messages,
                 response_format=result_type
                 if result_type and issubclass(result_type, BaseModel)
                 else None,
+                tools=schemas,
+                tool_choice="auto" if schemas else None,
                 num_retries=self.num_retries,
                 **self.model_settings,
             )

@@ -93,7 +93,6 @@ class AgentKwargs(TypedDict, total=False):
     # Execution Settings
     retries: int
     result_retries: int | None
-    tool_choice: bool | str | list[str]
     end_strategy: EndStrategy
     defer_model_check: bool
 
@@ -161,7 +160,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         resources: Sequence[Resource | PromptType | str] = (),
         retries: int = 1,
         result_retries: int | None = None,
-        tool_choice: bool | str | list[str] = True,
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         confirmation_callback: ConfirmationCallback | None = None,
@@ -191,7 +189,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             resources: Additional resources to load
             retries: Default number of retries for failed operations
             result_retries: Max retries for result validation (defaults to retries)
-            tool_choice: Ability to set a fixed tool or temporarily disable tools usage.
             end_strategy: Strategy for handling tool calls that are requested alongside
                           a final result
             defer_model_check: Whether to defer model evaluation until first run
@@ -227,7 +224,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 ctx.runtime = runtime
         # Initialize tool manager
         all_tools = list(tools or [])
-        self._tool_manager = ToolManager(all_tools, tool_choice=tool_choice)
+        self._tool_manager = ToolManager(all_tools)
         self._tool_manager.add_provider(self.mcp)
 
         # Initialize conversation manager
@@ -805,6 +802,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         result_type: type[TResult] | None = None,
         model: ModelType = None,
         store_history: bool = True,
+        tool_choice: bool | str | list[str] = True,
         wait_for_connections: bool | None = None,
     ) -> ChatMessage[TResult]:
         """Run agent with prompt and get response.
@@ -815,6 +813,11 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             model: Optional model override
             store_history: Whether the message exchange should be added to the
                            context window
+            tool_choice: Control tool usage:
+                - True: Allow all tools
+                - False: No tools
+                - str: Use specific tool
+                - list[str]: Allow specific tools
             wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
@@ -828,6 +831,16 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         final_prompt = "\n\n".join(str(p) for p in prompts)
         self.context.current_prompt = final_prompt
         self.set_result_type(result_type)
+        tools = await self.tools.get_tools(state="enabled")
+        match tool_choice:
+            case str():
+                tools = [t for t in tools if t.name == tool_choice]
+            case list():
+                tools = [t for t in tools if t.name in tool_choice]
+            case False:
+                tools = []
+            case True | None:
+                pass  # Keep all tools
         try:
             # Create and emit user message
             user_msg = ChatMessage[str](content=final_prompt, role="user")
@@ -841,6 +854,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             result = await self._provider.generate_response(
                 *prompts,
                 message_id=message_id,
+                tools=tools,
                 result_type=result_type,
                 model=model,
                 store_history=store_history,
@@ -930,6 +944,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
         result_type: type[TResult] | None = None,
         model: ModelType = None,
+        tool_choice: bool | str | list[str] = True,
         store_history: bool = True,
         wait_for_connections: bool | None = None,
     ) -> AsyncIterator[StreamingResponseProtocol[TResult]]:
@@ -939,6 +954,11 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             prompt: User query or instruction
             result_type: Optional type for structured responses
             model: Optional model override
+            tool_choice: Control tool usage:
+                - True: Allow all tools
+                - False: No tools
+                - str: Use specific tool
+                - list[str]: Allow specific tools
             store_history: Whether the message exchange should be added to the
                            context window
             wait_for_connections: Whether to wait for connected agents to complete
@@ -953,6 +973,16 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         final_prompt = "\n\n".join(str(p) for p in prompts)
         self.set_result_type(result_type)
         self.context.current_prompt = final_prompt
+        tools = await self.tools.get_tools(state="enabled")
+        match tool_choice:
+            case str():
+                tools = [t for t in tools if t.name == tool_choice]
+            case list():
+                tools = [t for t in tools if t.name in tool_choice]
+            case False:
+                tools = []
+            case True | None:
+                pass  # Keep all tools
         try:
             # Create and emit user message
             user_msg = ChatMessage[str](content=final_prompt, role="user")
@@ -967,6 +997,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 result_type=result_type,
                 model=model,
                 store_history=store_history,
+                tools=tools,
                 system_prompt=sys_prompt,
             ) as stream:
                 yield stream  # type: ignore
