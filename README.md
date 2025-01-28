@@ -817,7 +817,6 @@ classDiagram
         +
         +responses: dict[str, ResponseDefinition]
         +agents: dict[str, AgentConfig]
-        +open_agent()
     }
 
     class AgentConfig {

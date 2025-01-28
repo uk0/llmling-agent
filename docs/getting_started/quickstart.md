@@ -60,10 +60,11 @@ agents:
 Use it in code:
 
 ```python
-from llmling_agent import Agent
+from llmling_agent import AgentPool
 
 async def main():
-    async with Agent.open_agent("agents.yml", "assistant") as agent:
+    async with AgentPool("agents.yml") as pool:
+        agent = pool.get_agent("assistant")
         response = await agent.run("What is Python?")
         print(response.data)
 

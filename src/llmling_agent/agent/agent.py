@@ -698,12 +698,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         *,
         deps: TDeps | None = None,
         result_type: None = None,
-        model: str | None = None,
-        session: SessionIdType | SessionQuery = None,
-        model_settings: dict[str, Any] | None = None,
-        tools: list[ToolType] | None = None,
-        tool_choice: bool | str | list[str] = True,
-        end_strategy: EndStrategy = "early",
     ) -> AbstractAsyncContextManager[Agent[TDeps]]: ...
 
     @classmethod
@@ -715,12 +709,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         *,
         deps: TDeps | None = None,
         result_type: type[TResult],
-        model: str | None = None,
-        session: SessionIdType | SessionQuery = None,
-        model_settings: dict[str, Any] | None = None,
-        tools: list[ToolType] | None = None,
-        tool_choice: bool | str | list[str] = True,
-        end_strategy: EndStrategy = "early",
     ) -> AbstractAsyncContextManager[StructuredAgent[TDeps, TResult]]: ...
 
     @classmethod
@@ -732,17 +720,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         *,
         deps: TDeps | None = None,  # TDeps from class
         result_type: type[TResult] | None = None,
-        model: str | ModelType = None,
-        session: SessionIdType | SessionQuery | MemoryConfig = None,
-        model_settings: dict[str, Any] | None = None,
-        tools: list[ToolType] | None = None,
-        tool_choice: bool | str | list[str] = True,
-        end_strategy: EndStrategy = "early",
-        retries: int = 1,
-        result_tool_name: str = "final_result",
-        result_tool_description: str | None = None,
-        result_retries: int | None = None,
-        system_prompt: str | Sequence[str] | None = None,
     ) -> AsyncIterator[Agent[TDeps] | StructuredAgent[TDeps, TResult]]:
         """Open and configure a specific agent from configuration."""
         """Implementation with all parameters..."""
@@ -753,29 +730,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             agent_name: Name of the agent to load
 
             # Basic Configuration
-            model: Optional model override
+            deps: Optional deps for the agent
             result_type: Optional type for structured responses
-            model_settings: Additional model-specific settings
-            session: Optional id, Session query or MemoryConfig
-
-            # Tool Configuration
-            tools: Additional tools to register (import paths or callables)
-            tool_choice: Control tool usage:
-                - True: Allow all tools
-                - False: No tools
-                - str: Use specific tool
-                - list[str]: Allow specific tools
-            end_strategy: Strategy for handling tool calls that are requested alongside
-                            a final result
-
-            # Execution Settings
-            retries: Default number of retries for failed operations
-            result_tool_name: Name of the tool used for final result
-            result_tool_description: Description of the final result tool
-            result_retries: Max retries for result validation (defaults to retries)
-
-            # Other Settings
-            system_prompt: Additional system prompts
 
         Yields:
             Configured Agent instance
@@ -808,9 +764,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         resolved_type = result_type or agent_def.get_result_type(agent_name)
 
         # Use model from override or agent config
-        actual_model = model or agent_config.model
-        if not actual_model:
-            msg = "Model must be specified either in config or as override"
+        if not agent_config.model:
+            msg = "Model must be specified in config"
             raise ValueError(msg)
 
         # Create context
@@ -819,34 +774,17 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             capabilities=agent_config.capabilities,
             definition=agent_def,
             config=agent_config,
-            model_settings=model_settings or {},
         )
 
         # Set up runtime
         cfg = agent_config.get_config()
-        base_agent = cls(
-            runtime=cfg,
-            context=context,
-            model=actual_model,
-            retries=retries,
-            session=session,
-            result_retries=result_retries,
-            end_strategy=end_strategy,
-            tool_choice=tool_choice,
-            tools=tools,
-            system_prompt=system_prompt or [],
-        )
+        base_agent = cls(runtime=cfg, context=context, model=agent_config.model)
         async with base_agent:
             if resolved_type is not None and resolved_type is not str:
                 # Yield structured agent with correct typing
                 from llmling_agent.agent.structured import StructuredAgent
 
-                yield StructuredAgent[TDeps, TResult](
-                    base_agent,
-                    resolved_type,
-                    tool_description=result_tool_description,
-                    tool_name=result_tool_name,
-                )
+                yield StructuredAgent[TDeps, TResult](base_agent, resolved_type)
             else:
                 yield base_agent
 
@@ -1478,10 +1416,10 @@ if __name__ == "__main__":
 
     sys_prompt = "Open browser with google, please"
     path = config_resources.OPEN_BROWSER
-    model = "openai:gpt-4o-mini"
+    _model = "openai:gpt-4o-mini"
 
     async def main():
-        async with Agent[None].open(path, model=model, debug=True) as agent:
+        async with Agent[None].open(path, model=_model, debug=True) as agent:
             print(agent.tools.list_items())
             result = await agent.run(sys_prompt)
             print(result.data)

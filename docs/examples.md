@@ -57,14 +57,15 @@ Assistant: I'll open the Python documentation (https://docs.python.org) in your 
 
 Or programmatically:
 ```python
-from llmling_agent import Agent
+from llmling_agent import AgentPool
 
-async with Agent.open_agent("agents.yml", "url_opener") as agent:
+async with AgentPool("agents.yml") as pool:
+    agent = pool.get_agent("url_opener")
     result = await agent.run("Open the Python website")
     print(result.data)
 ```
 
-## Structured Responses (Preview)
+## Structured Responses
 
 Define structured outputs for consistent response formats:
 
@@ -150,7 +151,8 @@ Use the file manager:
 ```python
 from llmling_agent import Agent
 
-async with Agent.open_agent("agents.yml", "file_manager") as agent:
+async with AgentPool("agents.yml" as pool:
+    agent = pool.get_agent("file_manager")
     # List files
     result = await agent.run("What files are in the current directory?")
     print(result.data)
