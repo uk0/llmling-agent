@@ -13,8 +13,8 @@ if TYPE_CHECKING:
     from llmling_agent.models.messages import ChatMessage, FormatStyle
 
 
-@dataclass(frozen=True)
-class TalkStats:
+@dataclass(frozen=True, kw_only=True)
+class MessageStats:
     """Statistics for a single connection."""
 
     source_name: str | None
@@ -66,6 +66,14 @@ class TalkStats:
         return sum(
             float(msg.cost_info.total_cost) for msg in self.messages if msg.cost_info
         )
+
+
+@dataclass(frozen=True, kw_only=True)
+class TalkStats(MessageStats):
+    """Statistics for a single connection."""
+
+    source_name: str | None
+    target_names: set[str]
 
 
 @dataclass
