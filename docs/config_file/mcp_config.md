@@ -4,14 +4,24 @@ MCP (Model Control Protocol) servers allow agents to use external tools through 
 
 Support for resources and prompts will also come in the future.
 
-## Basic Configuration
-Simple command-based configuration:
+
+## Basic Configuration (agent / team level)
+
+If you want to limit availabbility to specific entitites, MCP servers can also be assigned
+to agents or teams
+
 ```yaml
 agents:
   assistant:
     mcp_servers:
       - "python -m mcp_server"           # Simple command
       - "node mcp_server.js --debug"     # With arguments
+teams:
+  my_team:
+    # other settings..
+    mcp_servers:
+      - "python -m mcp_server"
+
 ```
 
 ## Detailed Configuration
