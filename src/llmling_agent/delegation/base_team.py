@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     import os
 
     import PIL.Image
+    from psygnal.containers._evented_list import ListEvents
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
@@ -233,6 +234,11 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
     def stats(self) -> ExtendedTeamTalk:
         """Get current execution statistics."""
         return self._team_talk
+
+    @property
+    def events(self) -> ListEvents:
+        """Get events for the team."""
+        return self.agents.events
 
     async def cancel(self) -> None:
         """Cancel execution and cleanup."""
