@@ -6,6 +6,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from llmling_agent.models.events import EventConfig  # noqa: TC001
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
+from llmling_agent.models.mcp_server import (
+    MCPServerBase,
+    MCPServerConfig,
+    StdioMCPServer,
+)
 
 
 class NodeConfig(BaseModel):
@@ -23,6 +28,12 @@ class NodeConfig(BaseModel):
     connections: list[ForwardingTarget] = Field(default_factory=list)
     """Targets to forward results to."""
 
+    mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list)
+    """List of MCP server configurations:
+    - str entries are converted to StdioMCPServer
+    - MCPServerConfig for full server configuration
+    """
+
     # Future extensions:
     # tools: list[str] | None = None
     # """Tools available to all team members."""
@@ -36,3 +47,31 @@ class NodeConfig(BaseModel):
         extra="forbid",
         use_attribute_docstrings=True,
     )
+
+    def get_mcp_servers(self) -> list[MCPServerConfig]:
+        """Get processed MCP server configurations.
+
+        Converts string entries to StdioMCPServer configs by splitting
+        into command and arguments.
+
+        Returns:
+            List of MCPServerConfig instances
+
+        Raises:
+            ValueError: If string entry is empty
+        """
+        configs: list[MCPServerConfig] = []
+
+        for server in self.mcp_servers:
+            match server:
+                case str():
+                    parts = server.split()
+                    if not parts:
+                        msg = "Empty MCP server command"
+                        raise ValueError(msg)
+
+                    configs.append(StdioMCPServer(command=parts[0], args=parts[1:]))
+                case MCPServerBase():
+                    configs.append(server)
+
+        return configs

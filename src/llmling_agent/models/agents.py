@@ -121,12 +121,6 @@ class AgentConfig(NodeConfig):
     capabilities: Capabilities = Field(default_factory=Capabilities)
     """Current agent's capabilities."""
 
-    mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list)
-    """List of MCP server configurations:
-    - str entries are converted to StdioMCPServer
-    - MCPServerConfig for full server configuration
-    """
-
     session: str | SessionQuery | MemoryConfig | None = None
     """Session configuration for conversation recovery."""
 
@@ -303,34 +297,6 @@ class AgentConfig(NodeConfig):
 
         # Create provider instance from config
         return provider_config.get_provider()
-
-    def get_mcp_servers(self) -> list[MCPServerConfig]:
-        """Get processed MCP server configurations.
-
-        Converts string entries to StdioMCPServer configs by splitting
-        into command and arguments.
-
-        Returns:
-            List of MCPServerConfig instances
-
-        Raises:
-            ValueError: If string entry is empty
-        """
-        configs: list[MCPServerConfig] = []
-
-        for server in self.mcp_servers:
-            match server:
-                case str():
-                    parts = server.split()
-                    if not parts:
-                        msg = "Empty MCP server command"
-                        raise ValueError(msg)
-
-                    configs.append(StdioMCPServer(command=parts[0], args=parts[1:]))
-                case MCPServerBase():
-                    configs.append(server)
-
-        return configs
 
     def render_system_prompts(self, context: dict[str, Any] | None = None) -> list[str]:
         """Render system prompts with context."""

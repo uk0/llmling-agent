@@ -21,7 +21,6 @@ from typing_extensions import TypeVar
 
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
-from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
@@ -204,8 +203,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
 
-        super().__init__(name=name)
-
         self._infinite = False
         # save some stuff for asnyc init
         self._owns_runtime = False
@@ -214,7 +211,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         ctx.confirmation_callback = confirmation_callback
         if capabilities is not None:
             ctx.capabilities = capabilities
-
+        super().__init__(name=name, context=ctx)
         memory_cfg = (
             session
             if isinstance(session, MemoryConfig)
@@ -228,12 +225,10 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 ctx.runtime = RuntimeConfig.from_config(runtime)
             case RuntimeConfig():
                 ctx.runtime = runtime
-
-        self.mcp = MCPManager(servers=mcp_servers or [], context=context)
         # Initialize tool manager
         all_tools = list(tools or [])
         self._tool_manager = ToolManager(all_tools, tool_choice=tool_choice)
-        self._tool_manager.add_provider(self.mcp.get_tools)
+        self._tool_manager.add_provider(self.mcp)
 
         # Initialize conversation manager
         resources = list(resources)
@@ -335,9 +330,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
             # Events initialization
             coros.append(super().__aenter__())
-
-            # MCP server setup
-            coros.append(self.mcp.__aenter__())
 
             # Get conversation init tasks directly
             coros.extend(self.conversation.get_initialization_tasks())

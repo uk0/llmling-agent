@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, overload
 
 from psygnal import Signal
 
+from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.utils.inspection import has_return_type
 from llmling_agent.utils.tasks import TaskManagerMixin
 
@@ -25,6 +26,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.forward_targets import ConnectionType
+    from llmling_agent.models.mcp_server import MCPServerConfig
     from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.nodes import NodeConfig
     from llmling_agent.models.providers import ProcessorCallback
@@ -47,7 +49,12 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
     outbox = Signal(object)  # ChatMessage
     """Signal emitted when node produces a message."""
 
-    def __init__(self, name: str | None = None):
+    def __init__(
+        self,
+        name: str | None = None,
+        context: NodeContext | None = None,
+        mcp_servers: Sequence[str | MCPServerConfig] | None = None,
+    ):
         """Initialize message node."""
         super().__init__()
         from llmling_agent.messaging.connection_manager import ConnectionManager
@@ -56,11 +63,13 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         self._name = name or self.__class__.__name__
         self.connections = ConnectionManager(self)
         self._events = EventManager(self, enable_events=True)
+        self.mcp = MCPManager(servers=mcp_servers or [], context=context)
 
     async def __aenter__(self) -> Self:
         """Initialize base message node."""
         try:
             await self._events.__aenter__()
+            await self.mcp.__aenter__()
         except Exception as e:
             await self.__aexit__(type(e), e, e.__traceback__)
             msg = f"Failed to initialize {self.name}"
@@ -76,6 +85,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
     ) -> None:
         """Clean up base resources."""
         await self._events.cleanup()
+        await self.mcp.__aexit__(exc_type, exc_val, exc_tb)
         await self.cleanup_tasks()
 
     @property
