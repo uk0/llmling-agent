@@ -14,6 +14,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.client import MCPClient
 from llmling_agent.models.mcp_server import MCPServerConfig, SSEMCPServer, StdioMCPServer
 from llmling_agent.models.resources import ResourceInfo
+from llmling_agent.resource_providers.base import ResourceProvider
 
 
 if TYPE_CHECKING:
@@ -49,7 +50,7 @@ async def convert_mcp_resource(resource: MCPResource) -> ResourceInfo:
     )
 
 
-class MCPManager:
+class MCPManager(ResourceProvider):
     """Manages MCP server connections and tools."""
 
     def __init__(

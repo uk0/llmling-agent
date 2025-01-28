@@ -6,13 +6,14 @@ from collections.abc import Awaitable, Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field, fields
 from datetime import datetime
-import inspect
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling import BaseRegistry, LLMCallableTool, ToolError
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
+from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.resource_providers.callable_provider import CallableResourceProvider
 from llmling_agent.tools.base import ToolInfo
 
 
@@ -73,7 +74,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         """
         super().__init__()
         self.tool_choice = tool_choice
-        self._tool_providers: list[ToolProvider] = []
+        self._resource_providers: list[ResourceProvider] = []
 
         # Register initial tools
         for tool in tools or []:
@@ -86,13 +87,35 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             return "No tools available"
         return f"Available tools: {', '.join(enabled_tools)}"
 
-    def add_provider(self, provider: ToolProvider) -> None:
-        """Add a function that provides tools."""
-        self._tool_providers.append(provider)
+    def add_provider(self, provider: ResourceProvider | ToolProvider) -> None:
+        """Add a resource provider or tool callable.
 
-    def remove_provider(self, provider: ToolProvider) -> None:
-        """Remove a function that provides tools."""
-        self._tool_providers.remove(provider)
+        Args:
+            provider: Either a ResourceProvider instance or a callable
+                     returning tools. Callables are automatically wrapped.
+        """
+        if isinstance(provider, ResourceProvider):
+            print(self._resource_providers)
+            print(provider)
+            self._resource_providers.append(provider)
+        else:
+            # Wrap old-style callable in ResourceProvider
+            wrapped = CallableResourceProvider(provider)
+            self._resource_providers.append(wrapped)
+
+    def remove_provider(self, provider: ResourceProvider | ToolProvider) -> None:
+        """Remove a resource provider."""
+        if isinstance(provider, ResourceProvider):
+            self._resource_providers.remove(provider)
+        else:
+            # Find and remove wrapped callable
+            for p in self._resource_providers:
+                if (
+                    isinstance(p, CallableResourceProvider)
+                    and p.tool_callable == provider
+                ):
+                    self._resource_providers.remove(p)
+                    break
 
     def reset_states(self):
         """Reset all tools to their default enabled states."""
@@ -177,14 +200,10 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         tools.extend(t for t in self.values() if t.matches_filter(state))
 
         # Get tools from providers
-        for provider in self._tool_providers:
+        for provider in self._resource_providers:
             try:
-                if inspect.iscoroutinefunction(provider):
-                    provider_tools = await provider()
-                else:
-                    provider_tools = provider()
-                # Only add tools that match state filter
-                tools.extend(t for t in provider_tools if t.matches_filter(state))  # pyright: ignore
+                provider_tools = await provider.get_tools()
+                tools.extend(t for t in provider_tools if t.matches_filter(state))
             except Exception:
                 logger.exception("Failed to get tools from provider: %r", provider)
                 continue

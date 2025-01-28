@@ -15,6 +15,7 @@ from llmling_agent.common_types import AgentName
 from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
+from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.models.context import AgentContext
 from llmling_agent.models.forward_targets import (
     CallableConnectionConfig,
@@ -108,7 +109,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self.storage = StorageManager(self.manifest.storage)
         self._teams: dict[str, BaseTeam[Any, Any]] = {}
         self.connection_registry = ConnectionRegistry()
-
+        self.mcp = MCPManager(self.manifest.get_mcp_servers())
         # Validate requested agents exist
         to_load = set(nodes_to_load) if nodes_to_load else set(self.manifest.agents)
         if invalid := (to_load - set(self.manifest.agents)):
@@ -138,12 +139,18 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
     async def __aenter__(self) -> Self:
         """Enter async context and initialize all agents."""
         try:
+            # Add MCP tool provider to all agents
+            # Initialize MCP and agents through exit stack
             agents = list(self.agents.values())
+            for agent in agents:
+                agent.tools.add_provider(self.mcp)
             if self.parallel_agent_load:
                 await asyncio.gather(
-                    *(self.exit_stack.enter_async_context(a) for a in agents)
+                    self.exit_stack.enter_async_context(self.mcp),
+                    *(self.exit_stack.enter_async_context(a) for a in agents),
                 )
             else:
+                await self.exit_stack.enter_async_context(self.mcp)
                 for agent in agents:
                     await self.exit_stack.enter_async_context(agent)
         except Exception as e:
@@ -151,8 +158,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             msg = "Failed to initialize agent pool"
             logger.exception(msg, exc_info=e)
             raise RuntimeError(msg) from e
-        else:
-            return self
+        return self
 
     async def __aexit__(
         self,
@@ -161,6 +167,9 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         exc_tb: TracebackType | None,
     ):
         """Exit async context."""
+        # Remove MCP tool provider from all agents
+        for agent in self.agents.values():
+            agent.tools.remove_provider(self.mcp)
         await self.cleanup()
 
     async def cleanup(self):
@@ -800,8 +809,8 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         agent = await self.exit_stack.enter_async_context(agent)
 
         # Register in pool
-        self.agents[name] = agent
-
+        self.register(name, agent)
+        agent.tools.add_provider(self.mcp)
         # Convert to structured if needed
         if result_type is not None:
             return agent.to_structured(result_type)
