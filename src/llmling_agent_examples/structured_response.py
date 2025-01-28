@@ -34,11 +34,6 @@ responses:
                     max_length: 20
 
 agents:
-    summarizer:
-        model: openai:gpt-4o-mini
-        system_prompts:
-            - Summarize text in a structured way.
-
     analyzer:
         model: openai:gpt-4o-mini
         system_prompts:
@@ -53,9 +48,11 @@ async def example_structured_response():
     manifest = AgentsManifest[None].from_yaml(AGENT_CONFIG)
 
     # Example 1: Python-defined structure
-    async with Agent[None].open_agent(
-        manifest, "summarizer", result_type=PythonResult
-    ) as summarizer:
+    agent = Agent[None](
+        model="openai:gpt-4o-mini",
+        system_prompt="Summarize text in a structured way.",
+    )
+    async with agent.to_structured(PythonResult) as summarizer:
         result = await summarizer.run("I love this new feature!")
         summary = result.data
         print("\nPython-defined Response:")
