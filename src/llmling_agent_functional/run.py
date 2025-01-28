@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent.agent import AgentKwargs
-    from llmling_agent.models.messages import ChatMessage
 
 
 TResult = TypeVar("TResult", default=str)
@@ -29,14 +28,14 @@ async def run_agent[TResult](
     *,
     result_type: type[TResult],
     **kwargs: Unpack[AgentKwargs],
-) -> ChatMessage[TResult]: ...
+) -> TResult: ...
 
 
 @overload
 async def run_agent(
     prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
     **kwargs: Unpack[AgentKwargs],
-) -> ChatMessage[str]: ...
+) -> str: ...
 
 
 async def run_agent(
@@ -44,11 +43,12 @@ async def run_agent(
     *,
     result_type: type[Any] | None = None,
     **kwargs: Unpack[AgentKwargs],
-) -> ChatMessage[Any]:
+) -> Any:
     """Run prompt through agent and return result."""
     agent = Agent[None](**kwargs)
     async with agent:
-        return await agent.run(prompt, result_type=result_type)
+        result = await agent.run(prompt, result_type=result_type)
+        return result.content
 
 
 @overload
@@ -57,14 +57,14 @@ def run_agent_sync[TResult](
     *,
     result_type: type[TResult],
     **kwargs: Unpack[AgentKwargs],
-) -> ChatMessage[TResult]: ...
+) -> TResult: ...
 
 
 @overload
 def run_agent_sync(
     prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
     **kwargs: Unpack[AgentKwargs],
-) -> ChatMessage[str]: ...
+) -> str: ...
 
 
 def run_agent_sync(
@@ -72,7 +72,7 @@ def run_agent_sync(
     *,
     result_type: type[Any] | None = None,
     **kwargs: Unpack[AgentKwargs],
-) -> ChatMessage[Any]:
+) -> Any:
     """Sync wrapper for run_agent."""
     return asyncio.run(
         run_agent(
