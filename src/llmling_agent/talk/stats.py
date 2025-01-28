@@ -77,12 +77,12 @@ class TalkStats(MessageStats):
 
 
 @dataclass(kw_only=True)
-class TeamStats:
+class AggregatedMessageStats:
     """Statistics aggregated from multiple connections."""
 
-    stats: Sequence[MessageStats | TeamStats] = field(default_factory=list)
+    stats: Sequence[MessageStats | AggregatedMessageStats] = field(default_factory=list)
 
-    # def __init__(self, stats: list[TalkStats | TeamTalkStats]):
+    # def __init__(self, stats: list[TalkStats | AggregatedTalkStats]):
     #     self.stats = stats
 
     @property
@@ -149,20 +149,20 @@ class TeamStats:
 
 
 @dataclass(kw_only=True)
-class TeamTalkStats(TeamStats):
+class AggregatedTalkStats(AggregatedMessageStats):
     """Statistics aggregated from multiple connections."""
 
-    stats: Sequence[TalkStats | TeamTalkStats] = field(default_factory=list)
+    stats: Sequence[TalkStats | AggregatedTalkStats] = field(default_factory=list)
 
     @cached_property
     def source_names(self) -> set[str]:
         """Set of unique source names recursively."""
 
-        def _collect_source_names(stat: TalkStats | TeamTalkStats) -> set[str]:
+        def _collect_source_names(stat: TalkStats | AggregatedTalkStats) -> set[str]:
             """Recursively collect source names."""
             if isinstance(stat, TalkStats):
                 return {stat.source_name} if stat.source_name else set()
-            # It's a TeamTalkStats, recurse
+            # It's a AggregatedTalkStats, recurse
             names = set()
             for s in stat.stats:
                 names.update(_collect_source_names(s))

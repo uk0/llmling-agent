@@ -15,7 +15,7 @@ from typing_extensions import TypeVar
 from llmling_agent.log import get_logger
 from llmling_agent.models.events import ConnectionEvent, ConnectionEventType, EventData
 from llmling_agent.models.messages import ChatMessage
-from llmling_agent.talk.stats import TalkStats, TeamTalkStats
+from llmling_agent.talk.stats import AggregatedTalkStats, TalkStats
 
 
 if TYPE_CHECKING:
@@ -503,9 +503,9 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
         return [talk for talk in self if talk.active]
 
     @property
-    def stats(self) -> TeamTalkStats:
+    def stats(self) -> AggregatedTalkStats:
         """Get aggregated statistics for all connections."""
-        return TeamTalkStats(stats=[talk.stats for talk in self])
+        return AggregatedTalkStats(stats=[talk.stats for talk in self])
 
     def when(self, condition: AnyFilterFn) -> Self:
         """Add condition to all connections in group."""

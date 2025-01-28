@@ -54,7 +54,7 @@ result = await run.wait()
 
 ### The Stats Object
 
-The TeamTalkStats object provides execution metrics and history:
+The AggregatedTalkStats object provides execution metrics and history:
 
 ```python
 # Access during or after run

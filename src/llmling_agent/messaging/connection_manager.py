@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
-from llmling_agent.talk import Talk, TeamTalk, TeamTalkStats
+from llmling_agent.talk import AggregatedTalkStats, Talk, TeamTalk
 
 
 if TYPE_CHECKING:
@@ -250,9 +250,9 @@ class ConnectionManager:
                 talk.active = True
 
     @property
-    def stats(self) -> TeamTalkStats:
+    def stats(self) -> AggregatedTalkStats:
         """Get aggregated statistics for all connections."""
-        return TeamTalkStats(stats=[conn.stats for conn in self._connections])
+        return AggregatedTalkStats(stats=[conn.stats for conn in self._connections])
 
     def get_connections(self, recursive: bool = False) -> list[Talk[Any]]:
         """Get all Talk connections, flattening TeamTalks."""
