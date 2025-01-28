@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
+    from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.agents import AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.session import SessionQuery
@@ -197,7 +198,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
     @overload
     def create_team_run[TDeps](
         self,
-        agents: Sequence[AnyAgent[TDeps, Any]],
+        agents: Sequence[MessageNode[TDeps, Any]],
         validator: AnyAgent[Any, Any] | None = None,
         *,
         model_override: str | None = None,
@@ -207,7 +208,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
     @overload
     def create_team_run(
         self,
-        agents: Sequence[AgentName | AnyAgent[Any, Any]],
+        agents: Sequence[AgentName | MessageNode[Any, Any]],
         validator: AnyAgent[Any, Any] | None = None,
         *,
         model_override: str | None = None,
@@ -216,7 +217,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
     def create_team_run(
         self,
-        agents: Sequence[AgentName | AnyAgent[Any, Any]] | None = None,
+        agents: Sequence[AgentName | MessageNode[Any, Any]] | None = None,
         validator: AnyAgent[Any, Any] | None = None,
         *,
         model_override: str | None = None,
@@ -225,7 +226,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         """Create a a sequential TeamRun from a list of Agents.
 
         Args:
-            agents: List of agent names or instances (all if None)
+            agents: List of agent names or team/agent instances (all if None)
             validator: Agent to validate the results of the TeamRun
             model_override: Optional model to use for all agents
             shared_prompt: Optional prompt for all agents
@@ -236,7 +237,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             agents = list(self.agents.keys())
 
         # First resolve/configure agents
-        resolved_agents: list[AnyAgent[Any, Any]] = []
+        resolved_agents: list[MessageNode[Any, Any]] = []
         for agent in agents:
             if isinstance(agent, str):
                 agent = self.get_agent(agent, model_override=model_override)
@@ -255,7 +256,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
     @overload
     def create_team[TDeps](
         self,
-        agents: Sequence[AnyAgent[TDeps, Any]],
+        agents: Sequence[MessageNode[TDeps, Any]],
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
@@ -264,7 +265,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
     @overload
     def create_team(
         self,
-        agents: Sequence[AgentName | AnyAgent[Any, Any]],
+        agents: Sequence[AgentName | MessageNode[Any, Any]],
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
@@ -272,7 +273,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
     def create_team(
         self,
-        agents: Sequence[AgentName | AnyAgent[Any, Any]] | None = None,
+        agents: Sequence[AgentName | MessageNode[Any, Any]] | None = None,
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
@@ -290,7 +291,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             agents = list(self.agents.keys())
 
         # First resolve/configure agents
-        resolved_agents: list[AnyAgent[Any, Any]] = []
+        resolved_agents: list[MessageNode[Any, Any]] = []
         for agent in agents:
             if isinstance(agent, str):
                 agent = self.get_agent(agent, model_override=model_override)

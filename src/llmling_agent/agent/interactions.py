@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
+    from llmling_agent.messaging.messagenode import MessageNode
 
 
 logger = get_logger(__name__)
@@ -96,7 +97,7 @@ class Interactions[TDeps, TResult]:
 
     async def conversation(
         self,
-        other: AnyAgent[Any, Any],
+        other: MessageNode[Any, Any],
         initial_message: AnyPromptType,
         *,
         max_rounds: int | None = None,
@@ -119,14 +120,14 @@ class Interactions[TDeps, TResult]:
         rounds = 0
         messages: list[ChatMessage[Any]] = []
         current_message = initial_message
-        current_agent = self.agent
+        current_node: MessageNode[Any, Any] = self.agent
 
         while True:
             if max_rounds and rounds >= max_rounds:
                 logger.debug("Conversation ended: max rounds (%d) reached", max_rounds)
                 return
 
-            response = await current_agent.run(
+            response = await current_node.run(
                 current_message, store_history=store_history
             )
             messages.append(response)
@@ -137,7 +138,7 @@ class Interactions[TDeps, TResult]:
                 return
 
             # Switch agents for next round
-            current_agent = other if current_agent == self.agent else self.agent
+            current_node = other if current_node == self.agent else self.agent
             current_message = response.content
             rounds += 1
 
