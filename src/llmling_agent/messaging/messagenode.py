@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, overload
 from psygnal import Signal
 
 from llmling_agent.mcp_server.manager import MCPManager
+from llmling_agent.models.messages import ChatMessage
 from llmling_agent.talk.stats import (
     AggregatedMessageStats,
     AggregatedTalkStats,
@@ -32,7 +33,6 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.mcp_server import MCPServerConfig
-    from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.nodes import NodeConfig
     from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.talk import QueueStrategy, Talk, TeamTalk
@@ -62,6 +62,9 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
 
     outbox = Signal(object)  # ChatMessage
     """Signal emitted when node produces a message."""
+
+    message_received = Signal(ChatMessage)
+    message_sent = Signal(ChatMessage)
 
     def __init__(
         self,
@@ -297,10 +300,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
             **kwargs: Additional arguments for _run
         """
         message = await self._run(*prompts, **kwargs)
-        await self.connections.route_message(
-            message,
-            wait=wait_for_connections,
-        )
+        await self.connections.route_message(message, wait=wait_for_connections)
         return message
 
     @abstractmethod

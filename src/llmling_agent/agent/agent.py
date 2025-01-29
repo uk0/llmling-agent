@@ -137,9 +137,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     conversation: ConversationManager
     talk: Interactions
     description: str | None
-
-    message_received = Signal(ChatMessage[str])  # Always string
-    message_sent = Signal(ChatMessage)
     tool_used = Signal(ToolCallInfo)
     model_changed = Signal(object)  # Model | None
     chunk_streamed = Signal(str, str)  # (chunk, message_id)
@@ -972,6 +969,12 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         final_prompt = "\n\n".join(str(p) for p in prompts)
         self.set_result_type(result_type)
         self.context.current_prompt = final_prompt
+        # Create and emit user message
+        user_msg = ChatMessage[str](content=final_prompt, role="user")
+        self.message_received.emit(user_msg)
+        message_id = str(uuid4())
+        start_time = time.perf_counter()
+        sys_prompt = await self.sys_prompts.format_system_prompt(self)
         tools = await self.tools.get_tools(state="enabled")
         match tool_choice:
             case str():
@@ -983,13 +986,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             case True | None:
                 pass  # Keep all tools
         try:
-            # Create and emit user message
-            user_msg = ChatMessage[str](content=final_prompt, role="user")
-            self.message_received.emit(user_msg)
-            message_id = str(uuid4())
-            start_time = time.perf_counter()
-            sys_prompt = await self.sys_prompts.format_system_prompt(self)
-
             async with self._provider.stream_response(
                 *prompts,
                 message_id=message_id,
@@ -999,9 +995,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 tools=tools,
                 system_prompt=sys_prompt,
             ) as stream:
-                yield stream  # type: ignore
-
-                # After streaming is done, create and emit final message
+                yield stream
                 usage = stream.usage()
                 cost_info = None
                 model_name = stream.model_name  # type: ignore
@@ -1020,7 +1014,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                     message_id=message_id,
                     cost_info=cost_info,
                     response_time=time.perf_counter() - start_time,
-                    # provider_extra=result.provider_extra or {},
+                    # provider_extra=stream.provider_extra or {},
                 )
                 self.message_sent.emit(response_msg)
                 await self.connections.route_message(
