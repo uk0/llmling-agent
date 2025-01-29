@@ -10,6 +10,8 @@ from llmling_agent.prompts.base import BasePromptProvider
 
 
 if TYPE_CHECKING:
+    from llmling.config.runtime import RuntimeConfig
+
     from llmling_agent.models.prompts import SystemPrompt
 
 
@@ -81,3 +83,28 @@ class BuiltinPromptProvider(BasePromptProvider):
     async def list_prompts(self) -> list[str]:
         """List available prompt identifiers."""
         return list(self.prompts.keys())
+
+
+class RuntimePromptProvider(BasePromptProvider):
+    """Provider for prompts from RuntimeConfig."""
+
+    name = "runtime"
+    supports_variables = True
+
+    def __init__(self, runtime_config: RuntimeConfig):
+        self.runtime = runtime_config
+
+    async def get_prompt(
+        self,
+        name: str,
+        version: str | None = None,
+        variables: dict[str, Any] | None = None,
+    ) -> str:
+        prompt = self.runtime.get_prompt(name)
+        if variables:
+            messages = await prompt.format(variables)
+        messages = await prompt.format()
+        return "\n".join(m.get_text_content() for m in messages)
+
+    async def list_prompts(self) -> list[str]:
+        return [p.name for p in self.runtime.get_prompts() if p.name]

@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
 from typing import TYPE_CHECKING, get_args
 
 from pydantic_ai.models import KnownModelName
 from slashed import CompletionItem, CompletionProvider
-
-from llmling_agent.prompts import DEFAULT_PROMPTS, PromptLibrary
 
 
 if TYPE_CHECKING:
@@ -68,47 +65,42 @@ def get_model_names(ctx: CompletionContext[AgentContext]) -> list[str]:
     return all_models
 
 
-@lru_cache(maxsize=1)
-def _load_prompt_library() -> PromptLibrary | None:
-    """Load and cache the prompt library."""
-    try:
-        return PromptLibrary.from_file(DEFAULT_PROMPTS)
-    except Exception:  # noqa: BLE001
-        return None
-
-
-class MetaCompleter(CompletionProvider):
-    """Smart completer for meta-prompts."""
+class PromptCompleter(CompletionProvider):
+    """Completer for prompts."""
 
     async def get_completions(
         self, ctx: CompletionContext[AgentContext]
     ) -> AsyncIterator[CompletionItem]:
-        """Complete meta command arguments."""
+        """Complete prompt references."""
         current = ctx.current_word
-        args = ctx.command_args
-        lib = _load_prompt_library()
-        if not lib:
+        manifest = ctx.command_context.context.definition
+
+        # If no : yet, suggest providers
+        if ":" not in current:
+            # Always suggest builtin prompts without prefix
+            for name in manifest.prompts.system_prompts:
+                if name.startswith(current):
+                    yield CompletionItem(
+                        text=name, metadata="Builtin prompt", kind="choice"
+                    )
+
+            # Suggest provider prefixes
+            for provider in manifest.prompts.providers or []:
+                prefix = f"{provider.type}:"
+                if prefix.startswith(current):
+                    yield CompletionItem(
+                        text=prefix, metadata="Prompt provider", kind="choice"
+                    )
             return
-        prompts = lib.meta_prompts
-        # If completing a new argument that starts with --
-        if current.startswith("--"):
-            # Get categories that haven't been used yet
-            used_cats = {arg[2:].split("=")[0] for arg in args if arg.startswith("--")}
-            # Suggest unused categories
-            cats = {name.split(".")[0] for name in prompts if "." in name}
-            for category in cats - used_cats:
-                if category.startswith(current[2:]):
-                    meta = "Meta prompt category"
-                    text = f"--{category}"
-                    yield CompletionItem(text=text, metadata=meta, kind="argument")  # type: ignore
-        # If completing a value after a category
-        for arg in args:
-            if not (arg.startswith("--") and "=" not in arg):
-                continue
-            category = arg[2:]  # Remove --
-            # Get styles for this category
-            styles = [n.split(".")[1] for n in prompts if n.startswith(f"{category}.")]
-            for style in styles:
-                if style.startswith(current):
-                    meta = f"{category} style"
-                    yield CompletionItem(text=style, metadata=meta, kind="value")  # type: ignore
+
+        # If after provider:, get prompts from that provider
+        provider, partial = current.split(":", 1)
+        if provider == "builtin" or not provider:
+            # Complete from system prompts
+            for name in manifest.prompts.system_prompts:
+                if name.startswith(partial):
+                    yield CompletionItem(
+                        text=f"{provider}:{name}" if provider else name,
+                        metadata="Builtin prompt",
+                        kind="choice",
+                    )

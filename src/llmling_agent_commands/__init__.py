@@ -15,7 +15,6 @@ from llmling_agent_commands.connections import (
     disconnect_all_cmd,
 )
 from llmling_agent_commands.env import edit_env_cmd, set_env_cmd
-from llmling_agent_commands.meta import meta_cmd
 from llmling_agent_commands.models import set_model_cmd
 from llmling_agent_commands.prompts import list_prompts_cmd, prompt_cmd
 from llmling_agent_commands.resources import (
@@ -64,7 +63,6 @@ def get_agent_commands() -> list[BaseCommand | type[SlashedCommand]]:
         # Prompt management
         list_prompts_cmd,
         prompt_cmd,
-        meta_cmd,
         # Worker management (all from current agent's perspective)
         add_worker_cmd,
         remove_worker_cmd,

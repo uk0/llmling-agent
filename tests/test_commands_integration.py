@@ -6,9 +6,23 @@ from llmling import Config, PromptMessage, PromptParameter, StaticPrompt
 import pytest
 from slashed import CommandStore, DefaultOutputWriter
 
-from llmling_agent import Agent
-from llmling_agent.delegation.pool import AgentPool
+from llmling_agent.models.agents import AgentsManifest
 from llmling_agent_commands.prompts import prompt_cmd
+
+
+TEST_CONFIG = """
+prompts:
+  system_prompts:
+    greet:
+      content: "Hello {{ name }}!"
+      type: role
+
+    analyze:
+      content: |
+        Analyzing {{ data }}...
+        Please check {{ data }}
+      type: methodology
+"""
 
 
 @pytest.fixture
@@ -50,69 +64,27 @@ def config() -> Config:
 
 
 @pytest.mark.asyncio
-async def test_prompt_command_simple(config: Config):
-    """Test executing a simple prompt without arguments."""
+async def test_prompt_command():
+    """Test prompt command with new prompt system."""
     messages = []
+    store = CommandStore()
 
     class TestOutput(DefaultOutputWriter):
         async def print(self, message: str):
             messages.append(message)
 
-    async with Agent[None].open(config) as agent:
-        pool = AgentPool[None]()
-        pool.register(agent.name, agent)
-        agent.context.pool = pool
-        store = CommandStore(enable_system_commands=True)
-        context = store.create_context(agent.context, output_writer=TestOutput())
+    # Load test config
+    manifest = AgentsManifest.from_yaml(TEST_CONFIG)
+    context = store.create_context(manifest, output_writer=TestOutput())
 
-        # Execute prompt command
-        await prompt_cmd.execute(ctx=context, args=["greet"])
+    # Test simple prompt
+    await prompt_cmd.execute(ctx=context, args=["greet?name=World"], kwargs={})
+    assert "Hello World!" in messages[-1]
 
-        # Verify message was added to conversation history
-        history = agent.conversation.get_history()
-        assert len(history) == 1
-        message = history[0]
-        assert "prompt:greet" in str(message)
-        assert "Hello World" in str(message)
-
-        # Verify user feedback
-        assert len(messages) == 1
-        assert "Added prompt 'greet' to next message" in messages[0]
-
-
-@pytest.mark.asyncio
-async def test_prompt_command_with_args(config: Config):
-    """Test executing a prompt with arguments."""
-    messages = []
-
-    class TestOutput(DefaultOutputWriter):
-        async def print(self, message: str):
-            messages.append(message)
-
-    async with Agent[None].open(config) as agent:
-        pool = AgentPool[None]()
-        pool.register(agent.name, agent)
-        agent.context.pool = pool
-        store = CommandStore(enable_system_commands=True)
-        context = store.create_context(agent.context, output_writer=TestOutput())
-
-        # Execute prompt command with arguments
-        kwargs = {"data": "test.txt"}
-        await prompt_cmd.execute(ctx=context, args=["analyze"], kwargs=kwargs)
-
-        # Verify message was added to conversation history
-        history = agent.conversation.get_history()
-        assert len(history) == 1
-
-        # Get content from each part
-        content = str(history[0])
-        assert "prompt:analyze" in content
-        assert "Analyzing test.txt" in content
-        assert "Please check test.txt" in content
-
-        # Verify user feedback
-        assert len(messages) == 1
-        assert "Added prompt 'analyze' to next message" in messages[0]
+    # Test prompt with variables
+    await prompt_cmd.execute(ctx=context, args=["analyze?data=test.txt"], kwargs={})
+    assert "Analyzing test.txt" in messages[-1]
+    assert "Please check test.txt" in messages[-1]
 
 
 if __name__ == "__main__":

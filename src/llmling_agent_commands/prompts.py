@@ -1,17 +1,24 @@
-"""Prompt-related commands."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from slashed import Command, CommandContext
-from slashed.completers import CallbackCompleter
+from slashed import Command, CommandContext, CommandError
 
-from llmling_agent_commands.completers import get_prompt_names
+from llmling_agent_commands.completers import PromptCompleter
 
 
 if TYPE_CHECKING:
     from llmling_agent.models.context import AgentContext
+
+PROMPT_HELP = """\
+Show prompts from configured prompt hubs.
+
+Usage examples:
+  /prompt role.reviewer            # Use builtin prompt
+  /prompt openlit:code_review     # Use specific provider
+  /prompt langfuse:explain@v2     # Use specific version
+  /prompt some_prompt[var=value]  # With variables
+"""
 
 
 EXECUTE_PROMPT_HELP = """\
@@ -28,41 +35,57 @@ Examples:
 """
 
 
-async def list_prompts(
-    ctx: CommandContext[AgentContext],
-    args: list[str],
-    kwargs: dict[str, str],
-):
-    """List available prompts."""
-    prompts = ctx.context.agent.runtime.get_prompts()
-    await ctx.output.print("\nAvailable prompts:")
-    for prompt in prompts:
-        await ctx.output.print(f"  {prompt.name:<20} - {prompt.description}")
-
-
-# TODO: we need to get a clear picture about the difference between Knowledge prompts
-# and runtime prompts.
 async def prompt_command(
     ctx: CommandContext[AgentContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
-    """Execute a prompt.
-
-    The first argument is the prompt name, remaining kwargs are prompt arguments.
-    """
+    """Show prompt content."""
     if not args:
-        await ctx.output.print("Usage: /prompt <name> [arg1=value1] [arg2=value2]")
+        await ctx.output.print(
+            "Usage: /prompt <[provider:]identifier[@version][?var=val]>"
+        )
         return
 
-    name = args[0]
     try:
-        prompt = ctx.context.agent.runtime.get_prompt(name)
-        # Add as context using new method
-        await ctx.context.agent.conversation.add_context_from_prompt(prompt, **kwargs)  # type: ignore
-        await ctx.output.print(f"Added prompt {name!r} to next message as context.")
-    except (ValueError, KeyError) as e:
-        await ctx.output.print(f"Error executing prompt: {e}")
+        prompt = await ctx.context.prompt_manager.get(args[0])
+        await ctx.output.print("\nPrompt Content:\n" + prompt)
+    except Exception as e:
+        msg = f"Error getting prompt: {e}"
+        raise CommandError(msg) from e
+
+
+async def list_prompts(
+    ctx: CommandContext[AgentContext],
+    args: list[str],
+    kwargs: dict[str, str],
+):
+    """List available prompts from all providers."""
+    prompts = await ctx.context.prompt_manager.list_prompts()
+
+    await ctx.output.print("\nAvailable prompts:")
+    for provider, provider_prompts in prompts.items():
+        if not provider_prompts:
+            continue
+        await ctx.output.print(f"\n{provider}:")
+        for prompt_name in sorted(provider_prompts):
+            # For builtin prompts we can show their description
+            if provider == "builtin":
+                prompt = ctx.context.definition.prompts.system_prompts[prompt_name]
+                desc = f" - {prompt.type}"
+                await ctx.output.print(f"  {prompt_name:<30}{desc}")
+            else:
+                await ctx.output.print(f"  {prompt_name}")
+
+
+prompt_cmd = Command(
+    name="prompt",
+    description="Show prompt content",
+    execute_func=prompt_command,
+    help_text=PROMPT_HELP,
+    category="prompts",
+    completer=PromptCompleter(),
+)
 
 
 list_prompts_cmd = Command(
@@ -74,14 +97,4 @@ list_prompts_cmd = Command(
         "Each prompt is shown with its name and description."
     ),
     category="prompts",
-)
-
-prompt_cmd = Command(
-    name="prompt",
-    description="Execute a prompt",
-    execute_func=prompt_command,
-    usage="<name> [arg1=value1] [arg2=value2]",
-    help_text=EXECUTE_PROMPT_HELP,
-    category="prompts",
-    completer=CallbackCompleter(get_prompt_names),
 )

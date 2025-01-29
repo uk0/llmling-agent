@@ -26,6 +26,7 @@ from llmling_agent.models import AgentContext, AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.models.session import MemoryConfig, SessionQuery
+from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.responses.utils import to_type
 from llmling_agent.talk.stats import MessageStats
@@ -225,6 +226,9 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 ctx.runtime = RuntimeConfig.from_config(runtime)
             case RuntimeConfig():
                 ctx.runtime = runtime
+
+        runtime_provider = RuntimePromptProvider(ctx.runtime)
+        ctx.definition.prompt_manager.providers["runtime"] = runtime_provider
         # Initialize tool manager
         all_tools = list(tools or [])
         self._tool_manager = ToolManager(all_tools)
