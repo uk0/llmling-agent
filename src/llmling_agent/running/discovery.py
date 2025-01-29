@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 import inspect
 from typing import TYPE_CHECKING, Any
@@ -10,7 +11,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Sequence
 
     from llmling_agent.common_types import AnyCallable
 
@@ -51,7 +52,7 @@ class AgentFunction:
 def agent_function(
     func: Callable | None = None,
     *,
-    depends_on: str | Sequence[str] | None = None,
+    depends_on: str | Sequence[str | Callable] | Callable | None = None,
 ) -> Callable:
     """Mark a function for automatic agent execution.
 
@@ -72,7 +73,19 @@ def agent_function(
     """
 
     def decorator(func: Callable) -> Callable:
-        deps = [depends_on] if isinstance(depends_on, str) else list(depends_on or [])
+        match depends_on:
+            case None:
+                deps = []
+            case str():
+                deps = [depends_on]
+            case Callable():
+                deps = [depends_on.__name__]
+
+            case [*items]:
+                deps = [i.__name__ if isinstance(i, Callable) else str(i) for i in items]  # type: ignore[union-attr, arg-type]
+            case _:
+                msg = f"Invalid depends_on: {depends_on}"
+                raise ValueError(msg)
         metadata = AgentFunction(func=func, depends_on=deps)
         func._agent_function = metadata  # type: ignore
         return func
