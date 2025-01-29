@@ -1,114 +1,131 @@
+"""Main Textual supervisor application."""
+
 from __future__ import annotations
 
-import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-import logfire
-from slashed.textual_adapter import CommandInput
-from textual import on
 from textual.app import App, ComposeResult
-from textual.containers import Container
-from textual.widgets import Header
+from textual.containers import Vertical
+from textual.widgets import DataTable, Footer, Header, Static
 
-from llmling_agent import Agent
-from llmling_agent.models import ChatMessage
-from llmling_agent.utils.tasks import TaskManagerMixin
-from llmling_agent_commands import get_commands
-from llmling_textual.widgets.widget import ChatView
+from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent import AgentPool
+    from llmling_agent.common_types import StrPath
+
+logger = get_logger(__name__)
 
 
-logger = logging.getLogger(__name__)
+class AgentList(DataTable):
+    """List of agents with their status."""
 
+    DEFAULT_CSS = """
+    AgentList {
+        height: 100%;
+        border: solid $primary;
+    }
+    """
 
-class ChatApp(App, TaskManagerMixin):
-    """Chat application with command support."""
-
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self._agent: AnyAgent[Any, Any] | None = None
-        self._agent_cm: Any = None
+        self.add_columns("Name", "Status", "Model")
+        self.cursor_type = "row"
+        self.zebra_stripes = True
+
+    def update_agents(self, pool: AgentPool) -> None:
+        """Update agent list from pool."""
+        self.clear()
+        for name in sorted(pool.list_agents()):
+            agent = pool.get_agent(name)
+            status = "🔄 busy" if agent.is_busy() else "⏳ idle"
+            self.add_row(
+                name,
+                status,
+                agent.model_name or "default",
+                key=name,
+            )
+
+
+class SupervisorApp(App):
+    """Textual interface for managing agents."""
+
+    CSS = """
+    Screen {
+        layout: grid;
+        grid-size: 2;
+        grid-columns: 30% 70%;
+    }
+
+    #sidebar {
+        height: 100%;
+    }
+
+    #main {
+        height: 100%;
+    }
+    """
+
+    def __init__(self, config_path: StrPath, *, title: str | None = None) -> None:
+        super().__init__()
+        self.config_path = config_path
+        if title:
+            self.title = title
+        self.pool: AgentPool | None = None
+        self._agent_list: AgentList | None = None
 
     def compose(self) -> ComposeResult:
+        """Create app layout."""
         yield Header()
-        yield Container(ChatView(), id="chat-output")
-        yield CommandInput(
-            output_id="chat-output",
-            context_data=self._agent,
-            status_id="status-area",
-        )
 
-    async def on_mount(self):
-        """Initialize agent when app starts."""
-        path = "src/llmling_agent/config_resources/agents.yml"
-        self._agent_cm = Agent.open_agent(path, "url_opener")
-        self._agent = await self._agent_cm.__aenter__()
-        assert self._agent
-        logger.info("Agent initialized: %s", self._agent.name)
-        command_input = self.query_one(CommandInput)
-        for command in get_commands():
-            command_input.store.register_command(command)
+        # Left sidebar with agent list
+        with Vertical(id="sidebar"):
+            yield AgentList()
 
-    async def on_unmount(self):
-        """Clean up tasks and agent."""
-        await self.complete_tasks(cancel=True)
+        # Main content area (temporary)
+        with Vertical(id="main"):
+            yield Static("Main content will go here")
 
-        if self._agent_cm is not None:
-            await self._agent_cm.__aexit__(None, None, None)
+        yield Footer()
 
-    @logfire.instrument("Got input: {event.text}")
-    @on(CommandInput.InputSubmitted)
-    async def handle_submit(self, event: CommandInput.InputSubmitted):
-        """Handle regular input submission."""
-        self.create_task(
-            self.handle_chat_message(event.text), name=f"chat_message_{event.text[:10]}"
-        )
-
-    @logfire.instrument("Processing message: {text}")
-    async def handle_chat_message(self, text: str):
-        """Process normal chat messages."""
-        if not self._agent:
-            logger.error("No agent available!")
-            return
-        chat = self.query_one(ChatView)
-
-        # Add user message
-        await chat.add_message(ChatMessage[str](role="user", content=text, name="User"))
-
-        # Create empty assistant message, will get populated for streaming.
-        name = self._agent.model_name
-        msg = ChatMessage[str](role="assistant", content="", name="Assistant", model=name)
-        widget = await chat.add_message(msg)
+    async def on_mount(self) -> None:
+        """Initialize pool and UI when app mounts."""
+        from llmling_agent import AgentPool
 
         try:
-            # Stream the response from the agent
-            logger.debug("Starting stream")
-            async with self._agent.run_stream(text) as stream:
-                full_content = ""
-                logger.debug("Stream opened, waiting for chunks")
-                async for chunk in stream.stream():
-                    # Get just the new content by removing the overlap
-                    new_content = str(chunk).removeprefix(full_content)
-                    logger.debug("Got new content: %r", new_content)
+            # Initialize pool
+            logger.info("Initializing agent pool from %s", self.config_path)
+            self.pool = await AgentPool(self.config_path).__aenter__()
 
-                    full_content += new_content
-                    widget.update_content(full_content)
-                    widget.refresh()
+            # Get widgets
+            self._agent_list = self.query_one(AgentList)
 
-                logger.debug("Stream completed with final content: %r", full_content)
+            # Initial UI update
+            self._refresh_agent_list()
+            # Set up periodic refresh
+            self.set_interval(1.0, self._refresh_agent_list)
+
         except Exception:
-            logger.exception("Error streaming response")
-            widget.update_content("Error processing response")
+            logger.exception("Failed to initialize agent pool")
+            self.exit(message="Failed to initialize agent pool")
+
+    async def on_unmount(self) -> None:
+        """Clean up when app unmounts."""
+        if self.pool:
+            try:
+                await self.pool.__aexit__(None, None, None)
+            except Exception:
+                logger.exception("Error during pool cleanup")
+
+    def _refresh_agent_list(self) -> None:
+        """Update agent list display."""
+        if self.pool and self._agent_list:
+            self._agent_list.update_agents(self.pool)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.DEBUG,
-        filename="chat_app.log",
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    app = SupervisorApp(
+        "src/llmling_agent/config_resources/agents.yml", title="Agent Supervisor"
     )
-    app = ChatApp()
     app.run()
