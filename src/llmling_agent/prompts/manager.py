@@ -97,6 +97,49 @@ class PromptManager(TaskManagerMixin):
                             provider_config
                         )
 
+    async def get_from(
+        self,
+        identifier: str,
+        *,
+        provider: str | None = None,
+        version: str | None = None,
+        variables: dict[str, Any] | None = None,
+    ) -> str:
+        """Get a prompt.
+
+        Args:
+            identifier: Prompt identifier/name
+            provider: Provider name (None = builtin)
+            version: Optional version string
+            variables: Optional template variables
+
+        Examples:
+            await prompts.get_from("code_review", variables={"language": "python"})
+            await prompts.get_from(
+                "expert",
+                provider="langfuse",
+                version="v2",
+                variables={"domain": "ML"}
+            )
+        """
+        provider_name = provider or "builtin"
+        if provider_name not in self.providers:
+            msg = f"Unknown prompt provider: {provider_name}"
+            raise KeyError(msg)
+
+        provider_instance = self.providers[provider_name]
+        try:
+            kwargs: dict[str, Any] = {}
+            if provider_instance.supports_versions and version:
+                kwargs["version"] = version
+            if provider_instance.supports_variables and variables:
+                kwargs["variables"] = variables
+
+            return await provider_instance.get_prompt(identifier, **kwargs)
+        except Exception as e:
+            msg = f"Failed to get prompt {identifier!r} from {provider_name}"
+            raise RuntimeError(msg) from e
+
     async def get(self, reference: str) -> str:
         """Get a prompt using identifier syntax.
 
@@ -110,26 +153,12 @@ class PromptManager(TaskManagerMixin):
             await prompts.get("openlit:explain?context=web,detail=high")
         """
         provider_name, identifier, version, variables = parse_prompt_reference(reference)
-
-        if provider_name not in self.providers:
-            msg = f"Unknown prompt provider: {provider_name}"
-            raise KeyError(msg)
-
-        provider = self.providers[provider_name]
-
-        try:
-            # Only pass version/variables if provider supports them
-            kwargs: dict[str, Any] = {}
-            if provider.supports_versions and version:
-                kwargs["version"] = version
-            if provider.supports_variables and variables:
-                kwargs["variables"] = variables
-
-            return await provider.get_prompt(identifier, **kwargs)
-
-        except Exception as e:
-            msg = f"Failed to get prompt {reference!r} from {provider_name}"
-            raise RuntimeError(msg) from e
+        return await self.get_from(
+            identifier,
+            provider=provider_name if provider_name != "builtin" else None,
+            version=version,
+            variables=variables,
+        )
 
     def get_sync(self, reference: str) -> str:
         """Synchronous wrapper for get().

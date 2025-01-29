@@ -97,20 +97,67 @@ class SystemPrompts:
     def __getitem__(self, idx: int | slice) -> AnyPromptType | list[AnyPromptType]:
         return self.prompts[idx]
 
-    async def add(self, reference: str) -> None:
-        """Add a system prompt using prompt reference syntax.
+    async def add_by_reference(self, reference: str) -> None:
+        """Add a system prompt using reference syntax.
 
         Args:
-            reference: Prompt reference in format:
-                      [provider:]identifier[@version][?var1=val1,...]
+            reference: [provider:]identifier[@version][?var1=val1,...]
 
         Examples:
-            await agent.sys_prompts.add("code_reviewer?language=python")
-            await agent.sys_prompts.add("langfuse:expert@v2")
+            await sys_prompts.add_by_reference("code_review?language=python")
+            await sys_prompts.add_by_reference("langfuse:expert@v2")
         """
-        assert self.context
-        content = await self.context.prompt_manager.get(reference)
-        self.prompts.append(content)
+        if not self.context:
+            msg = "No context available to resolve prompts"
+            raise RuntimeError(msg)
+
+        try:
+            content = await self.context.prompt_manager.get(reference)
+            self.prompts.append(content)
+        except Exception as e:
+            msg = f"Failed to add prompt {reference!r}"
+            raise RuntimeError(msg) from e
+
+    async def add(
+        self,
+        identifier: str,
+        *,
+        provider: str | None = None,
+        version: str | None = None,
+        variables: dict[str, Any] | None = None,
+    ) -> None:
+        """Add a system prompt using explicit parameters.
+
+        Args:
+            identifier: Prompt identifier/name
+            provider: Provider name (None = builtin)
+            version: Optional version string
+            variables: Optional template variables
+
+        Examples:
+            await sys_prompts.add("code_review", variables={"language": "python"})
+            await sys_prompts.add(
+                "expert",
+                provider="langfuse",
+                version="v2"
+            )
+        """
+        if not self.context:
+            msg = "No context available to resolve prompts"
+            raise RuntimeError(msg)
+
+        try:
+            content = await self.context.prompt_manager.get_from(
+                identifier,
+                provider=provider,
+                version=version,
+                variables=variables,
+            )
+            self.prompts.append(content)
+        except Exception as e:
+            ref = f"{provider + ':' if provider else ''}{identifier}"
+            msg = f"Failed to add prompt {ref!r}"
+            raise RuntimeError(msg) from e
 
     async def refresh_cache(self) -> None:
         """Force re-evaluation of prompts."""
