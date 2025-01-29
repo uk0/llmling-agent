@@ -22,7 +22,28 @@ async def run_agents_async(
     inputs: dict[str, Any] | None = None,
     parallel: bool = False,
 ) -> dict[str, Any]:
-    """Run agent functions asynchronously."""
+    """Execute agent functions with dependency handling.
+
+    Args:
+        config: Agent configuration (path or manifest)
+        module: Optional module to discover functions from
+        functions: Optional list of function names to run (auto-discovers if None)
+        inputs: Optional input values for function parameters
+        parallel: Whether to run independent functions in parallel
+
+    Returns:
+        Dict mapping function names to their results
+
+    Example:
+        ```python
+        @agent_function
+        async def analyze(analyzer: Agent) -> str:
+            return await analyzer.run("...")
+
+        results = await run_agents_async("agents.yml")
+        print(results["analyze"])
+        ```
+    """
     # Find functions to run
     if module:
         discovered = discover_functions(module)
@@ -57,7 +78,18 @@ def run_agents(
     config: str,
     **kwargs: Any,
 ) -> dict[str, Any]:
-    """Run agent functions (sync version)."""
+    """Run agent functions synchronously.
+
+    Convenience wrapper around run_agents_async for sync contexts.
+    See run_agents_async for full documentation.
+
+    Args:
+        config: Agent configuration path
+        **kwargs: Arguments to pass to run_agents_async
+
+    Returns:
+        Dict mapping function names to their results
+    """
     return asyncio.run(run_agents_async(config, **kwargs))
 
 

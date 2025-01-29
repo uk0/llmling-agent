@@ -184,16 +184,11 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             # Load knowledge for all agents if provided
             if job.knowledge:
                 # TODO: resources
-                await self.distribute(
-                    content="",  # Knowledge loaded through resources
-                    tools=[t.name for t in job.get_tools()],
-                    # resources=job.knowledge.get_resources(),
-                )
+                tools = [t.name for t in job.get_tools()]
+                await self.distribute(content="", tools=tools)
 
-            # Get prompt
             prompt = await job.get_prompt()
 
-            # Run job in parallel on all agents
             async def _run(agent: MessageNode[TDeps, TResult]) -> None:
                 assert isinstance(agent, Agent | StructuredAgent)
                 try:
@@ -210,6 +205,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
                 except Exception as e:  # noqa: BLE001
                     errors[agent.name] = e
 
+            # Run job in parallel on all agents
             await asyncio.gather(*[_run(node) for node in self.agents])
 
             return TeamResponse(responses=responses, start_time=start_time, errors=errors)

@@ -2,6 +2,7 @@
 
 from llmling_agent.models import AgentsManifest, AgentConfig, AgentContext
 from llmling_agent.agent import Agent, StructuredAgent, AnyAgent
+from llmling_agent.running import agent_function, run_agents_async
 
 from llmling_agent.delegation import AgentPool, Team, TeamRun
 from dotenv import load_dotenv
@@ -22,4 +23,6 @@ __all__ = [
     "StructuredAgent",
     "Team",
     "TeamRun",
+    "agent_function",
+    "run_agents_async",
 ]
