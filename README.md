@@ -700,7 +700,7 @@ Handle images and PDFs alongside text (depends on provider / model support)
 import PIL.Image
 from llmling_agent import Agent
 
-async with Agent.open() as agent:
+async with Agent(...) as agent:
     result = await agent.run("What's in this image?", PIL.Image.open("image.jpg"))
     result = await agent.run("What's in this image?", pathlib.Path("image.jpg"))
     result = await agent.run("What's in this PDF?", pathlib.Path("document.pdf"))
