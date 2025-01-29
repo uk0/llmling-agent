@@ -10,8 +10,6 @@ from itertools import pairwise
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
-from toprompt import to_prompt
-
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import AgentResponse, ChatMessage, TeamResponse
@@ -143,6 +141,8 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
         **kwargs: Any,
     ) -> AsyncIterator[Talk[Any] | AgentResponse[Any]]:
+        from toprompt import to_prompt
+
         connections: list[Talk[Any]] = []
         try:
             combined_prompt = "\n".join([await to_prompt(p) for p in prompt])
@@ -151,7 +151,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                 all_nodes.append(self.validator)
             first = all_nodes[0]
             connections = [
-                source.connect_to(target, queued=True)  # pyright: ignore
+                source.connect_to(target, queued=True)
                 for source, target in pairwise(all_nodes)
             ]
             for conn in connections:
