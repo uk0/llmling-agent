@@ -35,7 +35,6 @@ def run_command(
     ),
     show_metadata: bool = t.Option(False, "--metadata", help="Show message metadata"),
     show_costs: bool = t.Option(False, "--costs", help="Show token usage and costs"),
-    model: str = t.Option(None, "--model", "-m", help="Override model"),
     verbose: bool = verbose_opt,
 ):
     """Run agent(s) with prompts.
@@ -82,12 +81,10 @@ def run_command(
                 for prompt in prompts:
                     match execution_mode:
                         case "parallel":
-                            team = pool.create_team(agent_names, model_override=model)
+                            team = pool.create_team(agent_names)
                             responses = await team.execute(prompt)
                         case "sequential":
-                            team_run = pool.create_team_run(
-                                agent_names, model_override=model
-                            )
+                            team_run = pool.create_team_run(agent_names)
                             responses = await team_run.execute(prompt)
                         # case "controlled":
                         #     responses = await group.run_controlled(prompt)

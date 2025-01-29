@@ -191,7 +191,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         agents: Sequence[str],
         validator: MessageNode[Any, TResult] | None = None,
         *,
-        model_override: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -204,7 +203,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         agents: Sequence[MessageNode[TDeps, Any]],
         validator: MessageNode[Any, TResult] | None = None,
         *,
-        model_override: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -217,7 +215,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         agents: Sequence[AgentName | MessageNode[Any, Any]],
         validator: MessageNode[Any, TResult] | None = None,
         *,
-        model_override: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -229,7 +226,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         agents: Sequence[AgentName | MessageNode[Any, Any]] | None = None,
         validator: MessageNode[Any, TResult] | None = None,
         *,
-        model_override: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -240,7 +236,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         Args:
             agents: List of agent names or team/agent instances (all if None)
             validator: Node to validate the results of the TeamRun
-            model_override: Optional model to use for all agents
             shared_prompt: Optional prompt for all agents
             picker: Agent to use for picking agents
             num_picks: Number of agents to pick
@@ -255,7 +250,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         resolved_agents: list[MessageNode[Any, Any]] = []
         for agent in agents:
             if isinstance(agent, str):
-                agent = self.get_agent(agent, model_override=model_override)
+                agent = self.get_agent(agent)
             resolved_agents.append(agent)
         return TeamRun(
             resolved_agents,
@@ -274,7 +269,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[MessageNode[TDeps, Any]],
         *,
-        model_override: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -286,7 +280,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[AgentName | MessageNode[Any, Any]],
         *,
-        model_override: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -297,7 +290,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[AgentName | MessageNode[Any, Any]] | None = None,
         *,
-        model_override: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -307,7 +299,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
         Args:
             agents: List of agent names or instances (all if None)
-            model_override: Optional model to use for all agents
             shared_prompt: Optional prompt for all agents
             picker: Agent to use for picking agents
             num_picks: Number of agents to pick
@@ -322,7 +313,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         resolved_agents: list[MessageNode[Any, Any]] = []
         for agent in agents:
             if isinstance(agent, str):
-                agent = self.get_agent(agent, model_override=model_override)
+                agent = self.get_agent(agent)
             resolved_agents.append(agent)
 
         return Team(
@@ -476,7 +467,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         agent: AgentName | Agent[TDeps],
         new_name: AgentName | None = None,
         *,
-        model_override: str | None = None,
         system_prompts: list[str] | None = None,
         template_context: dict[str, Any] | None = None,
     ) -> Agent[TDeps]: ...
@@ -487,7 +477,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         agent: StructuredAgent[TDeps, TResult],
         new_name: AgentName | None = None,
         *,
-        model_override: str | None = None,
         system_prompts: list[str] | None = None,
         template_context: dict[str, Any] | None = None,
     ) -> StructuredAgent[TDeps, TResult]: ...
@@ -497,7 +486,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         agent: AgentName | AnyAgent[TDeps, TAgentResult],
         new_name: AgentName | None = None,
         *,
-        model_override: str | None = None,
         system_prompts: list[str] | None = None,
         template_context: dict[str, Any] | None = None,
     ) -> AnyAgent[TDeps, TAgentResult]:
@@ -506,7 +494,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         Args:
             agent: Agent instance or name to clone
             new_name: Optional name for the clone
-            model_override: Optional different model
             system_prompts: Optional different prompts
             template_context: Variables for template rendering
 
@@ -530,8 +517,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         new_config = config.model_copy(deep=True)
 
         # Apply overrides
-        if model_override:
-            new_config.model = model_override
         if system_prompts:
             new_config.system_prompts = system_prompts
 
@@ -564,7 +549,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         *,
         session: SessionIdType | SessionQuery = None,
         name_override: str | None = None,
-        model_override: str | None = None,
     ) -> Agent[TPoolDeps]: ...
 
     @overload
@@ -575,7 +559,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         deps: TCustomDeps,
         session: SessionIdType | SessionQuery = None,
         name_override: str | None = None,
-        model_override: str | None = None,
     ) -> Agent[TCustomDeps]: ...
 
     @overload
@@ -586,7 +569,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         return_type: type[TResult],
         session: SessionIdType | SessionQuery = None,
         name_override: str | None = None,
-        model_override: str | None = None,
     ) -> StructuredAgent[TPoolDeps, TResult]: ...
 
     @overload
@@ -598,7 +580,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         return_type: type[TResult],
         session: SessionIdType | SessionQuery = None,
         name_override: str | None = None,
-        model_override: str | None = None,
     ) -> StructuredAgent[TCustomDeps, TResult]: ...
 
     async def create_agent(
@@ -609,7 +590,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         return_type: Any | None = None,
         session: SessionIdType | SessionQuery = None,
         name_override: str | None = None,
-        model_override: str | None = None,
     ) -> AnyAgent[Any, Any]:
         """Create a new agent instance from configuration.
 
@@ -619,7 +599,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             return_type: Optional type for structured responses
             session: Optional session ID or query to recover conversation
             name_override: Optional different name for this instance
-            model_override: Optional model override
 
         Returns:
             New agent instance with the specified configuration
@@ -635,8 +614,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         # Use Manifest.get_agent for proper initialization
         final_deps = deps if deps is not None else self.shared_deps
         agent = self.manifest.get_agent(name, deps=final_deps)
-        if model_override:
-            agent.set_model(model_override)
         # Override name if requested
         if name_override:
             agent.name = name_override

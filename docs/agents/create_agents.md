@@ -7,11 +7,8 @@ The recommended way to create agents is through `AgentPool`:
 
 ```python
 async with AgentPool("agents.yml") as pool:
-    # Get basic agent
+    # Get agent
     agent = pool.get_agent("analyzer")
-
-    # Get agent with model override
-    agent = pool.get_agent("analyzer", model_override="gpt-4")
 
     # Get agent with dependencies
     agent = pool.get_agent("reviewer", deps=pr_context)

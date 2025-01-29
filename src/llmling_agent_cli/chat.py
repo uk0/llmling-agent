@@ -73,11 +73,9 @@ def chat_command(
                 connect_nodes=False,  # We'll handle connections manually
             ) as pool:
                 # Get main agent
-                agent: Agent[Any] = pool.get_agent(
-                    agent_name,
-                    model_override=model,
-                    session=session_id,
-                )
+                agent: Agent[Any] = pool.get_agent(agent_name, session=session_id)
+                if model:
+                    agent.set_model(model)
 
                 # Set up forwarding if requested
                 if connections:

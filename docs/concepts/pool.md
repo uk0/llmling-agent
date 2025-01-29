@@ -189,10 +189,7 @@ clone = await pool.clone_agent(
 )
 
 # Clone with model override
-gpt3_clone = await pool.clone_agent(
-    "analyzer",
-    model_override="openai:gpt-3.5-turbo"
-)
+gpt3_clone = await pool.clone_agent("analyzer")
 
 ```
 
@@ -203,12 +200,6 @@ The pool can also create teams from its registered agents:
 ```python
 # Create team from agent names
 team = pool.create_team(["analyzer", "planner", "executor"])
-
-# With model override for all agents
-team = pool.create_team(
-    ["analyzer", "planner"],
-    model_override="openai:gpt-4-turbo"
-)
 
 # With shared prompt
 team = pool.create_team(

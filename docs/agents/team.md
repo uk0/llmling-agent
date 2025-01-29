@@ -30,8 +30,6 @@ team = Team(
 # Create from agent names
 team = pool.create_team(
     agents=["analyzer", "planner", "executor"],
-    model_override="gpt-4",               # Override model for all agents
-    environment_override="env.yml",        # Override environment
     shared_prompt="Team objective",        # Common prompt
 )
 ```
