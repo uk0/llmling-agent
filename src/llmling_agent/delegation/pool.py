@@ -190,9 +190,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[str],
         validator: MessageNode[Any, TResult] | None = None,
-        *,
-        model_override: str | None = None,
-        shared_prompt: str | None = None,
     ) -> TeamRun[TPoolDeps, TResult]: ...
 
     @overload
@@ -200,9 +197,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[MessageNode[TDeps, Any]],
         validator: MessageNode[Any, TResult] | None = None,
-        *,
-        model_override: str | None = None,
-        shared_prompt: str | None = None,
     ) -> TeamRun[TDeps, TResult]: ...
 
     @overload
@@ -210,9 +204,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[AgentName | MessageNode[Any, Any]],
         validator: MessageNode[Any, TResult] | None = None,
-        *,
-        model_override: str | None = None,
-        shared_prompt: str | None = None,
     ) -> TeamRun[Any, TResult]: ...
 
     def create_team_run(
@@ -222,6 +213,9 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
+        picker: AnyAgent[Any, Any] | None = None,
+        num_picks: int | None = None,
+        pick_prompt: str | None = None,
     ) -> TeamRun[Any, TResult]:
         """Create a a sequential TeamRun from a list of Agents.
 
@@ -230,6 +224,9 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             validator: Node to validate the results of the TeamRun
             model_override: Optional model to use for all agents
             shared_prompt: Optional prompt for all agents
+            picker: Agent to use for picking agents
+            num_picks: Number of agents to pick
+            pick_prompt: Prompt to use for picking agents
         """
         from llmling_agent.delegation.teamrun import TeamRun
 
@@ -242,33 +239,26 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             if isinstance(agent, str):
                 agent = self.get_agent(agent, model_override=model_override)
             resolved_agents.append(agent)
-        return TeamRun(resolved_agents, validator=validator, shared_prompt=shared_prompt)
+        return TeamRun(
+            resolved_agents,
+            validator=validator,
+            shared_prompt=shared_prompt,
+            picker=picker,
+            num_picks=num_picks,
+            pick_prompt=pick_prompt,
+        )
 
     @overload
-    def create_team(
-        self,
-        agents: Sequence[str],
-        *,
-        model_override: str | None = None,
-        shared_prompt: str | None = None,
-    ) -> Team[TPoolDeps]: ...
+    def create_team(self, agents: Sequence[str]) -> Team[TPoolDeps]: ...
 
     @overload
     def create_team[TDeps](
-        self,
-        agents: Sequence[MessageNode[TDeps, Any]],
-        *,
-        model_override: str | None = None,
-        shared_prompt: str | None = None,
+        self, agents: Sequence[MessageNode[TDeps, Any]]
     ) -> Team[TDeps]: ...
 
     @overload
     def create_team(
-        self,
-        agents: Sequence[AgentName | MessageNode[Any, Any]],
-        *,
-        model_override: str | None = None,
-        shared_prompt: str | None = None,
+        self, agents: Sequence[AgentName | MessageNode[Any, Any]]
     ) -> Team[Any]: ...
 
     def create_team(
@@ -277,6 +267,9 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         *,
         model_override: str | None = None,
         shared_prompt: str | None = None,
+        picker: AnyAgent[Any, Any] | None = None,
+        num_picks: int | None = None,
+        pick_prompt: str | None = None,
     ) -> Team[Any]:
         """Create a group from agent names or instances.
 
@@ -284,6 +277,9 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             agents: List of agent names or instances (all if None)
             model_override: Optional model to use for all agents
             shared_prompt: Optional prompt for all agents
+            picker: Agent to use for picking agents
+            num_picks: Number of agents to pick
+            pick_prompt: Prompt to use for picking agents
         """
         from llmling_agent.delegation.team import Team
 
@@ -297,7 +293,13 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
                 agent = self.get_agent(agent, model_override=model_override)
             resolved_agents.append(agent)
 
-        return Team(agents=resolved_agents, shared_prompt=shared_prompt)
+        return Team(
+            agents=resolved_agents,
+            shared_prompt=shared_prompt,
+            picker=picker,
+            num_picks=num_picks,
+            pick_prompt=pick_prompt,
+        )
 
     async def run_event_loop(self) -> None:
         """Run pool in event-watching mode until interrupted."""

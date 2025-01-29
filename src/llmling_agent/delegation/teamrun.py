@@ -10,6 +10,8 @@ from itertools import pairwise
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
+from toprompt import to_prompt
+
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import AgentResponse, ChatMessage, TeamResponse
@@ -24,6 +26,7 @@ if TYPE_CHECKING:
     from tokonomics.pydanticai_cost import Usage
     from toprompt import AnyPromptType
 
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent_providers.base import StreamingResponseProtocol
 
@@ -62,8 +65,18 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         name: str | None = None,
         shared_prompt: str | None = None,
         validator: MessageNode[Any, TResult] | None = None,
+        picker: AnyAgent[Any, Any] | None = None,
+        num_picks: int | None = None,
+        pick_prompt: str | None = None,
     ):
-        super().__init__(agents, name=name, shared_prompt=shared_prompt)
+        super().__init__(
+            agents,
+            name=name,
+            shared_prompt=shared_prompt,
+            picker=picker,
+            num_picks=num_picks,
+            pick_prompt=pick_prompt,
+        )
         self.validator = validator
 
     async def _run(
@@ -132,7 +145,8 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
     ) -> AsyncIterator[Talk[Any] | AgentResponse[Any]]:
         connections: list[Talk[Any]] = []
         try:
-            all_nodes = list(self.agents)
+            combined_prompt = "\n".join([await to_prompt(p) for p in prompt])
+            all_nodes = list(await self.pick_agents(combined_prompt))
             if self.validator:
                 all_nodes.append(self.validator)
             first = all_nodes[0]

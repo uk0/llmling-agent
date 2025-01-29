@@ -5,6 +5,7 @@ from datetime import datetime
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
+from toprompt import to_prompt
 from typing_extensions import TypeVar
 
 from llmling_agent.delegation.base_team import BaseTeam
@@ -49,12 +50,13 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
 
         if self.shared_prompt:
             final_prompt.insert(0, self.shared_prompt)
-
+        combined_prompt = "\n".join([await to_prompt(p) for p in final_prompt])
+        all_nodes = list(await self.pick_agents(combined_prompt))
         # Create Talk connections for monitoring this execution
         execution_talks: list[Talk[Any]] = []
-        for agent in self.agents:
+        for node in all_nodes:
             talk = Talk[Any](
-                agent,
+                node,
                 [],  # No actual forwarding, just for tracking
                 connection_type="run",
                 queued=True,
@@ -63,23 +65,23 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             execution_talks.append(talk)
             self._team_talk.append(talk)  # Add to base class's TeamTalk
 
-        async def _run(agent: MessageNode[TDeps, Any]) -> None:
+        async def _run(node: MessageNode[TDeps, Any]) -> None:
             try:
                 start = perf_counter()
-                message = await agent.run(*final_prompt, **kwargs)
+                message = await node.run(*final_prompt, **kwargs)
                 timing = perf_counter() - start
-                r = AgentResponse(agent_name=agent.name, message=message, timing=timing)
+                r = AgentResponse(agent_name=node.name, message=message, timing=timing)
                 responses.append(r)
 
                 # Update talk stats for this agent
-                talk = next(t for t in execution_talks if t.source == agent)
+                talk = next(t for t in execution_talks if t.source == node)
                 talk._stats.messages.append(message)
 
             except Exception as e:  # noqa: BLE001
-                errors[agent.name] = e
+                errors[node.name] = e
 
         # Run all agents in parallel
-        await asyncio.gather(*[_run(agent) for agent in self.agents])
+        await asyncio.gather(*[_run(node) for node in all_nodes])
 
         return TeamResponse(responses=responses, start_time=start_time, errors=errors)
 
@@ -93,6 +95,10 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         queue: asyncio.Queue[ChatMessage[Any]] = asyncio.Queue()
         errors: dict[str, Exception] = {}
 
+        final_prompt = list(prompts)
+        combined_prompt = "\n".join([await to_prompt(p) for p in final_prompt])
+        all_nodes = list(await self.pick_agents(combined_prompt))
+
         async def _run(node: MessageNode[TDeps, Any]) -> None:
             try:
                 message = await node.run(*prompts, **kwargs)
@@ -101,11 +107,11 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
                 errors[node.name] = e
 
         # Start all agents
-        tasks = [asyncio.create_task(_run(n), name=f"run_{n.name}") for n in self.agents]
+        tasks = [asyncio.create_task(_run(n), name=f"run_{n.name}") for n in all_nodes]
 
         # Yield messages as they arrive
         completed = 0
-        while completed < len(self.agents):
+        while completed < len(all_nodes):
             message = await queue.get()
             yield message
             completed += 1

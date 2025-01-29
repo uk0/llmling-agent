@@ -77,6 +77,9 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         name: str | None = None,
         shared_prompt: str | None = None,
         mcp_servers: list[str | MCPServerConfig] | None = None,
+        picker: AnyAgent[Any, Any] | None = None,
+        num_picks: int | None = None,
+        pick_prompt: str | None = None,
     ):
         """Common variables only for typing."""
         from llmling_agent.delegation.teamrun import ExtendedTeamTalk
@@ -91,6 +94,25 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self.shared_prompt = shared_prompt
         self._main_task: asyncio.Task[Any] | None = None
         self._infinite = False
+        self.picker = picker
+        self.num_picks = num_picks
+        self.pick_prompt = pick_prompt
+
+    async def pick_agents(self, task: str) -> Sequence[MessageNode[Any, Any]]:
+        """Pick agents to run."""
+        if self.picker:
+            if self.num_picks == 1:
+                result = await self.picker.talk.pick(self, task, self.pick_prompt)
+                return [result.selection]
+            result = await self.picker.talk.pick_multiple(
+                self,
+                task,
+                min_picks=self.num_picks or 1,
+                max_picks=self.num_picks,
+                prompt=self.pick_prompt,
+            )
+            return result.selections
+        return list(self.agents)
 
     def _on_node_added(self, index: int, node: MessageNode[Any, Any]):
         """Handler for adding nodes to the team."""
