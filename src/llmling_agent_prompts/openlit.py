@@ -3,7 +3,6 @@ from typing import Any
 import openlit
 
 from llmling_agent.models.prompt_hubs import OpenLITConfig
-from llmling_agent.prompts.models import PromptTemplate
 
 
 class OpenLITProvider:
@@ -22,15 +21,13 @@ class OpenLITProvider:
         name: str,
         version: str | None = None,
         variables: dict[str, Any] | None = None,
-        meta_properties: dict[str, Any] | None = None,
-    ) -> PromptTemplate:
+    ) -> str:
         """Get prompt from OpenLIT.
 
         Args:
             name: Name to fetch a unique prompt
             version: Optional version string
             variables: Optional variables for prompt compilation
-            meta_properties: Optional meta-properties for access history
         """
         try:
             result = openlit.get_prompt(
@@ -40,13 +37,11 @@ class OpenLITProvider:
                 version=version,
                 should_compile=bool(variables),  # Only compile if variables provided
                 variables=variables or {},
-                meta_properties=meta_properties or {},
+                meta_properties={},
             )
 
-            from llmling_agent.prompts.models import PromptTemplate
-
             assert result
-            return PromptTemplate.model_validate(result["res"])
+            return result["res"]
 
         except Exception as e:
             msg = f"Failed to load prompt using name={name}: {e}"

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 
 class PromptHubConfig(BaseModel):
@@ -16,7 +16,7 @@ class PromptHubConfig(BaseModel):
 
 class PromptLayerConfig(PromptHubConfig):
     type: Literal["promptlayer"] = Field("promptlayer", init=False)
-    api_key: str
+    api_key: SecretStr
 
 
 class OpenLITConfig(PromptHubConfig):
@@ -24,13 +24,16 @@ class OpenLITConfig(PromptHubConfig):
 
     type: Literal["openlit"] = Field("openlit", init=False)
     url: str | None = None  # Optional, defaults to OPENLIT_URL env var
-    api_key: str | None = None  # Optional, defaults to OPENLIT_API_KEY env var
+    api_key: SecretStr | None = None  # Optional, defaults to OPENLIT_API_KEY env var
 
 
-class HuggingFaceConfig(PromptHubConfig):
-    """Configuration for HuggingFace prompt provider."""
+class LangfuseConfig(PromptHubConfig):
+    """Configuration for Langfuse prompt provider."""
 
-    type: Literal["huggingface"] = Field("huggingface", init=False)
-    api_key: str | None = None
-    base_url: str | None = None
-    workspace: str | None = None
+    type: Literal["langfuse"] = Field("langfuse", init=False)
+    secret_key: SecretStr
+    public_key: SecretStr
+    host: str = "https://cloud.langfuse.com"
+    cache_ttl_seconds: int = 60
+    max_retries: int = 2
+    fetch_timeout_seconds: int = 20

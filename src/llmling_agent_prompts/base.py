@@ -3,11 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, ClassVar
-
-
-if TYPE_CHECKING:
-    from llmling_agent.prompts.models import PromptTemplate
+from typing import Any, ClassVar
 
 
 class BasePromptProvider(ABC):
@@ -20,10 +16,10 @@ class BasePromptProvider(ABC):
     @abstractmethod
     async def get_prompt(
         self,
-        prompt_id: str,
+        name: str,
         version: str | None = None,
         variables: dict[str, Any] | None = None,
-    ) -> PromptTemplate:
+    ) -> str:
         """Get a prompt by ID."""
 
     @abstractmethod

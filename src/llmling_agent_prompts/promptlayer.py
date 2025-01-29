@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 
 from promptlayer import PromptLayer
 
-from llmling_agent.prompts.models import PromptTemplate
 from llmling_agent_prompts.base import BasePromptProvider
 
 
@@ -23,11 +22,10 @@ class PromptLayerProvider(BasePromptProvider):
 
     async def get_prompt(
         self,
-        prompt_id: str,
+        name: str,
         version: str | None = None,
         variables: dict[str, Any] | None = None,
-    ) -> PromptTemplate:
+    ) -> str:
         # PromptLayer primarily tracks prompts used with their API
         # But also allows template management
-        template = self.client.run(prompt_id)
-        return PromptTemplate.parse_obj(template)
+        return self.client.run(name)
