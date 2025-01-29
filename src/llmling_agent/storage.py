@@ -8,6 +8,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.models.storage import (
     BaseStorageProviderConfig,
     FileStorageConfig,
+    Mem0Config,
     MemoryStorageConfig,
     SQLStorageConfig,
     TextLogConfig,
@@ -104,6 +105,12 @@ class StorageManager(TaskManagerMixin):
                 from llmling_agent_storage.text_log_provider import TextLogProvider
 
                 return TextLogProvider(provider_config)
+
+            case Mem0Config():
+                from llmling_agent_storage.mem0 import Mem0StorageProvider
+
+                return Mem0StorageProvider(provider_config)
+
             case MemoryStorageConfig():
                 from llmling_agent_storage.memory_provider import MemoryStorageProvider
 

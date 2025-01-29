@@ -3487,6 +3487,97 @@
       "title": "MarkItDownConfig",
       "type": "object"
     },
+    "Mem0Config": {
+      "additionalProperties": false,
+      "description": "Configuration for mem0 storage.",
+      "properties": {
+        "type": {
+          "const": "mem0",
+          "default": "mem0",
+          "description": "Type discriminator for storage config.",
+          "title": "Type",
+          "type": "string"
+        },
+        "log_messages": {
+          "default": true,
+          "description": "Whether to log messages",
+          "title": "Log Messages",
+          "type": "boolean"
+        },
+        "agents": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional set of agent names to include. If None, logs all agents.",
+          "title": "Agents"
+        },
+        "log_conversations": {
+          "default": true,
+          "description": "Whether to log conversations",
+          "title": "Log Conversations",
+          "type": "boolean"
+        },
+        "log_tool_calls": {
+          "default": true,
+          "description": "Whether to log tool calls",
+          "title": "Log Tool Calls",
+          "type": "boolean"
+        },
+        "log_commands": {
+          "default": true,
+          "description": "Whether to log command executions",
+          "title": "Log Commands",
+          "type": "boolean"
+        },
+        "log_context": {
+          "default": true,
+          "description": "Whether to log context messages.",
+          "title": "Log Context",
+          "type": "boolean"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "API key for mem0 service.",
+          "title": "Api Key"
+        },
+        "page_size": {
+          "default": 100,
+          "description": "Number of results per page when retrieving paginated data.",
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "output_format": {
+          "default": "v1.1",
+          "description": "API output format version. 1.1 is recommended and provides enhanced details.",
+          "enum": [
+            "v1.0",
+            "v1.1"
+          ],
+          "title": "Output Format",
+          "type": "string"
+        }
+      },
+      "title": "Mem0Config",
+      "type": "object"
+    },
     "MemoryConfig": {
       "additionalProperties": false,
       "description": "Configuration for agent memory and history handling.",
@@ -5201,6 +5292,7 @@
                 "discriminator": {
                   "mapping": {
                     "file": "#/$defs/FileStorageConfig",
+                    "mem0": "#/$defs/Mem0Config",
                     "memory": "#/$defs/MemoryStorageConfig",
                     "sql": "#/$defs/SQLStorageConfig",
                     "text_file": "#/$defs/TextLogConfig"
@@ -5219,6 +5311,9 @@
                   },
                   {
                     "$ref": "#/$defs/MemoryStorageConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/Mem0Config"
                   }
                 ]
               },

@@ -83,6 +83,7 @@ markdown = ["markitdown"]
 textual = ["textual>=1.0.0"]
 litellm = ["litellm"]
 remote = ["websockets>=14.2"]
+mem0 = ["mem0ai>=0.1.48"]
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]

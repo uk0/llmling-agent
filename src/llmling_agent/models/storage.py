@@ -1,3 +1,4 @@
+import os
 from typing import Annotated, Final, Literal
 
 from platformdirs import user_data_dir
@@ -101,8 +102,28 @@ class MemoryStorageConfig(BaseStorageProviderConfig):
     type: Literal["memory"] = Field("memory", init=False)
 
 
+class Mem0Config(BaseStorageProviderConfig):
+    """Configuration for mem0 storage."""
+
+    type: Literal["mem0"] = Field("mem0", init=False)
+    """Type discriminator for storage config."""
+
+    api_key: str | None = os.getenv("MEM0_API_KEY")
+    """API key for mem0 service."""
+
+    page_size: int = 100
+    """Number of results per page when retrieving paginated data."""
+
+    output_format: Literal["v1.0", "v1.1"] = "v1.1"
+    """API output format version. 1.1 is recommended and provides enhanced details."""
+
+
 StorageProviderConfig = Annotated[
-    SQLStorageConfig | FileStorageConfig | TextLogConfig | MemoryStorageConfig,
+    SQLStorageConfig
+    | FileStorageConfig
+    | TextLogConfig
+    | MemoryStorageConfig
+    | Mem0Config,
     Field(discriminator="type"),
 ]
 
