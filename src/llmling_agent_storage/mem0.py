@@ -40,15 +40,9 @@ class Mem0StorageProvider(StorageProvider):
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Convert to mem0 message format."""
-        return {
-            "role": role,
-            "content": content,
-            "metadata": {
-                "name": name,
-                "timestamp": datetime.now().isoformat(),
-                **(metadata or {}),
-            },
-        }
+        ts = datetime.now().isoformat()
+        meta = {"name": name, "timestamp": ts, **(metadata or {})}
+        return {"role": role, "content": content, "metadata": meta}
 
     def _from_mem0_message(self, msg: dict[str, Any]) -> ChatMessage[str]:
         """Convert from mem0 message format."""
