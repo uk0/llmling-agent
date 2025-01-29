@@ -190,6 +190,12 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[str],
         validator: MessageNode[Any, TResult] | None = None,
+        *,
+        model_override: str | None = None,
+        shared_prompt: str | None = None,
+        picker: AnyAgent[Any, Any] | None = None,
+        num_picks: int | None = None,
+        pick_prompt: str | None = None,
     ) -> TeamRun[TPoolDeps, TResult]: ...
 
     @overload
@@ -197,6 +203,12 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[MessageNode[TDeps, Any]],
         validator: MessageNode[Any, TResult] | None = None,
+        *,
+        model_override: str | None = None,
+        shared_prompt: str | None = None,
+        picker: AnyAgent[Any, Any] | None = None,
+        num_picks: int | None = None,
+        pick_prompt: str | None = None,
     ) -> TeamRun[TDeps, TResult]: ...
 
     @overload
@@ -204,6 +216,12 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[AgentName | MessageNode[Any, Any]],
         validator: MessageNode[Any, TResult] | None = None,
+        *,
+        model_override: str | None = None,
+        shared_prompt: str | None = None,
+        picker: AnyAgent[Any, Any] | None = None,
+        num_picks: int | None = None,
+        pick_prompt: str | None = None,
     ) -> TeamRun[Any, TResult]: ...
 
     def create_team_run(
@@ -253,12 +271,26 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
     @overload
     def create_team[TDeps](
-        self, agents: Sequence[MessageNode[TDeps, Any]]
+        self,
+        agents: Sequence[MessageNode[TDeps, Any]],
+        *,
+        model_override: str | None = None,
+        shared_prompt: str | None = None,
+        picker: AnyAgent[Any, Any] | None = None,
+        num_picks: int | None = None,
+        pick_prompt: str | None = None,
     ) -> Team[TDeps]: ...
 
     @overload
     def create_team(
-        self, agents: Sequence[AgentName | MessageNode[Any, Any]]
+        self,
+        agents: Sequence[AgentName | MessageNode[Any, Any]],
+        *,
+        model_override: str | None = None,
+        shared_prompt: str | None = None,
+        picker: AnyAgent[Any, Any] | None = None,
+        num_picks: int | None = None,
+        pick_prompt: str | None = None,
     ) -> Team[Any]: ...
 
     def create_team(
