@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from typing_extensions import TypeVar
 
 from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.delegation.team import Team
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.utils.basemodel_convert import get_ctor_basemodel
@@ -22,6 +21,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
+    from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.messaging.messagenode import MessageNode
 
 
@@ -76,14 +76,14 @@ def get_label(item: Any) -> str:
         - types use __name__
         - others use __repr__ for unique identifiable string
     """
-    from llmling_agent.agent import Agent, StructuredAgent
+    from llmling_agent.messaging.messagenode import MessageNode
 
     match item:
         case str():
             return item
         case type():
             return item.__name__
-        case Agent() | StructuredAgent():
+        case MessageNode():
             return item.name or "unnamed_agent"
         case _:
             return repr(item)
@@ -177,14 +177,14 @@ class Interactions[TDeps, TResult]:
     @overload
     async def pick(
         self,
-        selections: Team[TDeps],
+        selections: BaseTeam[TDeps, Any],
         task: str,
         prompt: AnyPromptType | None = None,
-    ) -> Pick[AnyAgent[TDeps, Any]]: ...
+    ) -> Pick[MessageNode[TDeps, Any]]: ...
 
     async def pick[T](
         self,
-        selections: Sequence[T] | Mapping[str, T] | AgentPool | Team[TDeps],
+        selections: Sequence[T] | Mapping[str, T] | AgentPool | BaseTeam[TDeps, Any],
         task: str,
         prompt: AnyPromptType | None = None,
     ) -> Pick[T]:
@@ -208,11 +208,13 @@ class Interactions[TDeps, TResult]:
         # Get items and create label mapping
         from toprompt import to_prompt
 
+        from llmling_agent.delegation.base_team import BaseTeam
+
         match selections:
             case dict():
                 label_map = selections
                 items: list[Any] = list(selections.values())
-            case Team():
+            case BaseTeam():
                 items = list(selections.agents)
                 label_map = {get_label(item): item for item in items}
             case AgentPool():
@@ -277,13 +279,13 @@ Select ONE option by its exact label."""
     @overload
     async def pick_multiple(
         self,
-        selections: Team[TDeps],
+        selections: BaseTeam[TDeps, Any],
         task: str,
         *,
         min_picks: int = 1,
         max_picks: int | None = None,
         prompt: AnyPromptType | None = None,
-    ) -> MultiPick[AnyAgent[TDeps, Any]]: ...
+    ) -> MultiPick[MessageNode[TDeps, Any]]: ...
 
     @overload
     async def pick_multiple(
@@ -298,7 +300,7 @@ Select ONE option by its exact label."""
 
     async def pick_multiple[T](
         self,
-        selections: Sequence[T] | Mapping[str, T] | AgentPool | Team[TDeps],
+        selections: Sequence[T] | Mapping[str, T] | AgentPool | BaseTeam[TDeps, Any],
         task: str,
         *,
         min_picks: int = 1,
@@ -316,11 +318,13 @@ Select ONE option by its exact label."""
         """
         from toprompt import to_prompt
 
+        from llmling_agent.delegation.base_team import BaseTeam
+
         match selections:
             case Mapping():
                 label_map = selections
                 items: list[Any] = list(selections.values())
-            case Team():
+            case BaseTeam():
                 items = list(selections.agents)
                 label_map = {get_label(item): item for item in items}
             case AgentPool():
