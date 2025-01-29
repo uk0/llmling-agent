@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from abc import abstractmethod
 import asyncio
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, overload
 
 from psygnal.containers import EventedList
 
@@ -15,7 +16,7 @@ from llmling_agent.utils.inspection import has_return_type
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import AsyncIterator, Iterator, Sequence
     import os
 
     import PIL.Image
@@ -23,12 +24,16 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
+    from llmling_agent.common_types import ModelType, ToolType
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
     from llmling_agent.models.mcp_server import MCPServerConfig
     from llmling_agent.models.messages import ChatMessage, TeamResponse
     from llmling_agent.models.providers import ProcessorCallback
+    from llmling_agent.models.session import SessionQuery
+    from llmling_agent_providers.base import AgentProvider
+
 logger = get_logger(__name__)
 
 
@@ -395,6 +400,62 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             if resources:
                 for resource in resources:
                     await agent.conversation.load_context_source(resource)
+
+    @asynccontextmanager
+    async def temporary_state(
+        self,
+        *,
+        system_prompts: list[AnyPromptType] | None = None,
+        replace_prompts: bool = False,
+        tools: list[ToolType] | None = None,
+        replace_tools: bool = False,
+        history: list[AnyPromptType] | SessionQuery | None = None,
+        replace_history: bool = False,
+        pause_routing: bool = False,
+        model: ModelType | None = None,
+        provider: AgentProvider | None = None,
+    ) -> AsyncIterator[Self]:
+        """Temporarily modify state of all agents in the team.
+
+        All agents in the team will enter their temporary state simultaneously.
+
+        Args:
+            system_prompts: Temporary system prompts to use
+            replace_prompts: Whether to replace existing prompts
+            tools: Temporary tools to make available
+            replace_tools: Whether to replace existing tools
+            history: Conversation history (prompts or query)
+            replace_history: Whether to replace existing history
+            pause_routing: Whether to pause message routing
+            model: Temporary model override
+            provider: Temporary provider override
+        """
+        # Get all agents (flattened) before entering context
+        agents = list(self.iter_agents())
+
+        async with AsyncExitStack() as stack:
+            if pause_routing:
+                await stack.enter_async_context(self.connections.paused_routing())
+            # Enter temporary state for all agents
+            for agent in agents:
+                await stack.enter_async_context(
+                    agent.temporary_state(
+                        system_prompts=system_prompts,
+                        replace_prompts=replace_prompts,
+                        tools=tools,
+                        replace_tools=replace_tools,
+                        history=history,
+                        replace_history=replace_history,
+                        pause_routing=pause_routing,
+                        model=model,
+                        provider=provider,
+                    )
+                )
+            try:
+                yield self
+            finally:
+                # AsyncExitStack will handle cleanup of all states
+                pass
 
     @abstractmethod
     async def execute(
