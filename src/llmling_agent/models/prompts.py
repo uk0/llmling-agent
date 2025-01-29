@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from llmling_agent.models.prompt_hubs import PromptHubConfig  # noqa: TC001
+
 
 SystemPromptCategory = Literal["role", "methodology", "quality", "task"]
 
@@ -49,6 +51,9 @@ class PromptConfig(BaseModel):
     template: str | None = None
     """Optional template for combining prompts.
     Has access to prompts grouped by type."""
+
+    providers: list[PromptHubConfig] = Field(default_factory=list)
+    """List of external prompt providers to use."""
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 

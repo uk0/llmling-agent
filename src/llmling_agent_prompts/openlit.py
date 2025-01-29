@@ -3,9 +3,10 @@ from typing import Any
 import openlit
 
 from llmling_agent.models.prompt_hubs import OpenLITConfig
+from llmling_agent.prompts.base import BasePromptProvider
 
 
-class OpenLITProvider:
+class OpenLITProvider(BasePromptProvider):
     """Provider for prompts managed in OpenLIT."""
 
     name = "openlit"

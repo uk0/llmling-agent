@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     from llmling_agent import AgentPool
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import StrPath
+    from llmling_agent.prompts.manager import PromptManager
     from llmling_agent_providers.base import AgentProvider
 
 
@@ -580,6 +581,13 @@ class AgentsManifest[TDeps](ConfigModel):
 
         return configs
 
+    @cached_property
+    def prompt_manager(self) -> PromptManager:
+        """Get prompt manager for this manifest."""
+        from llmling_agent.prompts.manager import PromptManager
+
+        return PromptManager(self.prompts)
+
     # @model_validator(mode="after")
     # def validate_response_types(self) -> AgentsManifest:
     #     """Ensure all agent result_types exist in responses or are inline."""
@@ -618,11 +626,18 @@ class AgentsManifest[TDeps](ConfigModel):
         provider = config.get_provider()
         # set model for provider (the setting should move to provider config soon)
         provider._model = config.model
-
-        sys_prompts = config.system_prompts
+        sys_prompts: list[str] = []
+        sys_prompts.extend(config.system_prompts)
+        # Library prompts
         if config.library_system_prompts:
-            prompt = self.prompts.format_prompts(config.library_system_prompts)
-            sys_prompts.append(prompt)
+            for prompt_ref in config.library_system_prompts:
+                try:
+                    content = self.prompt_manager.get_sync(prompt_ref)
+                    sys_prompts.append(content)
+                except Exception as e:
+                    msg = f"Failed to load library prompt {prompt_ref!r} for agent {name}"
+                    logger.exception(msg)
+                    raise ValueError(msg) from e
 
         # Create agent with runtime and context
         agent: AnyAgent[TAgentDeps, Any] = Agent[Any](

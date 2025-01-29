@@ -22,6 +22,6 @@ class BasePromptProvider(ABC):
     ) -> str:
         """Get a prompt by ID."""
 
-    @abstractmethod
     async def list_prompts(self) -> list[str]:
         """List available prompts."""
+        return []  # Default implementation returns empty list

@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig, AgentsManifest
+    from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.storage import StorageManager
 
 
@@ -122,6 +123,11 @@ class AgentContext[TDeps](NodeContext):
         if self.pool:
             return self.pool.storage
         return StorageManager(self.definition.storage)
+
+    @property
+    def prompt_manager(self) -> PromptManager:
+        """Get prompt manager from manifest."""
+        return self.definition.prompt_manager
 
     async def handle_confirmation(
         self,
