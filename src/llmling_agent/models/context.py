@@ -50,9 +50,6 @@ class AgentContext[TDeps](NodeContext):
     config: AgentConfig
     """Current agent's specific configuration."""
 
-    current_prompt: str | None = None
-    """Current prompt text for the agent."""
-
     model_settings: dict[str, Any] = field(default_factory=dict)
     """Model-specific settings."""
 
@@ -62,14 +59,8 @@ class AgentContext[TDeps](NodeContext):
     runtime: RuntimeConfig | None = None
     """Reference to the runtime configuration."""
 
-    pool: AgentPool | None = None
-    """Pool the agent is part of."""
-
     confirmation_callback: ConfirmationCallback | None = None
     """Optional confirmation handler for tool execution."""
-
-    in_async_context: bool = False
-    """Whether we're running in an async context."""
 
     @classmethod
     def create_default(

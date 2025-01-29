@@ -158,9 +158,6 @@ class AgentConfig(NodeConfig):
     # context_sources: list[ContextSource] = Field(default_factory=list)
     # """Initial context sources to load"""
 
-    model_settings: dict[str, Any] = Field(default_factory=dict)
-    """Additional settings to pass to the model"""
-
     config_file_path: str | None = None
     """Config file path for resolving environment."""
 
@@ -396,8 +393,6 @@ class AgentConfig(NodeConfig):
             "result_retries": self.result_retries,
             "end_strategy": self.end_strategy,
             "debug": self.debug,
-            # "defer_model_check": self.defer_model_check,
-            **self.model_settings,
         }
         # Note: result_type is handled separately as it needs to be resolved
         # from string to actual type in Agent initialization

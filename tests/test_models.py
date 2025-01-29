@@ -35,7 +35,6 @@ agents:
     name: Test Agent
     description: A test agent
     model: test
-    model_settings: {}
     result_type: TestResponse
     system_prompts:
       - You are a test agent

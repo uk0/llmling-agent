@@ -42,9 +42,6 @@ agents:
   support:
     name: Support Agent
     model: openai:gpt-4o-mini
-    model_settings:
-      retries: 3
-      result_retries: 2
     result_type: SupportResult
     system_prompts:
       - You are a support agent

@@ -45,7 +45,16 @@ TResult = TypeVar("TResult")
 @dataclass(kw_only=True)
 class NodeContext:
     pool: AgentPool | None = None
+    """The agent pool the node is part of."""
+
     config: NodeConfig
+    """Node configuration."""
+
+    current_prompt: str | None = None
+    """Current prompt text for the agent."""
+
+    in_async_context: bool = False
+    """Whether we're running in an async context."""
 
 
 class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
