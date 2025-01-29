@@ -831,10 +831,13 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         """Run agent with prompt and get response."""
+        message_id = str(uuid4())
         prompts = await convert_prompts(prompt)
         final_prompt = "\n\n".join(str(p) for p in prompts)
         self.context.current_prompt = final_prompt
-        self.set_result_type(result_type)
+        # Create and emit user message
+        user_msg = ChatMessage[str](content=final_prompt, role="user")
+        self.message_received.emit(user_msg)
         tools = await self.tools.get_tools(state="enabled")
         match tool_choice:
             case str():
@@ -845,16 +848,10 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 tools = []
             case True | None:
                 pass  # Keep all tools
+        self.set_result_type(result_type)
+        start_time = time.perf_counter()
+        sys_prompt = await self.sys_prompts.format_system_prompt(self)
         try:
-            # Create and emit user message
-            user_msg = ChatMessage[str](content=final_prompt, role="user")
-            self.message_received.emit(user_msg)
-
-            # Get response through provider
-            message_id = str(uuid4())
-            start_time = time.perf_counter()
-            sys_prompt = await self.sys_prompts.format_system_prompt(self)
-
             result = await self._provider.generate_response(
                 *prompts,
                 message_id=message_id,
@@ -864,7 +861,11 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 store_history=store_history,
                 system_prompt=sys_prompt,
             )
-            # Create final message with all metrics
+        except Exception as e:
+            logger.exception("Agent run failed")
+            self.run_failed.emit("Agent run failed", e)
+            raise
+        else:
             response_msg = ChatMessage[TResult](
                 content=result.content,
                 role="assistant",
@@ -882,12 +883,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 devtools.debug(response_msg)
 
             self.message_sent.emit(response_msg)
-
-        except Exception as e:
-            logger.exception("Agent run failed")
-            self.run_failed.emit("Agent run failed", e)
-            raise
-        else:
             return response_msg
 
     def to_agent_tool(
