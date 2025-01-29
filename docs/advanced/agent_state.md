@@ -15,8 +15,8 @@ An agent maintains several types of state that influence its behavior. While som
 
 ```python
 async with Agent.open("config.yml") as agent:
-    # Modify system prompts
-    agent.sys_prompts.add_library_prompt("style.technical")
+    # Modify system prompts by reference
+    agent.sys_prompts.add("technical_style")
 
     # Enable/disable tools
     agent.tools.enable_tool("file_operations")

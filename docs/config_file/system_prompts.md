@@ -1,10 +1,54 @@
 # System Prompts Configuration
 
-System prompts define an agent's role, behavior, and capabilities. LLMling provides flexible ways to configure these prompts.
+System prompts define an agent's role, behavior, and capabilities. LLMling provides multiple ways to configure and access prompts.
 
-## Basic Configuration
+## Prompt Providers
 
-The simplest way is to provide string prompts:
+LLMling supports multiple prompt sources through a provider system:
+
+### Builtin Prompts
+
+Define prompts directly in your configuration:
+
+```yaml
+prompts:
+  system_prompts:
+    code_reviewer:
+      content: "You are a code reviewer specialized in {{ language }}."
+      type: role
+
+    error_handler:
+      content: |
+        You help developers fix {{ error_type }} errors.
+        Current context: {{ context }}
+      type: methodology
+```
+
+### External Providers
+
+Connect to external prompt management systems:
+
+```yaml
+prompts:
+  providers:
+    - type: langfuse
+      secret_key: "your-secret"
+      public_key: "your-public-key"
+      host: "https://cloud.langfuse.com"
+
+    - type: openlit
+      url: "https://api.openlit.ai"
+      api_key: "your-api-key"
+
+    - type: promptlayer
+      api_key: "your-api-key"
+```
+
+## Using Prompts in Agents
+
+### Direct System Prompts
+
+Simple string prompts for basic behaviors:
 
 ```yaml
 agents:
@@ -14,59 +58,59 @@ agents:
       - "You always provide concise answers."
 ```
 
-## Advanced Prompt Types
+### Library Prompts
 
-### File-based Prompts
-Load prompts from external files:
+Reference prompts from any configured provider:
 
 ```yaml
 agents:
   expert:
-    system_prompts:
-      - type: "file"
-        description: "Expert knowledge base"
-        path: "prompts/expert_role.md"
-        format: "markdown"  # or "text", "jinja2"
-        watch: true  # Reload when file changes
+    library_system_prompts:
+      - "code_reviewer?language=python"  # Builtin prompt with variables
+      - "langfuse:expert_prompt@v2"      # Versioned Langfuse prompt
+      - "openlit:code_analysis"          # OpenLIT prompt
 ```
 
-### Dynamic Prompts
-Generate prompts using Python functions:
+## Prompt Reference Syntax
 
-```yaml
-agents:
-  contextual:
-    system_prompts:
-      - type: "function"
-        description: "Dynamic context loader"
-        import_path: "my_app.prompts.get_context"
-        template: "Current context: {result}"
+Access prompts using a unified reference syntax:
+
+```
+[provider:]identifier[@version][?var1=val1,var2=val2]
 ```
 
-## Mixed Configuration
+Examples:
 
-You can combine different prompt types:
+- `error_handler` - Builtin prompt
+- `langfuse:intro@v2` - Versioned Langfuse prompt
+- `code_review?language=python&style=detailed` - Prompt with variables
 
-```yaml
-agents:
-  assistant:
-    system_prompts:
-      # Simple string prompt
-      - "You are an AI assistant named {name}."
+## Provider Features
 
-      # File-based role definition
-      - type: "file"
-        path: "prompts/assistant_role.md"
+Different providers support different features:
 
-      # Dynamic context
-      - type: "function"
-        import_path: "my_app.prompts.get_capabilities"
-        template: "Your capabilities: {result}"
-```
+- **Builtin**:
+
+- Jinja2 templating
+- Variable validation
+- No versioning
+
+- **Langfuse**:
+
+- Version control
+- Team collaboration
+- Usage tracking
+
+- **OpenLIT**:
+
+- Version control
+- Variables
+- Metadata support
 
 ## Best Practices
 
-1. **Keep Base Prompts Simple**: Use string prompts for basic behaviors
-2. **Use Files for Complex Prompts**: Move longer prompts to files
-3. **Dynamic When Needed**: Use dynamic prompts only when context changes
-4. **Clear Structure**: Organize prompts from general to specific
+1. **Use Builtin for Simple Cases**: Keep basic prompts in your config
+2. **External for Team Work**: Use Langfuse/OpenLIT for collaborative prompt management
+3. **Version Critical Prompts**: Use versioned providers for production prompts
+4. **Clear Variables**: Document required variables in prompt descriptions
+5. **Consistent Templating**: Use Jinja2 syntax for variables (`{{ var }}`)

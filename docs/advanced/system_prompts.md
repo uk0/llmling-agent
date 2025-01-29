@@ -88,6 +88,7 @@ This will automatically include tool descriptions in the system prompt:
 You are log_analyzer. Analyze system logs for issues.
 
 You have access to these tools:
+
 - read_logs: Read system log files
 - analyze_logs: Analyze logs for patterns
 - report_issue: Create issue report
@@ -201,8 +202,8 @@ LLMling includes a library of pre-defined system prompts that can be used across
 You can reference prompts from the library:
 
 ```python
-# Add a single library prompt
-agent.sys_prompts.add_library_prompt("step_by_step")
+# Add a single library prompt by reference
+agent.sys_prompts.add("step_by_step")
 
 # In YAML configuration:
 agents:

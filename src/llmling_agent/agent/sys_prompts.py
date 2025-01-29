@@ -97,29 +97,20 @@ class SystemPrompts:
     def __getitem__(self, idx: int | slice) -> AnyPromptType | list[AnyPromptType]:
         return self.prompts[idx]
 
-    def add_library_prompt(self, identifier: str) -> None:
-        """Add a prompt from the library by reference.
+    async def add(self, reference: str) -> None:
+        """Add a system prompt using prompt reference syntax.
 
         Args:
-            identifier: Name of the prompt in the library
+            reference: Prompt reference in format:
+                      [provider:]identifier[@version][?var1=val1,...]
 
-        Raises:
-            ValueError: If prompt not found or no context available
+        Examples:
+            await agent.sys_prompts.add("code_reviewer?language=python")
+            await agent.sys_prompts.add("langfuse:expert@v2")
         """
-        if not self.context:
-            msg = "No context available to resolve library prompts"
-            raise ValueError(msg)
-
-        if not self.context.definition.prompts.system_prompts:
-            msg = "No prompts available in library"
-            raise ValueError(msg)
-
-        prompt = self.context.definition.prompts.system_prompts.get(identifier)
-        if not prompt:
-            msg = f"Prompt {identifier!r} not found in library"
-            raise ValueError(msg)
-
-        self.prompts.append(prompt.content)
+        assert self.context
+        content = await self.context.prompt_manager.get(reference)
+        self.prompts.append(content)
 
     async def refresh_cache(self) -> None:
         """Force re-evaluation of prompts."""
