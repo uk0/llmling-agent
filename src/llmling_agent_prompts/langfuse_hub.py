@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from langfuse import Langfuse
 
-from llmling_agent_prompts.base import BasePromptProvider
+from llmling_agent.prompts.base import BasePromptProvider
 
 
 if TYPE_CHECKING:

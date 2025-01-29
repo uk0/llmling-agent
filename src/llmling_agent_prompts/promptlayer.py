@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from promptlayer import PromptLayer
 
-from llmling_agent_prompts.base import BasePromptProvider
+from llmling_agent.prompts.base import BasePromptProvider
 
 
 if TYPE_CHECKING:
