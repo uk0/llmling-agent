@@ -14,7 +14,7 @@ from llmling_agent import Agent
 from llmling_agent.models import ChatMessage
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_commands import get_commands
-from llmling_textual.widget import ChatView
+from llmling_textual.widgets.widget import ChatView
 
 
 if TYPE_CHECKING:

@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import Agent, StructuredAgent
     from llmling_agent.agent.agent import AgentKwargs
-    from llmling_agent.common_types import OptionalAwaitable, SessionIdType, StrPath
+    from llmling_agent.common_types import SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.agents import AgentsManifest, WorkerConfig
@@ -355,27 +355,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             with suppress(KeyboardInterrupt):
                 while True:
                     await asyncio.sleep(1)
-
-    def start_supervision(self) -> OptionalAwaitable[None]:
-        """Start supervision interface.
-
-        Can be called either synchronously or asynchronously:
-
-        # Sync usage:
-        start_supervision(pool)
-
-        # Async usage:
-        await start_supervision(pool)
-        """
-        from llmling_agent.delegation.supervisor_ui import SupervisorApp
-
-        app = SupervisorApp(self)
-        if asyncio.get_event_loop().is_running():
-            # We're in an async context
-            return app.run_async()
-        # We're in a sync context
-        app.run()
-        return None
 
     @property
     def agents(self) -> EventedDict[str, AnyAgent[Any, Any]]:
