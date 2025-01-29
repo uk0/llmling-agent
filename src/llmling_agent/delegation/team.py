@@ -125,7 +125,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         **kwargs: Any,
     ) -> ChatMessage[list[Any]]:
         """Run all agents in parallel and return combined message."""
-        result = await self.execute(*prompts, **kwargs)
+        result: TeamResponse = await self.execute(*prompts, **kwargs)
 
         return ChatMessage(
             content=[r.message.content for r in result if r.message],
@@ -138,13 +138,13 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             },
         )
 
-    async def run_job[TResult](
+    async def run_job[TJobResult](
         self,
-        job: Job[TDeps, TResult],
+        job: Job[TDeps, TJobResult],
         *,
         store_history: bool = True,
         include_agent_tools: bool = True,
-    ) -> list[AgentResponse[TResult]]:
+    ) -> list[AgentResponse[TJobResult]]:
         """Execute a job across all team members in parallel.
 
         Args:
@@ -162,7 +162,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         from llmling_agent.agent import Agent, StructuredAgent
         from llmling_agent.tasks import JobError
 
-        responses: list[AgentResponse[TResult]] = []
+        responses: list[AgentResponse[TJobResult]] = []
         errors: dict[str, Exception] = {}
         start_time = datetime.now()
 
@@ -189,7 +189,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
 
             prompt = await job.get_prompt()
 
-            async def _run(agent: MessageNode[TDeps, TResult]) -> None:
+            async def _run(agent: MessageNode[TDeps, TJobResult]) -> None:
                 assert isinstance(agent, Agent | StructuredAgent)
                 try:
                     with agent.tools.temporary_tools(

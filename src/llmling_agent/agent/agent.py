@@ -55,6 +55,7 @@ if TYPE_CHECKING:
         ToolType,
     )
     from llmling_agent.config.capabilities import Capabilities
+    from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.models.context import ConfirmationCallback
@@ -408,24 +409,20 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
     @overload
     def __or__(
-        self, other: AnyAgent[TDeps, Any] | Team[TDeps] | TeamRun[TDeps, Any]
+        self, other: AnyAgent[TDeps, Any] | BaseTeam[TDeps, Any]
     ) -> TeamRun[TDeps, Any]: ...
 
     @overload
     def __or__[TOtherDeps](
         self,
-        other: AnyAgent[TOtherDeps, Any] | Team[TOtherDeps] | TeamRun[TOtherDeps, Any],
+        other: AnyAgent[TOtherDeps, Any] | BaseTeam[TOtherDeps, Any],
     ) -> TeamRun[Any, Any]: ...
 
     @overload
     def __or__(self, other: ProcessorCallback[Any]) -> TeamRun[Any, Any]: ...
 
     def __or__(
-        self,
-        other: AnyAgent[Any, Any]
-        | ProcessorCallback[Any]
-        | Team[Any]
-        | TeamRun[Any, Any],
+        self, other: AnyAgent[Any, Any] | ProcessorCallback[Any] | BaseTeam[Any, Any]
     ) -> TeamRun:
         # Create new execution with sequential mode (for piping)
         from llmling_agent.delegation.teamrun import TeamRun
