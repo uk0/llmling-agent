@@ -44,10 +44,9 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         self._team_talk.clear()
 
         start_time = datetime.now()
-        final_prompt = list(prompts)
         responses: list[AgentResponse[Any]] = []
         errors: dict[str, Exception] = {}
-
+        final_prompt = list(prompts)
         if self.shared_prompt:
             final_prompt.insert(0, self.shared_prompt)
         combined_prompt = "\n".join([await to_prompt(p) for p in final_prompt])
@@ -108,13 +107,8 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
 
         # Start all agents
         tasks = [asyncio.create_task(_run(n), name=f"run_{n.name}") for n in all_nodes]
-
-        # Yield messages as they arrive
-        completed = 0
-        while completed < len(all_nodes):
-            message = await queue.get()
-            yield message
-            completed += 1
+        for _ in all_nodes:
+            yield await queue.get()
 
         # Wait for all tasks to complete (for error handling)
         await asyncio.gather(*tasks, return_exceptions=True)
