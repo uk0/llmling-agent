@@ -22,10 +22,7 @@ from pydantic_ai.messages import (
 )
 
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.content import (
-    BaseContent,
-    Content,
-)
+from llmling_agent.models.content import BaseContent, Content
 from llmling_agent.models.messages import ChatMessage
 
 
