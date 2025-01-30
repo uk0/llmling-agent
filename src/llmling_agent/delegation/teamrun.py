@@ -79,6 +79,12 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         )
         self.validator = validator
 
+    def __prompt__(self) -> str:
+        """Format team info for prompts."""
+        members = " -> ".join(a.name for a in self.agents)
+        desc = f" - {self.description}" if self.description else ""
+        return f"Sequential Team '{self.name}'{desc}\nPipeline: {members}"
+
     async def _run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,

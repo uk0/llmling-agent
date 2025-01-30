@@ -84,6 +84,12 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
 
         return TeamResponse(responses=responses, start_time=start_time, errors=errors)
 
+    def __prompt__(self) -> str:
+        """Format team info for prompts."""
+        members = ", ".join(a.name for a in self.agents)
+        desc = f" - {self.description}" if self.description else ""
+        return f"Parallel Team '{self.name}'{desc}\nMembers: {members}"
+
     async def run_iter(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
