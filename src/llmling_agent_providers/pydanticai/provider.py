@@ -26,7 +26,7 @@ from llmling_agent.tasks.exceptions import (
     ToolSkippedError,
 )
 from llmling_agent.utils.inspection import has_argument_type
-from llmling_agent_providers.base import AgentProvider, ProviderResponse
+from llmling_agent_providers.base import AgentLLMProvider, ProviderResponse
 from llmling_agent_providers.pydanticai.utils import (
     convert_model_message,
     format_part,
@@ -49,10 +49,11 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class PydanticAIProvider(AgentProvider):
+class PydanticAIProvider(AgentLLMProvider):
     """Provider using pydantic-ai as backend."""
 
     _conversation: ConversationManager
+    NAME = "pydantic_ai"
 
     def __init__(
         self,

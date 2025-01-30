@@ -38,6 +38,7 @@ class HumanProvider(AgentProvider):
 
     model = None
     _conversation: ConversationManager
+    NAME = "human"
 
     def __init__(
         self,

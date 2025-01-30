@@ -38,6 +38,8 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
     - String or ChatMessage returns
     """
 
+    NAME = "callback"
+
     def __init__(
         self,
         callback: ProcessorCallback[Any],

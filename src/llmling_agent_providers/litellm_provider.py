@@ -17,7 +17,7 @@ from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.content import BaseContent, Content
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent_providers.base import (
-    AgentProvider,
+    AgentLLMProvider,
     ProviderResponse,
     StreamingResponseProtocol,
 )
@@ -108,8 +108,10 @@ class LiteLLMStream[TResult]:
         return self._final_usage
 
 
-class LiteLLMProvider(AgentProvider[Any]):
+class LiteLLMProvider(AgentLLMProvider[Any]):
     """Provider using LiteLLM for model-agnostic completions."""
+
+    NAME = "litellm"
 
     def __init__(
         self,
@@ -260,7 +262,7 @@ class LiteLLMProvider(AgentProvider[Any]):
                 tool_calls=calls,
                 model_name=model_name,
                 cost_and_usage=cost_and_usage,
-                provider_extra=response.choices[0].message.provider_specific_fields,
+                provider_extra=response.choices[0].message.provider_specific_fields,  # pyright: ignore
             )
 
         except Exception as e:

@@ -65,6 +65,8 @@ class ToolContext(BaseModel):
 class WebSocketProvider(AgentProvider, TaskManagerMixin):
     """Provider that connects to remote agent via WebSocket."""
 
+    NAME = "websocket"
+
     def __init__(
         self,
         url: str,

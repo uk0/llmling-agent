@@ -69,6 +69,7 @@ class AgentProvider[TDeps]:
     tool_used = Signal(ToolCallInfo)
     chunk_streamed = Signal(str, str)
     model_changed = Signal(object)  # Model | None
+    NAME: str
 
     def __init__(
         self,
@@ -198,3 +199,7 @@ class AgentProvider[TDeps]:
         except ValueError:
             logger.debug("Could not get token limits for model: %s", self.model_name)
             return None
+
+
+class AgentLLMProvider[TDeps](AgentProvider[TDeps]):
+    """Provider using LLM backend."""
