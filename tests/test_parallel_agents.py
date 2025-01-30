@@ -65,7 +65,7 @@ agents:
 @pytest.mark.asyncio
 async def test_parallel_execution():
     """Test parallel execution of multiple agents."""
-    manifest = AgentsManifest.from_yaml(TEST_CONFIG)
+    manifest = AgentsManifest[None].from_yaml(TEST_CONFIG)
 
     async with AgentPool[None](manifest) as pool:
         group: Team[Any] = pool.create_team(["agent_1", "agent_2"])
@@ -111,7 +111,7 @@ async def test_sequential_execution():
 # @pytest.mark.asyncio
 # async def test_shared_context():
 #     """Test that AgentGroup properly sets shared context."""
-#     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
+#     manifest = AgentsManifest[None].from_yaml(TEST_CONFIG)
 #     shared_data = {"key": "shared_value"}
 
 #     async with AgentPool[None](manifest) as pool:

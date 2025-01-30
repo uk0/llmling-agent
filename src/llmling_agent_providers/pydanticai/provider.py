@@ -174,7 +174,7 @@ class PydanticAIProvider(AgentLLMProvider):
 
         @wraps(original_tool)
         async def wrapped_with_ctx(ctx: RunContext[AgentContext], *args, **kwargs):
-            result = await agent_ctx.handle_confirmation(ctx, tool, kwargs)
+            result = await agent_ctx.handle_confirmation(agent_ctx, tool, kwargs)
             match result:
                 case "allow":
                     if inspect.iscoroutinefunction(original_tool):
