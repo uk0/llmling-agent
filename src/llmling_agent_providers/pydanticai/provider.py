@@ -156,7 +156,8 @@ class PydanticAIProvider(AgentProvider):
                     msg = "Agent chain aborted by user"
                     raise ChainAbortedError(msg)
 
-        wrapped_with_ctx.__doc__ = tool.callable.description
+        wrapped_with_ctx.__doc__ = tool.description
+        wrapped_with_ctx.__name__ = tool.name
 
         @wraps(original_tool)
         async def wrapped_without_ctx(*args, **kwargs):
@@ -176,7 +177,8 @@ class PydanticAIProvider(AgentProvider):
                     msg = "Agent chain aborted by user"
                     raise ToolError(msg)
 
-        wrapped_without_ctx.__doc__ = tool.callable.description
+        wrapped_without_ctx.__doc__ = tool.description
+        wrapped_without_ctx.__name__ = tool.name
 
         return (
             wrapped_with_ctx
