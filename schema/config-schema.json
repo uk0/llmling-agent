@@ -1280,6 +1280,7 @@
         "type": {
           "const": "connection",
           "default": "connection",
+          "description": "Connection event trigger.",
           "title": "Type",
           "type": "string"
         },
@@ -1322,6 +1323,7 @@
             }
           ],
           "default": null,
+          "description": "Connection source name.",
           "title": "Source"
         },
         "target": {
@@ -1334,9 +1336,11 @@
             }
           ],
           "default": null,
+          "description": "Connection to trigger.",
           "title": "Target"
         },
         "event": {
+          "description": "Event type to trigger on.",
           "enum": [
             "message_received",
             "message_processed",
@@ -1371,6 +1375,7 @@
             }
           ],
           "default": null,
+          "description": "Condition-based filter for the event.",
           "title": "Condition"
         }
       },
@@ -2668,6 +2673,7 @@
         "type": {
           "const": "import",
           "default": "import",
+          "description": "Import-path based response definition.",
           "title": "Type",
           "type": "string"
         },
@@ -2898,6 +2904,7 @@
         "type": {
           "const": "inline",
           "default": "inline",
+          "description": "Inline response definition.",
           "title": "Type",
           "type": "string"
         },

@@ -256,10 +256,19 @@ class ConnectionTriggerConfig(EventSourceConfig):
     """Trigger config specifically for connection events."""
 
     type: Literal["connection"] = Field("connection", init=False)
+    """Connection event trigger."""
+
     source: str | None = None
+    """Connection source name."""
+
     target: str | None = None
+    """Connection to trigger."""
+
     event: ConnectionEventType
+    """Event type to trigger on."""
+
     condition: ConnectionEventConditionType | None = None
+    """Condition-based filter for the event."""
 
     async def matches_event(self, event: ConnectionEvent[Any]) -> bool:
         """Check if this trigger matches the event."""
@@ -305,8 +314,13 @@ class ConnectionContentCondition(ConnectionEventCondition):
     """Simple content matching for connection events."""
 
     type: Literal["content"] = Field("content", init=False)
+    """Content-based trigger."""
+
     words: list[str]
+    """List of words to match."""
+
     mode: Literal["any", "all"] = "any"
+    """Matching mode."""
 
     async def check(self, event: ConnectionEvent[Any]) -> bool:
         if not event.message:
@@ -319,7 +333,10 @@ class ConnectionJinja2Condition(ConnectionEventCondition):
     """Flexible Jinja2 condition for connection events."""
 
     type: Literal["jinja2"] = Field("jinja2", init=False)
+    """Jinja2-based trigger configuration."""
+
     template: str
+    """Jinja2-Template (needs to return a "boolean" string)."""
 
     async def check(self, event: ConnectionEvent[Any]) -> bool:
         from jinja2 import Environment

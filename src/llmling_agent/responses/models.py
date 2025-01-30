@@ -78,6 +78,7 @@ class InlineResponseDefinition(BaseResponseDefinition):
     """
 
     type: Literal["inline"] = Field("inline", init=False)
+    """Inline response definition."""
 
     fields: dict[str, ResponseField]
     """A dictionary containing all fields."""
@@ -118,6 +119,7 @@ class ImportedResponseDefinition(BaseResponseDefinition):
     """
 
     type: Literal["import"] = Field("import", init=False)
+    """Import-path based response definition."""
 
     import_path: str
     """The path to the pydantic model to use as the response type."""
