@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -19,7 +20,7 @@ from llmling_agent.talk.stats import AggregatedTalkStats, TalkStats
 
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Sequence
+    from collections.abc import Awaitable
     from datetime import timedelta
     import os
 
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.conditions import ConnectionCondition
     from llmling_agent.models.forward_targets import ConnectionType
+    from llmling_agent.models.providers import ProcessorCallback
 
 TContent = TypeVar("TContent")
 QueueStrategy = Literal["concat", "latest", "buffer"]
@@ -85,7 +87,7 @@ class Talk[TTransmittedData]:
             exit_condition: Optional condition for stopping the event loop
         """
         self.source = source
-        self.targets = targets
+        self.targets = list(targets)
         # Could perhaps better be an auto-inferring property
         self.name = name or f"{source.name}->{[t.name for t in targets]}"
         self.group = group
@@ -109,6 +111,40 @@ class Talk[TTransmittedData]:
     def __repr__(self):
         targets = [t.name for t in self.targets]
         return f"<Talk({self.connection_type}) {self.source.name} -> {targets}>"
+
+    def __rshift__(
+        self,
+        other: MessageNode[Any, Any]
+        | ProcessorCallback[Any]
+        | Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]],
+    ) -> Self:
+        """Add another node as target to the connection or group.
+
+        Example:
+            connection >> other_agent  # Connect to single agent
+            connection >> (agent2 & agent3)  # Connect to group
+        """
+        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.messaging.messagenode import MessageNode
+        from llmling_agent.utils.inspection import has_return_type
+
+        match other:
+            case Callable():
+                if has_return_type(other, str):
+                    other = Agent.from_callback(other)
+                else:
+                    other = StructuredAgent.from_callback(other)
+                self.targets.append(other)
+            case Sequence():
+                for o in other:
+                    self.__rshift__(o)
+            case MessageNode():
+                self.targets.append(other)
+            case _:
+                msg = f"Invalid agent type: {type(other)}"
+                raise TypeError(msg)
+        # TODO: should return other?
+        return self
 
     async def _evaluate_condition(
         self,
