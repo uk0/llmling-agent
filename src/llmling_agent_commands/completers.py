@@ -100,7 +100,7 @@ class PromptCompleter(CompletionProvider):
             for name in manifest.prompts.system_prompts:
                 if name.startswith(partial):
                     yield CompletionItem(
-                        text=f"{_provider}:{name}" if provider else name,
+                        text=f"{_provider}:{name}" if _provider else name,
                         metadata="Builtin prompt",
                         kind="choice",
                     )
