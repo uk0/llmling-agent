@@ -48,30 +48,43 @@ async def delegate_to(  # noqa: D417
 async def list_available_agents(  # noqa: D417
     ctx: AgentContext,
     only_idle: bool = False,
-) -> list[str]:
+    detailed: bool = False,
+) -> str:
     """List all agents available in the current pool.
 
     Args:
         only_idle: If True, only returns agents that aren't currently busy.
                     Use this to find agents ready for immediate tasks.
+        detailed: If True, additional info for each team is provided (e.g. description)
 
     Returns:
         List of agent names that you can use with delegate_to
     """
     from pydantic_ai.tools import RunContext
 
+    from llmling_agent_providers.base import AgentLLMProvider
+
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
-        print("HREE")
-    print(ctx)
     if not ctx.pool:
         msg = "Agent needs to be in a pool to list agents"
         raise ToolError(msg)
 
-    agents = list(ctx.pool.list_agents())
+    agents = ctx.pool.agents
     if only_idle:
-        return [n for n in agents if not ctx.pool.get_agent(n).is_busy()]
-    return agents
+        agents = {name: agent for name, agent in agents.items() if not agent.is_busy()}
+    if not detailed:
+        return "\n".join(agents.keys())
+    lines = []
+    for name, agent in agents.items():
+        lines.extend([
+            f"name: {name}",
+            f"description: {agent.description or 'No description'}",
+            f"type: {'ai' if isinstance(agent.provider, AgentLLMProvider) else 'human'}",
+            "---",
+        ])
+
+    return "\n".join(lines) if lines else "No agents available"
 
 
 async def create_worker_agent[TDeps](
