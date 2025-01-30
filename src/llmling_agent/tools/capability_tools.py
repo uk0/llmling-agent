@@ -18,20 +18,20 @@ if TYPE_CHECKING:
 
 async def delegate_to(  # noqa: D417
     ctx: AgentContext,
-    agent_name: str,
+    agent_or_team_name: str,
     prompt: str,
 ) -> str:
-    """Delegate a task. Allows to assign a task to task to a specific agent.
+    """Delegate a task to an agent or team.
 
     If an action requires you to delegate a task, this tool can be used to assign and
     execute a task. Instructions can be passed via the prompt parameter.
 
     Args:
-        agent_name: The agent to delegate the task to
-        prompt: Instructions for the agent to delegate.
+        agent_or_team_name: The agent or team to delegate the task to
+        prompt: Instructions for the agent or team to delegate to.
 
     Returns:
-        The result of the task you delegated.
+        The result of the delegated task
     """
     from pydantic_ai.tools import RunContext
 
@@ -40,9 +40,21 @@ async def delegate_to(  # noqa: D417
     if not ctx.pool:
         msg = "Agent needs to be in a pool to delegate tasks"
         raise ToolError(msg)
-    specialist = ctx.pool.get_agent(agent_name)
-    result = await specialist.run(prompt)
-    return str(result.data)
+
+    # Try teams first, then agents
+    if agent_or_team_name in ctx.pool._teams:
+        team = ctx.pool._teams[agent_or_team_name]
+        result = await team.run(prompt)
+        return str(result.content)
+
+    # Fall back to agents
+    if agent_or_team_name in ctx.pool.agents:
+        agent = ctx.pool.get_agent(agent_or_team_name)
+        result = await agent.run(prompt)
+        return str(result.content)
+
+    msg = f"No agent or team found with name: {agent_or_team_name}"
+    raise ToolError(msg)
 
 
 async def list_available_agents(  # noqa: D417
@@ -373,7 +385,7 @@ async def add_team(  # noqa: D417
         if agent_name not in ctx.pool.agents:
             msg = f"Agent not found: {agent_name}"
             raise ToolError(msg)
-
+    print(name, "XXX")
     if mode == "sequential":
         ctx.pool.create_team_run(agents, name=name)
     else:
