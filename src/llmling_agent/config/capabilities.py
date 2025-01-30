@@ -19,7 +19,7 @@ AccessLevel = Literal["none", "own", "all"]
 class Capabilities(EventedModel):
     """Defines what operations an agent is allowed to perform."""
 
-    # Agent discovery and delegation
+    # Agent / Team discovery and delegation
     can_list_agents: bool = False
     """Whether the agent can discover other available agents."""
 
@@ -28,6 +28,9 @@ class Capabilities(EventedModel):
 
     can_observe_agents: bool = False
     """Whether the agent can monitor other agents' activities."""
+
+    can_list_teams: bool = False
+    """Whether the agent can discover available teams."""
 
     # History and statistics access
     history_access: AccessLevel = "none"
@@ -176,6 +179,14 @@ class Capabilities(EventedModel):
             source="builtin",
             requires_capability="can_list_agents",
         )
+
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(capability_tools.list_available_teams),
+            enabled=self.can_list_teams,
+            source="builtin",
+            requires_capability="can_list_teams",
+        )
+
         agent.tools.register_tool(
             LLMCallableTool.from_callable(capability_tools.delegate_to),
             enabled=self.can_delegate_tasks,

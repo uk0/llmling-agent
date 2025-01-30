@@ -87,6 +87,48 @@ async def list_available_agents(  # noqa: D417
     return "\n".join(lines) if lines else "No agents available"
 
 
+async def list_available_teams(  # noqa: D417
+    ctx: AgentContext,
+    only_idle: bool = False,
+    detailed: bool = False,
+) -> str:
+    """List all available teams in the pool.
+
+    Args:
+        only_idle: If True, only returns teams that aren't currently executing
+        detailed: If True, additional info for each team is provided (e.g. description)
+
+    Returns:
+        Formatted list of teams with their descriptions and types
+    """
+    from pydantic_ai.tools import RunContext
+
+    from llmling_agent import TeamRun
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+    if not ctx.pool:
+        msg = "No agent pool available"
+        raise ToolError(msg)
+
+    teams = ctx.pool._teams
+    if only_idle:
+        teams = {name: team for name, team in teams.items() if not team.is_running}
+    if not detailed:
+        return "\n".join(teams.keys())
+    lines = []
+    for name, team in teams.items():
+        lines.extend([
+            f"name: {name}",
+            f"description: {team.description or 'No description'}",
+            f"type: {'sequential' if isinstance(team, TeamRun) else 'parallel'}",
+            "members: " + ", ".join(a.name for a in team.agents),
+            "---",
+        ])
+
+    return "\n".join(lines) if lines else "No teams available"
+
+
 async def create_worker_agent[TDeps](
     ctx: AgentContext[TDeps],
     name: str,

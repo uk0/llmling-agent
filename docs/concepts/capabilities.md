@@ -69,12 +69,15 @@ agent = Agent(
 
 ## Available Capabilities
 
-### Agent Interaction
+### Agent / Team Interaction
 
 Control how agents can discover and interact with each other:
 ```python
 can_list_agents: bool = False
 """Whether the agent can discover other available agents."""
+
+can_list_teams: bool = False
+"""Whether the agent can discover teams of the pool."""
 
 can_delegate_tasks: bool = False
 """Whether the agent can delegate tasks to other agents."""
