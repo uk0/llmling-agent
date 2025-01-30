@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 
 from slashed import Command, CommandContext, CommandError
 from slashed.completers import CallbackCompleter
-import yamling
 
 from llmling_agent.agent import Agent, AnyAgent
 from llmling_agent_commands.completers import get_available_agents
@@ -123,6 +122,8 @@ async def show_agent(
     ctx: CommandContext[AgentContext], args: list[str], kwargs: dict[str, str]
 ):
     """Show current agent's configuration."""
+    import yamling
+
     if not ctx.context.agent.context:
         await ctx.output.print("No agent context available")
         return

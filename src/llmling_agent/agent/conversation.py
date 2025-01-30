@@ -12,7 +12,6 @@ from uuid import UUID, uuid4
 from llmling import BasePrompt, PromptMessage, StaticPrompt
 from llmling.config.models import BaseResource
 from psygnal import Signal
-from toprompt import AnyPromptType, to_prompt
 from upath import UPath
 
 from llmling_agent.log import get_logger
@@ -27,6 +26,7 @@ if TYPE_CHECKING:
 
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
+    from toprompt import AnyPromptType
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import MessageRole, SessionIdType, StrPath
@@ -367,6 +367,8 @@ class ConversationManager:
             replace_history: If True, only use provided history. If False, append
                     to existing history.
         """
+        from toprompt import to_prompt
+
         old_history = self.chat_messages.copy()
 
         try:

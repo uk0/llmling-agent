@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 from tokonomics.toko_types import TokenUsage
 from upath import UPath
-import yamling
 
 from llmling_agent.common_types import JsonValue, MessageRole
 from llmling_agent.log import get_logger
@@ -94,6 +93,8 @@ class FileProvider(StorageProvider):
 
     def _load(self):
         """Load data from file if it exists."""
+        import yamling
+
         if self.path.exists():
             self._data = yamling.load_file(
                 self.path,
@@ -104,6 +105,8 @@ class FileProvider(StorageProvider):
 
     def _save(self):
         """Save current data to file."""
+        import yamling
+
         self.path.parent.mkdir(parents=True, exist_ok=True)
         yamling.dump_file(self._data, self.path, mode=self.format)  # pyright: ignore
 

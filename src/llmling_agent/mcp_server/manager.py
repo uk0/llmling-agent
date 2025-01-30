@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Self
 
 from llmling import LLMCallableTool
 from llmling.prompts import PromptMessage, StaticPrompt
-from mcp.types import EmbeddedResource, ImageContent
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.client import MCPClient
@@ -31,6 +30,8 @@ logger = get_logger(__name__)
 
 async def convert_mcp_prompt(client: MCPClient, prompt: MCPPrompt) -> StaticPrompt:
     """Convert MCP prompt to StaticPrompt."""
+    from mcp.types import EmbeddedResource, ImageContent
+
     result = await client.get_prompt(prompt.name)
     return StaticPrompt(
         name=prompt.name,

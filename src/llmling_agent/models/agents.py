@@ -24,7 +24,6 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from toprompt import render_prompt
 from typing_extensions import TypeVar
 from upath.core import UPath
-import yamling
 
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.config import Capabilities, Knowledge
@@ -699,6 +698,8 @@ class AgentsManifest[TDeps](ConfigModel):
         Raises:
             ValueError: If loading fails
         """
+        import yamling
+
         try:
             data = yamling.load_yaml_file(path, resolve_inherit=True)
             # Set identifier as name if not set

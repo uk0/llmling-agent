@@ -4,11 +4,12 @@ from typing import Annotated, Final, Literal
 from platformdirs import user_data_dir
 from pydantic import BaseModel, ConfigDict, Field
 from upath import UPath
-import yamling
 
 
 LogFormat = Literal["chronological", "conversations"]
 FilterMode = Literal["and", "override"]
+SupportedFormats = Literal["yaml", "toml", "json", "ini"]
+FormatType = SupportedFormats | Literal["auto"]
 
 APP_NAME: Final = "llmling-agent"
 APP_AUTHOR: Final = "llmling"
@@ -89,7 +90,7 @@ class FileStorageConfig(BaseStorageProviderConfig):
     path: str
     """Path to storage file (extension determines format unless specified)"""
 
-    format: yamling.FormatType = "auto"
+    format: FormatType = "auto"
     """Storage format (auto=detect from extension)"""
 
     encoding: str = "utf-8"

@@ -11,7 +11,6 @@ from uuid import uuid4
 from pydantic import BaseModel
 import tokonomics
 from typing_extensions import TypeVar
-import yamling
 
 from llmling_agent.common_types import JsonObject, MessageRole  # noqa: TC001
 from llmling_agent.log import get_logger
@@ -245,6 +244,7 @@ class ChatMessage[TContent]:
                     or if style is invalid
         """
         from jinja2 import Environment
+        import yamling
 
         env = Environment(trim_blocks=True, lstrip_blocks=True)
         env.filters["to_yaml"] = yamling.dump_yaml
