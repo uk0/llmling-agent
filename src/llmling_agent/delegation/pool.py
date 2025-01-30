@@ -190,6 +190,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         agents: Sequence[str],
         validator: MessageNode[Any, TResult] | None = None,
         *,
+        name: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -202,6 +203,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         agents: Sequence[MessageNode[TDeps, Any]],
         validator: MessageNode[Any, TResult] | None = None,
         *,
+        name: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -214,6 +216,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         agents: Sequence[AgentName | MessageNode[Any, Any]],
         validator: MessageNode[Any, TResult] | None = None,
         *,
+        name: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -225,6 +228,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         agents: Sequence[AgentName | MessageNode[Any, Any]] | None = None,
         validator: MessageNode[Any, TResult] | None = None,
         *,
+        name: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -235,6 +239,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         Args:
             agents: List of agent names or team/agent instances (all if None)
             validator: Node to validate the results of the TeamRun
+            name: Optional name for the team
             shared_prompt: Optional prompt for all agents
             picker: Agent to use for picking agents
             num_picks: Number of agents to pick
@@ -253,6 +258,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             resolved_agents.append(agent)
         return TeamRun(
             resolved_agents,
+            name=name,
             validator=validator,
             shared_prompt=shared_prompt,
             picker=picker,
@@ -268,6 +274,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[MessageNode[TDeps, Any]],
         *,
+        name: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -279,6 +286,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[AgentName | MessageNode[Any, Any]],
         *,
+        name: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -289,6 +297,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self,
         agents: Sequence[AgentName | MessageNode[Any, Any]] | None = None,
         *,
+        name: str | None = None,
         shared_prompt: str | None = None,
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
@@ -298,6 +307,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
         Args:
             agents: List of agent names or instances (all if None)
+            name: Optional name for the team
             shared_prompt: Optional prompt for all agents
             picker: Agent to use for picking agents
             num_picks: Number of agents to pick
@@ -316,6 +326,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             resolved_agents.append(agent)
 
         return Team(
+            name=name,
             agents=resolved_agents,
             shared_prompt=shared_prompt,
             picker=picker,
