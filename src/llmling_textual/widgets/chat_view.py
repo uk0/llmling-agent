@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import logfire
+from rich.text import Text
 from slashed.log import get_logger
 from textual.containers import ScrollableContainer
 from textual.widgets import Static
@@ -58,7 +59,10 @@ class MessageWidget(Static):
         super().__init__()
         self.message = message
         self.add_class(message.role)
-        self.border_title = self.message.name or self.message.role.title()
+        text = Text()
+        text.append(f"{message.name}: ", style="bold")
+        text.append(str(message.content))
+        self.update(text)
 
     def compose(self) -> ComposeResult:
         """Create message layout."""
@@ -83,25 +87,23 @@ class ChatView(ScrollableContainer):
 
     DEFAULT_CSS = """
     ChatView {
-        height: 1fr;
-        width: 100%;
-        background: $surface;
+        width: 70%;
+        height: 100%;
+        scrollbar-gutter: stable;
         padding: 1;
     }
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._current_message: MessageWidget | None = None
 
     @logfire.instrument("Adding message {message.content}")
-    async def add_message(self, message: ChatMessage) -> MessageWidget:
+    async def append_chat_message(self, message: ChatMessage) -> None:
         """Add a new message to the chat."""
         widget = MessageWidget(message)
         await self.mount(widget)
         widget.scroll_visible()
-        self._current_message = widget
-        return widget
 
     def update_stream(self, content: str):
         """Update content of current streaming message."""
