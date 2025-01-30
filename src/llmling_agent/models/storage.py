@@ -163,7 +163,7 @@ class StorageConfig(BaseModel):
     log_context: bool = True
     """Whether to log additions to the context."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     @property
     def effective_providers(self) -> list[StorageProviderConfig]:

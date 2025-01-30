@@ -148,7 +148,7 @@ class EventSourceConfig(BaseModel):
     include_timestamp: bool = True
     """Control timestamp visibility in template."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
 class FileWatchConfig(EventSourceConfig):

@@ -30,7 +30,7 @@ class BaseContent(BaseModel):
     description: str | None = None
     """Human-readable description of the content."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     def to_openai_format(self) -> dict[str, Any]:
         """Convert to OpenAI API format."""

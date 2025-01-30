@@ -63,4 +63,4 @@ class ConversionConfig(BaseModel):
     max_size: int | None = None
     """Global size limit for all converters."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")

@@ -11,7 +11,7 @@ class PromptHubConfig(BaseModel):
     """Configuration for prompt providers."""
 
     type: str = Field(init=False)
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
 class PromptLayerConfig(PromptHubConfig):

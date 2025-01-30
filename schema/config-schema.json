@@ -402,11 +402,6 @@
           "title": "User Prompts",
           "type": "array"
         },
-        "model_settings": {
-          "description": "Additional settings to pass to the model",
-          "title": "Model Settings",
-          "type": "object"
-        },
         "config_file_path": {
           "anyOf": [
             {
@@ -1064,6 +1059,7 @@
       "type": "object"
     },
     "Capabilities": {
+      "additionalProperties": false,
       "description": "Defines what operations an agent is allowed to perform.",
       "properties": {
         "can_list_agents": {
@@ -1082,6 +1078,12 @@
           "default": false,
           "description": "Whether the agent can monitor other agents' activities.",
           "title": "Can Observe Agents",
+          "type": "boolean"
+        },
+        "can_list_teams": {
+          "default": false,
+          "description": "Whether the agent can discover available teams.",
+          "title": "Can List Teams",
           "type": "boolean"
         },
         "history_access": {
@@ -1177,6 +1179,12 @@
           "description": "Whether the agent can ask other agents of the pool.",
           "title": "Can Ask Agents",
           "type": "boolean"
+        },
+        "can_add_teams": {
+          "default": false,
+          "description": "Whether the agent can add teams to the pool.",
+          "title": "Can Add Teams",
+          "type": "boolean"
         }
       },
       "title": "Capabilities",
@@ -1264,6 +1272,7 @@
       "type": "object"
     },
     "ConnectionTriggerConfig": {
+      "additionalProperties": false,
       "description": "Trigger config specifically for connection events.",
       "properties": {
         "type": {
@@ -1371,6 +1380,7 @@
       "type": "object"
     },
     "ConversionConfig": {
+      "additionalProperties": false,
       "description": "Global conversion configuration.",
       "properties": {
         "providers": {
@@ -1724,6 +1734,7 @@
       "type": "object"
     },
     "EmailConfig": {
+      "additionalProperties": false,
       "description": "Email event source configuration.\n\nMonitors an email inbox for new messages and converts them to events.",
       "properties": {
         "type": {
@@ -2165,6 +2176,7 @@
       "type": "object"
     },
     "FileEnvironment": {
+      "additionalProperties": false,
       "description": "File-based environment configuration.\n\nLoads environment settings from external YAML files, supporting:\n- Reusable environment configurations\n- Separation of concerns\n- Environment sharing between agents\n- Version control of environment settings",
       "properties": {
         "type": {
@@ -2189,6 +2201,7 @@
             }
           ],
           "default": null,
+          "description": "Path to agent config file for resolving relative paths",
           "title": "Config File Path"
         }
       },
@@ -2374,6 +2387,7 @@
       "type": "object"
     },
     "FileWatchConfig": {
+      "additionalProperties": false,
       "description": "File watching event source.\n\nMonitors file system changes and triggers agent actions when:\n- Files are created\n- Files are modified\n- Files are deleted",
       "properties": {
         "type": {
@@ -3270,6 +3284,7 @@
       "type": "object"
     },
     "Knowledge": {
+      "additionalProperties": false,
       "description": "Collection of context sources for an agent.\n\nSupports both simple paths and rich resource types for content loading,\nplus LLMling's prompt system for dynamic content generation.",
       "properties": {
         "paths": {
@@ -3554,7 +3569,7 @@
               "type": "null"
             }
           ],
-          "default": null,
+          "default": "m0-YGtDf0qoTdzSPH6nTIfoYEV1lhUIdNwLYYSZKLxN",
           "description": "API key for mem0 service.",
           "title": "Api Key"
         },
@@ -4492,9 +4507,32 @@
           "default": null,
           "description": "Optional template for combining prompts.\nHas access to prompts grouped by type.",
           "title": "Template"
+        },
+        "providers": {
+          "description": "List of external prompt providers to use.",
+          "items": {
+            "$ref": "#/$defs/PromptHubConfig"
+          },
+          "title": "Providers",
+          "type": "array"
         }
       },
       "title": "PromptConfig",
+      "type": "object"
+    },
+    "PromptHubConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for prompt providers.",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "PromptHubConfig",
       "type": "object"
     },
     "PromptMessage": {
@@ -5283,6 +5321,7 @@
       "type": "object"
     },
     "StorageConfig": {
+      "additionalProperties": false,
       "description": "Global storage configuration.",
       "properties": {
         "providers": {
@@ -5324,6 +5363,7 @@
             }
           ],
           "default": null,
+          "description": "List of configured storage providers",
           "title": "Providers"
         },
         "default_provider": {
@@ -5336,6 +5376,7 @@
             }
           ],
           "default": null,
+          "description": "Name of default provider for history queries.\nIf None, uses first configured provider.",
           "title": "Default Provider"
         },
         "agents": {
@@ -5352,10 +5393,12 @@
             }
           ],
           "default": null,
+          "description": "Global agent filter. Can be overridden by provider-specific filters.",
           "title": "Agents"
         },
         "filter_mode": {
           "default": "and",
+          "description": "How to combine global and provider agent filters:\n- \"and\": Both global and provider filters must allow the agent\n- \"override\": Provider filter overrides global filter if set",
           "enum": [
             "and",
             "override"
@@ -5365,26 +5408,31 @@
         },
         "log_messages": {
           "default": true,
+          "description": "Whether to log messages.",
           "title": "Log Messages",
           "type": "boolean"
         },
         "log_conversations": {
           "default": true,
+          "description": "Whether to log conversations.",
           "title": "Log Conversations",
           "type": "boolean"
         },
         "log_tool_calls": {
           "default": true,
+          "description": "Whether to log tool calls.",
           "title": "Log Tool Calls",
           "type": "boolean"
         },
         "log_commands": {
           "default": true,
+          "description": "Whether to log command executions.",
           "title": "Log Commands",
           "type": "boolean"
         },
         "log_context": {
           "default": true,
+          "description": "Whether to log additions to the context.",
           "title": "Log Context",
           "type": "boolean"
         }
@@ -5906,6 +5954,7 @@
       "type": "object"
     },
     "TimeEventConfig": {
+      "additionalProperties": false,
       "description": "Time-based event source configuration.",
       "properties": {
         "type": {
@@ -6186,6 +6235,7 @@
       "type": "object"
     },
     "WebhookConfig": {
+      "additionalProperties": false,
       "description": "Webhook event source.\n\nListens for HTTP requests and triggers agent actions when:\n- POST requests are received at the configured endpoint\n- Request content matches any defined filters",
       "properties": {
         "type": {

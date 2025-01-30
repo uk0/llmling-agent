@@ -68,7 +68,7 @@ class MessageLog(BaseModel):
     model: str | None = None
     """Name of the model that generated this message"""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
 class ConversationLog(BaseModel):
@@ -86,7 +86,7 @@ class ConversationLog(BaseModel):
     messages: list[MessageLog]
     """List of messages in the conversation"""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
 class Message(SQLModel, table=True):  # type: ignore[call-arg]

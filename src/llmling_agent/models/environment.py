@@ -22,7 +22,7 @@ class FileEnvironment(BaseModel):
     config_file_path: str | None = None
     """Path to agent config file for resolving relative paths"""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     def get_display_name(self) -> str:
         return f"File: {self.uri}"
