@@ -21,7 +21,7 @@ from typing_extensions import TypeVar
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
-from llmling_agent.models import AgentContext, AgentsManifest
+from llmling_agent.models import AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.models.session import MemoryConfig, SessionQuery
@@ -57,6 +57,7 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
+    from llmling_agent.models import AgentContext
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.mcp_server import MCPServerConfig
     from llmling_agent.models.providers import ProcessorCallback
@@ -199,6 +200,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         from llmling_agent.agent import AgentLogger
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
+        from llmling_agent.models import AgentContext
         from llmling_agent_providers.base import AgentProvider
 
         self._infinite = False
@@ -740,6 +742,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 result = await agent.run("Do something")
             ```
         """
+        from llmling_agent.models import AgentContext
+
         if isinstance(config, AgentsManifest):
             agent_def = config
         else:

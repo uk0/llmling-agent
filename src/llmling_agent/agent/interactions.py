@@ -9,7 +9,6 @@ from llmling import LLMCallableTool
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
-from llmling_agent.delegation.pool import AgentPool
 from llmling_agent.log import get_logger
 from llmling_agent.models.messages import ChatMessage
 from llmling_agent.utils.basemodel_convert import get_ctor_basemodel
@@ -22,6 +21,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.base_team import BaseTeam
+    from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.messaging.messagenode import MessageNode
 
 
@@ -209,6 +209,7 @@ class Interactions[TDeps, TResult]:
         from toprompt import to_prompt
 
         from llmling_agent.delegation.base_team import BaseTeam
+        from llmling_agent.delegation.pool import AgentPool
 
         match selections:
             case dict():
@@ -319,6 +320,7 @@ Select ONE option by its exact label."""
         from toprompt import to_prompt
 
         from llmling_agent.delegation.base_team import BaseTeam
+        from llmling_agent.delegation.pool import AgentPool
 
         match selections:
             case Mapping():

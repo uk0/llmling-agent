@@ -16,7 +16,6 @@ from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
-from llmling_agent.models.context import AgentContext
 from llmling_agent.models.forward_targets import (
     CallableConnectionConfig,
     FileConnectionConfig,
@@ -724,6 +723,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             ValueError: If configuration is invalid
         """
         from llmling_agent.agent import Agent
+        from llmling_agent.models.context import AgentContext
 
         # Get base agent
         base = agent if isinstance(agent, Agent) else self.agents[agent]
