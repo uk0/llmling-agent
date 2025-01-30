@@ -83,8 +83,6 @@ class InlineResponseDefinition(BaseResponseDefinition):
     fields: dict[str, ResponseField]
     """A dictionary containing all fields."""
 
-    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
-
     def create_model(self) -> type[BaseModel]:  # type: ignore
         """Create Pydantic model from inline definition."""
         fields = {}
