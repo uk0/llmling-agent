@@ -8,7 +8,6 @@ from uuid import uuid4
 
 from pydantic_ai import messages as _messages
 from pydantic_ai.messages import (
-    ArgsDict,
     ModelMessage,
     ModelRequest,
     ModelRequestPart,
@@ -52,10 +51,7 @@ def format_part(  # noqa: PLR0911
         case _messages.TextPart():
             return response.content
         case _messages.ToolCallPart():
-            if isinstance(response.args, _messages.ArgsJson):
-                args = response.args.args_json
-            else:
-                args = str(response.args.args_dict)
+            args = str(response.args)
             return f"Tool call: {response.tool_name}\nArgs: {args}"
         case _messages.ToolReturnPart():
             return f"Tool {response.tool_name} returned: {response.content}"
@@ -110,9 +106,7 @@ def parts_to_tool_call_info(
 ) -> ToolCallInfo:
     """Convert matching tool call and return parts into a ToolCallInfo."""
     args = (
-        call_part.args.args_dict
-        if isinstance(call_part.args, ArgsDict)
-        else json.loads(call_part.args.args_json)
+        call_part.args if isinstance(call_part.args, dict) else json.loads(call_part.args)
     )
 
     return ToolCallInfo(
@@ -174,9 +168,9 @@ def convert_model_message(
 
         case ToolCallPart():
             args = (
-                message.args.args_dict
-                if isinstance(message.args, ArgsDict)
-                else json.loads(message.args.args_json)
+                message.args
+                if isinstance(message.args, dict)
+                else json.loads(message.args)
             )
             info = ToolCallInfo(
                 tool_name=message.tool_name,
