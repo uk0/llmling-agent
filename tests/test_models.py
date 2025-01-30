@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 import pytest
@@ -100,7 +100,7 @@ def test_environment_path_resolution(tmp_path: Path):
     config_file.write_text(ENV_AGENT)
 
     # Load the config and verify path resolution
-    agent_def = AgentsManifest[Any].from_file(config_file)
+    agent_def = AgentsManifest.from_file(config_file)
     test_agent = agent_def.agents["test_agent"]
 
     # The environment path should now be resolved

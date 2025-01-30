@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import Any
 
 from llmling.cli.constants import output_format_opt
 from llmling.cli.utils import format_output
@@ -40,7 +39,7 @@ def get_history_provider(config_path: str):
     Returns:
         Storage provider configured for history operations
     """
-    manifest = AgentsManifest[Any].from_file(config_path)
+    manifest = AgentsManifest.from_file(config_path)
     storage = StorageManager(manifest.storage)
     return storage.get_history_provider()
 

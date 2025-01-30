@@ -45,7 +45,7 @@ agents:
 
 async def example_structured_response():
     """Show both ways of defining structured responses."""
-    manifest = AgentsManifest[None].from_yaml(AGENT_CONFIG)
+    manifest = AgentsManifest.from_yaml(AGENT_CONFIG)
 
     # Example 1: Python-defined structure
     agent = Agent[None](

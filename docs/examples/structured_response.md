@@ -57,7 +57,7 @@ class PythonResult(BaseModel):
 
 
 async def example_structured_response():
-    manifest = AgentsManifest[Any].from_yaml("structured_agents.yml")
+    manifest = AgentsManifest.from_yaml("structured_agents.yml")
 
     # Example 1: Python-defined structure
     agent = Agent[None](

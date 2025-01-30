@@ -1,5 +1,3 @@
-from typing import Any
-
 from pydantic import BaseModel
 import pytest
 
@@ -21,7 +19,7 @@ agents:
 
 @pytest.mark.asyncio
 async def test_structured_response():
-    manifest = AgentsManifest[Any].from_yaml(AGENT_CONFIG)
+    manifest = AgentsManifest.from_yaml(AGENT_CONFIG)
     async with manifest.pool as pool:
         agent = pool.get_agent("summarizer", return_type=Result)
         result = await agent.run("I love this new feature!")

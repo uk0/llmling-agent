@@ -74,7 +74,7 @@ async def test_prompt_command():
             messages.append(message)
 
     # Load test config
-    manifest = AgentsManifest[None].from_yaml(TEST_CONFIG)
+    manifest = AgentsManifest.from_yaml(TEST_CONFIG)
     context = store.create_context(manifest, output_writer=TestOutput())
 
     # Test simple prompt

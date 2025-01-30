@@ -13,7 +13,7 @@ from llmling_agent.models import AgentsManifest
 class AgentState:
     """State for web interface."""
 
-    agent_def: AgentsManifest[Any]
+    agent_def: AgentsManifest
     pool: AgentPool
     current_agent: Agent[Any] | None = None
 
@@ -58,7 +58,7 @@ class AgentHandler:
 
     async def initialize(self):
         """Initialize with full agent pool."""
-        agent_def = AgentsManifest[Any].from_file(self._file_path)
+        agent_def = AgentsManifest.from_file(self._file_path)
         # Create pool with ALL agents
         pool = AgentPool[None](agent_def)
         self._state = AgentState(agent_def=agent_def, pool=pool)

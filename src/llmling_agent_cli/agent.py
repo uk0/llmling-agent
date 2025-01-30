@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import shutil
-from typing import Any
 
 from llmling.cli.constants import output_format_opt, verbose_opt
 from llmling.cli.utils import format_output
@@ -108,7 +107,7 @@ def list_agents(
             raise t.BadParameter(msg) from e
 
         # Load and validate agent definition
-        agent_def = AgentsManifest[Any].from_file(config_path)
+        agent_def = AgentsManifest.from_file(config_path)
         # Set the name field from the dict key for each agent
         agents = [ag.model_copy(update={"name": n}) for n, ag in agent_def.agents.items()]
         format_output(agents, output_format)

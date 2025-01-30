@@ -111,7 +111,7 @@ def manifest():
     """Create test manifest with some agents."""
     agent_1 = AgentConfig(name="agent1", model="test")
     agent_2 = AgentConfig(name="agent2", model="test")
-    return AgentsManifest[Any](agents={"agent1": agent_1, "agent2": agent_2})
+    return AgentsManifest(agents={"agent1": agent_1, "agent2": agent_2})
 
 
 @pytest.fixture

@@ -65,7 +65,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
     def __init__(
         self,
-        manifest: StrPath | AgentsManifest[Any] | None = None,
+        manifest: StrPath | AgentsManifest | None = None,
         *,
         shared_deps: TPoolDeps | None = None,
         nodes_to_load: list[AgentName] | None = None,
@@ -94,9 +94,9 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
         match manifest:
             case None:
-                self.manifest = AgentsManifest[Any]()
+                self.manifest = AgentsManifest()
             case str():
-                self.manifest = AgentsManifest[Any].from_file(manifest)
+                self.manifest = AgentsManifest.from_file(manifest)
             case AgentsManifest():
                 self.manifest = manifest
             case _:

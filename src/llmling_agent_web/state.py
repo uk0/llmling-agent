@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 from llmling_agent import AgentPool, AgentsManifest
 from llmling_agent.log import get_logger
@@ -42,7 +41,7 @@ class AgentState:
         """
         try:
             logger.debug("Loading agent definition from: %s", file_path)
-            agent_def = AgentsManifest[Any].from_file(file_path)
+            agent_def = AgentsManifest.from_file(file_path)
             return cls(agent_def=agent_def)
         except Exception as e:
             error_msg = f"Failed to load agent file: {e}"

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from pydantic_ai.models.test import TestModel
 import pytest
@@ -82,7 +82,7 @@ def write_config(content: str, path: Path) -> Path:
 async def test_basic_worker_setup(tmp_path: Path):
     """Test basic worker registration and usage."""
     config_path = write_config(BASIC_WORKERS, tmp_path)
-    manifest = AgentsManifest[Any].from_file(config_path)
+    manifest = AgentsManifest.from_file(config_path)
 
     async with AgentPool[None](manifest) as pool:
         main_agent: Agent[None] = pool.get_agent("main")
@@ -99,7 +99,7 @@ async def test_basic_worker_setup(tmp_path: Path):
 async def test_history_sharing(tmp_path: Path):
     """Test history sharing between agents."""
     config_path = write_config(WORKERS_WITH_SHARING, tmp_path)
-    manifest = AgentsManifest[Any].from_file(config_path)
+    manifest = AgentsManifest.from_file(config_path)
     async with AgentPool[None](manifest) as pool:
         main_agent = pool.get_agent("main")
         worker = pool.get_agent("worker")
@@ -127,7 +127,7 @@ async def test_history_sharing(tmp_path: Path):
 async def test_context_sharing(tmp_path: Path):
     """Test context sharing between agents."""
     config_path = write_config(WORKERS_WITH_SHARING, tmp_path)
-    manifest = AgentsManifest[Any].from_file(config_path)
+    manifest = AgentsManifest.from_file(config_path)
     async with AgentPool[None](manifest) as pool:
         main_agent = pool.get_agent("main", deps={"important_value": 123})
         specialist = pool.get_agent("specialist")
@@ -146,7 +146,7 @@ async def test_context_sharing(tmp_path: Path):
 async def test_invalid_worker(tmp_path: Path):
     """Test error when using non-existent worker."""
     config_path = write_config(INVALID_WORKERS, tmp_path)
-    manifest = AgentsManifest[Any].from_file(config_path)
+    manifest = AgentsManifest.from_file(config_path)
 
     with pytest.raises(ValueError, match="Worker agent.*not found"):
         async with AgentPool[None](manifest):
@@ -156,7 +156,7 @@ async def test_invalid_worker(tmp_path: Path):
 async def test_worker_independence(tmp_path: Path):
     """Test that workers maintain independent state when not sharing."""
     config_path = write_config(BASIC_WORKERS, tmp_path)
-    manifest = AgentsManifest[Any].from_file(config_path)
+    manifest = AgentsManifest.from_file(config_path)
     async with AgentPool[None](manifest) as pool:
         main_agent: Agent[None] = pool.get_agent("main")
 
@@ -171,7 +171,7 @@ async def test_worker_independence(tmp_path: Path):
 async def test_multiple_workers_same_prompt(tmp_path: Path):
     """Test using multiple workers with the same prompt."""
     config_path = write_config(BASIC_WORKERS, tmp_path)
-    manifest = AgentsManifest[Any].from_file(config_path)
+    manifest = AgentsManifest.from_file(config_path)
     async with AgentPool[None](manifest) as pool:
         main_agent: Agent[None] = pool.get_agent("main")
         worker: Agent[None] = pool.get_agent("worker")

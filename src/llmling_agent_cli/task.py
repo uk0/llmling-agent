@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import typer as t
 
@@ -82,7 +82,7 @@ def task_command(
         # Load manifest
         from llmling_agent.models import AgentsManifest
 
-        manifest = AgentsManifest[Any].from_file(config_path)
+        manifest = AgentsManifest.from_file(config_path)
 
         # Execute task
         result = asyncio.run(execute_job(agent_name, task_name, manifest, prompt=prompt))
