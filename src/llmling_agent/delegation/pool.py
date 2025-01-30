@@ -801,10 +801,8 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         from llmling_agent.agent import Agent
 
         agent: AnyAgent[Any, Any] = Agent(name=name, **kwargs)
-        agent = await self.exit_stack.enter_async_context(agent)
-
-        # Register in pool
         agent.tools.add_provider(self.mcp)
+        agent = await self.exit_stack.enter_async_context(agent)
         # Convert to structured if needed
         if result_type is not None:
             agent = agent.to_structured(result_type)
