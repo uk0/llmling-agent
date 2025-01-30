@@ -136,7 +136,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     # this fixes weird mypy issue
     conversation: ConversationManager
     talk: Interactions
-    description: str | None
     tool_used = Signal(ToolCallInfo)
     model_changed = Signal(object)  # Model | None
     chunk_streamed = Signal(str, str)  # (chunk, message_id)
@@ -211,7 +210,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         ctx.confirmation_callback = confirmation_callback
         if capabilities is not None:
             ctx.capabilities = capabilities
-        super().__init__(name=name, context=ctx)
+        super().__init__(name=name, context=ctx, description=description)
         memory_cfg = (
             session
             if isinstance(session, MemoryConfig)
@@ -283,7 +282,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self._result_type = None
         self.parallel_init = parallel_init
         self.name = name
-        self.description = description
         self._background_task: asyncio.Task[Any] | None = None
 
         # Forward provider signals
