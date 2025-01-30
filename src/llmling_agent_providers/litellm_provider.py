@@ -299,7 +299,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                 assert isinstance(response, ModelResponse)
                 assert isinstance(response.choices[0], Choices)
             # Extract content
-            content: Any = response.choices[0].message.content
+            content: Any = response.choices[0].message.content  # type: ignore
             if content and result_type and issubclass(result_type, BaseModel):
                 # Parse JSON string into the requested model
                 content = result_type.model_validate_json(content)
@@ -338,7 +338,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                 tool_calls=calls,
                 model_name=model_name,
                 cost_and_usage=cost_and_usage,
-                provider_extra=response.choices[0].message.provider_specific_fields,  # pyright: ignore
+                provider_extra=response.choices[0].message.provider_specific_fields,  # type: ignore
             )
 
         except Exception as e:
