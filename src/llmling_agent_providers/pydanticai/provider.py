@@ -11,6 +11,7 @@ from llmling import ToolError
 from llmling_models import AllModels, infer_model
 import logfire
 from pydantic_ai import Agent as PydanticAgent
+import pydantic_ai._pydantic
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.result import RunResult, StreamedRunResult
@@ -47,6 +48,36 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+# 🤫 Secret agent stuff below
+# We're doing some "creative" context handling here to make pydantic-ai accept our
+# AgentContext.
+# If you're reading this, please don't judge too harshly.
+# Sometimes you gotta do what you gotta do to keep the architecture clean(ish).
+
+
+def _is_call_ctx(annotation: Any) -> bool:
+    # Yes, we're monkey-patching pydantic-ai's internal function.
+    # No, we're not proud of it.
+    # But it works™
+    from typing import get_origin
+
+    from pydantic._internal import _typing_extra
+    from pydantic_ai.tools import RunContext
+
+    if annotation is RunContext or (
+        _typing_extra.is_generic_alias(annotation)
+        and get_origin(annotation) is RunContext
+    ):
+        return True
+    return annotation is AgentContext or (
+        _typing_extra.is_generic_alias(annotation)
+        and get_origin(annotation) is AgentContext
+    )
+
+
+pydantic_ai._pydantic._is_call_ctx = _is_call_ctx
 
 
 class PydanticAIProvider(AgentLLMProvider):
@@ -114,6 +145,8 @@ class PydanticAIProvider(AgentLLMProvider):
             )
             if has_argument_type(wrapped, "RunContext"):
                 agent.tool(wrapped)
+            elif has_argument_type(wrapped, "AgentContext"):
+                agent._register_function(wrapped, True, 1, None, "auto", False)
             else:
                 agent.tool_plain(wrapped)
         return agent
@@ -181,11 +214,31 @@ class PydanticAIProvider(AgentLLMProvider):
         wrapped_without_ctx.__doc__ = tool.description
         wrapped_without_ctx.__name__ = tool.name
 
-        return (
-            wrapped_with_ctx
-            if has_argument_type(tool.callable.callable, "RunContext")
-            else wrapped_without_ctx
-        )
+        @wraps(original_tool)
+        async def wrapped_with_agent_ctx(ctx: AgentContext, *args, **kwargs):
+            result = await agent_ctx.handle_confirmation(agent_ctx, tool, kwargs)
+            match result:
+                case "allow":
+                    if inspect.iscoroutinefunction(original_tool):
+                        return await original_tool(agent_ctx, *args, **kwargs)
+                    return original_tool(agent_ctx, *args, **kwargs)
+                case "skip":
+                    msg = f"Tool {tool.name} execution skipped"
+                    raise ToolSkippedError(msg)
+                case "abort_run":
+                    msg = "Run aborted by user"
+                    raise RunAbortedError(msg)
+                case "abort_chain":
+                    msg = "Agent chain aborted by user"
+                    raise ChainAbortedError(msg)
+
+        wrapped_with_agent_ctx.__doc__ = tool.description
+        wrapped_with_agent_ctx.__name__ = tool.name
+        if has_argument_type(original_tool, "RunContext"):
+            return wrapped_with_ctx
+        if has_argument_type(original_tool, "AgentContext"):
+            return wrapped_with_agent_ctx
+        return wrapped_without_ctx
 
     @logfire.instrument("Pydantic-AI call. model: {model} result type {result_type}.")
     async def generate_response(

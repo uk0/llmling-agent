@@ -105,12 +105,12 @@ Use `help` to see what commands are at your disposal.
 
 ## Provider support
 
-| Provider Type | Streaming Support | Multi-Modal Support | Structured Response Support |
+| Provider Type | Streaming Support | Multi-Modal Support | Structured Response Support | Dependency injection for tool usage |
 |--------------|------------------|---------------------|---------------------------|
-| PydanticAI | Yes | (Model dependent) | Yes |
-| LiteLLM | Yes | (Model dependent) | Yes |
-| Human-in-the-loop | Yes (but more a gimmick) | No | Yes |
-| Callable-based | (Depends on callback) | (Depends on callback) | Yes |
+| PydanticAI | Yes | (Model dependent) | Yes | Yes |
+| LiteLLM | Yes | (Model dependent) | Yes | Yes |
+| Human-in-the-loop | Yes (but more a gimmick) | No | Yes | N/A |
+| Callable-based | (Depends on callback) | (Depends on callback) | Yes | N/A |
 
 (Multi-modal support (Images & PDF) in PydanticAI and LiteLLM depends on the underlying model's capabilities)
 

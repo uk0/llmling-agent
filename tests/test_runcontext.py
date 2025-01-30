@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic_ai import RunContext
 import pytest
@@ -9,6 +9,34 @@ from llmling_agent.agent import Agent
 from llmling_agent.config.capabilities import Capabilities
 from llmling_agent.delegation.pool import AgentPool
 from llmling_agent.models.context import AgentContext
+
+
+async def run_ctx_tool(ctx: RunContext[AgentContext], arg: str) -> str:
+    """Tool expecting RunContext."""
+    assert isinstance(ctx, RunContext)
+    assert isinstance(ctx.deps, AgentContext)
+    return f"RunContext tool got: {arg}"
+
+
+async def agent_ctx_tool(ctx: AgentContext, arg: str) -> str:
+    """Tool expecting AgentContext."""
+    assert isinstance(ctx, AgentContext)
+    return f"AgentContext tool got: {arg}"
+
+
+async def data_with_run_ctx(ctx: RunContext[AgentContext]) -> str:
+    """Tool accessing data through RunContext."""
+    return f"Data from RunContext: {ctx.deps.data}"
+
+
+async def data_with_agent_ctx(ctx: AgentContext) -> str:
+    """Tool accessing data through AgentContext."""
+    return f"Data from AgentContext: {ctx.data}"
+
+
+async def no_ctx_tool(arg: str) -> str:
+    """Tool without any context."""
+    return f"No context tool got: {arg}"
 
 
 @pytest.mark.asyncio
@@ -66,12 +94,13 @@ async def test_plain_tool_no_context():
 
 
 @pytest.mark.integration
-async def test_capability_tools():
+@pytest.mark.parametrize("provider", ["pydantic_ai", "litellm"])
+async def test_capability_tools(provider: Literal["pydantic_ai", "litellm"]):
     """Test that capability tools work with AgentContext."""
     async with AgentPool[None]() as pool:
         agent = await pool.add_agent(
             name="test_agent",
-            provider="pydantic_ai",
+            provider=provider,
             model="gpt-4o-mini",
             capabilities=Capabilities(can_list_agents=True),
         )
@@ -82,16 +111,69 @@ async def test_capability_tools():
 
         agent_2 = await pool.add_agent(
             name="test_agent_2",
-            provider="pydantic_ai",
+            provider=provider,
             model="gpt-4o-mini",
             capabilities=Capabilities(can_delegate_tasks=True),
         )
 
         await pool.add_agent(
-            "helper", system_prompt="You help with tasks", model="gpt-4o-mini"
+            "helper",
+            system_prompt="You help with tasks",
+            model="gpt-4o-mini",
+            provider=provider,
         )
         result = await agent_2.run("Delegate 'say hello' to agent with name `helper`")
         assert "hello" in str(result.content).lower()
+
+
+@pytest.mark.asyncio
+async def test_context_compatibility():
+    """Test that both context types work in tools."""
+    async with Agent[None].open(model="openai:gpt-4o-mini") as agent:
+        agent.tools.register_tool(run_ctx_tool, name_override="run_ctx_tool")
+        agent.tools.register_tool(agent_ctx_tool, name_override="agent_ctx_tool")
+        agent.tools.register_tool(no_ctx_tool, name_override="no_ctx_tool")
+
+        # All should work
+        result1 = await agent.run("Use run_ctx_tool with argument 'test'")
+        assert any(
+            call.result == "RunContext tool got: test" for call in result1.tool_calls
+        )
+
+        result2 = await agent.run("Use agent_ctx_tool with argument 'test'")
+        assert any(
+            call.result == "AgentContext tool got: test" for call in result2.tool_calls
+        )
+
+        result3 = await agent.run("Use no_ctx_tool with argument 'test'")
+        assert any(
+            call.result == "No context tool got: test" for call in result3.tool_calls
+        )
+
+
+@pytest.mark.asyncio
+async def test_context_sharing():
+    """Test that both context types access same data."""
+    shared_data = {"key": "value"}
+
+    agent = Agent[dict](name="test", model="openai:gpt-4o-mini")
+    agent.context.data = shared_data
+
+    agent.tools.register_tool(data_with_run_ctx)
+    agent.tools.register_tool(data_with_agent_ctx)
+
+    async with agent:
+        result1 = await agent.run("Use data_with_run_ctx tool")
+        result2 = await agent.run("Use data_with_agent_ctx tool")
+
+        assert any(
+            call.result == "Data from RunContext: {'key': 'value'}"
+            for call in result1.tool_calls
+        )
+        assert any(
+            call.result == "Data from AgentContext: {'key': 'value'}"
+            for call in result2.tool_calls
+        )
 
 
 if __name__ == "__main__":

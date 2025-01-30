@@ -9,7 +9,6 @@ import json
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic_ai import RunContext
 from typing_extensions import TypeVar
 
 from llmling_agent.messaging.messagenode import NodeContext
@@ -122,7 +121,7 @@ class AgentContext[TDeps](NodeContext):
 
     async def handle_confirmation(
         self,
-        ctx: RunContext[AgentContext] | AgentContext,
+        ctx: AgentContext,
         tool: ToolInfo,
         args: dict[str, Any],
     ) -> ConfirmationResult:
@@ -143,19 +142,21 @@ class AgentContext[TDeps](NodeContext):
 ConfirmationResult = Literal["allow", "skip", "abort_run", "abort_chain"]
 
 ConfirmationCallback = Callable[
-    [RunContext[AgentContext] | AgentContext, ToolInfo, dict[str, Any]],
+    [AgentContext, ToolInfo, dict[str, Any]],
     ConfirmationResult | Awaitable[ConfirmationResult],
 ]
 
 
 async def simple_confirmation(
-    ctx: RunContext[AgentContext] | AgentContext,
+    ctx: AgentContext,
     tool: ToolInfo,
     args: dict[str, Any],
 ) -> ConfirmationResult:
     """Simple confirmation handler using input() in executor."""
+    from pydantic_ai import RunContext
+
     # Get agent name regardless of context type
-    agent_name = ctx.deps.agent_name if isinstance(ctx, RunContext) else ctx.agent_name
+    agent_name = ctx.agent_name
 
     prompt = dedent(f"""
         Tool Execution Confirmation

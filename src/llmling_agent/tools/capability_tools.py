@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
 from llmling import ToolError
-from pydantic_ai import RunContext  # noqa: TC002
 
 from llmling_agent.models.context import AgentContext  # noqa: TC001
 
@@ -18,7 +17,7 @@ if TYPE_CHECKING:
 
 
 async def delegate_to(  # noqa: D417
-    ctx: RunContext[AgentContext],
+    ctx: AgentContext,
     agent_name: str,
     prompt: str,
 ) -> str:
@@ -34,16 +33,20 @@ async def delegate_to(  # noqa: D417
     Returns:
         The result of the task you delegated.
     """
-    if not ctx.deps.pool:
+    from pydantic_ai.tools import RunContext
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+    if not ctx.pool:
         msg = "Agent needs to be in a pool to delegate tasks"
         raise ToolError(msg)
-    specialist = ctx.deps.pool.get_agent(agent_name)
+    specialist = ctx.pool.get_agent(agent_name)
     result = await specialist.run(prompt)
     return str(result.data)
 
 
 async def list_available_agents(  # noqa: D417
-    ctx: RunContext[AgentContext],
+    ctx: AgentContext,
     only_idle: bool = False,
 ) -> list[str]:
     """List all agents available in the current pool.
@@ -55,18 +58,24 @@ async def list_available_agents(  # noqa: D417
     Returns:
         List of agent names that you can use with delegate_to
     """
-    if not ctx.deps.pool:
+    from pydantic_ai.tools import RunContext
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+        print("HREE")
+    print(ctx)
+    if not ctx.pool:
         msg = "Agent needs to be in a pool to list agents"
         raise ToolError(msg)
 
-    agents = list(ctx.deps.pool.list_agents())
+    agents = list(ctx.pool.list_agents())
     if only_idle:
-        return [n for n in agents if not ctx.deps.pool.get_agent(n).is_busy()]
+        return [n for n in agents if not ctx.pool.get_agent(n).is_busy()]
     return agents
 
 
 async def create_worker_agent[TDeps](
-    ctx: RunContext[AgentContext[TDeps]],
+    ctx: AgentContext[TDeps],
     name: str,
     system_prompt: str,
     model: str | None = None,
@@ -76,26 +85,30 @@ async def create_worker_agent[TDeps](
     The new agent will be available as a tool for delegating specific tasks.
     It inherits the current model unless overridden.
     """
+    from pydantic_ai.tools import RunContext
+
     from llmling_agent import Agent
 
-    if not ctx.deps.pool:
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+    if not ctx.pool:
         msg = "Agent needs to be in a pool to list agents"
         raise ToolError(msg)
 
-    model = model or ctx.model.name()
+    model = model or ctx.agent.model_name
     worker = Agent[TDeps](
         name=name,
         model=model,
         system_prompt=system_prompt,
-        context=ctx.deps,
+        context=ctx,
     )
-    assert ctx.deps.agent
-    tool_info = ctx.deps.agent.register_worker(worker)
+    assert ctx.agent
+    tool_info = ctx.agent.register_worker(worker)
     return f"Created worker agent and registered as tool: {tool_info.name}"
 
 
 async def spawn_delegate[TDeps](
-    ctx: RunContext[AgentContext[TDeps]],
+    ctx: AgentContext[TDeps],
     task: str,
     system_prompt: str,
     model: str | None = None,
@@ -107,43 +120,51 @@ async def spawn_delegate[TDeps](
     Creates an ephemeral agent that will execute the task and clean up automatically
     Optionally connects back to receive results.
     """
+    from pydantic_ai.tools import RunContext
+
     from llmling_agent import Agent
 
-    if not ctx.deps.pool:
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+    if not ctx.pool:
         msg = "No agent pool available"
         raise ToolError(msg)
 
     name = f"delegate_{uuid4().hex[:8]}"
-    model = model or ctx.model.name()
+    model = model or ctx.agent.model_name
     agent = Agent[TDeps](
         name=name,
         model=model,
         system_prompt=system_prompt,
-        context=ctx.deps,
+        context=ctx,
     )
 
     if connect_back:
-        assert ctx.deps.agent
-        ctx.deps.agent.connect_to(agent)
+        assert ctx.agent
+        ctx.agent.connect_to(agent)
 
     await agent.run(task)
     return f"Spawned delegate {name} for task"
 
 
 async def search_history(
-    ctx: RunContext[AgentContext],
+    ctx: AgentContext,
     query: str | None = None,
     hours: int = 24,
     limit: int = 5,
 ) -> str:
     """Search conversation history."""
+    from pydantic_ai.tools import RunContext
+
     from llmling_agent_storage.formatters import format_output
 
-    if ctx.deps.capabilities.history_access == "none":
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+    if ctx.capabilities.history_access == "none":
         msg = "No permission to access history"
         raise ToolError(msg)
 
-    provider = ctx.deps.storage.get_history_provider()
+    provider = ctx.storage.get_history_provider()
     results = await provider.get_filtered_conversations(
         query=query,
         period=f"{hours}h",
@@ -153,22 +174,26 @@ async def search_history(
 
 
 async def show_statistics(
-    ctx: RunContext[AgentContext],
+    ctx: AgentContext,
     group_by: Literal["agent", "model", "hour", "day"] = "model",
     hours: int = 24,
 ) -> str:
     """Show usage statistics for conversations."""
+    from pydantic_ai.tools import RunContext
+
     from llmling_agent_storage.formatters import format_output
     from llmling_agent_storage.models import StatsFilters
 
-    if ctx.deps.capabilities.stats_access == "none":
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+    if ctx.capabilities.stats_access == "none":
         msg = "No permission to view statistics"
         raise ToolError(msg)
 
     cutoff = datetime.now() - timedelta(hours=hours)
     filters = StatsFilters(cutoff=cutoff, group_by=group_by)
 
-    provider = ctx.deps.storage.get_history_provider()
+    provider = ctx.storage.get_history_provider()
     stats = await provider.get_conversation_stats(filters)
 
     return format_output(
@@ -189,9 +214,13 @@ async def show_statistics(
     )
 
 
-async def execute_python(ctx: RunContext[AgentContext], code: str) -> str:
+async def execute_python(ctx: AgentContext, code: str) -> str:
     """Execute Python code directly."""
-    if not ctx.deps.capabilities.can_execute_code:
+    from pydantic_ai.tools import RunContext
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+    if not ctx.capabilities.can_execute_code:
         msg = "No permission to execute code"
         raise ToolError(msg)
 
@@ -204,9 +233,13 @@ async def execute_python(ctx: RunContext[AgentContext], code: str) -> str:
         return f"Error executing code: {e}"
 
 
-async def execute_command(ctx: RunContext[AgentContext], command: str) -> str:
+async def execute_command(ctx: AgentContext, command: str) -> str:
     """Execute a shell command."""
-    if not ctx.deps.capabilities.can_execute_commands:
+    from pydantic_ai.tools import RunContext
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+    if not ctx.capabilities.can_execute_commands:
         msg = "No permission to execute commands"
         raise ToolError(msg)
 
@@ -220,7 +253,7 @@ async def execute_command(ctx: RunContext[AgentContext], command: str) -> str:
 
 
 async def add_agent(  # noqa: D417
-    ctx: RunContext[AgentContext],
+    ctx: AgentContext,
     name: str,
     system_prompt: str,
     model: str | None = None,
@@ -241,8 +274,12 @@ async def add_agent(  # noqa: D417
     Returns:
         Confirmation message about the created agent
     """
-    assert ctx.deps.pool, "No agent pool available"
-    agent: AnyAgent[Any, Any] = await ctx.deps.pool.add_agent(
+    from pydantic_ai.tools import RunContext
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+    assert ctx.pool, "No agent pool available"
+    agent: AnyAgent[Any, Any] = await ctx.pool.add_agent(
         name=name,
         system_prompt=system_prompt,
         model=model,
@@ -254,7 +291,7 @@ async def add_agent(  # noqa: D417
 
 
 async def ask_agent(  # noqa: D417
-    ctx: RunContext[AgentContext],
+    ctx: AgentContext,
     agent_name: str,
     message: str,
     *,
@@ -272,8 +309,12 @@ async def ask_agent(  # noqa: D417
     Returns:
         The agent's response
     """
-    assert ctx.deps.pool, "No agent pool available"
-    agent = ctx.deps.pool.get_agent(agent_name)
+    from pydantic_ai.tools import RunContext
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+    assert ctx.pool, "No agent pool available"
+    agent = ctx.pool.get_agent(agent_name)
     result = await agent.run(
         message,
         model=model,

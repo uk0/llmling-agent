@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+import inspect
 import json
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
@@ -16,6 +17,12 @@ from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.content import BaseContent, Content
 from llmling_agent.models.messages import ChatMessage, TokenCost
+from llmling_agent.tasks.exceptions import (
+    ChainAbortedError,
+    RunAbortedError,
+    ToolSkippedError,
+)
+from llmling_agent.utils.inspection import has_argument_type
 from llmling_agent_providers.base import (
     AgentLLMProvider,
     ProviderResponse,
@@ -139,26 +146,76 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
     ) -> tuple[ToolCallInfo, dict]:
         """Handle a single tool call properly."""
         function_args = json.loads(tool_call.function.arguments)
+        original_tool = tool.callable.callable
         start_time = perf_counter()
-        result = await tool.execute(**function_args)
-        info = ToolCallInfo(
-            tool_name=tool.name,
-            agent_name=self.name,
-            args=function_args,
-            result=result,
-            tool_call_id=tool_call.id,
-            timing=perf_counter() - start_time,
-            message_id=message_id,
-        )
-        self.tool_used.emit(info)
-        message = {
-            "tool_call_id": tool_call.id,
-            "role": "tool",
-            "name": tool.name,
-            "content": result,
-        }
 
-        return info, message
+        try:
+            # 1. Handle confirmation if we have context
+            if self._context:
+                result = await self._context.handle_confirmation(
+                    self._context, tool, function_args
+                )
+                match result:
+                    case "skip":
+                        msg = f"Tool {tool.name} execution skipped"
+                        raise ToolSkippedError(msg)  # noqa: TRY301
+                    case "abort_run":
+                        msg = "Run aborted by user"
+                        raise RunAbortedError(msg)  # noqa: TRY301
+                    case "abort_chain":
+                        msg = "Agent chain aborted by user"
+                        raise ChainAbortedError(msg)  # noqa: TRY301
+                    case "allow":
+                        pass  # Continue with execution
+
+            # 2. Add context if needed
+            if has_argument_type(original_tool, "AgentContext"):
+                enhanced_function_args = {"ctx": self._context, **function_args}
+            else:
+                enhanced_function_args = function_args
+            # 3. Handle sync/async execution
+            if inspect.iscoroutinefunction(original_tool):
+                result = await original_tool(**enhanced_function_args)
+            else:
+                result = original_tool(**enhanced_function_args)
+
+            # Create tool call info
+            info = ToolCallInfo(
+                tool_name=tool.name,
+                agent_name=self.name,
+                args=function_args,
+                result=result,
+                tool_call_id=tool_call.id,
+                timing=perf_counter() - start_time,
+                message_id=message_id,
+            )
+            self.tool_used.emit(info)
+            message = {
+                "tool_call_id": tool_call.id,
+                "role": "tool",
+                "name": tool_call.function.name,
+                "content": str(result),
+            }
+        except (ToolSkippedError, RunAbortedError, ChainAbortedError) as e:
+            # Handle confirmation-related errors
+            info = ToolCallInfo(
+                tool_name=tool.name,
+                agent_name=self.name,
+                args=function_args,
+                result=str(e),
+                tool_call_id=tool_call.id,
+                error=str(e),
+                message_id=message_id,
+            )
+            message = {
+                "tool_call_id": tool_call.id,
+                "role": "tool",
+                "name": tool_call.function.name,
+                "content": str(e),
+            }
+            return info, message
+        else:
+            return info, message
 
     async def generate_response(
         self,
@@ -214,14 +271,33 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             assert isinstance(response, ModelResponse)
             assert isinstance(response.choices[0], Choices)
             calls: list[ToolCallInfo] = []
-            for tool_call in response.choices[0].message.tool_calls or []:
-                function_name = tool_call.function.name
-                if not function_name:
-                    continue
-                tool = self.tool_manager.get(function_name)
-                info, message = await self.handle_tool_call(tool_call, tool, message_id)
-                calls.append(info)
-                messages.append(message)
+            if response.choices[0].message.tool_calls:
+                messages.append({
+                    "role": "assistant",
+                    "content": None,  # Must be None when using tools
+                    "tool_calls": response.choices[0].message.tool_calls,
+                })
+                for tool_call in response.choices[0].message.tool_calls:
+                    function_name = tool_call.function.name
+                    if not function_name:
+                        continue
+                    tool = self.tool_manager.get(function_name)
+                    info, message = await self.handle_tool_call(
+                        tool_call, tool, message_id
+                    )
+                    calls.append(info)
+                    messages.append(message)
+                import devtools
+
+                devtools.debug(messages)
+                response = await acompletion(
+                    model=model_name,
+                    messages=messages,
+                    stream=False,
+                    **self.model_settings,
+                )
+                assert isinstance(response, ModelResponse)
+                assert isinstance(response.choices[0], Choices)
             # Extract content
             content: Any = response.choices[0].message.content
             if content and result_type and issubclass(result_type, BaseModel):
