@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, get_args
 
-from pydantic_ai.models import KnownModelName
 from slashed import CompletionItem, CompletionProvider
 
 
@@ -48,7 +47,10 @@ def get_model_names(ctx: CompletionContext[AgentContext]) -> list[str]:
     - Plus any additional models from current configuration
     """
     # Get models directly from the Literal type
-    known_models = list(get_args(KnownModelName))
+    from llmling_models import AllModels
+    from pydantic_ai.models import KnownModelName
+
+    known_models = list(get_args(KnownModelName)) + list(get_args(AllModels))
 
     agent = ctx.command_context.context.agent
     if not agent.context.definition:
