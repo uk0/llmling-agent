@@ -19,6 +19,7 @@ from llmling_agent_storage.models import (
     StatsFilters,
 )
 from llmling_agent_storage.sql_provider.models import Conversation, Message
+from llmling_agent_storage.sql_provider.utils import parse_model_info
 
 
 if TYPE_CHECKING:
@@ -137,7 +138,7 @@ class SQLModelProvider(StorageProvider[Message]):
         """Log message to database."""
         from llmling_agent_storage.sql_provider.models import Message
 
-        provider, model_name = self._parse_model_info(model)
+        provider, model_name = parse_model_info(model)
 
         with Session(self.engine) as session:
             msg = Message(
@@ -347,30 +348,6 @@ class SQLModelProvider(StorageProvider[Message]):
             response_time=db_message.response_time,
             forwarded_from=db_message.forwarded_from or [],
         )
-
-    @staticmethod
-    def _parse_model_info(model: str | None) -> tuple[str | None, str | None]:
-        """Parse model string into provider and name."""
-        if not model:
-            return None, None
-
-        # Try splitting by ':' or '/'
-        parts = model.split(":") if ":" in model else model.split("/")
-
-        if len(parts) == 2:  # noqa: PLR2004
-            provider, name = parts
-            return provider.lower(), name
-
-        # No provider specified, try to infer
-        name = parts[0]
-        if name.startswith(("gpt-", "text-", "dall-e")):
-            return "openai", name
-        if name.startswith("claude"):
-            return "anthropic", name
-        if name.startswith(("llama", "mistral")):
-            return "meta", name
-
-        return None, name
 
     async def get_conversations(
         self,

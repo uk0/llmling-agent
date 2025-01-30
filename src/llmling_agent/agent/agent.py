@@ -16,7 +16,6 @@ from uuid import uuid4
 from llmling import Config, LLMCallableTool, RuntimeConfig, ToolError
 import logfire
 from psygnal import Signal
-from pydantic_ai import RunContext  # noqa: TC002
 from typing_extensions import TypeVar
 
 from llmling_agent.agent.conversation import ConversationManager
@@ -902,7 +901,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         """
         tool_name = f"ask_{self.name}"
 
-        async def wrapped_tool(ctx: RunContext[AgentContext[TDeps]], prompt: str) -> str:
+        async def wrapped_tool(prompt: str) -> str:
             if pass_message_history and not parent:
                 msg = "Parent agent required for message history sharing"
                 raise ToolError(msg)

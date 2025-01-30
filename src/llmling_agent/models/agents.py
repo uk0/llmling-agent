@@ -21,7 +21,6 @@ from llmling import (
 from llmling.utils.importing import import_callable
 from llmling_models.model_types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from pydantic_ai.models.test import TestModel
 from toprompt import render_prompt
 from typing_extensions import TypeVar
 from upath.core import UPath
@@ -219,6 +218,8 @@ class AgentConfig(NodeConfig):
     @classmethod
     def handle_model_types(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Convert model inputs to appropriate format."""
+        from pydantic_ai.models.test import TestModel
+
         model = data.get("model")
         match model:
             case str():
