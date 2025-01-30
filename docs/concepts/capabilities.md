@@ -42,10 +42,11 @@ agents:
       can_execute_code: false      # Whether agent can execute Python code (WARNING: No sandbox)
       can_execute_commands: false  # Whether agent can execute CLI commands
 
-      # Agent Creation
+      # Agent / Team Creation
       can_create_workers: false    # Whether agent can create worker agents (as tools)
       can_create_delegates: false  # Whether agent can spawn temporary delegate agents
-      can_add_agents: false       # Whether agent can add other agents to the pool
+      can_add_agents: false       # Whether agent can add new agents to the pool
+      can_add_teams: false       # Whether agent can add new teams to the pool
 ```
 
 Or in Python:
@@ -150,6 +151,9 @@ can_create_delegates: bool = False
 
 can_add_agents: bool = False
 """Whether the agent can add other agents to the pool."""
+
+can_add_agents: bool = False
+"""Whether the agent can add new teams to the pool."""
 ```
 
 ## Common Patterns

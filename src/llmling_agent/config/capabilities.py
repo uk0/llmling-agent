@@ -77,6 +77,9 @@ class Capabilities(EventedModel):
     can_ask_agents: bool = False
     """Whether the agent can ask other agents of the pool."""
 
+    can_add_teams: bool = False
+    """Whether the agent can add teams to the pool."""
+
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
     def __contains__(self, required: Capabilities) -> bool:
@@ -197,6 +200,13 @@ class Capabilities(EventedModel):
             enabled=self.can_add_agents,
             source="builtin",
             requires_capability="can_add_agents",
+        )
+
+        agent.tools.register_tool(
+            LLMCallableTool.from_callable(capability_tools.add_team),
+            enabled=self.can_add_teams,
+            source="builtin",
+            requires_capability="can_add_teams",
         )
         agent.tools.register_tool(
             LLMCallableTool.from_callable(capability_tools.ask_agent),

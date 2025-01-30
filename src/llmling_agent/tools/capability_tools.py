@@ -290,6 +290,43 @@ async def add_agent(  # noqa: D417
     return f"Created agent {agent.name} using model {agent.model_name}"
 
 
+async def add_team(  # noqa: D417
+    ctx: AgentContext,
+    agents: list[str],
+    mode: Literal["sequential", "parallel"] = "sequential",
+    name: str | None = None,
+) -> str:
+    """Create a team from existing agents.
+
+    Args:
+        agents: Names of agents to include in team
+        mode: How the team should operate:
+            - sequential: Agents process in sequence (pipeline)
+            - parallel: Agents process simultaneously
+        name: Optional name for the team
+    """
+    from pydantic_ai.tools import RunContext
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+    if not ctx.pool:
+        msg = "No agent pool available"
+        raise ToolError(msg)
+
+    # Verify all agents exist
+    for agent_name in agents:
+        if agent_name not in ctx.pool.agents:
+            msg = f"Agent not found: {agent_name}"
+            raise ToolError(msg)
+
+    if mode == "sequential":
+        ctx.pool.create_team_run(agents, name=name)
+    else:
+        ctx.pool.create_team(agents, name=name)
+    mode_str = "pipeline" if mode == "sequential" else "parallel"
+    return f"Created {mode_str} team with agents: {', '.join(agents)}"
+
+
 async def ask_agent(  # noqa: D417
     ctx: AgentContext,
     agent_name: str,

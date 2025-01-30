@@ -131,6 +131,36 @@ async def test_capability_tools(provider: Literal["pydantic_ai", "litellm"]):
         assert "hello" in str(result.content).lower()
 
 
+async def test_team_creation():
+    """Test that an agent can create other agents and form them into a team."""
+    async with AgentPool[None]() as pool:
+        # Create orchestrator agent with needed capabilities
+        orchestrator = await pool.add_agent(
+            name="orchestrator",
+            model="openai:gpt-4o-mini",
+            capabilities=Capabilities(
+                can_add_agents=True,
+                can_add_teams=True,
+            ),
+        )
+
+        # Ask it to create a content team
+        result = await orchestrator.run("""
+            Create two agents:
+            1. A researcher who finds information named "alice"
+            2. A writer who creates content named "bob"
+            Then create a sequential team named "crew" with these agents.
+        """)
+
+        # Verify agents were created
+        assert "alice" in pool.agents
+        assert "bob" in pool.agents
+        assert "crew" in pool._teams
+        # Verify team creation message
+        assert "alice" in str(result.content.lower())
+        assert "bob" in str(result.content.lower())
+
+
 @pytest.mark.asyncio
 async def test_context_compatibility():
     """Test that both context types work in tools."""
