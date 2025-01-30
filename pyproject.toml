@@ -16,6 +16,7 @@ packages = [
     "src/llmling_agent_docs",
     "src/llmling_agent_events",
     "src/llmling_agent_converters",
+    "src/llmling_agent_prompts",
 ]
 
 [build-system]
