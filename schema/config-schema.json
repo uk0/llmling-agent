@@ -452,7 +452,7 @@
         "type": {
           "const": "and",
           "default": "and",
-          "description": "Type discriminator.",
+          "description": "Condition to AND-combine multiple conditions.",
           "title": "Type",
           "type": "string"
         },
@@ -649,7 +649,7 @@
         "type": {
           "const": "callable",
           "default": "callable",
-          "description": "Type discriminator.",
+          "description": "Condition based on an import path pointing to a predicate.",
           "title": "Type",
           "type": "string"
         },
@@ -685,6 +685,7 @@
         "type": {
           "const": "callable",
           "default": "callable",
+          "description": "Connection to a callable imported from given import path.",
           "title": "Type",
           "type": "string"
         },
@@ -917,6 +918,7 @@
         "connection_type": {
           "const": "run",
           "default": "run",
+          "description": "Connection type (fixed to \"run\")",
           "title": "Connection Type",
           "type": "string"
         },
@@ -1018,7 +1020,7 @@
         "type": {
           "const": "callback",
           "default": "callback",
-          "description": "Type discriminator for callback provider.",
+          "description": "Import-path based Callback provider.",
           "title": "Type",
           "type": "string"
         },
@@ -1454,7 +1456,7 @@
         "type": {
           "const": "cost_limit",
           "default": "cost_limit",
-          "description": "Type discriminator.",
+          "description": "Cost-limit condition.",
           "title": "Type",
           "type": "string"
         },
@@ -1740,7 +1742,7 @@
         "type": {
           "const": "email",
           "default": "email",
-          "description": "Type discriminator for email sources.",
+          "description": "Email event.",
           "title": "Type",
           "type": "string"
         },
@@ -1921,6 +1923,7 @@
         "type": {
           "const": "file",
           "default": "file",
+          "description": "Connection to a file.",
           "title": "Type",
           "type": "string"
         },
@@ -2148,6 +2151,7 @@
         "connection_type": {
           "const": "run",
           "default": "run",
+          "description": "Connection type (fixed to \"run\")",
           "title": "Connection Type",
           "type": "string"
         },
@@ -2182,11 +2186,12 @@
         "type": {
           "const": "file",
           "default": "file",
+          "description": "File-based runtime config.",
           "title": "Type",
           "type": "string"
         },
         "uri": {
-          "description": "Path to environment file",
+          "description": "\"Path to environment file.",
           "minLength": 1,
           "title": "Uri",
           "type": "string"
@@ -2388,12 +2393,12 @@
     },
     "FileWatchConfig": {
       "additionalProperties": false,
-      "description": "File watching event source.\n\nMonitors file system changes and triggers agent actions when:\n- Files are created\n- Files are modified\n- Files are deleted",
+      "description": "File watching event source.",
       "properties": {
         "type": {
           "const": "file",
           "default": "file",
-          "description": "Type discriminator for file watch sources.",
+          "description": "File / folder content change events.",
           "title": "Type",
           "type": "string"
         },
@@ -2577,7 +2582,7 @@
         "type": {
           "const": "human",
           "default": "human",
-          "description": "Type discriminator for human provider.",
+          "description": "Human-input provider.",
           "title": "Type",
           "type": "string"
         },
@@ -2852,6 +2857,7 @@
         "type": {
           "const": "inline",
           "default": "inline",
+          "description": "Inline-defined runtime config.",
           "title": "Type",
           "type": "string"
         },
@@ -3000,7 +3006,7 @@
         "type": {
           "const": "jinja2",
           "default": "jinja2",
-          "description": "Type discriminator.",
+          "description": "Jinja2 template-based condition.",
           "title": "Type",
           "type": "string"
         },
@@ -3416,7 +3422,7 @@
         "type": {
           "const": "litellm",
           "default": "litellm",
-          "description": "Type discriminator for AI provider.",
+          "description": "LiteLLM provider.",
           "title": "Type",
           "type": "string"
         },
@@ -3763,7 +3769,7 @@
         "type": {
           "const": "message_count",
           "default": "message_count",
-          "description": "Type discriminator.",
+          "description": "Message-count-based condition.",
           "title": "Type",
           "type": "string"
         },
@@ -3945,7 +3951,7 @@
         "type": {
           "const": "node",
           "default": "node",
-          "description": "Type discriminator for agent targets.",
+          "description": "Connection to another node.",
           "title": "Type",
           "type": "string"
         },
@@ -4249,7 +4255,7 @@
         "type": {
           "const": "or",
           "default": "or",
-          "description": "Type discriminator.",
+          "description": "Condition to OR-combine multiple conditions.",
           "title": "Type",
           "type": "string"
         },
@@ -4644,7 +4650,7 @@
         "type": {
           "const": "pydantic_ai",
           "default": "pydantic_ai",
-          "description": "Type discriminator for AI provider.",
+          "description": "Pydantic-AI provider.",
           "title": "Type",
           "type": "string"
         },
@@ -4967,7 +4973,7 @@
         "type": {
           "const": "sse",
           "default": "sse",
-          "description": "Type discriminator for SSE servers.",
+          "description": "SSE server configuration.",
           "title": "Type",
           "type": "string"
         },
@@ -5274,7 +5280,7 @@
         "type": {
           "const": "stdio",
           "default": "stdio",
-          "description": "Type discriminator for stdio servers.",
+          "description": "Stdio server coniguration.",
           "title": "Type",
           "type": "string"
         },
@@ -5923,7 +5929,7 @@
         "type": {
           "const": "time",
           "default": "time",
-          "description": "Type discriminator.",
+          "description": "Time-based condition.",
           "title": "Type",
           "type": "string"
         },
@@ -5960,7 +5966,7 @@
         "type": {
           "const": "time",
           "default": "time",
-          "description": "Type discriminator for time events.",
+          "description": "Time event.",
           "title": "Type",
           "type": "string"
         },
@@ -6236,12 +6242,12 @@
     },
     "WebhookConfig": {
       "additionalProperties": false,
-      "description": "Webhook event source.\n\nListens for HTTP requests and triggers agent actions when:\n- POST requests are received at the configured endpoint\n- Request content matches any defined filters",
+      "description": "Webhook event source.",
       "properties": {
         "type": {
           "const": "webhook",
           "default": "webhook",
-          "description": "Type discriminator for webhook sources.",
+          "description": "webhook-based event.",
           "title": "Type",
           "type": "string"
         },
@@ -6313,7 +6319,7 @@
         "type": {
           "const": "word_match",
           "default": "word_match",
-          "description": "Type discriminator.",
+          "description": "Word-comparison-based condition.",
           "title": "Type",
           "type": "string"
         },

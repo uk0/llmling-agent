@@ -18,7 +18,11 @@ class FileEnvironment(BaseModel):
     """
 
     type: Literal["file"] = Field("file", init=False)
-    uri: str = Field(description="Path to environment file", min_length=1)
+    """File-based runtime config."""
+
+    uri: str = Field(min_length=1)
+    """"Path to environment file."""
+
     config_file_path: str | None = None
     """Path to agent config file for resolving relative paths"""
 
@@ -51,6 +55,8 @@ class InlineEnvironment(Config):
     """
 
     type: Literal["inline"] = Field("inline", init=False)
+    """Inline-defined runtime config."""
+
     uri: str | None = None
     """Optional identifier for this configuration"""
 

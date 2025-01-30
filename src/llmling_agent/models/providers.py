@@ -47,7 +47,7 @@ class PydanticAIProviderConfig(BaseProviderConfig):
     """
 
     type: Literal["pydantic_ai"] = Field("pydantic_ai", init=False)
-    """Type discriminator for AI provider."""
+    """Pydantic-AI provider."""
 
     end_strategy: EndStrategy = "early"
     """How to handle tool calls when final result found:
@@ -99,7 +99,7 @@ class LiteLLMProviderConfig(BaseProviderConfig):
     """Configuration for LiteLLM-based provider."""
 
     type: Literal["litellm"] = Field("litellm", init=False)
-    """Type discriminator for AI provider."""
+    """LiteLLM provider."""
 
     retries: int = 1
     """Maximum retries for model calls."""
@@ -142,7 +142,7 @@ class HumanProviderConfig(BaseProviderConfig):
     """
 
     type: Literal["human"] = Field("human", init=False)
-    """Type discriminator for human provider."""
+    """Human-input provider."""
 
     timeout: int | None = None
     """Timeout in seconds for human response. None means wait indefinitely."""
@@ -170,7 +170,7 @@ class CallbackProviderConfig[TResult](BaseProviderConfig):
     """
 
     type: Literal["callback"] = Field("callback", init=False)
-    """Type discriminator for callback provider."""
+    """Import-path based Callback provider."""
 
     callback: ImportString[ProcessorCallback[TResult]]
     """Import path to processor callback."""

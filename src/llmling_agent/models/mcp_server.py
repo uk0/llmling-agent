@@ -36,7 +36,7 @@ class StdioMCPServer(MCPServerBase):
     """
 
     type: Literal["stdio"] = Field("stdio", init=False)
-    """Type discriminator for stdio servers."""
+    """Stdio server coniguration."""
 
     command: str
     """Command to execute (e.g. "pipx", "python", "node")."""
@@ -58,7 +58,7 @@ class SSEMCPServer(MCPServerBase):
     """
 
     type: Literal["sse"] = Field("sse", init=False)
-    """Type discriminator for SSE servers."""
+    """SSE server configuration."""
 
     url: str
     """URL of the SSE server endpoint."""

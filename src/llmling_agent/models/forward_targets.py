@@ -25,7 +25,7 @@ class ConnectionConfig(BaseModel):
     """Base model for message forwarding targets."""
 
     type: str = Field(init=False)
-    """Discriminator field for forward target types."""
+    """Connection type."""
 
     wait_for_completion: bool = Field(True)
     """Whether to wait for the result before continuing.
@@ -73,7 +73,7 @@ class NodeConnectionConfig(ConnectionConfig):
     """
 
     type: Literal["node"] = Field("node", init=False)
-    """Type discriminator for agent targets."""
+    """Connection to another node."""
 
     name: str
     """Name of target agent."""
@@ -109,7 +109,11 @@ class FileConnectionConfig(ConnectionConfig):
     """
 
     type: Literal["file"] = Field("file", init=False)
+    """Connection to a file."""
+
     connection_type: Literal["run"] = Field("run", init=False, exclude=True)
+    """Connection type (fixed to "run")"""
+
     path: str
     """Path to output file. Supports variables: {date}, {time}, {agent}"""
 
@@ -162,9 +166,13 @@ class CallableConnectionConfig(ConnectionConfig):
     """
 
     type: Literal["callable"] = Field("callable", init=False)
+    """Connection to a callable imported from given import path."""
+
     callable: ImportString[Callable[..., Any]]
     """Import path to the message processing function."""
+
     connection_type: Literal["run"] = Field("run", init=False, exclude=True)
+    """Connection type (fixed to "run")"""
 
     kw_args: dict[str, Any] = Field(default_factory=dict)
     """Additional kwargs to pass to the callable."""

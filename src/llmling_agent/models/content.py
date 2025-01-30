@@ -83,7 +83,7 @@ class ImageURLContent(BaseImageContent):
     """Image from URL."""
 
     type: Literal["image_url"] = Field("image_url", init=False)
-    """Type discriminator for URL-based images."""
+    """URL-based image."""
 
     url: str
     """URL to the image."""
@@ -98,7 +98,7 @@ class ImageBase64Content(BaseImageContent):
     """Image from base64 data."""
 
     type: Literal["image_base64"] = Field("image_base64", init=False)
-    """Type discriminator for base64-encoded images."""
+    """Base64-encoded image."""
 
     data: str
     """Base64-encoded image data."""
@@ -178,7 +178,7 @@ class PDFURLContent(BasePDFContent):
     """PDF from URL."""
 
     type: Literal["pdf_url"] = Field("pdf_url", init=False)
-    """Type discriminator for URL-based PDFs."""
+    """URL-based PDF."""
 
     url: str
     """URL to the PDF document."""
@@ -188,7 +188,7 @@ class PDFBase64Content(BasePDFContent):
     """PDF from base64 data."""
 
     type: Literal["pdf_base64"] = Field("pdf_base64", init=False)
-    """Type discriminator for base64-encoded PDFs."""
+    """Base64-data based PDF."""
 
     data: str
     """Base64-encoded PDF data."""
@@ -210,14 +210,20 @@ class AudioContent(BaseContent):
     """Base for audio content."""
 
     format: str | None = None  # mp3, wav, etc
+    """Audio format."""
+
     description: str | None = None
+    """Human-readable description of the content."""
 
 
 class AudioURLContent(AudioContent):
     """Audio from URL."""
 
     type: Literal["audio_url"] = Field("audio_url", init=False)
+    """URL-based audio."""
+
     url: str
+    """URL to the audio."""
 
     def to_openai_format(self) -> dict[str, Any]:
         """Convert to OpenAI API format for audio models."""
@@ -229,8 +235,13 @@ class AudioBase64Content(AudioContent):
     """Audio from base64 data."""
 
     type: Literal["audio_base64"] = Field("audio_base64", init=False)
+    """Base64-encoded audio."""
+
     data: str
+    """Audio data in base64 format."""
+
     format: str | None = None  # mp3, wav, etc
+    """Audio format."""
 
     def to_openai_format(self) -> dict[str, Any]:
         """Convert to OpenAI API format for audio models."""

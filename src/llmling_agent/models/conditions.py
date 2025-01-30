@@ -32,7 +32,7 @@ class Jinja2Condition(ConnectionCondition):
     """Evaluate condition using Jinja2 template."""
 
     type: Literal["jinja2"] = Field("jinja2", init=False)
-    """Type discriminator."""
+    """Jinja2 template-based condition."""
 
     template: str
     """Jinja2 template to evaluate."""
@@ -58,7 +58,7 @@ class WordMatchCondition(ConnectionCondition):
     """Disconnect when word/phrase is found in message."""
 
     type: Literal["word_match"] = Field("word_match", init=False)
-    """Type discriminator."""
+    """Word-comparison-based condition."""
 
     words: list[str]
     """Words or phrases to match in messages."""
@@ -89,7 +89,7 @@ class MessageCountCondition(ConnectionCondition):
     """Disconnect after N messages."""
 
     type: Literal["message_count"] = Field("message_count", init=False)
-    """Type discriminator."""
+    """Message-count-based condition."""
 
     max_messages: int
     """Maximum number of messages before triggering."""
@@ -116,7 +116,7 @@ class TimeCondition(ConnectionCondition):
     """Disconnect after time period."""
 
     type: Literal["time"] = Field("time", init=False)
-    """Type discriminator."""
+    """Time-based condition."""
 
     duration: timedelta
     """How long the connection should stay active."""
@@ -163,7 +163,7 @@ class CostCondition(ConnectionCondition):
     """Stop when cost threshold is reached."""
 
     type: Literal["cost"] = Field("cost", init=False)
-    """Type discriminator."""
+    """Cost-based condition."""
 
     max_cost: float
     """Maximum cost in USD."""
@@ -177,7 +177,7 @@ class CostLimitCondition(ConnectionCondition):
     """Disconnect when cost limit is reached."""
 
     type: Literal["cost_limit"] = Field("cost_limit", init=False)
-    """Type discriminator."""
+    """Cost-limit condition."""
 
     max_cost: float
     """Maximum cost in USD before triggering."""
@@ -193,7 +193,7 @@ class CallableCondition(ConnectionCondition):
     """Custom predicate function."""
 
     type: Literal["callable"] = Field("callable", init=False)
-    """Type discriminator."""
+    """Condition based on an import path pointing to a predicate."""
 
     predicate: ImportString[Callable[..., bool | Awaitable[bool]]]
     """Function to evaluate condition:
@@ -216,7 +216,7 @@ class AndCondition(ConnectionCondition):
     """Require all conditions to be met."""
 
     type: Literal["and"] = Field("and", init=False)
-    """Type discriminator."""
+    """Condition to AND-combine multiple conditions."""
 
     conditions: list[ConnectionCondition]
     """List of conditions to check."""
@@ -231,7 +231,7 @@ class OrCondition(ConnectionCondition):
     """Require any condition to be met."""
 
     type: Literal["or"] = Field("or", init=False)
-    """Type discriminator."""
+    """Condition to OR-combine multiple conditions."""
 
     conditions: list[ConnectionCondition]
     """List of conditions to check."""

@@ -152,16 +152,10 @@ class EventSourceConfig(BaseModel):
 
 
 class FileWatchConfig(EventSourceConfig):
-    """File watching event source.
-
-    Monitors file system changes and triggers agent actions when:
-    - Files are created
-    - Files are modified
-    - Files are deleted
-    """
+    """File watching event source."""
 
     type: Literal["file"] = Field("file", init=False)
-    """Type discriminator for file watch sources."""
+    """File / folder content change events."""
 
     paths: list[str]
     """Paths or patterns to watch for changes."""
@@ -180,15 +174,10 @@ class FileWatchConfig(EventSourceConfig):
 
 
 class WebhookConfig(EventSourceConfig):
-    """Webhook event source.
-
-    Listens for HTTP requests and triggers agent actions when:
-    - POST requests are received at the configured endpoint
-    - Request content matches any defined filters
-    """
+    """Webhook event source."""
 
     type: Literal["webhook"] = Field("webhook", init=False)
-    """Type discriminator for webhook sources."""
+    """webhook-based event."""
 
     port: int
     """Port to listen on."""
@@ -204,7 +193,7 @@ class TimeEventConfig(EventSourceConfig):
     """Time-based event source configuration."""
 
     type: Literal["time"] = Field("time", init=False)
-    """Type discriminator for time events."""
+    """Time event."""
 
     schedule: str
     """Cron expression for scheduling (e.g. '0 9 * * 1-5' for weekdays at 9am)"""
@@ -226,7 +215,7 @@ class EmailConfig(EventSourceConfig):
     """
 
     type: Literal["email"] = Field("email", init=False)
-    """Type discriminator for email sources."""
+    """Email event."""
 
     host: str = Field(description="IMAP server hostname")
     """IMAP server hostname (e.g. 'imap.gmail.com')"""
