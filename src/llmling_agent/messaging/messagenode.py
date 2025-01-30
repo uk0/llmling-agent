@@ -69,6 +69,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
     def __init__(
         self,
         name: str | None = None,
+        description: str | None = None,
         context: NodeContext | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
     ):
@@ -78,6 +79,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         from llmling_agent.messaging.event_manager import EventManager
 
         self._name = name or self.__class__.__name__
+        self.description = description
         self.connections = ConnectionManager(self)
         self._events = EventManager(self, enable_events=True)
         self.mcp = MCPManager(servers=mcp_servers or [], context=context)

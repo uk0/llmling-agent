@@ -80,6 +80,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         agents: Sequence[MessageNode[TDeps, TResult]],
         *,
         name: str | None = None,
+        description: str | None = None,
         shared_prompt: str | None = None,
         mcp_servers: list[str | MCPServerConfig] | None = None,
         picker: AnyAgent[Any, Any] | None = None,
@@ -93,7 +94,12 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self.agents = EventedList[MessageNode]()
         self.agents.events.inserted.connect(self._on_node_added)
         self.agents.events.removed.connect(self._on_node_removed)
-        super().__init__(name=self._name, context=self.context, mcp_servers=mcp_servers)
+        super().__init__(
+            name=self._name,
+            context=self.context,
+            mcp_servers=mcp_servers,
+            description=description,
+        )
         self.agents.extend(list(agents))
         self._team_talk = ExtendedTeamTalk()
         self.shared_prompt = shared_prompt

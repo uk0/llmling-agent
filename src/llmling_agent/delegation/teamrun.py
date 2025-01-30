@@ -61,6 +61,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         agents: Sequence[MessageNode[TDeps, Any]],
         *,
         name: str | None = None,
+        description: str | None = None,
         shared_prompt: str | None = None,
         validator: MessageNode[Any, TResult] | None = None,
         picker: AnyAgent[Any, Any] | None = None,
@@ -70,6 +71,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         super().__init__(
             agents,
             name=name,
+            description=description,
             shared_prompt=shared_prompt,
             picker=picker,
             num_picks=num_picks,
