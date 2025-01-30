@@ -256,7 +256,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             if isinstance(agent, str):
                 agent = self.get_agent(agent)
             resolved_agents.append(agent)
-        return TeamRun(
+        team = TeamRun(
             resolved_agents,
             name=name,
             validator=validator,
@@ -265,6 +265,9 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             num_picks=num_picks,
             pick_prompt=pick_prompt,
         )
+        if name:
+            self._teams[name] = team
+        return team
 
     @overload
     def create_team(self, agents: Sequence[str]) -> Team[TPoolDeps]: ...
@@ -325,7 +328,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
                 agent = self.get_agent(agent)
             resolved_agents.append(agent)
 
-        return Team(
+        team = Team(
             name=name,
             agents=resolved_agents,
             shared_prompt=shared_prompt,
@@ -333,6 +336,9 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             num_picks=num_picks,
             pick_prompt=pick_prompt,
         )
+        if name:
+            self._teams[name] = team
+        return team
 
     async def run_event_loop(self) -> None:
         """Run pool in event-watching mode until interrupted."""
