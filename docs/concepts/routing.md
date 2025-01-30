@@ -19,13 +19,13 @@ At its core, routing is handled through filter functions that determine whether 
 ```python
 # Simple message-based routing
 agent >> other_agent.when(
-    lambda msg: "urgent" in str(msg.content)
+    lambda msg: "urgent" in msg.content
 )
 
 # Target-aware routing
 agent >> other_agent.when(
     lambda msg, target: (
-        "code" in str(msg.content) and
+        "code" in msg.content and
         not target.is_busy()
     )
 )
@@ -33,7 +33,7 @@ agent >> other_agent.when(
 # Full context routing (message, target, stats)
 agent >> other_agent.when(
     lambda msg, target, stats: (
-        "database" in str(msg.content) and
+        "database" in msg.content and
         target.capabilities.can_execute_code and
         stats.message_count < 10
     )

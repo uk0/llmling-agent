@@ -45,13 +45,13 @@ async def delegate_to(  # noqa: D417
     if agent_or_team_name in ctx.pool._teams:
         team = ctx.pool._teams[agent_or_team_name]
         result = await team.run(prompt)
-        return str(result.content)
+        return result.format(style="detailed", show_costs=True)
 
     # Fall back to agents
     if agent_or_team_name in ctx.pool.agents:
         agent = ctx.pool.get_agent(agent_or_team_name)
         result = await agent.run(prompt)
-        return str(result.content)
+        return result.format(style="detailed", show_costs=True)
 
     msg = f"No agent or team found with name: {agent_or_team_name}"
     raise ToolError(msg)
@@ -385,7 +385,6 @@ async def add_team(  # noqa: D417
         if agent_name not in ctx.pool.agents:
             msg = f"Agent not found: {agent_name}"
             raise ToolError(msg)
-    print(name, "XXX")
     if mode == "sequential":
         ctx.pool.create_team_run(agents, name=name)
     else:

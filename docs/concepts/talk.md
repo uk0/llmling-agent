@@ -135,13 +135,13 @@ The connection system supports flexible message routing through filter condition
 ```python
 # Simple message-based routing
 agent >> other_agent.when(
-    lambda msg: "urgent" in str(msg.content)
+    lambda msg: "urgent" in msg.content
 )
 
 # Target-aware routing
 agent >> other_agent.when(
     lambda msg, target: (
-        "code" in str(msg.content) and
+        "code" in msg.content and
         not target.is_busy()
     )
 )
@@ -149,7 +149,7 @@ agent >> other_agent.when(
 # Full context routing (message, target, stats)
 agent >> other_agent.when(
     lambda msg, target, stats: (
-        "database" in str(msg.content) and
+        "database" in msg.content and
         target.capabilities.can_execute_code and
         stats.message_count < 10
     )
@@ -259,7 +259,7 @@ talk = agent_a.connect_to(
 # Exit the application when condition met
 talk = agent_a.connect_to(
     agent_b,
-    exit_condition=lambda msg: "emergency" in str(msg.content)
+    exit_condition=lambda msg: "emergency" in msg.content
 )
 ```
 
