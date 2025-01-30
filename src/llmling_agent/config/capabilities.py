@@ -83,7 +83,7 @@ class Capabilities(EventedModel):
     can_add_teams: bool = False
     """Whether the agent can add teams to the pool."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     def __contains__(self, required: Capabilities) -> bool:
         """Check if these capabilities contain all required capabilities.
