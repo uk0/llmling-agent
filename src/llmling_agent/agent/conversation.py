@@ -199,10 +199,8 @@ class ConversationManager:
             # Check role directly from ChatMessage
             if not include_system and msg.role == "system":
                 continue
-
-            formatted = template.format(
-                agent=msg.name or msg.role.title(), content=str(msg.content)
-            )
+            name = msg.name or msg.role.title()
+            formatted = template.format(agent=name, content=str(msg.content))
 
             if max_tokens:
                 # Count tokens in this message
@@ -523,17 +521,12 @@ class ConversationManager:
         )
 
         # For messages without cost_info, use tiktoken
-        if messages_without_cost := [
-            msg for msg in self.chat_messages if not msg.cost_info
-        ]:
+        if msgs := [msg for msg in self.chat_messages if not msg.cost_info]:
             import tiktoken
 
-            encoding = tiktoken.encoding_for_model(
-                self._agent.model_name or "gpt-3.5-turbo"
-            )
-            total += sum(
-                len(encoding.encode(str(msg.content))) for msg in messages_without_cost
-            )
+            model_name = self._agent.model_name or "gpt-3.5-turbo"
+            encoding = tiktoken.encoding_for_model(model_name)
+            total += sum(len(encoding.encode(str(msg.content))) for msg in msgs)
 
         return total
 

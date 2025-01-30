@@ -8,9 +8,9 @@ from llmling_agent import Agent  # noqa: TC001
 from llmling_agent.running.discovery import agent_function
 from llmling_agent.running.executor import (
     ExecutionError,
+    _group_parallel,
+    _sort_functions,
     execute_functions,
-    group_parallel,
-    sort_functions,
 )
 
 
@@ -27,7 +27,7 @@ async def test_function_sorting():
     async def third(): ...
 
     funcs = [second, third, first]
-    sorted_funcs = sort_functions([f._agent_function for f in funcs])
+    sorted_funcs = _sort_functions([f._agent_function for f in funcs])
     assert [f.name for f in sorted_funcs] == ["first", "second", "third"]
 
 
@@ -41,7 +41,7 @@ async def test_circular_dependency():
     async def b(): ...
 
     with pytest.raises(ValueError, match="Circular dependency"):
-        sort_functions([a._agent_function, b._agent_function])
+        _sort_functions([a._agent_function, b._agent_function])
 
 
 async def test_parallel_grouping():
@@ -59,10 +59,10 @@ async def test_parallel_grouping():
     @agent_function(depends_on=["second_a", "second_b"])
     async def third(): ...
 
-    sorted_funcs = sort_functions([
+    sorted_funcs = _sort_functions([
         f._agent_function for f in [first, second_a, second_b, third]
     ])
-    groups = group_parallel(sorted_funcs)
+    groups = _group_parallel(sorted_funcs)
 
     assert len(groups) == 3  # noqa: PLR2004
     assert [f.name for f in groups[0]] == ["first"]
@@ -146,12 +146,12 @@ async def test_input_handling(pool):
 
     # With default
     inputs: dict[str, Any] = {"required": "test"}
-    result = await execute_functions([func._agent_function], pool, inputs=inputs)
+    result = await execute_functions([func._agent_function], pool, inputs=inputs)  # type: ignore
     assert result["func"] == "test:42"
 
     # With override
     inputs = {"required": "test", "optional": 100}
-    result = await execute_functions([func._agent_function], pool, inputs=inputs)
+    result = await execute_functions([func._agent_function], pool, inputs=inputs)  # type: ignore
     assert result["func"] == "test:100"
 
     # Missing required

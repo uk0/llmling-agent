@@ -25,6 +25,21 @@ class ExecutionError(Exception):
     """Raised when function execution fails."""
 
 
+def _validate_path(path: StrPath) -> Path:
+    if str(path) == "__main__":
+        # Get the actual file being run
+
+        path = sys.modules["__main__"].__file__  # type: ignore
+        if not path:
+            msg = "Could not determine main module file"
+            raise ValueError(msg)
+    path_obj = Path(path)
+    if not path_obj.exists():
+        msg = f"Module not found: {path}"
+        raise ValueError(msg)
+    return path_obj
+
+
 def discover_functions(path: StrPath) -> list[AgentFunction]:
     """Find all agent functions in a module.
 
@@ -38,18 +53,7 @@ def discover_functions(path: StrPath) -> list[AgentFunction]:
         ImportError: If module cannot be imported
         ValueError: If path is invalid
     """
-    if str(path) == "__main__":
-        # Get the actual file being run
-
-        path = sys.modules["__main__"].__file__  # type: ignore
-        if not path:
-            msg = "Could not determine main module file"
-            raise ValueError(msg)
-    path_obj = Path(path)
-    if not path_obj.exists():
-        msg = f"Module not found: {path}"
-        raise ValueError(msg)
-
+    path_obj = _validate_path(path)
     # Import module
     spec = importlib.util.spec_from_file_location(path_obj.stem, path_obj)
     if not spec or not spec.loader:
@@ -69,7 +73,7 @@ def discover_functions(path: StrPath) -> list[AgentFunction]:
     return functions
 
 
-def sort_functions(functions: list[AgentFunction]) -> list[AgentFunction]:
+def _sort_functions(functions: list[AgentFunction]) -> list[AgentFunction]:
     """Sort functions by order and dependencies.
 
     Args:
@@ -118,7 +122,7 @@ def sort_functions(functions: list[AgentFunction]) -> list[AgentFunction]:
     return result
 
 
-def group_parallel(
+def _group_parallel(
     sorted_funcs: list[AgentFunction],
 ) -> list[list[AgentFunction]]:
     """Group functions that can run in parallel."""
@@ -205,7 +209,7 @@ async def execute_single(
         return func.name, result
 
 
-def validate_dependency_types(functions: list[AgentFunction]):
+def _validate_dependency_types(functions: list[AgentFunction]):
     """Validate that dependency types match return types."""
     # Get return types for all functions
     return_types = {}
@@ -253,12 +257,12 @@ async def execute_functions(
     results: dict[str, Any] = {}
 
     # Sort by order/dependencies
-    sorted_funcs = sort_functions(functions)
-    validate_dependency_types(sorted_funcs)
+    sorted_funcs = _sort_functions(functions)
+    _validate_dependency_types(sorted_funcs)
 
     if parallel:
         # Group functions that can run in parallel
-        groups = group_parallel(sorted_funcs)
+        groups = _group_parallel(sorted_funcs)
         for i, group in enumerate(groups):
             msg = "Executing parallel group %d/%d: %s"
             logger.debug(msg, i + 1, len(groups), [f.name for f in group])
