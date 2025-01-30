@@ -106,7 +106,7 @@ Use `help` to see what commands are at your disposal.
 ## Provider support
 
 | Provider Type | Streaming Support | Multi-Modal Support | Structured Response Support | Dependency injection for tool usage |
-|--------------|------------------|---------------------|---------------------------|
+|--------------|------------------|---------------------|---------------------------| --------------------------------- |
 | PydanticAI | Yes | (Model dependent) | Yes | Yes |
 | LiteLLM | Yes | (Model dependent) | Yes | Yes |
 | Human-in-the-loop | Yes (but more a gimmick) | No | Yes | N/A |
