@@ -169,19 +169,6 @@ class Talk[TTransmittedData]:
         result = condition(ctx)
         return await result if inspect.isawaitable(result) else result
 
-    async def _should_route_to(
-        self,
-        message: ChatMessage[Any],
-        target: MessageNode,
-    ) -> bool:
-        """Determine if message should be routed to target."""
-        return await self._evaluate_condition(
-            self._filter_condition,
-            message,
-            target,
-            default_return=True,
-        )
-
     def on_event(
         self,
         event_type: ConnectionEventType,
@@ -255,7 +242,12 @@ class Talk[TTransmittedData]:
         responses: list[ChatMessage[Any]] = []
         is_forwarded = False
         for target in self.targets:
-            if await self._should_route_to(processed_message, target):
+            if await self._evaluate_condition(  # == should_route_to
+                self._filter_condition,
+                processed_message,
+                target,
+                default_return=True,
+            ):
                 is_forwarded = True
                 if self.queued:
                     # Queue per agent
