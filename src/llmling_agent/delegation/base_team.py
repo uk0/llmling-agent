@@ -236,6 +236,10 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         """Whether execution is currently running."""
         return bool(self._main_task and not self._main_task.done())
 
+    def is_busy(self) -> bool:
+        """Check if team is processing any tasks."""
+        return bool(self._pending_tasks or self._main_task)
+
     async def stop(self) -> None:
         """Stop background execution if running."""
         if self._main_task and not self._main_task.done():

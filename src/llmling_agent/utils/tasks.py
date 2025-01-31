@@ -168,6 +168,10 @@ class TaskManagerMixin:
             # No running loop - use fire_and_forget
             self.fire_and_forget(coro)
 
+    def is_busy(self) -> bool:
+        """Check if we have any tasks pending."""
+        return bool(self._pending_tasks)
+
     async def cleanup_tasks(self):
         """Wait for all pending tasks to complete."""
         if self._pending_tasks:
