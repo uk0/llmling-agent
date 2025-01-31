@@ -66,7 +66,6 @@ async def test_nested_teams():
         a1 = await pool.add_agent("a1", model="test")
         a2 = await pool.add_agent("a2", model="test")
         a3 = await pool.add_agent("a3", model="test")
-        a4 = await pool.add_agent("a4", model="test")
 
         # Case 1: Team inside TeamRun
         team = a1 & a2  # Team of two agents
@@ -77,6 +76,17 @@ async def test_nested_teams():
         assert (
             len(execution.execution_stats.messages) == 2  # noqa: PLR2004
         )  # Team(a1+a2) + a3
+
+
+@pytest.mark.asyncio
+async def test_nested_team_run():
+    """Test nesting Teams and TeamRuns inside each other."""
+    async with AgentPool[None]() as pool:
+        # Create basic agents
+        a1 = await pool.add_agent("a1", model="test")
+        a2 = await pool.add_agent("a2", model="test")
+        a3 = await pool.add_agent("a3", model="test")
+        a4 = await pool.add_agent("a4", model="test")
 
         # Case 2: TeamRun inside Team
         sequential = a1 | a2  # TeamRun
