@@ -94,6 +94,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self.agents = EventedList[MessageNode]()
         self.agents.events.inserted.connect(self._on_node_added)
         self.agents.events.removed.connect(self._on_node_removed)
+        self.agents.events.changed.connect(self._on_node_changed)
         super().__init__(
             name=self._name,
             context=self.context,
@@ -124,6 +125,11 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             )
             return result.selections
         return list(self.agents)
+
+    def _on_node_changed(self, index: int, old: MessageNode, new: MessageNode) -> None:
+        """Handle node replacement in the agents list."""
+        self._on_node_removed(index, old)
+        self._on_node_added(index, new)
 
     def _on_node_added(self, index: int, node: MessageNode[Any, Any]):
         """Handler for adding nodes to the team."""
