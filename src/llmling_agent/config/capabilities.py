@@ -158,7 +158,7 @@ class Capabilities(EventedModel):
             source="builtin",
             requires_capability="can_install_packages",
         )
-        from llmling_agent.tools import capability_tools
+        from llmling_agent_tools import capability_tools
 
         # Agent discovery and delegation
         agent.tools.register_tool(
