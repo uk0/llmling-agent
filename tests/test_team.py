@@ -109,6 +109,87 @@ async def test_nested_team_run():
         assert len(messages) == 3  # Should get all messages  # noqa: PLR2004
 
 
+@pytest.mark.asyncio
+async def test_simple_team_run_iter():
+    """Test run_iter with a simple team of agents."""
+    async with AgentPool[None]() as pool:
+        # Create basic agents
+        a1 = await pool.add_agent("a1", model="test")
+        a2 = await pool.add_agent("a2", model="test")
+
+        # Simple parallel team
+        team = pool.create_team([a1, a2])
+
+        # Test iteration
+        messages = [msg async for msg in team.run_iter("test message")]
+        assert len(messages) == 2  # Should get one message per agent  # noqa: PLR2004
+        assert {msg.name for msg in messages} == {"a1", "a2"}
+
+
+@pytest.mark.asyncio
+async def test_sequential_run_iter():
+    """Test run_iter with a sequential execution (TeamRun)."""
+    async with AgentPool[None]() as pool:
+        a1 = await pool.add_agent("a1", model="test")
+        a2 = await pool.add_agent("a2", model="test")
+
+        # Sequential execution
+        sequential = a1 | a2
+
+        messages = [msg async for msg in sequential.run_iter("test message")]
+        assert len(messages) == 2  # noqa: PLR2004
+        # Should maintain order
+        assert [msg.name for msg in messages] == ["a1", "a2"]
+
+
+@pytest.mark.asyncio
+async def test_simple_team_with_teamrun_iter():
+    """Test run_iter with a team containing a simple TeamRun."""
+    async with AgentPool[None]() as pool:
+        a1 = await pool.add_agent("a1", model="test")
+        a2 = await pool.add_agent("a2", model="test")
+        a3 = await pool.add_agent("a3", model="test")
+
+        # Sequential execution as team member
+        sequential = a1 | a2  # This is one unit
+        # Team with two members: sequential and a3
+        team = pool.create_team([sequential, a3])
+
+        messages = [msg async for msg in team.run_iter("test message")]
+
+        # Should get TWO messages: one from TeamRun, one from a3
+        assert len(messages) == 2  # noqa: PLR2004
+
+        # Verify senders
+        senders = {msg.name for msg in messages}
+        assert senders == {sequential.name, "a3"}
+
+        # Verify TeamRun message has metadata about its internal execution
+        teamrun_msg = next(msg for msg in messages if msg.name == sequential.name)
+        assert "execution_order" in teamrun_msg.metadata
+
+
+@pytest.mark.asyncio
+async def test_team_run_iter_execution_order():
+    """Test that run_iter preserves execution order within sequential parts."""
+    async with AgentPool[None]() as pool:
+        a1 = await pool.add_agent("a1", model="test")
+        a2 = await pool.add_agent("a2", model="test")
+        a3 = await pool.add_agent("a3", model="test")
+
+        # Sequential execution
+        sequential = pool.create_team_run([a1, a2], name="sequential")
+        # Team with sequential + single agent
+        team = pool.create_team([sequential, a3], name="parallel")
+
+        messages = [msg async for msg in team.run_iter("test message")]
+        # Find sequential messages
+        seq_msgs = [msg for msg in messages if msg.name == sequential.name]
+        seq_msg = seq_msgs[0]
+        # Order should be preserved within sequential execution
+        assert [msg.name for msg in seq_msg.associated_messages] == ["a1", "a2"]
+
+
 # @pytest.mark.asyncio
 # async def test_team_operators():
 #     """Test team combination operators (& and |)."""
