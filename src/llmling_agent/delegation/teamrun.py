@@ -333,9 +333,6 @@ if __name__ == "__main__":
             # Wait for completion and get results
             result = await run.wait()
             print("\nFinal Results:")
-            for resp in result:
-                print(f"\n{resp.agent_name}:")
-                print("-" * 40)
-                print(resp.message)
+            print(result)
 
     asyncio.run(main())

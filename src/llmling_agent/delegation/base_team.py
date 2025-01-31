@@ -248,8 +248,8 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self._main_task = None
         await self.cleanup_tasks()
 
-    async def wait(self) -> TeamResponse:
-        """Wait for background execution to complete."""
+    async def wait(self) -> ChatMessage[Any] | None:
+        """Wait for background execution to complete and return last message."""
         if not self._main_task:
             msg = "No execution running"
             raise RuntimeError(msg)
@@ -282,17 +282,20 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             raise RuntimeError(msg)
         self._infinite = max_count is None
 
-        async def _continuous():
+        async def _continuous() -> ChatMessage[Any] | None:
             count = 0
+            last_message = None
             while max_count is None or count < max_count:
                 try:
-                    await self.execute(*prompts, **kwargs)
+                    result = await self.execute(*prompts, **kwargs)
+                    last_message = result[-1].message if result else None
                     count += 1
                     if max_count is None or count < max_count:
                         await asyncio.sleep(interval)
                 except asyncio.CancelledError:
                     logger.debug("Background execution cancelled")
                     break
+            return last_message
 
         self._main_task = self.create_task(_continuous(), name="main_execution")
         return self._team_talk
