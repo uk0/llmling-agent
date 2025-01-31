@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from itertools import pairwise
 from time import perf_counter
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
@@ -30,6 +30,8 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+ResultMode = Literal["last", "concat"]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -67,6 +69,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         picker: AnyAgent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
+        # result_mode: ResultMode = "last",
     ):
         super().__init__(
             agents,
@@ -78,6 +81,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             pick_prompt=pick_prompt,
         )
         self.validator = validator
+        self.result_mode = "last"
 
     def __prompt__(self) -> str:
         """Format team info for prompts."""
@@ -97,13 +101,23 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         the "message protocol".
         """
         result = await self.execute(*prompts, **kwargs)
-        final_response = result[-1]
-        assert final_response.message, "Error during execution, returned None for TeamRun"
+        all_messages = [r.message for r in result if r.message]
+        assert all_messages, "Error during execution, returned None for TeamRun"
+        # Determine content based on mode
+        match self.result_mode:
+            case "last":
+                content = all_messages[-1].content
+            # case "concat":
+            #     content = "\n".join(msg.format() for msg in all_messages)
+            case _:
+                msg = f"Invalid result mode: {self.result_mode}"
+                raise ValueError(msg)
+
         return ChatMessage(
-            content=final_response.message.content,
+            content=content,
             role="assistant",
             name=self.name,
-            associated_messages=[r.message for r in result[:-1] if r.message],
+            associated_messages=all_messages,
             metadata={
                 "execution_order": [r.agent_name for r in result],
                 "start_time": result.start_time.isoformat(),
