@@ -39,7 +39,7 @@ TeamRun provides built-in monitoring through its background execution:
 
 ```python
 # Start execution in background
-stats = run.run_in_background("Task to execute")
+stats = await run.run_in_background("Task to execute")
 
 # Check current status while running
 while run.is_running:
@@ -103,7 +103,7 @@ async def main():
         run = agent1 | agent2 | agent3
 
         # Start run and get stats object
-        stats = run.run_in_background("Process this text...")
+        stats = await run.run_in_background("Process this text...")
 
         # Monitor progress
         while run.is_running:

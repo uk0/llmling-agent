@@ -529,7 +529,7 @@ async for message in node.run_iter("prompt"):
     print(message)
 
 # Background execution
-stats = node.run_in_background("prompt", max_count=5)
+stats = await node.run_in_background("prompt", max_count=5)
 await node.wait()  # Wait for completion
 
 # Nested teams work naturally

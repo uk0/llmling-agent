@@ -64,7 +64,7 @@ for response in results:
 Get statistics while the run executes in background:
 ```python
 # Start run and get stats object
-stats = run.run_in_background("Process this task")
+stats = await run.run_in_background("Process this task")
 
 # Wait for completion when needed
 results = await run.wait()
@@ -179,7 +179,7 @@ The base class provides background execution support:
 
 ```python
 # Start execution
-stats = run.run_in_background("Process this")
+stats = await run.run_in_background("Process this")
 
 # Wait for completion later
 results = await run.wait()
@@ -201,7 +201,7 @@ This ensures proper cleanup even in error cases:
 
 ```python
 try:
-    stats = run.run_in_background("Process this")
+    stats = await run.run_in_background("Process this")
     # ... do other things ...
     results = await run.wait()
 except Exception:

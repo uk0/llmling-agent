@@ -262,7 +262,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             await self.cleanup_tasks()
             self._main_task = None
 
-    def run_in_background(
+    async def run_in_background(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         max_count: int = 1,  # 1 = single execution, None = indefinite

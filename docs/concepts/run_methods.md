@@ -33,7 +33,7 @@ Start execution in background and monitor progress:
 
 ```python
 # Start execution
-stats = agent.run_in_background(
+stats = await agent.run_in_background(
     "analyze this",
     max_count: int | None = None,  # Max number of runs
     interval: float = 1.0,  # Seconds between runs

@@ -47,7 +47,7 @@ async def test_agent_piping_with_monitoring():
     pipeline = agent1 | transform
 
     # Get stats object directly from run_in_background
-    stats = pipeline.run_in_background("test")
+    stats = await pipeline.run_in_background("test")
 
     # Monitor progress
     updates = []
@@ -119,7 +119,7 @@ async def test_agent_piping_background_error():
         raise ValueError(msg)
 
     pipeline = agent1 | failing_transform
-    talk = pipeline.run_in_background("test")
+    talk = await pipeline.run_in_background("test")
 
     # Wait for execution to complete
     with pytest.raises(RuntimeError, match="Transform error"):

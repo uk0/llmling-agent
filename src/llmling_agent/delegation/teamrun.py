@@ -321,7 +321,7 @@ if __name__ == "__main__":
             print(f"\nProcessing text: {text}\n")
 
             # Start run and get stats object (ExtendedTeamTalk)
-            stats = run.run_in_background(text)
+            stats = await run.run_in_background(text)
 
             # Poll stats while running
             while run.is_running:
