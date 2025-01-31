@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from llmling_agent import Agent
+from llmling_agent.delegation.team import Team
 
 
 PICKER = """
@@ -17,22 +18,28 @@ about a specific commit from the current working directoy."
 MODEL = "openai:gpt-4o-mini"
 SERVERS = ["uvx mcp-server-git"]
 
-picker = Agent[None](model=MODEL, system_prompt=PICKER, mcp_servers=SERVERS)
-analyzer = Agent[None](model=MODEL, system_prompt=ANALYZER, mcp_servers=SERVERS)
-
-# Connect picker to analyzer
-picker >> analyzer
-
-# Register message handlers to see the messages
-picker.message_sent.connect(lambda msg: print(msg.format()))
-analyzer.message_sent.connect(lambda msg: print(msg.format()))
-
 
 async def main():
+    picker = Agent[None](model=MODEL, system_prompt=PICKER, mcp_servers=SERVERS)
+    analyzer = Agent[None](model=MODEL, system_prompt=ANALYZER, mcp_servers=SERVERS)
+
+    # Connect picker to analyzer
+    picker >> analyzer
+
+    # Register message handlers to see the messages
+    picker.message_sent.connect(lambda msg: print(msg.format()))
+    analyzer.message_sent.connect(lambda msg: print(msg.format()))
     # For MCP servers, we need async context.
     async with picker, analyzer:
         # Start the chain by asking picker for the latest commit
         await picker.run("Get the latest commit hash! ")
+
+    # MCP servers also work on team level for all its members
+    agent_without_mcp_server = Agent[None](model=MODEL, system_prompt=ANALYZER)
+    team = Team([agent_without_mcp_server], mcp_servers=["uvx mcp-server-git"])
+    async with team:
+        # this will show you the MCP server tools
+        print(await agent_without_mcp_server.tools.get_tools())
 
 
 if __name__ == "__main__":
