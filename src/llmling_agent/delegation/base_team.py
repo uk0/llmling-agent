@@ -323,15 +323,20 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         lines = ["flowchart TD"]
 
         def add_node(node: MessageNode[Any, Any], parent: str | None = None) -> None:
+            """Recursively add node and its members to diagram."""
             node_id = f"node_{id(node)}"
             lines.append(f"    {node_id}[{node.name}]")
             if parent:
                 lines.append(f"    {parent} --> {node_id}")
-            if hasattr(node, "tree"):
-                for child in node.tree.nodes:  # type: ignore
-                    add_node(child, node_id)
 
-        # Start with root nodes
+            # If it's a team, recursively add its members
+            from llmling_agent.delegation.base_team import BaseTeam
+
+            if isinstance(node, BaseTeam):
+                for member in node.agents:
+                    add_node(member, node_id)
+
+        # Start with root nodes (team members)
         for node in self.agents:
             add_node(node)
 
