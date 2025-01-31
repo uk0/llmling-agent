@@ -179,7 +179,6 @@ async def spawn_delegate[TDeps](
     task: str,
     system_prompt: str,
     model: str | None = None,
-    capabilities: dict[str, bool] | None = None,
     connect_back: bool = False,
 ) -> str:
     """Spawn a temporary agent for a specific task.
