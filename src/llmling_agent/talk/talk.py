@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 import inspect
 from typing import TYPE_CHECKING, Any, Literal, Self
@@ -41,8 +41,23 @@ logger = get_logger(__name__)
 class Talk[TTransmittedData]:
     """Manages message flow between agents/groups."""
 
-    message_received = Signal(ChatMessage)  # Original message
-    message_forwarded = Signal(ChatMessage)  # After any transformation
+    @dataclass(frozen=True)
+    class ConnectionProcessed:
+        """Event emitted when a message flows through a connection."""
+
+        message: ChatMessage
+        source: MessageNode
+        targets: list[MessageNode]
+        queued: bool
+        connection_type: ConnectionType
+        timestamp: datetime = field(default_factory=datetime.now)
+
+    # Original message "coming in"
+    message_received = Signal(ChatMessage)
+    # After any transformation (one for each message, not per target)
+    message_forwarded = Signal(ChatMessage)
+    # Comprehensive signal capturing all information about one "message handling process"
+    connection_processed = Signal(ConnectionProcessed)
 
     def __init__(
         self,
@@ -240,7 +255,7 @@ class Talk[TTransmittedData]:
 
         # 8. Process for each target
         responses: list[ChatMessage[Any]] = []
-        is_forwarded = False
+        target_list: list[MessageNode] = []
         for target in self.targets:
             if await self._evaluate_condition(  # == should_route_to
                 self._filter_condition,
@@ -248,7 +263,7 @@ class Talk[TTransmittedData]:
                 target,
                 default_return=True,
             ):
-                is_forwarded = True
+                target_list.append(target)
                 if self.queued:
                     # Queue per agent
                     self._pending_messages[target.name].append(processed_message)
@@ -257,7 +272,16 @@ class Talk[TTransmittedData]:
                     processed_message, target, prompt
                 ):
                     responses.append(response)
-        if is_forwarded:
+        if target_list:
+            self.connection_processed.emit(
+                self.ConnectionProcessed(
+                    message=processed_message,
+                    source=self.source,
+                    targets=target_list,
+                    queued=self.queued,
+                    connection_type=self.connection_type,  # pyright: ignore
+                )
+            )
             messages = [*self._stats.messages, processed_message]
             self._stats = replace(self._stats, messages=messages)
             # 9. Emit forwarded signal after processing
