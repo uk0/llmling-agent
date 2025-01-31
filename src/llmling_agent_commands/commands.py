@@ -1,14 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from slashed import CommandContext, SlashedCommand
 
 from llmling_agent.log import get_logger
-
-
-if TYPE_CHECKING:
-    from llmling_agent.delegation.supervisor import PoolSupervisor
+from llmling_agent.messaging.messagenode import NodeContext  # noqa: TC001
 
 
 logger = get_logger(__name__)
@@ -22,7 +17,7 @@ class ListAgentsCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[PoolSupervisor],
+        ctx: CommandContext[NodeContext],
         show_connections: bool = False,
     ):
         """List all agents and their current status.
@@ -35,7 +30,7 @@ class ListAgentsCommand(SlashedCommand):
         header = "\nAvailable Agents:"
         await ctx.output.print(header)
         await ctx.output.print("=" * len(header))
-
+        assert supervisor.pool
         for name in supervisor.pool.list_agents():
             agent = supervisor.pool.get_agent(name)
 
