@@ -25,7 +25,7 @@ class PromptInput(TextArea):
         pass
 
     BINDINGS: ClassVar = [
-        Binding("ctrl+j,alt+enter", "submit_prompt", "Send message", key_display="^j")
+        Binding("ctrl+j,ctrl+enter", "submit_prompt", "Send message", key_display="^J/^↵")
     ]
 
     submit_ready = reactive(True)
@@ -59,7 +59,7 @@ class PromptInput(TextArea):
         self.set_class(not submit_ready, "-submit-blocked")
 
     def on_mount(self):
-        self.border_title = "Enter your [u]m[/]essage..."
+        self.border_title = "Enter your message..."
 
     @on(TextArea.Changed)
     async def prompt_changed(self, event: TextArea.Changed):

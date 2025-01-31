@@ -1,18 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import logfire
 from rich.text import Text
-from slashed.log import get_logger
 from textual.containers import ScrollableContainer
 from textual.widgets import Static
 
-
-if TYPE_CHECKING:
-    from textual.app import ComposeResult
-
-    from llmling_agent.models.messages import ChatMessage
+from llmling_agent.log import get_logger
+from llmling_agent.models.messages import ChatMessage
 
 
 logger = get_logger(__name__)
@@ -59,27 +53,14 @@ class MessageWidget(Static):
         super().__init__()
         self.message = message
         self.add_class(message.role)
-        text = Text()
-        text.append(f"{message.name}: ", style="bold")
-        text.append(str(message.content))
-        self.update(text)
+        self.update_content(str(message.content))
 
-    def compose(self) -> ComposeResult:
-        """Create message layout."""
-        if self.message.model:
-            yield Static(f"using {self.message.model}", classes="model")
-        # Initialize with empty content for assistant, actual content for others
-        initial_content = "" if self.message.role == "assistant" else self.message.content
-        yield Static(initial_content, id="message_content", classes="content")
-
-    @logfire.instrument("Updating content to {new_content}")
-    def update_content(self, new_content: str):
+    def update_content(self, new_content: str) -> None:
         """Update message content."""
-        if content_widget := self.query_one("#message_content", Static):
-            content_widget.update(new_content)
-            logger.debug("Content widget updated successfully")
-        else:
-            logger.warning("No content widget found!")
+        text = Text()
+        text.append(f"{self.message.name}: ", style="bold")
+        text.append(new_content)
+        self.update(text)
 
 
 class ChatView(ScrollableContainer):
@@ -87,15 +68,27 @@ class ChatView(ScrollableContainer):
 
     DEFAULT_CSS = """
     ChatView {
-        width: 70%;
-        height: 100%;
-        scrollbar-gutter: stable;
+        width: 100%;
+        height: auto;
         padding: 1;
     }
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        *args,
+        name: str | None = None,
+        widget_id: str | None = None,
+        classes: str | None = None,
+        disabled: bool = False,
+    ):
+        super().__init__(
+            *args,
+            name=name,
+            id=widget_id,
+            classes=classes,
+            disabled=disabled,
+        )
         self._current_message: MessageWidget | None = None
 
     @logfire.instrument("Adding message {message.content}")
@@ -104,10 +97,21 @@ class ChatView(ScrollableContainer):
         widget = MessageWidget(message)
         await self.mount(widget)
         widget.scroll_visible()
+        self._current_message = widget
+        self.refresh(layout=True)
 
-    def update_stream(self, content: str):
+    def start_streaming(self) -> None:
+        """Prepare for streaming response."""
+        self._current_message = None
+
+    async def update_stream(self, content: str) -> None:
         """Update content of current streaming message."""
-        if self._current_message:
-            logger.debug("Updating stream: %r", content)
-            self._current_message.update_content(content)
-            self._current_message.scroll_visible()
+        if not self._current_message:
+            # Create initial message widget if none exists
+            msg = ChatMessage(content=content, role="assistant", name="Assistant")
+            self._current_message = MessageWidget(msg)
+            await self.mount(self._current_message)
+
+        self._current_message.update_content(content)
+        self._current_message.scroll_visible()
+        self.refresh(layout=True)
