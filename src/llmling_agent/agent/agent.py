@@ -30,7 +30,7 @@ from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.responses.utils import to_type
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools.manager import ToolManager
-from llmling_agent.utils.inspection import call_with_context
+from llmling_agent.utils.inspection import call_with_context, has_return_type
 from llmling_agent.utils.tasks import TaskManagerMixin
 
 
@@ -421,10 +421,15 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self, other: AnyAgent[Any, Any] | ProcessorCallback[Any] | BaseTeam[Any, Any]
     ) -> TeamRun:
         # Create new execution with sequential mode (for piping)
-        from llmling_agent.delegation.teamrun import TeamRun
+        from llmling_agent import StructuredAgent, TeamRun
 
-        execution: TeamRun[Any, Any] = TeamRun([self])
-        return execution | other
+        if callable(other):
+            if has_return_type(other, str):
+                other = Agent.from_callback(other)
+            else:
+                other = StructuredAgent.from_callback(other)
+
+        return TeamRun([self, other])
 
     @classmethod
     def from_callback(
