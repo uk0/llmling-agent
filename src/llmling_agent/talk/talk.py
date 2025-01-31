@@ -624,3 +624,24 @@ class ConnectionRegistry(BaseRegistry[str, Talk]):
             raise self._error_class(msg)
 
         return item
+
+    def register_auto(self, talk: Talk[Any], base_name: str | None = None) -> str:
+        """Register talk with auto-generated unique name.
+
+        Args:
+            talk: Talk instance to register
+            base_name: Optional base name to use (defaults to talk.name)
+
+        Returns:
+            The actual name used for registration
+        """
+        base = base_name or talk.name
+        counter = 1
+        name = base
+
+        while name in self:
+            name = f"{base}_{counter}"
+            counter += 1
+        talk.name = name
+        self.register(name, talk)
+        return name
