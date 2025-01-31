@@ -92,37 +92,49 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
 
     async def run_iter(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        *prompts: AnyPromptType,
         **kwargs: Any,
     ) -> AsyncIterator[ChatMessage[Any]]:
         """Yield messages as they arrive from parallel execution."""
-        # Create queue for collecting results
-        queue: asyncio.Queue[ChatMessage[Any]] = asyncio.Queue()
-        errors: dict[str, Exception] = {}
-
-        final_prompt = list(prompts)
-        combined_prompt = "\n".join([await to_prompt(p) for p in final_prompt])
-        all_nodes = list(await self.pick_agents(combined_prompt))
+        queue: asyncio.Queue[ChatMessage[Any] | None] = asyncio.Queue()
+        failures: dict[str, Exception] = {}
 
         async def _run(node: MessageNode[TDeps, Any]) -> None:
             try:
                 message = await node.run(*prompts, **kwargs)
                 await queue.put(message)
-            except Exception as e:  # noqa: BLE001
-                errors[node.name] = e
+            except Exception as e:
+                logger.exception("Error executing node %s", node.name)
+                failures[node.name] = e
+                # Put None to maintain queue count
+                await queue.put(None)
+
+        # Get nodes to run
+        combined_prompt = "\n".join([await to_prompt(p) for p in prompts])
+        all_nodes = list(await self.pick_agents(combined_prompt))
 
         # Start all agents
         tasks = [asyncio.create_task(_run(n), name=f"run_{n.name}") for n in all_nodes]
-        for _ in all_nodes:
-            yield await queue.get()
 
-        # Wait for all tasks to complete (for error handling)
-        await asyncio.gather(*tasks, return_exceptions=True)
+        try:
+            # Yield messages as they arrive
+            for _ in all_nodes:
+                if msg := await queue.get():
+                    yield msg
 
-        if errors:
-            # Maybe raise an exception with all errors?
-            first_error = next(iter(errors.values()))
-            raise first_error
+            # If any failures occurred, raise error with details
+            if failures:
+                error_details = "\n".join(
+                    f"- {name}: {error}" for name, error in failures.items()
+                )
+                error_msg = f"Some nodes failed to execute:\n{error_details}"
+                raise RuntimeError(error_msg)
+
+        finally:
+            # Clean up any remaining tasks
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
 
     async def _run(
         self,

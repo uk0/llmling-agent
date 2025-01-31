@@ -128,14 +128,50 @@ class ConnectionManager:
             exit_condition: When to exit application
             name: Optional name for cross-referencing connections
         """
-        if isinstance(target, Sequence):
-            # Multiple targets -> TeamTalk
-            talks: list[Talk[Any]] = [
-                Talk(
+
+        def register_talk(talk: Talk[Any]) -> None:
+            """Helper to register a single talk connection."""
+            self._connections.append(talk)
+            self.connection_added.emit(talk)
+
+            if source.context and (pool := source.context.pool):
+                # Always use Talk's name for registration
+                if name:
+                    pool.connection_registry.register(name, talk)
+                else:
+                    pool.connection_registry.register_auto(talk)
+
+        match target:
+            case Sequence():
+                # Create individual talks
+                talks: list[Talk[Any]] = []
+                for t in target:
+                    talk = Talk(
+                        source=source,
+                        targets=[t],
+                        connection_type=connection_type,
+                        priority=priority,
+                        delay=delay,
+                        queued=queued,
+                        queue_strategy=queue_strategy,
+                        transform=transform,
+                        filter_condition=filter_condition,
+                        stop_condition=stop_condition,
+                        exit_condition=exit_condition,
+                    )
+                    register_talk(talk)
+                    talks.append(talk)
+
+                # Return TeamTalk as convenience wrapper (but don't register it)
+                return TeamTalk(talks)
+
+            case _:
+                # Single target case
+                talk = Talk(
                     source=source,
-                    targets=[t],
-                    name=name,
+                    targets=[target],  # type: ignore
                     connection_type=connection_type,
+                    name=name,
                     priority=priority,
                     delay=delay,
                     queued=queued,
@@ -145,34 +181,8 @@ class ConnectionManager:
                     stop_condition=stop_condition,
                     exit_condition=exit_condition,
                 )
-                for t in target
-            ]
-            for talk in talks:
-                self._connections.append(talk)
-                self.connection_added.emit(talk)
-            return TeamTalk(talks)
-        # Single target -> Talk
-        talk = Talk(
-            source=source,
-            targets=[target],
-            name=name,
-            connection_type=connection_type,
-            priority=priority,
-            delay=delay,
-            queued=queued,
-            queue_strategy=queue_strategy,
-            transform=transform,
-            filter_condition=filter_condition,
-            stop_condition=stop_condition,
-            exit_condition=exit_condition,
-        )
-        self._connections.append(talk)
-        self.connection_added.emit(talk)
-
-        if name and source.context and (pool := source.context.pool):
-            pool.connection_registry.register(name, talk)
-
-        return talk
+                register_talk(talk)
+                return talk
 
     async def trigger_all(self) -> dict[AgentName, list[ChatMessage[Any]]]:
         """Trigger all queued connections."""
