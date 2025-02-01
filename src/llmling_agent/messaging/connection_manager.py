@@ -233,19 +233,10 @@ class ConnectionManager:
 
     def disconnect(self, agent: MessageNode):
         """Disconnect a specific agent."""
-        to_disconnect: list[Talk | TeamTalk] = []
         for talk in self._connections:
-            match talk:
-                case Talk():
-                    if agent in talk.targets or agent == talk.source:
-                        to_disconnect.append(talk)
-                case TeamTalk():
-                    if agent in talk.targets:
-                        to_disconnect.append(talk)
-
-        for talk in to_disconnect:
-            talk.active = False
-            self._connections.remove(talk)
+            if agent in talk.targets or agent == talk.source:
+                talk.active = False
+                self._connections.remove(talk)
 
     async def route_message(self, message: ChatMessage[Any], wait: bool | None = None):
         """Route message to all connections."""
@@ -292,11 +283,7 @@ class ConnectionManager:
 
         # Get our direct connections
         for conn in self._connections:
-            if isinstance(conn, Talk):
-                result.append(conn)
-            else:  # TeamTalk
-                result.extend(t for t in conn if isinstance(t, Talk))
-
+            result.append(conn)  # noqa: PERF402
         # Get target connections if recursive
         if recursive:
             for conn in result:
