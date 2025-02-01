@@ -7,7 +7,6 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from llmling.core.log import get_logger
-from slashed import DefaultOutputWriter
 import typer as t
 
 from llmling_agent.log import set_handler_level
@@ -47,6 +46,8 @@ def chat_command(
     Use --forward-to to specify target agents and --wait-chain to control whether
     to wait for the full chain to complete.
     """
+    from slashed import DefaultOutputWriter
+
     from llmling_agent.delegation import AgentPool
     from llmling_agent_cli.chat_session.session import start_interactive_session
 

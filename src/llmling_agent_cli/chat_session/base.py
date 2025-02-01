@@ -10,7 +10,6 @@ from uuid import uuid4
 
 from platformdirs import user_data_dir
 from psygnal import Signal
-from slashed import CommandError, CommandStore, DefaultOutputWriter, ExitCommandError
 
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
@@ -53,6 +52,8 @@ class AgentPoolView:
             agent: The LLMling agent to use
             pool: Optional agent pool for multi-agent interactions
         """
+        from slashed import CommandStore
+
         self._agent = agent
         self.pool = pool
         self._agent.tools.events.added.connect(self.tool_added.emit)
@@ -138,6 +139,8 @@ class AgentPoolView:
         output: OutputWriter | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> ChatMessage[str]:
+        from slashed import CommandError, DefaultOutputWriter, ExitCommandError
+
         writer = output or DefaultOutputWriter()
         try:
             await self.handle_command(content[1:], output=writer, metadata=metadata)

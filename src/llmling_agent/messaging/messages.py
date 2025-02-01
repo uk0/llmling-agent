@@ -5,16 +5,19 @@ from __future__ import annotations
 import dataclasses
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 from uuid import uuid4
 
 from pydantic import BaseModel
-import tokonomics
 from typing_extensions import TypeVar
 
 from llmling_agent.common_types import JsonObject, MessageRole  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    import tokonomics
 
 
 TContent = TypeVar("TContent", str, BaseModel, default=str)
@@ -117,6 +120,8 @@ class TokenCost:
         Returns:
             TokenCost if usage data available, None otherwise
         """
+        import tokonomics
+
         if not (
             usage
             and usage.total_tokens is not None

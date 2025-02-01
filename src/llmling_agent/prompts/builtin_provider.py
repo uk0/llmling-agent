@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from jinja2 import Template, meta
-
 from llmling_agent.prompts.base import BasePromptProvider
 
 
@@ -38,6 +36,8 @@ class BuiltinPromptProvider(BasePromptProvider):
         variables: dict[str, Any] | None = None,
     ) -> str:
         """Get prompt content as string."""
+        from jinja2 import Template, meta
+
         if identifier not in self.prompts:
             msg = f"Prompt not found: {identifier}"
             raise KeyError(msg)

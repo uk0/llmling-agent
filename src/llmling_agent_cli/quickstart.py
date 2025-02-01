@@ -8,7 +8,6 @@ import logging
 import pathlib
 from tempfile import NamedTemporaryFile
 
-from slashed import DefaultOutputWriter
 import typer as t
 
 from llmling_agent.delegation import AgentPool
@@ -37,6 +36,8 @@ def quickstart_command(
     stream: bool = t.Option(True, "--stream/--no-stream", help=STREAM_HELP),
 ):
     """Start an ephemeral chat session with minimal setup."""
+    from slashed import DefaultOutputWriter
+
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)
     from llmling_agent_cli.chat_session.session import start_interactive_session

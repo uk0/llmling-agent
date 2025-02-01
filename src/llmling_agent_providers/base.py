@@ -6,8 +6,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
 
 from psygnal import Signal
-import tokonomics
-from toprompt import to_prompt
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.agents import ToolCallInfo
@@ -17,6 +15,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from contextlib import AbstractAsyncContextManager
 
+    import tokonomics
     from tokonomics.pydanticai_cost import Usage
 
     from llmling_agent.agent.conversation import ConversationManager
@@ -175,11 +174,15 @@ class AgentProvider[TDeps]:
     @staticmethod
     async def format_prompts(prompts: Sequence[str | Content]) -> str:
         """Format prompts for human readability using to_prompt."""
+        from toprompt import to_prompt
+
         parts = [await to_prompt(p) for p in prompts]
         return "\n\n".join(parts)
 
     async def supports_feature(self, capability: Literal["vision"]) -> bool:
         """Check if provider supports a specific capability."""
+        import tokonomics
+
         match capability:
             case "vision":
                 if not self.model_name:
@@ -191,6 +194,8 @@ class AgentProvider[TDeps]:
 
     async def get_token_limits(self) -> tokonomics.TokenLimits | None:
         """Get token limits for the current model."""
+        import tokonomics
+
         if not self.model_name:
             return None
 
