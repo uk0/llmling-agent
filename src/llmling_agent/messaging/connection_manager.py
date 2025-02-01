@@ -8,6 +8,7 @@ from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 from psygnal import Signal
+from psygnal.containers import EventedList
 
 from llmling_agent.log import get_logger
 from llmling_agent.talk import AggregatedTalkStats, Talk, TeamTalk
@@ -32,16 +33,36 @@ logger = get_logger(__name__)
 class ConnectionManager:
     """Manages connections for both Agents and Teams."""
 
+    connection_processed = Signal(Talk.ConnectionProcessed)
+
     node_connected = Signal(object)  # Agent
     connection_added = Signal(Talk)  # Agent
 
     def __init__(self, owner: MessageNode):
         self.owner = owner
-        self._connections: list[Talk | TeamTalk] = []
+        # helper class for the user
+        self._connections = EventedList[Talk]()
         self._wait_states: dict[AgentName, bool] = {}
 
     def __repr__(self):
         return f"ConnectionManager({self.owner})"
+
+    def _on_talk_added(self, index: int, talk: Talk) -> None:
+        """Connect to new talk's signal."""
+        talk.connection_processed.connect(self._handle_message_flow)
+
+    def _on_talk_removed(self, index: int, talk: Talk) -> None:
+        """Disconnect from removed talk's signal."""
+        talk.connection_processed.disconnect(self._handle_message_flow)
+
+    def _on_talk_changed(self, index: int, old: Talk, new: Talk) -> None:
+        """Update signal connections on talk change."""
+        old.connection_processed.disconnect(self._handle_message_flow)
+        new.connection_processed.connect(self._handle_message_flow)
+
+    def _handle_message_flow(self, event: Talk.ConnectionProcessed) -> None:
+        """Forward message flow to our aggregated signal."""
+        self.connection_processed.emit(event)
 
     def set_wait_state(
         self,
