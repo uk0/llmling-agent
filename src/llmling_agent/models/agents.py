@@ -37,11 +37,11 @@ from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, Stdi
 from llmling_agent.models.nodes import NodeConfig
 from llmling_agent.models.prompts import PromptConfig
 from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
+from llmling_agent.models.result_types import InlineResponseDefinition, ResponseDefinition
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.models.storage import StorageConfig
 from llmling_agent.models.task import Job  # noqa: TC001
 from llmling_agent.models.teams import TeamConfig  # noqa: TC001
-from llmling_agent.responses import InlineResponseDefinition, ResponseDefinition
 
 
 if TYPE_CHECKING:

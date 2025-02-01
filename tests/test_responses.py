@@ -2,7 +2,7 @@ from pydantic import ValidationError
 import pytest
 import yamling
 
-from llmling_agent.responses import InlineResponseDefinition
+from llmling_agent.models.result_types import InlineResponseDefinition
 
 
 YAML_CONFIG = """

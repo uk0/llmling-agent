@@ -16,8 +16,8 @@ from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
-from llmling_agent.responses.models import BaseResponseDefinition, ResponseDefinition
-from llmling_agent.responses.utils import to_type
+from llmling_agent.models.result_types import BaseResponseDefinition, ResponseDefinition
+from llmling_agent.utils.result_utils import to_type
 
 
 if TYPE_CHECKING:

@@ -27,10 +27,10 @@ from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
-from llmling_agent.responses.utils import to_type
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context, has_return_type
+from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.tasks import TaskManagerMixin
 
 
@@ -61,8 +61,8 @@ if TYPE_CHECKING:
     from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.mcp_server import MCPServerConfig
     from llmling_agent.models.providers import ProcessorCallback
+    from llmling_agent.models.result_types import ResponseDefinition
     from llmling_agent.models.task import Job
-    from llmling_agent.responses.models import ResponseDefinition
     from llmling_agent.tools.base import ToolInfo
     from llmling_agent_providers.base import AgentProvider, StreamingResponseProtocol
 

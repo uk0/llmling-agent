@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
-from llmling_agent.responses.models import InlineResponseDefinition
+from llmling_agent.models.result_types import InlineResponseDefinition
 
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ def resolve_response_type(
     Raises:
         ValueError: If type cannot be resolved
     """
-    from llmling_agent.responses import (
+    from llmling_agent.models.result_types import (
         ImportedResponseDefinition,
         InlineResponseDefinition,
     )

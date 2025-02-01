@@ -39,9 +39,9 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.agents import AgentsManifest, WorkerConfig
     from llmling_agent.models.context import ConfirmationCallback
+    from llmling_agent.models.result_types import ResponseDefinition
     from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import Job
-    from llmling_agent.responses.models import ResponseDefinition
 
 
 logger = get_logger(__name__)

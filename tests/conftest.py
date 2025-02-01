@@ -12,7 +12,7 @@ import yamling
 from llmling_agent import Agent, AgentConfig, config_resources
 from llmling_agent.delegation import AgentPool
 from llmling_agent.models.agents import AgentsManifest
-from llmling_agent.responses import InlineResponseDefinition, ResponseField
+from llmling_agent.models.result_types import InlineResponseDefinition, ResponseField
 
 
 TEST_RESPONSE = "I am a test response"
