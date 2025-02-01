@@ -9,8 +9,8 @@ from uuid import uuid4
 
 if TYPE_CHECKING:
     from llmling_agent import Agent
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.agents import ToolCallInfo
-    from llmling_agent.models.messages import ChatMessage
 
 
 logger = logging.getLogger(__name__)

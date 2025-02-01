@@ -18,9 +18,9 @@ from pydantic_ai.result import RunResult, StreamedRunResult
 
 from llmling_agent.common_types import EndStrategy, ModelProtocol
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.models.content import BaseContent
 from llmling_agent.models.context import AgentContext
-from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
     RunAbortedError,

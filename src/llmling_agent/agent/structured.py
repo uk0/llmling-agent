@@ -33,8 +33,8 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import ModelType
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.context import AgentContext
-    from llmling_agent.models.messages import ChatMessage
     from llmling_agent.models.task import Job
     from llmling_agent.talk.stats import MessageStats
     from llmling_agent.tools.manager import ToolManager

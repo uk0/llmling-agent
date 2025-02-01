@@ -6,8 +6,8 @@ from datetime import datetime
 import pytest
 
 from llmling_agent.messaging.event_manager import EventManager
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.models.events import EventData, TimeEventConfig
-from llmling_agent.models.messages import ChatMessage
 
 
 @pytest.fixture

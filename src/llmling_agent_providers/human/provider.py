@@ -89,7 +89,7 @@ class HumanProvider(AgentProvider):
             system_prompt: System prompt from SystemPrompts manager
             kwargs: Additional arguments for human (unused)
         """
-        from llmling_agent.models.messages import ChatMessage
+        from llmling_agent.messaging.messages import ChatMessage
 
         msg_history = self.conversation.get_history()
         if self._show_context:
@@ -128,7 +128,7 @@ class HumanProvider(AgentProvider):
         **kwargs: Any,
     ) -> AsyncIterator[StreamingResponseProtocol]:
         """Stream response keystroke by keystroke."""
-        from llmling_agent.models.messages import ChatMessage
+        from llmling_agent.messaging.messages import ChatMessage
 
         msg_history = self.conversation.get_history()
         prompt = await self.format_prompts(prompts)

@@ -10,7 +10,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import AgentResponse, ChatMessage, TeamResponse
+from llmling_agent.messaging.messages import AgentResponse, ChatMessage, TeamResponse
 
 
 logger = get_logger(__name__)

@@ -14,9 +14,9 @@ from tokonomics.toko_types import TokenUsage
 
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.content import BaseContent, Content
-from llmling_agent.models.messages import ChatMessage, TokenCost
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
     RunAbortedError,

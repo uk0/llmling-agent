@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
-from llmling_agent.models.messages import ChatMessage, TokenCost
+from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent_storage.base import StorageProvider
 from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
 
@@ -40,7 +40,7 @@ class MemoryStorageProvider(StorageProvider):
 
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages from memory."""
-        from llmling_agent.models.messages import ChatMessage
+        from llmling_agent.messaging.messages import ChatMessage
 
         filtered = []
         for msg in self.messages:

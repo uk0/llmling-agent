@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.messages import ChatMessage
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.talk.talk import Talk
 
 ConnectionEventType = Literal[

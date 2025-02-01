@@ -62,7 +62,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         **kwargs: Any,
     ) -> ProviderResponse:
         """Process message through callback."""
-        from llmling_agent.models.messages import ChatMessage
+        from llmling_agent.messaging.messages import ChatMessage
 
         text_prompts = [p for p in prompts if isinstance(p, str)]
         content_prompts = [p for p in prompts if isinstance(p, BaseContent)]

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from mem0 import AsyncMemoryClient
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent_storage.base import StorageProvider
 
 

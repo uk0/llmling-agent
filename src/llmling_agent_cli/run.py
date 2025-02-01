@@ -14,7 +14,7 @@ from llmling_agent_cli import resolve_agent_config
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.messages import ChatMessage
+    from llmling_agent.messaging.messages import ChatMessage
 
 
 def run_command(

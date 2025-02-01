@@ -9,7 +9,7 @@ from llmling_agent import Agent
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.messages import ChatMessage
+    from llmling_agent.messaging.messages import ChatMessage
 
 
 @pytest.mark.asyncio

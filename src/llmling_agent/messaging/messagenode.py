@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, overload
 from psygnal import Signal
 
 from llmling_agent.mcp_server.manager import MCPManager
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.talk.stats import (
     AggregatedMessageStats,
     AggregatedTalkStats,

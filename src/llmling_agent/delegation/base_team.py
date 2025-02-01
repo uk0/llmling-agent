@@ -28,8 +28,8 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
+    from llmling_agent.messaging.messages import ChatMessage, TeamResponse
     from llmling_agent.models.mcp_server import MCPServerConfig
-    from llmling_agent.models.messages import ChatMessage, TeamResponse
     from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.models.session import SessionQuery
     from llmling_agent_providers.base import AgentProvider

@@ -8,7 +8,7 @@ from upath import UPath
 
 from llmling_agent.common_types import JsonValue, MessageRole
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage, TokenCost
+from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent_storage.base import StorageProvider
 
 

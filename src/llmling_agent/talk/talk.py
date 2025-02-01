@@ -14,8 +14,8 @@ from psygnal import Signal
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.models.events import ConnectionEvent, ConnectionEventType, EventData
-from llmling_agent.models.messages import ChatMessage
 from llmling_agent.talk.stats import AggregatedTalkStats, TalkStats
 
 

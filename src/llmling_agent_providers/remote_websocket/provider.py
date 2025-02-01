@@ -12,8 +12,8 @@ import websockets
 import websockets.client
 
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.models.agents import ToolCallInfo
-from llmling_agent.models.messages import TokenCost
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_providers.base import (
     AgentProvider,

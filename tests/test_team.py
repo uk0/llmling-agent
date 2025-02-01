@@ -8,7 +8,7 @@ from llmling_agent.agent.agent import Agent
 from llmling_agent.delegation import AgentPool
 from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.messaging.messages import ChatMessage
 
 
 @pytest.mark.asyncio
@@ -194,7 +194,7 @@ async def test_team_run_iter_execution_order():
 @pytest.mark.asyncio
 async def test_team_operators():
     """Test team combination operators (& and |)."""
-    async with AgentPool() as pool:
+    async with AgentPool[None]() as pool:
         # Create basic agents
         a1 = await pool.add_agent("a1", model="test")
         a2 = await pool.add_agent("a2", model="test")

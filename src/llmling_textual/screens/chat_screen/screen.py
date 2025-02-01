@@ -7,7 +7,7 @@ from textual.containers import Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Footer, Header
 
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_textual.widgets.agent_is_typing import ResponseStatus
 from llmling_textual.widgets.chat_view import ChatView
 from llmling_textual.widgets.prompt_input import PromptInput

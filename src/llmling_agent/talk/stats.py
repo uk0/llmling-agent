@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from llmling_agent.messaging.messages import ChatMessage, FormatStyle
     from llmling_agent.models.agents import ToolCallInfo
-    from llmling_agent.models.messages import ChatMessage, FormatStyle
 
 
 @dataclass(frozen=True, kw_only=True)

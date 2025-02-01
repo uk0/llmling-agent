@@ -22,8 +22,8 @@ if TYPE_CHECKING:
         AsyncFilterFn,
     )
     from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.forward_targets import ConnectionType
-    from llmling_agent.models.messages import ChatMessage
     from llmling_agent.talk.talk import QueueStrategy
 
 logger = get_logger(__name__)

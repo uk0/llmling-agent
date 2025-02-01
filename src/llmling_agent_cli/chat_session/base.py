@@ -14,7 +14,7 @@ from slashed import CommandError, CommandStore, DefaultOutputWriter, ExitCommand
 
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage, TokenCost
+from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.tools.base import ToolInfo
 from llmling_agent_cli.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent_cli.chat_session.models import SessionState

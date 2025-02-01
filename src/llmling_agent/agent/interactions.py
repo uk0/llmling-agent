@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.utils.basemodel_convert import get_ctor_basemodel
 
 

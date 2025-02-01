@@ -10,7 +10,7 @@ from sqlalchemy.sql import expression
 from sqlmodel import Session, SQLModel, desc, select
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage, TokenCost
+from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_storage.base import StorageProvider
 from llmling_agent_storage.models import (

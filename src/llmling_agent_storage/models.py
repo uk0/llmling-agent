@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Literal, TypedDict
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from llmling_agent.models import TokenUsage
+    from llmling_agent.messaging import TokenUsage
 
 
 GroupBy = Literal["agent", "model", "hour", "day"]

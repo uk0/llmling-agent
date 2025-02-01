@@ -6,7 +6,7 @@ from textual.containers import ScrollableContainer
 from textual.widgets import Static
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.messaging.messages import ChatMessage
 
 
 logger = get_logger(__name__)

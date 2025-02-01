@@ -17,7 +17,7 @@ import yamling
 
 from llmling_agent.agent import Agent
 from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.messaging.messages import ChatMessage
 
 
 if TYPE_CHECKING:

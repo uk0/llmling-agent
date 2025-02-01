@@ -21,9 +21,9 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.content import BaseContent, Content
-from llmling_agent.models.messages import ChatMessage
 
 
 if TYPE_CHECKING:

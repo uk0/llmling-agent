@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from llmling_agent.common_types import JsonValue
+    from llmling_agent.messaging.messages import ChatMessage, TokenCost
     from llmling_agent.models.agents import ToolCallInfo
-    from llmling_agent.models.messages import ChatMessage, TokenCost
     from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.storage import StorageConfig
     from llmling_agent_storage.base import StorageProvider

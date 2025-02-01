@@ -14,7 +14,7 @@ from llmling_agent.models.conditions import Condition  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.messages import ChatMessage
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent_providers.callback import CallbackProvider
 
 

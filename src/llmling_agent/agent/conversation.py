@@ -15,7 +15,7 @@ from psygnal import Signal
 from upath import UPath
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.messages import ChatMessage
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.utils.async_read import read_path
 
