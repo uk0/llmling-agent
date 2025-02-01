@@ -5,28 +5,27 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, Column, Engine, and_, or_
-from sqlalchemy.sql import expression
 from sqlmodel import Session, SQLModel, desc, select
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_storage.base import StorageProvider
-from llmling_agent_storage.models import (
-    ConversationData,
-    QueryFilters,
-    StatsFilters,
-)
+from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
 from llmling_agent_storage.sql_provider.models import Conversation, Message
-from llmling_agent_storage.sql_provider.utils import parse_model_info
+from llmling_agent_storage.sql_provider.utils import (
+    build_message_query,
+    format_conversation,
+    get_column_default,
+    parse_model_info,
+    to_chat_message,
+)
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from sqlmodel.sql.expression import SelectOfScalar
-    from tokonomics.toko_types import TokenUsage
+    from sqlalchemy import Engine
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent.models.agents import ToolCallInfo
@@ -93,24 +92,11 @@ class SQLModelProvider(StorageProvider[Message]):
                             # Create ALTER TABLE statement based on column type
                             type_sql = col.type.compile(self.engine.dialect)
                             nullable = "" if col.nullable else " NOT NULL"
-                            default = self._get_column_default(col)
+                            default = get_column_default(col)
                             sql = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {type_sql}{nullable}{default}"  # noqa: E501
                             conn.execute(text(sql))
 
                 conn.commit()
-
-    @staticmethod
-    def _get_column_default(column: Any) -> str:
-        """Get SQL DEFAULT clause for column."""
-        if column.default is None:
-            return ""
-        if hasattr(column.default, "arg"):
-            # Simple default value
-            return f" DEFAULT {column.default.arg}"
-        if hasattr(column.default, "sqltext"):
-            # Computed default
-            return f" DEFAULT {column.default.sqltext}"
-        return ""
 
     def cleanup(self):
         """Clean up database resources."""
@@ -119,9 +105,9 @@ class SQLModelProvider(StorageProvider[Message]):
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages using SQL queries."""
         with Session(self.engine) as session:
-            stmt = self._build_message_query(query)
+            stmt = build_message_query(query)
             messages = session.exec(stmt).all()
-            return [self._to_chat_message(msg) for msg in messages]
+            return [to_chat_message(msg) for msg in messages]
 
     async def log_message(
         self,
@@ -256,7 +242,7 @@ class SQLModelProvider(StorageProvider[Message]):
         # Use existing get_conversations method
         conversations = await self.get_conversations(filters)
         return [
-            self._format_conversation(
+            format_conversation(
                 conv, msgs, compact=compact, include_tokens=include_tokens
             )
             for conv, msgs in conversations
@@ -285,69 +271,6 @@ class SQLModelProvider(StorageProvider[Message]):
                 query = query.limit(limit)
 
             return [h.command for h in session.exec(query)]
-
-    def _build_message_query(
-        self,
-        query: SessionQuery,
-    ) -> SelectOfScalar:
-        """Build SQLModel query from SessionQuery."""
-        from llmling_agent_storage.sql_provider.models import Message
-
-        stmt = select(Message).order_by(Message.timestamp)  # type: ignore
-
-        conditions: list[Any] = []
-        if query.name:
-            conditions.append(Message.conversation_id == query.name)
-        if query.agents:
-            agent_conditions = [Column("name").in_(query.agents)]
-            if query.include_forwarded:
-                agent_conditions.append(
-                    and_(
-                        Column("forwarded_from").isnot(None),
-                        expression.cast(Column("forwarded_from"), JSON).contains(
-                            list(query.agents)
-                        ),  # type: ignore
-                    )
-                )
-            conditions.append(or_(*agent_conditions))
-        if query.since and (cutoff := query.get_time_cutoff()):
-            conditions.append(Message.timestamp >= cutoff)
-        if query.until:
-            conditions.append(Message.timestamp <= datetime.fromisoformat(query.until))
-        if query.contains:
-            conditions.append(Message.content.contains(query.contains))  # type: ignore
-        if query.roles:
-            conditions.append(Message.role.in_(query.roles))  # type: ignore
-
-        if conditions:
-            stmt = stmt.where(and_(*conditions))
-        if query.limit:
-            stmt = stmt.limit(query.limit)
-
-        return stmt  # type: ignore
-
-    def _to_chat_message(self, db_message: Message) -> ChatMessage[str]:
-        """Convert database message to ChatMessage."""
-        cost_info = None
-        if db_message.total_tokens is not None:
-            cost_info = TokenCost(
-                token_usage={
-                    "total": db_message.total_tokens or 0,
-                    "prompt": db_message.prompt_tokens or 0,
-                    "completion": db_message.completion_tokens or 0,
-                },
-                total_cost=db_message.cost or 0.0,
-            )
-
-        return ChatMessage[str](
-            content=db_message.content,
-            role=db_message.role,  # type: ignore
-            name=db_message.name,
-            model=db_message.model,
-            cost_info=cost_info,
-            response_time=db_message.response_time,
-            forwarded_from=db_message.forwarded_from or [],
-        )
 
     async def get_conversations(
         self,
@@ -389,8 +312,8 @@ class SQLModelProvider(StorageProvider[Message]):
                 if not messages:
                     continue
 
-                chat_messages = [self._to_chat_message(msg) for msg in messages]
-                conv_data = self._format_conversation(conv, messages)
+                chat_messages = [to_chat_message(msg) for msg in messages]
+                conv_data = format_conversation(conv, messages)
                 results.append((conv_data, chat_messages))
 
             return results
@@ -444,23 +367,6 @@ class SQLModelProvider(StorageProvider[Message]):
 
             # Use base class aggregation
             return self.aggregate_stats(rows, filters.group_by)
-
-    @staticmethod
-    def _aggregate_token_usage(
-        messages: Sequence[Message | ChatMessage[str]],
-    ) -> TokenUsage:
-        """Sum up tokens from a sequence of messages."""
-        total = prompt = completion = 0
-        for msg in messages:
-            if isinstance(msg, Message):
-                total += msg.total_tokens or 0
-                prompt += msg.prompt_tokens or 0
-                completion += msg.completion_tokens or 0
-            elif msg.cost_info:
-                total += msg.cost_info.token_usage.get("total", 0)
-                prompt += msg.cost_info.token_usage.get("prompt", 0)
-                completion += msg.cost_info.token_usage.get("completion", 0)
-        return {"total": total, "prompt": prompt, "completion": completion}
 
     async def reset(
         self,
@@ -532,56 +438,3 @@ class SQLModelProvider(StorageProvider[Message]):
             msg_count = len(session.exec(msg_query).all())
 
             return conv_count, msg_count
-
-    def _format_conversation(
-        self,
-        conv: Conversation | ConversationData,
-        messages: Sequence[Message | ChatMessage[str]],
-        *,
-        include_tokens: bool = False,
-        compact: bool = False,
-    ) -> ConversationData:
-        """Format SQL conversation model to ConversationData."""
-        msgs = list(messages)
-        if compact and len(msgs) > 1:
-            msgs = [msgs[0], msgs[-1]]
-
-        # Convert both Conversation and ConversationData to dict format
-        if isinstance(conv, Conversation):
-            conv_dict = {
-                "id": conv.id,
-                "agent": conv.agent_name,
-                "start_time": conv.start_time.isoformat(),
-            }
-        else:
-            conv_dict = {
-                "id": conv["id"],
-                "agent": conv["agent"],
-                "start_time": conv["start_time"],
-            }
-
-        # Convert messages to ChatMessage format if needed
-        chat_messages = [
-            msg if isinstance(msg, ChatMessage) else self._to_chat_message(msg)
-            for msg in msgs
-        ]
-
-        return ConversationData(
-            id=conv_dict["id"],
-            agent=conv_dict["agent"],
-            start_time=conv_dict["start_time"],
-            messages=[
-                {
-                    "role": msg.role,
-                    "content": msg.content,
-                    "timestamp": msg.timestamp.isoformat(),
-                    "model": msg.model,
-                    "name": msg.name,
-                    "token_usage": msg.cost_info.token_usage if msg.cost_info else None,
-                    "cost": msg.cost_info.total_cost if msg.cost_info else None,
-                    "response_time": msg.response_time,
-                }
-                for msg in chat_messages
-            ],
-            token_usage=self._aggregate_token_usage(messages) if include_tokens else None,
-        )
