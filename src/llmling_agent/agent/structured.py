@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import Agent
     from llmling_agent.agent.context import AgentContext
     from llmling_agent.common_types import ModelType
+    from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.messaging.messages import ChatMessage
@@ -134,7 +135,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
     ) -> Team[TDeps]:
         return self._agent.__and__(other)
 
-    def __or__(self, other: Agent | ProcessorCallback | Team | TeamRun) -> TeamRun:
+    def __or__(self, other: Agent | ProcessorCallback | BaseTeam) -> TeamRun:
         return self._agent.__or__(other)
 
     async def _run(
