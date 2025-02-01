@@ -9,8 +9,8 @@ from llmling.utils.importing import import_callable
 from slashed import Command, CommandContext, CommandError, CompletionContext
 from slashed.completers import CallbackCompleter
 
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
-from llmling_agent.models.context import AgentContext  # noqa: TC001
 
 
 logger = get_logger(__name__)

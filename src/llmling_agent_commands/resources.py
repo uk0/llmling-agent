@@ -12,7 +12,7 @@ from llmling_agent_commands.completers import get_resource_names
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.context import AgentContext
+    from llmling_agent.agent.context import AgentContext
 
 
 logger = get_logger(__name__)

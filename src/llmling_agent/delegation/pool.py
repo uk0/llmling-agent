@@ -34,11 +34,11 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import Agent, StructuredAgent
     from llmling_agent.agent.agent import AgentKwargs
+    from llmling_agent.agent.context import ConfirmationCallback
     from llmling_agent.common_types import SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.agents import AgentsManifest, WorkerConfig
-    from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.result_types import ResponseDefinition
     from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import Job
@@ -751,7 +751,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             ValueError: If configuration is invalid
         """
         from llmling_agent.agent import Agent
-        from llmling_agent.models.context import AgentContext
+        from llmling_agent.agent.context import AgentContext
 
         # Get base agent
         base = agent if isinstance(agent, Agent) else self.agents[agent]

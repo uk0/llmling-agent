@@ -12,7 +12,7 @@ from llmling_agent_commands.completers import get_available_agents
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.context import AgentContext
+    from llmling_agent.agent.context import AgentContext
 
 
 CREATE_AGENT_HELP = """\

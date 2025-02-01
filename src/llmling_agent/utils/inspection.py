@@ -18,8 +18,8 @@ from typing import (
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    from llmling_agent.agent import AgentContext
     from llmling_agent.common_types import AnyCallable
-    from llmling_agent.models import AgentContext
 
 
 T = TypeVar("T")
@@ -98,7 +98,7 @@ def call_with_context(
     - Functions expecting AgentContext
     - Functions expecting context data
     """
-    from llmling_agent.models import AgentContext
+    from llmling_agent.agent import AgentContext
 
     if inspect.ismethod(func):
         if has_argument_type(func, AgentContext):

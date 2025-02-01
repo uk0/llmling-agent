@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.models.context import AgentContext
+    from llmling_agent.agent.context import AgentContext
 
 
 ToolInjectionMode = Literal["off", "all"]

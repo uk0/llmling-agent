@@ -10,7 +10,7 @@ from slashed import CommandContext, CommandError, SlashedCommand
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.context import AgentContext
+    from llmling_agent.agent.context import AgentContext
 
 
 class CopyClipboardCommand(SlashedCommand):

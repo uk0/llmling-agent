@@ -11,7 +11,7 @@ from llmling_agent_commands.completers import get_model_names
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.context import AgentContext
+    from llmling_agent.agent.context import AgentContext
 
 
 SET_MODEL_HELP = """\

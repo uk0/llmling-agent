@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
     from slashed import CompletionContext
 
-    from llmling_agent.models.context import AgentContext
+    from llmling_agent.agent.context import AgentContext
 
 
 async def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:

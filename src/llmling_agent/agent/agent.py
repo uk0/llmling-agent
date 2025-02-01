@@ -43,7 +43,8 @@ if TYPE_CHECKING:
     import PIL.Image
     from toprompt import AnyPromptType
 
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent.agent import AgentContext, AnyAgent
+    from llmling_agent.agent.context import ConfirmationCallback
     from llmling_agent.agent.interactions import Interactions
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import (
@@ -57,8 +58,6 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
-    from llmling_agent.models import AgentContext
-    from llmling_agent.models.context import ConfirmationCallback
     from llmling_agent.models.mcp_server import MCPServerConfig
     from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.models.result_types import ResponseDefinition
@@ -196,10 +195,9 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             parallel_init: Whether to initialize resources in parallel
             debug: Whether to enable debug mode
         """
-        from llmling_agent.agent import AgentLogger
+        from llmling_agent.agent import AgentContext, AgentLogger
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
-        from llmling_agent.models import AgentContext
         from llmling_agent_providers.base import AgentProvider
 
         self._infinite = False
@@ -745,7 +743,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 result = await agent.run("Do something")
             ```
         """
-        from llmling_agent.models import AgentContext
+        from llmling_agent.agent import AgentContext
 
         if isinstance(config, AgentsManifest):
             agent_def = config

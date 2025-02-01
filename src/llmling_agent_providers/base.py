@@ -18,11 +18,11 @@ if TYPE_CHECKING:
     import tokonomics
     from tokonomics.pydanticai_cost import Usage
 
+    from llmling_agent.agent.context import AgentContext
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelProtocol, ModelType
     from llmling_agent.messaging.messages import TokenCost
     from llmling_agent.models.content import Content
-    from llmling_agent.models.context import AgentContext
     from llmling_agent.tools.base import ToolInfo
     from llmling_agent.tools.manager import ToolManager
 

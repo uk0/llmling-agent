@@ -5,6 +5,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.agent.agent import Agent
 from llmling_agent.agent.structured import StructuredAgent
+from llmling_agent.agent.context import AgentContext
 
 
 TDeps = TypeVar("TDeps", default=None)
@@ -20,6 +21,7 @@ from llmling_agent.agent.sys_prompts import SystemPrompts
 
 __all__ = [
     "Agent",
+    "AgentContext",
     "AgentLogger",
     "AnyAgent",
     "ConversationManager",

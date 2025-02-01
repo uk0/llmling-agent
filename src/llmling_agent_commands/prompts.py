@@ -8,7 +8,7 @@ from llmling_agent_commands.completers import PromptCompleter
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.context import AgentContext
+    from llmling_agent.agent.context import AgentContext
 
 PROMPT_HELP = """\
 Show prompts from configured prompt hubs.

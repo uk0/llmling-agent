@@ -6,7 +6,7 @@ from slashed import Command, CommandContext
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.context import AgentContext
+    from llmling_agent.agent.context import AgentContext
 
 
 RESET_HELP = """\

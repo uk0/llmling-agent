@@ -10,7 +10,7 @@ from llmling_agent.models.result_types import InlineResponseDefinition
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models import AgentContext
+    from llmling_agent.agent import AgentContext
 
 
 def resolve_response_type(

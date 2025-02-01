@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from llmling import ToolError
 
-from llmling_agent.models.context import AgentContext  # noqa: TC001
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 
 
 if TYPE_CHECKING:
