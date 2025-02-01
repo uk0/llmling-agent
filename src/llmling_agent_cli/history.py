@@ -10,11 +10,8 @@ from llmling.cli.utils import format_output
 import typer as t
 
 from llmling_agent.models import AgentsManifest
-from llmling_agent.storage import StorageManager
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_cli import resolve_agent_config
-from llmling_agent_storage.formatters import format_stats
-from llmling_agent_storage.models import StatsFilters
 
 
 logger = logging.getLogger(__name__)
@@ -39,6 +36,8 @@ def get_history_provider(config_path: str):
     Returns:
         Storage provider configured for history operations
     """
+    from llmling_agent.storage import StorageManager
+
     manifest = AgentsManifest.from_file(config_path)
     storage = StorageManager(manifest.storage)
     return storage.get_history_provider()
@@ -129,6 +128,9 @@ def show_stats(
         # Show model usage for last week
         llmling-agent history stats --period 1w --group-by model
     """
+    from llmling_agent_storage.formatters import format_stats
+    from llmling_agent_storage.models import StatsFilters
+
     try:
         # Resolve config and get provider
         config_path = resolve_agent_config(config)
