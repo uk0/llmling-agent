@@ -12,7 +12,6 @@ from uuid import UUID, uuid4
 from llmling import BasePrompt, PromptMessage, StaticPrompt
 from llmling.config.models import BaseResource
 from psygnal import Signal
-from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage
@@ -449,6 +448,8 @@ class ConversationManager:
         Raises:
             ValueError: If content cannot be loaded or converted
         """
+        from upath import UPath
+
         path_obj = UPath(path)
         if convert_to_md:
             content = await self._agent.context.converter.convert_file(path)

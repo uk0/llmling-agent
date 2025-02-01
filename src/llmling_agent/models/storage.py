@@ -1,9 +1,9 @@
 import os
+from pathlib import Path
 from typing import Annotated, Final, Literal
 
 from platformdirs import user_data_dir
 from pydantic import BaseModel, ConfigDict, Field
-from upath import UPath
 
 
 LogFormat = Literal["chronological", "conversations"]
@@ -13,7 +13,7 @@ FormatType = SupportedFormats | Literal["auto"]
 
 APP_NAME: Final = "llmling-agent"
 APP_AUTHOR: Final = "llmling"
-DATA_DIR: Final = UPath(user_data_dir(APP_NAME, APP_AUTHOR))
+DATA_DIR: Final = Path(user_data_dir(APP_NAME, APP_AUTHOR))
 DEFAULT_DB_NAME: Final = "history.db"
 
 

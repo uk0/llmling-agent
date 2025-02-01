@@ -7,7 +7,6 @@ import webbrowser
 
 from llmling import Config, RuntimeConfig
 from slashed import Command, CommandContext, CommandError, PathCompleter
-from upath import UPath
 
 from llmling_agent.models.environment import FileEnvironment, InlineEnvironment
 
@@ -44,6 +43,8 @@ async def set_env(
     kwargs: dict[str, str],
 ):
     """Change the environment file path."""
+    from upath import UPath
+
     if not args:
         await ctx.output.print("Usage: /set-env <path>")
         return

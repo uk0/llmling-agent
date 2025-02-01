@@ -7,7 +7,6 @@ import shutil
 from llmling.cli.constants import output_format_opt, verbose_opt
 from llmling.cli.utils import format_output
 import typer as t
-from upath import UPath
 
 from llmling_agent_cli import agent_store, resolve_agent_config
 
@@ -32,6 +31,8 @@ def init_agent_config(
     automatically registered and set as active.
     """
     # Create config
+    from upath import UPath
+
     if interactive:
         from promptantic import ModelGenerator
 

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from upath import UPath
-
 
 def list_source_files(
     directory: str,
@@ -22,6 +20,8 @@ def list_source_files(
     Example:
         list_source_files("src", [".py"]) -> ["/full/path/src/models/user.py", ...]
     """
+    from upath import UPath
+
     path = UPath(directory).resolve()  # Get absolute path
     if not path.exists():
         msg = f"Directory not found: {directory}"
@@ -55,6 +55,8 @@ def read_source_file(filepath: str) -> str:
         Content of the file as text
 
     """
+    from upath import UPath
+
     path = UPath(filepath).resolve()  # Convert to absolute path
     if not path.exists():
         msg = f"File not found: {filepath}"

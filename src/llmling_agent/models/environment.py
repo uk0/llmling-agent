@@ -4,7 +4,6 @@ from typing import Annotated, Literal
 
 from llmling import Config
 from pydantic import BaseModel, ConfigDict, Field
-from upath import UPath
 
 
 class FileEnvironment(BaseModel):
@@ -33,6 +32,8 @@ class FileEnvironment(BaseModel):
 
     def get_file_path(self) -> str:
         """Get resolved file path."""
+        from upath import UPath
+
         if self.config_file_path:
             base_dir = UPath(self.config_file_path).parent
             return str(base_dir / self.uri)

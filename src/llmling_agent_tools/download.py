@@ -6,8 +6,6 @@ from typing import Annotated, Literal
 from urllib.parse import urlparse
 
 from annotated_types import Ge, Le
-import httpx
-from upath import UPath
 
 
 PaperType = Literal[
@@ -22,6 +20,9 @@ async def download_file(
     verify_ssl: bool = False,  # For testing, in prod should be True
 ) -> str:
     """Download a file and return status information."""
+    import httpx
+    from upath import UPath
+
     start_time = time.time()
     target_path = UPath(target_dir)
     target_path.mkdir(exist_ok=True)

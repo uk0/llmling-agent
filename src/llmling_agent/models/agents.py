@@ -23,7 +23,6 @@ from llmling_models.model_types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from toprompt import render_prompt
 from typing_extensions import TypeVar
-from upath.core import UPath
 
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.config import Capabilities, Knowledge
@@ -355,6 +354,8 @@ class AgentConfig(NodeConfig):
     @staticmethod
     def _resolve_environment_path(env: str, config_file_path: str | None = None) -> str:
         """Resolve environment path from config store or relative path."""
+        from upath import UPath
+
         try:
             config_store = ConfigStore()
             return config_store.get_config(env)

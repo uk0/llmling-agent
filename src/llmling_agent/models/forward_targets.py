@@ -8,12 +8,13 @@ import inspect
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ImportString
-from upath import UPath
 
 from llmling_agent.models.conditions import Condition  # noqa: TC001
 
 
 if TYPE_CHECKING:
+    from upath import UPath
+
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent_providers.callback import CallbackProvider
 
@@ -132,6 +133,8 @@ class FileConnectionConfig(ConnectionConfig):
 
     def resolve_path(self, context: dict[str, str]) -> UPath:
         """Resolve path template with context variables."""
+        from upath import UPath
+
         now = datetime.now()
         date = now.strftime("%Y-%m-%d")
         time_ = now.strftime("%H-%M-%S")
@@ -141,6 +144,7 @@ class FileConnectionConfig(ConnectionConfig):
     def get_provider(self) -> CallbackProvider[str]:
         """Get provider for file writing."""
         from jinja2 import Template
+        from upath import UPath
 
         from llmling_agent_providers.callback import CallbackProvider
 

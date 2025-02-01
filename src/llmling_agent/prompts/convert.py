@@ -6,7 +6,6 @@ import os
 from typing import TYPE_CHECKING
 
 from toprompt import AnyPromptType, to_prompt
-from upath import UPath
 
 from llmling_agent.models.content import (
     BaseContent,
@@ -36,6 +35,7 @@ async def convert_prompts(
     - Content objects -> pass through
     """
     import PIL.Image
+    from upath import UPath
 
     result: list[str | Content] = []
     for p in prompts:

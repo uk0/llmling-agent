@@ -7,7 +7,6 @@ import io
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field
-from upath import UPath
 
 from llmling_agent.utils.async_read import read_path
 
@@ -65,6 +64,8 @@ class BaseImageContent(BaseContent):
             detail: Optional detail level for processing
             description: Optional description of the image
         """
+        from upath import UPath
+
         path_obj = UPath(path)
 
         # For http(s) URLs, pass through as URL content
@@ -160,6 +161,8 @@ class BasePDFContent(BaseContent):
             detail: Optional detail level for processing
             description: Optional description of the document
         """
+        from upath import UPath
+
         path_obj = UPath(path)
 
         # For http(s) URLs, pass through as URL content
@@ -258,6 +261,8 @@ class AudioBase64Content(AudioContent):
     def from_path(cls, path: StrPath) -> Self:
         """Create from file path with auto format detection."""
         import mimetypes
+
+        from upath import UPath
 
         path_obj = UPath(path)
         mime_type, _ = mimetypes.guess_type(str(path_obj))

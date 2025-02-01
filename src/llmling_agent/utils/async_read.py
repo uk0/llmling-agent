@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, overload
 
-from upath import UPath
-
 from llmling_agent.log import get_logger
 
 
@@ -39,6 +37,7 @@ async def read_path(
     from fsspec.asyn import AsyncFileSystem
     from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
     from morefs.asyn_local import AsyncLocalFileSystem
+    from upath import UPath
 
     path_obj = UPath(path)
 
