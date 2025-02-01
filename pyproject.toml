@@ -297,6 +297,7 @@ reportIgnoreCommentWithoutRule = false
 reportUnannotatedClassAttribute = false
 reportSelfClsParameterName = false
 reportPrivateImportUsage = false
+reportUnusedExpression = false
 
 [tool.mknodes]
 allowed-commit-types = [
