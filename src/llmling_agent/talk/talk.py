@@ -253,25 +253,18 @@ class Talk[TTransmittedData]:
             else:
                 processed_message = transformed
 
-        # 8. Process for each target
-        responses: list[ChatMessage[Any]] = []
-        target_list: list[MessageNode] = []
-        for target in self.targets:
-            if await self._evaluate_condition(  # == should_route_to
+        # 6. First pass: Determine target list
+        target_list: list[MessageNode] = [
+            target
+            for target in self.targets
+            if await self._evaluate_condition(
                 self._filter_condition,
                 processed_message,
                 target,
                 default_return=True,
-            ):
-                target_list.append(target)
-                if self.queued:
-                    # Queue per agent
-                    self._pending_messages[target.name].append(processed_message)
-                    continue
-                if response := await self._process_for_target(
-                    processed_message, target, prompt
-                ):
-                    responses.append(response)
+            )
+        ]
+        # 7. If we have targets, emit connection processed event
         if target_list:
             self.connection_processed.emit(
                 self.ConnectionProcessed(
@@ -284,8 +277,19 @@ class Talk[TTransmittedData]:
             )
             messages = [*self._stats.messages, processed_message]
             self._stats = replace(self._stats, messages=messages)
-            # 9. Emit forwarded signal after processing
             self.message_forwarded.emit(processed_message)
+
+        # 8. Second pass: Actually process for each target
+        responses: list[ChatMessage[Any]] = []
+        for target in target_list:
+            if self.queued:
+                self._pending_messages[target.name].append(processed_message)
+                continue
+            if response := await self._process_for_target(
+                processed_message, target, prompt
+            ):
+                responses.append(response)
+
         return responses
 
     async def _process_for_target(
@@ -612,6 +616,36 @@ class ConnectionRegistry(BaseRegistry[str, Talk]):
     Allows looking up Talk instances by their name. Only named
     connections get registered.
     """
+
+    message_flow = Signal(Talk.ConnectionProcessed)
+
+    def __init__(self, *args, **kwargs) -> None:
+        """Initialize registry and connect event handlers."""
+        super().__init__(*args, **kwargs)
+        # Connect handlers to EventedDict events
+        self._items.events.added.connect(self._on_talk_added)
+        self._items.events.removed.connect(self._on_talk_removed)
+        self._items.events.changed.connect(self._on_talk_changed)
+
+    def _on_talk_added(self, name: str, talk: Talk) -> None:
+        """Handle new talk being added to registry."""
+        talk.connection_processed.connect(self._handle_message_flow)
+        logger.debug("Connected signal for talk: %s", name)
+
+    def _on_talk_removed(self, name: str, talk: Talk) -> None:
+        """Handle talk being removed from registry."""
+        talk.connection_processed.disconnect(self._handle_message_flow)
+        logger.debug("Disconnected signal for talk: %s", name)
+
+    def _on_talk_changed(self, name: str, old_talk: Talk, new_talk: Talk) -> None:
+        """Handle talk being replaced in registry."""
+        old_talk.connection_processed.disconnect(self._handle_message_flow)
+        new_talk.connection_processed.connect(self._handle_message_flow)
+        logger.debug("Reconnected signal for talk: %s", name)
+
+    def _handle_message_flow(self, event: Talk.ConnectionProcessed) -> None:
+        """Forward message flow to global stream."""
+        self.message_flow.emit(event)
 
     @property
     def _error_class(self) -> type[ConnectionRegistryError]:
