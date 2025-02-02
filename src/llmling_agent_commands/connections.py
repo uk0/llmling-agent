@@ -21,25 +21,25 @@ logger = get_logger(__name__)
 
 
 CONNECT_HELP = """\
-Connect the current agent to another agent.
-Messages will be forwarded to the target agent.
+Connect the current node to another node.
+Messages will be forwarded to the target node.
 
 Examples:
-  /connect agent2          # Forward to agent, wait for responses
-  /connect agent2 --no-wait  # Forward without waiting
+  /connect node2          # Forward to node, wait for responses
+  /connect node2 --no-wait  # Forward without waiting
 """
 
 DISCONNECT_HELP = """\
-Disconnect the current agent from a target agent.
-Stops forwarding messages to the specified agent.
+Disconnect the current node from a target node.
+Stops forwarding messages to the specified node.
 
-Example: /disconnect agent2
+Example: /disconnect node2
 """
 
 LIST_CONNECTIONS_HELP = """\
-Show current agent connections and their status.
+Show current node connections and their status.
 Displays:
-- Connected agents
+- Connected nodes
 - Wait settings
 - Message flow direction
 """
@@ -60,13 +60,14 @@ async def connect_command(
     args: list[str],
     kwargs: dict[str, str],
 ):
-    """Connect to another agent."""
+    """Connect to another node."""
     if not args:
-        await ctx.output.print("Usage: /connect <agent_name> [--no-wait]")
+        await ctx.output.print("Usage: /connect <node_name> [--no-wait]")
         return
 
     target = args[0]
     wait = kwargs.get("wait", "true").lower() != "false"
+    source = ctx.context.agent.name
 
     try:
         assert ctx.context.pool
@@ -76,11 +77,11 @@ async def connect_command(
             target, wait if wait is not None else True
         )
 
-        msg = f"Now forwarding messages to {target}"
+        msg = f"{source!r} now forwarding messages to {target!r}"
         msg += " (waiting for responses)" if wait else " (async)"
         await ctx.output.print(msg)
     except Exception as e:
-        msg = f"Failed to connect to {target}: {e}"
+        msg = f"Failed to connect {source!r} to {target!r}: {e}"
         raise CommandError(msg) from e
 
 
@@ -89,19 +90,20 @@ async def disconnect_command(
     args: list[str],
     kwargs: dict[str, str],
 ):
-    """Disconnect from an agent."""
+    """Disconnect from another node."""
     if not args:
-        await ctx.output.print("Usage: /disconnect <agent_name>")
+        await ctx.output.print("Usage: /disconnect <node_name>")
         return
 
     target = args[0]
+    source = ctx.context.agent.name
     try:
         assert ctx.context.pool
         target_agent = ctx.context.pool.get_agent(target)
         ctx.context.agent.connections.disconnect(target_agent)
-        await ctx.output.print(f"Stopped forwarding messages to {target}")
+        await ctx.output.print(f"{source!r} stopped forwarding messages to {target!r}")
     except Exception as e:
-        msg = f"Failed to disconnect from {target}: {e}"
+        msg = f"{source!r} failed to disconnect from {target!r}: {e}"
         raise CommandError(msg) from e
 
 
@@ -110,13 +112,13 @@ async def disconnect_all_command(
     args: list[str],
     kwargs: dict[str, str],
 ):
-    """Disconnect from all agents."""
+    """Disconnect from all nodes."""
     if not ctx.context.agent.connections.get_targets():
         await ctx.output.print("No active connections")
         return
-
+    source = ctx.context.agent.name
     await ctx.context.agent.disconnect_all()
-    await ctx.output.print("Disconnected from all agents")
+    await ctx.output.print(f"Disconnected {source!r} from all nodes")
 
 
 async def list_connections(
@@ -150,36 +152,36 @@ async def list_connections(
 
 connect_cmd = Command(
     name="connect",
-    description="Connect to another agent",
+    description="Connect to another node",
     execute_func=connect_command,
-    usage="<agent_name> [--no-wait]",
+    usage="<node_name> [--no-wait]",
     help_text=CONNECT_HELP,
-    category="agents",
+    category="nodes",
     completer=CallbackCompleter(get_available_agents),
 )
 
 disconnect_cmd = Command(
     name="disconnect",
-    description="Disconnect from an agent",
+    description="Disconnect from an node",
     execute_func=disconnect_command,
-    usage="<agent_name>",
+    usage="<node_name>",
     help_text=DISCONNECT_HELP,
-    category="agents",
+    category="nodes",
     completer=CallbackCompleter(get_available_agents),
 )
 
 disconnect_all_cmd = Command(
     name="disconnect-all",
-    description="Disconnect from all agents",
+    description="Disconnect from all nodes",
     execute_func=disconnect_all_command,
-    help_text="Remove all agent connections",
-    category="agents",
+    help_text="Remove all node connections",
+    category="nodes",
 )
 
 connections_cmd = Command(
     name="connections",
-    description="List current agent connections",
+    description="List current node connections",
     execute_func=list_connections,
     help_text=LIST_CONNECTIONS_HELP,
-    category="agents",
+    category="nodes",
 )
