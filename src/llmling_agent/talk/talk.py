@@ -264,22 +264,23 @@ class Talk[TTransmittedData]:
                 default_return=True,
             )
         ]
-        # 7. If we have targets, emit connection processed event
-        if target_list:
-            self.connection_processed.emit(
-                self.ConnectionProcessed(
-                    message=processed_message,
-                    source=self.source,
-                    targets=target_list,
-                    queued=self.queued,
-                    connection_type=self.connection_type,  # pyright: ignore
-                )
+        # 7. emit connection processed event
+        self.connection_processed.emit(
+            self.ConnectionProcessed(
+                message=processed_message,
+                source=self.source,
+                targets=target_list,
+                queued=self.queued,
+                connection_type=self.connection_type,  # pyright: ignore
             )
+        )
+        # 8. if we have targets, update stats and emit message forwarded
+        if target_list:
             messages = [*self._stats.messages, processed_message]
             self._stats = replace(self._stats, messages=messages)
             self.message_forwarded.emit(processed_message)
 
-        # 8. Second pass: Actually process for each target
+        # 9. Second pass: Actually process for each target
         responses: list[ChatMessage[Any]] = []
         for target in target_list:
             if self.queued:
