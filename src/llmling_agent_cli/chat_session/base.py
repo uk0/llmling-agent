@@ -144,12 +144,14 @@ class AgentPoolView:
         writer = output or DefaultOutputWriter()
         try:
             await self.handle_command(content[1:], output=writer, metadata=metadata)
-            return ChatMessage(content="", role="system")
+            return ChatMessage(content="", role="system", name="System")
         except ExitCommandError:
             # Re-raise without wrapping in CommandError
             raise
         except CommandError as e:
-            return ChatMessage(content=f"Command error: {e}", role="system")
+            return ChatMessage(
+                content=f"Command error: {e}", role="system", name="System"
+            )
 
     @overload
     async def send_message(
@@ -219,7 +221,11 @@ class AgentPoolView:
         async with self._agent.run_stream(content) as stream_result:
             # Stream intermediate chunks
             async for response in stream_result.stream():
-                yield ChatMessage[str](content=str(response), role="assistant")
+                yield ChatMessage[str](
+                    content=str(response),
+                    role="assistant",
+                    name=self._agent.name,
+                )
 
             # Final message with complete metrics after stream completes
             start_time = time.perf_counter()
