@@ -10,12 +10,13 @@ from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 from llmling import BaseRegistry, LLMLingError
 from typing_extensions import TypeVar
 
-from llmling_agent.agent import AnyAgent
-from llmling_agent.common_types import AgentName
+from llmling_agent.agent import Agent, AnyAgent, StructuredAgent
+from llmling_agent.common_types import AgentName, NodeName
 from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
+from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models.forward_targets import (
     CallableConnectionConfig,
     FileConnectionConfig,
@@ -32,12 +33,10 @@ if TYPE_CHECKING:
 
     from psygnal.containers import EventedDict
 
-    from llmling_agent.agent import Agent, StructuredAgent
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.agent.context import ConfirmationCallback
     from llmling_agent.common_types import SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
-    from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.agents import AgentsManifest
     from llmling_agent.models.result_types import ResponseDefinition
     from llmling_agent.models.session import SessionQuery
@@ -51,7 +50,7 @@ TResult = TypeVar("TResult", default=Any)
 TPoolDeps = TypeVar("TPoolDeps", default=None)
 
 
-class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
+class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
     """Pool for managing multiple agents with shared dependencies.
 
     The pool acts as a central registry and dependency provider for agents.
@@ -104,14 +103,13 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self.exit_stack = AsyncExitStack()
         self.parallel_load = parallel_load
         self.storage = StorageManager(self.manifest.storage)
-        self._teams: dict[str, BaseTeam[Any, Any]] = {}
         self.connection_registry = ConnectionRegistry()
         self.mcp = MCPManager(self.manifest.get_mcp_servers())
         self._tasks = TaskRegistry()
         # Register tasks from manifest
         for name, task in self.manifest.jobs.items():
             self._tasks.register(name, task)
-        self.pool_talk = TeamTalk[Any].from_nodes(list(self.agents.values()))
+        self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
 
         # Create requested agents immediately
         for name in self.manifest.agents:
@@ -132,7 +130,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             # Add MCP tool provider to all agents
             # Initialize MCP and agents through exit stack
             agents = list(self.agents.values())
-            teams = list(self._teams.values())
+            teams = list(self.teams.values())
             for agent in agents:
                 agent.tools.add_provider(self.mcp)
             if self.parallel_load:
@@ -259,7 +257,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             pick_prompt=pick_prompt,
         )
         if name:
-            self._teams[name] = team
+            self[name] = team
         return team
 
     @overload
@@ -335,7 +333,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             pick_prompt=pick_prompt,
         )
         if name:
-            self._teams[name] = team
+            self[name] = team
         return team
 
     async def run_event_loop(self) -> None:
@@ -362,7 +360,23 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
                     await asyncio.sleep(1)
 
     @property
-    def agents(self) -> EventedDict[str, AnyAgent[Any, Any]]:
+    def agents(self) -> dict[str, AnyAgent[Any, Any]]:
+        """Get agents dict (backward compatibility)."""
+        return {
+            i.name: i
+            for i in self._items.values()
+            if isinstance(i, Agent | StructuredAgent)
+        }
+
+    @property
+    def teams(self) -> dict[str, BaseTeam[Any, Any]]:
+        """Get agents dict (backward compatibility)."""
+        from llmling_agent.delegation.base_team import BaseTeam
+
+        return {i.name: i for i in self._items.values() if isinstance(i, BaseTeam)}
+
+    @property
+    def nodes(self) -> EventedDict[str, MessageNode[Any, Any]]:
         """Get agents dict (backward compatibility)."""
         return self._items
 
@@ -371,22 +385,20 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         """Error class for agent operations."""
         return LLMLingError
 
-    def _validate_item(self, item: AnyAgent[Any, Any] | Any) -> AnyAgent[Any, Any]:
+    def _validate_item(self, item: MessageNode[Any, Any] | Any) -> MessageNode[Any, Any]:
         """Validate and convert items before registration.
 
         Args:
             item: Item to validate
 
         Returns:
-            Validated Agent
+            Validated Node
 
         Raises:
-            LLMlingError: If item is not a valid agent
+            LLMlingError: If item is not a valid node
         """
-        from llmling_agent.agent import Agent, StructuredAgent
-
-        if not isinstance(item, Agent | StructuredAgent):
-            msg = f"Item must be Agent, got {type(item)}"
+        if not isinstance(item, MessageNode):
+            msg = f"Item must be Agent or Team, got {type(item)}"
             raise self._error_class(msg)
         item.context.pool = self
         return item
@@ -419,32 +431,20 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
                     msg = f"Unknown team member: {member}"
                     raise ValueError(msg)
             team.agents.extend(members)
-
-        self._teams = empty_teams
+            self[name] = team
 
     def _connect_nodes(self) -> None:
         """Set up connections defined in manifest."""
         # Merge agent and team configs into one dict of nodes with connections
-        node_map = {
-            name: cfg
-            for collection in (self.manifest.agents, self.manifest.teams)
-            for name, cfg in collection.items()
-            if cfg.connections
-        }
-
-        for name, config in node_map.items():
-            source = self[name] if name in self else self._teams[name]
+        for name, config in self.manifest.nodes.items():
+            source = self[name]
             for target in config.connections or []:
                 match target:
                     case NodeConnectionConfig():
-                        if target.name not in self and target.name not in self._teams:
+                        if target.name not in self:
                             msg = f"Forward target {target.name} not found for {name}"
                             raise ValueError(msg)
-                        target_node = (
-                            self[target.name]
-                            if target.name in self
-                            else self._teams[target.name]
-                        )
+                        target_node = self[target.name]
                     case FileConnectionConfig() | CallableConnectionConfig():
                         target_node = Agent(provider=target.get_provider())
                     case _:
@@ -867,7 +867,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
 
 if __name__ == "__main__":
-    from llmling_agent.agent import Agent
 
     async def main():
         path = "src/llmling_agent/config_resources/agents.yml"

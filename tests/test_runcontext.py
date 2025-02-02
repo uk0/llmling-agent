@@ -155,7 +155,7 @@ async def test_team_creation():
         # Verify agents were created
         assert "alice" in pool.agents
         assert "bob" in pool.agents
-        assert "crew" in pool._teams
+        assert "crew" in pool.teams
         # Verify team creation message
         assert "alice" in str(result.content.lower())
         assert "bob" in str(result.content.lower())

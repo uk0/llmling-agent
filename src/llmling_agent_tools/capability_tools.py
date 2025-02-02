@@ -41,16 +41,9 @@ async def delegate_to(  # noqa: D417
         msg = "Agent needs to be in a pool to delegate tasks"
         raise ToolError(msg)
 
-    # Try teams first, then agents
-    if agent_or_team_name in ctx.pool._teams:
-        team = ctx.pool._teams[agent_or_team_name]
-        result = await team.run(prompt)
-        return result.format(style="detailed", show_costs=True)
-
-    # Fall back to agents
-    if agent_or_team_name in ctx.pool.agents:
-        agent = ctx.pool.get_agent(agent_or_team_name)
-        result = await agent.run(prompt)
+    if agent_or_team_name in ctx.pool.nodes:
+        node = ctx.pool.nodes[agent_or_team_name]
+        result = await node.run(prompt)
         return result.format(style="detailed", show_costs=True)
 
     msg = f"No agent or team found with name: {agent_or_team_name}"
@@ -123,7 +116,7 @@ async def list_available_teams(  # noqa: D417
         msg = "No agent pool available"
         raise ToolError(msg)
 
-    teams = ctx.pool._teams
+    teams = ctx.pool.teams
     if only_idle:
         teams = {name: team for name, team in teams.items() if not team.is_running}
     if not detailed:
