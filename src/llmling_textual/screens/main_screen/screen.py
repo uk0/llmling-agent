@@ -39,7 +39,7 @@ class MainScreen(Screen):
     def __init__(self, pool: AgentPool) -> None:
         super().__init__()
         self.pool = pool
-        self.agent_list = AgentList(widget_id="agent-list")
+        self.agent_list = AgentList(id="agent-list")
         self.message_stream = MessageStream(pool)
 
         # Connect pool events

@@ -33,13 +33,13 @@ class PromptInput(TextArea):
     def __init__(
         self,
         name: str | None = None,
-        widget_id: str | None = None,
+        id: str | None = None,  # noqa: A002
         classes: str | None = None,
         disabled: bool = False,
     ):
         super().__init__(
             name=name,
-            id=widget_id,
+            id=id,
             classes=classes,
             disabled=disabled,
             language="markdown",

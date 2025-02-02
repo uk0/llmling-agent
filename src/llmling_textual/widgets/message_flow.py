@@ -40,10 +40,10 @@ class MessageFlowWidget(Static):
     def __init__(
         self,
         event: Talk.ConnectionProcessed,
-        widget_id: str | None = None,
+        id: str | None = None,  # noqa: A002
         classes: str | None = None,
     ):
-        super().__init__(id=widget_id, classes=classes)
+        super().__init__(id=id, classes=classes)
         self.event = event
         if event.queued:
             self.add_class("queued")

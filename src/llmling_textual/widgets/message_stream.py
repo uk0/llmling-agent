@@ -40,10 +40,10 @@ class MessageStream(ScrollableContainer):
         self,
         pool: AgentPool,
         *,
-        widget_id: str | None = None,
+        id: str | None = None,  # noqa: A002
         classes: str | None = None,
     ):
-        super().__init__(id=widget_id, classes=classes)
+        super().__init__(id=id, classes=classes)
         self.pool = pool
         self._placeholder = Static("No messages yet...", classes="placeholder")
         self.show_placeholder = True

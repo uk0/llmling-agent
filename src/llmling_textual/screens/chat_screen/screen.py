@@ -35,7 +35,7 @@ class TextualOutputWriter(OutputWriter):
         msg = ChatMessage(content=text, role="system", name="System")
         await self.chat_view.append_chat_message(msg)
 
-    async def write_error(self, text: str) -> None:
+    async def print_error(self, text: str) -> None:
         """Write error to chat view."""
         msg = ChatMessage(content=f"Error: {text}", role="system", name="System")
         await self.chat_view.append_chat_message(msg)
@@ -103,9 +103,9 @@ class ChatScreen(ModalScreen[None]):
         yield Header(name=f"Chat with {self.agent.name}")
 
         with Vertical(id="chat-container"):
-            yield ChatView(widget_id="chat-view")
+            yield ChatView(id="chat-view")
             yield self._typing_status
-            yield PromptInput(widget_id="prompt-input")
+            yield PromptInput(id="prompt-input")
 
         yield Footer()
 
@@ -114,8 +114,7 @@ class ChatScreen(ModalScreen[None]):
         chat_view = self.query_one(ChatView)
         # Load existing messages
         for msg in self.agent.conversation.chat_messages:
-            if msg.role != "system":
-                await chat_view.append_chat_message(msg)
+            await chat_view.append_chat_message(msg)
         # Focus input
         self.query_one(PromptInput).focus()
 
@@ -172,27 +171,13 @@ class ChatScreen(ModalScreen[None]):
             self._typing_status.display = True
             self._typing_status.set_agent_responding()
 
-            # Start streaming response
-            chat_view.start_streaming()
+            # Get response
+            response = await self.agent.run(message)
+            await chat_view.append_chat_message(response)
 
-            # Stream response chunks
-            async with self.agent.run_stream(message) as stream:
-                async for chunk in stream.stream():
-                    await chat_view.update_stream(chunk)
-
-                # Create final message with metadata
-                final_message = ChatMessage(
-                    content=str(stream.formatted_content),
-                    role="assistant",
-                    name=self.agent.name,
-                    model=stream.model_name,
-                )
-                chat_view.finalize_stream(final_message)
-
-                # Update session state
-                self._state.message_count += 2  # User and assistant messages
-                if _usage := stream.usage():
-                    self._state.update_tokens(final_message)
+            # Update session state
+            self._state.message_count += 2
+            self._state.update_tokens(response)
 
         except Exception as e:  # noqa: BLE001
             # Show error in chat
@@ -208,8 +193,3 @@ class ChatScreen(ModalScreen[None]):
             self._typing_status.display = False
             input_widget.submit_ready = True
             input_widget.focus()
-
-    def action_send_message(self) -> None:
-        """Send current message."""
-        if input_widget := self.query_one(PromptInput):
-            input_widget.action_submit_prompt()
