@@ -782,15 +782,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             else:
                 yield base_agent
 
-    async def disconnect_all(self):
-        """Disconnect from all agents."""
-        for target in list(self.connections.get_targets()):
-            self.stop_passing_results_to(target)
-
-    def stop_passing_results_to(self, other: MessageNode):
-        """Stop forwarding results to another agent."""
-        self.connections.disconnect(other)
-
     def is_busy(self) -> bool:
         """Check if agent is currently processing tasks."""
         return bool(self._pending_tasks or self._background_task)
