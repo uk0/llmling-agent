@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import TYPE_CHECKING, Literal, overload
 
 from llmling_agent.log import get_logger
@@ -14,35 +15,29 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-async def get_async_fs(path: StrPath) -> AsyncFileSystem:
-    """Get appropriate async filesystem for path.
-
-    Args:
-        path: Path to get filesystem for
-
-    Returns:
-        Async filesystem instance
-
-    Raises:
-        ValueError: If no async filesystem available for path
-    """
+@lru_cache(maxsize=32)
+def _get_cached_fs(protocol: str) -> AsyncFileSystem:
+    """Cached filesystem creation."""
     import fsspec
     from fsspec.asyn import AsyncFileSystem
     from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
     from morefs.asyn_local import AsyncLocalFileSystem
+
+    if protocol in ("", "file"):
+        return AsyncLocalFileSystem()
+
+    fs = fsspec.filesystem(protocol, asynchronous=True)
+    if not isinstance(fs, AsyncFileSystem):
+        fs = AsyncFileSystemWrapper(fs)
+    return fs
+
+
+async def get_async_fs(path: StrPath) -> AsyncFileSystem:
+    """Get appropriate async filesystem for path."""
     from upath import UPath
 
     path_obj = UPath(path)
-
-    # Try to get native async filesystem first
-    if path_obj.protocol in ("", "file"):
-        return AsyncLocalFileSystem(path_obj.fs)
-
-    fs = fsspec.filesystem(path_obj.protocol, asynchronous=True)
-    if not isinstance(fs, AsyncFileSystem):
-        fs = AsyncFileSystemWrapper(path_obj.fs)
-
-    return fs
+    return _get_cached_fs(path_obj.protocol)
 
 
 @overload
