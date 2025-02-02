@@ -216,7 +216,6 @@ class HumanProvider(AgentProvider):
                     args=parsed.args.args,
                     kwargs=parsed.args.kwargs,
                 )
-                assert self.context.agent
                 await self.commands.execute_command_with_context(
                     parsed.name,
                     context=self.context,

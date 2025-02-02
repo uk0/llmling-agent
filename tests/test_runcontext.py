@@ -135,13 +135,11 @@ async def test_team_creation():
     """Test that an agent can create other agents and form them into a team."""
     async with AgentPool[None]() as pool:
         # Create orchestrator agent with needed capabilities
+        caps = Capabilities(can_add_agents=True, can_add_teams=True)
         orchestrator = await pool.add_agent(
             name="orchestrator",
             model="openai:gpt-4o-mini",
-            capabilities=Capabilities(
-                can_add_agents=True,
-                can_add_teams=True,
-            ),
+            capabilities=caps,
         )
 
         # Ask it to create a content team
