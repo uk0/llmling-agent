@@ -121,7 +121,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         # Then set up worker relationships
         for agent in self.agents.values():
             self.setup_agent_workers(agent)
-
+        self._create_teams()
         # Set up forwarding connections
         if connect_nodes:
             self._connect_nodes()
