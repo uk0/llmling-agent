@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.messaging.messagenode import MessageNode
-    from llmling_agent.models.agents import AgentsManifest, WorkerConfig
+    from llmling_agent.models.agents import AgentsManifest
     from llmling_agent.models.result_types import ResponseDefinition
     from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import Job
@@ -119,9 +119,8 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             self.register(name, agent)
 
         # Then set up worker relationships
-        for name, config in self.manifest.agents.items():
-            if name in self and config.workers:
-                self.setup_agent_workers(self[name], config.workers)
+        for agent in self.agents.values():
+            self.setup_agent_workers(agent)
 
         # Set up forwarding connections
         if connect_nodes:
@@ -410,7 +409,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         # Phase 2: Resolve members
         for name, config in self.manifest.teams.items():
             team = empty_teams[name]
-            members: list[BaseTeam[Any, Any] | AnyAgent[Any, Any]] = []
+            members: list[MessageNode[Any, Any]] = []
             for member in config.members:
                 if member in self.agents:
                     members.append(self.agents[member])
@@ -649,9 +648,9 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
         return agent
 
-    def setup_agent_workers(self, agent: AnyAgent[Any, Any], workers: list[WorkerConfig]):
+    def setup_agent_workers(self, agent: AnyAgent[Any, Any]):
         """Set up workers for an agent from configuration."""
-        for worker_config in workers:
+        for worker_config in agent.context.config.workers:
             try:
                 worker = self.get_agent(worker_config.name)
                 agent.register_worker(
