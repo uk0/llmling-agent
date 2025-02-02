@@ -185,7 +185,9 @@ class ConnectionManager:
             stop_condition=stop_condition,
             exit_condition=exit_condition,
         )
-        # Register talk
+        # TODO: better perhaps directly connect EventedList signal to node_connected?
+        # or emit in _on_talk_added?
+        self.node_connected.emit(target)
         self._connections.append(talk)
         self.connection_added.emit(talk)
 
