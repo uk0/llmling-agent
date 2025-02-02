@@ -154,12 +154,8 @@ class EventManager:
             port: Port to listen on
             secret: Optional secret for request validation
         """
-        config = WebhookConfig(
-            name=name or f"webhook_{len(self._sources)}",
-            path=path,
-            port=port,
-            secret=secret,
-        )
+        name = name or f"webhook_{len(self._sources)}"
+        config = WebhookConfig(name=name, path=path, port=port, secret=secret)
         return await self.add_source(config)
 
     async def add_timed_event(

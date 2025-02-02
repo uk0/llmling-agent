@@ -78,12 +78,9 @@ def parse_time_period(period: str) -> timedelta:
     if match := _TIME_PATTERN.match(unsigned):
         dct = match.groupdict()
         matches = {k: v for k, v in dct.items() if v is not None}
-
         try:
-            seconds = sum(
-                _MULTIPLIERS[unit] * float(value) for unit, value in matches.items()
-            )
-            return timedelta(seconds=sign * seconds)
+            secs = sum(_MULTIPLIERS[unit] * float(val) for unit, val in matches.items())
+            return timedelta(seconds=sign * secs)
         except (ValueError, KeyError) as e:
             msg = f"Invalid time value in: {period}"
             raise ValueError(msg) from e

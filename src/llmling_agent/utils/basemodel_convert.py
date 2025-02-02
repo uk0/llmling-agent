@@ -122,12 +122,7 @@ if __name__ == "__main__":
             self.age = age
 
         def func_google(self, name: str, age: int | None = None):
-            """Do something.
-
-            Args:
-                name: The name
-                age: Optional age
-            """
+            """Do something."""
 
     model = get_function_model(Person.func_google)
     instance = model(name="Test", age=30)

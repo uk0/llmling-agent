@@ -138,11 +138,7 @@ def show_stats(
 
         # Create filters
         cutoff = datetime.now() - parse_time_period(period)
-        filters = StatsFilters(
-            cutoff=cutoff,
-            group_by=group_by,  # type: ignore
-            agent_name=agent_name,
-        )
+        filters = StatsFilters(cutoff=cutoff, group_by=group_by, agent_name=agent_name)  # type: ignore
 
         stats = provider.run_task_sync(provider.get_conversation_stats(filters))
         formatted = format_stats(stats, period, group_by)

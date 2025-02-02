@@ -8,7 +8,7 @@ from llmling_agent.agent.agent import Agent
 @pytest.mark.asyncio
 async def test_conversation_history_management():
     """Test that conversation history is maintained correctly."""
-    async with Agent[None].open(model="openai:gpt-4o-mini") as agent:
+    async with Agent[None](model="openai:gpt-4o-mini") as agent:
         # Send first message and check basic history
         await agent.run("First message")
         history1 = agent.conversation.get_history()

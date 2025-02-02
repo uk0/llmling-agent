@@ -152,13 +152,9 @@ class PromptManager(TaskManagerMixin):
             await prompts.get("langfuse:code_review@v2?style=detailed")
             await prompts.get("openlit:explain?context=web,detail=high")
         """
-        provider_name, identifier, version, variables = parse_prompt_reference(reference)
-        return await self.get_from(
-            identifier,
-            provider=provider_name if provider_name != "builtin" else None,
-            version=version,
-            variables=variables,
-        )
+        provider_name, id_, version, vars_ = parse_prompt_reference(reference)
+        prov = provider_name if provider_name != "builtin" else None
+        return await self.get_from(id_, provider=prov, version=version, variables=vars_)
 
     def get_sync(self, reference: str) -> str:
         """Synchronous wrapper for get().

@@ -883,7 +883,7 @@ if __name__ == "__main__":
     from llmling_agent.agent import Agent
 
     async def main():
-        path = "src/llmling_agent/config/resources/agents.yml"
+        path = "src/llmling_agent/config_resources/agents.yml"
         async with AgentPool[None](path) as pool:
             agent: Agent[Any] = pool.get_agent("overseer")
             print(agent)

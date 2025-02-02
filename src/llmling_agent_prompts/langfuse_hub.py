@@ -16,11 +16,9 @@ class LangfusePromptHub(BasePromptProvider):
 
     def __init__(self, config: LangfuseConfig):
         self.config = config
-        self._client = Langfuse(
-            secret_key=config.secret_key.get_secret_value(),
-            public_key=config.public_key.get_secret_value(),
-            host=config.host,
-        )
+        secret = config.secret_key.get_secret_value()
+        pub = config.public_key.get_secret_value()
+        self._client = Langfuse(secret_key=secret, public_key=pub, host=config.host)
 
     async def get_prompt(
         self,

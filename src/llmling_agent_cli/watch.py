@@ -35,18 +35,16 @@ def watch_command(
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)
 
+    def on_message(chat_message: ChatMessage[Any]):
+        text = chat_message.format(
+            style=detail_level,  # type: ignore
+            show_metadata=show_metadata,
+            show_costs=show_costs,
+        )
+        print(text)
+
     async def run_watch():
         async with AgentPool[None](config) as pool:
-
-            def on_message(chat_message: ChatMessage[Any]):
-                print(
-                    chat_message.format(
-                        style=detail_level,  # type: ignore
-                        show_metadata=show_metadata,
-                        show_costs=show_costs,
-                    )
-                )
-
             # Connect message handlers if showing all messages
             if show_messages:
                 for agent in pool.agents.values():

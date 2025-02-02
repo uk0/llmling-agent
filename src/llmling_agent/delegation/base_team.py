@@ -65,11 +65,7 @@ class TeamContext(NodeContext):
         from llmling_agent.models import TeamConfig
 
         cfg = TeamConfig(name=name, mode=mode, members=[])
-        return cls(
-            team_name=name,
-            config=cfg,
-            pool=pool,
-        )
+        return cls(team_name=name, config=cfg, pool=pool)
 
 
 class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
@@ -384,10 +380,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             mode = "parallel" if isinstance(self, Team) else "sequential"
             team_config = TeamConfig(name=self.name, mode=mode, members=[])
         if not pool_ids:
-            logger.info(
-                "No pool found for team %s.",
-                self.name,
-            )
+            logger.info("No pool found for team %s.", self.name)
             return TeamContext(team_name=self.name, pool=shared_pool, config=team_config)
 
         if len(pool_ids) > 1:

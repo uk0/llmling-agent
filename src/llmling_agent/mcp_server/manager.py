@@ -33,15 +33,13 @@ async def convert_mcp_prompt(client: MCPClient, prompt: MCPPrompt) -> StaticProm
     from mcp.types import EmbeddedResource, ImageContent
 
     result = await client.get_prompt(prompt.name)
-    return StaticPrompt(
-        name=prompt.name,
-        description=prompt.description or "No description provided",
-        messages=[
-            PromptMessage(role="system", content=message.content.text)
-            for message in result.messages
-            if not isinstance(message.content, EmbeddedResource | ImageContent)
-        ],
-    )
+    messages = [
+        PromptMessage(role="system", content=message.content.text)
+        for message in result.messages
+        if not isinstance(message.content, EmbeddedResource | ImageContent)
+    ]
+    desc = prompt.description or "No description provided"
+    return StaticPrompt(name=prompt.name, description=desc, messages=messages)
 
 
 async def convert_mcp_resource(resource: MCPResource) -> ResourceInfo:

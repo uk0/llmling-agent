@@ -271,13 +271,10 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             assert isinstance(response, ModelResponse)
             assert isinstance(response.choices[0], Choices)
             calls: list[ToolCallInfo] = []
-            if response.choices[0].message.tool_calls:
-                messages.append({
-                    "role": "assistant",
-                    "content": None,  # Must be None when using tools
-                    "tool_calls": response.choices[0].message.tool_calls,
-                })
-                for tool_call in response.choices[0].message.tool_calls:
+            if tool_calls := response.choices[0].message.tool_calls:
+                pre = {"role": "assistant", "content": None, "tool_calls": tool_calls}
+                messages.append(pre)
+                for tool_call in tool_calls:
                     function_name = tool_call.function.name
                     if not function_name:
                         continue
@@ -431,10 +428,8 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                     request_msgs = [
                         ChatMessage(role="user", content=str(p)) for p in prompts
                     ]
-                    response_msg = ChatMessage(
-                        role="assistant",
-                        content=stream.formatted_content,
-                    )
+                    content = stream.formatted_content
+                    response_msg = ChatMessage(role="assistant", content=content)
                     self.conversation.add_chat_messages([*request_msgs, response_msg])
 
             except Exception as e:

@@ -10,7 +10,7 @@ from pydantic import ConfigDict
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.agent import Agent
+    from llmling_agent.agent import AnyAgent
 
 
 AccessLevel = Literal["none", "own", "all"]
@@ -123,7 +123,7 @@ class Capabilities(EventedModel):
                 msg = f"Unknown capability: {capability}"
                 raise ValueError(msg)
 
-    def register_capability_tools(self, agent: Agent[Any]):
+    def register_capability_tools(self, agent: AnyAgent[Any, Any]):
         """Register all capability-based tools."""
         # Resource tools - always register, enable based on capabilities
         agent.tools.register_tool(

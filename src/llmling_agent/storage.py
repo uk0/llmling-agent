@@ -63,11 +63,10 @@ class StorageManager(TaskManagerMixin):
         """Create provider instance from configuration."""
         # Extract common settings from BaseStorageProviderConfig
         match self.config.filter_mode:
+            case "and" if self.config.agents and config.agents:
+                logged_agents = self.config.agents & config.agents
             case "and":
-                if self.config.agents and config.agents:
-                    logged_agents = self.config.agents & config.agents
-                else:
-                    logged_agents = self.config.agents or config.agents or set()
+                logged_agents = self.config.agents or config.agents or set()
             case "override":
                 logged_agents = (
                     config.agents

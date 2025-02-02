@@ -83,11 +83,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
     async def _ensure_connection(self) -> websockets.ClientConnection:
         """Ensure we have an active connection."""
         if not self._ws:
-            self._ws = await websockets.connect(
-                self.url,
-                ping_interval=20,
-                ping_timeout=10,
-            )
+            self._ws = await websockets.connect(self.url, ping_timeout=10)
             self.create_task(self._handle_messages())
             logger.info("Connected to remote agent at %s", self.url)
         return self._ws
@@ -147,11 +143,11 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
     ) -> str:
         """Send message to WebSocket server."""
         ws = await self._ensure_connection()
-
+        meta = metadata or {}
         message = WebSocketMessage(
             type=type_,
             content=content,
-            metadata=metadata or {},
+            metadata=meta,
             ref_id=ref_id,
         )
 
@@ -179,20 +175,15 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         ]
 
         # Send context
-        await self._send_message(
-            type_="init",
-            content={
-                "conversation": history,
-                "tools": [
-                    {
-                        "name": t.name,
-                        "description": t.description,
-                        "schema": t.callable.get_schema(),
-                    }
-                    for t in tools
-                ],
-            },
-        )
+        tools = [
+            {
+                "name": t.name,
+                "description": t.description,
+                "schema": t.callable.get_schema(),
+            }
+            for t in tools
+        ]
+        await self._send_message("init", {"conversation": history, "tools": tools})
 
     async def _handle_tool_call(self, message: WebSocketMessage) -> Any:
         """Execute local tool and return result."""
@@ -212,16 +203,15 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
             result = await tool.execute(**tool_ctx.args)
 
             # Emit tool usage signal
-            self.tool_used.emit(
-                ToolCallInfo(
-                    agent_name=self.name,
-                    tool_name=tool_ctx.name,
-                    args=tool_ctx.args,
-                    result=result,
-                    message_id=message.message_id,
-                    tool_call_id=str(uuid4()),
-                )
+            info = ToolCallInfo(
+                agent_name=self.name,
+                tool_name=tool_ctx.name,
+                args=tool_ctx.args,
+                result=result,
+                message_id=message.message_id,
+                tool_call_id=str(uuid4()),
             )
+            self.tool_used.emit(info)
         except Exception as e:
             logger.exception("Tool execution failed")
             return {"error": str(e)}
