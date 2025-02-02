@@ -549,6 +549,16 @@ class AgentsManifest(ConfigModel):
         data["agents"] = resolved
         return data
 
+    @property
+    def node_names(self) -> list[str]:
+        """Get list of all agent and team names."""
+        return list(self.agents.keys()) + list(self.teams.keys())
+
+    @property
+    def nodes(self) -> dict[str, Any]:
+        """Get all agent and team configurations."""
+        return {**self.agents, **self.teams}
+
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.
 
