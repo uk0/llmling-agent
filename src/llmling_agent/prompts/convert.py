@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 async def convert_prompts(
-    prompts: Sequence[AnyPromptType | PIL.Image.Image | os.PathLike[str]],
+    prompts: Sequence[AnyPromptType | PIL.Image.Image | os.PathLike[str] | Content],
 ) -> list[str | Content]:
     """Convert prompts to our internal format.
 
