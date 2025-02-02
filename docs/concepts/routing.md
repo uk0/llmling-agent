@@ -149,7 +149,7 @@ Filter functions can be either synchronous or asynchronous:
 agent >> other.when(lambda msg: "urgent" in str(msg.content))
 
 # Async filter
-async def check_database(msg: ChatMessage, target: AnyAgent):
+async def check_database(msg: ChatMessage, target: MessageNode):
     result = await db.check_priority(msg.content)
     return result == "high"
 
@@ -161,7 +161,7 @@ agent >> other.when(check_database)
 Multiple conditions can be combined using regular Python logic:
 
 ```python
-def complex_route(msg: ChatMessage, target: AnyAgent, stats: TalkStats):
+def complex_route(msg: ChatMessage, target: MessageNode, stats: TalkStats):
     return (
         # Content-based
         any(topic in str(msg.content) for topic in ["urgent", "critical"]) and
@@ -181,7 +181,7 @@ source >> target.when(complex_route)
 Filter functions should handle their own exceptions. Any unhandled exceptions will prevent message routing:
 
 ```python
-def safe_route(msg: ChatMessage, target: AnyAgent):
+def safe_route(msg: ChatMessage, target: MessageNode):
     try:
         return complex_check(msg.content)
     except Exception as e:

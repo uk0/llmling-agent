@@ -14,8 +14,8 @@ The fundamental connection unit representing a one-to-many relationship between 
 class Talk:
     def __init__(
         self,
-        source: AnyAgent[Any, Any],
-        targets: list[AnyAgent[Any, Any]],
+        source: MessageNode[Any, Any],
+        targets: list[MessageNode[Any, Any]],
         connection_type: ConnectionType = "run",
         priority: int = 0,
         delay: timedelta | None = None,
