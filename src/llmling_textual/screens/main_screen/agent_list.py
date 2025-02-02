@@ -4,15 +4,15 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from textual.binding import Binding
 from textual.containers import Horizontal, ScrollableContainer
+from textual.message import Message
 from textual.widgets import Static
-
-from llmling_textual.screens.chat_screen.screen import ChatScreen
 
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
     from llmling_agent import AnyAgent
+    from llmling_agent.delegation.pool import AgentPool
 
 
 class AgentEntry(Static, can_focus=True):  # type: ignore
@@ -20,9 +20,11 @@ class AgentEntry(Static, can_focus=True):  # type: ignore
 
     DEFAULT_CSS = """
     AgentEntry {
-        height: 1;
+        height: 3;
         padding: 0 1;
         background: $surface;
+        border: tall $primary;
+        margin: 0 1 1 1;
     }
 
     AgentEntry:hover {
@@ -31,7 +33,7 @@ class AgentEntry(Static, can_focus=True):  # type: ignore
 
     AgentEntry:focus {
         background: $accent;
-        border: none;
+        border: tall $accent;
     }
 
     AgentEntry.busy {
@@ -58,18 +60,31 @@ class AgentEntry(Static, can_focus=True):  # type: ignore
     }
     """
 
+    class Clicked(Message):
+        """Emitted when entry is clicked."""
+
+        def __init__(self, agent: AnyAgent) -> None:
+            self.agent = agent
+            super().__init__()
+
     def __init__(self, agent: AnyAgent[Any, Any]):
-        super().__init__()
+        super().__init__("")
         self.agent = agent
         self.add_class("busy" if agent.is_busy() else "idle")
 
     def compose(self) -> ComposeResult:
+        """Create entry layout."""
         with Horizontal():
             yield Static("●" if self.agent.is_busy() else "○", classes="status")
             yield Static(self.agent.name, classes="name")
-            # Get provider name, fallback to class name if not available
-            provider_name = self.agent.provider.NAME
+            provider_name = getattr(
+                self.agent.provider, "NAME", self.agent.provider.__class__.__name__
+            )
             yield Static(f"({provider_name})", classes="provider")
+
+    def on_click(self) -> None:
+        """Handle click event."""
+        self.post_message(self.Clicked(self.agent))
 
 
 class AgentList(ScrollableContainer):
@@ -83,7 +98,8 @@ class AgentList(ScrollableContainer):
 
     DEFAULT_CSS = """
     AgentList {
-        width: 30%;
+        width: 100%;
+        height: 100%;
         background: $surface-darken-1;
         padding: 0;
     }
@@ -91,26 +107,46 @@ class AgentList(ScrollableContainer):
     AgentList > .header {
         background: $panel;
         padding: 1;
+        height: 3;
         border-bottom: solid $panel-darken-2;
     }
     """
 
+    def __init__(
+        self,
+        *,
+        widget_id: str | None = None,
+        classes: str | None = None,
+    ) -> None:
+        super().__init__(id=widget_id, classes=classes)
+        self._entries: dict[str, AgentEntry] = {}
+
     def compose(self) -> ComposeResult:
+        """Create initial layout."""
         yield Static("Available Agents", classes="header")
 
-    def update_agents(self, pool) -> None:
+    def update_agents(self, pool: AgentPool) -> None:
         """Update agent list from pool."""
-        # Remove old entries after header
-        for child in self.query(AgentEntry):
-            child.remove()
+        current_agents = set(pool.agents.keys())
+        existing_agents = set(self._entries.keys())
+
+        # Remove old entries
+        for name in existing_agents - current_agents:
+            if entry := self._entries.pop(name, None):
+                entry.remove()
 
         # Add new entries
-        for agent in pool.agents.values():
-            self.mount(AgentEntry(agent))
+        for name in current_agents - existing_agents:
+            agent = pool.agents[name]
+            entry = AgentEntry(agent)
+            self._entries[name] = entry
+            self.mount(entry)
 
-        # Focus first entry if any
-        if entries := self.query(AgentEntry):
-            entries.first().focus()
+        # Update existing entries
+        for name in current_agents & existing_agents:
+            agent = pool.agents[name]
+            entry = self._entries[name]
+            entry.add_class("busy" if agent.is_busy() else "idle")
 
     def action_cursor_up(self) -> None:
         """Move focus to previous agent."""
@@ -119,7 +155,7 @@ class AgentList(ScrollableContainer):
             return
 
         focused = self.screen.focused
-        if isinstance(focused, AgentEntry):  # Type check
+        if isinstance(focused, AgentEntry):
             try:
                 current_idx = entries.index(focused)
                 new_idx = (current_idx - 1) % len(entries)
@@ -136,7 +172,7 @@ class AgentList(ScrollableContainer):
             return
 
         focused = self.screen.focused
-        if isinstance(focused, AgentEntry):  # Type check
+        if isinstance(focused, AgentEntry):
             try:
                 current_idx = entries.index(focused)
                 new_idx = (current_idx + 1) % len(entries)
@@ -147,6 +183,6 @@ class AgentList(ScrollableContainer):
             entries[0].focus()
 
     def action_select_agent(self) -> None:
-        """Handle agent selection."""
+        """Select focused agent."""
         if (focused := self.screen.focused) and isinstance(focused, AgentEntry):
-            self.app.push_screen(ChatScreen(focused.agent))
+            self.post_message(focused.Clicked(focused.agent))

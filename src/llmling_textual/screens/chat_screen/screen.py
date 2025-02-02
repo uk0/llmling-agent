@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from textual.binding import Binding
-from textual.containers import Vertical, VerticalScroll
+from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Footer, Header
 
@@ -25,7 +25,6 @@ class ChatScreen(ModalScreen[None]):
     BINDINGS: ClassVar = [
         Binding("escape", "app.pop_screen", "Close", show=True),
         Binding("ctrl+j,ctrl+enter", "send_message", "Send", show=True),
-        Binding("ctrl+c", "app.pop_screen", "Cancel", show=False),
     ]
 
     DEFAULT_CSS = """
@@ -34,41 +33,33 @@ class ChatScreen(ModalScreen[None]):
     }
 
     #chat-container {
-        width: 95%;
-        height: 95%;
+        width: 90%;
+        height: 90%;
         background: $surface;
         border: thick $background;
     }
 
-    #chat-scroll {
-        height: 80%;
-        margin: 1;
-    }
-
-    #chat-input {
-        height: 20%;
-        dock: bottom;
-        border: heavy $background;
-        background: $surface;
-        margin: 1;
-    }
-
     #chat-view {
-        height: auto;
+        height: 1fr;
         border: heavy $background;
-        background: $surface-darken-1;
+        margin: 1;
     }
 
     ResponseStatus {
         height: auto;
-        dock: bottom;
-        padding: 1;
+        margin: 1;
         background: $surface-darken-2;
+    }
+
+    #prompt-input {
+        height: 20%;
+        dock: bottom;
+        border: heavy $background;
+        margin: 1;
     }
     """
 
     def __init__(self, agent: AnyAgent[Any, Any]) -> None:
-        """Initialize chat screen."""
         super().__init__()
         self.agent = agent
         self._typing_status = ResponseStatus()
@@ -79,12 +70,21 @@ class ChatScreen(ModalScreen[None]):
         yield Header(name=f"Chat with {self.agent.name}")
 
         with Vertical(id="chat-container"):
-            with VerticalScroll(id="chat-scroll"):
-                yield ChatView(widget_id="chat-view")
-                yield self._typing_status
-            yield PromptInput(widget_id="chat-input")
+            yield ChatView(widget_id="chat-view")
+            yield self._typing_status
+            yield PromptInput(widget_id="prompt-input")
 
         yield Footer()
+
+    async def on_mount(self) -> None:
+        """Load conversation history when mounted."""
+        chat_view = self.query_one(ChatView)
+        # Load existing messages
+        for msg in self.agent.conversation.chat_messages:
+            if msg.role != "system":
+                await chat_view.append_chat_message(msg)
+        # Focus input
+        self.query_one(PromptInput).focus()
 
     async def on_prompt_input_prompt_submitted(
         self, event: PromptInput.PromptSubmitted
@@ -110,28 +110,29 @@ class ChatScreen(ModalScreen[None]):
         self._typing_status.set_agent_responding()
 
         try:
-            # Initialize stream response
+            # Start streaming response
             chat_view.start_streaming()
 
-            # Get agent response
+            # Stream response chunks
             async with self.agent.run_stream(message) as stream:
-                current_content = ""
                 async for chunk in stream.stream():
-                    current_content += chunk
-                    await chat_view.update_stream(current_content)
+                    await chat_view.update_stream(chunk)
 
-                response = ChatMessage(
-                    content=current_content,
+                # Create final message with metadata
+                final_message = ChatMessage(
+                    content=str(stream.formatted_content),
                     role="assistant",
                     name=self.agent.name,
                     model=stream.model_name,
                 )
-                await chat_view.append_chat_message(response)
+                chat_view.finalize_stream(final_message)
 
         except Exception as e:  # noqa: BLE001
             # Show error in chat
             error_msg = ChatMessage(
-                content=f"Error: {e}", role="assistant", name=self.agent.name
+                content=f"Error: {e}",
+                role="assistant",
+                name=self.agent.name,
             )
             await chat_view.append_chat_message(error_msg)
 
@@ -141,18 +142,7 @@ class ChatScreen(ModalScreen[None]):
             input_widget.submit_ready = True
             input_widget.focus()
 
-    def on_key(self, event) -> None:
-        """Handle key events."""
-        if event.key == "escape":
-            self.app.pop_screen()
-        elif event.key == "ctrl+j":
-            self.action_send_message()
-
     def action_send_message(self) -> None:
-        """Action to send the current message."""
+        """Send current message."""
         if input_widget := self.query_one(PromptInput):
             input_widget.action_submit_prompt()
-
-    async def on_mount(self) -> None:
-        """Focus input when screen mounts."""
-        self.query_one(PromptInput).focus()

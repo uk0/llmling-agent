@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from textual.containers import Horizontal
 from textual.screen import Screen
-from textual.widgets import Header
+from textual.widgets import Footer, Header
 
+from llmling_textual.screens.chat_screen.screen import ChatScreen
 from llmling_textual.screens.main_screen.agent_list import AgentEntry, AgentList
-from llmling_textual.widgets.chat_view import ChatView
+from llmling_textual.widgets.message_stream import MessageStream
 
 
 if TYPE_CHECKING:
@@ -19,22 +19,59 @@ if TYPE_CHECKING:
 class MainScreen(Screen):
     """Main application screen."""
 
-    def __init__(self, pool: AgentPool, *args: Any, **kwargs: Any) -> None:
-        self.pool = pool
-        super().__init__(*args, **kwargs)
+    DEFAULT_CSS = """
+    MainScreen {
+        layout: grid;
+        grid-size: 2;
+        grid-columns: 1fr 4fr;
+        padding: 1;
+    }
 
-    def compose(self) -> ComposeResult:
-        yield Header()
-        with Horizontal():
-            yield AgentList()
-            yield ChatView()
+    #agent-list {
+        height: 100%;
+    }
+
+    #message-stream {
+        height: 100%;
+    }
+    """
+
+    def __init__(self, pool: AgentPool) -> None:
+        super().__init__()
+        self.pool = pool
+        self.agent_list = AgentList(widget_id="agent-list")
+        self.message_stream = MessageStream(pool)
+
+        # Connect pool events
+        self.pool._items.events.added.connect(self._on_agent_change)
+        self.pool._items.events.removed.connect(self._on_agent_change)
 
     def on_mount(self) -> None:
-        """Set up initial state."""
-        # Update agent list
-        agent_list = self.query_one(AgentList)
-        agent_list.update_agents(self.pool)
+        """Initialize screen."""
+        # Initial agent list population
+        self.agent_list.update_agents(self.pool)
 
-        # Focus first agent if any
-        if entries := self.query(AgentEntry):
-            entries.first().focus()
+    def compose(self) -> ComposeResult:
+        """Create main layout."""
+        yield Header()
+        yield self.agent_list
+        yield self.message_stream
+        yield Footer()
+
+    def _on_agent_change(self, *_) -> None:
+        """Handle agent added/removed."""
+        if self.agent_list:  # Check if widget still exists
+            self.agent_list.update_agents(self.pool)
+
+    def cleanup(self) -> None:
+        """Disconnect event handlers."""
+        # Disconnect pool events
+        self.pool._items.events.added.disconnect(self._on_agent_change)
+        self.pool._items.events.removed.disconnect(self._on_agent_change)
+
+        # Clean up stream
+        self.message_stream.cleanup()
+
+    async def on_agent_entry_clicked(self, event: AgentEntry.Clicked) -> None:
+        """Show chat screen for clicked agent."""
+        await self.app.push_screen(ChatScreen(event.agent))
