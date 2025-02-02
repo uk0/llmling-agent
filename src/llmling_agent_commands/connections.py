@@ -67,11 +67,11 @@ async def connect_command(
 
     target = args[0]
     wait = kwargs.get("wait", "true").lower() != "false"
-    source = ctx.context.agent.name
+    source = ctx.context.node_name
 
     try:
         assert ctx.context.pool
-        target_agent = ctx.context.pool.get_agent(target)
+        target_agent = ctx.context.pool[target]
         ctx.context.agent.connect_to(target_agent)
         ctx.context.agent.connections.set_wait_state(
             target, wait if wait is not None else True
@@ -96,7 +96,7 @@ async def disconnect_command(
         return
 
     target = args[0]
-    source = ctx.context.agent.name
+    source = ctx.context.node_name
     try:
         assert ctx.context.pool
         target_agent = ctx.context.pool.get_agent(target)
@@ -116,7 +116,7 @@ async def disconnect_all_command(
     if not ctx.context.agent.connections.get_targets():
         await ctx.output.print("No active connections")
         return
-    source = ctx.context.agent.name
+    source = ctx.context.node_name
     await ctx.context.agent.disconnect_all()
     await ctx.output.print(f"Disconnected {source!r} from all nodes")
 

@@ -15,7 +15,6 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from llmling import LLMCallableTool
     from py2openai.typedefs import Property, ToolParameters
-    from pydantic_ai import RunContext
 
     from llmling_agent.agent import AgentContext
     from llmling_agent.common_types import ToolSource
@@ -38,7 +37,7 @@ class ToolContext:
     schema: OpenAIFunctionTool
     """Complete OpenAI function schema"""
 
-    runtime_ctx: RunContext[AgentContext]
+    runtime_ctx: AgentContext
     """Runtime context from agent"""
 
     @property
