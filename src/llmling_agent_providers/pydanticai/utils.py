@@ -118,10 +118,11 @@ def parts_to_tool_call_info(
     )
 
 
-def convert_model_message(
+def convert_model_message(  # noqa: PLR0911
     message: ModelMessage | ModelRequestPart | ModelResponsePart,
     tools: dict[str, ToolInfo],
     agent_name: str,
+    filter_system_prompts: bool = False,
 ) -> ChatMessage:
     """Convert a pydantic-ai message to our ChatMessage format.
 
@@ -131,6 +132,8 @@ def convert_model_message(
         message: Message to convert (ModelMessage or its parts)
         tools: Original ToolInfo set to enrich ToolCallInfos with additional info
         agent_name: Name of the agent of this message
+        filter_system_prompts: Whether to filter out system prompt parts from
+                               ModelRequests
 
     Returns:
         Converted ChatMessage
@@ -148,7 +151,7 @@ def convert_model_message(
                     case UserPromptPart():
                         content_parts.append(str(part.content))
                         role = "user"
-                    case SystemPromptPart():
+                    case SystemPromptPart() if not filter_system_prompts:
                         content_parts.append(str(part.content))
             return ChatMessage(content="\n".join(content_parts), role=role)
 
@@ -159,9 +162,14 @@ def convert_model_message(
             content = "\n".join(parts)
             return ChatMessage(content=content, role="assistant", tool_calls=tool_calls)
 
-        case TextPart() | UserPromptPart() | SystemPromptPart() as part:
-            role = "assistant" if isinstance(part, TextPart) else "user"
-            return ChatMessage(content=format_part(part), role=role)
+        case TextPart() as part:
+            return ChatMessage(content=format_part(part), role="assistant")
+
+        case UserPromptPart() as part:
+            return ChatMessage(content=format_part(part), role="user")
+
+        case SystemPromptPart() as part:
+            return ChatMessage(content=format_part(part), role="system")
 
         case ToolCallPart():
             args = (

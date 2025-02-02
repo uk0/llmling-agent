@@ -297,7 +297,12 @@ class PydanticAIProvider(AgentLLMProvider):
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
             if store_history:
-                new = [convert_model_message(m, tool_dict, self.name) for m in new_msgs]
+                new = [
+                    convert_model_message(
+                        m, tool_dict, self.name, filter_system_prompts=True
+                    )
+                    for m in new_msgs
+                ]
                 self.conversation.add_chat_messages(new)
             resolved_model = (
                 use_model.name() if isinstance(use_model, Model) else str(use_model)
@@ -426,7 +431,12 @@ class PydanticAIProvider(AgentLLMProvider):
                     tool_dict = {i.name: i for i in tools or []}
                     if store_history:
                         new = [
-                            convert_model_message(m, tool_dict, self.name)
+                            convert_model_message(
+                                m,
+                                tool_dict,
+                                self.name,
+                                filter_system_prompts=True,
+                            )
                             for m in messages
                         ]
                         self.conversation.add_chat_messages(new)
