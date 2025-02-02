@@ -35,17 +35,12 @@ class MessageStats:
     @property
     def token_count(self) -> int:
         """Total tokens used."""
-        return sum(
-            msg.cost_info.token_usage["total"] for msg in self.messages if msg.cost_info
-        )
+        return sum(m.cost_info.token_usage["total"] for m in self.messages if m.cost_info)
 
     @property
     def tool_calls(self) -> list[ToolCallInfo]:
         """Accumulated tool calls going through this connection."""
-        result = []
-        for msg in self.messages:
-            result.extend(msg.tool_calls)
-        return result
+        return [call for msg in self.messages for call in msg.tool_calls]
 
     @property
     def byte_count(self) -> int:
@@ -63,9 +58,7 @@ class MessageStats:
     @property
     def total_cost(self) -> float:
         """Total cost in USD."""
-        return sum(
-            float(msg.cost_info.total_cost) for msg in self.messages if msg.cost_info
-        )
+        return sum(float(m.cost_info.total_cost) for m in self.messages if m.cost_info)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -116,16 +109,12 @@ class AggregatedMessageStats:
     @property
     def token_count(self) -> int:
         """Total tokens across all connections."""
-        return sum(
-            msg.cost_info.token_usage["total"] for msg in self.messages if msg.cost_info
-        )
+        return sum(m.cost_info.token_usage["total"] for m in self.messages if m.cost_info)
 
     @property
     def total_cost(self) -> float:
         """Total cost in USD."""
-        return sum(
-            float(msg.cost_info.total_cost) for msg in self.messages if msg.cost_info
-        )
+        return sum(float(m.cost_info.total_cost) for m in self.messages if m.cost_info)
 
     @property
     def byte_count(self) -> int:

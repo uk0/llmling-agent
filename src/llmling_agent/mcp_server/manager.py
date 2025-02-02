@@ -119,23 +119,18 @@ class MCPManager(ResourceProvider):
 
         tools: list[ToolInfo] = []
         for client in self.clients.values():
-            try:
-                for tool in client._available_tools:
-                    try:
-                        fn = client.create_tool_callable(tool)
-                        llm_tool = LLMCallableTool.from_callable(fn)
-                        meta = {"mcp_tool": tool.name}
-                        tool_info = ToolInfo(llm_tool, source="mcp", metadata=meta)
-                        tools.append(tool_info)
-                        logger.debug("Registered MCP tool: %s", tool.name)
-                    except Exception:
-                        msg = "Failed to create tool from MCP tool: %s"
-                        logger.exception(msg, tool.name)
-                        continue
-            except Exception:
-                client_id = next(k for k, v in self.clients.items() if v == client)
-                logger.exception("Error getting tools from MCP server: %s", client_id)
-                continue
+            for tool in client._available_tools:
+                try:
+                    fn = client.create_tool_callable(tool)
+                    llm_tool = LLMCallableTool.from_callable(fn)
+                    meta = {"mcp_tool": tool.name}
+                    tool_info = ToolInfo(llm_tool, source="mcp", metadata=meta)
+                    tools.append(tool_info)
+                    logger.debug("Registered MCP tool: %s", tool.name)
+                except Exception:
+                    msg = "Failed to create tool from MCP tool: %s"
+                    logger.exception(msg, tool.name)
+                    continue
 
         return tools
 
@@ -145,14 +140,14 @@ class MCPManager(ResourceProvider):
         for client in self.clients.values():
             try:
                 result = await client.list_prompts()
-                for prompt in result.prompts:
-                    try:
-                        converted = await convert_mcp_prompt(client, prompt)
-                        prompts.append(converted)
-                    except Exception:
-                        logger.exception("Failed to convert prompt: %s", prompt.name)
             except Exception:
                 logger.exception("Failed to get prompts from MCP server")
+            for prompt in result.prompts:
+                try:
+                    converted = await convert_mcp_prompt(client, prompt)
+                    prompts.append(converted)
+                except Exception:
+                    logger.exception("Failed to convert prompt: %s", prompt.name)
         return prompts
 
     async def list_resources(self) -> list[ResourceInfo]:
@@ -161,14 +156,14 @@ class MCPManager(ResourceProvider):
         for client in self.clients.values():
             try:
                 result = await client.list_resources()
-                for resource in result.resources:
-                    try:
-                        converted = await convert_mcp_resource(resource)
-                        resources.append(converted)
-                    except Exception:
-                        logger.exception("Failed to convert resource: %s", resource.name)
             except Exception:
                 logger.exception("Failed to get resources from MCP server")
+            for resource in result.resources:
+                try:
+                    converted = await convert_mcp_resource(resource)
+                    resources.append(converted)
+                except Exception:
+                    logger.exception("Failed to convert resource: %s", resource.name)
         return resources
 
     async def cleanup(self) -> None:
