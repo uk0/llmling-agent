@@ -67,21 +67,19 @@ class InteractiveSession:
         """Connect to chat session signals."""
         assert self._chat_session is not None
         self._chat_session.history_cleared.connect(self._on_history_cleared)
-        self._chat_session._agent.agent_reset.connect(self._on_session_reset)
-        self._chat_session.tool_added.connect(self._on_tool_added)
-        self._chat_session.tool_removed.connect(self._on_tool_removed)
-        self._chat_session.tool_changed.connect(self._on_tool_changed)
-        self._chat_session._agent.connections.node_connected.connect(
-            self._on_agent_connected
-        )
-        if self._chat_session.pool:
+        self.agent.agent_reset.connect(self._on_session_reset)
+        self.agent.tools.events.added.connect(self._on_tool_added)
+        self.agent.tools.events.removed.connect(self._on_tool_removed)
+        self.agent.tools.events.changed.connect(self._on_tool_changed)
+        self.agent.connections.node_connected.connect(self._on_agent_connected)
+        if self.pool:
             # Connect to all agents in pool (including main agent)
-            for agent in self._chat_session.pool.agents.values():
+            for agent in self.pool.agents.values():
                 agent.message_sent.connect(self._on_message)
                 agent.tool_used.connect(self._on_tool_call)
         else:
             # Only if no pool, connect directly to main agent
-            self._chat_session._agent.tool_used.connect(self._on_tool_call)
+            self.agent.tool_used.connect(self._on_tool_call)
 
     def _on_agent_connected(self, agent: Agent[Any]):
         """Handle newly connected agent."""
@@ -92,8 +90,7 @@ class InteractiveSession:
     def _on_message(self, message: ChatMessage):
         """Handle messages from any agent."""
         # Format with agent name if it's not the main agent
-        assert self._chat_session
-        if message.name and message.name != self._chat_session._agent.name:
+        if message.name and message.name != self.agent.name:
             self.formatter.print_message_start(message)
             self.formatter.print_message_content(message.content)
             self.formatter.print_message_end(message)
