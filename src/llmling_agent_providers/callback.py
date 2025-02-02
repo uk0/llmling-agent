@@ -49,8 +49,6 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
     ):
         super().__init__(name=name or callback.__name__, debug=debug)
         self.callback = callback
-        self._wants_context = has_argument_type(callback, "AgentContext")
-        self._is_async = inspect.iscoroutinefunction(callback)
 
     async def generate_response(
         self,
@@ -74,7 +72,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
             # Create args tuple based on callback requirements
             args = (
                 (self.context, prompt, *content_prompts)
-                if self._wants_context
+                if has_argument_type(self.callback, "AgentContext")
                 else (prompt, *content_prompts)
             )
             now = perf_counter()
