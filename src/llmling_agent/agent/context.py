@@ -31,7 +31,7 @@ TDeps = TypeVar("TDeps", default=Any)
 
 
 @dataclass(kw_only=True)
-class AgentContext[TDeps](NodeContext):
+class AgentContext[TDeps](NodeContext[TDeps]):
     """Runtime context for agent execution.
 
     Generically typed with AgentContext[Type of Dependencies]

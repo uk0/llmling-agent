@@ -43,7 +43,7 @@ TResult = TypeVar("TResult")
 
 
 @dataclass(kw_only=True)
-class NodeContext:
+class NodeContext[TDeps]:
     node_name: str
     """Name of the current node."""
 
@@ -58,6 +58,13 @@ class NodeContext:
 
     in_async_context: bool = False
     """Whether we're running in an async context."""
+
+    @property
+    def node(self) -> MessageNode[TDeps, Any]:
+        """Get the agent instance from the pool."""
+        assert self.pool, "No agent pool available"
+        assert self.node_name, "No agent name available"
+        return self.pool[self.node_name]
 
 
 class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):

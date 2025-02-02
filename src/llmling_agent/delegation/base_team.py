@@ -38,7 +38,7 @@ logger = get_logger(__name__)
 
 
 @dataclass(kw_only=True)
-class TeamContext(NodeContext):
+class TeamContext[TDeps](NodeContext[TDeps]):
     config: TeamConfig
     """Current team's specific configuration."""
 
