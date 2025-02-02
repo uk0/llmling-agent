@@ -51,15 +51,18 @@ TPoolDeps = TypeVar("TPoolDeps", default=None)
 
 
 class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
-    """Pool for managing multiple agents with shared dependencies.
+    """Pool managing message processing nodes (agents and teams).
 
-    The pool acts as a central registry and dependency provider for agents.
-    By default, all agents share the pool's dependencies, but individual
-    agents can override with custom dependencies.
+    Acts as a unified registry for all nodes, providing:
+    - Centralized node management and lookup
+    - Shared dependency injection
+    - Connection management
+    - Resource coordination
 
-    Generic Parameters:
-        TPoolDeps: Type of shared dependencies used across agents.
-                   Can be None if no shared dependencies are needed.
+    Nodes can be accessed through:
+    - nodes: All registered nodes (agents and teams)
+    - agents: Only Agent instances
+    - teams: Only Team instances
     """
 
     def __init__(
