@@ -58,7 +58,7 @@ async def test_tool_context_injection():
     test_deps = {"key": "value"}
     context = AgentContext[Any].create_default("test_agent")
     context.data = test_deps
-    async with Agent[None].open(model="openai:gpt-4o-mini") as agent:
+    async with Agent[None](model="openai:gpt-4o-mini") as agent:
         agent.context = context
         # Register our test tool
         agent.tools.register_tool(test_tool, enabled=True)
@@ -164,7 +164,7 @@ async def test_team_creation():
 @pytest.mark.asyncio
 async def test_context_compatibility():
     """Test that both context types work in tools."""
-    async with Agent[None].open(model="openai:gpt-4o-mini") as agent:
+    async with Agent[None](model="openai:gpt-4o-mini") as agent:
         agent.tools.register_tool(run_ctx_tool, name_override="run_ctx_tool")
         agent.tools.register_tool(agent_ctx_tool, name_override="agent_ctx_tool")
         agent.tools.register_tool(no_ctx_tool, name_override="no_ctx_tool")
