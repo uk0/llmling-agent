@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from slashed import CompletionContext
 
     from llmling_agent.agent.context import AgentContext
+    from llmling_agent.messaging.messagenode import NodeContext
 
 
 async def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:
@@ -25,6 +26,13 @@ def get_available_agents(ctx: CompletionContext[AgentContext]) -> list[str]:
     if not ctx.command_context.context.pool:
         return []
     return ctx.command_context.context.pool.list_agents()
+
+
+def get_available_nodes(ctx: CompletionContext[NodeContext]) -> list[str]:
+    """Get available node names."""
+    if not ctx.command_context.context.pool:
+        return []
+    return list(ctx.command_context.context.pool.nodes.keys())
 
 
 def get_resource_names(ctx: CompletionContext[AgentContext]) -> list[str]:

@@ -9,11 +9,11 @@ from slashed import Command, CommandContext, CommandError
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.log import get_logger
-from llmling_agent_commands.completers import get_available_agents
+from llmling_agent.messaging.messagenode import NodeContext  # noqa: TC001
+from llmling_agent_commands.completers import get_available_nodes
 
 
 if TYPE_CHECKING:
-    from llmling_agent import AgentContext
     from llmling_agent.messaging.messagenode import MessageNode
 
 
@@ -45,7 +45,7 @@ Displays:
 """
 
 
-def format_agent_name(node: MessageNode[Any, Any], current: bool = False) -> str:
+def format_node_name(node: MessageNode[Any, Any], current: bool = False) -> str:
     """Format node name for display."""
     name = node.name
     if current:
@@ -56,7 +56,7 @@ def format_agent_name(node: MessageNode[Any, Any], current: bool = False) -> str
 
 
 async def connect_command(
-    ctx: CommandContext[AgentContext],
+    ctx: CommandContext[NodeContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -71,9 +71,9 @@ async def connect_command(
 
     try:
         assert ctx.context.pool
-        target_agent = ctx.context.pool[target]
-        ctx.context.agent.connect_to(target_agent)
-        ctx.context.agent.connections.set_wait_state(
+        target_node = ctx.context.pool[target]
+        ctx.context.node.connect_to(target_node)
+        ctx.context.node.connections.set_wait_state(
             target, wait if wait is not None else True
         )
 
@@ -86,7 +86,7 @@ async def connect_command(
 
 
 async def disconnect_command(
-    ctx: CommandContext[AgentContext],
+    ctx: CommandContext[NodeContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
@@ -99,8 +99,8 @@ async def disconnect_command(
     source = ctx.context.node_name
     try:
         assert ctx.context.pool
-        target_agent = ctx.context.pool.get_agent(target)
-        ctx.context.agent.connections.disconnect(target_agent)
+        target_node = ctx.context.pool[target]
+        ctx.context.node.connections.disconnect(target_node)
         await ctx.output.print(f"{source!r} stopped forwarding messages to {target!r}")
     except Exception as e:
         msg = f"{source!r} failed to disconnect from {target!r}: {e}"
@@ -108,36 +108,36 @@ async def disconnect_command(
 
 
 async def disconnect_all_command(
-    ctx: CommandContext[AgentContext],
+    ctx: CommandContext[NodeContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
     """Disconnect from all nodes."""
-    if not ctx.context.agent.connections.get_targets():
+    if not ctx.context.node.connections.get_targets():
         await ctx.output.print("No active connections")
         return
     source = ctx.context.node_name
-    await ctx.context.agent.disconnect_all()
+    await ctx.context.node.disconnect_all()
     await ctx.output.print(f"Disconnected {source!r} from all nodes")
 
 
 async def list_connections(
-    ctx: CommandContext[AgentContext],
+    ctx: CommandContext[NodeContext],
     args: list[str],
     kwargs: dict[str, str],
 ):
     """List current connections."""
-    if not ctx.context.agent.connections.get_targets():
+    if not ctx.context.node.connections.get_targets():
         await ctx.output.print("No active connections")
         return
 
     # Create tree visualization
-    tree = Tree(format_agent_name(ctx.context.agent, current=True))
+    tree = Tree(format_node_name(ctx.context.node, current=True))
 
     # Use session's get_connections() for info
-    for agent in ctx.context.agent.connections.get_targets():
+    for node in ctx.context.node.connections.get_targets():
         assert ctx.context.pool
-        name = format_agent_name(ctx.context.pool.get_agent(agent.name))
+        name = format_node_name(ctx.context.pool[node.name])
         _branch = tree.add(name)
 
     # Create string representation
@@ -157,7 +157,7 @@ connect_cmd = Command(
     usage="<node_name> [--no-wait]",
     help_text=CONNECT_HELP,
     category="nodes",
-    completer=CallbackCompleter(get_available_agents),
+    completer=CallbackCompleter(get_available_nodes),
 )
 
 disconnect_cmd = Command(
@@ -167,7 +167,7 @@ disconnect_cmd = Command(
     usage="<node_name>",
     help_text=DISCONNECT_HELP,
     category="nodes",
-    completer=CallbackCompleter(get_available_agents),
+    completer=CallbackCompleter(get_available_nodes),
 )
 
 disconnect_all_cmd = Command(

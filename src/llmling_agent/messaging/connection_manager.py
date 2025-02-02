@@ -223,10 +223,10 @@ class ConnectionManager:
             conn.disconnect()
         self._connections.clear()
 
-    def disconnect(self, agent: MessageNode):
-        """Disconnect a specific agent."""
+    def disconnect(self, node: MessageNode):
+        """Disconnect a specific node."""
         for talk in self._connections:
-            if agent in talk.targets or agent == talk.source:
+            if node in talk.targets or node == talk.source:
                 talk.active = False
                 self._connections.remove(talk)
 
