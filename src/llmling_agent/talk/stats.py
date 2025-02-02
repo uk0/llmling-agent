@@ -91,10 +91,7 @@ class AggregatedMessageStats:
     @property
     def tool_calls(self) -> list[ToolCallInfo]:
         """Accumulated tool calls going through this connection."""
-        result = []
-        for msg in self.messages:
-            result.extend(msg.tool_calls)
-        return result
+        return [call for msg in self.messages for call in msg.tool_calls]
 
     @property
     def start_time(self) -> datetime:

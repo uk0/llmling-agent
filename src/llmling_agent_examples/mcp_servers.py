@@ -36,7 +36,7 @@ async def main():
 
     # MCP servers also work on team level for all its members
     agent_without_mcp_server = Agent[None](model=MODEL, system_prompt=ANALYZER)
-    team = Team([agent_without_mcp_server], mcp_servers=["uvx mcp-server-git"])
+    team = Team([agent_without_mcp_server], mcp_servers=["uvx mcp-hn"])
     async with team:
         # this will show you the MCP server tools
         print(await agent_without_mcp_server.tools.get_tools())

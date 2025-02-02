@@ -59,9 +59,8 @@ class BuiltinPromptProvider(BasePromptProvider):
 
         if required_vars:
             if not variables:
-                msg = (
-                    f"Prompt {identifier} requires variables: {', '.join(required_vars)}"
-                )
+                req = ", ".join(required_vars)
+                msg = f"Prompt {identifier} requires variables: {req}"
                 raise KeyError(msg)
 
             # Check for missing required variables

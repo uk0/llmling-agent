@@ -103,14 +103,11 @@ def _sort_functions(functions: list[AgentFunction]) -> list[AgentFunction]:
         in_progress.add(func.name)
         # Add dependencies first
         for dep in func.depends_on:
-            dep_func = next(
-                (f for f in ordered if f.name == dep),
-                None,
-            )
-            if not dep_func:
+            dep_fn = next((f for f in ordered if f.name == dep), None)
+            if not dep_fn:
                 msg = f"Missing dependency {dep} for {func.name}"
                 raise ValueError(msg)
-            add_function(dep_func)
+            add_function(dep_fn)
 
         result.append(func)
         in_progress.remove(func.name)

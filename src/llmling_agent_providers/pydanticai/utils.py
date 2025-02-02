@@ -195,9 +195,7 @@ def convert_model_message(
             error_content = (
                 message.content
                 if isinstance(message.content, str)
-                else "\n".join(
-                    f"- {error['loc']}: {error['msg']}" for error in message.content
-                )
+                else "\n".join(f"- {err['loc']}: {err['msg']}" for err in message.content)
             )
             return ChatMessage(content=f"Retry needed: {error_content}", role="assistant")
 
@@ -211,9 +209,8 @@ def to_model_message(message: ChatMessage[str | Content]) -> ModelMessage:
     match message.content:
         case BaseContent():
             content = [message.content.to_openai_format()]
-            return ModelRequest(
-                parts=[UserPromptPart(content=json.dumps({"content": content}))]
-            )
+            part = UserPromptPart(content=json.dumps({"content": content}))
+            return ModelRequest(parts=[part])
         case str():
             part_cls = {
                 "user": UserPromptPart,

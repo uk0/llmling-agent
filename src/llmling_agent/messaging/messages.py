@@ -267,15 +267,11 @@ class ChatMessage[TContent]:
                 raise ValueError(msg)
 
         template_obj = env.from_string(template_str)
-        render_vars = {
-            **asdict(self),
-            "show_metadata": show_metadata,
-            "show_costs": show_costs,
-        }
+        vars_ = {**asdict(self), "show_metadata": show_metadata, "show_costs": show_costs}
         if variables:
-            render_vars.update(variables)
+            vars_.update(variables)
 
-        return template_obj.render(**render_vars)
+        return template_obj.render(**vars_)
 
 
 @dataclass

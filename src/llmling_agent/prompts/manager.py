@@ -79,23 +79,20 @@ class PromptManager(TaskManagerMixin):
         self.providers["builtin"] = BuiltinPromptProvider(config.system_prompts)
 
         # Register configured providers
-        if config.providers:
-            for provider_config in config.providers:
-                match provider_config:
-                    case LangfuseConfig():
-                        from llmling_agent_prompts.langfuse_hub import LangfusePromptHub
+        for provider_config in config.providers:
+            match provider_config:
+                case LangfuseConfig():
+                    from llmling_agent_prompts.langfuse_hub import LangfusePromptHub
 
-                        self.providers["langfuse"] = LangfusePromptHub(provider_config)
-                    case OpenLITConfig():
-                        from llmling_agent_prompts.openlit import OpenLITProvider
+                    self.providers["langfuse"] = LangfusePromptHub(provider_config)
+                case OpenLITConfig():
+                    from llmling_agent_prompts.openlit import OpenLITProvider
 
-                        self.providers["openlit"] = OpenLITProvider(provider_config)
-                    case PromptLayerConfig():
-                        from llmling_agent_prompts.promptlayer import PromptLayerProvider
+                    self.providers["openlit"] = OpenLITProvider(provider_config)
+                case PromptLayerConfig():
+                    from llmling_agent_prompts.promptlayer import PromptLayerProvider
 
-                        self.providers["promptlayer"] = PromptLayerProvider(
-                            provider_config
-                        )
+                    self.providers["promptlayer"] = PromptLayerProvider(provider_config)
 
     async def get_from(
         self,

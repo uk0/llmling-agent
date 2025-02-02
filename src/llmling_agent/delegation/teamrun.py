@@ -183,9 +183,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             start = perf_counter()
             message = await first.run(*prompt, **kwargs)
             timing = perf_counter() - start
-            response = AgentResponse[Any](
-                agent_name=first.name, message=message, timing=timing
-            )
+            response = AgentResponse[Any](first.name, message=message, timing=timing)
             yield response
 
             # Process through chain
@@ -206,9 +204,8 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                     self._team_talk.append(last_talk)
 
                 timing = perf_counter() - start
-                response = AgentResponse[Any](
-                    agent_name=target_name, message=messages[0], timing=timing
-                )
+                msg = messages[0]
+                response = AgentResponse[Any](target_name, message=msg, timing=timing)
                 yield response
 
         finally:

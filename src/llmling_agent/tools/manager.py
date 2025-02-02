@@ -210,9 +210,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         self, state: Literal["all", "enabled", "disabled"] = "all"
     ) -> set[str]:
         """Get tool names based on state."""
-        return {
-            tool.name for tool in await self.get_tools() if tool.matches_filter(state)
-        }
+        return {t.name for t in await self.get_tools() if t.matches_filter(state)}
 
     def register_tool(
         self,
