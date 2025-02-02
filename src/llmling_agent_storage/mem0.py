@@ -47,13 +47,12 @@ class Mem0StorageProvider(StorageProvider):
     def _from_mem0_message(self, msg: dict[str, Any]) -> ChatMessage[str]:
         """Convert from mem0 message format."""
         metadata = msg.get("metadata", {})
+        ts = datetime.fromisoformat(metadata.get("timestamp", datetime.now().isoformat()))
         return ChatMessage(
             content=msg["content"],
             role=msg["role"],
             name=metadata.get("name"),
-            timestamp=datetime.fromisoformat(
-                metadata.get("timestamp", datetime.now().isoformat())
-            ),
+            timestamp=ts,
             metadata=metadata,
         )
 
@@ -99,21 +98,11 @@ class Mem0StorageProvider(StorageProvider):
         start_time: datetime | None = None,
     ) -> None:
         """Log conversation metadata."""
-        metadata = {
-            "type": "conversation_start",
-            "agent_name": agent_name,
-            "start_time": (start_time or datetime.now()).isoformat(),
-        }
-        message = self._to_mem0_message(
-            content="Conversation started",
-            role="system",
-            metadata=metadata,
-        )
-        await self.client.add(
-            [message],
-            user_id=conversation_id,
-            output_format=self.config.output_format,
-        )
+        t = (start_time or datetime.now()).isoformat()
+        meta = {"type": "conversation_start", "agent_name": agent_name, "start_time": t}
+        message = self._to_mem0_message("Conversation started", "system", metadata=meta)
+        fmt = self.config.output_format
+        await self.client.add([message], user_id=conversation_id, output_format=fmt)
 
     async def log_tool_call(
         self,
@@ -136,11 +125,8 @@ class Mem0StorageProvider(StorageProvider):
             role="system",
             metadata=metadata,
         )
-        await self.client.add(
-            [message],
-            user_id=conversation_id,
-            output_format=self.config.output_format,
-        )
+        fmt = self.config.output_format
+        await self.client.add([message], user_id=conversation_id, output_format=fmt)
 
     async def filter_messages(
         self,
@@ -167,13 +153,9 @@ class Mem0StorageProvider(StorageProvider):
             filters["AND"].append({"role": {"in": list(query.roles)}})
 
         # Use v2 search with filters
-        results = await self.client.search(
-            query=query.contains or "",  # Search text
-            version="v2",
-            filters=filters,
-            output_format=self.config.output_format,
-        )
-
+        text = query.contains or ""
+        fmt = self.config.output_format
+        results = await self.client.search(text, "v2", filters=filters, output_format=fmt)
         # Convert to ChatMessage format
         messages = [self._from_mem0_message(msg) for msg in results]
 
