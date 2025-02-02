@@ -532,7 +532,7 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
         return messages
 
     @classmethod
-    def from_agents(
+    def from_nodes(
         cls,
         agents: Sequence[MessageNode],
         targets: list[MessageNode] | None = None,
