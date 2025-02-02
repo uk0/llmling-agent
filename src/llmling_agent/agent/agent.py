@@ -48,6 +48,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.interactions import Interactions
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import (
+        AgentName,
         EndStrategy,
         ModelType,
         SessionIdType,
@@ -126,7 +127,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     class AgentReset:
         """Emitted when agent is reset."""
 
-        agent_name: str
+        agent_name: AgentName
         previous_tools: dict[str, bool]
         new_tools: dict[str, bool]
         timestamp: datetime = field(default_factory=datetime.now)
@@ -763,7 +764,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
         # Create context
         context = AgentContext[TDeps](
-            agent_name=agent_name,
+            node_name=agent_name,
             capabilities=agent_config.capabilities,
             definition=agent_def,
             config=agent_config,

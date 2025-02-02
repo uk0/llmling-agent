@@ -37,9 +37,6 @@ class AgentContext[TDeps](NodeContext):
     Generically typed with AgentContext[Type of Dependencies]
     """
 
-    agent_name: str
-    """Name of the current agent."""
-
     capabilities: Capabilities
     """Current agent's capabilities."""
 
@@ -84,7 +81,7 @@ class AgentContext[TDeps](NodeContext):
         defn = AgentsManifest(agents={})
         cfg = AgentConfig(name=name)
         return cls(
-            agent_name=name,
+            node_name=name,
             capabilities=caps,
             definition=defn,
             config=cfg,
@@ -102,8 +99,8 @@ class AgentContext[TDeps](NodeContext):
     def agent(self) -> AnyAgent[TDeps, Any]:
         """Get the agent instance from the pool."""
         assert self.pool, "No agent pool available"
-        assert self.agent_name, "No agent name available"
-        return self.pool.agents[self.agent_name]
+        assert self.node_name, "No agent name available"
+        return self.pool.agents[self.node_name]
 
     @cached_property
     def storage(self) -> StorageManager:
@@ -156,7 +153,7 @@ async def simple_confirmation(
     from pydantic_ai import RunContext
 
     # Get agent name regardless of context type
-    agent_name = ctx.agent_name
+    agent_name = ctx.node_name
 
     prompt = dedent(f"""
         Tool Execution Confirmation

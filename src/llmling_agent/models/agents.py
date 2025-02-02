@@ -620,7 +620,7 @@ class AgentsManifest(ConfigModel):
 
         # Create context with config path and capabilities
         context = AgentContext[TAgentDeps](
-            agent_name=name,
+            node_name=name,
             data=deps,
             capabilities=config.capabilities,
             definition=self,

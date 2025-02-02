@@ -74,7 +74,7 @@ async def test_tool_context_injection():
         assert deps_received.data == test_deps, "Wrong dependencies received"
 
         # Verify agent context
-        assert deps_received.agent_name == "test_agent"
+        assert deps_received.node_name == "test_agent"
 
 
 @pytest.mark.asyncio

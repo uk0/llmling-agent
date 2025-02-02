@@ -44,6 +44,9 @@ TResult = TypeVar("TResult")
 
 @dataclass(kw_only=True)
 class NodeContext:
+    node_name: str
+    """Name of the current node."""
+
     pool: AgentPool | None = None
     """The agent pool the node is part of."""
 

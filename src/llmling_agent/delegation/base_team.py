@@ -39,9 +39,6 @@ logger = get_logger(__name__)
 
 @dataclass(kw_only=True)
 class TeamContext(NodeContext):
-    team_name: str | None
-    """Pool the team is part of."""
-
     config: TeamConfig
     """Current team's specific configuration."""
 
@@ -65,7 +62,7 @@ class TeamContext(NodeContext):
         from llmling_agent.models import TeamConfig
 
         cfg = TeamConfig(name=name, mode=mode, members=[])
-        return cls(team_name=name, config=cfg, pool=pool)
+        return cls(node_name=name, config=cfg, pool=pool)
 
 
 class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
@@ -381,12 +378,12 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             team_config = TeamConfig(name=self.name, mode=mode, members=[])
         if not pool_ids:
             logger.info("No pool found for team %s.", self.name)
-            return TeamContext(team_name=self.name, pool=shared_pool, config=team_config)
+            return TeamContext(node_name=self.name, pool=shared_pool, config=team_config)
 
         if len(pool_ids) > 1:
             msg = f"Team members in {self.name} belong to different pools"
             raise ValueError(msg)
-        return TeamContext(team_name=self.name, pool=shared_pool, config=team_config)
+        return TeamContext(node_name=self.name, pool=shared_pool, config=team_config)
 
     @context.setter
     def context(self, value: NodeContext):

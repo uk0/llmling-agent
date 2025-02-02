@@ -75,7 +75,7 @@ Functions can optionally accept agent context:
 ```python
 def process(ctx: AgentContext, message: str) -> str:
     # Access agent capabilities, configuration, etc.
-    return f"Processed by {ctx.agent_name}: {message}"
+    return f"Processed by {ctx.node_name}: {message}"
 
 # Context is automatically injected
 agent = Agent(provider=process)
