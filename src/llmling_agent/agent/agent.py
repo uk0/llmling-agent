@@ -393,7 +393,11 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             case Team():
                 return Team([self, *other.agents])
             case Callable():
-                agent_2 = StructuredAgent[TDeps, Any].from_callback(other)
+                if callable(other):
+                    if has_return_type(other, str):
+                        agent_2 = Agent.from_callback(other)
+                    else:
+                        agent_2 = StructuredAgent.from_callback(other)
                 return Team([self, agent_2])
             case MessageNode():
                 return Team([self, other])
