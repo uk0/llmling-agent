@@ -50,7 +50,7 @@ Both Agent and AgentPool support parallel initialization of their components:
 # Pool initialization (default: True)
 pool = AgentPool(
     "agents.yml",
-    parallel_agent_load=True  # agents initialize concurrently
+    parallel_load=True  # agents initialize concurrently
 )
 
 # Agent initialization (default: True)

@@ -71,22 +71,22 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         nodes_to_load: list[AgentName] | None = None,
         connect_nodes: bool = True,
         confirmation_callback: ConfirmationCallback | None = None,
-        parallel_agent_load: bool = True,
+        parallel_load: bool = True,
     ):
         """Initialize agent pool with immediate agent creation.
 
         Args:
             manifest: Agent configuration manifest
-            shared_deps: Dependencies to share across all agents
-            nodes_to_load: Optional list of agent names to initialize
-                          If None, all agents from manifest are loaded
+            shared_deps: Dependencies to share across all nodes
+            nodes_to_load: Optional list of node names to initialize
+                          If None, all nodes from manifest are loaded
             connect_nodes: Whether to set up forwarding connections
             confirmation_callback: Handler callback for tool / step confirmations
-            parallel_agent_load: Whether to load agents in parallel (async)
+            parallel_load: Whether to load nodes in parallel (async)
 
         Raises:
-            ValueError: If manifest contains invalid agent configurations
-            RuntimeError: If agent initialization fails
+            ValueError: If manifest contains invalid node configurations
+            RuntimeError: If node initialization fails
         """
         super().__init__()
         from llmling_agent.models.agents import AgentsManifest
@@ -105,7 +105,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self.shared_deps = shared_deps
         self._confirmation_callback = confirmation_callback
         self.exit_stack = AsyncExitStack()
-        self.parallel_agent_load = parallel_agent_load
+        self.parallel_load = parallel_load
         self.storage = StorageManager(self.manifest.storage)
         self._teams: dict[str, BaseTeam[Any, Any]] = {}
         self.connection_registry = ConnectionRegistry()
@@ -145,7 +145,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
             teams = list(self._teams.values())
             for agent in agents:
                 agent.tools.add_provider(self.mcp)
-            if self.parallel_agent_load:
+            if self.parallel_load:
                 await asyncio.gather(
                     self.exit_stack.enter_async_context(self.mcp),
                     *(self.exit_stack.enter_async_context(a) for a in agents),
