@@ -10,6 +10,7 @@ from psygnal.containers import EventedList
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode, NodeContext
+from llmling_agent.models.agents import AgentsManifest
 from llmling_agent.models.teams import TeamConfig
 from llmling_agent.talk.stats import AggregatedMessageStats, AggregatedTalkStats
 from llmling_agent.utils.inspection import has_return_type
@@ -62,7 +63,8 @@ class TeamContext[TDeps](NodeContext[TDeps]):
         from llmling_agent.models import TeamConfig
 
         cfg = TeamConfig(name=name, mode=mode, members=[])
-        return cls(node_name=name, config=cfg, pool=pool)
+        defn = AgentsManifest()
+        return cls(node_name=name, config=cfg, pool=pool, definition=defn)
 
 
 class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
@@ -378,12 +380,22 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             team_config = TeamConfig(name=self.name, mode=mode, members=[])
         if not pool_ids:
             logger.info("No pool found for team %s.", self.name)
-            return TeamContext(node_name=self.name, pool=shared_pool, config=team_config)
+            return TeamContext(
+                node_name=self.name,
+                pool=shared_pool,
+                config=team_config,
+                definition=shared_pool.manifest if shared_pool else AgentsManifest(),
+            )
 
         if len(pool_ids) > 1:
             msg = f"Team members in {self.name} belong to different pools"
             raise ValueError(msg)
-        return TeamContext(node_name=self.name, pool=shared_pool, config=team_config)
+        return TeamContext(
+            node_name=self.name,
+            pool=shared_pool,
+            config=team_config,
+            definition=shared_pool.manifest if shared_pool else AgentsManifest(),
+        )
 
     @context.setter
     def context(self, value: NodeContext):

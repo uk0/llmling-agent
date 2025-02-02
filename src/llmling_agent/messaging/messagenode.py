@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn
     from llmling_agent.delegation.pool import AgentPool
+    from llmling_agent.models.agents import AgentsManifest
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.mcp_server import MCPServerConfig
     from llmling_agent.models.nodes import NodeConfig
@@ -52,6 +53,9 @@ class NodeContext[TDeps]:
 
     config: NodeConfig
     """Node configuration."""
+
+    definition: AgentsManifest
+    """Complete agent definition with all configurations."""
 
     current_prompt: str | None = None
     """Current prompt text for the agent."""

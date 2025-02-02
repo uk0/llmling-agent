@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
-    from llmling_agent.models.agents import AgentConfig, AgentsManifest
+    from llmling_agent.models.agents import AgentConfig
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.storage import StorageManager
 
@@ -39,9 +39,6 @@ class AgentContext[TDeps](NodeContext[TDeps]):
 
     capabilities: Capabilities
     """Current agent's capabilities."""
-
-    definition: AgentsManifest
-    """Complete agent definition with all configurations."""
 
     config: AgentConfig
     """Current agent's specific configuration."""
@@ -78,7 +75,7 @@ class AgentContext[TDeps](NodeContext[TDeps]):
         from llmling_agent.models import AgentConfig, AgentsManifest
 
         caps = capabilities or Capabilities()
-        defn = AgentsManifest(agents={})
+        defn = AgentsManifest()
         cfg = AgentConfig(name=name)
         return cls(
             node_name=name,
