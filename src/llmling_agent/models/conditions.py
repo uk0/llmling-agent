@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, ImportString
 
 
 if TYPE_CHECKING:
-    from llmling_agent.talk.talk import EventContext
+    from llmling_agent.talk.registry import EventContext
 
 
 class ConnectionCondition(BaseModel):

@@ -22,7 +22,7 @@ from llmling_agent.models.forward_targets import (
     NodeConnectionConfig,
 )
 from llmling_agent.talk import Talk, TeamTalk
-from llmling_agent.talk.talk import ConnectionRegistry
+from llmling_agent.talk.registry import ConnectionRegistry
 from llmling_agent.tasks import TaskRegistry
 
 
