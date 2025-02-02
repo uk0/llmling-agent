@@ -10,6 +10,7 @@ from llmling_agent.messaging.messages import ChatMessage
 
 logger = get_logger(__name__)
 
+
 class MessageWidget(Static):
     """Individual message in the chat."""
 
