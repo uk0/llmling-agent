@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-import inspect
 import json
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
@@ -174,11 +173,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             else:
                 enhanced_function_args = function_args
             # 3. Handle sync/async execution
-            if inspect.iscoroutinefunction(original_tool):
-                result = await original_tool(**enhanced_function_args)
-            else:
-                result = original_tool(**enhanced_function_args)
-
+            result = await tool.execute(**enhanced_function_args)
             # Create tool call info
             info = ToolCallInfo(
                 tool_name=tool.name,

@@ -166,6 +166,10 @@ class PydanticAIProvider(AgentLLMProvider):
     ) -> Callable[..., Awaitable[Any]]:
         """Wrap tool with confirmation handling.
 
+        We wrap the tool to intercept pydantic-ai's tool calls and add our confirmation
+        logic before the actual execution happens. The actual tool execution (including
+        moving sync functions to threads) is handled by pydantic-ai.
+
         Current situation is: We only get all infos for tool calls for functions with
         RunContext. In order to migitate this, we "fallback" to the AgentContext, which
         at least provides some information.
