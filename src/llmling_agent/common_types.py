@@ -25,6 +25,8 @@ type StrPath = str | os.PathLike[str]
 type SessionIdType = str | UUID | None
 
 
+NodeName = str
+TeamName = str
 AgentName = str
 MessageRole = Literal["user", "assistant", "system"]
 PartType = Literal["text", "image", "audio", "video"]
