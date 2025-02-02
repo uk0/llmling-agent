@@ -87,12 +87,12 @@ async def test_agent_pool_conversation_flow():
         assert len(responses) == 2  # noqa: PLR2004
 
         # Verify conversation order was maintained
-        assert responses[0].data.conversation_index == 1
-        assert responses[1].data.conversation_index == 2  # noqa: PLR2004
+        assert responses[0].data.conversation_index == 1  # type: ignore
+        assert responses[1].data.conversation_index == 2  # type: ignore # noqa: PLR2004
 
         # Verify message content
-        assert responses[0].data.message == "Response to: Hello!"
-        assert responses[1].data.message == "Response to: How are you?"
+        assert responses[0].data.message == "Response to: Hello!"  # type: ignore
+        assert responses[1].data.message == "Response to: How are you?"  # type: ignore
 
         # Verify agent name
         assert all(r.name == "test_agent" for r in responses)
@@ -102,10 +102,6 @@ async def test_agent_pool_conversation_flow():
 async def test_agent_pool_validation():
     """Test AgentPool validation and error handling."""
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
-
-    # Test initialization with non-existent agent
-    with pytest.raises(ValueError, match="Unknown agents"):
-        AgentPool(manifest, nodes_to_load=["nonexistent"])
 
     # Test getting non-existent agent
     async with AgentPool[None](manifest) as pool:

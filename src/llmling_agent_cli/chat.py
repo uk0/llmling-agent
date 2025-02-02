@@ -64,13 +64,8 @@ def chat_command(
 
         async def run_chat():
             # Create pool with main agent and forwarding targets
-            nodes_to_load = [agent_name]
-            if connections:
-                nodes_to_load.extend(connections)
-
             async with AgentPool[None](
                 config_path,
-                nodes_to_load=nodes_to_load,
                 connect_nodes=False,  # We'll handle connections manually
             ) as pool:
                 # Get main agent

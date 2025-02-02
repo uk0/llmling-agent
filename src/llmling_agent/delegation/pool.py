@@ -68,7 +68,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         manifest: StrPath | AgentsManifest | None = None,
         *,
         shared_deps: TPoolDeps | None = None,
-        nodes_to_load: list[AgentName] | None = None,
         connect_nodes: bool = True,
         confirmation_callback: ConfirmationCallback | None = None,
         parallel_load: bool = True,
@@ -78,8 +77,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         Args:
             manifest: Agent configuration manifest
             shared_deps: Dependencies to share across all nodes
-            nodes_to_load: Optional list of node names to initialize
-                          If None, all nodes from manifest are loaded
             connect_nodes: Whether to set up forwarding connections
             confirmation_callback: Handler callback for tool / step confirmations
             parallel_load: Whether to load nodes in parallel (async)
@@ -110,12 +107,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self._teams: dict[str, BaseTeam[Any, Any]] = {}
         self.connection_registry = ConnectionRegistry()
         self.mcp = MCPManager(self.manifest.get_mcp_servers())
-        # Validate requested agents exist
-        to_load = set(nodes_to_load) if nodes_to_load else set(self.manifest.agents)
-        if invalid := (to_load - set(self.manifest.agents)):
-            msg = f"Unknown agents: {', '.join(invalid)}"
-            raise ValueError(msg)
-        # register tasks
         self._tasks = TaskRegistry()
         # Register tasks from manifest
         for name, task in self.manifest.jobs.items():
@@ -123,7 +114,7 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
         self.pool_talk = TeamTalk[Any].from_nodes(list(self.agents.values()))
 
         # Create requested agents immediately
-        for name in to_load:
+        for name in self.manifest.agents:
             agent = self.manifest.get_agent(name, deps=shared_deps)
             self.register(name, agent)
 

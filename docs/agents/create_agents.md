@@ -43,9 +43,6 @@ async with agent:
 manifest = AgentsManifest.from_file("agents.yml")
 pool = AgentPool(manifest)
 
-# Create with specific agents
-pool = AgentPool(manifest, nodes_to_load=["analyzer", "summarizer"])
-
 # Create with manual configuration
 pool = AgentPool(manifest, connect_nodes=False)
 

@@ -69,8 +69,8 @@ class AgentState:
             # Clean up existing pool
             await self.cleanup()
 
-            # Create new pool with just this agent
-            self.pool = AgentPool(self.agent_def, nodes_to_load=[agent_name])
+            # Create new pool
+            self.pool = AgentPool(self.agent_def)
             if model:  # Apply model override if specified
                 agent = self.pool.get_agent(agent_name)
                 agent.set_model(model)  # type: ignore
