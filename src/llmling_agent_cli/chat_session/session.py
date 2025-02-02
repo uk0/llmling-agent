@@ -22,6 +22,7 @@ from llmling_agent_cli.chat_session.welcome import create_welcome_messages
 
 if TYPE_CHECKING:
     from llmling_agent import Agent
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import ToolCallInfo
@@ -33,7 +34,7 @@ class InteractiveSession:
 
     def __init__(
         self,
-        agent: Agent[Any],
+        agent: AnyAgent[Any, Any],
         *,
         pool: AgentPool | None = None,
         show_log_in_chat: bool = False,

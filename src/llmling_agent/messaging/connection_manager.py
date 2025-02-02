@@ -35,7 +35,7 @@ class ConnectionManager:
 
     connection_processed = Signal(Talk.ConnectionProcessed)
 
-    node_connected = Signal(object)  # Agent
+    node_connected = Signal(object)  # Node
     connection_added = Signal(Talk)  # Agent
 
     def __init__(self, owner: MessageNode):
@@ -173,7 +173,7 @@ class ConnectionManager:
         # Single target case
         talk = Talk(
             source=source,
-            targets=[target],  # type: ignore
+            targets=[target],
             connection_type=connection_type,
             name=name,
             priority=priority,
