@@ -213,9 +213,8 @@ class ConnectionManager:
         target_name = target if isinstance(target, str) else target.name
         results = []
         for talk in self._connections:
-            if isinstance(talk, Talk) and talk.queued:  # noqa: SIM102
-                if any(t.name == target_name for t in talk.targets):
-                    results.extend(await talk.trigger())
+            if talk.queued and (t.name == target_name for t in talk.targets):
+                results.extend(await talk.trigger())
         return results
 
     def disconnect_all(self):
