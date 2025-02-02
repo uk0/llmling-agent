@@ -113,7 +113,7 @@ agents:
 session = agent.conversation.id
 
 # Simple recovery by ID
-async with Agent.open(..., session=session) as agent:
+async with Agent(..., session=session) as agent:
     # Conversation history is automatically loaded
     ...
 
@@ -124,7 +124,7 @@ query = SessionQuery(
     roles={"user", "assistant"},
     contains="analysis"
 )
-async with Agent.open(..., session=query) as agent:
+async with Agent(..., session=query) as agent:
     # Filtered conversation history is loaded
     ...
 ```
