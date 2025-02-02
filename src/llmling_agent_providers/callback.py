@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable
+import asyncio
 from contextlib import asynccontextmanager
 import inspect
 from time import perf_counter
@@ -78,9 +78,13 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
                 else (prompt, *content_prompts)
             )
             now = perf_counter()
-            raw_result = self.callback(*args)
-            # Handle async/sync result
-            result = await raw_result if isinstance(raw_result, Awaitable) else raw_result
+            if inspect.iscoroutinefunction(self.callback):
+                raw = await self.callback(*args)
+            else:
+                raw = await asyncio.to_thread(self.callback, *args)
+
+            # Handle potential awaitable result
+            result = await raw if inspect.isawaitable(raw) else raw
             if store_history:
                 duration = perf_counter() - now
                 msgs = [
@@ -157,7 +161,5 @@ if __name__ == "__main__":
         async with uppercase.run_stream("hello") as stream:
             async for chunk in stream.stream():
                 print(f"Chunk: {chunk}")  # Will print "HELLO" once
-
-    import asyncio
 
     asyncio.run(main())
