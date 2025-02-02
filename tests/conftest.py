@@ -12,7 +12,6 @@ import yamling
 from llmling_agent import Agent, AgentConfig, config_resources
 from llmling_agent.delegation import AgentPool
 from llmling_agent.models.agents import AgentsManifest
-from llmling_agent.models.result_types import InlineResponseDefinition, ResponseField
 
 
 TEST_RESPONSE = "I am a test response"
@@ -62,41 +61,9 @@ def runtime() -> RuntimeConfig:
 
 
 @pytest.fixture
-async def simple_agent(runtime: RuntimeConfig) -> Agent[Any]:
-    """Provide a basic text agent."""
-    return Agent(runtime=runtime, name="test-agent", model="openai:gpt-4o-mini")
-
-
-@pytest.fixture
 def valid_config() -> dict[str, Any]:
     """Fixture providing valid agent configuration."""
     return yamling.load_yaml(VALID_CONFIG)
-
-
-@pytest.fixture
-def basic_agent_config() -> AgentConfig:
-    """Create a basic agent configuration for testing."""
-    return AgentConfig(
-        name="test_agent",
-        model="test",
-        result_type="BasicResult",
-        system_prompts=["You are a helpful test agent."],
-    )
-
-
-@pytest.fixture
-def test_model() -> TestModel:
-    """Create a TestModel that returns simple text responses."""
-    return TestModel(custom_result_text="Test response", call_tools=[])
-
-
-@pytest.fixture
-def basic_response_def() -> dict[str, InlineResponseDefinition]:
-    """Create basic response definitions for testing."""
-    response = ResponseField(type="str", description="Test message")
-    desc = "Basic test result"
-    definition = InlineResponseDefinition(description=desc, fields={"message": response})
-    return {"BasicResult": definition}
 
 
 @pytest.fixture
