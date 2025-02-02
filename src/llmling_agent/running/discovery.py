@@ -28,6 +28,9 @@ class AgentFunction:
     depends_on: list[str] = field(default_factory=list)
     """Names of functions this one depends on."""
 
+    deps: Any = None
+    """Node dependencies."""
+
     default_inputs: dict[str, Any] = field(default_factory=dict)
     """Default parameter values."""
 
@@ -52,6 +55,7 @@ class AgentFunction:
 def agent_function(
     func: Callable | None = None,
     *,
+    deps: Any | None = None,
     depends_on: str | Sequence[str | Callable] | Callable | None = None,
 ) -> Callable:
     """Mark a function for automatic agent execution.
@@ -66,6 +70,7 @@ def agent_function(
 
     Args:
         func: Function to mark
+        deps: Dependencies to inject into all Agent parameters
         depends_on: Names of functions this one depends on
 
     Returns:
@@ -75,18 +80,22 @@ def agent_function(
     def decorator(func: Callable) -> Callable:
         match depends_on:
             case None:
-                deps = []
+                _depends_on = []
             case str():
-                deps = [depends_on]
+                _depends_on = [depends_on]
             case Callable():
-                deps = [depends_on.__name__]
+                _depends_on = [depends_on.__name__]
 
             case [*items]:
-                deps = [i.__name__ if isinstance(i, Callable) else str(i) for i in items]  # type: ignore[union-attr, arg-type]
+                _depends_on = [
+                    i.__name__ if isinstance(i, Callable) else str(i)  # type: ignore[union-attr, arg-type]
+                    for i in items
+                ]
             case _:
                 msg = f"Invalid depends_on: {depends_on}"
                 raise ValueError(msg)
-        metadata = AgentFunction(func=func, depends_on=deps)
+        # TODO: we still need to inject the deps in execution part.
+        metadata = AgentFunction(func=func, depends_on=_depends_on or [], deps=deps)
         func._agent_function = metadata  # type: ignore
         return func
 
