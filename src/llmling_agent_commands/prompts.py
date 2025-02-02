@@ -62,20 +62,25 @@ async def list_prompts(
 ):
     """List available prompts from all providers."""
     prompts = await ctx.context.prompt_manager.list_prompts()
+    output_lines = ["\nAvailable prompts:"]
 
-    await ctx.output.print("\nAvailable prompts:")
     for provider, provider_prompts in prompts.items():
         if not provider_prompts:
             continue
-        await ctx.output.print(f"\n{provider}:")
-        for prompt_name in sorted(provider_prompts):
-            # For builtin prompts we can show their description
-            if provider == "builtin":
+
+        output_lines.append(f"\n{provider}:")
+        sorted_prompts = sorted(provider_prompts)
+
+        # For builtin prompts we can show their description
+        if provider == "builtin":
+            for prompt_name in sorted_prompts:
                 prompt = ctx.context.definition.prompts.system_prompts[prompt_name]
                 desc = f" - {prompt.type}"
-                await ctx.output.print(f"  {prompt_name:<30}{desc}")
-            else:
-                await ctx.output.print(f"  {prompt_name}")
+                output_lines.append(f"  {prompt_name:<30}{desc}")
+        else:
+            # For other providers, just show names
+            output_lines.extend(f"  {prompt_name}" for prompt_name in sorted_prompts)
+    await ctx.output.print("\n".join(output_lines))
 
 
 prompt_cmd = Command(

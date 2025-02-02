@@ -159,14 +159,13 @@ async def list_agents(
     kwargs: dict[str, str],
 ):
     """List all available agents."""
-    # Get agent definition through context
     if not ctx.context.pool:
         msg = "No agent pool available"
         raise CommandError(msg)
 
-    await ctx.output.print("\nAvailable agents:")
+    output_lines = ["\nAvailable agents:"]
 
-    # List from pool instead of manifest
+    # Collect all agent info first
     for name, agent in ctx.context.pool.agents.items():
         name_part = name
         model_part = str(agent.model_name or "")
@@ -177,9 +176,12 @@ async def list_agents(
             "[dim](dynamic)[/dim] " if name not in ctx.context.definition.agents else ""
         )
 
-        await ctx.output.print(
-            f"  {name_part:<20}{dynamic}[dim]{model_part:<15}{desc_part}[/dim]"
-        )
+        # Format line with proper padding
+        line = f"  {name_part:<20}{dynamic}[dim]{model_part:<15}{desc_part}[/dim]"
+        output_lines.append(line)
+
+    # Send all lines at once
+    await ctx.output.print("\n".join(output_lines))
 
 
 async def switch_agent(

@@ -28,8 +28,7 @@ class ListAgentsCommand(SlashedCommand):
         """
         supervisor = ctx.get_data()
         header = "\nAvailable Agents:"
-        await ctx.output.print(header)
-        await ctx.output.print("=" * len(header))
+        lines = [header, "=" * len(header)]
         assert supervisor.pool
         for name in supervisor.pool.list_agents():
             agent = supervisor.pool.get_agent(name)
@@ -47,5 +46,5 @@ class ListAgentsCommand(SlashedCommand):
 
             # Add description if available
             desc = f" - {agent.description}" if agent.description else ""
-
-            await ctx.output.print(f"{name} ({status}){conn_str}{desc}")
+            lines.append(f"{name} ({status}){conn_str}{desc}")
+        await ctx.output.print("\n".join(lines))

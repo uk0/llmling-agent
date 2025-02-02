@@ -145,9 +145,7 @@ async def list_connections(
     with console.capture() as capture:
         console.print(tree)
     tree_str = capture.get()
-
-    await ctx.output.print("\nConnection Tree:")
-    await ctx.output.print(tree_str)
+    await ctx.output.print(f"\nConnection Tree:\n{tree_str}")
 
 
 connect_cmd = Command(

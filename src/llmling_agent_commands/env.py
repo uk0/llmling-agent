@@ -112,9 +112,8 @@ async def edit_env(
                 raise CommandError(msg) from e
         case InlineEnvironment() as cfg:
             # For inline environments, display the configuration
-            await ctx.output.print("Inline environment configuration:")
             yaml_config = cfg.model_dump_yaml()
-            await ctx.output.print(yaml_config)
+            await ctx.output.print(f"Inline environment configuration: {yaml_config}")
         case str() as path:
             # Legacy string path
             try:
