@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import pathlib
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from platformdirs import user_data_dir
+from slashed import CommandStore, ExitCommandError, OutputWriter
 from textual.binding import Binding
 from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Footer, Header
 
 from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent_cli.chat_session.models import SessionState
+from llmling_agent_commands import get_commands
 from llmling_textual.widgets.agent_is_typing import ResponseStatus
 from llmling_textual.widgets.chat_view import ChatView
 from llmling_textual.widgets.prompt_input import PromptInput
@@ -17,6 +22,23 @@ if TYPE_CHECKING:
     from textual.app import ComposeResult
 
     from llmling_agent import AnyAgent
+
+
+class TextualOutputWriter(OutputWriter):
+    """Output writer that writes to Textual widgets."""
+
+    def __init__(self, chat_view: ChatView):
+        self.chat_view = chat_view
+
+    async def print(self, text: str) -> None:
+        """Write text to chat view."""
+        msg = ChatMessage(content=text, role="system", name="System")
+        await self.chat_view.append_chat_message(msg)
+
+    async def write_error(self, text: str) -> None:
+        """Write error to chat view."""
+        msg = ChatMessage(content=f"Error: {text}", role="system", name="System")
+        await self.chat_view.append_chat_message(msg)
 
 
 class ChatScreen(ModalScreen[None]):
@@ -65,6 +87,17 @@ class ChatScreen(ModalScreen[None]):
         self._typing_status = ResponseStatus()
         self._typing_status.display = False
 
+        # Initialize command system
+        history_dir = pathlib.Path(user_data_dir("llmling", "llmling")) / "cli_history"
+        file_path = history_dir / f"{agent.name}.history"
+        self.commands = CommandStore(history_file=file_path, enable_system_commands=True)
+        self.commands._initialize_sync()
+        for cmd in get_commands():
+            self.commands.register_command(cmd)
+
+        # Initialize session state
+        self._state = SessionState(current_model=self.agent.model_name)
+
     def compose(self) -> ComposeResult:
         """Create screen layout."""
         yield Header(name=f"Chat with {self.agent.name}")
@@ -86,6 +119,28 @@ class ChatScreen(ModalScreen[None]):
         # Focus input
         self.query_one(PromptInput).focus()
 
+    async def handle_command(self, command_str: str) -> ChatMessage[str]:
+        """Handle a slash command."""
+        chat_view = self.query_one(ChatView)
+        writer = TextualOutputWriter(chat_view)
+
+        try:
+            # Create context with our agent's context
+            ctx = self.commands.create_context(self.agent.context, output_writer=writer)
+            # Execute command
+            await self.commands.execute_command(command_str, ctx)
+            return ChatMessage(content="", role="system")
+
+        except ExitCommandError:
+            # Handle exit command specially
+            self.app.pop_screen()
+            return ChatMessage(content="Session ended", role="system")
+
+        except Exception as e:  # noqa: BLE001
+            return ChatMessage(
+                content=f"Command error: {e}", role="system", name="System"
+            )
+
     async def on_prompt_input_prompt_submitted(
         self, event: PromptInput.PromptSubmitted
     ) -> None:
@@ -101,15 +156,22 @@ class ChatScreen(ModalScreen[None]):
         # Disable input while processing
         input_widget.submit_ready = False
 
-        # Show user message
-        user_msg = ChatMessage(content=message, role="user", name="You")
-        await chat_view.append_chat_message(user_msg)
-
-        # Show typing indicator
-        self._typing_status.display = True
-        self._typing_status.set_agent_responding()
-
         try:
+            # Handle commands
+            if message.startswith("/"):
+                result = await self.handle_command(message[1:])
+                if result.content:
+                    await chat_view.append_chat_message(result)
+                return
+
+            # Show user message
+            user_msg = ChatMessage(content=message, role="user", name="You")
+            await chat_view.append_chat_message(user_msg)
+
+            # Show typing indicator
+            self._typing_status.display = True
+            self._typing_status.set_agent_responding()
+
             # Start streaming response
             chat_view.start_streaming()
 
@@ -126,6 +188,11 @@ class ChatScreen(ModalScreen[None]):
                     model=stream.model_name,
                 )
                 chat_view.finalize_stream(final_message)
+
+                # Update session state
+                self._state.message_count += 2  # User and assistant messages
+                if _usage := stream.usage():
+                    self._state.update_tokens(final_message)
 
         except Exception as e:  # noqa: BLE001
             # Show error in chat
