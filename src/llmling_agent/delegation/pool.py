@@ -178,9 +178,6 @@ class AgentPool[TPoolDeps](BaseRegistry[AgentName, AnyAgent[Any, Any]]):
 
     async def cleanup(self):
         """Clean up all agents."""
-        for agent in self.values():
-            if agent.runtime:
-                await agent.runtime.shutdown()
         await self.exit_stack.aclose()
         self.clear()
 
