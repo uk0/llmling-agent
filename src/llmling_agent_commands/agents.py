@@ -81,11 +81,6 @@ async def create_agent_command(
         return
 
     name = args[0]
-    system_prompt = kwargs.get("system-prompt")
-    if not system_prompt:
-        await ctx.output.print("Error: --system-prompt is required")
-        return
-
     try:
         if not ctx.context.pool:
             msg = "No agent pool available"
@@ -103,7 +98,7 @@ async def create_agent_command(
         await ctx.context.pool.add_agent(
             name=name,
             model=kwargs.get("model") or current_agent.model_name,
-            system_prompt=system_prompt,
+            system_prompt=kwargs.get("system-prompt") or (),
             description=kwargs.get("description"),
             tools=tools,
         )
