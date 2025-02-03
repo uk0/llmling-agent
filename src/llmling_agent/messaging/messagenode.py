@@ -11,6 +11,7 @@ from psygnal import Signal
 
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import (
     AggregatedMessageStats,
     AggregatedTalkStats,
@@ -316,28 +317,41 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
 
     async def run(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
+        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
         wait_for_connections: bool | None = None,
+        store_history: bool = True,
         **kwargs: Any,
     ) -> ChatMessage[TResult]:
         """Execute node with prompts and handle message routing.
 
         Args:
-            prompts: Input prompts
+            prompt: Input prompts
             wait_for_connections: Whether to wait for forwarded messages
+            store_history: Whether to store in conversation history
             **kwargs: Additional arguments for _run
         """
-        from llmling_agent.delegation import BaseTeam
+        from llmling_agent import Agent, StructuredAgent
 
-        # TODO: get rid of this workaround fix
-        if (
-            len(prompts) == 1
-            and isinstance(prompts[0], ChatMessage)
-            and isinstance(self, BaseTeam)
-        ):
-            prompts = prompts[0].content
+        if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
+            user_msg = prompt[0]
+            prompts = await convert_prompts([user_msg.content])
+            final_prompt = "\n\n".join(str(p) for p in prompts)
+        else:
+            prompts = await convert_prompts(prompt)
+            final_prompt = "\n\n".join(str(p) for p in prompts)
+            # use format_prompts?
+            user_msg = ChatMessage[str](content=final_prompt, role="user")
+        self.message_received.emit(user_msg)
+        self.context.current_prompt = final_prompt
+        message = await self._run(*prompts, store_history=store_history, **kwargs)
+        # from dataclasses import replace
+        # if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
+        #     forwarded_from = [*prompt[0].forwarded_from, self.name]
+        #     message = replace(message, forwarded_from=forwarded_from)
 
-        message = await self._run(*prompts, **kwargs)
+        if store_history and isinstance(self, Agent | StructuredAgent):
+            self.conversation.add_chat_messages([user_msg, message])
+        self.message_sent.emit(message)
         await self.connections.route_message(message, wait=wait_for_connections)
         return message
 

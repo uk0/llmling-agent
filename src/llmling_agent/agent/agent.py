@@ -791,10 +791,10 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         """Get the model name in a consistent format."""
         return self._provider.model_name
 
-    @logfire.instrument("Calling Agent.run: {prompt}:")
+    @logfire.instrument("Calling Agent.run: {prompts}:")
     async def _run(
         self,
-        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage[Any],
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage[Any],
         result_type: type[TResult] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -804,7 +804,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         """Run agent with prompt and get response.
 
         Args:
-            prompt: User query or instruction
+            prompts: User query or instruction
             result_type: Optional type for structured responses
             model: Optional model override
             store_history: Whether the message exchange should be added to the
@@ -824,17 +824,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         """
         """Run agent with prompt and get response."""
         message_id = str(uuid4())
-        if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
-            user_msg = prompt[0]
-            prompts = await convert_prompts([user_msg.content])
-            final_prompt = "\n\n".join(str(p) for p in prompts)
-        else:
-            prompts = await convert_prompts(prompt)
-            final_prompt = "\n\n".join(str(p) for p in prompts)
-            # use format_prompts?
-            user_msg = ChatMessage[str](content=final_prompt, role="user")
-        self.message_received.emit(user_msg)
-        self.context.current_prompt = final_prompt
+
         tools = await self.tools.get_tools(state="enabled")
         match tool_choice:
             case str():
@@ -851,7 +841,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         message_history = self.conversation.get_history()
         try:
             result = await self._provider.generate_response(
-                *prompts,
+                *await convert_prompts(prompts),
                 message_id=message_id,
                 message_history=message_history,
                 tools=tools,
@@ -875,14 +865,10 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 response_time=time.perf_counter() - start_time,
                 provider_extra=result.provider_extra or {},
             )
-            if store_history:
-                self.conversation.add_chat_messages([user_msg, response_msg])
             if self._debug:
                 import devtools
 
                 devtools.debug(response_msg)
-
-            self.message_sent.emit(response_msg)
             return response_msg
 
     def to_agent_tool(
