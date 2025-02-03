@@ -67,7 +67,7 @@ class MessageStream(ScrollableContainer):
             )
             self._connected = False
 
-    async def handle_message_flow(self, event: Talk.ConnectionProcessed) -> None:
+    def handle_message_flow(self, event: Talk.ConnectionProcessed) -> None:
         """Handle new message flow event."""
         if not self.is_mounted:
             return
@@ -76,14 +76,14 @@ class MessageStream(ScrollableContainer):
 
         # Remove placeholder if needed
         if self.show_placeholder and self._placeholder in self.children:
-            await self._placeholder.remove()
+            self._placeholder.remove()
             self.show_placeholder = False
 
         # Create and mount new message widget
         widget = MessageFlowWidget(event)
-        await self.mount(widget)
+        self.mount(widget)
         widget.scroll_visible()
 
         # Keep reasonable buffer size
         if len(self.children) > 1000:  # noqa: PLR2004
-            await self.children[0].remove()
+            self.children[0].remove()
