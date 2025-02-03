@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Coroutine, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, overload
 
 from psygnal import Signal
@@ -344,10 +344,10 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         self.message_received.emit(user_msg)
         self.context.current_prompt = final_prompt
         message = await self._run(*prompts, store_history=store_history, **kwargs)
-        # from dataclasses import replace
-        # if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
-        #     forwarded_from = [*prompt[0].forwarded_from, self.name]
-        #     message = replace(message, forwarded_from=forwarded_from)
+
+        if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
+            forwarded_from = [*prompt[0].forwarded_from, prompt[0].name or "unknown"]
+            message = replace(message, forwarded_from=forwarded_from)
 
         if store_history and isinstance(self, Agent | StructuredAgent):
             self.conversation.add_chat_messages([user_msg, message])

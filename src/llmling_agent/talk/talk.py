@@ -224,9 +224,6 @@ class Talk[TTransmittedData]:
         prompt: str | None = None,
     ) -> list[ChatMessage[Any]]:
         """Handle message forwarding based on connection configuration."""
-        # 1. Initial message handling
-        self.source.outbox.emit(message, None)
-
         # 2. Early exit checks
         if not (self.active and (not self.group or self.group.active)):
             return []
@@ -310,10 +307,7 @@ class Talk[TTransmittedData]:
                 ]
                 if prompt:
                     prompts.append(prompt)
-                response = await target.run(*prompts)
-                response.forwarded_from.append(target.name)
-                target.outbox.emit(response, None)
-                return response
+                return await target.run(*prompts)
 
             case "context":
                 meta = {

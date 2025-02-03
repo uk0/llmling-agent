@@ -148,7 +148,7 @@ class TokenCost:
         return cls(token_usage=token_usage, total_cost=total_cost)
 
 
-@dataclass
+@dataclass(frozen=True)
 class ChatMessage[TContent]:
     """Common message format for all UI types.
 

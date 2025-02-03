@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from contextlib import asynccontextmanager
-from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 from psygnal import Signal
@@ -243,11 +242,11 @@ class ConnectionManager:
         msg = "ConnectionManager routing message from %s to %d connections"
         logger.debug(msg, message.name, len(self._connections))
 
-        forwarded_from = [*message.forwarded_from, self.owner.name]  # type: ignore
-        message_copy = replace(message, forwarded_from=forwarded_from)
+        # forwarded_from = [*message.forwarded_from, self.owner.name]  # type: ignore
+        # message_copy = replace(message, forwarded_from=forwarded_from)
 
         for talk in self._connections:
-            await talk._handle_message(message_copy, None)
+            await talk._handle_message(message, None)
 
         if should_wait:
             await self.wait_for_connections()
