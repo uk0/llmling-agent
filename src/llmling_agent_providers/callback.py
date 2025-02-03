@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 import inspect
-from time import perf_counter
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from llmling_agent.log import get_logger
@@ -74,7 +73,6 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
                 if has_argument_type(self.callback, "AgentContext")
                 else (prompt, *content_prompts)
             )
-            now = perf_counter()
             if inspect.iscoroutinefunction(self.callback):
                 raw = await self.callback(*args)
             else:
@@ -82,11 +80,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
 
             # Handle potential awaitable result
             result = await raw if inspect.isawaitable(raw) else raw
-            duration = perf_counter() - now
-            msgs = [
-                ChatMessage(role="user", content=prompt),
-                ChatMessage(role="assistant", content=result, response_time=duration),
-            ]
+            msgs = [ChatMessage(role="user", content=prompt)]
             return ProviderResponse(content=result, messages=msgs)
 
         except Exception as e:

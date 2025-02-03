@@ -109,10 +109,7 @@ class HumanProvider(AgentProvider):
         else:
             content = input("> ")
 
-        new_messages = [
-            ChatMessage(role="user", content=formatted),
-            ChatMessage(role="assistant", content=content),
-        ]
+        new_messages = [ChatMessage(role="user", content=formatted)]
         return ProviderResponse(content=content, messages=new_messages)
 
     @asynccontextmanager

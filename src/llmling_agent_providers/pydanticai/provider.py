@@ -12,7 +12,7 @@ from llmling_models import AllModels, infer_model
 import logfire
 from pydantic_ai import Agent as PydanticAgent
 import pydantic_ai._pydantic
-from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.result import RunResult, StreamedRunResult
 
@@ -298,6 +298,7 @@ class PydanticAIProvider(AgentLLMProvider):
             new = [
                 convert_model_message(m, tool_dict, self.name, filter_system_prompts=True)
                 for m in new_msgs
+                if isinstance(m, ModelRequest)
             ]
             resolved_model = (
                 use_model.name() if isinstance(use_model, Model) else str(use_model)

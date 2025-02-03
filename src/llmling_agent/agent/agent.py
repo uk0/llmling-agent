@@ -854,8 +854,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 model=model,
                 system_prompt=sys_prompt,
             )
-            if store_history:
-                self.conversation.add_chat_messages(result.messages)
         except Exception as e:
             logger.exception("Agent run failed")
             self.run_failed.emit("Agent run failed", e)
@@ -872,6 +870,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 response_time=time.perf_counter() - start_time,
                 provider_extra=result.provider_extra or {},
             )
+            if store_history:
+                self.conversation.add_chat_messages([*result.messages, response_msg])
             if self._debug:
                 import devtools
 
