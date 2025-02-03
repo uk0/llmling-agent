@@ -254,7 +254,6 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
             # Convert to ProviderResponse
             return ProviderResponse(
                 content=result["content"],
-                messages=[],  # TODO: Add messages
                 tool_calls=result.get("tool_calls", []),
                 cost_and_usage=TokenCost(**result["cost_info"])
                 if "cost_info" in result
