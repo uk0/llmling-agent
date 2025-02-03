@@ -93,6 +93,7 @@ default-groups = ["dev", "lint", "docs"]
 dev = [
     "pytest",
     "pytest-cov",
+    "pytest-xdist",
     "pyreadline3",
     "devtools",
     # Only add below (Copier)
