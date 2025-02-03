@@ -63,6 +63,33 @@ async def test_run_result_not_modified_by_connections():
             agent_b.outbox.connect(collect_b)
 
 
+@pytest.mark.asyncio
+async def test_message_chain_through_routing():
+    """Test that message chain tracks correctly through the routing system."""
+    model_b = TestModel(custom_result_text="Response from B")
+    model_c = TestModel(custom_result_text="Response from C")
+
+    async with Agent[None](name="agent-a", model="test") as agent_a:  # noqa: SIM117
+        async with Agent[None](name="agent-b", model=model_b) as agent_b:
+            async with Agent[None](name="agent-c", model=model_c) as agent_c:
+                # Track messages received by C
+                received_by_c: list[ChatMessage[Any]] = []
+                agent_c.message_received.connect(lambda msg: received_by_c.append(msg))
+
+                # Connect the chain
+                agent_a.connect_to(agent_b)
+                agent_b.connect_to(agent_c)
+
+                # When A starts the chain
+                await agent_a.run("Start message")
+
+                # Then C should receive message with complete chain
+                assert len(received_by_c) == 1
+                final_msg = received_by_c[0]
+                assert final_msg.forwarded_from == ["agent-a", "agent-b"]
+                assert "Response from B" in final_msg.content
+
+
 if __name__ == "__main__":
     import pytest
 

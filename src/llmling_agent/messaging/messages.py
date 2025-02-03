@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import dataclasses
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -194,6 +194,23 @@ class ChatMessage[TContent]:
 
     provider_extra: dict[str, Any] = field(default_factory=dict)
     """Provider specific metadata / extra information."""
+
+    def forwarded(self, previous_message: ChatMessage[Any]) -> Self:
+        """Create new message showing it was forwarded from another message.
+
+        Args:
+            previous_message: The message that led to this one's creation
+
+        Returns:
+            New message with updated chain showing the path through previous message
+        """
+        return replace(
+            self,
+            forwarded_from=[
+                *previous_message.forwarded_from,
+                previous_message.name or "unknown",
+            ],
+        )
 
     def to_text_message(self) -> ChatMessage[str]:
         """Convert this message to a text-only version."""

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Coroutine, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, overload
 
 from psygnal import Signal
@@ -335,6 +335,9 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
             user_msg = prompt[0]
             prompts = await convert_prompts([user_msg.content])
+            # Update received message's chain to show it came through its source
+            user_msg = user_msg.forwarded(prompt[0])
+
             final_prompt = "\n\n".join(str(p) for p in prompts)
         else:
             prompts = await convert_prompts(prompt)
@@ -345,9 +348,9 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         self.context.current_prompt = final_prompt
         message = await self._run(*prompts, store_history=store_history, **kwargs)
 
+        # For chain processing, update the response's chain
         if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
-            forwarded_from = [*prompt[0].forwarded_from, prompt[0].name or "unknown"]
-            message = replace(message, forwarded_from=forwarded_from)
+            message = message.forwarded(prompt[0])
 
         if store_history and isinstance(self, Agent | StructuredAgent):
             self.conversation.add_chat_messages([user_msg, message])
