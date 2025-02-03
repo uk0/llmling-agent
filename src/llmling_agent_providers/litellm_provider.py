@@ -220,7 +220,6 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         result_type: type[Any] | None = None,
         model: ModelProtocol | str | None = None,
         tools: list[ToolInfo] | None = None,
-        store_history: bool = True,
         system_prompt: str | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
@@ -234,9 +233,8 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             messages: list[dict[str, Any]] = []
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
-            if store_history:
-                for msg in message_history:
-                    messages.extend(self._convert_message_to_chat(msg))
+            for msg in message_history:
+                messages.extend(self._convert_message_to_chat(msg))
 
             # Convert new prompts to message content
             content_parts: list[dict[str, Any]] = []
@@ -266,9 +264,10 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             assert isinstance(response, ModelResponse)
             assert isinstance(response.choices[0], Choices)
             calls: list[ToolCallInfo] = []
+            new_messages = []
             if tool_calls := response.choices[0].message.tool_calls:
                 pre = {"role": "assistant", "content": None, "tool_calls": tool_calls}
-                messages.append(pre)
+                new_messages.append(pre)
                 for tool_call in tool_calls:
                     function_name = tool_call.function.name
                     if not function_name:
@@ -278,13 +277,13 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                         tool_call, tool, message_id
                     )
                     calls.append(info)
-                    messages.append(message)
+                    new_messages.append(message)
                 import devtools
 
-                devtools.debug(messages)
+                devtools.debug(new_messages)
                 response = await acompletion(
                     model=model_name,
-                    messages=messages,
+                    messages=messages + new_messages,
                     stream=False,
                     **self.model_settings,
                 )
@@ -319,14 +318,14 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                     )
                 else:
                     cost_and_usage = None
-            # Store in history if requested
-            if store_history:
-                request_msgs = [ChatMessage(role="user", content=str(p)) for p in prompts]
-                response_msg = ChatMessage(role="assistant", content=content)
-                self.conversation.add_chat_messages([*request_msgs, response_msg])
+                # Store in history if requested
+
+            request_msgs = [ChatMessage(role="user", content=str(p)) for p in prompts]
+            response_msg = ChatMessage(role="assistant", content=content)
 
             return ProviderResponse(
                 content=content,
+                messages=[*request_msgs, response_msg],
                 tool_calls=calls,
                 model_name=model_name,
                 cost_and_usage=cost_and_usage,

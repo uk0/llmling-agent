@@ -252,7 +252,6 @@ class PydanticAIProvider(AgentLLMProvider):
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelType = None,
-        store_history: bool = True,
         tools: list[ToolInfo] | None = None,
         system_prompt: str | None = None,
         **kwargs: Any,
@@ -296,14 +295,10 @@ class PydanticAIProvider(AgentLLMProvider):
             for call in tool_calls:
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
-            if store_history:
-                new = [
-                    convert_model_message(
-                        m, tool_dict, self.name, filter_system_prompts=True
-                    )
-                    for m in new_msgs
-                ]
-                self.conversation.add_chat_messages(new)
+            new = [
+                convert_model_message(m, tool_dict, self.name, filter_system_prompts=True)
+                for m in new_msgs
+            ]
             resolved_model = (
                 use_model.name() if isinstance(use_model, Model) else str(use_model)
             )
@@ -318,6 +313,7 @@ class PydanticAIProvider(AgentLLMProvider):
             )
             return ProviderResponse(
                 content=result.data,
+                messages=new,
                 tool_calls=tool_calls,
                 cost_and_usage=cost_info,
                 model_name=resolved_model,

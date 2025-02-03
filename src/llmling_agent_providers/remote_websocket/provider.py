@@ -225,7 +225,6 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelType = None,
-        store_history: bool = True,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate response via WebSocket connection."""
@@ -241,7 +240,6 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
                     "prompts": prompts,
                     "result_type": str(result_type) if result_type else None,
                 },
-                metadata={"store_history": store_history},
             )
 
             # Create future for response
@@ -256,6 +254,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
             # Convert to ProviderResponse
             return ProviderResponse(
                 content=result["content"],
+                messages=[],  # TODO: Add messages
                 tool_calls=result.get("tool_calls", []),
                 cost_and_usage=TokenCost(**result["cost_info"])
                 if "cost_info" in result

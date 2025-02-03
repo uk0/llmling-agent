@@ -75,7 +75,6 @@ class HumanProvider(AgentProvider):
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelType = None,
-        store_history: bool = True,
         system_prompt: str | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
@@ -87,8 +86,6 @@ class HumanProvider(AgentProvider):
             message_history: Message history
             result_type: Optional type for structured responses
             model: Model override (unused for human)
-            store_history: Whether the message exchange should be added to the
-                           context window
             system_prompt: System prompt from SystemPrompts manager
             kwargs: Additional arguments for human (unused)
         """
@@ -112,11 +109,11 @@ class HumanProvider(AgentProvider):
         else:
             content = input("> ")
 
-        if store_history:
-            message_history.append(ChatMessage(role="user", content=formatted))
-            message_history.append(ChatMessage(role="assistant", content=content))
-            self.conversation.set_history(message_history)
-        return ProviderResponse(content=content)
+        new_messages = [
+            ChatMessage(role="user", content=formatted),
+            ChatMessage(role="assistant", content=content),
+        ]
+        return ProviderResponse(content=content, messages=new_messages)
 
     @asynccontextmanager
     async def stream_response(

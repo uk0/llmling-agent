@@ -35,6 +35,7 @@ class ProviderResponse:
     """Raw response data from provider."""
 
     content: Any
+    messages: list[ChatMessage] = field(default_factory=list)
     tool_calls: list[ToolCallInfo] = field(default_factory=list)
     model_name: str = ""
     cost_and_usage: TokenCost | None = None
@@ -153,7 +154,6 @@ class AgentProvider[TDeps]:
         result_type: type[Any] | None = None,
         model: ModelType = None,
         tools: list[ToolInfo] | None = None,
-        store_history: bool = True,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate a response. Must be implemented by providers."""

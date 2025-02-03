@@ -58,7 +58,6 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         message_id: str,
         result_type: type[TResult] | None = None,
         system_prompt: str | None = None,
-        store_history: bool = True,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Process message through callback."""
@@ -83,15 +82,12 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
 
             # Handle potential awaitable result
             result = await raw if inspect.isawaitable(raw) else raw
-            if store_history:
-                duration = perf_counter() - now
-                msgs = [
-                    ChatMessage(role="user", content=prompt),
-                    ChatMessage(role="assistant", content=result, response_time=duration),
-                ]
-                self.conversation.add_chat_messages(msgs)
-
-            return ProviderResponse(content=result)
+            duration = perf_counter() - now
+            msgs = [
+                ChatMessage(role="user", content=prompt),
+                ChatMessage(role="assistant", content=result, response_time=duration),
+            ]
+            return ProviderResponse(content=result, messages=msgs)
 
         except Exception as e:
             logger.exception("Processor callback failed")
