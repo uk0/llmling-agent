@@ -346,7 +346,11 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
             final_prompt = "\n\n".join(str(p) for p in prompts)
             conversation_id = str(uuid4())
             # use format_prompts?
-            user_msg = ChatMessage[str](content=final_prompt, role="user")
+            user_msg = ChatMessage[str](
+                content=final_prompt,
+                role="user",
+                conversation_id=conversation_id,
+            )
         self.message_received.emit(user_msg)
         self.context.current_prompt = final_prompt
         message = await self._run(*prompts, store_history=store_history, **kwargs)

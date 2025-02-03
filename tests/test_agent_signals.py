@@ -97,6 +97,15 @@ async def test_message_chain_through_routing():
                     "agent-a",
                     "agent-b",
                 ]
+                assert (
+                    agent_a.conversation.chat_messages[0].conversation_id
+                    == agent_b.conversation.chat_messages[0].conversation_id
+                )
+
+                assert (
+                    agent_b.conversation.chat_messages[0].conversation_id
+                    == agent_c.conversation.chat_messages[0].conversation_id
+                )
 
 
 if __name__ == "__main__":
