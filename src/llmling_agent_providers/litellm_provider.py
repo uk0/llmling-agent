@@ -408,10 +408,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             )
 
             # Create stream wrapper that matches our protocol
-            stream = LiteLLMStream[Any](
-                _stream=completion_stream,
-                model_name=model_name,
-            )
+            stream = LiteLLMStream[Any](_stream=completion_stream, model_name=model_name)
 
             try:
                 yield stream
