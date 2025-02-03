@@ -43,8 +43,8 @@ class MainScreen(Screen):
         self.message_stream = MessageStream(pool)
 
         # Connect pool events
-        self.pool._items.events.added.connect(self._on_agent_change)
-        self.pool._items.events.removed.connect(self._on_agent_change)
+        self.pool.nodes.events.added.connect(self._on_agent_change)
+        self.pool.nodes.events.removed.connect(self._on_agent_change)
 
     def on_mount(self) -> None:
         """Initialize screen."""

@@ -189,14 +189,14 @@ class ConnectionManager:
         self.node_connected.emit(target)
         self._connections.append(talk)
         self.connection_added.emit(talk)
-
         if source.context and (pool := source.context.pool):
             # Always use Talk's name for registration
             if name:
                 pool.connection_registry.register(name, talk)
             else:
                 pool.connection_registry.register_auto(talk)
-
+        else:
+            logger.debug("Could not register connection %r, no pool available", name)
         return talk
 
     async def trigger_all(self) -> dict[AgentName, list[ChatMessage[Any]]]:
