@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from rich.text import Text
 from textual.containers import ScrollableContainer
-from textual.widgets import Static
+from textual.widgets import Markdown, Static
 
 from llmling_agent.log import get_logger
 
@@ -47,10 +46,12 @@ class MessageWidget(Static):
         super().__init__("")
         self.chat_message = message
         self.add_class(message.role)
-        text = Text()
-        text.append(f"{message.name}: ", style="bold")
-        text.append(str(message.content))
-        self.update(text)
+        formatted = message.format(style="markdown")
+        self.markdown = Markdown(formatted)
+
+    def on_mount(self) -> None:
+        """Mount markdown widget."""
+        self.mount(self.markdown)
 
 
 class ChatView(ScrollableContainer):
