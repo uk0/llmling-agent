@@ -306,7 +306,7 @@ class Talk[TTransmittedData]:
         match self.connection_type:
             case "run":
                 prompts: list[AnyPromptType | PIL.Image.Image | os.PathLike[str]] = [
-                    message.content
+                    message
                 ]
                 if prompt:
                     prompts.append(prompt)

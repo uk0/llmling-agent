@@ -313,7 +313,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
 
     async def run(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
         wait_for_connections: bool | None = None,
         **kwargs: Any,
     ) -> ChatMessage[TResult]:
@@ -324,6 +324,16 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
             wait_for_connections: Whether to wait for forwarded messages
             **kwargs: Additional arguments for _run
         """
+        from llmling_agent.delegation import BaseTeam
+
+        # TODO: get rid of this workaround fix
+        if (
+            len(prompts) == 1
+            and isinstance(prompts[0], ChatMessage)
+            and isinstance(self, BaseTeam)
+        ):
+            prompts = prompts[0].content
+
         message = await self._run(*prompts, **kwargs)
         await self.connections.route_message(message, wait=wait_for_connections)
         return message

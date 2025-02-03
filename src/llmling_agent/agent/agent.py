@@ -26,7 +26,7 @@ from llmling_agent.models import AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
-from llmling_agent.prompts.convert import convert_prompts, format_prompts
+from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context, has_return_type
@@ -794,7 +794,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     @logfire.instrument("Calling Agent.run: {prompt}:")
     async def _run(
         self,
-        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage[Any],
         result_type: type[TResult] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -824,12 +824,17 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         """
         """Run agent with prompt and get response."""
         message_id = str(uuid4())
-        prompts = await convert_prompts(prompt)
-        final_prompt = "\n\n".join(str(p) for p in prompts)
-        self.context.current_prompt = final_prompt
-        # Create and emit user message
-        user_msg = ChatMessage[str](content=final_prompt, role="user")
+        if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
+            user_msg = prompt[0]
+            prompts = await convert_prompts([user_msg.content])
+            final_prompt = "\n\n".join(str(p) for p in prompts)
+        else:
+            prompts = await convert_prompts(prompt)
+            final_prompt = "\n\n".join(str(p) for p in prompts)
+            # use format_prompts?
+            user_msg = ChatMessage[str](content=final_prompt, role="user")
         self.message_received.emit(user_msg)
+        self.context.current_prompt = final_prompt
         tools = await self.tools.get_tools(state="enabled")
         match tool_choice:
             case str():
@@ -871,9 +876,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 provider_extra=result.provider_extra or {},
             )
             if store_history:
-                final_prompt = await format_prompts(prompts)
-                request_msg = ChatMessage(role="user", content=final_prompt)
-                self.conversation.add_chat_messages([request_msg, response_msg])
+                self.conversation.add_chat_messages([user_msg, response_msg])
             if self._debug:
                 import devtools
 
