@@ -7,6 +7,7 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.models.content import BaseContent
 from llmling_agent.utils.inspection import has_argument_type
 from llmling_agent_providers.base import (
@@ -53,6 +54,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
     async def generate_response(
         self,
         *prompts: str | Content,
+        message_history: list[ChatMessage],
         message_id: str,
         result_type: type[TResult] | None = None,
         system_prompt: str | None = None,
@@ -60,8 +62,6 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         **kwargs: Any,
     ) -> ProviderResponse:
         """Process message through callback."""
-        from llmling_agent.messaging.messages import ChatMessage
-
         text_prompts = [p for p in prompts if isinstance(p, str)]
         content_prompts = [p for p in prompts if isinstance(p, BaseContent)]
 
@@ -105,6 +105,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         self,
         *prompts: str | Content,
         message_id: str,
+        message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         system_prompt: str | None = None,
         store_history: bool = True,
@@ -131,7 +132,9 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
 
         try:
             # Get result using normal response generation
-            result = await self.generate_response(*prompts, message_id=message_id)
+            result = await self.generate_response(
+                *prompts, message_id=message_id, message_history=message_history
+            )
             # we already save history etc with generate_response
             stream_result = SingleChunkStream(str(result.content))
             yield stream_result  # type: ignore

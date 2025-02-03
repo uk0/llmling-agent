@@ -249,6 +249,7 @@ class PydanticAIProvider(AgentLLMProvider):
         self,
         *prompts: str | Content,
         message_id: str,
+        message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -258,7 +259,6 @@ class PydanticAIProvider(AgentLLMProvider):
     ) -> ProviderResponse:
         """Generate response using pydantic-ai."""
         agent = await self.get_agent(system_prompt or "", tools=tools or [])
-        message_history = self.conversation.get_history()
         use_model = model or self.model
         if isinstance(use_model, str):
             use_model = infer_model(use_model)
@@ -373,6 +373,7 @@ class PydanticAIProvider(AgentLLMProvider):
     async def stream_response(  # type: ignore[override]
         self,
         *prompts: str | Content,
+        message_history: list[ChatMessage],
         message_id: str,
         result_type: type[Any] | None = None,
         model: ModelType = None,
@@ -382,7 +383,6 @@ class PydanticAIProvider(AgentLLMProvider):
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response using pydantic-ai."""
-        message_history = self.conversation.get_history()
         agent = await self.get_agent(system_prompt or "", tools=tools or [])
         use_model = model or self.model
         if isinstance(use_model, str):

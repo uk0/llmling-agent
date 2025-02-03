@@ -843,10 +843,12 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self.set_result_type(result_type)
         start_time = time.perf_counter()
         sys_prompt = await self.sys_prompts.format_system_prompt(self)
+        message_history = self.conversation.get_history()
         try:
             result = await self._provider.generate_response(
                 *prompts,
                 message_id=message_id,
+                message_history=message_history,
                 tools=tools,
                 result_type=result_type,
                 model=model,
@@ -981,9 +983,11 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             case True | None:
                 pass  # Keep all tools
         try:
+            message_history = self.conversation.get_history()
             async with self._provider.stream_response(
                 *prompts,
                 message_id=message_id,
+                message_history=message_history,
                 result_type=result_type,
                 model=model,
                 store_history=store_history,

@@ -12,7 +12,7 @@ import websockets
 import websockets.client
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import TokenCost
+from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_providers.base import (
@@ -154,7 +154,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         await ws.send(message.model_dump_json())
         return message.message_id
 
-    async def _send_context(self) -> None:
+    async def _send_context(self, messages) -> None:
         """Send initial context to server."""
         if not self.conversation or not self.tool_manager:
             return
@@ -171,7 +171,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
                 "model": msg.model,
                 "metadata": msg.metadata,
             }
-            for msg in self.conversation.get_history()
+            for msg in messages
         ]
 
         # Send context
@@ -222,6 +222,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         self,
         *prompts: str | Content,
         message_id: str,
+        message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -231,7 +232,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         try:
             # Send context if first time
             if not self._ws:
-                await self._send_context()
+                await self._send_context(message_history)
 
             # Send prompt
             msg_id = await self._send_message(
@@ -274,6 +275,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         self,
         *prompts: str | Content,
         message_id: str,
+        message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -282,7 +284,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         """Stream response from remote agent."""
         # Send context if first time
         if not self._ws:
-            await self._send_context()
+            await self._send_context(message_history)
 
         msg_id = await self._send_message(
             type_="prompt",

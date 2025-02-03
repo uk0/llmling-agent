@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelType
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
 
 
@@ -71,6 +72,7 @@ class HumanProvider(AgentProvider):
         self,
         *prompts: str | Content,
         message_id: str,
+        message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -82,6 +84,7 @@ class HumanProvider(AgentProvider):
         Args:
             prompts: Text / Image Content to respond to
             message_id: Message id to use for the response
+            message_history: Message history
             result_type: Optional type for structured responses
             model: Model override (unused for human)
             store_history: Whether the message exchange should be added to the
@@ -91,7 +94,6 @@ class HumanProvider(AgentProvider):
         """
         from llmling_agent.messaging.messages import ChatMessage
 
-        msg_history = self.conversation.get_history()
         if self._show_context:
             history = await self.conversation.format_history(
                 format_template="[{agent}] {content}\n",
@@ -111,9 +113,9 @@ class HumanProvider(AgentProvider):
             content = input("> ")
 
         if store_history:
-            msg_history.append(ChatMessage(role="user", content=formatted))
-            msg_history.append(ChatMessage(role="assistant", content=content))
-            self.conversation.set_history(msg_history)
+            message_history.append(ChatMessage(role="user", content=formatted))
+            message_history.append(ChatMessage(role="assistant", content=content))
+            self.conversation.set_history(message_history)
         return ProviderResponse(content=content)
 
     @asynccontextmanager
@@ -121,6 +123,7 @@ class HumanProvider(AgentProvider):
         self,
         *prompts: str | Content,
         message_id: str,
+        message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -130,7 +133,6 @@ class HumanProvider(AgentProvider):
         """Stream response keystroke by keystroke."""
         from llmling_agent.messaging.messages import ChatMessage
 
-        msg_history = self.conversation.get_history()
         prompt = await self.format_prompts(prompts)
         print(f"\n{prompt}")
         if result_type:
@@ -185,9 +187,9 @@ class HumanProvider(AgentProvider):
                     error_msg = f"Invalid response format: {e}"
                     raise ToolError(error_msg) from e
             if store_history:
-                msg_history.append(ChatMessage(role="user", content=prompt))
-                msg_history.append(ChatMessage(role="assistant", content=content))
-                self.conversation.set_history(msg_history)
+                message_history.append(ChatMessage(role="user", content=prompt))
+                message_history.append(ChatMessage(role="assistant", content=content))
+                self.conversation.set_history(message_history)
             stream_result.formatted_content = str(content)
             yield stream_result  # type: ignore
 

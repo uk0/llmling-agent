@@ -216,6 +216,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         self,
         *prompts: str | Content,
         message_id: str,
+        message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelProtocol | str | None = None,
         tools: list[ToolInfo] | None = None,
@@ -228,14 +229,13 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         from litellm.files.main import ModelResponse
 
         model_name = self._get_model_name(model)
-        complete_history = self.conversation.get_history()
         try:
             # Create messages list from history and new prompt
             messages: list[dict[str, Any]] = []
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
             if store_history:
-                for msg in complete_history:
+                for msg in message_history:
                     messages.extend(self._convert_message_to_chat(msg))
 
             # Convert new prompts to message content
@@ -361,6 +361,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         self,
         *prompts: str | Content,
         message_id: str,
+        message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelProtocol | str | None = None,
         tools: list[ToolInfo] | None = None,
@@ -380,7 +381,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
 
         # Add conversation history
         if store_history:
-            for msg in self.conversation.get_history():
+            for msg in message_history:
                 messages.extend(self._convert_message_to_chat(msg))
 
         # Convert new prompts to message content
