@@ -21,6 +21,7 @@ def serve(ctx, *args: str):
 def test(ctx, *args: str):
     """Serve a MkNodes page."""
     args_str = " " + " ".join(args) if args else ""
+    args_str = " -n auto" + args_str
     ctx.run(f"uv run pytest{args_str}")
 
 
