@@ -139,6 +139,7 @@ markers = [
 ]
 filterwarnings = [
     "ignore::DeprecationWarning:pydantic.*:",
+    "ignore::UserWarning:pydantic.*:",        # caused by litellm
     "ignore::DeprecationWarning:litellm.*:",
     "ignore::DeprecationWarning:typer.*",
 ]
