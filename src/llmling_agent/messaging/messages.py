@@ -70,9 +70,10 @@ MARKDOWN_TEMPLATE = """## {{ name or role.title() }}
 ```
 {%- endif %}
 
-{%- if forwarded_from %}
+{% if forwarded_from %}
+
 *Forwarded via: {{ forwarded_from|join(' → ') }}*
-{%- endif %}"""
+{% endif %}"""
 
 MESSAGE_TEMPLATES = {
     "simple": SIMPLE_TEMPLATE,
