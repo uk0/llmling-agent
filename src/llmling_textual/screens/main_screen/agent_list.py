@@ -24,7 +24,7 @@ class AgentEntry(Static, can_focus=True):  # type: ignore
         padding: 0 1;
         background: $surface;
         border: tall $primary;
-        margin: 0 1 1 1;
+        margin: 0 0 0 0;
     }
 
     AgentEntry:hover {
@@ -77,9 +77,7 @@ class AgentEntry(Static, can_focus=True):  # type: ignore
         with Horizontal():
             yield Static("●" if self.agent.is_busy() else "○", classes="status")
             yield Static(self.agent.name, classes="name")
-            provider_name = getattr(
-                self.agent.provider, "NAME", self.agent.provider.__class__.__name__
-            )
+            provider_name = self.agent.provider.NAME
             yield Static(f"({provider_name})", classes="provider")
 
     def on_click(self) -> None:
