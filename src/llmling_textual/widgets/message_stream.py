@@ -72,6 +72,8 @@ class MessageStream(ScrollableContainer):
         if not self.is_mounted:
             return
 
+        logger.debug("Received message flow event: %r", event)
+
         # Remove placeholder if needed
         if self.show_placeholder and self._placeholder in self.children:
             await self._placeholder.remove()

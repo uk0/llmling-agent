@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+import logging
+from typing import ClassVar
+
 from textual.app import App
+from textual.binding import Binding
 
 from llmling_agent.delegation.pool import AgentPool
+from llmling_textual.screens.log_screen.log_widget import LoggingWidget
+from llmling_textual.screens.log_screen.screen import LogWindow
 from llmling_textual.screens.main_screen import MainScreen
 
 
@@ -15,12 +21,19 @@ class AgentApp(App):
         width: 100%;
     }
     """
+    BINDINGS: ClassVar = [
+        Binding("f12", "toggle_logs", "Show/Hide Logs"),
+    ]
 
     def __init__(self, config_path: str):
         super().__init__()
         self._config_path = config_path
         self.agent_pool: AgentPool | None = None
         self.main_screen: MainScreen | None = None
+        self.log_widget = LoggingWidget()
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(self.log_widget.handler)
 
     async def on_mount(self) -> None:
         """Initialize pool and mount main screen."""
@@ -38,6 +51,13 @@ class AgentApp(App):
 
         if self.agent_pool:
             await self.agent_pool.__aexit__(None, None, None)
+
+    def action_toggle_logs(self) -> None:
+        """Toggle log window."""
+        if isinstance(self.screen, LogWindow):
+            self.pop_screen()
+        else:
+            self.push_screen(LogWindow(self.log_widget))
 
 
 if __name__ == "__main__":
