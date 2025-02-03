@@ -59,3 +59,9 @@ def version(ctx, *args: str):
     """Bump package version."""
     args_str = " " + " ".join(args) if args else ""
     ctx.run(f"hatch version{args_str}")
+
+
+@duty(capture=False)
+def ui(ctx, *args: str):
+    """Launch Textual UI."""
+    ctx.run(r"uv run textual run --dev .\src\llmling_textual\app.py")
