@@ -12,7 +12,7 @@ This creates a flexible and composable system for building complex message flows
 Any entity that:
 
 - Can receive and process messages (run())
-- Has an outbox signal for emitting messages
+- Has message_sent / message_received signals
 - Can be connected to other nodes
 
 Types of nodes:
@@ -45,7 +45,7 @@ Three different ways messages can be handled:
 
 - `run`: Execute message as a new run in target agent
 - `context`: Add message as context to target's conversation
-- `forward`: Forward message directly to target's outbox
+- `forward`: Forward message directly without processing
 
 #### Connection Management
 

@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
 agents:
   simple_agent:
-    description: "Basic agent with minimal configuration"
+    description: "Basic agent with one tool to open webbrowsers."
     model: openai:gpt-4o-mini
     environment:
       type: inline
@@ -13,5 +13,13 @@ agents:
         help_text:
           type: text
           content: "Basic help text for the agent"
+    system_prompts:
+      - "You are a helpful assistant."
+  simple_agent_2:
+    model: openai:gpt-4o-mini
+    system_prompts:
+      - "You are a helpful assistant."
+  simple_agent_3:
+    model: openai:gpt-4o-mini
     system_prompts:
       - "You are a helpful assistant."

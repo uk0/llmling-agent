@@ -28,7 +28,7 @@ Three different ways messages can be handled:
 
 - `run`: Execute message as a new run in target agent
 - `context`: Add message as context to target's conversation
-- `forward`: Forward message directly to target's outbox
+- `forward`: Forward message directly without processing
 
 ### Connection Management
 

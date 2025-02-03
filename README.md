@@ -455,7 +455,8 @@ LLMling provides a unified messaging system based on a simple but powerful conce
 1. Share a common interface:
    - `run()` -> Returns ChatMessage
    - `connect_to()` -> Creates connections
-   - `outbox` signal for message emission
+   - `message_received`: Message-received signal
+   - `message_sent`: Message-sent signal
 
 2. Can be freely connected:
 ```python
