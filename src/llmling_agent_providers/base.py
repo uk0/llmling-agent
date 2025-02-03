@@ -12,7 +12,7 @@ from llmling_agent.models.agents import ToolCallInfo
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncIterator
     from contextlib import AbstractAsyncContextManager
 
     import tokonomics
@@ -35,7 +35,6 @@ class ProviderResponse:
     """Raw response data from provider."""
 
     content: Any
-    messages: list[ChatMessage] = field(default_factory=list)
     tool_calls: list[ToolCallInfo] = field(default_factory=list)
     model_name: str = ""
     cost_and_usage: TokenCost | None = None
@@ -172,14 +171,6 @@ class AgentProvider[TDeps]:
     ) -> AbstractAsyncContextManager[StreamingResponseProtocol]:
         """Stream a response. Must be implemented by providers."""
         raise NotImplementedError
-
-    @staticmethod
-    async def format_prompts(prompts: Sequence[str | Content]) -> str:
-        """Format prompts for human readability using to_prompt."""
-        from toprompt import to_prompt
-
-        parts = [await to_prompt(p) for p in prompts]
-        return "\n\n".join(parts)
 
     async def supports_feature(self, capability: Literal["vision"]) -> bool:
         """Check if provider supports a specific capability."""

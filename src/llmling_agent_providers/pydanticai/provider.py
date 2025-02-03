@@ -12,7 +12,7 @@ from llmling_models import AllModels, infer_model
 import logfire
 from pydantic_ai import Agent as PydanticAgent
 import pydantic_ai._pydantic
-from pydantic_ai.messages import ModelRequest, ModelResponse
+from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.result import RunResult, StreamedRunResult
 
@@ -21,6 +21,7 @@ from llmling_agent.common_types import EndStrategy, ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.models.content import BaseContent
+from llmling_agent.prompts.convert import format_prompts
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
     RunAbortedError,
@@ -267,7 +268,7 @@ class PydanticAIProvider(AgentLLMProvider):
             content_prompts = [p for p in prompts if isinstance(p, BaseContent)]
 
             # Get normal text prompt
-            prompt = await self.format_prompts(text_prompts)
+            prompt = await format_prompts(text_prompts)
 
             # Convert Content objects to ModelMessages
             if content_prompts:
@@ -295,11 +296,6 @@ class PydanticAIProvider(AgentLLMProvider):
             for call in tool_calls:
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
-            new = [
-                convert_model_message(m, tool_dict, self.name, filter_system_prompts=True)
-                for m in new_msgs
-                if isinstance(m, ModelRequest)
-            ]
             resolved_model = (
                 use_model.name() if isinstance(use_model, Model) else str(use_model)
             )
@@ -314,7 +310,6 @@ class PydanticAIProvider(AgentLLMProvider):
             )
             return ProviderResponse(
                 content=result.data,
-                messages=new,
                 tool_calls=tool_calls,
                 cost_and_usage=cost_info,
                 model_name=resolved_model,
@@ -392,7 +387,7 @@ class PydanticAIProvider(AgentLLMProvider):
         content_prompts = [p for p in prompts if isinstance(p, BaseContent)]
 
         # Get normal text prompt
-        prompt = await self.format_prompts(text_prompts)
+        prompt = await format_prompts(text_prompts)
 
         # Convert Content objects to ChatMessages
         if content_prompts:

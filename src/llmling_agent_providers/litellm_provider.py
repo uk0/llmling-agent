@@ -319,11 +319,8 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                 else:
                     cost_and_usage = None
                 # Store in history if requested
-
-            request_msgs = [ChatMessage(role="user", content=str(p)) for p in prompts]
             return ProviderResponse(
                 content=content,
-                messages=[*request_msgs],
                 tool_calls=calls,
                 model_name=model_name,
                 cost_and_usage=cost_and_usage,

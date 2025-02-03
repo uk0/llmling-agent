@@ -11,6 +11,7 @@ import logfire
 from slashed import CommandStore, DefaultOutputWriter, parse_command
 
 from llmling_agent.log import get_logger
+from llmling_agent.prompts.convert import format_prompts
 from llmling_agent_providers.base import (
     AgentProvider,
     ProviderResponse,
@@ -89,8 +90,6 @@ class HumanProvider(AgentProvider):
             system_prompt: System prompt from SystemPrompts manager
             kwargs: Additional arguments for human (unused)
         """
-        from llmling_agent.messaging.messages import ChatMessage
-
         if self._show_context:
             history = await self.conversation.format_history(
                 format_template="[{agent}] {content}\n",
@@ -101,16 +100,14 @@ class HumanProvider(AgentProvider):
                 print(history)
                 print("\n---")
         # Show prompt and get response
-        formatted = await self.format_prompts(prompts)
+        formatted = await format_prompts(prompts)
         print(f"\n{formatted}")
         content: Any
         if result_type:
             content = await get_structured_response(result_type, self.use_promptantic)
         else:
             content = input("> ")
-
-        new_messages = [ChatMessage(role="user", content=formatted)]
-        return ProviderResponse(content=content, messages=new_messages)
+        return ProviderResponse(content=content)
 
     @asynccontextmanager
     async def stream_response(
@@ -127,7 +124,7 @@ class HumanProvider(AgentProvider):
         """Stream response keystroke by keystroke."""
         from llmling_agent.messaging.messages import ChatMessage
 
-        prompt = await self.format_prompts(prompts)
+        prompt = await format_prompts(prompts)
         print(f"\n{prompt}")
         if result_type:
             print(f"(Please provide response as {result_type.__name__})")

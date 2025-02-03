@@ -66,3 +66,11 @@ async def convert_prompts(
             case _:
                 result.append(p)  # type: ignore
     return result
+
+
+async def format_prompts(prompts: Sequence[str | Content]) -> str:
+    """Format prompts for human readability using to_prompt."""
+    from toprompt import to_prompt
+
+    parts = [await to_prompt(p) for p in prompts]
+    return "\n\n".join(parts)

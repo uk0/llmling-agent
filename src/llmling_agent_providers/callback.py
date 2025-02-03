@@ -6,8 +6,8 @@ import inspect
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.models.content import BaseContent
+from llmling_agent.prompts.convert import format_prompts
 from llmling_agent.utils.inspection import has_argument_type
 from llmling_agent_providers.base import (
     AgentProvider,
@@ -19,6 +19,7 @@ from llmling_agent_providers.base import (
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
     from llmling_agent.models.providers import ProcessorCallback
 
@@ -64,7 +65,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         content_prompts = [p for p in prompts if isinstance(p, BaseContent)]
 
         # Get normal text prompt
-        prompt = await self.format_prompts(text_prompts)
+        prompt = await format_prompts(text_prompts)
 
         try:
             # Create args tuple based on callback requirements
@@ -80,8 +81,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
 
             # Handle potential awaitable result
             result = await raw if inspect.isawaitable(raw) else raw
-            msgs = [ChatMessage(role="user", content=prompt)]
-            return ProviderResponse(content=result, messages=msgs)
+            return ProviderResponse(content=result)
 
         except Exception as e:
             logger.exception("Processor callback failed")

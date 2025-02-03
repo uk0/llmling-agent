@@ -26,7 +26,7 @@ from llmling_agent.models import AgentsManifest
 from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
-from llmling_agent.prompts.convert import convert_prompts
+from llmling_agent.prompts.convert import convert_prompts, format_prompts
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context, has_return_type
@@ -871,7 +871,9 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 provider_extra=result.provider_extra or {},
             )
             if store_history:
-                self.conversation.add_chat_messages([*result.messages, response_msg])
+                final_prompt = await format_prompts(prompts)
+                request_msg = ChatMessage(role="user", content=final_prompt)
+                self.conversation.add_chat_messages([request_msg, response_msg])
             if self._debug:
                 import devtools
 
