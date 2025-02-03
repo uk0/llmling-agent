@@ -78,7 +78,10 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
     """Signal emitted when node produces a message."""
 
     message_received = Signal(ChatMessage)
+    """Signal emitted when node receives a message."""
+
     message_sent = Signal(ChatMessage)
+    """Signal emitted when node creates a message."""
 
     def __init__(
         self,
