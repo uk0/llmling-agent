@@ -149,7 +149,7 @@ class TokenCost:
         return cls(token_usage=token_usage, total_cost=total_cost)
 
 
-@dataclass(frozen=True)
+@dataclass
 class ChatMessage[TContent]:
     """Common message format for all UI types.
 
@@ -177,6 +177,9 @@ class ChatMessage[TContent]:
 
     message_id: str = field(default_factory=lambda: str(uuid4()))
     """Unique identifier for this message."""
+
+    conversation_id: str | None = None
+    """ID of the conversation this message belongs to."""
 
     response_time: float | None = None
     """Time it took the LLM to respond."""

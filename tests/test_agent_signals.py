@@ -88,6 +88,15 @@ async def test_message_chain_through_routing():
                 final_msg = received_by_c[0]
                 assert final_msg.forwarded_from == ["agent-a", "agent-b"]
                 assert "Response from B" in final_msg.content
+                assert agent_a.conversation.chat_messages[0].forwarded_from == []
+                assert agent_b.conversation.chat_messages[0].forwarded_from == ["agent-a"]
+                assert agent_b.conversation.chat_messages[1].forwarded_from == [
+                    "agent-a"  # TODO: how to handle this? Should both messages have this?
+                ]
+                assert agent_c.conversation.chat_messages[0].forwarded_from == [
+                    "agent-a",
+                    "agent-b",
+                ]
 
 
 if __name__ == "__main__":
