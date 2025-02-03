@@ -12,9 +12,9 @@ from slashed import CommandStore
 from upath import UPath
 import yamling
 
-from llmling_agent.log import LogCapturer
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_web.handlers import AgentHandler
+from llmling_agent_web.log_capturer import LogCapturer
 
 
 if TYPE_CHECKING:
