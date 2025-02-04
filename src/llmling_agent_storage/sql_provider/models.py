@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, DateTime
+from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlmodel import JSON, Field, SQLModel
 from sqlmodel.main import SQLModelConfig
 
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import JsonValue
 
 
-class CommandHistory(SQLModel, table=True):  # type: ignore[call-arg]
+class CommandHistory(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     """Database model for command history."""
 
     id: int = Field(default=None, primary_key=True)
@@ -89,7 +90,7 @@ class ConversationLog(BaseModel):
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
-class Message(SQLModel, table=True):  # type: ignore[call-arg]
+class Message(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     """Database model for message logs."""
 
     id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
@@ -143,7 +144,7 @@ class Message(SQLModel, table=True):  # type: ignore[call-arg]
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
 
-class ToolCall(SQLModel, table=True):  # type: ignore[call-arg]
+class ToolCall(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     """Record of a tool being called during a conversation."""
 
     id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
@@ -173,7 +174,7 @@ class ToolCall(SQLModel, table=True):  # type: ignore[call-arg]
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
 
-class Conversation(SQLModel, table=True):  # type: ignore[call-arg]
+class Conversation(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     """Database model for conversations."""
 
     id: str = Field(primary_key=True)
