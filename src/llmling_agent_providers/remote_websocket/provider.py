@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import ModelType
     from llmling_agent.models.content import Content
+    from llmling_agent.tools.base import ToolInfo
 
 
 logger = get_logger(__name__)
@@ -72,17 +73,27 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         url: str,
         *,
         timeout: float = 30.0,
+        auto_reconnect: bool = True,
     ):
         super().__init__()
         self.url = url
         self.timeout = timeout
+        self.auto_reconnect = auto_reconnect
         self._ws: websockets.ClientConnection | None = None
         self._pending_responses: dict[str, asyncio.Future[Any]] = {}
         self._active_streams: dict[str, asyncio.Queue[Any]] = {}
+        self._current_tools: list[ToolInfo] = []  # Track current request's tools
 
     async def _ensure_connection(self) -> websockets.ClientConnection:
         """Ensure we have an active connection."""
-        if not self._ws:
+        try:
+            if self._ws:
+                # Use proper API to check connection state
+                pong = await self._ws.ping()
+                await pong
+            else:
+                raise websockets.ConnectionClosed(None, None)  # noqa: TRY301
+        except websockets.ConnectionClosed:
             self._ws = await websockets.connect(self.url, ping_timeout=10)
             self.create_task(self._handle_messages())
             logger.info("Connected to remote agent at %s", self.url)
@@ -154,15 +165,18 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         await ws.send(message.model_dump_json())
         return message.message_id
 
-    async def _send_context(self, messages) -> None:
-        """Send initial context to server."""
-        if not self.conversation or not self.tool_manager:
-            return
+    async def _send_context(
+        self,
+        messages: list[ChatMessage],
+        tools: list[ToolInfo],
+    ) -> None:
+        """Send current context to server.
 
-        # Get available tools
-        tools = [tool for tool in self.tool_manager.values() if tool.enabled]
+        Should be called before every operation to ensure server state is in sync.
+        """
+        # Convert history to dicts
+        self._current_tools = list(tools)
 
-        # Convert history to dicts (since ChatMessage is a dataclass)
         history = [
             {
                 "content": msg.content,
@@ -174,29 +188,28 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
             for msg in messages
         ]
 
-        # Send context
-        tools = [
+        # Convert tools to schema format
+        tool_schemas = [
             {
                 "name": t.name,
                 "description": t.description,
                 "schema": t.callable.get_schema(),
             }
-            for t in tools
+            for t in tools or []
         ]
-        await self._send_message("init", {"conversation": history, "tools": tools})
+
+        # Send context update
+        await self._send_message("init", {"conversation": history, "tools": tool_schemas})
 
     async def _handle_tool_call(self, message: WebSocketMessage) -> Any:
         """Execute local tool and return result."""
         try:
             tool_ctx = ToolContext.model_validate(message.content)
 
-            if not self.tool_manager:
-                msg = "No tool manager available"
-                raise RuntimeError(msg)  # noqa: TRY301
-
-            tool = self.tool_manager.get(tool_ctx.name)
-            if not tool or not tool.enabled:
-                msg = f"Tool not found or disabled: {tool_ctx.name}"
+            # Use current tools list
+            tool_dict = {t.name: t for t in self._current_tools}
+            if not (tool := tool_dict.get(tool_ctx.name)):
+                msg = f"Tool not found: {tool_ctx.name}"
                 raise RuntimeError(msg)  # noqa: TRY301
 
             # Execute tool
@@ -224,14 +237,15 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         message_id: str,
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
+        tools: list[ToolInfo] | None = None,
         model: ModelType = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate response via WebSocket connection."""
         try:
-            # Send context if first time
-            if not self._ws:
-                await self._send_context(message_history)
+            # Always ensure context is in sync
+            await self._ensure_connection()
+            await self._send_context(message_history, tools or [])
 
             # Send prompt
             msg_id = await self._send_message(
@@ -239,6 +253,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
                 content={
                     "prompts": prompts,
                     "result_type": str(result_type) if result_type else None,
+                    "model": str(model) if model else None,
                 },
             )
 
@@ -251,7 +266,6 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
             finally:
                 self._pending_responses.pop(msg_id, None)
 
-            # Convert to ProviderResponse
             return ProviderResponse(
                 content=result["content"],
                 tool_calls=result.get("tool_calls", []),
@@ -261,6 +275,21 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
                 model_name=result.get("model"),
             )
 
+        except websockets.ConnectionClosed as e:
+            if self.auto_reconnect:
+                # Try once more with fresh connection
+                self._ws = None
+                return await self.generate_response(
+                    *prompts,
+                    message_id=message_id,
+                    message_history=message_history,
+                    result_type=result_type,
+                    tools=tools,
+                    model=model,
+                    **kwargs,
+                )
+            msg = "WebSocket connection closed"
+            raise ConnectionError(msg) from e
         except TimeoutError as e:
             msg = f"Response timed out after {self.timeout}s"
             raise TimeoutError(msg) from e
@@ -275,48 +304,63 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         message_id: str,
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
+        tools: list[ToolInfo] | None = None,
         model: ModelType = None,
         store_history: bool = True,
         **kwargs: Any,
     ) -> AsyncIterator[StreamingResponseProtocol]:
         """Stream response from remote agent."""
-        # Send context if first time
-        if not self._ws:
-            await self._send_context(message_history)
-
-        msg_id = await self._send_message(
-            type_="prompt",
-            content={
-                "prompts": prompts,
-                "stream": True,
-                "result_type": str(result_type) if result_type else None,
-            },
-            metadata={"store_history": store_history},
-        )
-
-        # Create queue for streaming
-        queue: asyncio.Queue[Any] = asyncio.Queue()
-        self._active_streams[msg_id] = queue
-
         try:
-            while True:
-                try:
-                    chunk = await asyncio.wait_for(queue.get(), timeout=self.timeout)
-                    if chunk is None:  # End of stream
-                        break
-                    yield chunk
-                except TimeoutError as e:
-                    msg = f"Stream timed out after {self.timeout}s"
-                    raise TimeoutError(msg) from e
+            # Always ensure context is in sync
+            await self._ensure_connection()
+            await self._send_context(message_history, tools or [])
 
-        finally:
-            self._active_streams.pop(msg_id, None)
+            msg_id = await self._send_message(
+                type_="prompt",
+                content={
+                    "prompts": prompts,
+                    "stream": True,
+                    "result_type": str(result_type) if result_type else None,
+                    "model": str(model) if model else None,
+                },
+                metadata={"store_history": store_history},
+            )
 
-    async def cleanup(self) -> None:
-        """Clean up WebSocket connection."""
-        if self._ws:
-            await self._ws.close()
-            self._ws = None
+            queue: asyncio.Queue[Any] = asyncio.Queue()
+            self._active_streams[msg_id] = queue
+
+            try:
+                while True:
+                    try:
+                        chunk = await asyncio.wait_for(queue.get(), timeout=self.timeout)
+                        if chunk is None:  # End of stream
+                            break
+                        yield chunk
+                    except TimeoutError as e:
+                        msg = f"Stream timed out after {self.timeout}s"
+                        raise TimeoutError(msg) from e
+
+            finally:
+                self._active_streams.pop(msg_id, None)
+
+        except websockets.ConnectionClosed as e:
+            if self.auto_reconnect:
+                # Try once more with fresh connection
+                self._ws = None
+                async with self.stream_response(
+                    *prompts,
+                    message_id=message_id,
+                    message_history=message_history,
+                    result_type=result_type,
+                    tools=tools,
+                    model=model,
+                    store_history=store_history,
+                    **kwargs,
+                ) as stream:
+                    yield stream
+            else:
+                msg = "WebSocket connection closed"
+                raise ConnectionError(msg) from e
 
 
 if __name__ == "__main__":
