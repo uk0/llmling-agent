@@ -130,7 +130,7 @@ class Talk[TTransmittedData]:
         other: MessageNode[Any, Any]
         | ProcessorCallback[Any]
         | Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]],
-    ) -> Self:
+    ) -> TeamTalk[Any]:
         """Add another node as target to the connection or group.
 
         Example:
@@ -139,6 +139,7 @@ class Talk[TTransmittedData]:
         """
         from llmling_agent.agent import Agent, StructuredAgent
         from llmling_agent.messaging.messagenode import MessageNode
+        from llmling_agent.talk import TeamTalk
         from llmling_agent.utils.inspection import has_return_type
 
         match other:
@@ -147,17 +148,16 @@ class Talk[TTransmittedData]:
                     other = Agent.from_callback(other)
                 else:
                     other = StructuredAgent.from_callback(other)
-                self.targets.append(other)
+                return self.__rshift__(other)
             case Sequence():
-                for o in other:
-                    self.__rshift__(o)
+                team_talks = [self.__rshift__(o) for o in other]
+                return TeamTalk([self, *team_talks])
             case MessageNode():
-                self.targets.append(other)
+                talks = [t.connect_to(other) for t in self.targets]
+                return TeamTalk([self, *talks])
             case _:
                 msg = f"Invalid agent type: {type(other)}"
                 raise TypeError(msg)
-        # TODO: should return other?
-        return self
 
     async def _evaluate_condition(
         self,
@@ -508,6 +508,40 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
 
     def __repr__(self):
         return f"TeamTalk({list(self)})"
+
+    def __rshift__(
+        self,
+        other: MessageNode[Any, Any]
+        | ProcessorCallback[Any]
+        | Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]],
+    ) -> TeamTalk[Any]:
+        """Add another node as target to the connection or group.
+
+        Example:
+            connection >> other_agent  # Connect to single agent
+            connection >> (agent2 & agent3)  # Connect to group
+        """
+        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.messaging.messagenode import MessageNode
+        from llmling_agent.talk import TeamTalk
+        from llmling_agent.utils.inspection import has_return_type
+
+        match other:
+            case Callable():
+                if has_return_type(other, str):
+                    other = Agent.from_callback(other)
+                else:
+                    other = StructuredAgent.from_callback(other)
+                return self.__rshift__(other)
+            case Sequence():
+                team_talks = [self.__rshift__(o) for o in other]
+                return TeamTalk([self, *team_talks])
+            case MessageNode():
+                talks = [t.connect_to(other) for t in self.targets]
+                return TeamTalk([self, *talks])
+            case _:
+                msg = f"Invalid agent type: {type(other)}"
+                raise TypeError(msg)
 
     @property
     def targets(self) -> list[MessageNode]:
