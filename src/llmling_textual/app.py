@@ -5,10 +5,10 @@ from typing import ClassVar
 
 from textual.app import App
 from textual.binding import Binding
+from textualicious import LoggingWidget
 
 from llmling_agent.delegation.pool import AgentPool
-from llmling_textual.screens.log_screen.log_widget import LoggingWidget
-from llmling_textual.screens.log_screen.screen import LogWindow
+from llmling_textual.screens.log_screen import LogWindow
 from llmling_textual.screens.main_screen import MainScreen
 
 
