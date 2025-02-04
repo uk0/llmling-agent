@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 import inspect
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Literal, Self, overload
 
 from psygnal import Signal
 from typing_extensions import TypeVar
@@ -125,6 +125,22 @@ class Talk[TTransmittedData]:
         targets = [t.name for t in self.targets]
         return f"<Talk({self.connection_type}) {self.source.name} -> {targets}>"
 
+    @overload
+    def __rshift__(
+        self,
+        other: MessageNode[Any, str]
+        | ProcessorCallback[str]
+        | Sequence[MessageNode[Any, str] | ProcessorCallback[str]],
+    ) -> TeamTalk[str]: ...
+
+    @overload
+    def __rshift__(
+        self,
+        other: MessageNode[Any, Any]
+        | ProcessorCallback[Any]
+        | Sequence[MessageNode[Any, Any] | ProcessorCallback[Any]],
+    ) -> TeamTalk[Any]: ...
+
     def __rshift__(
         self,
         other: MessageNode[Any, Any]
@@ -155,7 +171,7 @@ class Talk[TTransmittedData]:
                 team_talks = [self.__rshift__(o) for o in other]
                 return TeamTalk([self, *team_talks])
             case MessageNode():
-                talks = [t.connect_to(other) for t in self.targets]
+                talks = [t.__rshift__(other) for t in self.targets]
                 return TeamTalk([self, *talks])
             case _:
                 msg = f"Invalid agent type: {type(other)}"
