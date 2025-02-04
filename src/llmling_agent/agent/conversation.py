@@ -190,7 +190,7 @@ class ConversationManager:
         token_count = 0
 
         # Get messages, optionally limited
-        history = self.chat_messages
+        history: Sequence[ChatMessage[Any]] = self.chat_messages
         if num_messages:
             history = history[-num_messages:]
 
@@ -385,7 +385,7 @@ class ConversationManager:
                     ]
 
             if replace_history:
-                self.chat_messages = messages
+                self.chat_messages = EventedList(messages)
             else:
                 self.chat_messages.extend(messages)
 
