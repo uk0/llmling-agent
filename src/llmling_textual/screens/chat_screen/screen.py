@@ -149,42 +149,34 @@ class ChatScreen(ModalScreen[None]):
             return
 
         chat_view = self.query_one(ChatView)
-        input_widget = event.prompt_input
 
-        # Disable input while processing
-        input_widget.submit_ready = False
+        # Show user message immediately
+        user_msg = ChatMessage(content=message, role="user", name="You")
+        await chat_view.append_chat_message(user_msg)
 
-        try:
-            # Handle commands
-            if message.startswith("/"):
-                result = await self.handle_command(message[1:])
-                if result.content:
-                    await chat_view.append_chat_message(result)
-                return
+        # Create background task for agent interaction
+        async def process_response():
+            try:
+                # Show typing indicator
+                self._typing_status.display = True
+                self._typing_status.set_node_responding()
 
-            # Show user message
-            user_msg = ChatMessage(content=message, role="user", name="You")
-            await chat_view.append_chat_message(user_msg)
+                # Get response
+                response = await self.node.run(message)
+                await chat_view.append_chat_message(response)
 
-            # Show typing indicator
-            self._typing_status.display = True
-            self._typing_status.set_node_responding()
+            except Exception as e:  # noqa: BLE001
+                # Show error in chat
+                error_msg = ChatMessage(
+                    content=f"Error: {e}",
+                    role="assistant",
+                    name=self.node.name,
+                )
+                await chat_view.append_chat_message(error_msg)
 
-            # Get response
-            response = await self.node.run(message)
-            await chat_view.append_chat_message(response)
+            finally:
+                # Always hide typing status
+                self._typing_status.display = False
 
-        except Exception as e:  # noqa: BLE001
-            # Show error in chat
-            error_msg = ChatMessage(
-                content=f"Error: {e}",
-                role="assistant",
-                name=self.node.name,
-            )
-            await chat_view.append_chat_message(error_msg)
-
-        finally:
-            # Re-enable input and hide typing status
-            self._typing_status.display = False
-            input_widget.submit_ready = True
-            input_widget.focus()
+        # Run in background to keep UI responsive
+        self.app.run_worker(process_response(), name=f"agent_response_{self.node.name}")

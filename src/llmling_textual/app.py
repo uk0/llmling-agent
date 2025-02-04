@@ -61,5 +61,5 @@ class PoolApp(App):
 
 
 if __name__ == "__main__":
-    app = PoolApp("src/llmling_agent/config_resources/agents.yml")
+    app = PoolApp("src/llmling_agent/config_resources/agents_template.yml")
     app.run()
