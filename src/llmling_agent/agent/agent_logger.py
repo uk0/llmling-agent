@@ -8,7 +8,7 @@ from uuid import uuid4
 
 
 if TYPE_CHECKING:
-    from llmling_agent import Agent
+    from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.agents import ToolCallInfo
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class AgentLogger:
     """Handles database logging for agent interactions."""
 
-    def __init__(self, agent: Agent[Any], enable_db_logging: bool = True):
+    def __init__(self, agent: MessageNode[Any, Any], enable_db_logging: bool = True):
         """Initialize logger.
 
         Args:
