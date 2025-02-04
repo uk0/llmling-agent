@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import AsyncExitStack, suppress
+from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import signal
 from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 
@@ -28,7 +28,7 @@ from llmling_agent.tasks import TaskRegistry
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
 
     from psygnal.containers import EventedDict
@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.agents import AgentsManifest
     from llmling_agent.models.result_types import ResponseDefinition
     from llmling_agent.models.session import SessionQuery
@@ -48,6 +49,30 @@ logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=Any)
 TPoolDeps = TypeVar("TPoolDeps", default=None)
+
+
+class MessageFlowTracker:
+    def __init__(self):
+        self.events: list[Talk.ConnectionProcessed] = []
+
+    def track(self, event: Talk.ConnectionProcessed):
+        self.events.append(event)
+
+    def visualize(self, message: ChatMessage) -> str:
+        """Get flow visualization for specific conversation."""
+        # Filter events for this conversation
+        conv_events = [
+            e for e in self.events if e.message.conversation_id == message.conversation_id
+        ]
+        lines = ["flowchart LR"]
+        for event in conv_events:
+            import devtools
+
+            devtools.debug(event)
+            source = event.message.name
+            for target in event.targets:
+                lines.append(f"    {source}-->{target.name}")  # noqa: PERF401
+        return "\n".join(lines)
 
 
 class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
@@ -338,6 +363,16 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
         if name:
             self[name] = team
         return team
+
+    @asynccontextmanager
+    async def track_message_flow(self) -> AsyncIterator[MessageFlowTracker]:
+        """Track message flow during a context."""
+        tracker = MessageFlowTracker()
+        self.connection_registry.message_flow.connect(tracker.track)
+        try:
+            yield tracker
+        finally:
+            self.connection_registry.message_flow.disconnect(tracker.track)
 
     async def run_event_loop(self):
         """Run pool in event-watching mode until interrupted."""
