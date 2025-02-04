@@ -74,7 +74,7 @@ class PoolEntry(Static):
         active = "✓ " if self.active else "  "
         return f"{active}[b]{self.config.name}[/b]\n   [dim]{self.config.path}[/dim]"
 
-    def on_click(self) -> None:
+    def on_click(self):
         """Handle click event."""
         self.post_message(self.Selected(self.config))
 
@@ -96,7 +96,7 @@ class PoolList(ScrollableContainer):
         super().__init__()
         self.store = ConfigStore("agents.json")
 
-    def on_mount(self) -> None:
+    def on_mount(self):
         """Load pools on mount."""
         active = self.store.get_active()
         for name, path in self.store.list_configs():
@@ -125,7 +125,7 @@ class PoolPreview(Static):
         super().__init__("")
         self._current_path: str | None = None
 
-    async def show_config(self, path: str | None) -> None:
+    async def show_config(self, path: str | None):
         """Show configuration content."""
         from rich.syntax import Syntax
 
@@ -167,7 +167,7 @@ class PoolSelectionScreen(ModalScreen[None]):
             yield PoolList()
             yield PoolPreview()
 
-    def on_pool_entry_selected(self, message: PoolEntry.Selected) -> None:
+    def on_pool_entry_selected(self, message: PoolEntry.Selected):
         """Handle pool selection."""
         # Update store
         store = ConfigStore("agents.json")
@@ -181,7 +181,7 @@ class PoolSelectionScreen(ModalScreen[None]):
         if preview := self.query_one(PoolPreview):
             self.run_worker(preview.show_config(message.config.path))
 
-    def _on_key(self, event: Key) -> None:
+    async def _on_key(self, event: Key):
         """Handle keyboard input."""
         if event.key == "escape":
             self.app.pop_screen()

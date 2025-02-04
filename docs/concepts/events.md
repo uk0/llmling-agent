@@ -166,7 +166,7 @@ event_manager.auto_handle = True
 Register custom callbacks to handle events:
 
 ```python
-async def handle_events(event: EventData) -> None:
+async def handle_events(event: EventData):
     match event:
         case FileEvent(type="modified", path=p) if p.endswith('.py'):
             await agent.run(f"Python file modified: {p}")
@@ -184,11 +184,11 @@ Callbacks can be both sync or async:
 
 ```python
 # Sync callback
-def sync_handler(event: EventData) -> None:
+def sync_handler(event: EventData):
     print(f"Event received: {event}")
 
 # Async callback
-async def async_handler(event: EventData) -> None:
+async def async_handler(event: EventData):
     await process_event(event)
 
 # Both work
@@ -331,7 +331,7 @@ agents:
 ### Mixed Handling
 ```python
 # Custom handling for specific cases
-async def special_handler(event: EventData) -> None:
+async def special_handler(event: EventData):
     if isinstance(event, FileEvent) and event.path.endswith('.secret'):
         await handle_secret_file(event.path)
 

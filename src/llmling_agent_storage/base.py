@@ -274,7 +274,7 @@ class StorageProvider[T](TaskManagerMixin):
         message_id: str,
         checkpoint_name: str,
         description: str | None = None,
-    ) -> None:
+    ):
         """Add checkpoint to message."""
         raise NotImplementedError
 

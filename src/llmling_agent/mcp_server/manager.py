@@ -64,7 +64,7 @@ class MCPManager(ResourceProvider):
         self.clients: dict[str, MCPClient] = {}
         self.exit_stack = AsyncExitStack()
 
-    def add_server_config(self, server: MCPServerConfig | str) -> None:
+    def add_server_config(self, server: MCPServerConfig | str):
         """Add a new MCP server to the manager."""
         server = StdioMCPServer.from_string(server) if isinstance(server, str) else server
         self.servers.append(server)
@@ -94,7 +94,7 @@ class MCPManager(ResourceProvider):
     async def __aexit__(self, *exc):
         await self.cleanup()
 
-    async def setup_server(self, config: MCPServerConfig) -> None:
+    async def setup_server(self, config: MCPServerConfig):
         """Set up a single MCP server connection."""
         if not config.enabled:
             return
@@ -166,7 +166,7 @@ class MCPManager(ResourceProvider):
                     logger.exception("Failed to convert resource: %s", resource.name)
         return resources
 
-    async def cleanup(self) -> None:
+    async def cleanup(self):
         """Clean up all MCP connections."""
         try:
             try:

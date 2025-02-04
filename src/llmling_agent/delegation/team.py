@@ -64,7 +64,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             execution_talks.append(talk)
             self._team_talk.append(talk)  # Add to base class's TeamTalk
 
-        async def _run(node: MessageNode[TDeps, Any]) -> None:
+        async def _run(node: MessageNode[TDeps, Any]):
             try:
                 start = perf_counter()
                 message = await node.run(*final_prompt, **kwargs)
@@ -99,7 +99,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         queue: asyncio.Queue[ChatMessage[Any] | None] = asyncio.Queue()
         failures: dict[str, Exception] = {}
 
-        async def _run(node: MessageNode[TDeps, Any]) -> None:
+        async def _run(node: MessageNode[TDeps, Any]):
             try:
                 message = await node.run(*prompts, **kwargs)
                 await queue.put(message)
@@ -207,7 +207,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
 
             prompt = await job.get_prompt()
 
-            async def _run(agent: MessageNode[TDeps, TJobResult]) -> None:
+            async def _run(agent: MessageNode[TDeps, TJobResult]):
                 assert isinstance(agent, Agent | StructuredAgent)
                 try:
                     with agent.tools.temporary_tools(

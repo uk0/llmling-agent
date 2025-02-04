@@ -42,6 +42,6 @@ class LogWindow(ModalScreen[None]):
         with Container(id="log-container"):
             yield self.log_widget
 
-    def action_clear(self) -> None:
+    def action_clear(self):
         """Clear log content."""
         self.log_widget.clear()

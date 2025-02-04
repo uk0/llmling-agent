@@ -66,7 +66,7 @@ class Mem0StorageProvider(StorageProvider):
         model: str | None = None,
         response_time: float | None = None,
         forwarded_from: list[str] | None = None,
-    ) -> None:
+    ):
         """Log a message to mem0."""
         metadata = {
             "model": model,
@@ -96,7 +96,7 @@ class Mem0StorageProvider(StorageProvider):
         conversation_id: str,
         node_name: str,
         start_time: datetime | None = None,
-    ) -> None:
+    ):
         """Log conversation metadata."""
         t = (start_time or datetime.now()).isoformat()
         meta = {"type": "conversation_start", "agent_name": node_name, "start_time": t}
@@ -109,7 +109,7 @@ class Mem0StorageProvider(StorageProvider):
         conversation_id: str,
         message_id: str,
         tool_call: ToolCallInfo,
-    ) -> None:
+    ):
         """Log tool usage."""
         metadata = {
             "type": "tool_call",
@@ -165,6 +165,6 @@ class Mem0StorageProvider(StorageProvider):
 
         return messages
 
-    async def cleanup(self) -> None:
+    async def cleanup(self):
         """Clean up by resetting client."""
         await self.client.reset()

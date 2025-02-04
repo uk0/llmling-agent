@@ -107,7 +107,7 @@ class ConversationManager:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Clean up any pending messages."""
         self._pending_messages.clear()
 
@@ -394,7 +394,7 @@ class ConversationManager:
         finally:
             self.chat_messages = old_history
 
-    def add_chat_messages(self, messages: Sequence[ChatMessage]) -> None:
+    def add_chat_messages(self, messages: Sequence[ChatMessage]):
         """Add new messages to history and update last_messages."""
         self._last_messages = list(messages)
         self.chat_messages.extend(messages)

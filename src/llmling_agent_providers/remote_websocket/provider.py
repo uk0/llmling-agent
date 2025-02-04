@@ -99,7 +99,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
             logger.info("Connected to remote agent at %s", self.url)
         return self._ws
 
-    async def _handle_messages(self) -> None:
+    async def _handle_messages(self):
         """Handle incoming messages from WebSocket."""
         if not self._ws:
             return
@@ -169,7 +169,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         self,
         messages: list[ChatMessage],
         tools: list[ToolInfo],
-    ) -> None:
+    ):
         """Send current context to server.
 
         Should be called before every operation to ensure server state is in sync.

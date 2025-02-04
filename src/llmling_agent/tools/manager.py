@@ -78,7 +78,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             return "No tools available"
         return f"Available tools: {', '.join(enabled_tools)}"
 
-    def add_provider(self, provider: ResourceProvider | ResourceCallable) -> None:
+    def add_provider(self, provider: ResourceProvider | ResourceCallable):
         """Add a resource provider or tool callable.
 
         Args:
@@ -94,7 +94,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             wrapped = CallableResourceProvider(provider)
             self._resource_providers.append(wrapped)
 
-    def remove_provider(self, provider: ResourceProvider | ResourceCallable) -> None:
+    def remove_provider(self, provider: ResourceProvider | ResourceCallable):
         """Remove a resource provider."""
         from llmling_agent.resource_providers.base import ResourceProvider
 

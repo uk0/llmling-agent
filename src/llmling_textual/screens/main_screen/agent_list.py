@@ -67,7 +67,7 @@ class NodeEntry(Static, can_focus=True):  # type: ignore
     class Clicked(Message):
         """Emitted when entry is clicked."""
 
-        def __init__(self, node: MessageNode) -> None:
+        def __init__(self, node: MessageNode):
             self.node = node
             super().__init__()
 
@@ -88,7 +88,7 @@ class NodeEntry(Static, can_focus=True):  # type: ignore
                     exra = " | ".join(node.name for node in self.node.agents)
             yield Static(f"({exra})", classes="provider")
 
-    def on_click(self) -> None:
+    def on_click(self):
         """Handle click event."""
         self.post_message(self.Clicked(self.node))
 
@@ -123,7 +123,7 @@ class NodeList(ScrollableContainer):
         *,
         id: str | None = None,  # noqa: A002
         classes: str | None = None,
-    ) -> None:
+    ):
         super().__init__(id=id, classes=classes)
         self._entries: dict[str, NodeEntry] = {}
 
@@ -131,7 +131,7 @@ class NodeList(ScrollableContainer):
         """Create initial layout."""
         yield Static("Available Nodes", classes="header")
 
-    def update_nodes(self, pool: AgentPool) -> None:
+    def update_nodes(self, pool: AgentPool):
         """Update node list from pool."""
         current_nodes = set(pool.nodes.keys())
         existing_nodes = set(self._entries.keys())
@@ -154,7 +154,7 @@ class NodeList(ScrollableContainer):
             entry = self._entries[name]
             entry.add_class("busy" if node.is_busy() else "idle")
 
-    def action_cursor_up(self) -> None:
+    def action_cursor_up(self):
         """Move focus to previous node."""
         entries = list(self.query(NodeEntry))
         if not entries:
@@ -171,7 +171,7 @@ class NodeList(ScrollableContainer):
         else:
             entries[0].focus()
 
-    def action_cursor_down(self) -> None:
+    def action_cursor_down(self):
         """Move focus to next node."""
         entries = list(self.query(NodeEntry))
         if not entries:
@@ -188,7 +188,7 @@ class NodeList(ScrollableContainer):
         else:
             entries[0].focus()
 
-    def action_select_node(self) -> None:
+    def action_select_node(self):
         """Select focused node."""
         if (focused := self.screen.focused) and isinstance(focused, NodeEntry):
             self.post_message(focused.Clicked(focused.node))

@@ -36,7 +36,7 @@ class MainScreen(Screen):
     }
     """
 
-    def __init__(self, pool: AgentPool) -> None:
+    def __init__(self, pool: AgentPool):
         super().__init__()
         self.pool = pool
         self.node_list = NodeList(id="node-list")
@@ -46,7 +46,7 @@ class MainScreen(Screen):
         self.pool.nodes.events.added.connect(self._on_node_change)
         self.pool.nodes.events.removed.connect(self._on_node_change)
 
-    def on_mount(self) -> None:
+    def on_mount(self):
         """Initialize screen."""
         # Initial node list population
         self.node_list.update_nodes(self.pool)
@@ -58,12 +58,12 @@ class MainScreen(Screen):
         yield self.message_stream
         yield Footer()
 
-    def _on_node_change(self, *_) -> None:
+    def _on_node_change(self, *_):
         """Handle node added/removed."""
         if self.node_list:  # Check if widget still exists
             self.node_list.update_nodes(self.pool)
 
-    def cleanup(self) -> None:
+    def cleanup(self):
         """Disconnect event handlers."""
         # Disconnect pool events
         self.pool.nodes.events.added.disconnect(self._on_node_change)
@@ -72,6 +72,6 @@ class MainScreen(Screen):
         # Clean up stream
         self.message_stream.cleanup()
 
-    async def on_node_entry_clicked(self, event: NodeEntry.Clicked) -> None:
+    async def on_node_entry_clicked(self, event: NodeEntry.Clicked):
         """Show chat screen for clicked agent."""
         await self.app.push_screen(ChatScreen(event.node))

@@ -49,7 +49,7 @@ class MessageStream(ScrollableContainer):
         self.show_placeholder = True
         self._connected = False
 
-    def on_mount(self) -> None:
+    def on_mount(self):
         """Connect to pool's message flow."""
         if not self._connected:
             self.pool.connection_registry.message_flow.connect(self.handle_message_flow)
@@ -59,7 +59,7 @@ class MessageStream(ScrollableContainer):
         # Show initial placeholder
         self.mount(self._placeholder)
 
-    def cleanup(self) -> None:
+    def cleanup(self):
         """Cleanup signal connections."""
         if self._connected:
             self.pool.connection_registry.message_flow.disconnect(
@@ -67,7 +67,7 @@ class MessageStream(ScrollableContainer):
             )
             self._connected = False
 
-    def handle_message_flow(self, event: Talk.ConnectionProcessed) -> None:
+    def handle_message_flow(self, event: Talk.ConnectionProcessed):
         """Handle new message flow event."""
         if not self.is_mounted:
             return

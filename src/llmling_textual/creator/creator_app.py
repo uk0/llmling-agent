@@ -132,7 +132,7 @@ class ConfigGeneratorApp(App):
             system_prompt=SYS_PROMPT,
         )
 
-    async def on_mount(self) -> None:
+    async def on_mount(self):
         """Load schema and calculate token count."""
         schema = await read_path(SCHEMA_URL)
         readme = await read_path(README_URL)
@@ -151,7 +151,7 @@ class ConfigGeneratorApp(App):
         stats = self.query_one(StatsDisplay)
         stats.update_stats(self._token_count)
 
-    async def on_input_submitted(self, message: Input.Submitted) -> None:
+    async def on_input_submitted(self, message: Input.Submitted):
         """Generate config when user hits enter."""
         yaml = await self.agent.run(message.value)
         self.current_config = yaml.content
@@ -170,7 +170,7 @@ class ConfigGeneratorApp(App):
         stats = self.query_one(StatsDisplay)
         stats.update_stats(self._token_count, status)
 
-    def action_save(self) -> None:
+    def action_save(self):
         """Save current config."""
         if not self.current_config:
             self.notify("No configuration generated yet!")

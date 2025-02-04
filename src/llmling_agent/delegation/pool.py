@@ -339,7 +339,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
             self[name] = team
         return team
 
-    async def run_event_loop(self) -> None:
+    async def run_event_loop(self):
         """Run pool in event-watching mode until interrupted."""
         import sys
 
@@ -406,7 +406,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
         item.context.pool = self
         return item
 
-    def _create_teams(self) -> None:
+    def _create_teams(self):
         """Create all teams in two phases to allow nesting."""
         # Phase 1: Create empty teams
 
@@ -436,7 +436,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
             team.agents.extend(members)
             self[name] = team
 
-    def _connect_nodes(self) -> None:
+    def _connect_nodes(self):
         """Set up connections defined in manifest."""
         # Merge agent and team configs into one dict of nodes with connections
         for name, config in self.manifest.nodes.items():

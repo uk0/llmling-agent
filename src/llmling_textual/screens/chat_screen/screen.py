@@ -31,12 +31,12 @@ class TextualOutputWriter(OutputWriter):
     def __init__(self, chat_view: ChatView):
         self.chat_view = chat_view
 
-    async def print(self, text: str) -> None:
+    async def print(self, text: str):
         """Write text to chat view."""
         msg = ChatMessage(content=text, role="system", name="System")
         await self.chat_view.append_chat_message(msg)
 
-    async def print_error(self, text: str) -> None:
+    async def print_error(self, text: str):
         """Write error to chat view."""
         msg = ChatMessage(content=f"Error: {text}", role="system", name="System")
         await self.chat_view.append_chat_message(msg)
@@ -82,7 +82,7 @@ class ChatScreen(ModalScreen[None]):
     }
     """
 
-    def __init__(self, node: MessageNode[Any, Any]) -> None:
+    def __init__(self, node: MessageNode[Any, Any]):
         super().__init__()
         self.node = node
         self._typing_status = ResponseStatus()
@@ -107,7 +107,7 @@ class ChatScreen(ModalScreen[None]):
 
         yield Footer()
 
-    async def on_mount(self) -> None:
+    async def on_mount(self):
         """Load conversation history when mounted."""
         chat_view = self.query_one(ChatView)
         # Load existing messages
@@ -139,9 +139,7 @@ class ChatScreen(ModalScreen[None]):
                 content=f"Command error: {e}", role="system", name="System"
             )
 
-    async def on_prompt_input_prompt_submitted(
-        self, event: PromptInput.PromptSubmitted
-    ) -> None:
+    async def on_prompt_input_prompt_submitted(self, event: PromptInput.PromptSubmitted):
         """Handle submitted prompt."""
         message = event.text.strip()
         if not message:

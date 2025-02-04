@@ -141,7 +141,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Clean up base resources."""
         await self._events.cleanup()
         await self.mcp.__aexit__(exc_type, exc_val, exc_tb)

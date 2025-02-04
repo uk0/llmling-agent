@@ -46,20 +46,20 @@ class ConnectionManager:
     def __repr__(self):
         return f"ConnectionManager({self.owner})"
 
-    def _on_talk_added(self, index: int, talk: Talk) -> None:
+    def _on_talk_added(self, index: int, talk: Talk):
         """Connect to new talk's signal."""
         talk.connection_processed.connect(self._handle_message_flow)
 
-    def _on_talk_removed(self, index: int, talk: Talk) -> None:
+    def _on_talk_removed(self, index: int, talk: Talk):
         """Disconnect from removed talk's signal."""
         talk.connection_processed.disconnect(self._handle_message_flow)
 
-    def _on_talk_changed(self, index: int, old: Talk, new: Talk) -> None:
+    def _on_talk_changed(self, index: int, old: Talk, new: Talk):
         """Update signal connections on talk change."""
         old.connection_processed.disconnect(self._handle_message_flow)
         new.connection_processed.connect(self._handle_message_flow)
 
-    def _handle_message_flow(self, event: Talk.ConnectionProcessed) -> None:
+    def _handle_message_flow(self, event: Talk.ConnectionProcessed):
         """Forward message flow to our aggregated signal."""
         self.connection_processed.emit(event)
 

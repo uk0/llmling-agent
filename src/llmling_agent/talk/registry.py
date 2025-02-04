@@ -66,7 +66,7 @@ class ConnectionRegistry(BaseRegistry[str, Talk]):
 
     message_flow = Signal(Talk.ConnectionProcessed)
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs):
         """Initialize registry and connect event handlers."""
         super().__init__(*args, **kwargs)
         # Connect handlers to EventedDict events
@@ -74,23 +74,23 @@ class ConnectionRegistry(BaseRegistry[str, Talk]):
         self._items.events.removed.connect(self._on_talk_removed)
         self._items.events.changed.connect(self._on_talk_changed)
 
-    def _on_talk_added(self, name: str, talk: Talk) -> None:
+    def _on_talk_added(self, name: str, talk: Talk):
         """Handle new talk being added to registry."""
         talk.connection_processed.connect(self._handle_message_flow)
         logger.debug("Connected signal for talk: %s", name)
 
-    def _on_talk_removed(self, name: str, talk: Talk) -> None:
+    def _on_talk_removed(self, name: str, talk: Talk):
         """Handle talk being removed from registry."""
         talk.connection_processed.disconnect(self._handle_message_flow)
         logger.debug("Disconnected signal for talk: %s", name)
 
-    def _on_talk_changed(self, name: str, old_talk: Talk, new_talk: Talk) -> None:
+    def _on_talk_changed(self, name: str, old_talk: Talk, new_talk: Talk):
         """Handle talk being replaced in registry."""
         old_talk.connection_processed.disconnect(self._handle_message_flow)
         new_talk.connection_processed.connect(self._handle_message_flow)
         logger.debug("Reconnected signal for talk: %s", name)
 
-    def _handle_message_flow(self, event: Talk.ConnectionProcessed) -> None:
+    def _handle_message_flow(self, event: Talk.ConnectionProcessed):
         """Forward message flow to global stream."""
         self.message_flow.emit(event)
 

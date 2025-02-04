@@ -191,7 +191,7 @@ class Talk[TTransmittedData]:
     ) -> Self:
         """Register callback for connection events."""
 
-        async def wrapped_callback(event: EventData) -> None:
+        async def wrapped_callback(event: EventData):
             if isinstance(event, ConnectionEvent) and event.event_type == event_type:
                 result = callback(event)
                 if inspect.isawaitable(result):
@@ -204,7 +204,7 @@ class Talk[TTransmittedData]:
         self,
         event_type: ConnectionEventType,
         message: ChatMessage[TTransmittedData] | None,
-    ) -> None:
+    ):
         event = ConnectionEvent(
             connection=self,
             source="connection",

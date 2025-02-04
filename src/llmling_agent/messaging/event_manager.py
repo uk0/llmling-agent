@@ -71,20 +71,20 @@ class EventManager:
         self.auto_run = auto_run
         self._observers: dict[str, list[EventObserver]] = {}
 
-    async def _default_handler(self, event: EventData) -> None:
+    async def _default_handler(self, event: EventData):
         """Default event handler that converts events to agent runs."""
         if prompt := event.to_prompt():  # Only run if event provides a prompt
             await self.agent.run(prompt)
 
-    def add_callback(self, callback: EventCallback) -> None:
+    def add_callback(self, callback: EventCallback):
         """Register an event callback."""
         self._callbacks.append(callback)
 
-    def remove_callback(self, callback: EventCallback) -> None:
+    def remove_callback(self, callback: EventCallback):
         """Remove a previously registered callback."""
         self._callbacks.remove(callback)
 
-    async def emit_event(self, event: EventData) -> None:
+    async def emit_event(self, event: EventData):
         """Emit event to all callbacks and optionally handle via agent."""
         if not self.enabled:
             return
@@ -498,7 +498,7 @@ class EventObserver:
     interval: timedelta | None = None
     last_run: datetime | None = None
 
-    async def __call__(self, event: EventData) -> None:
+    async def __call__(self, event: EventData):
         """Handle an event."""
         try:
             result = self.callback(event)

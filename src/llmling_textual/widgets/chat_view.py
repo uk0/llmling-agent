@@ -49,7 +49,7 @@ class MessageWidget(Static):
         formatted = message.format(style="markdown")
         self.markdown = Markdown(formatted)
 
-    def on_mount(self) -> None:
+    def on_mount(self):
         """Mount markdown widget."""
         self.mount(self.markdown)
 
@@ -65,7 +65,7 @@ class ChatView(ScrollableContainer):
     }
     """
 
-    async def append_chat_message(self, message: ChatMessage) -> None:
+    async def append_chat_message(self, message: ChatMessage):
         """Add a new message to the chat."""
         widget = MessageWidget(message)
         await self.mount(widget)

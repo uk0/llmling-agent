@@ -79,7 +79,7 @@ class MCPClient:
             logger.exception("Error during MCP client cleanup")
             raise
 
-    async def cleanup(self) -> None:
+    async def cleanup(self):
         """Clean up resources."""
         with suppress(RuntimeError) as cm:
             await self.exit_stack.aclose()

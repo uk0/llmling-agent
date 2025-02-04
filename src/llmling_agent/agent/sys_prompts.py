@@ -97,7 +97,7 @@ class SystemPrompts:
     def __getitem__(self, idx: int | slice) -> AnyPromptType | list[AnyPromptType]:
         return self.prompts[idx]
 
-    async def add_by_reference(self, reference: str) -> None:
+    async def add_by_reference(self, reference: str):
         """Add a system prompt using reference syntax.
 
         Args:
@@ -125,7 +125,7 @@ class SystemPrompts:
         provider: str | None = None,
         version: str | None = None,
         variables: dict[str, Any] | None = None,
-    ) -> None:
+    ):
         """Add a system prompt using explicit parameters.
 
         Args:
@@ -159,7 +159,7 @@ class SystemPrompts:
             msg = f"Failed to add prompt {ref!r}"
             raise RuntimeError(msg) from e
 
-    async def refresh_cache(self) -> None:
+    async def refresh_cache(self):
         """Force re-evaluation of prompts."""
         from toprompt import to_prompt
 
