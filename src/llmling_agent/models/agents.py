@@ -52,6 +52,7 @@ if TYPE_CHECKING:
 
 
 TDeps = TypeVar("TDeps", default=None)
+ToolConfirmationMode = Literal["always", "never", "per_tool"]
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +164,13 @@ class AgentConfig(NodeConfig):
 
     workers: list[WorkerConfig] = Field(default_factory=list)
     """Worker agents which will be available as tools."""
+
+    requires_tool_confirmation: ToolConfirmationMode = "per_tool"
+    """How to handle tool confirmation:
+    - "always": Always require confirmation for all tools
+    - "never": Never require confirmation (ignore tool settings)
+    - "per_tool": Use individual tool settings
+    """
 
     debug: bool = False
     """Enable debug output for this agent."""
