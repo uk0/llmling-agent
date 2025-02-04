@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.messages import ChatMessage, TokenCost
     from llmling_agent.models.content import Content
     from llmling_agent.tools.base import ToolInfo
-    from llmling_agent.tools.manager import ToolManager
 
 
 logger = get_logger(__name__)
@@ -80,7 +79,6 @@ class AgentProvider[TDeps]:
         super().__init__()
         self._name = name
         self._model = model
-        self._tool_manager: ToolManager | None = None
         self._context: AgentContext[TDeps] | None = None
         self._conversation: ConversationManager | None = None
         self._debug = debug
@@ -90,19 +88,6 @@ class AgentProvider[TDeps]:
 
     def set_model(self, model: ModelType):
         """Default no-op implementation for setting model."""
-
-    @property
-    def tool_manager(self) -> ToolManager:
-        """Get tool manager."""
-        if self._tool_manager is None:
-            msg = "Tool manager not set"
-            raise RuntimeError(msg)
-        return self._tool_manager
-
-    @tool_manager.setter
-    def tool_manager(self, value: ToolManager):
-        """Set tool manager."""
-        self._tool_manager = value
 
     @property
     def context(self) -> AgentContext[TDeps]:

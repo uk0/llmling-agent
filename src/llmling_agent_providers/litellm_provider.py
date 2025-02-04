@@ -227,6 +227,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         from litellm import Choices, acompletion
         from litellm.files.main import ModelResponse
 
+        tools = tools or []
         model_name = self._get_model_name(model)
         try:
             # Create messages list from history and new prompt
@@ -272,7 +273,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                     function_name = tool_call.function.name
                     if not function_name:
                         continue
-                    tool = self.tool_manager.get(function_name)
+                    tool = next(i for i in tools if i.name == function_name)
                     info, message = await self.handle_tool_call(
                         tool_call, tool, message_id
                     )

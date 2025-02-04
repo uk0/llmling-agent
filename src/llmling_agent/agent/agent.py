@@ -269,7 +269,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
-        self._provider.tool_manager = self._tool_manager
         self._provider.context = ctx
         self._provider.conversation = self.conversation
         ctx.capabilities.register_capability_tools(self)
@@ -543,7 +542,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self._provider.model_changed.connect(self.model_changed.emit)
         self._provider.tool_used.connect(self.tool_used.emit)
         self._provider.model_changed.connect(self.model_changed.emit)
-        self._provider.tool_manager = self._tool_manager
         self._provider.context = self._context
         self._provider.conversation = self.conversation
 
