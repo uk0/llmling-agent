@@ -81,7 +81,7 @@ llmling-agent = "llmling_agent.__main__:cli"
 ui = ["gradio>=5.8.0"]
 clipboard = ["pyperclip>=1.8.0"]
 markdown = ["markitdown"]
-textual = ["textual>=1.0.0"]
+textual = ["textual>=1.0.0", "textualicious"]
 litellm = ["litellm"]
 remote = ["websockets>=14.2"]
 mem0 = ["mem0ai>=0.1.48"]

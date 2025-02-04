@@ -9,8 +9,7 @@ from textual.screen import ModalScreen
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
-
-    from llmling_textual.screens.log_screen.log_widget import LoggingWidget
+    from textualicious import LoggingWidget
 
 
 class LogWindow(ModalScreen[None]):
