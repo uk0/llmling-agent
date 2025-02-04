@@ -111,7 +111,12 @@ class AgentContext[TDeps](NodeContext[TDeps]):
         """
         from llmling_agent_input.stdlib_provider import StdlibInputProvider
 
-        provider = self.input_provider or StdlibInputProvider()
+        if self.input_provider:
+            provider = self.input_provider
+        elif self.pool and self.pool._input_provider:
+            provider = self.pool._input_provider
+        else:
+            provider = StdlibInputProvider()
         mode = ctx.config.requires_tool_confirmation
         if (mode == "per_tool" and not tool.requires_confirmation) or mode == "never":
             return "allow"
