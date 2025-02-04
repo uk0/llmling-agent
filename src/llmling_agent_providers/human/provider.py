@@ -26,7 +26,6 @@ from llmling_agent_providers.human.utils import (
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelType
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
@@ -39,7 +38,6 @@ class HumanProvider(AgentProvider):
     """Provider for human-in-the-loop responses."""
 
     model = None
-    _conversation: ConversationManager
     NAME = "human"
 
     def __init__(

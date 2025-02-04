@@ -42,7 +42,6 @@ if TYPE_CHECKING:
 
     from pydantic_ai.tools import RunContext
 
-    from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelType
     from llmling_agent.models.content import Content
     from llmling_agent.tools.base import ToolInfo
@@ -84,7 +83,6 @@ pydantic_ai._pydantic._is_call_ctx = _is_call_ctx
 class PydanticAIProvider(AgentLLMProvider):
     """Provider using pydantic-ai as backend."""
 
-    _conversation: ConversationManager
     NAME = "pydantic_ai"
 
     def __init__(
