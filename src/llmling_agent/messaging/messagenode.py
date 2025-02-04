@@ -5,6 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Coroutine, Sequence
 from dataclasses import dataclass, replace
+from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, overload
 from uuid import uuid4
 
@@ -39,6 +40,8 @@ if TYPE_CHECKING:
     from llmling_agent.models.mcp_server import MCPServerConfig
     from llmling_agent.models.nodes import NodeConfig
     from llmling_agent.models.providers import ProcessorCallback
+    from llmling_agent.prompts.manager import PromptManager
+    from llmling_agent.storage import StorageManager
     from llmling_agent.talk import QueueStrategy, Talk, TeamTalk
 
 
@@ -72,6 +75,20 @@ class NodeContext[TDeps]:
         assert self.pool, "No agent pool available"
         assert self.node_name, "No agent name available"
         return self.pool[self.node_name]
+
+    @cached_property
+    def storage(self) -> StorageManager:
+        """Storage manager from pool or config."""
+        from llmling_agent.storage import StorageManager
+
+        if self.pool:
+            return self.pool.storage
+        return StorageManager(self.definition.storage)
+
+    @property
+    def prompt_manager(self) -> PromptManager:
+        """Get prompt manager from manifest."""
+        return self.definition.prompt_manager
 
 
 class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):

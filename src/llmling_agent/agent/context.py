@@ -23,8 +23,6 @@ if TYPE_CHECKING:
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig
-    from llmling_agent.prompts.manager import PromptManager
-    from llmling_agent.storage import StorageManager
 
 
 TDeps = TypeVar("TDeps", default=Any)
@@ -98,20 +96,6 @@ class AgentContext[TDeps](NodeContext[TDeps]):
         assert self.pool, "No agent pool available"
         assert self.node_name, "No agent name available"
         return self.pool.agents[self.node_name]
-
-    @cached_property
-    def storage(self) -> StorageManager:
-        """Storage manager from pool or config."""
-        from llmling_agent.storage import StorageManager
-
-        if self.pool:
-            return self.pool.storage
-        return StorageManager(self.definition.storage)
-
-    @property
-    def prompt_manager(self) -> PromptManager:
-        """Get prompt manager from manifest."""
-        return self.definition.prompt_manager
 
     async def handle_confirmation(
         self,
