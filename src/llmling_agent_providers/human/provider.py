@@ -91,10 +91,8 @@ class HumanProvider(AgentProvider):
             kwargs: Additional arguments for human (unused)
         """
         if self._show_context:
-            history = await self.conversation.format_history(
-                format_template="[{agent}] {content}\n",
-                include_system=False,
-            )
+            messages = [msg.format() for msg in message_history]
+            history = "\n\n".join(messages)
             if history:
                 print("\nContext:")
                 print(history)
