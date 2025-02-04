@@ -12,6 +12,7 @@ from psygnal import Signal
 
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import (
     AggregatedMessageStats,
@@ -84,6 +85,9 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
 
     message_sent = Signal(ChatMessage)
     """Signal emitted when node creates a message."""
+
+    tool_used = Signal(ToolCallInfo)
+    """Signal emitted when node uses a tool."""
 
     def __init__(
         self,

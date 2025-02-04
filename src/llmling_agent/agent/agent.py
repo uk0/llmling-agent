@@ -23,7 +23,6 @@ from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.models import AgentsManifest
-from llmling_agent.models.agents import ToolCallInfo
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
@@ -135,7 +134,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     # this fixes weird mypy issue
     conversation: ConversationManager
     talk: Interactions
-    tool_used = Signal(ToolCallInfo)
     model_changed = Signal(object)  # Model | None
     chunk_streamed = Signal(str, str)  # (chunk, message_id)
     run_failed = Signal(str, Exception)

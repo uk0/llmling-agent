@@ -132,6 +132,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
         if isinstance(node, Agent | StructuredAgent):
             node.tools.add_provider(self.mcp)
+        node.tool_used.connect(self.tool_used)
 
     def _on_node_removed(self, index: int, node: MessageNode[Any, Any]):
         """Handler for removing nodes from the team."""
@@ -139,6 +140,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
         if isinstance(node, Agent | StructuredAgent):
             node.tools.remove_provider(self.mcp)
+        node.tool_used.disconnect(self.tool_used)
 
     def __repr__(self) -> str:
         """Create readable representation."""
