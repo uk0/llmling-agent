@@ -310,7 +310,7 @@ class ConversationManager:
             self._pending_messages.clear()
 
         # 2. Start with original history
-        history = self.chat_messages
+        history: Sequence[ChatMessage[Any]] = self.chat_messages
 
         # 3. Only filter if needed
         if do_filter and self._config:
