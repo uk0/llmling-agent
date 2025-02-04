@@ -337,6 +337,54 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         """Stop forwarding results to another node."""
         self.connections.disconnect(other)
 
+    # async def pre_run(
+    #     self,
+    #     *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
+    #     wait_for_connections: bool | None = None,
+    #     store_history: bool = True,
+    #     **kwargs: Any,
+    # ) -> list[Content | str]:
+    #     """Hook to prepare a MessgeNode run call."""
+    #     if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
+    #         user_msg = prompt[0]
+    #         prompts = await convert_prompts([user_msg.content])
+    #         # Update received message's chain to show it came through its source
+    #         user_msg = user_msg.forwarded(prompt[0])
+    #         conversation_id = user_msg.conversation_id
+
+    #         final_prompt = "\n\n".join(str(p) for p in prompts)
+    #     else:
+    #         prompts = await convert_prompts(prompt)
+    #         final_prompt = "\n\n".join(str(p) for p in prompts)
+    #         conversation_id = str(uuid4())
+    #         # use format_prompts?
+    #         user_msg = ChatMessage[str](
+    #             content=final_prompt,
+    #             role="user",
+    #             conversation_id=conversation_id,
+    #         )
+    #     self.message_received.emit(user_msg)
+    #     self.context.current_prompt = final_prompt
+    #     return prompts
+
+    # async def post_run(
+    #     self,
+    #     message: ChatMessage[TResult],
+    #     previous_message: ChatMessage[Any] | None,
+    #     wait_for_connections: bool | None = None,
+    # ) -> ChatMessage[Any]:
+    #     # For chain processing, update the response's chain
+    #     if previous_message:
+    #         message = message.forwarded(previous_message)
+    #         conversation_id = previous_message.conversation_id
+    #     else:
+    #         conversation_id = str(uuid4())
+    #     # Set conversation_id on response message
+    #     message = replace(message, conversation_id=conversation_id)
+    #     self.message_sent.emit(message)
+    #     await self.connections.route_message(message, wait=wait_for_connections)
+    #     return message
+
     async def run(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
