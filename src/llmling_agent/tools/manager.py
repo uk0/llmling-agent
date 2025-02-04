@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 MAX_LEN_DESCRIPTION = 1000
+ToolState = Literal["all", "enabled", "disabled"]
 
 
 class ToolManager(BaseRegistry[str, ToolInfo]):
@@ -184,7 +185,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
     async def get_tools(
         self,
-        state: Literal["all", "enabled", "disabled"] = "all",
+        state: ToolState = "all",
     ) -> list[ToolInfo]:
         """Get tool objects based on filters."""
         tools: list[ToolInfo] = []
@@ -206,15 +207,13 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
         return tools
 
-    async def get_tool_names(
-        self, state: Literal["all", "enabled", "disabled"] = "all"
-    ) -> set[str]:
+    async def get_tool_names(self, state: ToolState = "all") -> set[str]:
         """Get tool names based on state."""
         return {t.name for t in await self.get_tools() if t.matches_filter(state)}
 
     def register_tool(
         self,
-        tool: LLMCallableTool | AnyCallable | str,
+        tool: ToolType,
         *,
         name_override: str | None = None,
         description_override: str | None = None,
