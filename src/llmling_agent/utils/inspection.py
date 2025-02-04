@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 import inspect
 from types import UnionType
 from typing import (
@@ -19,17 +20,94 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from llmling_agent.agent import AgentContext
-    from llmling_agent.common_types import AnyCallable
 
 
 T = TypeVar("T")
 
 
-def has_argument_type(func: AnyCallable, arg_type: str | type) -> bool:
-    """Checks whether any argument of func is of type arg_type."""
-    sig = inspect.signature(func)
-    arg_str = arg_type if isinstance(arg_type, str) else arg_type.__name__
-    return any(arg_str in str(param.annotation) for param in sig.parameters.values())
+def has_argument_type(
+    func: Callable[..., Any],
+    arg_type: type | str | UnionType | Sequence[type | str | UnionType],
+    include_return: bool = False,
+) -> bool:
+    """Check if function has any argument of specified type(s).
+
+    Args:
+        func: Function to check
+        arg_type: Type(s) to look for. Can be:
+            - Single type (int, str, etc)
+            - Union type (int | str)
+            - Type name as string
+            - Sequence of the above
+        include_return: Whether to also check return type annotation
+
+    Examples:
+        >>> def func(x: int | str, y: list[int]) -> None: ...
+        >>> has_argument_type(func, int | str)  # True
+        >>> has_argument_type(func, int)        # True
+        >>> has_argument_type(func, list)       # True
+        >>> has_argument_type(func, float)      # False
+        >>> has_argument_type(func, (int, str)) # True
+
+    Returns:
+        True if any argument matches any of the target types
+    """
+    # Convert target type(s) to set of normalized strings
+    if isinstance(arg_type, Sequence) and not isinstance(arg_type, str | bytes):
+        target_types = {_type_to_string(t) for t in arg_type}
+    else:
+        target_types = {_type_to_string(arg_type)}
+
+    # Get type hints including return type if requested
+    hints = get_type_hints(func, include_extras=True)
+    if not include_return:
+        hints.pop("return", None)
+
+    # Check each parameter's type annotation
+    for param_type in hints.values():
+        # Handle type aliases
+        if isinstance(param_type, TypeAliasType):
+            param_type = param_type.__value__
+
+        # Check for direct match
+        if _type_to_string(param_type) in target_types:
+            return True
+
+        # Handle Union types (both | and Union[...])
+        origin = get_origin(param_type)
+        if origin is Union or origin is UnionType:
+            union_members = get_args(param_type)
+            # Check each union member
+            if any(_type_to_string(t) in target_types for t in union_members):
+                return True
+            # Also check if the complete union type matches
+            if _type_to_string(param_type) in target_types:
+                return True
+
+        # Handle generic types (list[str], dict[str, int], etc)
+        if origin is not None:
+            # Check if the generic type (e.g., list) matches
+            if _type_to_string(origin) in target_types:
+                return True
+            # Check type arguments (e.g., str in list[str])
+            args = get_args(param_type)
+            if any(_type_to_string(arg) in target_types for arg in args):
+                return True
+
+    return False
+
+
+def _type_to_string(type_hint: Any) -> str:
+    """Convert type to normalized string representation for comparison."""
+    if isinstance(type_hint, str):
+        return type_hint
+    if isinstance(type_hint, type):
+        return type_hint.__name__
+    if isinstance(type_hint, TypeAliasType):
+        return _type_to_string(type_hint.__value__)
+    if isinstance(type_hint, UnionType):
+        return f"Union[{', '.join(_type_to_string(t) for t in get_args(type_hint))}]"
+    return str(type_hint)
 
 
 def has_return_type[T](  # noqa: PLR0911
