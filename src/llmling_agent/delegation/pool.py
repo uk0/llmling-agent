@@ -34,13 +34,13 @@ if TYPE_CHECKING:
     from psygnal.containers import EventedDict
 
     from llmling_agent.agent.agent import AgentKwargs
-    from llmling_agent.agent.context import ConfirmationCallback
     from llmling_agent.common_types import SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.models.agents import AgentsManifest
     from llmling_agent.models.result_types import ResponseDefinition
     from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import Job
+    from llmling_agent_input.base import InputProvider
 
 
 logger = get_logger(__name__)
@@ -71,7 +71,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
         *,
         shared_deps: TPoolDeps | None = None,
         connect_nodes: bool = True,
-        confirmation_callback: ConfirmationCallback | None = None,
+        input_provider: InputProvider | None = None,
         parallel_load: bool = True,
     ):
         """Initialize agent pool with immediate agent creation.
@@ -80,7 +80,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
             manifest: Agent configuration manifest
             shared_deps: Dependencies to share across all nodes
             connect_nodes: Whether to set up forwarding connections
-            confirmation_callback: Handler callback for tool / step confirmations
+            input_provider: Input provider for tool / step confirmations / HumanAgents
             parallel_load: Whether to load nodes in parallel (async)
 
         Raises:
@@ -102,7 +102,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
                 msg = f"Invalid config path: {manifest}"
                 raise ValueError(msg)
         self.shared_deps = shared_deps
-        self._confirmation_callback = confirmation_callback
+        self._input_provider = input_provider
         self.exit_stack = AsyncExitStack()
         self.parallel_load = parallel_load
         self.storage = StorageManager(self.manifest.storage)

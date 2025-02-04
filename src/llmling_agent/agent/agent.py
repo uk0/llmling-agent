@@ -43,7 +43,6 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AgentContext, AnyAgent
-    from llmling_agent.agent.context import ConfirmationCallback
     from llmling_agent.agent.interactions import Interactions
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import (
@@ -62,6 +61,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.result_types import ResponseDefinition
     from llmling_agent.models.task import Job
     from llmling_agent.tools.base import ToolInfo
+    from llmling_agent_input.base import InputProvider
     from llmling_agent_providers.base import AgentProvider, StreamingResponseProtocol
 
     AgentType = (
@@ -103,7 +103,7 @@ class AgentKwargs(TypedDict, total=False):
     session: SessionIdType | SessionQuery | MemoryConfig | bool | int
 
     # Behavior Control
-    confirmation_callback: ConfirmationCallback | None
+    input_provider: InputProvider | None
     debug: bool
 
 
@@ -159,7 +159,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         result_retries: int | None = None,
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
-        confirmation_callback: ConfirmationCallback | None = None,
+        input_provider: InputProvider | None = None,
         parallel_init: bool = True,
         debug: bool = False,
     ):
@@ -189,7 +189,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             end_strategy: Strategy for handling tool calls that are requested alongside
                           a final result
             defer_model_check: Whether to defer model evaluation until first run
-            confirmation_callback: Callback for confirmation prompts
+            input_provider: Provider for human input (tool confirmation / HumanProviders)
             parallel_init: Whether to initialize resources in parallel
             debug: Whether to enable debug mode
         """
@@ -204,7 +204,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self._owns_runtime = False
         # prepare context
         ctx = context or AgentContext[TDeps].create_default(name)
-        ctx.confirmation_callback = confirmation_callback
+        ctx.input_provider = input_provider
         if capabilities is not None:
             ctx.capabilities = capabilities
         super().__init__(name=name, context=ctx, description=description)

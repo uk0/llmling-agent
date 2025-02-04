@@ -2,18 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from functools import cached_property
-import json
-from textwrap import dedent
 from typing import TYPE_CHECKING, Any, Literal
 
 from typing_extensions import TypeVar
 
 from llmling_agent.messaging.messagenode import NodeContext
 from llmling_agent.prompts.conversion_manager import ConversionManager
-from llmling_agent.tools.base import ToolInfo
 
 
 if TYPE_CHECKING:
@@ -23,9 +19,13 @@ if TYPE_CHECKING:
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig
+    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent_input.base import InputProvider
 
 
 TDeps = TypeVar("TDeps", default=Any)
+
+ConfirmationResult = Literal["allow", "skip", "abort_run", "abort_chain"]
 
 
 @dataclass(kw_only=True)
@@ -50,7 +50,7 @@ class AgentContext[TDeps](NodeContext[TDeps]):
     runtime: RuntimeConfig | None = None
     """Reference to the runtime configuration."""
 
-    confirmation_callback: ConfirmationCallback | None = None
+    input_provider: InputProvider | None = None
     """Optional confirmation handler for tool execution."""
 
     @classmethod
@@ -109,57 +109,11 @@ class AgentContext[TDeps](NodeContext[TDeps]):
         - No confirmation handler is set
         - Handler confirms the execution
         """
-        if not self.confirmation_callback:
+        from llmling_agent_input.stdlib_provider import StdlibInputProvider
+
+        provider = self.input_provider or StdlibInputProvider()
+        mode = ctx.config.requires_tool_confirmation
+        if (mode == "per_tool" and not tool.requires_confirmation) or mode == "never":
             return "allow"
-        result = self.confirmation_callback(ctx, tool, args)
-        if isinstance(result, str):
-            return result  # pyright: ignore
-        return await result
-
-
-ConfirmationResult = Literal["allow", "skip", "abort_run", "abort_chain"]
-
-ConfirmationCallback = Callable[
-    [AgentContext, ToolInfo, dict[str, Any]],
-    ConfirmationResult | Awaitable[ConfirmationResult],
-]
-
-
-async def simple_confirmation(
-    ctx: AgentContext,
-    tool: ToolInfo,
-    args: dict[str, Any],
-) -> ConfirmationResult:
-    """Simple confirmation handler using input() in executor."""
-    from pydantic_ai import RunContext
-
-    # Get agent name regardless of context type
-    agent_name = ctx.node_name
-
-    prompt = dedent(f"""
-        Tool Execution Confirmation
-        -------------------------
-        Tool: {tool.name}
-        Description: {tool.description or "No description"}
-        Agent: {agent_name}
-
-        Arguments:
-        {json.dumps(args, indent=2)}
-
-        Additional Context:
-        """).strip()
-
-    # Add run-specific info if available
-    if isinstance(ctx, RunContext):
-        prompt += dedent(f"""
-            - Model: {ctx.model.name()}
-            - Prompt: "{ctx.prompt[:100]}..."
-        """)
-
-    prompt += "\nAllow this tool execution? [y/N]: "
-
-    response = input(prompt + "\n")
-    # # Run input() in executor to avoid blocking
-    # loop = asyncio.get_running_loop()
-    # response = await loop.run_in_executor(None, input, prompt + "\n")
-    return "allow" if response.lower().startswith("y") else "skip"
+        history = ctx.agent.conversation.get_history() if ctx.pool else []
+        return await provider.get_tool_confirmation(ctx, tool, args, history)

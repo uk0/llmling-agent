@@ -46,8 +46,8 @@ pool = AgentPool(manifest)
 # Create with manual configuration
 pool = AgentPool(manifest, connect_nodes=False)
 
-# Create with confirmation callback
-pool = AgentPool(manifest, confirmation_callback=my_callback)
+# Create with custom input provider
+pool = AgentPool(manifest, input_provider=my_input_provider)
 ```
 
 ## Importance of Async Initialization
