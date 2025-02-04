@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import MutableSequence, Sequence
 
     from llmling_agent.messaging.messages import ChatMessage, FormatStyle
     from llmling_agent.models.agents import ToolCallInfo
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class MessageStats:
     """Statistics for a single connection."""
 
-    messages: list[ChatMessage[Any]] = field(default_factory=list)
+    messages: MutableSequence[ChatMessage[Any]] = field(default_factory=list)
     start_time: datetime = field(default_factory=datetime.now)
 
     @property
