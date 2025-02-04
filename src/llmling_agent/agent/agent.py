@@ -223,6 +223,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
         runtime_provider = RuntimePromptProvider(ctx.runtime)
         ctx.definition.prompt_manager.providers["runtime"] = runtime_provider
+        self._context = ctx
         # Initialize tool manager
         all_tools = list(tools or [])
         self._tool_manager = ToolManager(all_tools)
@@ -470,13 +471,14 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     @property
     def context(self) -> AgentContext[TDeps]:
         """Get agent context."""
-        return self._provider.context
+        return self._context
 
     @context.setter
     def context(self, value: AgentContext[TDeps]):
         """Set agent context and propagate to provider."""
         self._provider.context = value
         self.mcp.context = value
+        self._context = value
 
     def set_result_type(
         self,
@@ -511,6 +513,10 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
         name = self.name
         debug = self._debug
+        self._provider.chunk_streamed.disconnect(self.chunk_streamed.emit)
+        self._provider.model_changed.disconnect(self.model_changed.emit)
+        self._provider.tool_used.disconnect(self.tool_used.emit)
+        self._provider.model_changed.disconnect(self.model_changed.emit)
         match value:
             case AgentProvider():
                 self._provider = value
@@ -533,6 +539,13 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
+        self._provider.chunk_streamed.connect(self.chunk_streamed.emit)
+        self._provider.model_changed.connect(self.model_changed.emit)
+        self._provider.tool_used.connect(self.tool_used.emit)
+        self._provider.model_changed.connect(self.model_changed.emit)
+        self._provider.tool_manager = self._tool_manager
+        self._provider.context = self._context
+        self._provider.conversation = self.conversation
 
     @overload
     def to_structured(
