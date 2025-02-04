@@ -84,7 +84,7 @@ class AgentProvider[TDeps]:
         self._debug = debug
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(model={self.model_name})"
+        return f"{self.__class__.__name__}()"
 
     def set_model(self, model: ModelType):
         """Default no-op implementation for setting model."""
@@ -186,3 +186,6 @@ class AgentProvider[TDeps]:
 
 class AgentLLMProvider[TDeps](AgentProvider[TDeps]):
     """Provider using LLM backend."""
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(model={self.model_name})"

@@ -152,10 +152,6 @@ class PydanticAIProvider(AgentLLMProvider):
                 agent.tool_plain(wrapped)
         return agent
 
-    def __repr__(self) -> str:
-        model = f", model={self.model_name}" if self.model_name else ""
-        return f"PydanticAI({self.name!r}{model})"
-
     @property
     def model(self) -> str | ModelType:
         return self._model
