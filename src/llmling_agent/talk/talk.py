@@ -148,6 +148,8 @@ class Talk[TTransmittedData]:
                     other = Agent.from_callback(other)
                 else:
                     other = StructuredAgent.from_callback(other)
+                if pool := self.source.context.pool:
+                    pool.register(other.name, other)
                 return self.__rshift__(other)
             case Sequence():
                 team_talks = [self.__rshift__(o) for o in other]
