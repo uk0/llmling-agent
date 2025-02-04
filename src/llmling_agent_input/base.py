@@ -15,6 +15,9 @@ if TYPE_CHECKING:
 class InputProvider(ABC):
     """Base class for handling all UI interactions."""
 
+    def __init__(self, real_streaming: bool = False):
+        self.real_streaming = real_streaming
+
     @abstractmethod
     def get_input(
         self,
@@ -39,14 +42,25 @@ class InputProvider(ABC):
         result_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
     ) -> AsyncIterator[str]:
-        """Get streaming input (used by HumanProvider streaming mode).
+        """Public interface that handles streaming decision."""
+        if self.real_streaming:
+            async for chunk in self._get_streaming_input(
+                context, prompt, result_type, message_history
+            ):
+                yield chunk
+        else:
+            response = await self.get_input(context, prompt, result_type, message_history)
+            yield response
 
-        Args:
-            context: Current agent context
-            prompt: The prompt to show to the user
-            result_type: Optional type for structured responses
-            message_history: Optional conversation history
-        """
+    async def _get_streaming_input(
+        self,
+        context: AgentContext,
+        prompt: str,
+        result_type: type | None = None,
+        message_history: list[ChatMessage] | None = None,
+    ) -> AsyncIterator[str]:
+        """Default implementation for real streaming."""
+        # Remove the real_streaming check since this is only called when true
         response = await self.get_input(context, prompt, result_type, message_history)
         yield response
 

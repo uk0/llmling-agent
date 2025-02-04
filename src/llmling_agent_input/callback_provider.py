@@ -49,7 +49,7 @@ class CallbackInputProvider(InputProvider):
         )
         return await result if inspect.isawaitable(result) else result  # type: ignore
 
-    async def get_streaming_input(  # type: ignore
+    async def _get_streaming_input(  # type: ignore
         self,
         context: AgentContext,
         prompt: str,
