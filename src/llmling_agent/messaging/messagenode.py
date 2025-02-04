@@ -295,21 +295,26 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
                 target = Agent.from_callback(target)
             else:
                 target = StructuredAgent.from_callback(target)
+            if pool := self.context.pool:
+                pool.register(target.name, target)
         # we are explicit here just to make disctinction clear, we only want sequences
         # of message units
         if isinstance(target, Sequence) and not isinstance(target, BaseTeam):
-            targets: list[Agent | StructuredAgent] = []
+            targets: list[MessageNode] = []
             for t in target:
                 match t:
                     case _ if callable(t):
                         if has_return_type(t, str):
-                            targets.append(Agent.from_callback(t))
+                            other: MessageNode = Agent.from_callback(t)
                         else:
-                            targets.append(StructuredAgent.from_callback(t))
-                    case Agent() | StructuredAgent():
+                            other = StructuredAgent.from_callback(t)
+                        if pool := self.context.pool:
+                            pool.register(other.name, other)
+                        targets.append(other)
+                    case MessageNode():
                         targets.append(t)
                     case _:
-                        msg = f"Invalid agent type: {type(t)}"
+                        msg = f"Invalid node type: {type(t)}"
                         raise TypeError(msg)
         else:
             targets = target  # type: ignore
