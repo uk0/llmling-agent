@@ -132,7 +132,7 @@ class TextLogProvider(StorageProvider):
         self,
         *,
         conversation_id: str,
-        agent_name: str,
+        node_name: str,
         start_time: datetime | None = None,
     ):
         """Store conversation start and update log."""
@@ -140,7 +140,7 @@ class TextLogProvider(StorageProvider):
             "type": "conversation_start",
             "timestamp": start_time or datetime.now(),
             "conversation_id": conversation_id,
-            "agent_name": agent_name,
+            "agent_name": node_name,
         })
         self._write()
 

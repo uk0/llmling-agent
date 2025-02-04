@@ -92,7 +92,7 @@ class StorageProvider[T](TaskManagerMixin):
         self,
         *,
         conversation_id: str,
-        agent_name: str,
+        node_name: str,
         start_time: datetime | None = None,
     ):
         """Log a conversation (if supported)."""

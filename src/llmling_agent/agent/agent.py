@@ -193,7 +193,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             parallel_init: Whether to initialize resources in parallel
             debug: Whether to enable debug mode
         """
-        from llmling_agent.agent import AgentContext, AgentLogger
+        from llmling_agent.agent import AgentContext, NodeLogger
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
         from llmling_agent_providers.base import AgentProvider
@@ -287,7 +287,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self._provider.model_changed.connect(self.model_changed.emit)
 
         self.talk = Interactions(self)
-        self._logger = AgentLogger(self, enable_db_logging=memory_cfg.enable)
+        self._logger = NodeLogger(self, enable_db_logging=memory_cfg.enable)
 
         # Set up system prompts
         config_prompts = ctx.config.system_prompts if ctx else []

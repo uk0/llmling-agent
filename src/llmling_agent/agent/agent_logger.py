@@ -1,4 +1,4 @@
-"""Logging functionality for agent interactions."""
+"""Logging functionality for node interactions."""
 
 from __future__ import annotations
 
@@ -16,17 +16,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class AgentLogger:
-    """Handles database logging for agent interactions."""
+class NodeLogger:
+    """Handles database logging for node interactions."""
 
-    def __init__(self, agent: MessageNode[Any, Any], enable_db_logging: bool = True):
+    def __init__(self, node: MessageNode[Any, Any], enable_db_logging: bool = True):
         """Initialize logger.
 
         Args:
-            agent: Agent to log interactions for
+            node: Node to log interactions for
             enable_db_logging: Whether to enable logging
         """
-        self.agent = agent
+        self.node = node
         self.enable_db_logging = enable_db_logging
         self.conversation_id = str(uuid4())
         self.message_history: list[ChatMessage] = []
@@ -36,12 +36,12 @@ class AgentLogger:
         if enable_db_logging:
             self.init_conversation()
             # Connect to the combined signal to capture all messages
-            agent.message_received.connect(self.log_message)
-            agent.message_sent.connect(self.log_message)
-            agent.tool_used.connect(self.log_tool_call)
+            node.message_received.connect(self.log_message)
+            node.message_sent.connect(self.log_message)
+            node.tool_used.connect(self.log_tool_call)
 
     def clear_state(self):
-        """Clear agent state."""
+        """Clear node state."""
         self.message_history.clear()
         self.toolcall_history.clear()
 
@@ -57,9 +57,9 @@ class AgentLogger:
 
     def init_conversation(self):
         """Create initial conversation record."""
-        self.agent.context.storage.log_conversation_sync(
+        self.node.context.storage.log_conversation_sync(
             conversation_id=self.conversation_id,
-            agent_name=self.agent.name,
+            node_name=self.node.name,
         )
 
     def log_message(self, message: ChatMessage):
@@ -68,7 +68,7 @@ class AgentLogger:
 
         if not self.enable_db_logging:
             return
-        self.agent.context.storage.log_message_sync(
+        self.node.context.storage.log_message_sync(
             conversation_id=self.conversation_id,
             content=str(message.content),
             role=message.role,
@@ -85,7 +85,7 @@ class AgentLogger:
 
         if not self.enable_db_logging:
             return
-        self.agent.context.storage.log_tool_call_sync(
+        self.node.context.storage.log_tool_call_sync(
             conversation_id=self.conversation_id,
             message_id=tool_call.message_id or "",
             tool_call=tool_call,

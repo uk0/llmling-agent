@@ -130,13 +130,13 @@ class MemoryStorageProvider(StorageProvider):
         self,
         *,
         conversation_id: str,
-        agent_name: str,
+        node_name: str,
         start_time: datetime | None = None,
     ):
         """Store conversation in memory."""
         self.conversations.append({
             "id": conversation_id,
-            "agent_name": agent_name,
+            "agent_name": node_name,
             "start_time": start_time or datetime.now(),
         })
 

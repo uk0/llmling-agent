@@ -197,13 +197,13 @@ class FileProvider(StorageProvider):
         self,
         *,
         conversation_id: str,
-        agent_name: str,
+        node_name: str,
         start_time: datetime | None = None,
     ):
         """Log a new conversation."""
         conversation: ConversationData = {
             "id": conversation_id,
-            "agent_name": agent_name,
+            "agent_name": node_name,
             "start_time": (start_time or datetime.now()).isoformat(),
         }
         self._data["conversations"].append(conversation)

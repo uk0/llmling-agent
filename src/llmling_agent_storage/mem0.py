@@ -94,12 +94,12 @@ class Mem0StorageProvider(StorageProvider):
     async def log_conversation(
         self,
         conversation_id: str,
-        agent_name: str,
+        node_name: str,
         start_time: datetime | None = None,
     ) -> None:
         """Log conversation metadata."""
         t = (start_time or datetime.now()).isoformat()
-        meta = {"type": "conversation_start", "agent_name": agent_name, "start_time": t}
+        meta = {"type": "conversation_start", "agent_name": node_name, "start_time": t}
         message = self._to_mem0_message("Conversation started", "system", metadata=meta)
         fmt = self.config.output_format
         await self.client.add([message], user_id=conversation_id, output_format=fmt)

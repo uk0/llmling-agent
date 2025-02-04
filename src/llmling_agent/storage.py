@@ -214,7 +214,7 @@ class StorageManager(TaskManagerMixin):
         self,
         *,
         conversation_id: str,
-        agent_name: str,
+        node_name: str,
         start_time: datetime | None = None,
     ):
         """Log conversation to all providers."""
@@ -225,7 +225,7 @@ class StorageManager(TaskManagerMixin):
             try:
                 await provider.log_conversation(
                     conversation_id=conversation_id,
-                    agent_name=agent_name,
+                    node_name=node_name,
                     start_time=start_time,
                 )
             except Exception:
