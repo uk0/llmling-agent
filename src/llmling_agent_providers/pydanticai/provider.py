@@ -15,6 +15,7 @@ import pydantic_ai._pydantic
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.result import RunResult, StreamedRunResult
+from pydantic_ai.tools import RunContext
 
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.common_types import EndStrategy, ModelProtocol
@@ -39,8 +40,6 @@ from llmling_agent_providers.pydanticai.utils import (
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable
-
-    from pydantic_ai.tools import RunContext
 
     from llmling_agent.common_types import ModelType
     from llmling_agent.models.content import Content
@@ -142,9 +141,9 @@ class PydanticAIProvider(AgentLLMProvider):
                 if self._context
                 else tool.callable.callable
             )
-            if has_argument_type(wrapped, "RunContext"):
+            if has_argument_type(wrapped, RunContext):
                 agent.tool(wrapped)
-            elif has_argument_type(wrapped, "AgentContext"):
+            elif has_argument_type(wrapped, AgentContext):
                 agent._register_function(wrapped, True, 1, None, "auto", False)
             else:
                 agent.tool_plain(wrapped)

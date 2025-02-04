@@ -35,7 +35,7 @@ class PoolApp(App):
         logger.setLevel(logging.DEBUG)
         logger.addHandler(self.log_widget.handler)
 
-    async def on_mount(self) -> None:
+    async def on_mount(self):
         """Initialize pool and mount main screen."""
         self.agent_pool = AgentPool(self._config_path)
         await self.agent_pool.__aenter__()
@@ -43,7 +43,7 @@ class PoolApp(App):
         self.main_screen = MainScreen(self.agent_pool)
         await self.push_screen(self.main_screen)
 
-    async def on_unmount(self) -> None:
+    async def on_unmount(self):
         """Clean up resources."""
         if self.main_screen:
             # First disconnect event handlers
@@ -52,7 +52,7 @@ class PoolApp(App):
         if self.agent_pool:
             await self.agent_pool.__aexit__(None, None, None)
 
-    def action_toggle_logs(self) -> None:
+    def action_toggle_logs(self):
         """Toggle log window."""
         if isinstance(self.screen, LogWindow):
             self.pop_screen()
