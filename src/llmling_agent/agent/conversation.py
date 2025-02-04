@@ -12,6 +12,7 @@ from uuid import UUID, uuid4
 from llmling import BasePrompt, PromptMessage, StaticPrompt
 from llmling.config.models import BaseResource
 from psygnal import Signal
+from psygnal.containers import EventedList
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage
@@ -73,7 +74,7 @@ class ConversationManager:
             resources: Optional paths to load as context
         """
         self._agent = agent
-        self.chat_messages: list[ChatMessage] = []
+        self.chat_messages = EventedList[ChatMessage]()
         self._last_messages: list[ChatMessage] = []
         self._pending_messages: deque[ChatMessage] = deque()
         self._config = session_config
@@ -143,8 +144,10 @@ class ConversationManager:
                 - Agent name for conversation history with that agent
         """
         match key:
-            case int() | slice():
+            case int():
                 return self.chat_messages[key]
+            case slice():
+                return list(self.chat_messages[key])
             case str():
                 query = SessionQuery(name=key)
                 return self._agent.context.storage.filter_messages_sync(query=query)
@@ -328,7 +331,7 @@ class ConversationManager:
                     filtered.append(msg)
                 history = list(reversed(filtered))
 
-        return history
+        return list(history)
 
     def get_pending_messages(self) -> list[ChatMessage]:
         """Get messages that will be included in next interaction."""
