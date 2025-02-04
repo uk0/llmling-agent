@@ -5,15 +5,17 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 import inspect
-from typing import TYPE_CHECKING, Any, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar
 
-from py2openai import OpenAIFunctionTool  # noqa: TC002
+from llmling import LLMCallableTool
+import py2openai  # noqa: TC002
 
 from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from llmling import LLMCallableTool
+    from collections.abc import Callable
+
     from py2openai.typedefs import Property, ToolParameters
 
     from llmling_agent.agent import AgentContext
@@ -34,7 +36,7 @@ class ToolContext:
     args: dict[str, Any]
     """Arguments being passed to the tool"""
 
-    schema: OpenAIFunctionTool
+    schema: py2openai.OpenAIFunctionTool
     """Complete OpenAI function schema"""
 
     runtime_ctx: AgentContext
@@ -91,7 +93,7 @@ class ToolInfo:
     """Whether to enable caching for this tool."""
 
     @property
-    def schema(self) -> OpenAIFunctionTool:
+    def schema(self) -> py2openai.OpenAIFunctionTool:
         """Get the OpenAI function schema for the tool."""
         return self.callable.get_schema()
 
@@ -152,6 +154,24 @@ class ToolInfo:
         # use thread for sync tools - the overhead doesn't matter
         # in the context of LLM operations
         return await asyncio.to_thread(self.callable.callable, *args, **kwargs)
+
+    @classmethod
+    def from_callable(
+        cls,
+        fn: Callable[..., Any] | str,
+        *,
+        name_override: str | None = None,
+        description_override: str | None = None,
+        schema_override: py2openai.OpenAIFunctionDefinition | None = None,
+        **kwargs: Any,
+    ) -> Self:
+        tool = LLMCallableTool.from_callable(
+            fn,
+            name_override=name_override,
+            description_override=description_override,
+            schema_override=schema_override,
+        )
+        return cls(tool, **kwargs)
 
 
 @dataclass
