@@ -7,9 +7,9 @@ from textual.widgets import Label, LoadingIndicator
 
 
 class ResponseStatus(Vertical):
-    """A widget that displays the status of the response from the agent."""
+    """A widget that displays the status of the response from the node."""
 
-    message: Reactive[str] = reactive("Agent is responding", recompose=True)
+    message: Reactive[str] = reactive("Node is responding", recompose=True)
 
     def compose(self) -> ComposeResult:
         yield Label(f" {self.message}")
@@ -20,7 +20,7 @@ class ResponseStatus(Vertical):
         self.add_class("-awaiting-response")
         self.remove_class("-agent-responding")
 
-    def set_agent_responding(self):
+    def set_node_responding(self):
         self.message = "Agent is responding"
         self.add_class("-agent-responding")
         self.remove_class("-awaiting-response")

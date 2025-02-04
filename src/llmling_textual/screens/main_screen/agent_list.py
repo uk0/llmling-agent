@@ -7,19 +7,23 @@ from textual.containers import Horizontal, ScrollableContainer
 from textual.message import Message
 from textual.widgets import Static
 
+from llmling_agent.agent.agent import Agent
+from llmling_agent.agent.structured import StructuredAgent
+from llmling_agent.delegation.base_team import BaseTeam
+
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
-    from llmling_agent import AnyAgent
     from llmling_agent.delegation.pool import AgentPool
+    from llmling_agent.messaging.messagenode import MessageNode
 
 
-class AgentEntry(Static, can_focus=True):  # type: ignore
-    """Individual agent entry."""
+class NodeEntry(Static, can_focus=True):  # type: ignore
+    """Individual node entry."""
 
     DEFAULT_CSS = """
-    AgentEntry {
+    NodeEntry {
         height: 3;
         padding: 0 1;
         background: $surface;
@@ -27,35 +31,35 @@ class AgentEntry(Static, can_focus=True):  # type: ignore
         margin: 0 0 0 0;
     }
 
-    AgentEntry:hover {
+    NodeEntry:hover {
         background: $accent;
     }
 
-    AgentEntry:focus {
+    NodeEntry:focus {
         background: $accent;
         border: tall $accent;
     }
 
-    AgentEntry.busy {
+    NodeEntry.busy {
         color: $warning;
     }
 
-    AgentEntry > Horizontal {
+    NodeEntry > Horizontal {
         height: 1;
         width: 100%;
     }
 
-    AgentEntry .status {
+    NodeEntry .status {
         width: 2;
         color: $text-muted;
     }
 
-    AgentEntry .name {
+    NodeEntry .name {
         width: auto;
         margin-right: 1;
     }
 
-    AgentEntry .provider {
+    NodeEntry .provider {
         color: $text-muted;
     }
     """
@@ -63,46 +67,50 @@ class AgentEntry(Static, can_focus=True):  # type: ignore
     class Clicked(Message):
         """Emitted when entry is clicked."""
 
-        def __init__(self, agent: AnyAgent) -> None:
-            self.agent = agent
+        def __init__(self, node: MessageNode) -> None:
+            self.node = node
             super().__init__()
 
-    def __init__(self, agent: AnyAgent[Any, Any]):
+    def __init__(self, node: MessageNode[Any, Any]):
         super().__init__("")
-        self.agent = agent
-        self.add_class("busy" if agent.is_busy() else "idle")
+        self.node = node
+        self.add_class("busy" if node.is_busy() else "idle")
 
     def compose(self) -> ComposeResult:
         """Create entry layout."""
         with Horizontal():
-            yield Static("●" if self.agent.is_busy() else "○", classes="status")
-            yield Static(self.agent.name, classes="name")
-            provider_name = self.agent.provider.NAME
-            yield Static(f"({provider_name})", classes="provider")
+            yield Static("●" if self.node.is_busy() else "○", classes="status")
+            yield Static(self.node.name, classes="name")
+            match self.node:
+                case Agent() | StructuredAgent():
+                    exra = self.node.provider.NAME
+                case BaseTeam():
+                    exra = " | ".join(node.name for node in self.node.agents)
+            yield Static(f"({exra})", classes="provider")
 
     def on_click(self) -> None:
         """Handle click event."""
-        self.post_message(self.Clicked(self.agent))
+        self.post_message(self.Clicked(self.node))
 
 
-class AgentList(ScrollableContainer):
-    """List of available agents."""
+class NodeList(ScrollableContainer):
+    """List of available nodes."""
 
     BINDINGS: ClassVar = [
-        Binding("up", "cursor_up", "Previous agent", show=False),
-        Binding("down", "cursor_down", "Next agent", show=False),
-        Binding("enter", "select_agent", "Select agent", show=False),
+        Binding("up", "cursor_up", "Previous node", show=False),
+        Binding("down", "cursor_down", "Next node", show=False),
+        Binding("enter", "select_node", "Select node", show=False),
     ]
 
     DEFAULT_CSS = """
-    AgentList {
+    NodeList {
         width: 100%;
         height: 100%;
         background: $surface-darken-1;
         padding: 0;
     }
 
-    AgentList > .header {
+    NodeList > .header {
         background: $panel;
         padding: 1;
         height: 3;
@@ -117,43 +125,43 @@ class AgentList(ScrollableContainer):
         classes: str | None = None,
     ) -> None:
         super().__init__(id=id, classes=classes)
-        self._entries: dict[str, AgentEntry] = {}
+        self._entries: dict[str, NodeEntry] = {}
 
     def compose(self) -> ComposeResult:
         """Create initial layout."""
-        yield Static("Available Agents", classes="header")
+        yield Static("Available Nodes", classes="header")
 
-    def update_agents(self, pool: AgentPool) -> None:
-        """Update agent list from pool."""
-        current_agents = set(pool.agents.keys())
-        existing_agents = set(self._entries.keys())
+    def update_nodes(self, pool: AgentPool) -> None:
+        """Update node list from pool."""
+        current_nodes = set(pool.nodes.keys())
+        existing_nodes = set(self._entries.keys())
 
         # Remove old entries
-        for name in existing_agents - current_agents:
+        for name in existing_nodes - current_nodes:
             if entry := self._entries.pop(name, None):
                 entry.remove()
 
         # Add new entries
-        for name in current_agents - existing_agents:
-            agent = pool.agents[name]
-            entry = AgentEntry(agent)
+        for name in current_nodes - existing_nodes:
+            node = pool.nodes[name]
+            entry = NodeEntry(node)
             self._entries[name] = entry
             self.mount(entry)
 
         # Update existing entries
-        for name in current_agents & existing_agents:
-            agent = pool.agents[name]
+        for name in current_nodes & existing_nodes:
+            node = pool.nodes[name]
             entry = self._entries[name]
-            entry.add_class("busy" if agent.is_busy() else "idle")
+            entry.add_class("busy" if node.is_busy() else "idle")
 
     def action_cursor_up(self) -> None:
-        """Move focus to previous agent."""
-        entries = list(self.query(AgentEntry))
+        """Move focus to previous node."""
+        entries = list(self.query(NodeEntry))
         if not entries:
             return
 
         focused = self.screen.focused
-        if isinstance(focused, AgentEntry):
+        if isinstance(focused, NodeEntry):
             try:
                 current_idx = entries.index(focused)
                 new_idx = (current_idx - 1) % len(entries)
@@ -164,13 +172,13 @@ class AgentList(ScrollableContainer):
             entries[0].focus()
 
     def action_cursor_down(self) -> None:
-        """Move focus to next agent."""
-        entries = list(self.query(AgentEntry))
+        """Move focus to next node."""
+        entries = list(self.query(NodeEntry))
         if not entries:
             return
 
         focused = self.screen.focused
-        if isinstance(focused, AgentEntry):
+        if isinstance(focused, NodeEntry):
             try:
                 current_idx = entries.index(focused)
                 new_idx = (current_idx + 1) % len(entries)
@@ -180,7 +188,7 @@ class AgentList(ScrollableContainer):
         else:
             entries[0].focus()
 
-    def action_select_agent(self) -> None:
-        """Select focused agent."""
-        if (focused := self.screen.focused) and isinstance(focused, AgentEntry):
-            self.post_message(focused.Clicked(focused.agent))
+    def action_select_node(self) -> None:
+        """Select focused node."""
+        if (focused := self.screen.focused) and isinstance(focused, NodeEntry):
+            self.post_message(focused.Clicked(focused.node))

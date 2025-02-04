@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.pool import AgentPool
 
 
-class AgentListView(DataTable):
+class NodeListView(DataTable):
     """Display agents with their status and connections."""
 
     def __init__(self):

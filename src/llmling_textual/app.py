@@ -12,7 +12,7 @@ from llmling_textual.screens.log_screen.screen import LogWindow
 from llmling_textual.screens.main_screen import MainScreen
 
 
-class AgentApp(App):
+class PoolApp(App):
     """Main application."""
 
     DEFAULT_CSS = """
@@ -61,5 +61,5 @@ class AgentApp(App):
 
 
 if __name__ == "__main__":
-    app = AgentApp("src/llmling_agent/config_resources/agents.yml")
+    app = PoolApp("src/llmling_agent/config_resources/agents.yml")
     app.run()

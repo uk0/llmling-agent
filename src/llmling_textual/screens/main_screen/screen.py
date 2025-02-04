@@ -6,7 +6,7 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header
 
 from llmling_textual.screens.chat_screen.screen import ChatScreen
-from llmling_textual.screens.main_screen.agent_list import AgentEntry, AgentList
+from llmling_textual.screens.main_screen.agent_list import NodeEntry, NodeList
 from llmling_textual.widgets.message_stream import MessageStream
 
 
@@ -27,7 +27,7 @@ class MainScreen(Screen):
         padding: 1;
     }
 
-    #agent-list {
+    #node-list {
         height: 100%;
     }
 
@@ -39,39 +39,39 @@ class MainScreen(Screen):
     def __init__(self, pool: AgentPool) -> None:
         super().__init__()
         self.pool = pool
-        self.agent_list = AgentList(id="agent-list")
+        self.node_list = NodeList(id="node-list")
         self.message_stream = MessageStream(pool)
 
         # Connect pool events
-        self.pool.nodes.events.added.connect(self._on_agent_change)
-        self.pool.nodes.events.removed.connect(self._on_agent_change)
+        self.pool.nodes.events.added.connect(self._on_node_change)
+        self.pool.nodes.events.removed.connect(self._on_node_change)
 
     def on_mount(self) -> None:
         """Initialize screen."""
-        # Initial agent list population
-        self.agent_list.update_agents(self.pool)
+        # Initial node list population
+        self.node_list.update_nodes(self.pool)
 
     def compose(self) -> ComposeResult:
         """Create main layout."""
         yield Header()
-        yield self.agent_list
+        yield self.node_list
         yield self.message_stream
         yield Footer()
 
-    def _on_agent_change(self, *_) -> None:
-        """Handle agent added/removed."""
-        if self.agent_list:  # Check if widget still exists
-            self.agent_list.update_agents(self.pool)
+    def _on_node_change(self, *_) -> None:
+        """Handle node added/removed."""
+        if self.node_list:  # Check if widget still exists
+            self.node_list.update_nodes(self.pool)
 
     def cleanup(self) -> None:
         """Disconnect event handlers."""
         # Disconnect pool events
-        self.pool._items.events.added.disconnect(self._on_agent_change)
-        self.pool._items.events.removed.disconnect(self._on_agent_change)
+        self.pool.nodes.events.added.disconnect(self._on_node_change)
+        self.pool.nodes.events.removed.disconnect(self._on_node_change)
 
         # Clean up stream
         self.message_stream.cleanup()
 
-    async def on_agent_entry_clicked(self, event: AgentEntry.Clicked) -> None:
+    async def on_node_entry_clicked(self, event: NodeEntry.Clicked) -> None:
         """Show chat screen for clicked agent."""
-        await self.app.push_screen(ChatScreen(event.agent))
+        await self.app.push_screen(ChatScreen(event.node))

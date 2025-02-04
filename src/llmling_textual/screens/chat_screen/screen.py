@@ -10,8 +10,9 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Footer, Header
 
+from llmling_agent.agent.agent import Agent
+from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.messaging.messages import ChatMessage
-from llmling_agent_cli.chat_session.models import SessionState
 from llmling_agent_commands import get_commands
 from llmling_textual.widgets.agent_is_typing import ResponseStatus
 from llmling_textual.widgets.chat_view import ChatView
@@ -21,7 +22,7 @@ from llmling_textual.widgets.prompt_input import PromptInput
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
-    from llmling_agent import AnyAgent
+    from llmling_agent.messaging.messagenode import MessageNode
 
 
 class TextualOutputWriter(OutputWriter):
@@ -42,7 +43,7 @@ class TextualOutputWriter(OutputWriter):
 
 
 class ChatScreen(ModalScreen[None]):
-    """Modal screen for chatting with a specific agent."""
+    """Modal screen for chatting with a specific node."""
 
     BINDINGS: ClassVar = [
         Binding("escape", "app.pop_screen", "Close", show=True),
@@ -81,26 +82,23 @@ class ChatScreen(ModalScreen[None]):
     }
     """
 
-    def __init__(self, agent: AnyAgent[Any, Any]) -> None:
+    def __init__(self, node: MessageNode[Any, Any]) -> None:
         super().__init__()
-        self.agent = agent
+        self.node = node
         self._typing_status = ResponseStatus()
         self._typing_status.display = False
 
         # Initialize command system
         history_dir = pathlib.Path(user_data_dir("llmling", "llmling")) / "cli_history"
-        file_path = history_dir / f"{agent.name}.history"
+        file_path = history_dir / f"{node.name}.history"
         self.commands = CommandStore(history_file=file_path, enable_system_commands=True)
         self.commands._initialize_sync()
         for cmd in get_commands():
             self.commands.register_command(cmd)
 
-        # Initialize session state
-        self._state = SessionState(current_model=self.agent.model_name)
-
     def compose(self) -> ComposeResult:
         """Create screen layout."""
-        yield Header(name=f"Chat with {self.agent.name}")
+        yield Header(name=f"Chat with {self.node.name}")
 
         with Vertical(id="chat-container"):
             yield ChatView(id="chat-view")
@@ -113,8 +111,9 @@ class ChatScreen(ModalScreen[None]):
         """Load conversation history when mounted."""
         chat_view = self.query_one(ChatView)
         # Load existing messages
-        for msg in self.agent.conversation.chat_messages:
-            await chat_view.append_chat_message(msg)
+        if isinstance(self.node, Agent | StructuredAgent):
+            for msg in self.node.conversation.chat_messages:
+                await chat_view.append_chat_message(msg)
         # Focus input
         self.query_one(PromptInput).focus()
 
@@ -124,8 +123,8 @@ class ChatScreen(ModalScreen[None]):
         writer = TextualOutputWriter(chat_view)
 
         try:
-            # Create context with our agent's context
-            ctx = self.commands.create_context(self.agent.context, output_writer=writer)
+            # Create context with our node's context
+            ctx = self.commands.create_context(self.node.context, output_writer=writer)
             # Execute command
             await self.commands.execute_command(command_str, ctx)
             return ChatMessage(content="", role="system")
@@ -169,22 +168,18 @@ class ChatScreen(ModalScreen[None]):
 
             # Show typing indicator
             self._typing_status.display = True
-            self._typing_status.set_agent_responding()
+            self._typing_status.set_node_responding()
 
             # Get response
-            response = await self.agent.run(message)
+            response = await self.node.run(message)
             await chat_view.append_chat_message(response)
-
-            # Update session state
-            self._state.message_count += 2
-            self._state.update_tokens(response)
 
         except Exception as e:  # noqa: BLE001
             # Show error in chat
             error_msg = ChatMessage(
                 content=f"Error: {e}",
                 role="assistant",
-                name=self.agent.name,
+                name=self.node.name,
             )
             await chat_view.append_chat_message(error_msg)
 
