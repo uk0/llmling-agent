@@ -289,7 +289,8 @@ class ConversationManager:
             case _:
                 msg = f"Invalid type for session: {type(session)}"
                 raise ValueError(msg)
-        self.chat_messages = storage.filter_messages_sync(query)
+        self.chat_messages.clear()
+        self.chat_messages.extend(storage.filter_messages_sync(query))
 
     def get_history(
         self,
@@ -343,7 +344,8 @@ class ConversationManager:
 
     def set_history(self, history: list[ChatMessage]):
         """Update conversation history after run."""
-        self.chat_messages = EventedList(history)
+        self.chat_messages.clear()
+        self.chat_messages.extend(history)
 
     def clear(self):
         """Clear conversation history and prompts."""
@@ -372,7 +374,7 @@ class ConversationManager:
         old_history = self.chat_messages.copy()
 
         try:
-            messages = EventedList[ChatMessage[Any]]()
+            messages: Sequence[ChatMessage[Any]] = EventedList[ChatMessage[Any]]()
             if history is not None:
                 if isinstance(history, SessionQuery):
                     messages = await self._agent.context.storage.filter_messages(history)
