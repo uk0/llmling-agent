@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
 from datetime import datetime
@@ -550,6 +550,10 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
                     other = Agent.from_callback(other)
                 else:
                     other = StructuredAgent.from_callback(other)
+                for talk_ in self.iter_talks():
+                    if pool := talk_.source.context.pool:
+                        pool.register(other.name, other)
+                        break
                 return self.__rshift__(other)
             case Sequence():
                 team_talks = [self.__rshift__(o) for o in other]
@@ -565,6 +569,15 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
     def targets(self) -> list[MessageNode]:
         """Get all targets from all connections."""
         return [t for talk in self for t in talk.targets]
+
+    def iter_talks(self) -> Iterator[Talk]:
+        """Get all contained talks."""
+        for t in self:
+            match t:
+                case Talk():
+                    yield t
+                case TeamTalk():
+                    yield from t.iter_talks()
 
     async def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None):
         for talk in self:

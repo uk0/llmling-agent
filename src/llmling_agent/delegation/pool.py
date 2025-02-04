@@ -189,7 +189,8 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
         """Exit async context."""
         # Remove MCP tool provider from all agents
         for agent in self.agents.values():
-            agent.tools.remove_provider(self.mcp)
+            if self.mcp in agent.tools.providers:
+                agent.tools.remove_provider(self.mcp)
         await self.cleanup()
 
     async def cleanup(self):

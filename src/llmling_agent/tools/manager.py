@@ -66,7 +66,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             tools: Initial tools to register
         """
         super().__init__()
-        self._resource_providers: list[ResourceProvider] = []
+        self.providers: list[ResourceProvider] = []
 
         # Register initial tools
         for tool in tools or []:
@@ -89,26 +89,26 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         from llmling_agent.resource_providers.base import ResourceProvider
 
         if isinstance(provider, ResourceProvider):
-            self._resource_providers.append(provider)
+            self.providers.append(provider)
         else:
             # Wrap old-style callable in ResourceProvider
             wrapped = CallableResourceProvider(provider)
-            self._resource_providers.append(wrapped)
+            self.providers.append(wrapped)
 
     def remove_provider(self, provider: ResourceProvider | ResourceCallable):
         """Remove a resource provider."""
         from llmling_agent.resource_providers.base import ResourceProvider
 
         if isinstance(provider, ResourceProvider):
-            self._resource_providers.remove(provider)
+            self.providers.remove(provider)
         else:
             # Find and remove wrapped callable
-            for p in self._resource_providers:
+            for p in self.providers:
                 if (
                     isinstance(p, CallableResourceProvider)
                     and p.tool_callable == provider
                 ):
-                    self._resource_providers.remove(p)
+                    self.providers.remove(p)
                     break
 
     def reset_states(self):
@@ -194,7 +194,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         tools.extend(t for t in self.values() if t.matches_filter(state))
 
         # Get tools from providers
-        for provider in self._resource_providers:
+        for provider in self.providers:
             try:
                 provider_tools = await provider.get_tools()
                 tools.extend(t for t in provider_tools if t.matches_filter(state))

@@ -5,7 +5,7 @@ from llmling_agent import AgentPool
 
 async def test_simple_sequential_chain():
     """Test basic sequential chaining."""
-    async with AgentPool() as pool:
+    async with AgentPool[None]() as pool:
         agent1 = await pool.add_agent("agent1", model="test")
         agent2 = await pool.add_agent("agent2", model="test")
         agent3 = await pool.add_agent("agent3", model="test")
@@ -20,7 +20,7 @@ async def test_simple_sequential_chain():
 
 async def test_parallel_to_sequential():
     """Test parallel flows connecting to single target."""
-    async with AgentPool() as pool:
+    async with AgentPool[None]() as pool:
         agent1 = await pool.add_agent("agent1", model="test")
         agent2 = await pool.add_agent("agent2", model="test")
         agent3 = await pool.add_agent("agent3", model="test")
@@ -38,10 +38,28 @@ async def test_parallel_to_sequential():
             ])
 
 
+async def test_callback_chain():
+    """Test chaining with a callback function."""
+    async with AgentPool[None]() as pool:
+        agent1 = await pool.add_agent("agent1", model="test")
+        agent2 = await pool.add_agent("agent2", model="test")
+
+        def process(msg: str) -> str:
+            return f"Processed: {msg}"
+
+        talk = agent1 >> process >> agent2
+        print(talk)
+        async with pool.track_message_flow() as tracker:
+            msg = await agent1.run("test")
+            mermaid = tracker.visualize(msg)
+            connections = mermaid.replace(" ", "").split("\n")[1:]  # Skip flowchart LR
+            assert sorted(connections) == sorted(["agent1-->process", "process-->agent2"])
+
+
 async def test_message_flow_tracker():
     """Test tracking and visualizing message flow through a chain."""
     # Setup a simple agent chain
-    async with AgentPool() as pool:
+    async with AgentPool[None]() as pool:
         agent1 = await pool.add_agent(
             "agent1",
             system_prompt="You are agent 1",
@@ -89,7 +107,7 @@ async def test_message_flow_tracker():
 
 # async def test_message_flow_tracker_parallel():
 #     """Test tracking parallel message flows."""
-#     async with AgentPool() as pool:
+#     async with AgentPool[None]() as pool:
 #         agent1 = await pool.add_agent("agent1", model="test")
 #         agent2 = await pool.add_agent("agent2", model="test")
 #         agent3 = await pool.add_agent("agent3", model="test")
@@ -115,7 +133,7 @@ async def test_message_flow_tracker():
 
 # async def test_message_flow_tracker_nested():
 #     """Test tracking flow through nested teams."""
-#     async with AgentPool() as pool:
+#     async with AgentPool[None]() as pool:
 #         agent1 = await pool.add_agent("agent1", model="test")
 #         agent2 = await pool.add_agent("agent2", model="test")
 #         agent3 = await pool.add_agent("agent3", model="test")
