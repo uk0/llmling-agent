@@ -193,9 +193,10 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             parallel_init: Whether to initialize resources in parallel
             debug: Whether to enable debug mode
         """
-        from llmling_agent.agent import AgentContext, NodeLogger
+        from llmling_agent.agent import AgentContext
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
+        from llmling_agent.messaging import NodeLogger
         from llmling_agent_providers.base import AgentProvider
 
         self._infinite = False

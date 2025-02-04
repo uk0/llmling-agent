@@ -7,6 +7,13 @@ from llmling_agent.messaging.messages import (
     AgentResponse,
     TeamResponse,
 )
+from llmling_agent.messaging.node_logger import NodeLogger
 
-
-__all__ = ["AgentResponse", "ChatMessage", "TeamResponse", "TokenCost", "TokenUsage"]
+__all__ = [
+    "AgentResponse",
+    "ChatMessage",
+    "NodeLogger",
+    "TeamResponse",
+    "TokenCost",
+    "TokenUsage",
+]
