@@ -343,11 +343,11 @@ class ConversationManager:
 
     def set_history(self, history: list[ChatMessage]):
         """Update conversation history after run."""
-        self.chat_messages = history
+        self.chat_messages = EventedList(history)
 
     def clear(self):
         """Clear conversation history and prompts."""
-        self.chat_messages = []
+        self.chat_messages = EventedList[ChatMessage[Any]]()
         self._last_messages = []
         event = self.HistoryCleared(session_id=str(self.id))
         self.history_cleared.emit(event)
@@ -372,7 +372,7 @@ class ConversationManager:
         old_history = self.chat_messages.copy()
 
         try:
-            messages: list[ChatMessage[Any]] = []
+            messages = EventedList[ChatMessage[Any]]()
             if history is not None:
                 if isinstance(history, SessionQuery):
                     messages = await self._agent.context.storage.filter_messages(history)
