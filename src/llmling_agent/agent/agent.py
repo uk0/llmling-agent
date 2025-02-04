@@ -881,7 +881,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 devtools.debug(response_msg)
             return response_msg
 
-    def to_agent_tool(
+    def to_tool(
         self,
         *,
         name: str | None = None,

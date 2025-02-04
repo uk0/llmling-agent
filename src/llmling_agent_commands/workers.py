@@ -109,7 +109,7 @@ async def remove_worker_command(
         return
 
     worker_name = args[0]
-    tool_name = f"ask_{worker_name}"  # Match the naming in to_agent_tool
+    tool_name = f"ask_{worker_name}"  # Match the naming in to_tool
 
     try:
         if tool_name not in ctx.context.agent.tools:

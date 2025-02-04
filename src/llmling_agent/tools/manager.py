@@ -290,7 +290,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             share_context: Whether to pass parent's context/deps
             parent: Optional parent agent for history/context sharing
         """
-        tool = worker.to_agent_tool(
+        tool = worker.to_tool(
             parent=parent,
             name=name,
             reset_history_on_run=reset_history_on_run,

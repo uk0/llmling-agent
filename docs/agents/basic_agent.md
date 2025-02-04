@@ -98,7 +98,7 @@ await agent.run_in_background(get_prompt)
 ## Other Features
 
 - `register_worker`: Turn an agent into a tool for another agent
-- `to_agent_tool`: Create a callable tool from the agent
+- `to_tool`: Create a callable tool from the agent
 - `set_model`: Change the model dynamically
 - Various task execution and chain management methods
 
