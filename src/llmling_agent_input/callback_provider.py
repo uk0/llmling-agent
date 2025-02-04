@@ -1,0 +1,113 @@
+from __future__ import annotations
+
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+import inspect
+from typing import TYPE_CHECKING, Any
+
+from llmling_agent_input.base import InputProvider
+
+
+if TYPE_CHECKING:
+    from llmling_agent.agent.context import AgentContext, ConfirmationResult
+    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent.tools.base import ToolInfo
+
+
+class CallbackInputProvider(InputProvider):
+    """Input provider that delegates to provided callbacks."""
+
+    def __init__(
+        self,
+        get_input: Callable[..., str | Awaitable[str]] | None = None,
+        get_streaming_input: Callable[..., AsyncIterator[str] | Iterator[str]]
+        | None = None,
+        get_tool_confirmation: Callable[
+            ..., ConfirmationResult | Awaitable[ConfirmationResult]
+        ]
+        | None = None,
+        get_code_input: Callable[..., str | Awaitable[str]] | None = None,
+    ):
+        self._get_input = get_input
+        self._get_streaming = get_streaming_input
+        self._get_confirmation = get_tool_confirmation
+        self._get_code = get_code_input
+
+    async def get_input(
+        self,
+        context: AgentContext,
+        prompt: str,
+        result_type: type | None = None,
+        message_history: list[ChatMessage] | None = None,
+    ) -> str:
+        if not self._get_input:
+            return input(prompt)  # fallback
+        result = self._get_input(
+            context=context,
+            prompt=prompt,
+            result_type=result_type,
+            message_history=message_history,
+        )
+        return await result if inspect.isawaitable(result) else result  # type: ignore
+
+    async def get_streaming_input(  # type: ignore
+        self,
+        context: AgentContext,
+        prompt: str,
+        result_type: type | None = None,
+        message_history: list[ChatMessage] | None = None,
+    ) -> AsyncIterator[str]:
+        if not self._get_streaming:
+            # Use parent class fallback
+            return await super().get_streaming_input(  # type: ignore
+                context, prompt, result_type, message_history
+            )
+
+        iterator = self._get_streaming(
+            context=context,
+            prompt=prompt,
+            result_type=result_type,
+            message_history=message_history,
+        )
+
+        if isinstance(iterator, AsyncIterator):
+            return iterator
+
+        async def wrap_sync():  # wrap sync iterator
+            for item in iterator:
+                yield item
+
+        return wrap_sync()
+
+    async def get_tool_confirmation(
+        self,
+        context: AgentContext,
+        tool: ToolInfo,
+        args: dict[str, Any],
+        message_history: list[ChatMessage] | None = None,
+    ) -> ConfirmationResult:
+        if not self._get_confirmation:
+            return "allow"  # fallback: always allow
+        result = self._get_confirmation(
+            context=context,
+            tool=tool,
+            args=args,
+            message_history=message_history,
+        )
+        return await result if inspect.isawaitable(result) else result  # type: ignore
+
+    async def get_code_input(
+        self,
+        context: AgentContext,
+        template: str | None = None,
+        language: str = "python",
+        description: str | None = None,
+    ) -> str:
+        if not self._get_code:
+            return input("Enter code: ")  # basic fallback
+        result = self._get_code(
+            context=context,
+            template=template,
+            language=language,
+            description=description,
+        )
+        return await result if inspect.isawaitable(result) else result  # type: ignore
