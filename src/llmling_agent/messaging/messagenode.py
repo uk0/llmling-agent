@@ -74,7 +74,7 @@ class NodeContext[TDeps]:
         """Get the agent instance from the pool."""
         assert self.pool, "No agent pool available"
         assert self.node_name, "No agent name available"
-        return self.pool[self.node_name]
+        return self.pool[self.node_name]  # pyright: ignore
 
     @cached_property
     def storage(self) -> StorageManager:
