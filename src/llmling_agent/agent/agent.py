@@ -207,11 +207,16 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         if capabilities is not None:
             ctx.capabilities = capabilities
         self._context = ctx
-        super().__init__(name=name, context=ctx, description=description)
         memory_cfg = (
             session
             if isinstance(session, MemoryConfig)
             else MemoryConfig.from_value(session)
+        )
+        super().__init__(
+            name=name,
+            context=ctx,
+            description=description,
+            enable_logging=memory_cfg.enable,
         )
         # Initialize runtime
         match runtime:
