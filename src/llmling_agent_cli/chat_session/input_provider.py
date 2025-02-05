@@ -88,11 +88,8 @@ class CLISessionInputProvider(InputProvider):
 
         if description:
             self.session.console.print(f"\n{description}")
-
-        session = PromptSession(
-            multiline=True,
-            lexer=PygmentsLexer(PythonLexer),
-        )
+        lexer = PygmentsLexer(PythonLexer)
+        session = PromptSession[Any](multiline=True, lexer=lexer)
 
         return await session.prompt_async(
             "\nEnter code (ESC + Enter to submit):\n",
