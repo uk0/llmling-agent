@@ -31,6 +31,7 @@ from llmling_agent.models.nodes import NodeConfig
 from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
 from llmling_agent.models.result_types import InlineResponseDefinition, ResponseDefinition
 from llmling_agent.models.session import MemoryConfig, SessionQuery
+from llmling_agent.models.tools import ToolConfig  # noqa: TC001
 from llmling_agent_models import AnyModelConfig  # noqa: TC001
 from llmling_agent_models.base import BaseModelConfig
 
@@ -100,6 +101,9 @@ class AgentConfig(NodeConfig):
     model: str | AnyModelConfig | None = None
     """The model to use for this agent. Can be either a simple model name
     string (e.g. 'openai:gpt-4') or a structured model definition."""
+
+    tools: list[ToolConfig] = Field(default_factory=list)
+    """A list of tools to register with this agent."""
 
     environment: str | AgentEnvironment | None = None
     """Environments configuration (path or object)"""

@@ -280,6 +280,32 @@
           "description": "The model to use for this agent. Can be either a simple model name\nstring (e.g. 'openai:gpt-4') or a structured model definition.",
           "title": "Model"
         },
+        "tools": {
+          "description": "A list of tools to register with this agent.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "crewai": "#/$defs/CrewAIToolConfig",
+                "import": "#/$defs/ImportToolConfig",
+                "langchain": "#/$defs/LangChainToolConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ImportToolConfig"
+              },
+              {
+                "$ref": "#/$defs/CrewAIToolConfig"
+              },
+              {
+                "$ref": "#/$defs/LangChainToolConfig"
+              }
+            ]
+          },
+          "title": "Tools",
+          "type": "array"
+        },
         "environment": {
           "anyOf": [
             {
@@ -574,6 +600,72 @@
         "conditions"
       ],
       "title": "AndCondition",
+      "type": "object"
+    },
+    "ArizePhoenixProviderConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Arize Phoenix provider.",
+      "properties": {
+        "type": {
+          "const": "arize",
+          "default": "arize",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Arize API key.",
+          "title": "Api Key"
+        },
+        "space_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Arize workspace identifier.",
+          "title": "Space Key"
+        },
+        "model_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model identifier in Arize.",
+          "title": "Model Id"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Environment name.",
+          "title": "Environment"
+        }
+      },
+      "title": "ArizePhoenixProviderConfig",
       "type": "object"
     },
     "AugmentedModelConfig": {
@@ -1681,6 +1773,104 @@
         "max_input_cost"
       ],
       "title": "CostOptimizedModelConfig",
+      "type": "object"
+    },
+    "CrewAIToolConfig": {
+      "description": "Configuration for CrewAI-based tools.",
+      "properties": {
+        "type": {
+          "const": "crewai",
+          "default": "crewai",
+          "description": "CrewAI tool configuration.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "title": "Description"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires Confirmation",
+          "type": "boolean"
+        },
+        "requires_capability": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional capability needed to use the tool.",
+          "title": "Requires Capability"
+        },
+        "priority": {
+          "default": 100,
+          "description": "Execution priority (lower = higher priority).",
+          "title": "Priority",
+          "type": "integer"
+        },
+        "cache_enabled": {
+          "default": false,
+          "description": "Whether to enable result caching.",
+          "title": "Cache Enabled",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "title": "Metadata",
+          "type": "object"
+        },
+        "import_path": {
+          "description": "Import path to CrewAI tool class.",
+          "title": "Import Path",
+          "type": "string"
+        },
+        "params": {
+          "description": "Tool-specific parameters.",
+          "title": "Params",
+          "type": "object"
+        }
+      },
+      "required": [
+        "import_path"
+      ],
+      "title": "CrewAIToolConfig",
       "type": "object"
     },
     "CustomToolsetConfig": {
@@ -2829,6 +3019,99 @@
       "title": "ImportModelConfig",
       "type": "object"
     },
+    "ImportToolConfig": {
+      "description": "Configuration for importing tools from Python modules.",
+      "properties": {
+        "type": {
+          "const": "import",
+          "default": "import",
+          "description": "Import path based tool.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "title": "Description"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires Confirmation",
+          "type": "boolean"
+        },
+        "requires_capability": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional capability needed to use the tool.",
+          "title": "Requires Capability"
+        },
+        "priority": {
+          "default": 100,
+          "description": "Execution priority (lower = higher priority).",
+          "title": "Priority",
+          "type": "integer"
+        },
+        "cache_enabled": {
+          "default": false,
+          "description": "Whether to enable result caching.",
+          "title": "Cache Enabled",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "title": "Metadata",
+          "type": "object"
+        },
+        "import_path": {
+          "description": "Import path to the tool function.",
+          "title": "Import Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "import_path"
+      ],
+      "title": "ImportToolConfig",
+      "type": "object"
+    },
     "ImportedResponseDefinition": {
       "additionalProperties": false,
       "description": "Response definition that imports an existing Pydantic model.\n\nAllows using externally defined Pydantic models as response types.\nBenefits:\n- Reuse existing model definitions\n- Full Python type support\n- Complex validation logic\n- IDE support for imported types\n\nExample:\n    responses:\n      AnalysisResult:\n        type: import\n        import_path: myapp.models.AnalysisResult",
@@ -3598,6 +3881,165 @@
         }
       },
       "title": "LLMCapabilitiesConfig",
+      "type": "object"
+    },
+    "LangChainToolConfig": {
+      "description": "Configuration for LangChain tools.",
+      "properties": {
+        "type": {
+          "const": "langchain",
+          "default": "langchain",
+          "description": "LangChain tool configuration.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "title": "Description"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires Confirmation",
+          "type": "boolean"
+        },
+        "requires_capability": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional capability needed to use the tool.",
+          "title": "Requires Capability"
+        },
+        "priority": {
+          "default": 100,
+          "description": "Execution priority (lower = higher priority).",
+          "title": "Priority",
+          "type": "integer"
+        },
+        "cache_enabled": {
+          "default": false,
+          "description": "Whether to enable result caching.",
+          "title": "Cache Enabled",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "title": "Metadata",
+          "type": "object"
+        },
+        "tool_name": {
+          "description": "Name of LangChain tool to use.",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "params": {
+          "description": "Tool-specific parameters.",
+          "title": "Params",
+          "type": "object"
+        }
+      },
+      "required": [
+        "tool_name"
+      ],
+      "title": "LangChainToolConfig",
+      "type": "object"
+    },
+    "LangsmithProviderConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Langsmith provider.",
+      "properties": {
+        "type": {
+          "const": "langsmith",
+          "default": "langsmith",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Langsmith API key.",
+          "title": "Api Key"
+        },
+        "project_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Project name in Langsmith.",
+          "title": "Project Name"
+        },
+        "tags": {
+          "description": "Tags to apply to traces.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Environment name (dev/prod/staging).",
+          "title": "Environment"
+        }
+      },
+      "title": "LangsmithProviderConfig",
       "type": "object"
     },
     "LiteLLMProviderConfig": {
@@ -4453,6 +4895,8 @@
             "discriminator": {
               "mapping": {
                 "agentops": "#/$defs/AgentOpsProviderConfig",
+                "arize": "#/$defs/ArizePhoenixProviderConfig",
+                "langsmith": "#/$defs/LangsmithProviderConfig",
                 "logfire": "#/$defs/LogfireProviderConfig"
               },
               "propertyName": "type"
@@ -4463,6 +4907,12 @@
               },
               {
                 "$ref": "#/$defs/AgentOpsProviderConfig"
+              },
+              {
+                "$ref": "#/$defs/LangsmithProviderConfig"
+              },
+              {
+                "$ref": "#/$defs/ArizePhoenixProviderConfig"
               }
             ]
           },
