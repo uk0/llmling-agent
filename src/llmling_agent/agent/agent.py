@@ -196,7 +196,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         from llmling_agent.agent import AgentContext
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
-        from llmling_agent.messaging import NodeLogger
         from llmling_agent_providers.base import AgentProvider
 
         self._infinite = False
@@ -207,6 +206,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         ctx.input_provider = input_provider
         if capabilities is not None:
             ctx.capabilities = capabilities
+        self._context = ctx
         super().__init__(name=name, context=ctx, description=description)
         memory_cfg = (
             session
@@ -224,7 +224,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
         runtime_provider = RuntimePromptProvider(ctx.runtime)
         ctx.definition.prompt_manager.providers["runtime"] = runtime_provider
-        self._context = ctx
         # Initialize tool manager
         all_tools = list(tools or [])
         self._tool_manager = ToolManager(all_tools)
@@ -282,13 +281,12 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self._background_task: asyncio.Task[Any] | None = None
 
         # Forward provider signals
-        self._provider.chunk_streamed.connect(self.chunk_streamed.emit)
-        self._provider.model_changed.connect(self.model_changed.emit)
-        self._provider.tool_used.connect(self.tool_used.emit)
-        self._provider.model_changed.connect(self.model_changed.emit)
+        self._provider.chunk_streamed.connect(self.chunk_streamed)
+        self._provider.model_changed.connect(self.model_changed)
+        self._provider.tool_used.connect(self.tool_used)
+        self._provider.model_changed.connect(self.model_changed)
 
         self.talk = Interactions(self)
-        self._logger = NodeLogger(self, enable_db_logging=memory_cfg.enable)
 
         # Set up system prompts
         config_prompts = ctx.config.system_prompts if ctx else []
@@ -462,11 +460,12 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     @property
     def name(self) -> str:
         """Get agent name."""
-        return self._provider.name or "llmling-agent"
+        return self._name or "llmling-agent"
 
     @name.setter
     def name(self, value: str):
         self._provider.name = value
+        self._name = value
 
     @property
     def context(self) -> AgentContext[TDeps]:

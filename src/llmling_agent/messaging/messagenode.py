@@ -112,17 +112,20 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         description: str | None = None,
         context: NodeContext | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
+        enable_logging: bool = True,
     ):
         """Initialize message node."""
         super().__init__()
         from llmling_agent.messaging.connection_manager import ConnectionManager
         from llmling_agent.messaging.event_manager import EventManager
+        from llmling_agent.messaging.node_logger import NodeLogger
 
         self._name = name or self.__class__.__name__
         self.description = description
         self.connections = ConnectionManager(self)
         self._events = EventManager(self, enable_events=True)
         self.mcp = MCPManager(servers=mcp_servers or [], context=context)
+        self._logger = NodeLogger(self, enable_db_logging=enable_logging)
 
     async def __aenter__(self) -> Self:
         """Initialize base message node."""
