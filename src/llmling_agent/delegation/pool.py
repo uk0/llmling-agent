@@ -66,9 +66,6 @@ class MessageFlowTracker:
         ]
         lines = ["flowchart LR"]
         for event in conv_events:
-            import devtools
-
-            devtools.debug(event)
             source = event.message.name
             for target in event.targets:
                 lines.append(f"    {source}-->{target.name}")  # noqa: PERF401
