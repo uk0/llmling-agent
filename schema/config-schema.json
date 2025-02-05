@@ -1,5 +1,35 @@
 {
   "$defs": {
+    "AISuiteModelConfig": {
+      "description": "Configuration for AISuite adapter.",
+      "properties": {
+        "type": {
+          "const": "aisuite",
+          "default": "aisuite",
+          "title": "Type",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "config": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "title": "Config",
+          "type": "object"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "title": "AISuiteModelConfig",
+      "type": "object"
+    },
     "AgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\ncapabilities, and behavior settings. Each agent can have its own:\n- Language model configuration\n- Environment setup (tools and resources)\n- Response type definitions\n- System prompts and default user prompts\n- Role-based capabilities\n\nThe configuration can be loaded from YAML or created programmatically.",
@@ -180,49 +210,65 @@
             {
               "discriminator": {
                 "mapping": {
-                  "cost-optimized": "#/$defs/CostOptimizedMultiModel",
-                  "delegation": "#/$defs/DelegationMultiModel",
-                  "fallback": "#/$defs/FallbackMultiModel",
-                  "import": "#/$defs/ImportModel",
-                  "input": "#/$defs/InputModel",
-                  "remote-input": "#/$defs/RemoteInputModel",
-                  "remote-proxy": "#/$defs/RemoteProxyModel",
-                  "string": "#/$defs/StringModel",
-                  "test": "#/$defs/_TestModelWrapper",
-                  "token-optimized": "#/$defs/TokenOptimizedMultiModel"
+                  "aisuite": "#/$defs/AISuiteModelConfig",
+                  "augmented": "#/$defs/AugmentedModelConfig",
+                  "cost-optimized": "#/$defs/CostOptimizedModelConfig",
+                  "delegation": "#/$defs/DelegationModelConfig",
+                  "fallback": "#/$defs/FallbackModelConfig",
+                  "import": "#/$defs/ImportModelConfig",
+                  "input": "#/$defs/InputModelConfig",
+                  "llm": "#/$defs/LLMAdapterConfig",
+                  "remote-input": "#/$defs/RemoteInputConfig",
+                  "remote-proxy": "#/$defs/RemoteProxyConfig",
+                  "string": "#/$defs/StringModelConfig",
+                  "test": "#/$defs/TestModelConfig",
+                  "token-optimized": "#/$defs/TokenOptimizedModelConfig",
+                  "user-select": "#/$defs/UserSelectModelConfig"
                 },
                 "propertyName": "type"
               },
               "oneOf": [
                 {
-                  "$ref": "#/$defs/StringModel"
+                  "$ref": "#/$defs/AISuiteModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/DelegationMultiModel"
+                  "$ref": "#/$defs/AugmentedModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/CostOptimizedMultiModel"
+                  "$ref": "#/$defs/CostOptimizedModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/TokenOptimizedMultiModel"
+                  "$ref": "#/$defs/DelegationModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/FallbackMultiModel"
+                  "$ref": "#/$defs/FallbackModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/InputModel"
+                  "$ref": "#/$defs/ImportModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/ImportModel"
+                  "$ref": "#/$defs/InputModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/_TestModelWrapper"
+                  "$ref": "#/$defs/LLMAdapterConfig"
                 },
                 {
-                  "$ref": "#/$defs/RemoteInputModel"
+                  "$ref": "#/$defs/RemoteInputConfig"
                 },
                 {
-                  "$ref": "#/$defs/RemoteProxyModel"
+                  "$ref": "#/$defs/RemoteProxyConfig"
+                },
+                {
+                  "$ref": "#/$defs/TokenOptimizedModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/StringModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/TestModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/UserSelectModelConfig"
                 }
               ]
             },
@@ -261,7 +307,7 @@
             }
           ],
           "default": null,
-          "description": "Environment configuration (path or object)",
+          "description": "Environments configuration (path or object)",
           "title": "Environment"
         },
         "capabilities": {
@@ -435,6 +481,17 @@
           "title": "Workers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
+          "enum": [
+            "always",
+            "never",
+            "per_tool"
+          ],
+          "title": "Requires Tool Confirmation",
+          "type": "string"
+        },
         "debug": {
           "default": false,
           "description": "Enable debug output for this agent.",
@@ -443,6 +500,41 @@
         }
       },
       "title": "AgentConfig",
+      "type": "object"
+    },
+    "AgentOpsProviderConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for AgentOps provider.",
+      "properties": {
+        "type": {
+          "const": "agentops",
+          "default": "agentops",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "AgentOps API key.",
+          "title": "Api Key"
+        },
+        "tags": {
+          "description": "Tags for session grouping.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        }
+      },
+      "title": "AgentOpsProviderConfig",
       "type": "object"
     },
     "AndCondition": {
@@ -482,6 +574,62 @@
         "conditions"
       ],
       "title": "AndCondition",
+      "type": "object"
+    },
+    "AugmentedModelConfig": {
+      "description": "Configuration for model with pre/post prompt processing.",
+      "properties": {
+        "type": {
+          "const": "augmented",
+          "default": "augmented",
+          "title": "Type",
+          "type": "string"
+        },
+        "main_model": {
+          "title": "Main Model",
+          "type": "string"
+        },
+        "pre_prompt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PrePostPromptConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "post_prompt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PrePostPromptConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "main_model"
+      ],
+      "title": "AugmentedModelConfig",
+      "type": "object"
+    },
+    "BaseModelConfig": {
+      "description": "Base for model configurations.",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "BaseModelConfig",
       "type": "object"
     },
     "BasePrompt": {
@@ -1490,9 +1638,8 @@
       "title": "CostLimitCondition",
       "type": "object"
     },
-    "CostOptimizedMultiModel": {
-      "additionalProperties": false,
-      "description": "Multi-model that selects based on cost and token limits.",
+    "CostOptimizedModelConfig": {
+      "description": "Configuration for cost-optimized model selection.",
       "properties": {
         "type": {
           "const": "cost-optimized",
@@ -1501,23 +1648,26 @@
           "type": "string"
         },
         "models": {
-          "description": "List of models to use.",
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/BaseModelConfig"
+              }
+            ]
           },
-          "minItems": 1,
           "title": "Models",
           "type": "array"
         },
         "max_input_cost": {
-          "description": "Maximum allowed cost in USD per request",
           "exclusiveMinimum": 0.0,
           "title": "Max Input Cost",
           "type": "number"
         },
         "strategy": {
           "default": "best_within_budget",
-          "description": "Strategy for model selection.",
           "enum": [
             "cheapest_possible",
             "best_within_budget"
@@ -1530,7 +1680,7 @@
         "models",
         "max_input_cost"
       ],
-      "title": "CostOptimizedMultiModel",
+      "title": "CostOptimizedModelConfig",
       "type": "object"
     },
     "CustomToolsetConfig": {
@@ -1569,9 +1719,8 @@
       "title": "CustomToolsetConfig",
       "type": "object"
     },
-    "DelegationMultiModel": {
-      "additionalProperties": false,
-      "description": "Meta-model that dynamically selects models based on a user prompt.\n\nExample YAML configuration:\n    ```yaml\n    model:\n      type: delegation\n      selector_model: openai:gpt-4-turbo\n      models:\n        - openai:gpt-4\n        - openai:gpt-3.5-turbo\n      selection_prompt: |\n        Pick gpt-4 for complex tasks, gpt-3.5-turbo for simple queries.\n    ```",
+    "DelegationModelConfig": {
+      "description": "Configuration for delegation-based model selection.",
       "properties": {
         "type": {
           "const": "delegation",
@@ -1579,22 +1728,32 @@
           "title": "Type",
           "type": "string"
         },
+        "selector_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/BaseModelConfig"
+            }
+          ],
+          "title": "Selector Model"
+        },
         "models": {
-          "description": "List of models to use.",
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/BaseModelConfig"
+              }
+            ]
           },
-          "minItems": 1,
           "title": "Models",
           "type": "array"
         },
-        "selector_model": {
-          "description": "Model to use for delegation.",
-          "title": "Selector Model",
-          "type": "string"
-        },
         "selection_prompt": {
-          "description": "Instructions for model selection based on task type.",
           "title": "Selection Prompt",
           "type": "string"
         },
@@ -1615,11 +1774,11 @@
         }
       },
       "required": [
-        "models",
         "selector_model",
+        "models",
         "selection_prompt"
       ],
-      "title": "DelegationMultiModel",
+      "title": "DelegationModelConfig",
       "type": "object"
     },
     "DoclingConverterConfig": {
@@ -1895,9 +2054,8 @@
       "title": "EntryPointToolsetConfig",
       "type": "object"
     },
-    "FallbackMultiModel": {
-      "additionalProperties": false,
-      "description": "Tries models in sequence until one succeeds.\n\nExample YAML configuration:\n    ```yaml\n    model:\n      type: fallback\n      models:\n        - openai:gpt-4  # Try this first\n        - openai:gpt-3.5-turbo  # Fall back to this if gpt-4 fails\n        - ollama:llama2  # Last resort\n    ```",
+    "FallbackModelConfig": {
+      "description": "Configuration for fallback strategy.",
       "properties": {
         "type": {
           "const": "fallback",
@@ -1906,11 +2064,16 @@
           "type": "string"
         },
         "models": {
-          "description": "List of models to use.",
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/BaseModelConfig"
+              }
+            ]
           },
-          "minItems": 1,
           "title": "Models",
           "type": "array"
         }
@@ -1918,7 +2081,7 @@
       "required": [
         "models"
       ],
-      "title": "FallbackMultiModel",
+      "title": "FallbackModelConfig",
       "type": "object"
     },
     "FileConnectionConfig": {
@@ -2639,9 +2802,8 @@
       "title": "HumanProviderConfig",
       "type": "object"
     },
-    "ImportModel": {
-      "additionalProperties": false,
-      "description": "Model that imports and delegates to other models.\n\nUseful to allow using \"external\" models via YAML in LLMling-Agent",
+    "ImportModelConfig": {
+      "description": "Configuration for importing external models.",
       "properties": {
         "type": {
           "const": "import",
@@ -2650,12 +2812,13 @@
           "type": "string"
         },
         "model": {
-          "description": "Model class to import and use.",
           "title": "Model",
           "type": "string"
         },
         "kw_args": {
-          "description": "Keyword arguments for the imported model class.",
+          "additionalProperties": {
+            "type": "string"
+          },
           "title": "Kw Args",
           "type": "object"
         }
@@ -2663,7 +2826,7 @@
       "required": [
         "model"
       ],
-      "title": "ImportModel",
+      "title": "ImportModelConfig",
       "type": "object"
     },
     "ImportedResponseDefinition": {
@@ -2968,9 +3131,8 @@
       "title": "InlineResponseDefinition",
       "type": "object"
     },
-    "InputModel": {
-      "additionalProperties": false,
-      "description": "Model that delegates responses to human input.",
+    "InputModelConfig": {
+      "description": "Configuration for human input model.",
       "properties": {
         "type": {
           "const": "input",
@@ -2980,30 +3142,26 @@
         },
         "prompt_template": {
           "default": "\ud83d\udc64 Please respond to: {prompt}",
-          "description": "Template for showing the prompt to the human.",
           "title": "Prompt Template",
           "type": "string"
         },
         "show_system": {
           "default": true,
-          "description": "Whether to show system messages to the human.",
           "title": "Show System",
           "type": "boolean"
         },
         "input_prompt": {
           "default": "Your response: ",
-          "description": "Prompt to show when requesting input.",
           "title": "Input Prompt",
           "type": "string"
         },
         "handler": {
           "default": "llmling_models:DefaultInputHandler",
-          "description": "Input handler class to use.",
           "title": "Handler",
           "type": "string"
         }
       },
-      "title": "InputModel",
+      "title": "InputModelConfig",
       "type": "object"
     },
     "Jinja2Condition": {
@@ -3378,6 +3536,26 @@
       "title": "Knowledge",
       "type": "object"
     },
+    "LLMAdapterConfig": {
+      "description": "Configuration for LLM library adapter.",
+      "properties": {
+        "type": {
+          "const": "llm",
+          "default": "llm",
+          "title": "Type",
+          "type": "string"
+        },
+        "model_name": {
+          "title": "Model Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model_name"
+      ],
+      "title": "LLMAdapterConfig",
+      "type": "object"
+    },
     "LLMCapabilitiesConfig": {
       "additionalProperties": false,
       "description": "Configuration for LLM system capabilities.",
@@ -3479,6 +3657,59 @@
         }
       },
       "title": "LiteLLMProviderConfig",
+      "type": "object"
+    },
+    "LogfireProviderConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Logfire provider.",
+      "properties": {
+        "type": {
+          "const": "logfire",
+          "default": "logfire",
+          "title": "Type",
+          "type": "string"
+        },
+        "token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Logfire API token.",
+          "title": "Token"
+        },
+        "service_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Service name for tracing.",
+          "title": "Service Name"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Environment name (dev/prod/etc).",
+          "title": "Environment"
+        }
+      },
+      "title": "LogfireProviderConfig",
       "type": "object"
     },
     "MarkItDownConfig": {
@@ -4206,6 +4437,58 @@
       "title": "NodeConnectionConfig",
       "type": "object"
     },
+    "ObservabilityConfig": {
+      "additionalProperties": false,
+      "description": "Global observability configuration.",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "Whether observability is enabled.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "providers": {
+          "description": "Provider-specific configuration.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "agentops": "#/$defs/AgentOpsProviderConfig",
+                "logfire": "#/$defs/LogfireProviderConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/LogfireProviderConfig"
+              },
+              {
+                "$ref": "#/$defs/AgentOpsProviderConfig"
+              }
+            ]
+          },
+          "title": "Providers",
+          "type": "array"
+        },
+        "instrument_libraries": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Which providers should be imported before initialization.\n\nBy default, all libraries used in the AgentsManifest are instrumented.",
+          "title": "Instrument Libraries"
+        }
+      },
+      "title": "ObservabilityConfig",
+      "type": "object"
+    },
     "OpenAPIToolsetConfig": {
       "additionalProperties": false,
       "description": "Configuration for OpenAPI toolsets.",
@@ -4401,6 +4684,25 @@
         }
       },
       "title": "PlainConverterConfig",
+      "type": "object"
+    },
+    "PrePostPromptConfig": {
+      "description": "Configuration for pre/post prompts.",
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "model"
+      ],
+      "title": "PrePostPromptConfig",
       "type": "object"
     },
     "ProcessingStep": {
@@ -4704,49 +5006,65 @@
             {
               "discriminator": {
                 "mapping": {
-                  "cost-optimized": "#/$defs/CostOptimizedMultiModel",
-                  "delegation": "#/$defs/DelegationMultiModel",
-                  "fallback": "#/$defs/FallbackMultiModel",
-                  "import": "#/$defs/ImportModel",
-                  "input": "#/$defs/InputModel",
-                  "remote-input": "#/$defs/RemoteInputModel",
-                  "remote-proxy": "#/$defs/RemoteProxyModel",
-                  "string": "#/$defs/StringModel",
-                  "test": "#/$defs/_TestModelWrapper",
-                  "token-optimized": "#/$defs/TokenOptimizedMultiModel"
+                  "aisuite": "#/$defs/AISuiteModelConfig",
+                  "augmented": "#/$defs/AugmentedModelConfig",
+                  "cost-optimized": "#/$defs/CostOptimizedModelConfig",
+                  "delegation": "#/$defs/DelegationModelConfig",
+                  "fallback": "#/$defs/FallbackModelConfig",
+                  "import": "#/$defs/ImportModelConfig",
+                  "input": "#/$defs/InputModelConfig",
+                  "llm": "#/$defs/LLMAdapterConfig",
+                  "remote-input": "#/$defs/RemoteInputConfig",
+                  "remote-proxy": "#/$defs/RemoteProxyConfig",
+                  "string": "#/$defs/StringModelConfig",
+                  "test": "#/$defs/TestModelConfig",
+                  "token-optimized": "#/$defs/TokenOptimizedModelConfig",
+                  "user-select": "#/$defs/UserSelectModelConfig"
                 },
                 "propertyName": "type"
               },
               "oneOf": [
                 {
-                  "$ref": "#/$defs/StringModel"
+                  "$ref": "#/$defs/AISuiteModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/DelegationMultiModel"
+                  "$ref": "#/$defs/AugmentedModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/CostOptimizedMultiModel"
+                  "$ref": "#/$defs/CostOptimizedModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/TokenOptimizedMultiModel"
+                  "$ref": "#/$defs/DelegationModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/FallbackMultiModel"
+                  "$ref": "#/$defs/FallbackModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/InputModel"
+                  "$ref": "#/$defs/ImportModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/ImportModel"
+                  "$ref": "#/$defs/InputModelConfig"
                 },
                 {
-                  "$ref": "#/$defs/_TestModelWrapper"
+                  "$ref": "#/$defs/LLMAdapterConfig"
                 },
                 {
-                  "$ref": "#/$defs/RemoteInputModel"
+                  "$ref": "#/$defs/RemoteInputConfig"
                 },
                 {
-                  "$ref": "#/$defs/RemoteProxyModel"
+                  "$ref": "#/$defs/RemoteProxyConfig"
+                },
+                {
+                  "$ref": "#/$defs/TokenOptimizedModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/StringModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/TestModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/UserSelectModelConfig"
                 }
               ]
             },
@@ -4793,20 +5111,17 @@
       "title": "PydanticAIProviderConfig",
       "type": "object"
     },
-    "RemoteInputModel": {
-      "additionalProperties": false,
-      "description": "Model that connects to a remote human operator.\n\nExample YAML configuration:\n    ```yaml\n    models:\n      remote-human:\n        type: remote-input\n        url: ws://localhost:8000/v1/chat/stream  # or http://localhost:8000/v1/chat\n        api_key: your-api-key\n    ```",
+    "RemoteInputConfig": {
+      "description": "Configuration for remote human input.",
       "properties": {
         "type": {
           "const": "remote-input",
           "default": "remote-input",
-          "description": "Discriminator field for model type.",
           "title": "Type",
           "type": "string"
         },
         "url": {
           "default": "ws://localhost:8000/v1/chat/stream",
-          "description": "URL of the remote input server.",
           "title": "Url",
           "type": "string"
         },
@@ -4820,27 +5135,23 @@
             }
           ],
           "default": null,
-          "description": "API key for authentication.",
           "title": "Api Key"
         }
       },
-      "title": "RemoteInputModel",
+      "title": "RemoteInputConfig",
       "type": "object"
     },
-    "RemoteProxyModel": {
-      "additionalProperties": false,
-      "description": "Model that proxies requests to a remote model server.\n\nExample YAML configuration:\n    ```yaml\n    models:\n      remote-gpt4:\n        type: remote-proxy\n        url: ws://model-server:8000/v1/completion  # or http://\n        api_key: your-api-key\n    ```",
+    "RemoteProxyConfig": {
+      "description": "Configuration for remote model proxy.",
       "properties": {
         "type": {
           "const": "remote-proxy",
           "default": "remote-proxy",
-          "description": "Discriminator field for model type.",
           "title": "Type",
           "type": "string"
         },
         "url": {
           "default": "ws://localhost:8000/v1/completion/stream",
-          "description": "URL of the remote model server.",
           "title": "Url",
           "type": "string"
         },
@@ -4854,11 +5165,10 @@
             }
           ],
           "default": null,
-          "description": "API key for authentication.",
           "title": "Api Key"
         }
       },
-      "title": "RemoteProxyModel",
+      "title": "RemoteProxyConfig",
       "type": "object"
     },
     "ResponseField": {
@@ -5453,9 +5763,8 @@
       "title": "StorageConfig",
       "type": "object"
     },
-    "StringModel": {
-      "additionalProperties": false,
-      "description": "Wrapper for string model names.",
+    "StringModelConfig": {
+      "description": "Configuration for string-based model references.",
       "properties": {
         "type": {
           "const": "string",
@@ -5471,7 +5780,7 @@
       "required": [
         "identifier"
       ],
-      "title": "StringModel",
+      "title": "StringModelConfig",
       "type": "object"
     },
     "SystemPrompt": {
@@ -5659,8 +5968,27 @@
       "title": "TeamConfig",
       "type": "object"
     },
-    "TestModel": {
+    "TestModelConfig": {
+      "description": "Configuration for test models.",
       "properties": {
+        "type": {
+          "const": "test",
+          "default": "test",
+          "title": "Type",
+          "type": "string"
+        },
+        "custom_result_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Custom Result Text"
+        },
         "call_tools": {
           "anyOf": [
             {
@@ -5676,78 +6004,9 @@
           ],
           "default": "all",
           "title": "Call Tools"
-        },
-        "custom_result_text": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Custom Result Text"
-        },
-        "custom_result_args": {
-          "anyOf": [
-            {},
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Custom Result Args"
-        },
-        "seed": {
-          "default": 0,
-          "title": "Seed",
-          "type": "integer"
-        },
-        "agent_model_function_tools": {
-          "anyOf": [
-            {
-              "items": {
-                "$ref": "#/$defs/ToolDefinition"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Agent Model Function Tools"
-        },
-        "agent_model_allow_text_result": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Agent Model Allow Text Result"
-        },
-        "agent_model_result_tools": {
-          "anyOf": [
-            {
-              "items": {
-                "$ref": "#/$defs/ToolDefinition"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Agent Model Result Tools"
         }
       },
-      "title": "TestModel",
+      "title": "TestModelConfig",
       "type": "object"
     },
     "TextLogConfig": {
@@ -6044,9 +6303,8 @@
       "title": "TimeEventConfig",
       "type": "object"
     },
-    "TokenOptimizedMultiModel": {
-      "additionalProperties": false,
-      "description": "Multi-model that selects based on input token count.\n\nExample YAML configuration:\n    ```yaml\n    model:\n      type: token-optimized\n      models:\n        - openai:gpt-4  # 8k context\n        - openai:gpt-4-32k  # 32k context\n        - openai:gpt-3.5-turbo-16k  # 16k context\n      strategy: efficient  # Use smallest sufficient context window\n    ```",
+    "TokenOptimizedModelConfig": {
+      "description": "Configuration for token-optimized model selection.",
       "properties": {
         "type": {
           "const": "token-optimized",
@@ -6055,17 +6313,21 @@
           "type": "string"
         },
         "models": {
-          "description": "List of models to use.",
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/BaseModelConfig"
+              }
+            ]
           },
-          "minItems": 1,
           "title": "Models",
           "type": "array"
         },
         "strategy": {
           "default": "efficient",
-          "description": "Model selection strategy.",
           "enum": [
             "efficient",
             "maximum_context"
@@ -6077,7 +6339,7 @@
       "required": [
         "models"
       ],
-      "title": "TokenOptimizedMultiModel",
+      "title": "TokenOptimizedModelConfig",
       "type": "object"
     },
     "TokenThresholdCondition": {
@@ -6169,39 +6431,54 @@
       "title": "ToolConfig",
       "type": "object"
     },
-    "ToolDefinition": {
+    "UserSelectModelConfig": {
+      "description": "Configuration for interactive model selection.",
       "properties": {
-        "name": {
-          "title": "Name",
+        "type": {
+          "const": "user-select",
+          "default": "user-select",
+          "title": "Type",
           "type": "string"
         },
-        "description": {
-          "title": "Description",
+        "models": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/BaseModelConfig"
+              }
+            ]
+          },
+          "title": "Models",
+          "type": "array"
+        },
+        "prompt_template": {
+          "default": "\ud83e\udd16 Choose a model for: {prompt}",
+          "title": "Prompt Template",
           "type": "string"
         },
-        "parameters_json_schema": {
-          "title": "Parameters Json Schema",
-          "type": "object"
+        "show_system": {
+          "default": true,
+          "title": "Show System",
+          "type": "boolean"
         },
-        "outer_typed_dict_key": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Outer Typed Dict Key"
+        "input_prompt": {
+          "default": "Enter model number (0-{max}): ",
+          "title": "Input Prompt",
+          "type": "string"
+        },
+        "handler": {
+          "default": "llmling_models:DefaultInputHandler",
+          "title": "Handler",
+          "type": "string"
         }
       },
       "required": [
-        "name",
-        "description",
-        "parameters_json_schema"
+        "models"
       ],
-      "title": "ToolDefinition",
+      "title": "UserSelectModelConfig",
       "type": "object"
     },
     "WatchConfig": {
@@ -6407,26 +6684,6 @@
       ],
       "title": "WorkerConfig",
       "type": "object"
-    },
-    "_TestModelWrapper": {
-      "additionalProperties": false,
-      "description": "Wrapper for TestModel.",
-      "properties": {
-        "type": {
-          "const": "test",
-          "default": "test",
-          "title": "Type",
-          "type": "string"
-        },
-        "model": {
-          "$ref": "#/$defs/TestModel"
-        }
-      },
-      "required": [
-        "model"
-      ],
-      "title": "_TestModelWrapper",
-      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -6470,6 +6727,10 @@
     "storage": {
       "$ref": "#/$defs/StorageConfig",
       "description": "Storage provider configuration."
+    },
+    "observability": {
+      "$ref": "#/$defs/ObservabilityConfig",
+      "description": "Observability provider configuration."
     },
     "conversion": {
       "$ref": "#/$defs/ConversionConfig",
