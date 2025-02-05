@@ -36,7 +36,7 @@ from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, Stdi
 from llmling_agent.models.nodes import NodeConfig
 from llmling_agent.models.observability import ObservabilityConfig
 from llmling_agent.models.prompts import PromptConfig
-from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
+from llmling_agent.models.providers import BaseProviderConfig, ProviderConfig
 from llmling_agent.models.result_types import InlineResponseDefinition, ResponseDefinition
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.models.storage import StorageConfig
@@ -682,6 +682,21 @@ class AgentsManifest(ConfigModel):
         if result_type := self.get_result_type(name):
             return agent.to_structured(result_type)
         return agent
+
+    def get_used_providers(self) -> set[str]:
+        """Get all providers configured in this manifest."""
+        providers = set[str]()
+
+        for agent_config in self.agents.values():
+            match agent_config.provider:
+                case "pydantic_ai":
+                    providers.add("pydantic_ai")
+                case "litellm":
+                    providers.add("litellm")
+                case BaseProviderConfig():
+                    providers.add(agent_config.provider.type)
+
+        return providers
 
     def register_agent(
         self,
