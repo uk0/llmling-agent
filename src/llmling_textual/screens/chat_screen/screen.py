@@ -114,6 +114,9 @@ class ChatScreen(ModalScreen[None]):
         if isinstance(self.node, Agent | StructuredAgent):
             for msg in self.node.conversation.chat_messages:
                 await chat_view.append_chat_message(msg)
+        else:
+            for msg in self.node._logger.message_history:
+                await chat_view.append_chat_message(msg)
         # Focus input
         self.query_one(PromptInput).focus()
 

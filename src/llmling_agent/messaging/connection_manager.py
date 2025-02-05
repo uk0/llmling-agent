@@ -323,7 +323,7 @@ if __name__ == "__main__":
     agent = Agent[None]("test_agent")
     agent_2 = Agent[None]("test_agent_2")
     agent_3 = Agent[None]("test_agent_3")
-    agent_4 = Agent[None]("test_agent_3")
+    agent_4 = Agent[None]("test_agent_4")
     _conn_1 = agent >> agent_2
     _conn_2 = agent >> agent_3
     _conn_3 = agent_2 >> agent_4
