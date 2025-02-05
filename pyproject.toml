@@ -91,6 +91,13 @@ remote = ["websockets>=14.2"]
 mem0 = ["mem0ai>=0.1.48"]
 logfire = ["logfire"]
 agentops = ["agentops"]
+arize = [
+    "arize",
+    "arize-phoenix-otel",
+    "openinference-instrumentation-litellm",
+    "openinference-instrumentation-openai",
+]
+langsmith = ["langsmith"]
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]

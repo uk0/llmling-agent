@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, ClassVar
 
 from llmling_agent.models.observability import (
     AgentOpsProviderConfig,
+    ArizePhoenixProviderConfig,
+    LangsmithProviderConfig,
     LogfireProviderConfig,
 )
 
@@ -82,6 +84,21 @@ class ObservabilityRegistry:
                     provider = AgentOpsProvider(
                         provider_config.api_key, provider_config.tags
                     )
+                    cls.configure_provider(provider)
+
+                case LangsmithProviderConfig():
+                    from llmling_agent_observability.langsmith_provider import (
+                        LangsmithProvider,
+                    )
+
+                    provider = LangsmithProvider(provider_config)
+                    cls.configure_provider(provider)
+                case ArizePhoenixProviderConfig():
+                    from llmling_agent_observability.arize_provider import (
+                        ArizePhoenixProvider,
+                    )
+
+                    provider = ArizePhoenixProvider(provider_config)
                     cls.configure_provider(provider)
 
     @classmethod

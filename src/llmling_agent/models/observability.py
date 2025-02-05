@@ -43,8 +43,48 @@ class AgentOpsProviderConfig(BaseObservabilityProviderConfig):
     """Tags for session grouping."""
 
 
+class LangsmithProviderConfig(BaseObservabilityProviderConfig):
+    """Configuration for Langsmith provider."""
+
+    type: Literal["langsmith"] = Field("langsmith", init=False)
+
+    api_key: str | None = None
+    """Langsmith API key."""
+
+    project_name: str | None = None
+    """Project name in Langsmith."""
+
+    tags: list[str] = Field(default_factory=list)
+    """Tags to apply to traces."""
+
+    environment: str | None = None
+    """Environment name (dev/prod/staging)."""
+
+
+class ArizePhoenixProviderConfig(BaseObservabilityProviderConfig):
+    """Configuration for Arize Phoenix provider."""
+
+    type: Literal["arize"] = Field("arize", init=False)
+
+    api_key: str | None = None
+    """Arize API key."""
+
+    space_key: str | None = None
+    """Arize workspace identifier."""
+
+    model_id: str | None = None
+    """Model identifier in Arize."""
+
+    environment: str | None = None
+    """Environment name."""
+
+
 ObservabilityProviderConfig = Annotated[
-    LogfireProviderConfig | AgentOpsProviderConfig, Field(discriminator="type")
+    LogfireProviderConfig
+    | AgentOpsProviderConfig
+    | LangsmithProviderConfig
+    | ArizePhoenixProviderConfig,
+    Field(discriminator="type"),
 ]
 
 
