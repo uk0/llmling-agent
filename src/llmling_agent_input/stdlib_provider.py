@@ -4,28 +4,74 @@ import json
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any
 
+from llmling import ToolError
+
+from llmling_agent.log import get_logger
 from llmling_agent_input.base import InputProvider
 
 
 if TYPE_CHECKING:
+    from pydantic import BaseModel
+
     from llmling_agent.agent.context import AgentContext, ConfirmationResult
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.tools.base import ToolInfo
 
 
+logger = get_logger(__name__)
+
+
 class StdlibInputProvider(InputProvider):
     """Input provider using only Python stdlib functionality."""
 
-    async def get_input(
+    async def get_text_input(
         self,
         context: AgentContext,
         prompt: str,
-        result_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
     ) -> str:
-        if result_type:
-            print(f"\nPlease provide response as {result_type.__name__}:")
         return input(f"{prompt}\n> ")
+
+    async def get_structured_input(
+        self,
+        context: AgentContext,
+        prompt: str,
+        result_type: type[BaseModel],
+        message_history: list[ChatMessage] | None = None,
+    ) -> BaseModel:
+        """Get structured input, with promptantic and fallback handling."""
+        if result := await self._get_promptantic_result(result_type):
+            return result
+
+        # Fallback: Get raw input and validate
+        raw_input = await self.get_input(
+            context,
+            f"{prompt}\n(Please provide response as {result_type.__name__})",
+            message_history=message_history,
+        )
+        try:
+            return result_type.model_validate_json(raw_input)
+        except Exception as e:
+            msg = f"Invalid response format: {e}"
+            raise ToolError(msg) from e
+
+    async def _get_promptantic_result(
+        self,
+        result_type: type[BaseModel],
+    ) -> BaseModel | None:
+        """Helper to get structured input via promptantic.
+
+        Returns None if promptantic is not available or fails.
+        """
+        try:
+            from promptantic import ModelGenerator
+
+            return await ModelGenerator().apopulate(result_type)
+        except ImportError:
+            return None
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Promptantic failed: %s", e)
+            return None
 
     async def get_tool_confirmation(
         self,

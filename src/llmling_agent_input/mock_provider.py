@@ -47,7 +47,7 @@ class MockInputProvider(InputProvider):
         prompt: str,
         result_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
-    ) -> str:
+    ) -> Any:
         kwargs = {"result_type": result_type, "message_history": message_history}
         args_ = (context, prompt)
         call = InputCall("get_input", args_, kwargs, result=self.input_response)

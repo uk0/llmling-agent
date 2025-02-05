@@ -8,6 +8,7 @@ from textual.binding import Binding
 from textualicious import LoggingWidget
 
 from llmling_agent.delegation.pool import AgentPool
+from llmling_agent_input.textual_provider import TextualInputProvider
 from llmling_textual.screens.log_screen import LogWindow
 from llmling_textual.screens.main_screen import MainScreen
 
@@ -37,7 +38,9 @@ class PoolApp(App):
 
     async def on_mount(self):
         """Initialize pool and mount main screen."""
-        self.agent_pool = AgentPool(self._config_path)
+        self.agent_pool = AgentPool(
+            self._config_path, input_provider=TextualInputProvider(self)
+        )
         await self.agent_pool.__aenter__()
 
         self.main_screen = MainScreen(self.agent_pool)

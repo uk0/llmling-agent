@@ -107,15 +107,28 @@ class InputModal(ModalScreen[str]):
                 yield Label(f"(Please provide response as {self.result_type.__name__})")
             yield Input(id="input")
             with Horizontal(classes="buttons"):
-                yield Button("Submit", variant="primary")
-                yield Button("Cancel", variant="error")
+                yield Button("Submit", variant="primary", id="submit")
+                yield Button("Cancel", variant="error", id="cancel")
+
+    def action_cancel(self):
+        """Handle cancel action."""
+        self.dismiss(None)
+
+    def action_submit(self):
+        """Handle submit action."""
+        input_value = self.query_one(Input).value
+        self.dismiss(input_value)
 
     def on_button_pressed(self, event: Button.Pressed):
-        if event.button.label == "Submit":
-            input_widget = self.query_one(Input)  # type: Input
-            self.dismiss(input_widget.value)
+        """Handle button presses."""
+        if event.button.id == "submit":
+            self.action_submit()
         else:
-            self.dismiss(None)
+            self.action_cancel()
+
+    def on_input_submitted(self, event: Input.Submitted):
+        """Handle Enter key in input."""
+        self.action_submit()
 
 
 class BaseInputApp(App[str]):
@@ -229,7 +242,7 @@ class TextualInputProvider(InputProvider):
         prompt: str,
         result_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
-    ) -> str:
+    ) -> Any:
         if self.app:
             result = await self.app.push_screen_wait(InputModal(prompt, result_type))
             if result is None:

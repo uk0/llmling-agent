@@ -26,7 +26,7 @@ class CLISessionInputProvider(InputProvider):
         prompt: str,
         result_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
-    ) -> str:
+    ) -> Any:
         # Use session's prompt and formatting
         if result_type:
             self.session.console.print(

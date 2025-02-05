@@ -17,10 +17,7 @@ from llmling_agent_providers.base import (
     ProviderResponse,
     StreamingResponseProtocol,
 )
-from llmling_agent_providers.human.utils import (
-    get_structured_response,
-    get_textual_streaming_app,
-)
+from llmling_agent_providers.human.utils import get_textual_streaming_app
 
 
 if TYPE_CHECKING:
@@ -88,21 +85,14 @@ class HumanProvider(AgentProvider):
             system_prompt: System prompt from SystemPrompts manager
             kwargs: Additional arguments for human (unused)
         """
-        if self._show_context:
-            messages = [msg.format() for msg in message_history]
-            history = "\n\n".join(messages)
-            if history:
-                print("\nContext:")
-                print(history)
-                print("\n---")
         # Show prompt and get response
         formatted = await format_prompts(prompts)
-        print(f"\n{formatted}")
-        content: Any
-        if result_type:
-            content = await get_structured_response(result_type, self.use_promptantic)
-        else:
-            content = input("> ")
+        content = await self.context.get_input_provider().get_input(
+            self.context,
+            formatted,
+            result_type=result_type,
+            message_history=message_history,
+        )
         return ProviderResponse(content=content)
 
     @asynccontextmanager

@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Coroutine
 
+    from pydantic import BaseModel
+
     from llmling_agent.agent.context import AgentContext, ConfirmationResult
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.tools.base import ToolInfo
@@ -18,14 +20,13 @@ class InputProvider(ABC):
     def __init__(self, real_streaming: bool = False):
         self.real_streaming = real_streaming
 
-    @abstractmethod
-    def get_input(
+    async def get_input(
         self,
         context: AgentContext,
         prompt: str,
         result_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
-    ) -> Coroutine[Any, Any, str]:
+    ) -> Any:
         """Get normal input (used by HumanProvider).
 
         Args:
@@ -34,6 +35,30 @@ class InputProvider(ABC):
             result_type: Optional type for structured responses
             message_history: Optional conversation history
         """
+        if result_type:
+            return await self.get_structured_input(
+                context, prompt, result_type, message_history
+            )
+        return await self.get_text_input(context, prompt, message_history)
+
+    async def get_text_input(
+        self,
+        context: AgentContext,
+        prompt: str,
+        message_history: list[ChatMessage] | None = None,
+    ) -> str:
+        """Get normal text input."""
+        raise NotImplementedError
+
+    async def get_structured_input(
+        self,
+        context: AgentContext,
+        prompt: str,
+        result_type: type[BaseModel],
+        message_history: list[ChatMessage] | None = None,
+    ) -> BaseModel:
+        """Get structured input, with promptantic and fallback handling."""
+        raise NotImplementedError
 
     async def get_streaming_input(
         self,
@@ -60,7 +85,6 @@ class InputProvider(ABC):
         message_history: list[ChatMessage] | None = None,
     ) -> AsyncIterator[str]:
         """Default implementation for real streaming."""
-        # Remove the real_streaming check since this is only called when true
         response = await self.get_input(context, prompt, result_type, message_history)
         yield response
 

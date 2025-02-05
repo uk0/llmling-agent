@@ -38,7 +38,7 @@ class CallbackInputProvider(InputProvider):
         prompt: str,
         result_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
-    ) -> str:
+    ) -> Any:
         if not self._get_input:
             return input(prompt)  # fallback
         result = self._get_input(
