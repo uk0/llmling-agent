@@ -23,6 +23,21 @@ T = TypeVar("T")
 class LogfireProvider(ObservabilityProvider):
     """Logfire implementation of observability provider."""
 
+    def __init__(
+        self,
+        token: str | None = None,
+        service_name: str | None = None,
+        environment: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Initialize Logfire with configuration."""
+        logfire.configure(
+            token=token,
+            service_name=service_name,
+            environment=environment,
+            **kwargs,
+        )
+
     def wrap_agent(self, func: Callable[..., T], name: str) -> Callable[..., T]:
         """Wrap an agent class with logfire instrumentation."""
         return logfire.instrument(
