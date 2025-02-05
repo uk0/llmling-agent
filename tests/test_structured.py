@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 import pytest
 
-from llmling_agent.models.agents import AgentsManifest
+from llmling_agent.models.manifest import AgentsManifest
 
 
 class Result(BaseModel):

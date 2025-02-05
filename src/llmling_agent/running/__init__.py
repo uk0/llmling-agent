@@ -10,7 +10,7 @@ from llmling_agent.running.discovery import agent_function
 from llmling_agent.running.executor import discover_functions, execute_functions
 
 if TYPE_CHECKING:
-    from llmling_agent.models.agents import AgentsManifest
+    from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.common_types import StrPath
 
 

@@ -35,8 +35,8 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn
     from llmling_agent.delegation.pool import AgentPool
-    from llmling_agent.models.agents import AgentsManifest
     from llmling_agent.models.forward_targets import ConnectionType
+    from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.models.mcp_server import MCPServerConfig
     from llmling_agent.models.nodes import NodeConfig
     from llmling_agent.models.providers import ProcessorCallback

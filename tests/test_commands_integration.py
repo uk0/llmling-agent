@@ -6,7 +6,7 @@ from llmling import Config, PromptMessage, PromptParameter, StaticPrompt
 import pytest
 from slashed import CommandStore, DefaultOutputWriter
 
-from llmling_agent.models.agents import AgentsManifest
+from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent_commands.prompts import prompt_cmd
 
 

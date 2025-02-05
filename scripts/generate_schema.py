@@ -17,7 +17,7 @@ from typing import Any
 
 from llmling.core.log import get_logger
 
-from llmling_agent.models import AgentsManifest
+from llmling_agent import AgentsManifest
 
 
 logger = get_logger(__name__)

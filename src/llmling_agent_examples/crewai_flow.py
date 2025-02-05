@@ -4,8 +4,7 @@
 
 from __future__ import annotations
 
-from llmling_agent import Agent  # noqa: TC001
-from llmling_agent.models.agents import AgentsManifest
+from llmling_agent import Agent, AgentsManifest
 from llmling_agent.running import agent_function, run_agents_async
 
 

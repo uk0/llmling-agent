@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import yamling
 
-from llmling_agent.models.agents import AgentsManifest
+from llmling_agent.models.manifest import AgentsManifest
 
 
 if TYPE_CHECKING:

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from llmling_agent.models.agents import AgentsManifest, AgentConfig
+from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.manifest import AgentsManifest
 
 from llmling_agent.models.resources import ResourceInfo
 from llmling_agent.models.forward_targets import ForwardingTarget

@@ -10,7 +10,7 @@ from psygnal.containers import EventedList
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode, NodeContext
-from llmling_agent.models.agents import AgentsManifest
+from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent.models.teams import TeamConfig
 from llmling_agent.talk.stats import AggregatedMessageStats, AggregatedTalkStats
 from llmling_agent.utils.inspection import has_return_type

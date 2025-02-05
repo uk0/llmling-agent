@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent.models.agents import AgentsManifest
+    from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.models.result_types import ResponseDefinition
     from llmling_agent.models.session import SessionQuery
     from llmling_agent.models.task import Job
@@ -110,7 +110,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
             RuntimeError: If node initialization fails
         """
         super().__init__()
-        from llmling_agent.models.agents import AgentsManifest
+        from llmling_agent.models.manifest import AgentsManifest
         from llmling_agent.storage import StorageManager
 
         match manifest:

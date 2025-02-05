@@ -46,8 +46,7 @@ Here's how to use both approaches:
 
 ```python
 from pydantic import BaseModel
-from llmling_agent import Agent
-from llmling_agent.models.agents import AgentsManifest
+from llmling_agent import Agent, AgentsManifest
 
 
 class PythonResult(BaseModel):

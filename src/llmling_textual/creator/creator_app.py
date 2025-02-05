@@ -10,7 +10,7 @@ from upath import UPath
 from yaml import YAMLError
 
 from llmling_agent.agent.agent import Agent
-from llmling_agent.models.agents import AgentsManifest
+from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent.utils.async_read import read_path
 from llmling_agent_cli import agent_store
 

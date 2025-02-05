@@ -9,9 +9,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 import yamling
 
-from llmling_agent import Agent, AgentConfig, config_resources
-from llmling_agent.delegation import AgentPool
-from llmling_agent.models.agents import AgentsManifest
+from llmling_agent import Agent, AgentConfig, AgentPool, AgentsManifest, config_resources
 
 
 TEST_RESPONSE = "I am a test response"
