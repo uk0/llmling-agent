@@ -213,7 +213,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
     def register_tool(
         self,
-        tool: ToolType,
+        tool: ToolType | ToolInfo,
         *,
         name_override: str | None = None,
         description_override: str | None = None,
@@ -246,6 +246,10 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 llm_tool = tool
                 llm_tool.name = name_override or llm_tool.name
                 llm_tool.description = description_override or llm_tool.description
+            case ToolInfo():
+                llm_tool = tool.callable
+                llm_tool.description = description_override or llm_tool.description
+                llm_tool.name = name_override or llm_tool.name
             case _:
                 llm_tool = LLMCallableTool.from_callable(
                     tool,
