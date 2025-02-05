@@ -52,7 +52,7 @@ class NodeLogger:
     @property
     def last_message(self) -> ChatMessage[Any] | None:
         """Get last message in history."""
-        return self.message_history[-1] if self.message_history else None
+        return self.message_history.last_message
 
     @property
     def last_tool_call(self) -> ToolCallInfo | None:
