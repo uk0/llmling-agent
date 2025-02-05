@@ -512,10 +512,10 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
         name = self.name
         debug = self._debug
-        self._provider.chunk_streamed.disconnect(self.chunk_streamed.emit)
-        self._provider.model_changed.disconnect(self.model_changed.emit)
-        self._provider.tool_used.disconnect(self.tool_used.emit)
-        self._provider.model_changed.disconnect(self.model_changed.emit)
+        self._provider.chunk_streamed.disconnect(self.chunk_streamed)
+        self._provider.model_changed.disconnect(self.model_changed)
+        self._provider.tool_used.disconnect(self.tool_used)
+        self._provider.model_changed.disconnect(self.model_changed)
         match value:
             case AgentProvider():
                 self._provider = value
@@ -538,10 +538,10 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
-        self._provider.chunk_streamed.connect(self.chunk_streamed.emit)
-        self._provider.model_changed.connect(self.model_changed.emit)
-        self._provider.tool_used.connect(self.tool_used.emit)
-        self._provider.model_changed.connect(self.model_changed.emit)
+        self._provider.chunk_streamed.connect(self.chunk_streamed)
+        self._provider.model_changed.connect(self.model_changed)
+        self._provider.tool_used.connect(self.tool_used)
+        self._provider.model_changed.connect(self.model_changed)
         self._provider.context = self._context
         self._provider.conversation = self.conversation
 

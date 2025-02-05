@@ -56,10 +56,10 @@ class AgentPoolView:
 
         self._agent = agent
         self.pool = pool
-        self._agent.tools.events.added.connect(self.tool_added.emit)
-        self._agent.tools.events.removed.connect(self.tool_removed.emit)
-        self._agent.tools.events.changed.connect(self.tool_changed.emit)
-        self._agent.conversation.history_cleared.connect(self.history_cleared.emit)
+        self._agent.tools.events.added.connect(self.tool_added)
+        self._agent.tools.events.removed.connect(self.tool_removed)
+        self._agent.tools.events.changed.connect(self.tool_changed)
+        self._agent.conversation.history_cleared.connect(self.history_cleared)
         file_path = HISTORY_DIR / f"{agent.name}.history"
         self.commands = CommandStore(history_file=file_path, enable_system_commands=True)
         self.start_time = datetime.now()
