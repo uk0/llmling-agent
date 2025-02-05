@@ -12,9 +12,9 @@ from uuid import UUID, uuid4
 from llmling import BasePrompt, PromptMessage, StaticPrompt
 from llmling.config.models import BaseResource
 from psygnal import Signal
-from psygnal.containers import EventedList
 
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.message_container import ChatMessageContainer
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.utils.async_read import read_path
@@ -74,7 +74,7 @@ class ConversationManager:
             resources: Optional paths to load as context
         """
         self._agent = agent
-        self.chat_messages = EventedList[ChatMessage]()
+        self.chat_messages = ChatMessageContainer()
         self._last_messages: list[ChatMessage] = []
         self._pending_messages: deque[ChatMessage] = deque()
         self._config = session_config
@@ -349,7 +349,7 @@ class ConversationManager:
 
     def clear(self):
         """Clear conversation history and prompts."""
-        self.chat_messages = EventedList[ChatMessage[Any]]()
+        self.chat_messages = ChatMessageContainer()
         self._last_messages = []
         event = self.HistoryCleared(session_id=str(self.id))
         self.history_cleared.emit(event)
@@ -374,7 +374,7 @@ class ConversationManager:
         old_history = self.chat_messages.copy()
 
         try:
-            messages: Sequence[ChatMessage[Any]] = EventedList[ChatMessage[Any]]()
+            messages: Sequence[ChatMessage[Any]] = ChatMessageContainer()
             if history is not None:
                 if isinstance(history, SessionQuery):
                     messages = await self._agent.context.storage.filter_messages(history)
@@ -385,7 +385,7 @@ class ConversationManager:
                     ]
 
             if replace_history:
-                self.chat_messages = EventedList(messages)
+                self.chat_messages = ChatMessageContainer(messages)
             else:
                 self.chat_messages.extend(messages)
 
@@ -520,21 +520,7 @@ class ConversationManager:
     def get_history_tokens(self) -> int:
         """Get token count for current history."""
         # Use cost_info if available
-        total = sum(
-            msg.cost_info.token_usage["total"]
-            for msg in self.chat_messages
-            if msg.cost_info
-        )
-
-        # For messages without cost_info, use tiktoken
-        if msgs := [msg for msg in self.chat_messages if not msg.cost_info]:
-            import tiktoken
-
-            model_name = self._agent.model_name or "gpt-3.5-turbo"
-            encoding = tiktoken.encoding_for_model(model_name)
-            total += sum(len(encoding.encode(str(msg.content))) for msg in msgs)
-
-        return total
+        return self.chat_messages.get_history_tokens(self._agent.model_name)
 
     def get_pending_tokens(self) -> int:
         """Get token count for pending messages."""

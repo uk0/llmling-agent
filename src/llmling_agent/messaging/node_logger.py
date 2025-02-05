@@ -8,12 +8,13 @@ from uuid import uuid4
 
 from psygnal.containers import EventedList
 
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.messaging.message_container import ChatMessageContainer
 from llmling_agent.models.agents import ToolCallInfo
 
 
 if TYPE_CHECKING:
     from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent.messaging.messages import ChatMessage
 
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ class NodeLogger:
         self.node = node
         self.enable_db_logging = enable_db_logging
         self.conversation_id = str(uuid4())
-        self.message_history = EventedList[ChatMessage[Any]]()
+        self.message_history = ChatMessageContainer()
         self.toolcall_history = EventedList[ToolCallInfo]()
 
         # Initialize conversation record if enabled

@@ -51,7 +51,7 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
         content = "\n".join(message.format())
         return len(encoding.encode(content))
 
-    def get_history_tokens(self) -> int:
+    def get_history_tokens(self, fallback_model: str | None = None) -> int:
         """Get total token count for all messages.
 
         Uses cost_info when available, falls back to tiktoken estimation
@@ -65,9 +65,12 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
 
         # For messages without cost_info, estimate using tiktoken
         if msgs := [msg for msg in self if not msg.cost_info]:
+            if fallback_model:
+                model_name = fallback_model
+            else:
+                model_name = next((m.model for m in self if m.model), "gpt-3.5-turbo")
             import tiktoken
 
-            model_name = next((m.model for m in self if m.model), "gpt-3.5-turbo")
             encoding = tiktoken.encoding_for_model(model_name)
             total += sum(len(encoding.encode(str(msg.content))) for msg in msgs)
 
