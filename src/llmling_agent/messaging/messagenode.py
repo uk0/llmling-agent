@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.storage import StorageManager
     from llmling_agent.talk import QueueStrategy, Talk, TeamTalk
+    from llmling_agent_input.base import InputProvider
 
 
 NodeType = TypeVar("NodeType", bound="MessageNode")
@@ -68,6 +69,18 @@ class NodeContext[TDeps]:
 
     in_async_context: bool = False
     """Whether we're running in an async context."""
+
+    input_provider: InputProvider | None = None
+    """Provider for human-input-handling."""
+
+    def get_input_provider(self) -> InputProvider:
+        from llmling_agent_input.stdlib_provider import StdlibInputProvider
+
+        if self.input_provider:
+            return self.input_provider
+        if self.pool and self.pool._input_provider:
+            return self.pool._input_provider
+        return StdlibInputProvider()
 
     @property
     def node(self) -> MessageNode[TDeps, Any]:

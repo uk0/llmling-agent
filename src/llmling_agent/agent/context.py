@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig
     from llmling_agent.tools.base import ToolInfo
-    from llmling_agent_input.base import InputProvider
 
 
 TDeps = TypeVar("TDeps", default=Any)
@@ -49,9 +48,6 @@ class AgentContext[TDeps](NodeContext[TDeps]):
 
     runtime: RuntimeConfig | None = None
     """Reference to the runtime configuration."""
-
-    input_provider: InputProvider | None = None
-    """Optional confirmation handler for tool execution."""
 
     @classmethod
     def create_default(
@@ -109,14 +105,7 @@ class AgentContext[TDeps](NodeContext[TDeps]):
         - No confirmation handler is set
         - Handler confirms the execution
         """
-        from llmling_agent_input.stdlib_provider import StdlibInputProvider
-
-        if self.input_provider:
-            provider = self.input_provider
-        elif self.pool and self.pool._input_provider:
-            provider = self.pool._input_provider
-        else:
-            provider = StdlibInputProvider()
+        provider = self.get_input_provider()
         mode = ctx.config.requires_tool_confirmation
         if (mode == "per_tool" and not tool.requires_confirmation) or mode == "never":
             return "allow"
