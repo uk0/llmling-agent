@@ -11,10 +11,13 @@ from llmling import (
     Config,
     ConfigStore,
     GlobalSettings,
+    LLMCallableTool,
     LLMCapabilitiesConfig,
     PromptMessage,
     StaticPrompt,
 )
+from llmling.config.models import ToolsetConfig  # noqa: TC002
+from llmling.config.utils import toolset_config_to_toolset
 from llmling.utils.importing import import_callable
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from toprompt import render_prompt
@@ -31,12 +34,13 @@ from llmling_agent.models.nodes import NodeConfig
 from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
 from llmling_agent.models.result_types import InlineResponseDefinition, ResponseDefinition
 from llmling_agent.models.session import MemoryConfig, SessionQuery
-from llmling_agent.models.tools import ToolConfig  # noqa: TC001
+from llmling_agent.models.tools import BaseToolConfig, ToolConfig
 from llmling_agent_models import AnyModelConfig  # noqa: TC001
 from llmling_agent_models.base import BaseModelConfig
 
 
 if TYPE_CHECKING:
+    from llmling_agent.tools.base import ToolInfo
     from llmling_agent_providers.base import AgentProvider
 
 
@@ -104,6 +108,9 @@ class AgentConfig(NodeConfig):
 
     tools: list[ToolConfig] = Field(default_factory=list)
     """A list of tools to register with this agent."""
+
+    toolsets: list[ToolsetConfig] = Field(default_factory=list)
+    """Toolset configurations for extensible tool collections."""
 
     environment: str | AgentEnvironment | None = None
     """Environments configuration (path or object)"""
@@ -235,6 +242,39 @@ class AgentConfig(NodeConfig):
                 # Wrap TestModel in our custom wrapper
                 data["model"] = {"type": "test", "model": model}
         return data
+
+    async def get_tools(self) -> list[ToolInfo]:
+        """Get all configured tools as ToolInfo instances."""
+        from llmling_agent.tools.base import ToolInfo
+
+        tools: list[ToolInfo] = []
+
+        for tool_config in self.tools:
+            try:
+                match tool_config:
+                    case str():
+                        tool = LLMCallableTool.from_callable(tool_config)
+                        tools.append(ToolInfo(tool))
+                    case BaseToolConfig():
+                        tools.append(tool_config.get_tool())
+            except Exception:
+                logger.exception("Failed to load tool %r", tool_config)
+                continue
+
+        # Handle toolsets
+        for toolset_config in self.toolsets:
+            try:
+                toolset = toolset_config_to_toolset(toolset_config)
+                # Get LLMCallableTools from toolset
+                for tool in toolset.get_llm_callable_tools():
+                    meta: dict[str, Any] = {"type": toolset_config.type}
+                    tool_info = ToolInfo(tool, metadata=meta, source="toolset")
+                    tools.append(tool_info)
+            except Exception:
+                logger.exception("Failed to load toolset %r", toolset_config)
+                continue
+
+        return tools
 
     def get_session_config(self) -> MemoryConfig:
         """Get resolved memory configuration."""
