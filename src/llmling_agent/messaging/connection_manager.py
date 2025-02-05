@@ -16,11 +16,7 @@ from llmling_agent.talk import AggregatedTalkStats, Talk, TeamTalk
 if TYPE_CHECKING:
     from datetime import timedelta
 
-    from llmling_agent.common_types import (
-        AgentName,
-        AnyTransformFn,
-        AsyncFilterFn,
-    )
+    from llmling_agent.common_types import AgentName, AnyTransformFn, AsyncFilterFn
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.forward_targets import ConnectionType
@@ -241,10 +237,6 @@ class ConnectionManager:
             )
         msg = "ConnectionManager routing message from %s to %d connections"
         logger.debug(msg, message.name, len(self._connections))
-
-        # forwarded_from = [*message.forwarded_from, self.owner.name]  # type: ignore
-        # message_copy = replace(message, forwarded_from=forwarded_from)
-
         for talk in self._connections:
             await talk._handle_message(message, None)
 
@@ -299,28 +291,28 @@ class ConnectionManager:
         for talk in connections:
             source = talk.source.name
             for target in talk.targets:
-                if include_details:
-                    details: list[str] = []
-                    details.append(talk.connection_type)
-                    if talk.queued:
-                        details.append(f"queued({talk.queue_strategy})")
-                    if talk._filter_condition:
-                        details.append(f"filter:{talk._filter_condition.__name__}")
-                    if talk._stop_condition:
-                        details.append(f"stop:{talk._stop_condition.__name__}")
-                    if talk._exit_condition:
-                        details.append(f"exit:{talk._exit_condition.__name__}")
-                    elif any([
-                        talk._filter_condition,
-                        talk._stop_condition,
-                        talk._exit_condition,
-                    ]):
-                        details.append("conditions")
-
-                    label = f"|{' '.join(details)}|" if details else ""
-                    lines.append(f"    {source}--{label}-->{target.name}")
-                else:
+                if not include_details:
                     lines.append(f"    {source}-->{target.name}")
+                    continue
+                details: list[str] = []
+                details.append(talk.connection_type)
+                if talk.queued:
+                    details.append(f"queued({talk.queue_strategy})")
+                if talk._filter_condition:
+                    details.append(f"filter:{talk._filter_condition.__name__}")
+                if talk._stop_condition:
+                    details.append(f"stop:{talk._stop_condition.__name__}")
+                if talk._exit_condition:
+                    details.append(f"exit:{talk._exit_condition.__name__}")
+                elif any([
+                    talk._filter_condition,
+                    talk._stop_condition,
+                    talk._exit_condition,
+                ]):
+                    details.append("conditions")
+
+                label = f"|{' '.join(details)}|" if details else ""
+                lines.append(f"    {source}--{label}-->{target.name}")
 
         return "\n".join(lines)
 
