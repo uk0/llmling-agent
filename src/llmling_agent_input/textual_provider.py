@@ -136,8 +136,8 @@ class BaseInputApp(App[str]):
 
     def __init__(self, input_screen: ModalScreen[str]):
         super().__init__()
-        self._input_screen = input_screen  # use different name to avoid property conflict
-        self._result: str | None = None  # use different name
+        self._input_screen = input_screen
+        self._result: str | None = None
 
     async def on_mount(self) -> None:
         self._result = await self.push_screen_wait(self._input_screen)
@@ -251,11 +251,11 @@ class TextualInputProvider(InputProvider):
             return result
         # Standalone mode - create temporary app
         app = InputApp(prompt, result_type)
-        result = await app.run_async()
-        if result is None:
+        app_result = await app.run_async()
+        if app_result is None:
             msg = "Input cancelled"
             raise UserCancelledError(msg)
-        return result
+        return app_result
 
     # async def _get_streaming_input(
     #     self,
@@ -350,11 +350,11 @@ class TextualInputProvider(InputProvider):
                 raise UserCancelledError(msg)
             return result
         app = CodeInputApp(template, language, description)
-        result = await app.run_async()
-        if result is None:
+        app_result = await app.run_async()
+        if app_result is None:
             msg = "Code input cancelled"
             raise UserCancelledError(msg)
-        return result
+        return app_result
 
     async def get_tool_confirmation(
         self,
@@ -378,5 +378,5 @@ class TextualInputProvider(InputProvider):
             result = await self.app.push_screen_wait(ConfirmationModal(prompt))
             return result or "skip"  # type: ignore
         app = ConfirmationApp(prompt)
-        result = await app.run_async()
-        return result or "skip"  # type: ignore
+        app_result = await app.run_async()
+        return app_result or "skip"  # type: ignore
