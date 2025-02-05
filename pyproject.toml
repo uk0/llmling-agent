@@ -89,6 +89,7 @@ textual = ["textual>=1.0.0", "textualicious"]
 litellm = ["litellm"]
 remote = ["websockets>=14.2"]
 mem0 = ["mem0ai>=0.1.48"]
+agentops = ["agentops"]
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
