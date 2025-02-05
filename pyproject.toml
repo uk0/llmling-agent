@@ -17,6 +17,7 @@ packages = [
     "src/llmling_agent_events",
     "src/llmling_agent_converters",
     "src/llmling_agent_prompts",
+    "src/llmling_agent_models",
     "src/llmling_textual",
 ]
 
