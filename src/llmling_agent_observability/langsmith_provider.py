@@ -22,7 +22,7 @@ R = TypeVar("R")
 class LangsmithProvider(ObservabilityProvider):
     def __init__(self, config: LangsmithProviderConfig):
         self.config = config
-        self._client = None
+        self._client: Client | None = None
         self._configure()
 
     def _configure(self) -> None:
@@ -81,9 +81,8 @@ class LangsmithProvider(ObservabilityProvider):
     ) -> Callable[P, R]:
         """Wrap action with Langsmith tracing."""
         name = span_name or msg_template or func.__name__
-        traceable(
+        return traceable(  # type: ignore
             run_type="llm",
             name=name,
             tags=[*self.config.tags, "action"],
         )(func)
-        return func
