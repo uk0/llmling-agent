@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from functools import cached_property
 import logging
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from llmling import ConfigModel
 from pydantic import ConfigDict, Field, model_validator
-from typing_extensions import TypeVar
 
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent.models.converters import ConversionConfig
@@ -28,9 +27,6 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import StrPath
     from llmling_agent.prompts.manager import PromptManager
 
-
-TDeps = TypeVar("TDeps", default=None)
-ToolConfirmationMode = Literal["always", "never", "per_tool"]
 
 logger = logging.getLogger(__name__)
 

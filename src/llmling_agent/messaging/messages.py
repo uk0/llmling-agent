@@ -13,7 +13,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.common_types import JsonObject, MessageRole  # noqa: TC001
 from llmling_agent.log import get_logger
-from llmling_agent.models.agents import ToolCallInfo  # noqa: TC001
+from llmling_agent.models.tools import ToolCallInfo  # noqa: TC001
 
 
 if TYPE_CHECKING:

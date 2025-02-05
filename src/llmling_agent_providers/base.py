@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.agents import ToolCallInfo
+from llmling_agent.models.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
