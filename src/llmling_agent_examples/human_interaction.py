@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["llmling-agent"]
+# ///
+
 """Example of AI-Human interaction using agent capabilities.
 
 This example shows how an AI agent can ask for human input when needed,

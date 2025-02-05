@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["llmling-agent"]
+# ///
+
 """Example comparing sequential and parallel downloads with agents.
 
 This example explains:

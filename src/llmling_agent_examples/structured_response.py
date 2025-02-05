@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["llmling-agent"]
+# ///
+
 """Example of structured responses defined both in code and YAML."""
 
 from pydantic import BaseModel

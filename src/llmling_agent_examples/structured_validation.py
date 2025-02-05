@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["llmling-agent"]
+# ///
+
 """Example showing structured agent output validation using movie reviews."""
 
 from __future__ import annotations

@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["llmling-agent"]
+# ///
+
 from __future__ import annotations
 
 from llmling_agent import Agent  # noqa: TC001

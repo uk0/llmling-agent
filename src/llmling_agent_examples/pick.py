@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["llmling-agent"]
+# ///
+
 """Example: Using pick() and pick_multiple() for expert selection."""
 
 from __future__ import annotations

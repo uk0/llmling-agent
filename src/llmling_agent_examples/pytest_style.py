@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["llmling-agent"]
+# ///
+
 """Example showing agent function discovery and execution.
 
 This example demonstrates:

@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["llmling-agent"]
+# ///
+
 """Example: Two agents working together to explore git commit history using pool."""
 
 from __future__ import annotations

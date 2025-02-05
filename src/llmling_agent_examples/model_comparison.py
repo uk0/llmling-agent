@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["llmling-agent"]
+# ///
+
 """Example of comparing different models using parallel teams."""
 
 from __future__ import annotations

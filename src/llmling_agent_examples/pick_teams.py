@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["llmling-agent"]
+# ///
+
 """Example demonstrating team agent picking functionality."""
 
 from __future__ import annotations

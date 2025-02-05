@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["llmling-agent"]
+# ///
+
 """Agentsoft Corp. 3 agents publishing software.
 
 This example shows:

@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["llmling-agent"]
+# ///
+
 """Example of using agents as tools for downloads."""
 
 import asyncio
