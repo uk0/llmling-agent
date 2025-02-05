@@ -25,13 +25,14 @@ from toprompt import render_prompt
 from typing_extensions import TypeVar
 
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
-from llmling_agent.config import Capabilities, Knowledge
+from llmling_agent.config import Capabilities
 from llmling_agent.models.converters import ConversionConfig
 from llmling_agent.models.environment import (
     AgentEnvironment,
     FileEnvironment,
     InlineEnvironment,
 )
+from llmling_agent.models.knowledge import Knowledge  # noqa: TC001
 from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, StdioMCPServer
 from llmling_agent.models.nodes import NodeConfig
 from llmling_agent.models.prompts import PromptConfig
@@ -115,7 +116,7 @@ class AgentConfig(NodeConfig):
     string (e.g. 'openai:gpt-4') or a structured model definition."""
 
     environment: str | AgentEnvironment | None = None
-    """Environment configuration (path or object)"""
+    """Environments configuration (path or object)"""
 
     capabilities: Capabilities = Field(default_factory=Capabilities)
     """Current agent's capabilities."""
