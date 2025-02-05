@@ -19,12 +19,11 @@ from llmling import (
     StaticPrompt,
 )
 from llmling.utils.importing import import_callable
-from llmling_models.model_types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from toprompt import render_prompt
 from typing_extensions import TypeVar
 
-from llmling_agent.common_types import EndStrategy  # noqa: TC001
+from llmling_agent.common_types import EndStrategy, ModelProtocol  # noqa: TC001
 from llmling_agent.config import Capabilities
 from llmling_agent.models.converters import ConversionConfig
 from llmling_agent.models.environment import (
@@ -42,6 +41,8 @@ from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.models.storage import StorageConfig
 from llmling_agent.models.task import Job  # noqa: TC001
 from llmling_agent.models.teams import TeamConfig  # noqa: TC001
+from llmling_agent_models import AnyModelConfig  # noqa: TC001
+from llmling_agent_models.base import BaseModelConfig
 
 
 if TYPE_CHECKING:
@@ -111,7 +112,7 @@ class AgentConfig(NodeConfig):
     inherits: str | None = None
     """Name of agent config to inherit from"""
 
-    model: str | AnyModel | None = None  # pyright: ignore[reportInvalidTypeForm]
+    model: str | AnyModelConfig | None = None
     """The model to use for this agent. Can be either a simple model name
     string (e.g. 'openai:gpt-4') or a structured model definition."""
 
@@ -175,6 +176,16 @@ class AgentConfig(NodeConfig):
 
     debug: bool = False
     """Enable debug output for this agent."""
+
+    def get_model(self) -> str | ModelProtocol | None:
+        """Get the model to use for this agent."""
+        match self.model:
+            case str():
+                return self.model
+            case BaseModelConfig():
+                return self.model.get_model()
+            case _:
+                return None
 
     def is_structured(self) -> bool:
         """Check if this config defines a structured agent."""
@@ -640,7 +651,7 @@ class AgentsManifest(ConfigModel):
 
         provider = config.get_provider()
         # set model for provider (the setting should move to provider config soon)
-        provider._model = config.model
+        provider._model = config.get_model()
         sys_prompts: list[str] = []
         sys_prompts.extend(config.system_prompts)
         # Library prompts
@@ -658,7 +669,7 @@ class AgentsManifest(ConfigModel):
         agent: AnyAgent[TAgentDeps, Any] = Agent[Any](
             runtime=runtime,
             context=context,
-            model=config.model,
+            model=config.get_model(),
             provider=provider,
             system_prompt=sys_prompts,
             name=name,
@@ -804,6 +815,6 @@ class ToolCallInfo(BaseModel):
 
 if __name__ == "__main__":
     model = {"type": "input"}
-    agent_cfg = AgentConfig(name="test_agent", model=model)
+    agent_cfg = AgentConfig(name="test_agent", model=model)  # type: ignore
     manifest = AgentsManifest(agents=dict(test_agent=agent_cfg))
     print(manifest.agents["test_agent"].model)

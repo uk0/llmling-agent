@@ -579,7 +579,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
             runtime=original_agent.runtime,
             context=original_agent.context,
             # result_type=original_agent.actual_type,
-            model=new_config.model,
+            model=new_config.get_model(),
             system_prompt=new_config.system_prompts,
             name=new_name or f"{config.name}_copy_{len(self.agents)}",
         )

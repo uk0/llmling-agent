@@ -5,10 +5,11 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from llmling_models.model_types import AnyModel  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 
-from llmling_agent.common_types import EndStrategy  # noqa: TC001
+from llmling_agent.common_types import EndStrategy, ModelProtocol  # noqa: TC001
+from llmling_agent_models import AnyModelConfig  # noqa: TC001
+from llmling_agent_models.base import BaseModelConfig
 
 
 if TYPE_CHECKING:
@@ -56,7 +57,7 @@ class PydanticAIProviderConfig(BaseProviderConfig):
     - confirm: Ask user what to do
     """
 
-    model: str | AnyModel | None = None  # pyright: ignore[reportInvalidTypeForm]
+    model: str | AnyModelConfig | None = None
     """Optional model name to use. If not specified, uses default model."""
 
     result_retries: int | None = None
@@ -84,9 +85,15 @@ class PydanticAIProviderConfig(BaseProviderConfig):
             if self.model_settings
             else {}
         )
-
+        match self.model:
+            case str():
+                model: str | ModelProtocol | None = self.model
+            case BaseModelConfig():
+                model = self.model.get_model()
+            case _:
+                model = None
         return PydanticAIProvider(
-            model=self.model,
+            model=model,
             name=self.name or "ai-agent",
             end_strategy=self.end_strategy,
             result_retries=self.result_retries,

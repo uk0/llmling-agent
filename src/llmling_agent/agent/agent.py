@@ -786,7 +786,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
         # Set up runtime
         cfg = agent_config.get_config()
-        base_agent = cls(runtime=cfg, context=context, model=agent_config.model)
+        base_agent = cls(runtime=cfg, context=context, model=agent_config.get_model())
         async with base_agent:
             if resolved_type is not None and resolved_type is not str:
                 # Yield structured agent with correct typing
