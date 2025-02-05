@@ -312,7 +312,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
     @contextmanager
     def temporary_tools(
         self,
-        tools: ToolType | Sequence[ToolType],
+        tools: ToolType | ToolInfo | Sequence[ToolType | ToolInfo],
         *,
         exclusive: bool = False,
     ) -> Iterator[list[ToolInfo]]:
@@ -334,7 +334,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             ```
         """
         # Normalize inputs to lists
-        tools_list: list[ToolType] = (
+        tools_list: list[ToolType | ToolInfo] = (
             [tools] if not isinstance(tools, Sequence) else list(tools)
         )
 
