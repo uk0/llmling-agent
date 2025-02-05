@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from llmling import LLMCallableTool
 from llmling.utils.importing import import_callable
 from slashed import Command, CommandContext, CommandError, CompletionContext
 from slashed.completers import CallbackCompleter
@@ -198,17 +197,11 @@ async def register_tool(
 
     try:
         callable_func = import_callable(import_path)
-
-        # Create LLMCallableTool with optional overrides
-        llm_tool = LLMCallableTool.from_callable(
+        # Register with ToolManager
+        tool_info = ctx.context.agent.tools.register_tool(
             callable_func,
             name_override=name,
             description_override=description,
-        )
-
-        # Register with ToolManager
-        tool_info = ctx.context.agent.tools.register_tool(
-            llm_tool,
             enabled=True,
             source="dynamic",
             metadata={"import_path": import_path, "registered_via": "register-tool"},

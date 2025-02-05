@@ -6,7 +6,6 @@ import asyncio
 from contextlib import AsyncExitStack
 from typing import TYPE_CHECKING, Self
 
-from llmling import LLMCallableTool
 from llmling.prompts import PromptMessage, StaticPrompt
 
 from llmling_agent.log import get_logger
@@ -122,9 +121,8 @@ class MCPManager(ResourceProvider):
             for tool in client._available_tools:
                 try:
                     fn = client.create_tool_callable(tool)
-                    llm_tool = LLMCallableTool.from_callable(fn)
                     meta = {"mcp_tool": tool.name}
-                    tool_info = ToolInfo(llm_tool, source="mcp", metadata=meta)
+                    tool_info = ToolInfo.from_callable(fn, source="mcp", metadata=meta)
                     tools.append(tool_info)
                     logger.debug("Registered MCP tool: %s", tool.name)
                 except Exception:

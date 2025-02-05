@@ -5,12 +5,12 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Callable, Mapping
 from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
-from llmling import LLMCallableTool
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.tools.base import ToolInfo
 from llmling_agent.utils.basemodel_convert import get_ctor_basemodel
 
 
@@ -434,7 +434,7 @@ List your selections, one per line, followed by your reasoning."""
             return as_type(**kwargs)
 
         structured = self.agent.to_structured(item_model)
-        tool = LLMCallableTool.from_callable(
+        tool = ToolInfo.from_callable(
             construct,
             name_override=schema["name"],
             description_override=schema["description"],

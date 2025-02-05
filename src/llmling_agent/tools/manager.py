@@ -128,12 +128,8 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 return item
             case LLMCallableTool():
                 return ToolInfo(callable=item)
-            case str():
-                item = LLMCallableTool.from_callable(item)
-                return ToolInfo(callable=item)
-            case _ if callable(item):
-                tool = LLMCallableTool.from_callable(item)
-                return ToolInfo(callable=tool)
+            case str() | Callable():
+                return ToolInfo.from_callable(item)
             case {"callable": callable_item, **config} if callable(
                 callable_item
             ) or isinstance(callable_item, LLMCallableTool):

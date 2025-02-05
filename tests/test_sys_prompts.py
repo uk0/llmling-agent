@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from llmling import LLMCallableTool
 from pydantic import BaseModel
 import pytest
 
@@ -29,8 +28,8 @@ def agent():
         ],
     )
     # Add real tools
-    agent.tools.register_tool(LLMCallableTool.from_callable(add))
-    agent.tools.register_tool(LLMCallableTool.from_callable(greet))
+    agent.tools.register_tool(add)
+    agent.tools.register_tool(greet)
     return agent
 
 
@@ -142,9 +141,7 @@ async def test_tool_capability_rendering(agent):
         """Add two numbers."""
         return a + b
 
-    agent.tools.register_tool(
-        LLMCallableTool.from_callable(add_3), requires_capability="can_add"
-    )
+    agent.tools.register_tool(add_3, requires_capability="can_add")
     agent.sys_prompts.inject_tools = "all"
     result = await agent.sys_prompts.format_system_prompt(agent)
     assert "(requires can_add)" in result
