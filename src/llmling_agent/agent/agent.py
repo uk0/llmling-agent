@@ -30,7 +30,7 @@ from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context, has_return_type
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.tasks import TaskManagerMixin
-from llmling_agent_observability.decorators import track_action
+from llmling_agent_observability.decorators import track_action, track_agent
 
 
 if TYPE_CHECKING:
@@ -107,6 +107,7 @@ class AgentKwargs(TypedDict, total=False):
     debug: bool
 
 
+@track_agent("Agent")
 class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     """Agent for AI-powered interaction with LLMling resources and tools.
 
@@ -279,9 +280,9 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         ctx.capabilities.register_capability_tools(self)
 
         if ctx and ctx.definition:
-            from llmling_agent_observability.registry import ObservabilityRegistry
+            from llmling_agent_observability.registry import registry
 
-            ObservabilityRegistry.register_providers(ctx.definition.observability)
+            registry.register_providers(ctx.definition.observability)
 
         # init variables
         self._debug = debug

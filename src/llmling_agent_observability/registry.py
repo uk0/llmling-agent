@@ -1,52 +1,134 @@
-"""Base classes for observability providers."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any
 
+from llmling_agent.log import get_logger
 from llmling_agent.models.observability import (
     AgentOpsProviderConfig,
     ArizePhoenixProviderConfig,
     LangsmithProviderConfig,
     LogfireProviderConfig,
+    ObservabilityConfig,
 )
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from llmling_agent.models.observability import ObservabilityConfig
     from llmling_agent_observability.base_provider import ObservabilityProvider
+
+logger = get_logger(__name__)
 
 
 @dataclass
 class PendingDecoration:
     """Stores information about a pending decoration."""
 
-    func: Callable
+    target: Any  # class or function to be decorated
     name: str
-    type: str  # 'agent', 'tool', 'action'
+    kwargs: dict[str, Any]
 
 
 class ObservabilityRegistry:
     """Registry for pending decorations and provider configuration."""
 
-    _pending: ClassVar[list[PendingDecoration]] = []
-    _provider: ObservabilityProvider | None = None
+    def __init__(self) -> None:
+        self._pending_agents: dict[str, PendingDecoration] = {}
+        self._pending_tools: dict[str, PendingDecoration] = {}
+        self._pending_actions: dict[str, PendingDecoration] = {}
+        self._provider: ObservabilityProvider | None = None
 
-    @classmethod
-    def register(cls, type_: str, name: str) -> Callable:
-        """Register a function for later decoration."""
+    def register_agent(
+        self,
+        name: str,
+        target: type[Any],
+        **kwargs: Any,
+    ) -> None:
+        """Register a class for agent tracking."""
+        self._pending_agents[name] = PendingDecoration(
+            target=target,
+            name=name,
+            kwargs=kwargs,
+        )
+        logger.debug("Registered agent %r for observability tracking", name)
 
-        def decorator(func: Callable) -> Callable:
-            cls._pending.append(PendingDecoration(func, name, type_))
-            return func
+    def register_tool(
+        self,
+        name: str,
+        target: Callable,
+        **kwargs: Any,
+    ) -> None:
+        """Register a function for tool tracking."""
+        self._pending_tools[name] = PendingDecoration(
+            target=target,
+            name=name,
+            kwargs=kwargs,
+        )
+        logger.debug("Registered tool %r for observability tracking", name)
 
-        return decorator
+    def register_action(
+        self,
+        name: str,
+        target: Callable,
+        **kwargs: Any,
+    ) -> None:
+        """Register a function for action tracking."""
+        self._pending_actions[name] = PendingDecoration(
+            target=target,
+            name=name,
+            kwargs=kwargs,
+        )
+        msg = "Registered action %r for observability tracking with args %r"
+        logger.debug(msg, name, kwargs)
 
-    @classmethod
-    def register_providers(cls, observability_config: ObservabilityConfig) -> None:
+    def configure_provider(self, provider: ObservabilityProvider) -> None:
+        """Configure the provider and apply pending decorations."""
+        logger.info(
+            "Configuring observability provider: %s",
+            provider.__class__.__name__,
+        )
+        self._provider = provider
+
+        # Apply decorations for each type
+        for pending in self._pending_agents.values():
+            try:
+                pending.target = provider.wrap_agent(
+                    pending.target,
+                    pending.name,
+                    **pending.kwargs,
+                )
+                logger.debug("Applied agent tracking to %r", pending.name)
+            except Exception:
+                msg = "Failed to apply agent tracking to %r"
+                logger.exception(msg, pending.name)
+
+        for pending in self._pending_tools.values():
+            try:
+                pending.target = provider.wrap_tool(
+                    pending.target,
+                    pending.name,
+                    **pending.kwargs,
+                )
+                logger.debug("Applied tool tracking to %r", pending.name)
+            except Exception:
+                msg = "Failed to apply tool tracking to %r"
+                logger.exception(msg, pending.name)
+
+        for pending in self._pending_actions.values():
+            try:
+                pending.target = provider.wrap_action(
+                    pending.target,
+                    msg_template=pending.name,
+                    **pending.kwargs,
+                )
+                msg = "Applied action tracking to %r with args %r"
+                logger.debug(msg, pending.name, pending.kwargs)
+            except Exception:
+                msg = "Failed to apply action tracking to %r"
+                logger.exception(msg, pending.name)
+
+    def register_providers(self, observability_config: ObservabilityConfig) -> None:
         """Register and configure all observability providers.
 
         Args:
@@ -75,7 +157,7 @@ class ObservabilityRegistry:
                         provider_config.service_name,
                         provider_config.environment,
                     )
-                    cls.configure_provider(provider)
+                    self.configure_provider(provider)
                 case AgentOpsProviderConfig():
                     from llmling_agent_observability.agentops_provider import (
                         AgentOpsProvider,
@@ -84,7 +166,7 @@ class ObservabilityRegistry:
                     provider = AgentOpsProvider(
                         provider_config.api_key, provider_config.tags
                     )
-                    cls.configure_provider(provider)
+                    self.configure_provider(provider)
 
                 case LangsmithProviderConfig():
                     from llmling_agent_observability.langsmith_provider import (
@@ -92,32 +174,19 @@ class ObservabilityRegistry:
                     )
 
                     provider = LangsmithProvider(provider_config)
-                    cls.configure_provider(provider)
+                    self.configure_provider(provider)
                 case ArizePhoenixProviderConfig():
                     from llmling_agent_observability.arize_provider import (
                         ArizePhoenixProvider,
                     )
 
                     provider = ArizePhoenixProvider(provider_config)
-                    cls.configure_provider(provider)
+                    self.configure_provider(provider)
 
-    @classmethod
-    def configure_provider(cls, provider: ObservabilityProvider) -> None:
-        """Configure the provider and apply pending decorations."""
-        cls._provider = provider
-        for pending in cls._pending:
-            match pending.type:
-                case "agent":
-                    pending.func = provider.wrap_agent(pending.func, pending.name)
-                case "tool":
-                    pending.func = provider.wrap_tool(pending.func, pending.name)
-                case "action":
-                    pending.func = provider.wrap_action(pending.func, pending.name)
-
-    @classmethod
-    def get_provider(cls) -> ObservabilityProvider | None:
+    @property
+    def provider(self) -> ObservabilityProvider | None:
         """Get the configured provider."""
-        return cls._provider
+        return self._provider
 
 
 registry = ObservabilityRegistry()
