@@ -63,4 +63,4 @@ class ObservabilityConfig(BaseModel):
     By default, all libraries used in the AgentsManifest are instrumented.
     """
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")

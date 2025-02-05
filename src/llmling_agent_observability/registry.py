@@ -5,10 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
+from llmling_agent.models.observability import (
+    AgentOpsProviderConfig,
+    LogfireProviderConfig,
+)
+
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from llmling_agent.models.observability import ObservabilityConfig
     from llmling_agent_observability.base_provider import ObservabilityProvider
 
 
@@ -36,6 +42,47 @@ class ObservabilityRegistry:
             return func
 
         return decorator
+
+    @classmethod
+    def register_providers(cls, observability_config: ObservabilityConfig) -> None:
+        """Register and configure all observability providers.
+
+        Args:
+            observability_config: Configuration for observability providers
+        """
+        if not observability_config.enabled:
+            return
+
+        for library in observability_config.instrument_libraries or []:
+            match library:
+                case "pydantic_ai":
+                    import pydantic_ai  # noqa
+                case "litellm":
+                    import litellm  # noqa
+
+        # Configure each provider
+        for provider_config in observability_config.providers:
+            match provider_config:
+                case LogfireProviderConfig():
+                    from llmling_agent_observability.logfire_provider import (
+                        LogfireProvider,
+                    )
+
+                    provider: ObservabilityProvider = LogfireProvider(
+                        provider_config.token,
+                        provider_config.service_name,
+                        provider_config.environment,
+                    )
+                    cls.configure_provider(provider)
+                case AgentOpsProviderConfig():
+                    from llmling_agent_observability.agentops_provider import (
+                        AgentOpsProvider,
+                    )
+
+                    provider = AgentOpsProvider(
+                        provider_config.api_key, provider_config.tags
+                    )
+                    cls.configure_provider(provider)
 
     @classmethod
     def configure_provider(cls, provider: ObservabilityProvider) -> None:

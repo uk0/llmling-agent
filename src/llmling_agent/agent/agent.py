@@ -278,6 +278,11 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self._provider.conversation = self.conversation
         ctx.capabilities.register_capability_tools(self)
 
+        if ctx and ctx.definition:
+            from llmling_agent_observability.registry import ObservabilityRegistry
+
+            ObservabilityRegistry.register_providers(ctx.definition.observability)
+
         # init variables
         self._debug = debug
         self._result_type = None

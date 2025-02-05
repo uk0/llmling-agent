@@ -181,6 +181,17 @@ class AgentsManifest(ConfigModel):
         data["agents"] = resolved
         return data
 
+    @model_validator(mode="after")
+    def set_instrument_libraries(self) -> Self:
+        """Auto-set libraries to instrument based on used providers."""
+        if (
+            not self.observability.enabled
+            or self.observability.instrument_libraries is not None
+        ):
+            return self
+        self.observability.instrument_libraries = list(self.get_used_providers())
+        return self
+
     @property
     def node_names(self) -> list[str]:
         """Get list of all agent and team names."""
