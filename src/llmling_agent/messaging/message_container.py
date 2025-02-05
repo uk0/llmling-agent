@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+import itertools
+from typing import TYPE_CHECKING, Any, Literal
 
 from psygnal.containers import EventedList
 
@@ -13,6 +14,8 @@ from llmling_agent.messaging.messages import ChatMessage
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
+
+    from bigtree import DAGNode
 
     from llmling_agent.common_types import MessageRole
     from llmling_agent.messaging.messages import FormatStyle
@@ -191,3 +194,79 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
         if end_time:
             messages = [msg for msg in messages if msg.timestamp <= end_time]
         return messages
+
+    def _build_flow_dag(self, message: ChatMessage[Any]) -> DAGNode | None:
+        """Build DAG from message flow.
+
+        Args:
+            message: Message to build flow DAG for
+
+        Returns:
+            Root DAGNode of the graph
+        """
+        from bigtree import DAGNode
+
+        # Get messages from this conversation
+        conv_messages = [
+            msg for msg in self if msg.conversation_id == message.conversation_id
+        ]
+
+        # First create all nodes
+        nodes: dict[str, DAGNode] = {}
+
+        for msg in conv_messages:
+            if msg.forwarded_from:
+                chain = [*msg.forwarded_from, msg.name or "unknown"]
+                for name in chain:
+                    if name not in nodes:
+                        nodes[name] = DAGNode(name)
+
+        # Then set up parent relationships
+        for msg in conv_messages:
+            if msg.forwarded_from:
+                chain = [*msg.forwarded_from, msg.name or "unknown"]
+                # Connect consecutive nodes
+                for parent_name, child_name in itertools.pairwise(chain):
+                    parent = nodes[parent_name]
+                    child = nodes[child_name]
+                    if parent not in child.parents:
+                        child.parents = [*child.parents, parent]
+
+        # Find root nodes (those without parents)
+        roots = [node for node in nodes.values() if not node.parents]
+        if not roots:
+            return None
+        return roots[0]  # Return first root for now
+
+    def to_mermaid_graph(
+        self,
+        message: ChatMessage[Any],
+        *,
+        title: str = "",
+        theme: str | None = None,
+        rankdir: Literal["TB", "BT", "LR", "RL"] = "LR",
+    ) -> str:
+        """Convert message flow to mermaid graph."""
+        from bigtree import dag_to_list
+
+        dag = self._build_flow_dag(message)
+        if not dag:
+            return ""
+
+        # Get list of connections
+        connections = dag_to_list(dag)
+
+        # Convert to mermaid
+        lines = ["```mermaid"]
+        if title:
+            lines.extend(["---", f"title: {title}", "---"])
+        if theme:
+            lines.append(f'%%{{ init: {{ "theme": "{theme}" }} }}%%')
+        lines.append(f"flowchart {rankdir}")
+
+        # Add connections
+        for parent, child in connections:
+            lines.append(f"    {parent}-->{child}")
+
+        lines.append("```")
+        return "\n".join(lines)
