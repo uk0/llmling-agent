@@ -34,6 +34,7 @@ from llmling_agent.models.environment import (
 from llmling_agent.models.knowledge import Knowledge  # noqa: TC001
 from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, StdioMCPServer
 from llmling_agent.models.nodes import NodeConfig
+from llmling_agent.models.observability import ObservabilityConfig
 from llmling_agent.models.prompts import PromptConfig
 from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
 from llmling_agent.models.result_types import InlineResponseDefinition, ResponseDefinition
@@ -447,6 +448,9 @@ class AgentsManifest(ConfigModel):
 
     storage: StorageConfig = Field(default_factory=StorageConfig)
     """Storage provider configuration."""
+
+    observability: ObservabilityConfig = Field(default_factory=ObservabilityConfig)
+    """Observability provider configuration."""
 
     conversion: ConversionConfig = Field(default_factory=ConversionConfig)
     """Document conversion configuration."""
