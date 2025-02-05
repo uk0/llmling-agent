@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from llmling_agent_observability.base_provider import registry
+from llmling_agent_observability.registry import registry
 
 
 if TYPE_CHECKING:

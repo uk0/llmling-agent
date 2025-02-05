@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any, cast, get_args
 
 from llmling import ToolError
 from llmling_models import AllModels, infer_model
-import logfire
 from pydantic_ai import Agent as PydanticAgent
 import pydantic_ai._pydantic
 from pydantic_ai.messages import ModelResponse
@@ -29,6 +28,7 @@ from llmling_agent.tasks.exceptions import (
     ToolSkippedError,
 )
 from llmling_agent.utils.inspection import has_argument_type
+from llmling_agent_observability.decorators import track_action
 from llmling_agent_providers.base import AgentLLMProvider, ProviderResponse
 from llmling_agent_providers.pydanticai.utils import (
     convert_model_message,
@@ -238,7 +238,7 @@ class PydanticAIProvider(AgentLLMProvider):
             return wrapped_with_agent_ctx
         return wrapped_without_ctx
 
-    @logfire.instrument("Pydantic-AI call. model: {model} result type {result_type}.")
+    @track_action("Pydantic-AI call. model: {model} result type {result_type}.")
     async def generate_response(
         self,
         *prompts: str | Content,

@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, cast, overload
 from uuid import uuid4
 
 from llmling import Config, LLMCallableTool, RuntimeConfig, ToolError
-import logfire
 from psygnal import Signal
 from typing_extensions import TypeVar
 
@@ -31,6 +30,7 @@ from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context, has_return_type
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent_observability.decorators import track_action
 
 
 if TYPE_CHECKING:
@@ -805,7 +805,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         """Get the model name in a consistent format."""
         return self._provider.model_name
 
-    @logfire.instrument("Calling Agent.run: {prompts}:")
+    @track_action("Calling Agent.run: {prompts}:")
     async def _run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage[Any],

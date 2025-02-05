@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, LiteralString, TypeVar
 import logfire
 from typing_extensions import ParamSpec
 
+from llmling_agent.log import get_logger
 from llmling_agent_observability.base_provider import ObservabilityProvider
 
 
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
 P = ParamSpec("P")
 R = TypeVar("R")
 T = TypeVar("T")
+logger = get_logger(__name__)
 
 
 class LogfireProvider(ObservabilityProvider):
@@ -31,6 +33,7 @@ class LogfireProvider(ObservabilityProvider):
         **kwargs: Any,
     ) -> None:
         """Initialize Logfire with configuration."""
+        logger.debug("Initializing Logfire provider with token %s", token)
         logfire.configure(
             token=token,
             service_name=service_name,

@@ -7,11 +7,11 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
 from llmling import ToolError
-import logfire
 from slashed import CommandStore, DefaultOutputWriter, parse_command
 
 from llmling_agent.log import get_logger
 from llmling_agent.prompts.convert import format_prompts
+from llmling_agent_observability.decorators import track_action
 from llmling_agent_providers.base import (
     AgentProvider,
     ProviderResponse,
@@ -63,7 +63,7 @@ class HumanProvider(AgentProvider):
     def __repr__(self) -> str:
         return f"Human({self.name!r})"
 
-    @logfire.instrument("Human input. result type {result_type}")
+    @track_action("Human input. result type {result_type}")
     async def generate_response(
         self,
         *prompts: str | Content,
