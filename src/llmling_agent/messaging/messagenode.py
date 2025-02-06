@@ -367,32 +367,26 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
     # async def pre_run(
     #     self,
     #     *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
-    #     wait_for_connections: bool | None = None,
-    #     store_history: bool = True,
-    #     **kwargs: Any,
-    # ) -> list[Content | str]:
+    # ) -> tuple[ChatMessage[Any], list[Content | str]]:
     #     """Hook to prepare a MessgeNode run call."""
     #     if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
     #         user_msg = prompt[0]
     #         prompts = await convert_prompts([user_msg.content])
     #         # Update received message's chain to show it came through its source
     #         user_msg = user_msg.forwarded(prompt[0])
-    #         conversation_id = user_msg.conversation_id
-
     #         final_prompt = "\n\n".join(str(p) for p in prompts)
     #     else:
     #         prompts = await convert_prompts(prompt)
     #         final_prompt = "\n\n".join(str(p) for p in prompts)
-    #         conversation_id = str(uuid4())
     #         # use format_prompts?
     #         user_msg = ChatMessage[str](
     #             content=final_prompt,
     #             role="user",
-    #             conversation_id=conversation_id,
+    #             conversation_id=str(uuid4()),
     #         )
     #     self.message_received.emit(user_msg)
     #     self.context.current_prompt = final_prompt
-    #     return prompts
+    #     return user_msg, prompts
 
     # async def post_run(
     #     self,
@@ -434,8 +428,6 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
             prompts = await convert_prompts([user_msg.content])
             # Update received message's chain to show it came through its source
             user_msg = user_msg.forwarded(prompt[0])
-            conversation_id = user_msg.conversation_id
-
             final_prompt = "\n\n".join(str(p) for p in prompts)
         else:
             prompts = await convert_prompts(prompt)
@@ -456,7 +448,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
             message = message.forwarded(prompt[0])
 
         # Set conversation_id on response message
-        message = replace(message, conversation_id=conversation_id)
+        message = replace(message, conversation_id=user_msg.conversation_id)
 
         if store_history and isinstance(self, Agent | StructuredAgent):
             self.conversation.add_chat_messages([user_msg, message])
