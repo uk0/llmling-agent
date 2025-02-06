@@ -197,6 +197,9 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         from llmling_agent.agent import AgentContext
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
+        from llmling_agent.resource_providers.capability_provider import (
+            CapabilitiesResourceProvider,
+        )
         from llmling_agent_providers.base import AgentProvider
 
         self._infinite = False
@@ -232,8 +235,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         ctx.definition.prompt_manager.providers["runtime"] = runtime_provider
         # Initialize tool manager
         all_tools = list(tools or [])
-        self._tool_manager = ToolManager(all_tools)
-        self._tool_manager.add_provider(self.mcp)
+        self.tools = ToolManager(all_tools)
+        self.tools.add_provider(self.mcp)
 
         # Initialize conversation manager
         resources = list(resources)
@@ -277,7 +280,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 raise ValueError(msg)
         self._provider.context = ctx
         self._provider.conversation = self.conversation
-        ctx.capabilities.register_capability_tools(self)
+        self.tools.add_provider(CapabilitiesResourceProvider(ctx.capabilities))
 
         if ctx and ctx.definition:
             from llmling_agent_observability.registry import registry
@@ -1356,10 +1359,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     def runtime(self, value: RuntimeConfig):
         """Set runtime configuration and update context."""
         self.context.runtime = value
-
-    @property
-    def tools(self) -> ToolManager:
-        return self._tool_manager
 
     @property
     def stats(self) -> MessageStats:

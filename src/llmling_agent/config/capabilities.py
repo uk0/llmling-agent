@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Literal
 
 from psygnal import EventedModel
 from pydantic import ConfigDict
-
-
-if TYPE_CHECKING:
-    from llmling_agent.agent import AnyAgent
 
 
 AccessLevel = Literal["none", "own", "all"]
@@ -121,106 +117,3 @@ class Capabilities(EventedModel):
             case _:
                 msg = f"Unknown capability: {capability}"
                 raise ValueError(msg)
-
-    def register_capability_tools(self, agent: AnyAgent[Any, Any]):
-        """Register all capability-based tools."""
-        # Resource tools - always register, enable based on capabilities
-        agent.tools.register_tool(
-            agent.runtime.load_resource,
-            enabled=self.can_load_resources,
-            source="builtin",
-            requires_capability="can_load_resources",
-        )
-        agent.tools.register_tool(
-            agent.runtime.get_resources,
-            enabled=self.can_list_resources,
-            source="builtin",
-            requires_capability="can_list_resources",
-        )
-
-        # Tool management
-        agent.tools.register_tool(
-            agent.runtime.register_tool,
-            enabled=self.can_register_tools,
-            source="builtin",
-            requires_capability="can_register_tools",
-        )
-        agent.tools.register_tool(
-            agent.runtime.register_code_tool,
-            enabled=self.can_register_code,
-            source="builtin",
-            requires_capability="can_register_code",
-        )
-        agent.tools.register_tool(
-            agent.runtime.install_package,
-            enabled=self.can_install_packages,
-            source="builtin",
-            requires_capability="can_install_packages",
-        )
-        from llmling_agent_tools import capability_tools
-
-        # Agent discovery and delegation
-        agent.tools.register_tool(
-            capability_tools.create_worker_agent,
-            enabled=self.can_create_workers,
-            source="builtin",
-            requires_capability="can_create_workers",
-        )
-        agent.tools.register_tool(
-            capability_tools.spawn_delegate,
-            enabled=self.can_create_delegates,
-            source="builtin",
-            requires_capability="can_create_delegates",
-        )
-        agent.tools.register_tool(
-            capability_tools.list_available_agents,
-            enabled=self.can_list_agents,
-            source="builtin",
-            requires_capability="can_list_agents",
-        )
-
-        agent.tools.register_tool(
-            capability_tools.list_available_teams,
-            enabled=self.can_list_teams,
-            source="builtin",
-            requires_capability="can_list_teams",
-        )
-
-        agent.tools.register_tool(
-            capability_tools.delegate_to,
-            enabled=self.can_delegate_tasks,
-            source="builtin",
-            requires_capability="can_delegate_tasks",
-        )
-        # History tools
-        agent.tools.register_tool(
-            capability_tools.search_history,
-            enabled=self.history_access != "none",
-            source="builtin",
-            requires_capability="history_access",
-        )
-        agent.tools.register_tool(
-            capability_tools.show_statistics,
-            enabled=self.stats_access != "none",
-            source="builtin",
-            requires_capability="stats_access",
-        )
-        agent.tools.register_tool(
-            capability_tools.add_agent,
-            enabled=self.can_add_agents,
-            source="builtin",
-            requires_capability="can_add_agents",
-        )
-
-        agent.tools.register_tool(
-            capability_tools.add_team,
-            enabled=self.can_add_teams,
-            source="builtin",
-            requires_capability="can_add_teams",
-        )
-        agent.tools.register_tool(
-            capability_tools.ask_agent,
-            enabled=self.can_ask_agents,
-            source="builtin",
-            requires_capability="can_ask_agents",
-        )
