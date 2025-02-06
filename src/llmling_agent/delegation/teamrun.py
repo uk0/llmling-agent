@@ -95,6 +95,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         wait_for_connections: bool | None = None,
         message_id: str | None = None,
+        conversation_id: str | None = None,
         **kwargs: Any,
     ) -> ChatMessage[TResult]:
         """Run agents sequentially and return combined message.
@@ -123,6 +124,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             name=self.name,
             associated_messages=all_messages,
             message_id=message_id,
+            conversation_id=conversation_id,
             metadata={
                 "execution_order": [r.agent_name for r in result],
                 "start_time": result.start_time.isoformat(),

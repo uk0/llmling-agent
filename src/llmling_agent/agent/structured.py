@@ -146,6 +146,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
         tool_choice: bool | str | list[str] = True,
         store_history: bool = True,
         message_id: str | None = None,
+        conversation_id: str | None = None,
         wait_for_connections: bool | None = None,
     ) -> ChatMessage[TResult]:
         """Run with fixed result type.
@@ -166,6 +167,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
                            context window
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
+            conversation_id: Optional conversation id for the returned message.
             wait_for_connections: Whether to wait for all connections to complete
         """
         typ = result_type or self._result_type
@@ -176,6 +178,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
             store_history=store_history,
             tool_choice=tool_choice,
             message_id=message_id,
+            conversation_id=conversation_id,
             wait_for_connections=wait_for_connections,
         )
 

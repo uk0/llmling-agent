@@ -142,6 +142,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         wait_for_connections: bool | None = None,
         message_id: str | None = None,
+        conversation_id: str | None = None,
         **kwargs: Any,
     ) -> ChatMessage[list[Any]]:
         """Run all agents in parallel and return combined message."""
@@ -152,6 +153,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             role="assistant",
             name=self.name,
             message_id=message_id,
+            conversation_id=conversation_id,
             metadata={
                 "agent_names": [r.agent_name for r in result],
                 "errors": {name: str(error) for name, error in result.errors.items()},

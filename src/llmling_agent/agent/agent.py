@@ -875,6 +875,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         store_history: bool = True,
         tool_choice: bool | str | list[str] = True,
         message_id: str | None = None,
+        conversation_id: str | None = None,
         wait_for_connections: bool | None = None,
     ) -> ChatMessage[TResult]:
         """Run agent with prompt and get response.
@@ -892,6 +893,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 - list[str]: Allow specific tools
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
+            conversation_id: Optional conversation id for the returned message.
             wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
@@ -938,6 +940,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 name=self.name,
                 model=result.model_name,
                 message_id=message_id,
+                conversation_id=conversation_id,
                 tool_calls=result.tool_calls,
                 cost_info=result.cost_and_usage,
                 response_time=time.perf_counter() - start_time,
@@ -958,6 +961,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         tool_choice: bool | str | list[str] = True,
         store_history: bool = True,
         message_id: str | None = None,
+        conversation_id: str | None = None,
         wait_for_connections: bool | None = None,
     ) -> AsyncIterator[StreamingResponseProtocol[TResult]]:
         """Run agent with prompt and get a streaming response.
@@ -975,6 +979,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                            context window
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
+            conversation_id: Optional conversation id for the returned message.
             wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
@@ -1027,6 +1032,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                     name=self.name,
                     model=model_name,
                     message_id=message_id,
+                    conversation_id=conversation_id,
                     cost_info=cost_info,
                     response_time=time.perf_counter() - start_time,
                     # provider_extra=stream.provider_extra or {},
