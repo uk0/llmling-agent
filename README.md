@@ -870,8 +870,6 @@ classDiagram
         Manages tool registration, enabling/disabling and access
         +
         +register_tool()
-        +enable_tool()
-        +disable_tool()
         +get_tools()
         +list_tools()
     }

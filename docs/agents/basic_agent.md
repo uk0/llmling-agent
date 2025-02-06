@@ -55,10 +55,7 @@ Tools are managed through the `tools` property:
 ```python
 # Register a tool
 agent.tools.register_tool(my_tool)
-
-# Enable/disable tools
-agent.tools.enable_tool("calculator")
-agent.tools.disable_tool("web_browser")
+tools = await agent.tools.get_tools()
 ```
 
 ## Signals

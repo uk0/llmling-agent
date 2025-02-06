@@ -18,9 +18,8 @@ async with Agent.open("config.yml") as agent:
     # Modify system prompts by reference
     agent.sys_prompts.add("technical_style")
 
-    # Enable/disable tools
-    agent.tools.enable_tool("file_operations")
-    agent.tools.disable_tool("data_analysis")
+    # Register tools
+    agent.tools.register_tool(my_tool)
 
     # Change model
     agent.set_model("openai:gpt-3.5-turbo")
