@@ -16,7 +16,6 @@ from llmling import (
     PromptMessage,
     StaticPrompt,
 )
-from llmling.config.models import ToolsetConfig  # noqa: TC002
 from llmling.config.utils import toolset_config_to_toolset
 from llmling.utils.importing import import_callable
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -35,6 +34,7 @@ from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
 from llmling_agent.models.result_types import InlineResponseDefinition, ResponseDefinition
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.models.tools import BaseToolConfig, ToolConfig
+from llmling_agent.models.toolsets import ToolsetConfig  # noqa: TC001
 from llmling_agent_models import AnyModelConfig  # noqa: TC001
 from llmling_agent_models.base import BaseModelConfig
 
