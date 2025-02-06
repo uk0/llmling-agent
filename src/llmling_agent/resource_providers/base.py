@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from llmling import BasePrompt
 
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.resources import ResourceInfo
     from llmling_agent.tools.base import ToolInfo
 
@@ -37,3 +38,47 @@ class ResourceProvider:
     async def get_resources(self) -> list[ResourceInfo]:
         """Get available resources. Override to provide resources."""
         return []
+
+    async def get_formatted_prompt(
+        self, name: str, arguments: dict[str, str] | None = None
+    ) -> ChatMessage[str]:
+        """Get a prompt formatted with arguments.
+
+        Args:
+            name: Name of the prompt to format
+            arguments: Optional arguments for prompt formatting
+
+        Returns:
+            Single chat message with merged content
+
+        Raises:
+            KeyError: If prompt not found
+            ValueError: If formatting fails
+        """
+        from llmling_agent.messaging.messages import ChatMessage
+
+        prompts = await self.get_prompts()
+        prompt = next((p for p in prompts if p.name == name), None)
+        if not prompt:
+            msg = f"Prompt {name!r} not found"
+            raise KeyError(msg)
+
+        messages = await prompt.format(arguments or {})
+        if not messages:
+            msg = f"Prompt {name!r} produced no messages"
+            raise ValueError(msg)
+
+        # Use role from first message (usually system)
+        role = messages[0].role
+        # Merge all message contents
+        content = "\n\n".join(msg.get_text_content() for msg in messages)
+
+        return ChatMessage(
+            content=content,
+            role=role,  # type: ignore
+            name=self.name,
+            metadata={
+                "prompt_name": name,
+                "arguments": arguments or {},  # type: ignore
+            },
+        )

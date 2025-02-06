@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
     from llmling import BasePrompt
 
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.resources import ResourceInfo
     from llmling_agent.tools.base import ToolInfo
 
@@ -47,3 +48,15 @@ class AggregatingResourceProvider(ResourceProvider):
         for provider in self.providers:
             resources.extend(await provider.get_resources())
         return resources
+
+    async def get_formatted_prompt(
+        self, name: str, arguments: dict[str, str] | None = None
+    ) -> ChatMessage[str]:
+        """Try to get prompt from first provider that has it."""
+        for provider in self.providers:
+            try:
+                return await provider.get_formatted_prompt(name, arguments)
+            except KeyError:
+                continue
+        msg = f"Prompt {name!r} not found in any provider"
+        raise KeyError(msg)
