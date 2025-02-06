@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import AsyncExitStack, asynccontextmanager, suppress
+from contextlib import (
+    AbstractAsyncContextManager,
+    AsyncExitStack,
+    asynccontextmanager,
+    suppress,
+)
 import signal
 from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 
@@ -153,35 +158,41 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
         """Enter async context and initialize all agents."""
         try:
             # Add MCP tool provider to all agents
-            # Initialize MCP and agents through exit stack
             agents = list(self.agents.values())
             teams = list(self.teams.values())
             for agent in agents:
                 agent.tools.add_provider(self.mcp)
 
-            # Start MCP server if configured
-            if self.manifest.pool_server.enabled:
+            # Collect all components to initialize
+            components: list[AbstractAsyncContextManager[Any]] = [
+                self.mcp,
+                *agents,
+                *teams,
+            ]
+
+            # Add MCP server if configured
+            if self.manifest.pool_server and self.manifest.pool_server.enabled:
                 from llmling_agent.resource_providers.pool import PoolResourceProvider
                 from llmling_agent_mcp.server import LLMLingServer
 
-                zed_mode = self.manifest.pool_server.zed_mode
-                provider = PoolResourceProvider(self, zed_mode=zed_mode)
-                config = self.manifest.pool_server
-                server = LLMLingServer(provider=provider, config=config)
-                await self.exit_stack.enter_async_context(server)
+                provider = PoolResourceProvider(
+                    self, zed_mode=self.manifest.pool_server.zed_mode
+                )
+                server = LLMLingServer(
+                    provider=provider,
+                    config=self.manifest.pool_server,
+                )
+                components.append(server)
 
+            # Initialize all components
             if self.parallel_load:
                 await asyncio.gather(
-                    self.exit_stack.enter_async_context(self.mcp),
-                    *(self.exit_stack.enter_async_context(a) for a in agents),
-                    *(self.exit_stack.enter_async_context(t) for t in teams),
+                    *(self.exit_stack.enter_async_context(c) for c in components)
                 )
             else:
-                await self.exit_stack.enter_async_context(self.mcp)
-                for agent in agents:
-                    await self.exit_stack.enter_async_context(agent)
-                for team in teams:
-                    await self.exit_stack.enter_async_context(team)
+                for component in components:
+                    await self.exit_stack.enter_async_context(component)
+
         except Exception as e:
             await self.cleanup()
             msg = "Failed to initialize agent pool"
