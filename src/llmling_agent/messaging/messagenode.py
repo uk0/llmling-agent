@@ -35,6 +35,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn
     from llmling_agent.delegation.pool import AgentPool
+    from llmling_agent.models.content import Content
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.models.mcp_server import MCPServerConfig
@@ -364,29 +365,39 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         """Stop forwarding results to another node."""
         self.connections.disconnect(other)
 
-    # async def pre_run(
-    #     self,
-    #     *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
-    # ) -> tuple[ChatMessage[Any], list[Content | str]]:
-    #     """Hook to prepare a MessgeNode run call."""
-    #     if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
-    #         user_msg = prompt[0]
-    #         prompts = await convert_prompts([user_msg.content])
-    #         # Update received message's chain to show it came through its source
-    #         user_msg = user_msg.forwarded(prompt[0])
-    #         final_prompt = "\n\n".join(str(p) for p in prompts)
-    #     else:
-    #         prompts = await convert_prompts(prompt)
-    #         final_prompt = "\n\n".join(str(p) for p in prompts)
-    #         # use format_prompts?
-    #         user_msg = ChatMessage[str](
-    #             content=final_prompt,
-    #             role="user",
-    #             conversation_id=str(uuid4()),
-    #         )
-    #     self.message_received.emit(user_msg)
-    #     self.context.current_prompt = final_prompt
-    #     return user_msg, prompts
+    async def pre_run(
+        self,
+        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
+    ) -> tuple[ChatMessage[Any], list[Content | str]]:
+        """Hook to prepare a MessgeNode run call.
+
+        Args:
+            *prompt: The prompt(s) to prepare.
+
+        Returns:
+            A tuple of:
+                - Either incoming message, or a constructed incoming message based
+                  on the prompt(s).
+                - A list of prompts to be sent to the model.
+        """
+        if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
+            user_msg = prompt[0]
+            prompts = await convert_prompts([user_msg.content])
+            # Update received message's chain to show it came through its source
+            user_msg = user_msg.forwarded(prompt[0])
+            final_prompt = "\n\n".join(str(p) for p in prompts)
+        else:
+            prompts = await convert_prompts(prompt)
+            final_prompt = "\n\n".join(str(p) for p in prompts)
+            # use format_prompts?
+            user_msg = ChatMessage[str](
+                content=final_prompt,
+                role="user",
+                conversation_id=str(uuid4()),
+            )
+        self.message_received.emit(user_msg)
+        self.context.current_prompt = final_prompt
+        return user_msg, prompts
 
     # async def post_run(
     #     self,
@@ -423,24 +434,7 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         """
         from llmling_agent import Agent, StructuredAgent
 
-        if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
-            user_msg = prompt[0]
-            prompts = await convert_prompts([user_msg.content])
-            # Update received message's chain to show it came through its source
-            user_msg = user_msg.forwarded(prompt[0])
-            final_prompt = "\n\n".join(str(p) for p in prompts)
-        else:
-            prompts = await convert_prompts(prompt)
-            final_prompt = "\n\n".join(str(p) for p in prompts)
-            conversation_id = str(uuid4())
-            # use format_prompts?
-            user_msg = ChatMessage[str](
-                content=final_prompt,
-                role="user",
-                conversation_id=conversation_id,
-            )
-        self.message_received.emit(user_msg)
-        self.context.current_prompt = final_prompt
+        user_msg, prompts = await self.pre_run(*prompt)
         message = await self._run(*prompts, store_history=store_history, **kwargs)
 
         # For chain processing, update the response's chain

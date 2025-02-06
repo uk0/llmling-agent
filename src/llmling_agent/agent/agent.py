@@ -977,13 +977,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        prompts = await convert_prompts(prompt)
-        final_prompt = "\n\n".join(str(p) for p in prompts)
+        user_msg, prompts = await self.pre_run(*prompt)
         self.set_result_type(result_type)
-        self.context.current_prompt = final_prompt
-        # Create and emit user message
-        user_msg = ChatMessage[str](content=final_prompt, role="user")
-        self.message_received.emit(user_msg)
         message_id = str(uuid4())
         start_time = time.perf_counter()
         sys_prompt = await self.sys_prompts.format_system_prompt(self)
@@ -1017,7 +1012,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                     cost_info = await TokenCost.from_usage(
                         usage,
                         model_name,
-                        final_prompt,
+                        str(user_msg.content),
                         str(stream.formatted_content),  # type: ignore
                     )
                 response_msg = ChatMessage[TResult](
