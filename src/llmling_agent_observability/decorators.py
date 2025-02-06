@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import Any, ParamSpec, TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent_observability.registry import registry
+from llmling_agent_observability import registry
 
 
 logger = get_logger(__name__)
@@ -43,14 +43,27 @@ def track_action(msg_template: str | None = None, **kwargs: Any) -> Callable[[F]
     """Register a function for action tracking."""
 
     def decorator(func: F) -> F:
+        # If we have an active provider, decorate immediately
+        logger.info(
+            "Decorating function %s.%s with template %s. Current providers: %s",
+            func.__module__,
+            func.__qualname__,
+            msg_template,
+            [p.__class__.__name__ for p in registry.providers],
+        )
+        wrapped = func
+        for provider in registry.providers:
+            wrapped = provider.wrap_action(wrapped, msg_template=msg_template, **kwargs)  # type: ignore
+
+        # Otherwise queue for later
         action_name = msg_template or func.__name__
         logger.debug(
-            "Registering action %r with template %r and args %r",
+            "Queuing action %r with template %r and args %r for later decoration",
             func.__name__,
             action_name,
             kwargs,
         )
         registry.register_action(action_name, func, **kwargs)
-        return func
+        return wrapped  # type: ignore
 
     return decorator

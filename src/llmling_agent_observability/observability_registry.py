@@ -7,6 +7,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.models.observability import (
     AgentOpsProviderConfig,
     ArizePhoenixProviderConfig,
+    BaseObservabilityProviderConfig,
     LangsmithProviderConfig,
     LogfireProviderConfig,
     ObservabilityConfig,
@@ -22,8 +23,16 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class PendingDecoration:
-    """Stores information about a pending decoration."""
+class TrackedDecoration:
+    """Registration of an item (callable / class) that needs observability tracking.
+
+    These registrations are permanent and collected at import time through decorators.
+    Each new provider will use these registrations to apply its tracking.
+
+    The system is a bit more "sophisticated" because everything is working lazily in
+    order to not having to import the observability platforms (and thus, also the AI
+    libraries) on library loading.
+    """
 
     target: Any  # class or function to be decorated
     name: str
@@ -34,10 +43,12 @@ class ObservabilityRegistry:
     """Registry for pending decorations and provider configuration."""
 
     def __init__(self) -> None:
-        self._pending_agents: dict[str, PendingDecoration] = {}
-        self._pending_tools: dict[str, PendingDecoration] = {}
-        self._pending_actions: dict[str, PendingDecoration] = {}
-        self._provider: ObservabilityProvider | None = None
+        self._registered_agents: dict[str, TrackedDecoration] = {}
+        self._registered_tools: dict[str, TrackedDecoration] = {}
+        self._registered_actions: dict[str, TrackedDecoration] = {}
+        self.providers: list[ObservabilityProvider] = []
+        # to prevent double registration
+        self._registered_provider_classes: set[type[ObservabilityProvider]] = set()
 
     def register_agent(
         self,
@@ -46,7 +57,7 @@ class ObservabilityRegistry:
         **kwargs: Any,
     ) -> None:
         """Register a class for agent tracking."""
-        self._pending_agents[name] = PendingDecoration(
+        self._registered_agents[name] = TrackedDecoration(
             target=target,
             name=name,
             kwargs=kwargs,
@@ -60,7 +71,7 @@ class ObservabilityRegistry:
         **kwargs: Any,
     ) -> None:
         """Register a function for tool tracking."""
-        self._pending_tools[name] = PendingDecoration(
+        self._registered_tools[name] = TrackedDecoration(
             target=target,
             name=name,
             kwargs=kwargs,
@@ -74,7 +85,7 @@ class ObservabilityRegistry:
         **kwargs: Any,
     ) -> None:
         """Register a function for action tracking."""
-        self._pending_actions[name] = PendingDecoration(
+        self._registered_actions[name] = TrackedDecoration(
             target=target,
             name=name,
             kwargs=kwargs,
@@ -83,15 +94,26 @@ class ObservabilityRegistry:
         logger.debug(msg, name, kwargs)
 
     def configure_provider(self, provider: ObservabilityProvider) -> None:
-        """Configure the provider and apply pending decorations."""
+        """Configure a new provider and apply tracking to all registered items.
+
+        When a new provider is configured, it will:
+        1. Get added to the list of active providers
+        2. Apply its tracking to all previously registered functions/tools/agents
+        3. Be available for immediate tracking of new registrations
+
+        The registry maintains a permanent list of what needs tracking,
+        collected through decorators at import time. Each provider uses
+        these registrations to know what to track.
+        """
         logger.info(
-            "Configuring observability provider: %s",
+            "Configuring provider: %s, Current pending actions: %s",
             provider.__class__.__name__,
+            list(self._registered_actions.keys()),
         )
-        self._provider = provider
+        self.providers.append(provider)
 
         # Apply decorations for each type
-        for pending in self._pending_agents.values():
+        for pending in self._registered_agents.values():
             try:
                 pending.target = provider.wrap_agent(
                     pending.target,
@@ -103,7 +125,7 @@ class ObservabilityRegistry:
                 msg = "Failed to apply agent tracking to %r"
                 logger.exception(msg, pending.name)
 
-        for pending in self._pending_tools.values():
+        for pending in self._registered_tools.values():
             try:
                 pending.target = provider.wrap_tool(
                     pending.target,
@@ -115,7 +137,7 @@ class ObservabilityRegistry:
                 msg = "Failed to apply tool tracking to %r"
                 logger.exception(msg, pending.name)
 
-        for pending in self._pending_actions.values():
+        for pending in self._registered_actions.values():
             try:
                 pending.target = provider.wrap_action(
                     pending.target,
@@ -136,7 +158,6 @@ class ObservabilityRegistry:
         """
         if not observability_config.enabled:
             return
-
         for library in observability_config.instrument_libraries or []:
             match library:
                 case "pydantic_ai":
@@ -146,47 +167,40 @@ class ObservabilityRegistry:
 
         # Configure each provider
         for provider_config in observability_config.providers:
-            match provider_config:
-                case LogfireProviderConfig():
-                    from llmling_agent_observability.logfire_provider import (
-                        LogfireProvider,
-                    )
+            provider_cls = get_provider_cls(provider_config)
+            if provider_cls not in self._registered_provider_classes:
+                provider = provider_cls(provider_config)  # type: ignore
+                logger.debug("Registering %s", provider_cls.__name__)
+                self._registered_provider_classes.add(provider_cls)
+                self.configure_provider(provider)
 
-                    provider: ObservabilityProvider = LogfireProvider(
-                        provider_config.token,
-                        provider_config.service_name,
-                        provider_config.environment,
-                    )
-                    self.configure_provider(provider)
-                case AgentOpsProviderConfig():
-                    from llmling_agent_observability.agentops_provider import (
-                        AgentOpsProvider,
-                    )
 
-                    provider = AgentOpsProvider(
-                        provider_config.api_key, provider_config.tags
-                    )
-                    self.configure_provider(provider)
+def get_provider_cls(
+    provider_config: BaseObservabilityProviderConfig,
+) -> type[ObservabilityProvider]:
+    match provider_config:
+        case LogfireProviderConfig():
+            from llmling_agent_observability.logfire_provider import LogfireProvider
 
-                case LangsmithProviderConfig():
-                    from llmling_agent_observability.langsmith_provider import (
-                        LangsmithProvider,
-                    )
+            return LogfireProvider
 
-                    provider = LangsmithProvider(provider_config)
-                    self.configure_provider(provider)
-                case ArizePhoenixProviderConfig():
-                    from llmling_agent_observability.arize_provider import (
-                        ArizePhoenixProvider,
-                    )
+        case AgentOpsProviderConfig():
+            from llmling_agent_observability.agentops_provider import AgentOpsProvider
 
-                    provider = ArizePhoenixProvider(provider_config)
-                    self.configure_provider(provider)
+            return AgentOpsProvider
 
-    @property
-    def provider(self) -> ObservabilityProvider | None:
-        """Get the configured provider."""
-        return self._provider
+        case LangsmithProviderConfig():
+            from llmling_agent_observability.langsmith_provider import LangsmithProvider
+
+            return LangsmithProvider
+
+        case ArizePhoenixProviderConfig():
+            from llmling_agent_observability.arize_provider import ArizePhoenixProvider
+
+            return ArizePhoenixProvider
+        case _:
+            msg = f"Unknown provider config: {provider_config}"
+            raise ValueError(msg)
 
 
 registry = ObservabilityRegistry()

@@ -19,9 +19,9 @@ T = TypeVar("T")
 class ObservabilityProvider(ABC):
     """Base class for observability providers."""
 
-    @abstractmethod
-    def wrap_agent(self, func: Callable[..., T], name: str) -> Callable[..., T]:
+    def wrap_agent(self, kls: type[T], name: str) -> type[T]:
         """Wrap an agent class with observability."""
+        return kls
 
     @abstractmethod
     def wrap_tool(self, func: Callable[..., T], name: str) -> Callable[..., T]:

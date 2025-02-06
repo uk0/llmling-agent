@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class BaseObservabilityProviderConfig(BaseModel):
     """Base configuration for observability providers."""
 
-    type: str = Field(init=False)
+    type: str = Field(init=True)
     """Observability provider."""
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
@@ -39,8 +39,32 @@ class AgentOpsProviderConfig(BaseObservabilityProviderConfig):
     api_key: str | None = None
     """AgentOps API key."""
 
-    tags: list[str] = Field(default_factory=list)
-    """Tags for session grouping."""
+    parent_key: str | None = None
+    """Parent key for session inheritance."""
+
+    endpoint: str | None = None
+    """Custom endpoint URL for AgentOps service."""
+
+    max_wait_time: int | None = None
+    """Maximum time to wait for batch processing in seconds."""
+
+    max_queue_size: int | None = None
+    """Maximum size of the event queue."""
+
+    tags: list[str] | None = None
+    """Tags to apply to all events in this session."""
+
+    instrument_llm_calls: bool | None = None
+    """Whether to automatically instrument LLM API calls."""
+
+    auto_start_session: bool | None = None
+    """Whether to automatically start a session on initialization."""
+
+    inherited_session_id: str | None = None
+    """Session ID to inherit from."""
+
+    skip_auto_end_session: bool | None = None
+    """Whether to skip auto-ending the session on exit."""
 
 
 class LangsmithProviderConfig(BaseObservabilityProviderConfig):

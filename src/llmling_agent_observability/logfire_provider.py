@@ -15,6 +15,8 @@ from llmling_agent_observability.base_provider import ObservabilityProvider
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
+    from llmling_agent.models.observability import LogfireProviderConfig
+
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -25,28 +27,14 @@ logger = get_logger(__name__)
 class LogfireProvider(ObservabilityProvider):
     """Logfire implementation of observability provider."""
 
-    def __init__(
-        self,
-        token: str | None = None,
-        service_name: str | None = None,
-        environment: str | None = None,
-        **kwargs: Any,
-    ) -> None:
+    def __init__(self, config: LogfireProviderConfig, **kwargs: Any):
         """Initialize Logfire with configuration."""
-        logger.debug("Initializing Logfire provider with token %s", token)
         logfire.configure(
-            token=token,
-            service_name=service_name,
-            environment=environment,
+            token=config.token,
+            service_name=config.service_name,
+            environment=config.environment,
             **kwargs,
         )
-
-    def wrap_agent(self, func: Callable[..., T], name: str) -> Callable[..., T]:
-        """Wrap an agent class with logfire instrumentation."""
-        return logfire.instrument(
-            span_name=f"agent.{name}",
-            extract_args=True,
-        )(func)
 
     def wrap_tool(self, func: Callable[..., T], name: str) -> Callable[..., T]:
         """Wrap a tool function with logfire instrumentation."""

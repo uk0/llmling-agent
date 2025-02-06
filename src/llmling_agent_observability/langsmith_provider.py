@@ -27,14 +27,12 @@ class LangsmithProvider(ObservabilityProvider):
 
     def _configure(self) -> None:
         """Set up Langsmith client and environment."""
-        if self.config.api_key:
-            os.environ["LANGCHAIN_API_KEY"] = self.config.api_key
         if self.config.project_name:
             os.environ["LANGCHAIN_PROJECT"] = self.config.project_name
         if self.config.environment:
             os.environ["LANGCHAIN_ENVIRONMENT"] = self.config.environment
 
-        self._client = Client()
+        self._client = Client(api_key=self.config.api_key)
 
     @contextmanager
     def span(self, name: str, attributes: dict[str, Any] | None = None) -> Iterator[None]:
@@ -57,13 +55,6 @@ class LangsmithProvider(ObservabilityProvider):
             # We might want to update the run with results here
             # but that would require capturing the yielded context somehow
             pass
-
-    def wrap_agent(self, func: Callable, name: str) -> Callable:
-        return traceable(
-            run_type="chain",
-            name=name,
-            tags=self.config.tags,
-        )(func)
 
     def wrap_tool(self, func: Callable, name: str) -> Callable:
         return traceable(

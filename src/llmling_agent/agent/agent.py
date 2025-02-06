@@ -283,7 +283,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self.tools.add_provider(CapabilitiesResourceProvider(ctx.capabilities))
 
         if ctx and ctx.definition:
-            from llmling_agent_observability.registry import registry
+            from llmling_agent_observability import registry
 
             registry.register_providers(ctx.definition.observability)
 

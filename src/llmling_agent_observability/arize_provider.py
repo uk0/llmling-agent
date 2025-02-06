@@ -49,21 +49,6 @@ class ArizePhoenixProvider(ObservabilityProvider):
         ):
             yield
 
-    def wrap_agent(self, func: Callable, name: str) -> Callable:
-        """Wrap agent with OpenTelemetry context."""
-
-        @using_attributes(
-            tags=["agent", self.config.environment]
-            if self.config.environment
-            else ["agent"],
-            metadata={"agent_name": name},
-            session_id=self.config.space_key or "",
-        )
-        def wrapped(*args: Any, **kwargs: Any) -> Any:
-            return func(*args, **kwargs)
-
-        return wrapped
-
     def wrap_tool(self, func: Callable, name: str) -> Callable:
         """Wrap tool with OpenTelemetry context."""
 
