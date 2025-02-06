@@ -11,6 +11,7 @@ from llmling_agent.delegation.pool import AgentPool
 from llmling_agent_input.textual_provider import TextualInputProvider
 from llmling_textual.screens.log_screen import LogWindow
 from llmling_textual.screens.main_screen import MainScreen
+from llmling_textual.screens.pool_selection_screen.screen import PoolSelectionScreen
 
 
 class PoolApp(App):
@@ -24,6 +25,7 @@ class PoolApp(App):
     """
     BINDINGS: ClassVar = [
         Binding("f12", "toggle_logs", "Show/Hide Logs"),
+        Binding("p", "select_pool", "Select Pool"),
     ]
 
     def __init__(self, config_path: str):
@@ -61,6 +63,10 @@ class PoolApp(App):
             self.pop_screen()
         else:
             self.push_screen(LogWindow(self.log_widget))
+
+    def action_select_pool(self):
+        """Show pool selection screen."""
+        self.push_screen(PoolSelectionScreen())
 
 
 if __name__ == "__main__":
