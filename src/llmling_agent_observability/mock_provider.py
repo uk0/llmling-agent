@@ -8,6 +8,7 @@ from llmling_agent_observability.base_provider import ObservabilityProvider
 
 P = ParamSpec("P")
 R = TypeVar("R")
+T = TypeVar("T")
 
 
 @dataclass
@@ -16,7 +17,7 @@ class MockCall:
 
     call_type: Literal["span", "wrap_agent", "wrap_tool", "wrap_action"]
     name: str
-    kwargs: dict[str, Any]
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -28,35 +29,18 @@ class MockProvider(ObservabilityProvider):
     @contextmanager
     def span(self, name: str, attributes: dict[str, Any] | None = None) -> Iterator[None]:
         """Record span creation."""
-        self.calls.append(
-            MockCall(
-                call_type="span",
-                name=name,
-                kwargs={"attributes": attributes},
-            )
-        )
+        kwargs = {"attributes": attributes}
+        self.calls.append(MockCall(call_type="span", name=name, kwargs=kwargs))
         yield
 
-    def wrap_agent(self, func: Callable, name: str, **kwargs: Any) -> Callable:
+    def wrap_agent(self, kls: type[T], name: str) -> type[T]:
         """Record agent wrapper creation."""
-        self.calls.append(
-            MockCall(
-                call_type="wrap_agent",
-                name=name,
-                kwargs=kwargs,
-            )
-        )
-        return func
+        self.calls.append(MockCall(call_type="wrap_agent", name=name))
+        return kls
 
     def wrap_tool(self, func: Callable, name: str, **kwargs: Any) -> Callable:
         """Record tool wrapper creation."""
-        self.calls.append(
-            MockCall(
-                call_type="wrap_tool",
-                name=name,
-                kwargs=kwargs,
-            )
-        )
+        self.calls.append(MockCall(call_type="wrap_tool", name=name, kwargs=kwargs))
         return func
 
     def wrap_action(
@@ -68,11 +52,7 @@ class MockProvider(ObservabilityProvider):
         **kwargs: Any,
     ) -> Callable[P, R]:
         """Record action wrapper creation."""
-        self.calls.append(
-            MockCall(
-                call_type="wrap_action",
-                name=span_name or msg_template or func.__name__,
-                kwargs={"msg_template": msg_template, **kwargs},
-            )
-        )
+        kwargs = {"msg_template": msg_template, **kwargs}
+        name = span_name or msg_template or func.__name__
+        self.calls.append(MockCall(call_type="wrap_action", name=name, kwargs=kwargs))
         return func
