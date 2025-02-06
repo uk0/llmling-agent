@@ -16,7 +16,6 @@ from llmling import (
     PromptMessage,
     StaticPrompt,
 )
-from llmling.config.utils import toolset_config_to_toolset
 from llmling.utils.importing import import_callable
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from toprompt import render_prompt
@@ -35,11 +34,13 @@ from llmling_agent.models.result_types import InlineResponseDefinition, Response
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.models.tools import BaseToolConfig, ToolConfig
 from llmling_agent.models.toolsets import ToolsetConfig  # noqa: TC001
+from llmling_agent.resource_providers.static import StaticResourceProvider
 from llmling_agent_models import AnyModelConfig  # noqa: TC001
 from llmling_agent_models.base import BaseModelConfig
 
 
 if TYPE_CHECKING:
+    from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent.tools.base import ToolInfo
     from llmling_agent_providers.base import AgentProvider
 
@@ -243,38 +244,41 @@ class AgentConfig(NodeConfig):
                 data["model"] = {"type": "test", "model": model}
         return data
 
-    async def get_tools(self) -> list[ToolInfo]:
-        """Get all configured tools as ToolInfo instances."""
+    async def get_toolsets(self) -> list[ResourceProvider]:
+        """Get all resource providers for this agent."""
+        providers: list[ResourceProvider] = []
         from llmling_agent.tools.base import ToolInfo
 
-        tools: list[ToolInfo] = []
+        # Create provider for static tools
+        if self.tools:
+            static_tools: list[ToolInfo] = []
+            for tool_config in self.tools:
+                try:
+                    match tool_config:
+                        case str():
+                            tool = LLMCallableTool.from_callable(tool_config)
+                            static_tools.append(ToolInfo(tool))
+                        case BaseToolConfig():
+                            static_tools.append(tool_config.get_tool())
+                except Exception:
+                    logger.exception("Failed to load tool %r", tool_config)
+                    continue
 
-        for tool_config in self.tools:
-            try:
-                match tool_config:
-                    case str():
-                        tool = LLMCallableTool.from_callable(tool_config)
-                        tools.append(ToolInfo(tool))
-                    case BaseToolConfig():
-                        tools.append(tool_config.get_tool())
-            except Exception:
-                logger.exception("Failed to load tool %r", tool_config)
-                continue
+            providers.append(StaticResourceProvider(tools=static_tools))
 
-        # Handle toolsets
+        # Add providers from toolsets
         for toolset_config in self.toolsets:
             try:
-                toolset = toolset_config_to_toolset(toolset_config)
-                # Get LLMCallableTools from toolset
-                for tool in toolset.get_llm_callable_tools():
-                    meta: dict[str, Any] = {"type": toolset_config.type}
-                    tool_info = ToolInfo(tool, metadata=meta, source="toolset")
-                    tools.append(tool_info)
-            except Exception:
-                logger.exception("Failed to load toolset %r", toolset_config)
-                continue
+                provider = toolset_config.get_provider()
+                providers.append(provider)
+            except Exception as e:
+                logger.exception(
+                    "Failed to create provider for toolset: %r", toolset_config
+                )
+                msg = f"Failed to create provider for toolset: {e}"
+                raise ValueError(msg) from e
 
-        return tools
+        return providers
 
     def get_session_config(self) -> MemoryConfig:
         """Get resolved memory configuration."""
