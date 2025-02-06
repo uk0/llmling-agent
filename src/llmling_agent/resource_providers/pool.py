@@ -19,15 +19,22 @@ logger = get_logger(__name__)
 class PoolResourceProvider(ResourceProvider):
     """Provider that exposes an AgentPool's resources."""
 
-    def __init__(self, pool: AgentPool[Any], name: str | None = None):
+    def __init__(
+        self,
+        pool: AgentPool[Any],
+        name: str | None = None,
+        zed_mode: bool = False,
+    ):
         """Initialize provider with agent pool.
 
         Args:
             pool: Agent pool to expose resources from
             name: Optional name override (defaults to pool name)
+            zed_mode: Whether to enable Zed mode
         """
         super().__init__(name=name or repr(pool))
         self.pool = pool
+        self.zed_mode = zed_mode
 
     async def get_tools(self) -> list[ToolInfo]:
         """Get tools from all agents in pool."""
@@ -43,8 +50,14 @@ class PoolResourceProvider(ResourceProvider):
 
     async def get_prompts(self) -> list[BasePrompt]:
         """Get prompts from pool's manifest."""
-        # Here we could expose agent system prompts or prompts from manifest
-        return []
+        prompts: list[Any] = []
+        # if self.pool.manifest.prompts:
+        #     prompts.extend(self.pool.manifest.prompts.system_prompts.values())
+
+        # if self.zed_mode:
+        #     prompts = prepare_prompts_for_zed(prompts)
+
+        return prompts
 
     async def get_resources(self) -> list[ResourceInfo]:
         """Get resources from pool's manifest."""

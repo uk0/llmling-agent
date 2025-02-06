@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self
 
 from mcp.server import NotificationOptions, Server
 
+from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_mcp.handlers import register_handlers
 from llmling_agent_mcp.log import get_logger
 from llmling_agent_mcp.transports.sse import SSEServer
@@ -15,8 +16,6 @@ from llmling_agent_mcp.transports.stdio import StdioServer
 
 
 if TYPE_CHECKING:
-    from collections.abc import Coroutine
-
     import mcp
 
     from llmling_agent.models.mcp_server import PoolServerConfig
@@ -28,7 +27,7 @@ logger = get_logger(__name__)
 TransportType = Literal["stdio", "sse"]
 
 
-class LLMLingServer:
+class LLMLingServer(TaskManagerMixin):
     """MCP protocol server implementation."""
 
     def __init__(
@@ -36,7 +35,7 @@ class LLMLingServer:
         provider: ResourceProvider,
         config: PoolServerConfig,
         name: str = "llmling-server",
-    ) -> None:
+    ):
         """Initialize server with resource provider.
 
         Args:
@@ -44,6 +43,7 @@ class LLMLingServer:
             config: Server configuration
             name: Server name for MCP protocol
         """
+        super().__init__()
         self.name = name
         self.provider = provider
         self.config = config
@@ -85,13 +85,6 @@ class LLMLingServer:
                 msg = f"Unknown transport type: {config.transport}"
                 raise ValueError(msg)
 
-    def _create_task(self, coro: Coroutine[None, None, Any]) -> asyncio.Task[Any]:
-        """Create and track an asyncio task."""
-        task = asyncio.create_task(coro)
-        self._tasks.add(task)
-        task.add_done_callback(self._tasks.discard)
-        return task
-
     def _setup_handlers(self) -> None:
         """Register MCP protocol handlers."""
         register_handlers(self)
@@ -116,11 +109,20 @@ class LLMLingServer:
             self._tasks.clear()
 
     async def __aenter__(self) -> Self:
-        """Async context manager entry."""
-        return self
+        """Enter async context and start server."""
+        try:
+            # Start server in background task
+            self.create_task(self.transport.serve())
+        except Exception as e:
+            await self.shutdown()
+            msg = "Failed to start server"
+            logger.exception(msg, exc_info=e)
+            raise RuntimeError(msg) from e
+        else:
+            return self
 
     async def __aexit__(self, *exc: object) -> None:
-        """Async context manager exit."""
+        """Shutdown the server."""
         await self.shutdown()
 
     @property
@@ -143,7 +145,7 @@ class LLMLingServer:
     async def notify_tool_list_changed(self) -> None:
         """Notify clients about tool list changes."""
         try:
-            self._create_task(self.current_session.send_tool_list_changed())
+            self.create_task(self.current_session.send_tool_list_changed())
         except RuntimeError:
             logger.debug("No active session for notification")
         except Exception:
@@ -152,7 +154,7 @@ class LLMLingServer:
     async def notify_prompt_list_changed(self) -> None:
         """Notify clients about prompt list changes."""
         try:
-            self._create_task(self.current_session.send_prompt_list_changed())
+            self.create_task(self.current_session.send_prompt_list_changed())
         except RuntimeError:
             logger.debug("No active session for notification")
         except Exception:
