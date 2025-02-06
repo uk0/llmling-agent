@@ -814,6 +814,58 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         """Get the model name in a consistent format."""
         return self._provider.model_name
 
+    def to_tool(
+        self,
+        *,
+        name: str | None = None,
+        reset_history_on_run: bool = True,
+        pass_message_history: bool = False,
+        share_context: bool = False,
+        parent: AnyAgent[Any, Any] | None = None,
+    ) -> LLMCallableTool:
+        """Create a tool from this agent.
+
+        Args:
+            name: Optional tool name override
+            reset_history_on_run: Clear agent's history before each run
+            pass_message_history: Pass parent's message history to agent
+            share_context: Whether to pass parent's context/deps
+            parent: Optional parent agent for history/context sharing
+        """
+        tool_name = f"ask_{self.name}"
+
+        async def wrapped_tool(prompt: str) -> str:
+            if pass_message_history and not parent:
+                msg = "Parent agent required for message history sharing"
+                raise ToolError(msg)
+
+            if reset_history_on_run:
+                self.conversation.clear()
+
+            history = None
+            if pass_message_history and parent:
+                history = parent.conversation.get_history()
+                old = self.conversation.get_history()
+                self.conversation.set_history(history)
+            result = await self.run(prompt, result_type=self._result_type)
+            if history:
+                self.conversation.set_history(old)
+            return result.data
+
+        normalized_name = self.name.replace("_", " ").title()
+        docstring = f"Get expert answer from specialized agent: {normalized_name}"
+        if self.description:
+            docstring = f"{docstring}\n\n{self.description}"
+
+        wrapped_tool.__doc__ = docstring
+        wrapped_tool.__name__ = tool_name
+
+        return LLMCallableTool.from_callable(
+            wrapped_tool,
+            name_override=tool_name,
+            description_override=docstring,
+        )
+
     @track_action("Calling Agent.run: {prompts}:")
     async def _run(
         self,
@@ -831,7 +883,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             result_type: Optional type for structured responses
             model: Optional model override
             store_history: Whether the message exchange should be added to the
-                           context window
+                            context window
             tool_choice: Control tool usage:
                 - True: Allow all tools
                 - False: No tools
@@ -893,58 +945,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
                 devtools.debug(response_msg)
             return response_msg
-
-    def to_tool(
-        self,
-        *,
-        name: str | None = None,
-        reset_history_on_run: bool = True,
-        pass_message_history: bool = False,
-        share_context: bool = False,
-        parent: AnyAgent[Any, Any] | None = None,
-    ) -> LLMCallableTool:
-        """Create a tool from this agent.
-
-        Args:
-            name: Optional tool name override
-            reset_history_on_run: Clear agent's history before each run
-            pass_message_history: Pass parent's message history to agent
-            share_context: Whether to pass parent's context/deps
-            parent: Optional parent agent for history/context sharing
-        """
-        tool_name = f"ask_{self.name}"
-
-        async def wrapped_tool(prompt: str) -> str:
-            if pass_message_history and not parent:
-                msg = "Parent agent required for message history sharing"
-                raise ToolError(msg)
-
-            if reset_history_on_run:
-                self.conversation.clear()
-
-            history = None
-            if pass_message_history and parent:
-                history = parent.conversation.get_history()
-                old = self.conversation.get_history()
-                self.conversation.set_history(history)
-            result = await self.run(prompt, result_type=self._result_type)
-            if history:
-                self.conversation.set_history(old)
-            return result.data
-
-        normalized_name = self.name.replace("_", " ").title()
-        docstring = f"Get expert answer from specialized agent: {normalized_name}"
-        if self.description:
-            docstring = f"{docstring}\n\n{self.description}"
-
-        wrapped_tool.__doc__ = docstring
-        wrapped_tool.__name__ = tool_name
-
-        return LLMCallableTool.from_callable(
-            wrapped_tool,
-            name_override=tool_name,
-            description_override=docstring,
-        )
 
     @asynccontextmanager
     async def run_stream(
