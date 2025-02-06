@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Coroutine, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, overload
 from uuid import uuid4
@@ -435,14 +435,16 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         from llmling_agent import Agent, StructuredAgent
 
         user_msg, prompts = await self.pre_run(*prompt)
-        message = await self._run(*prompts, store_history=store_history, **kwargs)
+        message = await self._run(
+            *prompts,
+            store_history=store_history,
+            conversation_id=user_msg.conversation_id,
+            **kwargs,
+        )
 
         # For chain processing, update the response's chain
         if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
             message = message.forwarded(prompt[0])
-
-        # Set conversation_id on response message
-        message = replace(message, conversation_id=user_msg.conversation_id)
 
         if store_history and isinstance(self, Agent | StructuredAgent):
             self.conversation.add_chat_messages([user_msg, message])
