@@ -33,7 +33,7 @@ class WelcomeInfo:
         ]
 
 
-def create_welcome_messages(
+async def create_welcome_messages(
     agent: AnyAgent[Any, Any],
     *,
     streaming: bool = False,
@@ -66,16 +66,11 @@ def create_welcome_messages(
     mode = "streaming" if streaming else "non-streaming"
     config_info = [f"{fmt('Model:', 'bold')} {model}", f"{fmt('Mode:', 'bold')} {mode}"]
 
-    enabled_tools = [t.name for t in agent.tools.values() if t.enabled]
-    disabled_tools = [t.name for t in agent.tools.values() if not t.enabled]
+    tools = [t.name for t in await agent.tools.get_tools(state="enabled")]
 
     tools_info = [fmt("Tools:", "bold")]
-    if enabled_tools:
-        tools_info.append(fmt("Enabled:", "green"))
-        tools_info.extend(f"  • {tool}" for tool in enabled_tools)
-    if disabled_tools:
-        tools_info.append(fmt("Disabled:", "yellow"))
-        tools_info.extend(f"  • {tool}" for tool in disabled_tools)
+    if tools:
+        tools_info.extend(f"  • {tool}" for tool in tools)
 
     prompts_info = []
     if agent.context.config.system_prompts:
@@ -85,13 +80,10 @@ def create_welcome_messages(
             for prompt in agent.context.config.system_prompts
         )
 
-    disable_str = fmt("/disable-tool", "green")
-    enable_str = fmt("/enable-tool", "green")
     usage_info = [
         fmt("Usage:", "bold"),
         f"• Type {fmt('/help', 'green')} for available commands",
         f"• Type {fmt('/exit', 'green')} to quit",
-        f"• Use {enable_str} or {disable_str} to manage tools",
     ]
 
     footer = ["=" * 50, ""]

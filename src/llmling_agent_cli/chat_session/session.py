@@ -120,7 +120,7 @@ class InteractiveSession:
 
     def _on_session_reset(self, event: Agent.AgentReset):
         """Handle session reset event."""
-        self.console.print("\nSession reset. Tools restored to default state.")
+        self.console.print("\nSession reset.")
 
     def _setup_prompt(self):
         """Setup prompt toolkit session."""
@@ -212,7 +212,7 @@ class InteractiveSession:
             self._setup_prompt()
 
             # Show welcome message
-            welcome_info = create_welcome_messages(
+            welcome_info = await create_welcome_messages(
                 self._chat_session._agent, streaming=self._stream, rich_format=True
             )
             self.formatter.print_welcome(welcome_info)

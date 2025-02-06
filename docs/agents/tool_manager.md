@@ -37,20 +37,7 @@ tools = await agent.tools.get_tools(state="enabled")  # filter options
 tool_info = manager["tool_name"]  # Dict-like access
 ```
 
-
-### 2. Tool State Management
-
-```python
-# Enable/disable individual tools
-agent.tools.enable_tool("tool_name")
-agent.tools.disable_tool("tool_name")
-agent.tools.is_tool_enabled("tool_name")  # -> bool
-
-# Reset all tools to default state
-agent.tools.reset_states()  # Emits tool_states_reset event
-```
-
-### 3. Temporary Tool Contexts
+### 2. Temporary Tool Contexts
 
 One of the most powerful features is the ability to temporarily modify available tools:
 
@@ -84,6 +71,10 @@ def my_tool(text: str) -> str:
 # Register as tool
 tool_info = manager.register_tool(my_tool)
 tool_info = manager.register_tool("path.to.callable")
+
+@agent.tools.tool
+def some_tool(text: str) -> str:
+    ...
 ```
 
 ### Worker Agent Registration
