@@ -1026,6 +1026,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                     # provider_extra=stream.provider_extra or {},
                 )
                 self.message_sent.emit(response_msg)
+                if store_history:
+                    self.conversation.add_chat_messages([user_msg, response_msg])
                 await self.connections.route_message(
                     response_msg,
                     wait=wait_for_connections,

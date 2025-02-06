@@ -151,7 +151,6 @@ class AgentProvider[TDeps]:
         result_type: type[Any] | None = None,
         model: ModelType = None,
         tools: list[ToolInfo] | None = None,
-        store_history: bool = True,
         **kwargs: Any,
     ) -> AbstractAsyncContextManager[StreamingResponseProtocol]:
         """Stream a response. Must be implemented by providers."""

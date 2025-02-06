@@ -360,7 +360,6 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         result_type: type[Any] | None = None,
         model: ModelProtocol | str | None = None,
         tools: list[ToolInfo] | None = None,
-        store_history: bool = True,
         system_prompt: str | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamingResponseProtocol[Any]]:
@@ -374,10 +373,8 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
 
-        # Add conversation history
-        if store_history:
-            for msg in message_history:
-                messages.extend(self._convert_message_to_chat(msg))
+        for msg in message_history:
+            messages.extend(self._convert_message_to_chat(msg))
 
         # Convert new prompts to message content
         content_parts: list[dict[str, Any]] = []
@@ -410,16 +407,6 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
 
             try:
                 yield stream
-
-                # Store in history if requested and stream completed
-                if store_history and stream.is_complete:
-                    request_msgs = [
-                        ChatMessage(role="user", content=str(p)) for p in prompts
-                    ]
-                    content = stream.formatted_content
-                    response_msg = ChatMessage(role="assistant", content=content)
-                    self.conversation.add_chat_messages([*request_msgs, response_msg])
-
             except Exception as e:
                 logger.exception("Error during stream processing")
                 error_msg = "Stream processing failed"

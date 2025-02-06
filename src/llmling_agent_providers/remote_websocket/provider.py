@@ -306,7 +306,6 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         result_type: type[Any] | None = None,
         tools: list[ToolInfo] | None = None,
         model: ModelType = None,
-        store_history: bool = True,
         **kwargs: Any,
     ) -> AsyncIterator[StreamingResponseProtocol]:
         """Stream response from remote agent."""
@@ -323,7 +322,6 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
                     "result_type": str(result_type) if result_type else None,
                     "model": str(model) if model else None,
                 },
-                metadata={"store_history": store_history},
             )
 
             queue: asyncio.Queue[Any] = asyncio.Queue()
@@ -354,7 +352,6 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
                     result_type=result_type,
                     tools=tools,
                     model=model,
-                    store_history=store_history,
                     **kwargs,
                 ) as stream:
                     yield stream

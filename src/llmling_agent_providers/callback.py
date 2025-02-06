@@ -98,7 +98,6 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         system_prompt: str | None = None,
-        store_history: bool = True,
         **kwargs: Any,
     ) -> AsyncIterator[StreamingResponseProtocol]:
         """Simulate streaming by yielding complete result as one chunk."""

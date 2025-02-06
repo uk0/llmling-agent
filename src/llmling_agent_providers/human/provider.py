@@ -103,13 +103,10 @@ class HumanProvider(AgentProvider):
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelType = None,
-        store_history: bool = True,
         system_prompt: str | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamingResponseProtocol]:
         """Stream response keystroke by keystroke."""
-        from llmling_agent.messaging.messages import ChatMessage
-
         prompt = await format_prompts(prompts)
         print(f"\n{prompt}")
         if result_type:
@@ -163,10 +160,6 @@ class HumanProvider(AgentProvider):
                     logger.exception("Failed to parse structured response")
                     error_msg = f"Invalid response format: {e}"
                     raise ToolError(error_msg) from e
-            if store_history:
-                message_history.append(ChatMessage(role="user", content=prompt))
-                message_history.append(ChatMessage(role="assistant", content=content))
-                self.conversation.set_history(message_history)
             stream_result.formatted_content = str(content)
             yield stream_result  # type: ignore
 

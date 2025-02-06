@@ -31,7 +31,6 @@ from llmling_agent.utils.inspection import has_argument_type
 from llmling_agent_observability.decorators import track_action
 from llmling_agent_providers.base import AgentLLMProvider, ProviderResponse
 from llmling_agent_providers.pydanticai.utils import (
-    convert_model_message,
     format_part,
     get_tool_calls,
     to_model_message,
@@ -363,7 +362,6 @@ class PydanticAIProvider(AgentLLMProvider):
         result_type: type[Any] | None = None,
         model: ModelType = None,
         tools: list[ToolInfo] | None = None,
-        store_history: bool = True,
         system_prompt: str | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
@@ -414,18 +412,6 @@ class PydanticAIProvider(AgentLLMProvider):
                     self.chunk_streamed.emit("", message_id)
                     messages = stream_result.new_messages()
                     tool_dict = {i.name: i for i in tools or []}
-                    if store_history:
-                        new = [
-                            convert_model_message(
-                                m,
-                                tool_dict,
-                                self.name,
-                                filter_system_prompts=True,
-                            )
-                            for m in messages
-                        ]
-                        self.conversation.add_chat_messages(new)
-
                     # Extract and update tool calls
                     tool_calls = get_tool_calls(messages, tool_dict, agent_name=self.name)
                     for call in tool_calls:
