@@ -13,7 +13,7 @@ This example demonstrates:
 """
 
 from llmling_agent.agent import Agent
-from llmling_agent.running import agent_function
+from llmling_agent.running import node_function
 
 
 AGENT_CONFIG = """
@@ -44,14 +44,14 @@ Jun: $21,500
 """
 
 
-@agent_function
+@node_function
 async def analyze_data(analyzer: Agent):
     """First step: Analyze the data."""
     result = await analyzer.run(f"Analyze this sales data and identify trends:\n{DATA}")
     return result.data
 
 
-@agent_function(depends_on="analyze_data")
+@node_function(depends_on="analyze_data")
 async def summarize_analysis(writer: Agent, analyze_data: str):
     """Second step: Create an executive summary."""
     prompt = "Create a brief executive summary of this sales analysis:\n{analyze_data}"
@@ -60,9 +60,9 @@ async def summarize_analysis(writer: Agent, analyze_data: str):
 
 
 async def run():
-    from llmling_agent.running import run_agents_async
+    from llmling_agent.running import run_nodes_async
 
-    results = await run_agents_async(config_path, parallel=True)
+    results = await run_nodes_async(config_path, parallel=True)
     print("Analysis:", results["analyze_data"])
     print("Summary:", results["summarize_analysis"])
 

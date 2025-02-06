@@ -7,14 +7,14 @@ from typing import Any
 import pytest
 
 from llmling_agent.agent import Agent
-from llmling_agent.delegation.decorators import with_agents
-from llmling_agent.delegation.injection import AgentInjectionError
+from llmling_agent.delegation.decorators import with_nodes
+from llmling_agent.delegation.injection import NodeInjectionError
 
 
 async def test_basic_injection(pool):
     """Test basic agent injection."""
 
-    @with_agents(pool)
+    @with_nodes(pool)
     async def test_func(
         agent1: Agent[None] | None = None,
         agent2: Agent[None] | None = None,
@@ -33,25 +33,25 @@ async def test_basic_injection(pool):
 async def test_missing_agent(pool):
     """Test error when agent not in pool."""
 
-    @with_agents(pool)
+    @with_nodes(pool)
     async def test_func(missing_agent: Agent[None] | None = None) -> str:
         return "unreachable"
 
-    with pytest.raises(AgentInjectionError) as exc:
+    with pytest.raises(NodeInjectionError) as exc:
         await test_func()
-    assert "No agent named 'missing_agent'" in str(exc.value)
-    assert "Available agents: agent1, agent2" in str(exc.value)
+    assert "No node named 'missing_agent'" in str(exc.value)
+    assert "Available nodes: agent1, agent2" in str(exc.value)
 
 
 async def test_duplicate_parameter(pool):
     """Test error when agent parameter provided explicitly."""
 
-    @with_agents(pool)
+    @with_nodes(pool)
     async def test_func(agent1: Agent[None] | None = None) -> str:
         return "unreachable"
 
     dummy_agent = pool.get_agent("agent1")
-    with pytest.raises(AgentInjectionError) as exc:
+    with pytest.raises(NodeInjectionError) as exc:
         await test_func(agent1=dummy_agent)
     assert "Parameter already provided" in str(exc.value)
 
@@ -59,7 +59,7 @@ async def test_duplicate_parameter(pool):
 async def test_non_agent_parameter(pool):
     """Test regular parameters are ignored."""
 
-    @with_agents(pool)
+    @with_nodes(pool)
     async def test_func(
         agent1: Agent[None] | None = None,
         normal: str = "test",
@@ -84,7 +84,7 @@ async def test_wrapper_usage(pool):
         assert isinstance(agent1, Agent)
         return arg
 
-    wrapped = with_agents(pool)(test_func)
+    wrapped = with_nodes(pool)(test_func)
     result = await wrapped()
     assert result == "test"
 
@@ -92,7 +92,7 @@ async def test_wrapper_usage(pool):
 async def test_agent_functionality(pool):
     """Test injected agents are fully functional."""
 
-    @with_agents(pool)
+    @with_nodes(pool)
     async def test_func(
         agent1: Agent[None] | None = None,
         agent2: Agent[None] | None = None,
@@ -106,3 +106,7 @@ async def test_agent_functionality(pool):
     results = await test_func()
     assert len(results) == 2  # noqa: PLR2004
     assert all(isinstance(r, str) for r in results)
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-vv"])

@@ -6,7 +6,6 @@ import inspect
 import typing
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
-from llmling_agent.agent import Agent
 from llmling_agent.log import get_logger
 
 
@@ -14,6 +13,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from llmling_agent.delegation.pool import AgentPool
+    from llmling_agent.messaging.messagenode import MessageNode
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -21,26 +21,45 @@ T = TypeVar("T")
 logger = get_logger(__name__)
 
 
-class AgentInjectionError(Exception):
+def is_node_type(typ: Any) -> bool:
+    """Check if a type is or inherits from MessageNode."""
+    from llmling_agent.messaging.messagenode import MessageNode
+
+    # Direct type check
+    if typ is MessageNode:
+        return True
+
+    # For actual types (not GenericAlias etc)
+    if isinstance(typ, type):
+        return issubclass(typ, MessageNode)
+
+    # For generic types (Agent[T], StructuredAgent[T], etc)
+    origin = getattr(typ, "__origin__", None)
+    if origin is not None and isinstance(origin, type):
+        return issubclass(origin, MessageNode)
+
+    return False
+
+
+class NodeInjectionError(Exception):
     """Raised when agent injection fails."""
 
 
-def inject_agents(
+def inject_nodes(
     func: Callable[P, T],
     pool: AgentPool,
     provided_kwargs: dict[str, Any],
-) -> dict[str, Agent[Any]]:
-    """Get agents to inject based on function signature."""
+) -> dict[str, MessageNode[Any, Any]]:
+    """Get nodes to inject based on function signature."""
     hints = typing.get_type_hints(func)
     params = inspect.signature(func).parameters
-    msg = "Injecting agents for %s.%s"
+    msg = "Injecting nodes for %s.%s"
     logger.debug(msg, func.__module__, func.__qualname__)
     logger.debug("Type hints: %s", hints)
-    logger.debug("Available agents in pool: %s", sorted(pool.agents))
+    logger.debug("Available nodes in pool: %s", sorted(pool.nodes))
 
-    agents: dict[str, Agent[Any]] = {}
+    nodes: dict[str, MessageNode[Any, Any]] = {}
     for name, param in params.items():
-        # Only look at normal keyword/positional params
         if param.kind not in (
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
             inspect.Parameter.KEYWORD_ONLY,
@@ -48,58 +67,52 @@ def inject_agents(
             logger.debug("Skipping %s: wrong parameter kind %s", name, param.kind)
             continue
 
-        # Check if parameter should be an agent
         hint = hints.get(name)
         if hint is None:
             logger.debug("Skipping %s: no type hint", name)
             continue
 
-        # Handle both Agent and Agent[Any] | None
+        # Handle Optional/Union types
         origin = getattr(hint, "__origin__", None)
         args = getattr(hint, "__args__", ())
 
-        # Check various Agent type patterns
-        is_agent = (
-            hint is Agent  # Direct Agent
-            or origin is Agent  # Generic Agent[T]
-            or (  # Optional[Agent[T]] or Union containing Agent
-                origin is not None
-                and any(
-                    arg is Agent or getattr(arg, "__origin__", None) is Agent
-                    for arg in args
-                )
+        # Check for MessageNode or any of its subclasses
+        is_node = (
+            is_node_type(hint)  # Direct node type
+            or (  # Optional[Node[T]] or Union containing Node
+                origin is not None and any(is_node_type(arg) for arg in args)
             )
         )
 
-        if not is_agent:
-            msg = "Skipping %s: not an agent type (hint=%s, origin=%s, args=%s)"
+        if not is_node:
+            msg = "Skipping %s: not a node type (hint=%s, origin=%s, args=%s)"
             logger.debug(msg, name, hint, origin, args)
             continue
 
-        logger.debug("Found agent parameter: %s", name)
+        logger.debug("Found node parameter: %s", name)
 
         # Check for duplicate parameters
         if name in provided_kwargs and provided_kwargs[name] is not None:
             msg = (
-                f"Cannot inject agent '{name}': Parameter already provided.\n"
+                f"Cannot inject node '{name}': Parameter already provided.\n"
                 f"Remove the explicit argument or rename the parameter."
             )
             logger.error(msg)
-            raise AgentInjectionError(msg)
+            raise NodeInjectionError(msg)
 
-        # Get agent from pool
-        if name not in pool.agents:
-            available = ", ".join(sorted(pool.agents))
+        # Get node from pool
+        if name not in pool.nodes:
+            available = ", ".join(sorted(pool.nodes))
             msg = (
-                f"No agent named '{name}' found in pool.\n"
-                f"Available agents: {available}\n"
-                f"Check your YAML configuration or agent name."
+                f"No node named '{name}' found in pool.\n"
+                f"Available nodes: {available}\n"
+                f"Check your YAML configuration or node name."
             )
             logger.error(msg)
-            raise AgentInjectionError(msg)
+            raise NodeInjectionError(msg)
 
-        agents[name] = pool.get_agent(name)
-        logger.debug("Injecting agent %s for parameter %s", agents[name], name)
+        nodes[name] = pool.nodes[name]
+        logger.debug("Injecting node %s for parameter %s", nodes[name], name)
 
-    logger.debug("Injection complete. Injected agents: %s", sorted(agents))
-    return agents
+    logger.debug("Injection complete. Injected nodes: %s", sorted(nodes))
+    return nodes

@@ -6,7 +6,7 @@ from functools import wraps
 import inspect
 from typing import TYPE_CHECKING, ParamSpec, TypeVar, overload
 
-from llmling_agent.delegation.injection import inject_agents
+from llmling_agent.delegation.injection import inject_nodes
 
 
 if TYPE_CHECKING:
@@ -19,19 +19,19 @@ T = TypeVar("T")
 
 
 @overload
-def with_agents(
+def with_nodes(
     pool: AgentPool,
 ) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]: ...
 
 
 @overload
-def with_agents(
+def with_nodes(
     pool: AgentPool,
     func: Callable[P, Awaitable[T]],
 ) -> Callable[P, Awaitable[T]]: ...
 
 
-def with_agents(
+def with_nodes(
     pool: AgentPool,
     func: Callable[P, Awaitable[T]] | None = None,
 ) -> (
@@ -49,7 +49,7 @@ def with_agents(
             all_kwargs = {**bound_args.arguments, **kwargs}
 
             # Get needed agents
-            agents = inject_agents(func, pool, all_kwargs)
+            agents = inject_nodes(func, pool, all_kwargs)
 
             # Create kwargs with agents first, then other args
             final_kwargs = {**agents, **kwargs}

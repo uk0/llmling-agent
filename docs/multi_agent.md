@@ -64,7 +64,7 @@ team.chain("Process this sequentially")
 Best for: Scripted interactions and testing flows
 
 ```python
-@with_agents("analyzer", "planner")
+@with_nodes("analyzer", "planner")
 async def analysis_flow(analyzer: Agent, planner: Agent):
     result = await analyzer.run("Analyze this")
     return await planner.run(result.content)

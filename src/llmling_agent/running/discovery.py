@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class AgentFunction:
+class NodeFunction:
     """Metadata for a function that uses agents."""
 
     func: AnyCallable
@@ -52,7 +52,7 @@ class AgentFunction:
         logger.debug(msg, self.name, self.depends_on)
 
 
-def agent_function(
+def node_function(
     func: Callable | None = None,
     *,
     deps: Any | None = None,
@@ -62,10 +62,10 @@ def agent_function(
 
     Can be used as simple decorator or with arguments:
 
-    @agent_function
+    @node_function
     async def func(): ...
 
-    @agent_function(order=1, depends_on="other_func")
+    @node_function(order=1, depends_on="other_func")
     async def func(): ...
 
     Args:
@@ -95,8 +95,8 @@ def agent_function(
                 msg = f"Invalid depends_on: {depends_on}"
                 raise ValueError(msg)
         # TODO: we still need to inject the deps in execution part.
-        metadata = AgentFunction(func=func, depends_on=_depends_on or [], deps=deps)
-        func._agent_function = metadata  # type: ignore
+        metadata = NodeFunction(func=func, depends_on=_depends_on or [], deps=deps)
+        func._node_function = metadata  # type: ignore
         return func
 
     return decorator(func) if func is not None else decorator

@@ -6,7 +6,7 @@ import asyncio
 from typing import Any, TYPE_CHECKING
 
 from llmling_agent.delegation import AgentPool
-from llmling_agent.running.discovery import agent_function
+from llmling_agent.running.discovery import node_function
 from llmling_agent.running.executor import discover_functions, execute_functions
 
 if TYPE_CHECKING:
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import StrPath
 
 
-async def run_agents_async(
+async def run_nodes_async(
     config: StrPath | AgentsManifest,
     *,
     module: str | None = None,
@@ -36,11 +36,11 @@ async def run_agents_async(
 
     Example:
         ```python
-        @agent_function
+        @node_function
         async def analyze(analyzer: Agent) -> str:
             return await analyzer.run("...")
 
-        results = await run_agents_async("agents.yml")
+        results = await run_nodes_async("agents.yml")
         print(results["analyze"])
         ```
     """
@@ -80,17 +80,17 @@ def run_agents(
 ) -> dict[str, Any]:
     """Run agent functions synchronously.
 
-    Convenience wrapper around run_agents_async for sync contexts.
-    See run_agents_async for full documentation.
+    Convenience wrapper around run_nodes_async for sync contexts.
+    See run_nodes_async for full documentation.
 
     Args:
         config: Agent configuration path
-        **kwargs: Arguments to pass to run_agents_async
+        **kwargs: Arguments to pass to run_nodes_async
 
     Returns:
         Dict mapping function names to their results
     """
-    return asyncio.run(run_agents_async(config, **kwargs))
+    return asyncio.run(run_nodes_async(config, **kwargs))
 
 
-__all__ = ["agent_function", "run_agents", "run_agents_async"]
+__all__ = ["node_function", "run_agents", "run_nodes_async"]

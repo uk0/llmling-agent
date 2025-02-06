@@ -9,13 +9,13 @@ from pathlib import Path
 import sys
 from typing import TYPE_CHECKING, Any, get_type_hints
 
-from llmling_agent.delegation import AgentPool, with_agents
+from llmling_agent.delegation import AgentPool, with_nodes
 from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
     from llmling_agent.common_types import StrPath
-    from llmling_agent.running.discovery import AgentFunction
+    from llmling_agent.running.discovery import NodeFunction
 
 
 logger = get_logger(__name__)
@@ -40,7 +40,7 @@ def _validate_path(path: StrPath) -> Path:
     return path_obj
 
 
-def discover_functions(path: StrPath) -> list[AgentFunction]:
+def discover_functions(path: StrPath) -> list[NodeFunction]:
     """Find all agent functions in a module.
 
     Args:
@@ -66,14 +66,14 @@ def discover_functions(path: StrPath) -> list[AgentFunction]:
     # Find decorated functions
     functions = []
     for name, obj in inspect.getmembers(module):
-        if hasattr(obj, "_agent_function"):
-            functions.append(obj._agent_function)
+        if hasattr(obj, "_node_function"):
+            functions.append(obj._node_function)
             logger.debug("Discovered agent function: %s", name)
 
     return functions
 
 
-def _sort_functions(functions: list[AgentFunction]) -> list[AgentFunction]:
+def _sort_functions(functions: list[NodeFunction]) -> list[NodeFunction]:
     """Sort functions by order and dependencies.
 
     Args:
@@ -93,7 +93,7 @@ def _sort_functions(functions: list[AgentFunction]) -> list[AgentFunction]:
     seen = set()
     in_progress = set()
 
-    def add_function(func: AgentFunction):
+    def add_function(func: NodeFunction):
         if func.name in seen:
             return
         if func.name in in_progress:
@@ -120,14 +120,14 @@ def _sort_functions(functions: list[AgentFunction]) -> list[AgentFunction]:
 
 
 def _group_parallel(
-    sorted_funcs: list[AgentFunction],
-) -> list[list[AgentFunction]]:
+    sorted_funcs: list[NodeFunction],
+) -> list[list[NodeFunction]]:
     """Group functions that can run in parallel."""
     if not sorted_funcs:
         return []
 
     # Group by dependency signature
-    by_deps: dict[tuple[str, ...], list[AgentFunction]] = {}
+    by_deps: dict[tuple[str, ...], list[NodeFunction]] = {}
 
     for func in sorted_funcs:
         # Use tuple of sorted deps as key for consistent grouping
@@ -153,7 +153,7 @@ def _group_parallel(
 
 
 async def execute_single(
-    func: AgentFunction,
+    func: NodeFunction,
     pool: AgentPool,
     available_results: dict[str, Any],
     inputs: dict[str, Any] | None = None,
@@ -193,7 +193,7 @@ async def execute_single(
             kwargs[dep] = value
 
         # Execute with agent injection
-        wrapped = with_agents(pool)(func.func)
+        wrapped = with_nodes(pool)(func.func)
         result = await wrapped(**kwargs)
 
         # Validate return type if hinted
@@ -206,7 +206,7 @@ async def execute_single(
         return func.name, result
 
 
-def _validate_dependency_types(functions: list[AgentFunction]):
+def _validate_dependency_types(functions: list[NodeFunction]):
     """Validate that dependency types match return types."""
     # Get return types for all functions
     return_types = {}
@@ -243,7 +243,7 @@ def validate_value_type(value: Any, expected_type: type, func_name: str, param_n
 
 
 async def execute_functions(
-    functions: list[AgentFunction],
+    functions: list[NodeFunction],
     pool: AgentPool,
     inputs: dict[str, Any] | None = None,
     parallel: bool = False,

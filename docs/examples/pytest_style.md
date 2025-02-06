@@ -35,7 +35,7 @@ Here's how we use the pytest-style decorators:
 
 ```python
 from llmling_agent.agent import Agent
-from llmling_agent.running import agent_function, run_agents_async
+from llmling_agent.running import node_function, run_nodes_async
 
 # Sample data to analyze
 DATA = """
@@ -48,14 +48,14 @@ May: $16,800
 Jun: $21,500
 """
 
-@agent_function
+@node_function
 async def analyze_data(analyzer: Agent):
     """First step: Analyze the data."""
     result = await analyzer.run(f"Analyze this sales data and identify trends:\n{DATA}")
     return result.data
 
 
-@agent_function(depends_on="analyze_data")
+@node_function(depends_on="analyze_data")
 async def summarize_analysis(writer: Agent, analyze_data: str):
     """Second step: Create an executive summary."""
     prompt = "Create a brief executive summary of this sales analysis:\n{analyze_data}"
@@ -64,7 +64,7 @@ async def summarize_analysis(writer: Agent, analyze_data: str):
 
 
 async def run():
-    results = await run_agents_async("pytest_agents.yml", parallel=True)
+    results = await run_nodes_async("pytest_agents.yml", parallel=True)
     print("Analysis:", results["analyze_data"])
     print("Summary:", results["summarize_analysis"])
 
@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
 ## How It Works
 
-1. Functions are decorated with `@agent_function`
+1. Functions are decorated with `@node_function`
 2. Type hints specify which agent to inject (`analyzer: Agent`)
 3. Dependencies are declared in the decorator (`depends_on="analyze_data"`)
 4. Results from one function can be injected into another

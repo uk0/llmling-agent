@@ -37,10 +37,10 @@ agents:
 
 ### Basic Function with Type Safety
 
-The `agent_function` decorator marks functions for automatic execution and provides type checking between functions:
+The `node_function` decorator marks functions for automatic execution and provides type checking between functions:
 
 ```python
-@agent_function
+@node_function
 async def gather_data(
     researcher: Agent[None],
     topic: str,
@@ -49,7 +49,7 @@ async def gather_data(
     result = await researcher.run(f"Research: {topic}")
     return result.data.split("\n")
 
-@agent_function(depends_on="gather_data")
+@node_function(depends_on="gather_data")
 async def analyze_data(
     analyst: Agent[None],
     gather_data: list[str],  # Type must match return type of gather_data
@@ -69,14 +69,14 @@ The system ensures type safety between functions:
 Functions can depend on the results of other functions:
 
 ```python
-@agent_function
+@node_function
 async def research_topic(
     researcher: Agent[None],
     topic: str,
 ) -> str:
     return await researcher.run(f"Research: {topic}")
 
-@agent_function(depends_on="research_topic")
+@node_function(depends_on="research_topic")
 async def write_article(
     writer: Agent[None],
     research_topic: str,  # Gets typed result from research_topic
@@ -89,14 +89,14 @@ async def write_article(
 Functions without dependencies can run in parallel:
 
 ```python
-@agent_function
+@node_function
 async def expert1_review(
     expert1: Agent[None],
     document: str,
 ) -> str:
     return await expert1.run(f"Review: {document}")
 
-@agent_function
+@node_function
 async def expert2_review(
     expert2: Agent[None],
     document: str,
@@ -117,7 +117,7 @@ results = await execute_functions(
 Register agents as tools for other agents:
 
 ```python
-@agent_function
+@node_function
 async def improve_code(
     manager: Agent[None],
     formatter: Agent[None],
@@ -137,13 +137,13 @@ The system provides comprehensive type checking:
 
 ```python
 # Type mismatch between functions
-@agent_function
+@node_function
 async def get_numbers(
     agent: Agent[None],
 ) -> list[int]:
     return [1, 2, 3]
 
-@agent_function(depends_on="get_numbers")
+@node_function(depends_on="get_numbers")
 async def process_data(
     agent: Agent[None],
     get_numbers: str,  # Wrong type! Expected list[int]
@@ -151,7 +151,7 @@ async def process_data(
     ...  # Raises: TypeError: Type mismatch in process_data: dependency 'get_numbers' is typed as str, but get_numbers returns list[int]
 
 # Runtime type checking
-@agent_function
+@node_function
 async def validate_data(
     agent: Agent[None],
 ) -> list[str]:
@@ -172,7 +172,7 @@ Type checking is:
 Set up agents for continuous operation:
 
 ```python
-@agent_function
+@node_function
 async def monitor_system(
     watcher: Agent[None],
     alerter: Agent[None],
@@ -242,7 +242,7 @@ agents:
 async def main():
     async with AgentPool(manifest) as pool:
         # 3. Connect injection system via decorator
-        @with_agents(pool)
+        @with_nodes(pool)
         async def research_and_write(
             researcher: Agent[None],  # Will get "researcher" from pool
             writer: Agent[None],      # Will get "writer" from pool
@@ -255,7 +255,7 @@ async def main():
         result = await research_and_write(topic="quantum computing")
 ```
 
-The key is that the `with_agents` decorator needs a pool, which is your connection to the manifest. This design:
+The key is that the `with_nodes` decorator needs a pool, which is your connection to the manifest. This design:
 
 1. Keeps configuration in YAML (easy to edit/version)
 2. Provides clean dependency injection in code

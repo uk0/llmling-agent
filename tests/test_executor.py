@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 from llmling_agent import Agent  # noqa: TC001
-from llmling_agent.running.discovery import agent_function
+from llmling_agent.running.discovery import node_function
 from llmling_agent.running.executor import (
     ExecutionError,
     _group_parallel,
@@ -17,50 +17,50 @@ from llmling_agent.running.executor import (
 async def test_function_sorting():
     """Test function sorting by dependencies and definition order."""
 
-    @agent_function
+    @node_function
     async def first(): ...
 
-    @agent_function(depends_on="first")
+    @node_function(depends_on="first")
     async def second(): ...
 
-    @agent_function(depends_on="second")
+    @node_function(depends_on="second")
     async def third(): ...
 
     funcs = [second, third, first]
-    sorted_funcs = _sort_functions([f._agent_function for f in funcs])
+    sorted_funcs = _sort_functions([f._node_function for f in funcs])
     assert [f.name for f in sorted_funcs] == ["first", "second", "third"]
 
 
 async def test_circular_dependency():
     """Test detection of circular dependencies."""
 
-    @agent_function(depends_on="b")
+    @node_function(depends_on="b")
     async def a(): ...
 
-    @agent_function(depends_on="a")
+    @node_function(depends_on="a")
     async def b(): ...
 
     with pytest.raises(ValueError, match="Circular dependency"):
-        _sort_functions([a._agent_function, b._agent_function])
+        _sort_functions([a._node_function, b._node_function])
 
 
 async def test_parallel_grouping():
     """Test grouping of parallel functions."""
 
-    @agent_function
+    @node_function
     async def first(): ...
 
-    @agent_function(depends_on="first")
+    @node_function(depends_on="first")
     async def second_a(): ...
 
-    @agent_function(depends_on="first")
+    @node_function(depends_on="first")
     async def second_b(): ...
 
-    @agent_function(depends_on=["second_a", "second_b"])
+    @node_function(depends_on=["second_a", "second_b"])
     async def third(): ...
 
     sorted_funcs = _sort_functions([
-        f._agent_function for f in [first, second_a, second_b, third]
+        f._node_function for f in [first, second_a, second_b, third]
     ])
     groups = _group_parallel(sorted_funcs)
 
@@ -74,18 +74,18 @@ async def test_execution_order(pool):
     """Test function execution order."""
     executed = []
 
-    @agent_function
+    @node_function
     async def first(agent1: Agent[None]):
         executed.append("first")
         return "first"
 
-    @agent_function(depends_on="first")
+    @node_function(depends_on="first")
     async def second(agent1: Agent[None], first: str):  # Gets result from first:
         assert first == "first"
         executed.append("second")
         return "second"
 
-    funcs = [second._agent_function, first._agent_function]  # type: ignore
+    funcs = [second._node_function, first._node_function]  # type: ignore
     results = await execute_functions(funcs, pool)
 
     assert executed == ["first", "second"]
@@ -100,28 +100,28 @@ async def test_parallel_execution(pool):
     start_times: dict[str, float] = {}
     end_times: dict[str, float] = {}
 
-    @agent_function
+    @node_function
     async def first(agent1: Agent[None]):
         start_times["first"] = asyncio.get_event_loop().time()
         await asyncio.sleep(0.1)
         end_times["first"] = asyncio.get_event_loop().time()
         return "first"
 
-    @agent_function(depends_on="first")
+    @node_function(depends_on="first")
     async def second_a(agent1: Agent[None], first: str):
         start_times["second_a"] = asyncio.get_event_loop().time()
         await asyncio.sleep(0.1)
         end_times["second_a"] = asyncio.get_event_loop().time()
         return "second_a"
 
-    @agent_function(depends_on="first")
+    @node_function(depends_on="first")
     async def second_b(agent1: Agent[None], first: str):
         start_times["second_b"] = asyncio.get_event_loop().time()
         await asyncio.sleep(0.1)
         end_times["second_b"] = asyncio.get_event_loop().time()
         return "second_b"
 
-    funcs = [f._agent_function for f in [first, second_a, second_b]]
+    funcs = [f._node_function for f in [first, second_a, second_b]]
 
     await execute_functions(funcs, pool, parallel=True)
 
@@ -140,20 +140,20 @@ async def test_parallel_execution(pool):
 async def test_input_handling(pool):
     """Test handling of inputs and defaults."""
 
-    @agent_function
+    @node_function
     async def func(agent1: Agent[None], required: str, optional: int = 42):
         return f"{required}:{optional}"
 
     # With default
     inputs: dict[str, Any] = {"required": "test"}
-    result = await execute_functions([func._agent_function], pool, inputs=inputs)  # type: ignore
+    result = await execute_functions([func._node_function], pool, inputs=inputs)  # type: ignore
     assert result["func"] == "test:42"
 
     # With override
     inputs = {"required": "test", "optional": 100}
-    result = await execute_functions([func._agent_function], pool, inputs=inputs)  # type: ignore
+    result = await execute_functions([func._node_function], pool, inputs=inputs)  # type: ignore
     assert result["func"] == "test:100"
 
     # Missing required
     with pytest.raises(ExecutionError):
-        await execute_functions([func._agent_function], pool)  # type: ignore
+        await execute_functions([func._node_function], pool)  # type: ignore
