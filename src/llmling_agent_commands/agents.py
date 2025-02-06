@@ -13,6 +13,7 @@ from llmling_agent_commands.completers import get_available_agents
 
 if TYPE_CHECKING:
     from llmling_agent.agent.context import AgentContext
+    from llmling_agent.messaging.messagenode import NodeContext
 
 
 CREATE_AGENT_HELP = """\
@@ -114,17 +115,17 @@ async def create_agent_command(
 
 
 async def show_agent(
-    ctx: CommandContext[AgentContext], args: list[str], kwargs: dict[str, str]
+    ctx: CommandContext[NodeContext], args: list[str], kwargs: dict[str, str]
 ):
     """Show current agent's configuration."""
     import yamling
 
-    if not ctx.context.agent.context:
-        await ctx.output.print("No agent context available")
+    if not ctx.context.node.context:
+        await ctx.output.print("No node context available")
         return
 
     # Get the agent's config with current overrides
-    config = ctx.context.agent.context.config
+    config = ctx.context.node.context.config
 
     # Get base config as dict
     config_dict = config.model_dump(exclude_none=True)
@@ -139,7 +140,7 @@ async def show_agent(
     )
     # Add header and format for display
     sections = [
-        "\n[bold]Current Agent Configuration:[/]",
+        "\n[bold]Current Node Configuration:[/]",
         "```yaml",
         yaml_config,
         "```",
