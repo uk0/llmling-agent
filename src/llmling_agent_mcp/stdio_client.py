@@ -54,7 +54,7 @@ class StdioMCPClient:
             command=config.server_command[0],
             args=config.server_command[1:],
         )
-        self._streams_ctx = None
+        self._streams_ctx: Any | None = None
         self._session: ClientSession | None = None
 
     @classmethod

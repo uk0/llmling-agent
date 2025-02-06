@@ -85,7 +85,7 @@ class CustomToolsetConfig(BaseToolsetConfig):
         if not issubclass(provider_cls, ResourceProvider):
             msg = f"{self.import_path} must be a ResourceProvider subclass"
             raise ValueError(msg)  # noqa: TRY004
-        return provider_cls()
+        return provider_cls(name=provider_cls.__name__)
 
 
 # Use discriminated union for toolset types

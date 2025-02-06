@@ -7,6 +7,8 @@ import urllib.parse
 
 from mcp import types
 
+from llmling_agent.messaging.messages import ChatMessage
+
 
 if TYPE_CHECKING:
     from llmling.prompts.models import BasePrompt, PromptMessage, PromptParameter
@@ -34,10 +36,11 @@ def to_mcp_resource(resource: LoadedResource) -> types.Resource:
     )
 
 
-def to_mcp_message(msg: PromptMessage) -> types.PromptMessage:
+def to_mcp_message(msg: PromptMessage | ChatMessage) -> types.PromptMessage:
     """Convert internal PromptMessage to MCP PromptMessage."""
     role: types.Role = "assistant" if msg.role == "assistant" else "user"
-    content = types.TextContent(type="text", text=msg.get_text_content())
+    text = msg.content if isinstance(msg, ChatMessage) else msg.get_text_content()
+    content = types.TextContent(type="text", text=text)
     return types.PromptMessage(role=role, content=content)
 
 
