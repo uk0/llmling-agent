@@ -19,6 +19,13 @@ class ResourceProvider:
     Default implementations return empty lists - override as needed.
     """
 
+    def __init__(self, name: str) -> None:
+        """Initialize the resource provider."""
+        self.name = name
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(name={self.name!r})"
+
     async def get_tools(self) -> list[ToolInfo]:
         """Get available tools. Override to provide tools."""
         return []

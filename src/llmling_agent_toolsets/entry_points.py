@@ -19,6 +19,7 @@ class EntryPointTools(ResourceProvider):
     """Provider for entry point based tools."""
 
     def __init__(self, module: str) -> None:
+        super().__init__(name=module)
         self.module = module
         self._tools: list[ToolInfo] | None = None
         self.registry = EntryPointRegistry[Callable[..., Any]]("llmling")

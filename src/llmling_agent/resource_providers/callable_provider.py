@@ -28,6 +28,7 @@ class CallableResourceProvider(ResourceProvider):
 
     def __init__(
         self,
+        name: str = "callable",
         tool_callable: ResourceCallable[list[ToolInfo]] | None = None,
         prompt_callable: ResourceCallable[list[BasePrompt]] | None = None,
         resource_callable: ResourceCallable[list[ResourceInfo]] | None = None,
@@ -35,12 +36,14 @@ class CallableResourceProvider(ResourceProvider):
         """Initialize provider with optional callables.
 
         Args:
+            name: Name of the provider
             tool_callable: Function providing tools
             prompt_callable: Function providing prompts
             resource_callable: Function providing resources
 
         Each callable can be sync or async.
         """
+        super().__init__(name=name)
         self.tool_callable = tool_callable
         self.prompt_callable = prompt_callable
         self.resource_callable = resource_callable

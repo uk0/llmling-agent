@@ -20,12 +20,14 @@ logger = get_logger(__name__)
 class RuntimeResourceProvider(ResourceProvider):
     """Provider that exposes RuntimeConfig tools through ResourceProvider interface."""
 
-    def __init__(self, runtime: RuntimeConfig) -> None:
+    def __init__(self, runtime: RuntimeConfig, name: str = "runtime") -> None:
         """Initialize provider with RuntimeConfig.
 
         Args:
             runtime: RuntimeConfig instance to wrap
+            name: Name of the provider
         """
+        super().__init__(name=name)
         self._runtime = runtime
 
     async def get_tools(self) -> list[ToolInfo]:

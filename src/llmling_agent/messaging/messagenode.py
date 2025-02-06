@@ -137,7 +137,8 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
         self.description = description
         self.connections = ConnectionManager(self)
         self._events = EventManager(self, enable_events=True)
-        self.mcp = MCPManager(servers=mcp_servers or [], context=context)
+        servers = mcp_servers or []
+        self.mcp = MCPManager(name=f"node_{self._name}", servers=servers, context=context)
         self._logger = NodeLogger(self, enable_db_logging=enable_logging)
 
     async def __aenter__(self) -> Self:

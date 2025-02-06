@@ -264,7 +264,7 @@ class AgentConfig(NodeConfig):
                     logger.exception("Failed to load tool %r", tool_config)
                     continue
 
-            providers.append(StaticResourceProvider(tools=static_tools))
+            providers.append(StaticResourceProvider(name="builtin", tools=static_tools))
 
         # Add providers from toolsets
         for toolset_config in self.toolsets:

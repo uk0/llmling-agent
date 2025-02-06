@@ -92,7 +92,10 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             self.providers.append(provider)
         else:
             # Wrap old-style callable in ResourceProvider
-            wrapped = CallableResourceProvider(provider)
+            wrapped = CallableResourceProvider(
+                name=provider.__name__,
+                tool_callable=provider,
+            )
             self.providers.append(wrapped)
 
     def remove_provider(self, provider: ResourceProvider | ResourceCallable):

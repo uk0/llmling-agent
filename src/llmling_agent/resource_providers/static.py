@@ -26,6 +26,7 @@ class StaticResourceProvider(ResourceProvider):
 
     def __init__(
         self,
+        name: str = "static",
         tools: Sequence[ToolInfo] | None = None,
         prompts: Sequence[BasePrompt] | None = None,
         resources: Sequence[ResourceInfo] | None = None,
@@ -33,10 +34,12 @@ class StaticResourceProvider(ResourceProvider):
         """Initialize provider with static resources.
 
         Args:
+            name: Name of the provider
             tools: Optional list of tools to serve
             prompts: Optional list of prompts to serve
             resources: Optional list of resources to serve
         """
+        super().__init__(name=name)
         self._tools = list(tools) if tools else []
         self._prompts = list(prompts) if prompts else []
         self._resources = list(resources) if resources else []
