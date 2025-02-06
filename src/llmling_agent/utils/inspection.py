@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from importlib.util import find_spec
 import inspect
 from types import UnionType
 from typing import (
@@ -23,6 +24,8 @@ if TYPE_CHECKING:
 
 
 T = TypeVar("T")
+
+PACKAGE_NAME = "llmling-agent"
 
 
 def has_argument_type(
@@ -185,3 +188,13 @@ def call_with_context(
     if has_argument_type(func, AgentContext):
         return func(context, **kwargs)
     return func(context.data)
+
+
+def validate_import(module_path: str, extras_name: str):
+    """Check existence of module, showing helpful error if not installed."""
+    if not find_spec(module_path):
+        msg = f"""
+Optional dependency {module_path!r} not found.
+Install with: pip install {PACKAGE_NAME}[{extras_name}]
+"""
+        raise ImportError(msg.strip())
