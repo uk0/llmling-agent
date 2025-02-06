@@ -22,7 +22,7 @@ class CopyClipboardCommand(SlashedCommand):
     - Token limit for context size
     - Custom format templates
 
-    Requires pyperclip package to be installed.
+    Requires clipman package to be installed.
     """
 
     name = "copy-clipboard"
@@ -47,9 +47,9 @@ class CopyClipboardCommand(SlashedCommand):
             format_template: Custom format template
         """
         try:
-            import pyperclip
+            import clipman
         except ImportError as e:
-            msg = "pyperclip package required for clipboard operations"
+            msg = "clipman package required for clipboard operations"
             raise CommandError(msg) from e
 
         content = await ctx.context.agent.conversation.format_history(
@@ -64,7 +64,8 @@ class CopyClipboardCommand(SlashedCommand):
             return
 
         try:
-            pyperclip.copy(content)
+            clipman.init()
+            clipman.copy(content)
             await ctx.output.print("Messages copied to clipboard")
         except Exception as e:
             msg = f"Failed to copy to clipboard: {e}"
@@ -72,8 +73,8 @@ class CopyClipboardCommand(SlashedCommand):
 
     @classmethod
     def condition(cls) -> bool:
-        """Check if pyperclip is available."""
-        return importlib.util.find_spec("pyperclip") is not None
+        """Check if clipman is available."""
+        return importlib.util.find_spec("clipman") is not None
 
 
 class EditAgentFileCommand(SlashedCommand):

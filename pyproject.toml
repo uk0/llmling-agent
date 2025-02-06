@@ -83,7 +83,7 @@ llmling-agent = "llmling_agent.__main__:cli"
 
 [project.optional-dependencies]
 ui = ["gradio>=5.8.0"]
-clipboard = ["pyperclip>=1.8.0"]
+clipboard = ["clipman"]
 markdown = ["markitdown"]
 textual = ["textual>=1.0.0", "textualicious"]
 litellm = ["litellm"]
