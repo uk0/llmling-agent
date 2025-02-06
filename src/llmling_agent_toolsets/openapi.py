@@ -95,6 +95,10 @@ class OpenAPITools(ResourceProvider):
         self._schemas: dict[str, Any] = {}
         self._operations: dict[str, Any] = {}
 
+    @property
+    def requires_async(self) -> bool:
+        return True
+
     async def get_tools(self) -> list[ToolInfo]:
         """Get all API operations as tools."""
         # Only load spec if not already loaded

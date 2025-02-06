@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 
 if TYPE_CHECKING:
@@ -24,8 +24,19 @@ class ResourceProvider:
         """Initialize the resource provider."""
         self.name = name
 
+    async def __aenter__(self) -> Self:
+        """Async context entry if required."""
+        return self
+
+    async def __aexit__(self, *exc: object) -> None:
+        """Async context cleanup if required."""
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name={self.name!r})"
+
+    @property
+    def requires_async(self) -> bool:
+        return False
 
     async def get_tools(self) -> list[ToolInfo]:
         """Get available tools. Override to provide tools."""

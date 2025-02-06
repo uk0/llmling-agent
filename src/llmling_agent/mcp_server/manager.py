@@ -65,6 +65,10 @@ class MCPManager(ResourceProvider):
         self.clients: dict[str, MCPClient] = {}
         self.exit_stack = AsyncExitStack()
 
+    @property
+    def requires_async(self) -> bool:
+        return True
+
     def add_server_config(self, server: MCPServerConfig | str):
         """Add a new MCP server to the manager."""
         server = StdioMCPServer.from_string(server) if isinstance(server, str) else server
