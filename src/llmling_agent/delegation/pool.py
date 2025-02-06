@@ -158,6 +158,18 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
             teams = list(self.teams.values())
             for agent in agents:
                 agent.tools.add_provider(self.mcp)
+
+            # Start MCP server if configured
+            if self.manifest.pool_server.enabled:
+                from llmling_agent.resource_providers.pool import PoolResourceProvider
+                from llmling_agent_mcp.server import LLMLingServer
+
+                zed_mode = self.manifest.pool_server.zed_mode
+                provider = PoolResourceProvider(self, zed_mode=zed_mode)
+                config = self.manifest.pool_server
+                server = LLMLingServer(provider=provider, config=config)
+                await self.exit_stack.enter_async_context(server)
+
             if self.parallel_load:
                 await asyncio.gather(
                     self.exit_stack.enter_async_context(self.mcp),

@@ -70,7 +70,7 @@ MCPServerConfig = Annotated[StdioMCPServer | SSEMCPServer, Field(discriminator="
 class PoolServerConfig(BaseModel):
     """Configuration for pool-based MCP server."""
 
-    enabled: bool = True
+    enabled: bool = False
     """Whether this server is currently enabled."""
 
     # Resource exposure control
