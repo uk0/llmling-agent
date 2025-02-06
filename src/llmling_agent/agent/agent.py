@@ -874,6 +874,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         model: ModelType = None,
         store_history: bool = True,
         tool_choice: bool | str | list[str] = True,
+        message_id: str | None = None,
         wait_for_connections: bool | None = None,
     ) -> ChatMessage[TResult]:
         """Run agent with prompt and get response.
@@ -889,6 +890,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 - False: No tools
                 - str: Use specific tool
                 - list[str]: Allow specific tools
+            message_id: Optional message id for the returned message.
+                        Automatically generated if not provided.
             wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
@@ -898,7 +901,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         """Run agent with prompt and get response."""
-        message_id = str(uuid4())
+        message_id = message_id or str(uuid4())
 
         tools = await self.tools.get_tools(state="enabled")
         match tool_choice:
@@ -954,6 +957,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         model: ModelType = None,
         tool_choice: bool | str | list[str] = True,
         store_history: bool = True,
+        message_id: str | None = None,
         wait_for_connections: bool | None = None,
     ) -> AsyncIterator[StreamingResponseProtocol[TResult]]:
         """Run agent with prompt and get a streaming response.
@@ -969,6 +973,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 - list[str]: Allow specific tools
             store_history: Whether the message exchange should be added to the
                            context window
+            message_id: Optional message id for the returned message.
+                        Automatically generated if not provided.
             wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
@@ -977,9 +983,9 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
+        message_id = message_id or str(uuid4())
         user_msg, prompts = await self.pre_run(*prompt)
         self.set_result_type(result_type)
-        message_id = str(uuid4())
         start_time = time.perf_counter()
         sys_prompt = await self.sys_prompts.format_system_prompt(self)
         tools = await self.tools.get_tools(state="enabled")

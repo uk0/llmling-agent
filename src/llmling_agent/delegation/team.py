@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 from toprompt import to_prompt
 from typing_extensions import TypeVar
@@ -140,15 +141,17 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         wait_for_connections: bool | None = None,
+        message_id: str | None = None,
         **kwargs: Any,
     ) -> ChatMessage[list[Any]]:
         """Run all agents in parallel and return combined message."""
         result: TeamResponse = await self.execute(*prompts, **kwargs)
-
+        message_id = message_id or str(uuid4())
         return ChatMessage(
             content=[r.message.content for r in result if r.message],
             role="assistant",
             name=self.name,
+            message_id=message_id,
             metadata={
                 "agent_names": [r.agent_name for r in result],
                 "errors": {name: str(error) for name, error in result.errors.items()},

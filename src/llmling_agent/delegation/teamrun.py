@@ -9,6 +9,7 @@ from datetime import datetime
 from itertools import pairwise
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal
+from uuid import uuid4
 
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
@@ -93,6 +94,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
         wait_for_connections: bool | None = None,
+        message_id: str | None = None,
         **kwargs: Any,
     ) -> ChatMessage[TResult]:
         """Run agents sequentially and return combined message.
@@ -100,6 +102,8 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         This message wraps execute and extracts the ChatMessage in order to fulfill
         the "message protocol".
         """
+        message_id = message_id or str(uuid4())
+
         result = await self.execute(*prompts, **kwargs)
         all_messages = [r.message for r in result if r.message]
         assert all_messages, "Error during execution, returned None for TeamRun"
@@ -118,6 +122,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             role="assistant",
             name=self.name,
             associated_messages=all_messages,
+            message_id=message_id,
             metadata={
                 "execution_order": [r.agent_name for r in result],
                 "start_time": result.start_time.isoformat(),
