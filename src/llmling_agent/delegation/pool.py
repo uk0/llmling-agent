@@ -134,7 +134,9 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
         self.parallel_load = parallel_load
         self.storage = StorageManager(self.manifest.storage)
         self.connection_registry = ConnectionRegistry()
-        self.mcp = MCPManager(name="pool_mcp", servers=self.manifest.get_mcp_servers())
+        self.mcp = MCPManager(
+            name="pool_mcp", servers=self.manifest.get_mcp_servers(), owner="pool"
+        )
         self._tasks = TaskRegistry()
         # Register tasks from manifest
         for name, task in self.manifest.jobs.items():

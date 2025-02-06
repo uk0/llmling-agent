@@ -54,10 +54,11 @@ class MCPManager(ResourceProvider):
     def __init__(
         self,
         name: str = "mcp",
+        owner: str | None = None,
         servers: Sequence[MCPServerConfig | str] | None = None,
         context: NodeContext | None = None,
     ):
-        super().__init__(name)
+        super().__init__(name, owner=owner)
         self.servers: list[MCPServerConfig] = []
         for server in servers or []:
             self.add_server_config(server)

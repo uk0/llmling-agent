@@ -20,9 +20,10 @@ class ResourceProvider:
     Default implementations return empty lists - override as needed.
     """
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, owner: str | None = None) -> None:
         """Initialize the resource provider."""
         self.name = name
+        self.owner = owner
 
     async def __aenter__(self) -> Self:
         """Async context entry if required."""

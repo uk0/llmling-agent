@@ -509,7 +509,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             tool_description: Optional override for tool description
         """
         logger.debug("Setting result type to: %s for %r", result_type, self.name)
-        self._result_type = to_type(result_type)  # to_type?
+        self._result_type = to_type(result_type)
 
     @property
     def provider(self) -> AgentProvider:

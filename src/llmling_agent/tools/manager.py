@@ -79,24 +79,31 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             return "No tools available"
         return f"Available tools: {', '.join(enabled_tools)}"
 
-    def add_provider(self, provider: ResourceProvider | ResourceCallable):
+    def add_provider(
+        self,
+        provider: ResourceProvider | ResourceCallable,
+        owner: str | None = None,
+    ):
         """Add a resource provider or tool callable.
 
         Args:
             provider: Either a ResourceProvider instance or a callable
                      returning tools. Callables are automatically wrapped.
+            owner: Optional owner for the provider
         """
         from llmling_agent.resource_providers.base import ResourceProvider
 
-        if isinstance(provider, ResourceProvider):
-            self.providers.append(provider)
-        else:
+        if not isinstance(provider, ResourceProvider):
             # Wrap old-style callable in ResourceProvider
-            wrapped = CallableResourceProvider(
+            prov: ResourceProvider = CallableResourceProvider(
                 name=provider.__name__,
                 tool_callable=provider,
             )
-            self.providers.append(wrapped)
+        else:
+            prov = provider
+        if owner:
+            prov.owner = owner
+        self.providers.append(prov)
 
     def remove_provider(self, provider: ResourceProvider | ResourceCallable):
         """Remove a resource provider."""
