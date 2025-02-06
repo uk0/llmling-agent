@@ -11,7 +11,12 @@ from pydantic import ConfigDict, Field, model_validator
 
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent.models.converters import ConversionConfig
-from llmling_agent.models.mcp_server import MCPServerBase, MCPServerConfig, StdioMCPServer
+from llmling_agent.models.mcp_server import (
+    MCPServerBase,
+    MCPServerConfig,
+    PoolServerConfig,
+    StdioMCPServer,
+)
 from llmling_agent.models.observability import ObservabilityConfig
 from llmling_agent.models.prompts import PromptConfig
 from llmling_agent.models.providers import BaseProviderConfig
@@ -71,9 +76,15 @@ class AgentsManifest(ConfigModel):
 
     mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list)
     """List of MCP server configurations:
-    - str entries are converted to StdioMCPServer
-    - MCPServerConfig for full server configuration
+
+    These MCP servers are used to provide tools and other resources to the agents.
     """
+    pool_server: PoolServerConfig = Field(default_factory=PoolServerConfig)
+    """Pool server configuration.
+
+    This MCP server configuration is used for the pool MCP server,
+    which exposes pool functionality to other applications / clients."""
+
     prompts: PromptConfig = Field(default_factory=PromptConfig)
 
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
