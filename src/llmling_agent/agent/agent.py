@@ -286,7 +286,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
         # init variables
         self._debug = debug
-        self._result_type = None
+        self._result_type: type | None = None
         self.parallel_init = parallel_init
         self.name = name
         self._background_task: asyncio.Task[Any] | None = None
