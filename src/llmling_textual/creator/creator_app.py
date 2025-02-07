@@ -12,6 +12,7 @@ from yaml import YAMLError
 from llmling_agent.agent.agent import Agent
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent.utils.async_read import read_path
+from llmling_agent.utils.count_tokens import count_tokens
 from llmling_agent_cli import agent_store
 
 
@@ -141,12 +142,9 @@ class ConfigGeneratorApp(App):
         self.agent.conversation.add_context_message(context)
 
         # Calculate token count
-        import tiktoken
-
         model_name = self.agent.model_name or "gpt-4o-mini"
         model_name = model_name.split(":")[-1]
-        encoding = tiktoken.encoding_for_model(model_name)
-        self._token_count = len(encoding.encode(context))
+        self._token_count = count_tokens(context, model_name)
 
         stats = self.query_one(StatsDisplay)
         stats.update_stats(self._token_count)

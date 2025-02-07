@@ -18,6 +18,7 @@ from llmling_agent.messaging.message_container import ChatMessageContainer
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.utils.async_read import read_path
+from llmling_agent.utils.count_tokens import count_tokens
 
 
 if TYPE_CHECKING:
@@ -162,12 +163,8 @@ class ConversationManager:
 
     def get_message_tokens(self, message: ChatMessage) -> int:
         """Get token count for a single message."""
-        import tiktoken
-
-        encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
-        # Format message to text for token counting
         content = "\n".join(message.format())
-        return len(encoding.encode(content))
+        return count_tokens(content, self._agent.model_name)
 
     async def format_history(
         self,
@@ -524,11 +521,8 @@ class ConversationManager:
 
     def get_pending_tokens(self) -> int:
         """Get token count for pending messages."""
-        import tiktoken
-
-        encoding = tiktoken.encoding_for_model(self._agent.model_name or "gpt-3.5-turbo")
         text = "\n".join(msg.format() for msg in self._pending_messages)
-        return len(encoding.encode(text))
+        return count_tokens(text, self._agent.model_name)
 
 
 if __name__ == "__main__":

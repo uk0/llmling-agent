@@ -55,8 +55,6 @@ requires-python = ">=3.12"
 license = { file = "LICENSE" }
 dependencies = [
     "llmling>=1.0.0",
-    "prompt-toolkit>=3.0.48",
-    "promptantic>=0.4.5",
     "pydantic",
     # Only add below (Copier)
     "python-dotenv>=1.0.1",
@@ -66,7 +64,6 @@ dependencies = [
     "psygnal>=0.11.1",
     "tokonomics>=0.1.2",
     "slashed>=0.1.0",
-    "tiktoken>=0.8.0",
     "toprompt>=0.0.1",
     "mcp>=1.2.0",
     "griffe>=1.5.4",
@@ -81,7 +78,9 @@ llmling-agent = "llmling_agent.__main__:cli"
 
 [project.optional-dependencies]
 ui = ["gradio>=5.8.0"]
+chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]
 clipboard = ["clipman"]
+tiktoken = ["tiktoken"]
 markdown = ["markitdown"]
 file_events = ["watchfiles"]
 textual = ["textual>=1.0.0", "textualicious"]

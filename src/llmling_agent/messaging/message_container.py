@@ -9,6 +9,7 @@ from psygnal.containers import EventedList
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.utils.count_tokens import batch_count_tokens, count_tokens
 
 
 if TYPE_CHECKING:
@@ -47,12 +48,7 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
         """
         if message.cost_info:
             return message.cost_info.token_usage["total"]
-
-        import tiktoken
-
-        encoding = tiktoken.encoding_for_model(message.model or "gpt-3.5-turbo")
-        content = "\n".join(message.format())
-        return len(encoding.encode(content))
+        return count_tokens(str(message.content), message.model)
 
     def get_history_tokens(self, fallback_model: str | None = None) -> int:
         """Get total token count for all messages.
@@ -72,10 +68,8 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
                 model_name = fallback_model
             else:
                 model_name = next((m.model for m in self if m.model), "gpt-3.5-turbo")
-            import tiktoken
-
-            encoding = tiktoken.encoding_for_model(model_name)
-            total += sum(len(encoding.encode(str(msg.content))) for msg in msgs)
+            contents = [str(msg.content) for msg in msgs]
+            total += sum(batch_count_tokens(contents, model_name))
 
         return total
 

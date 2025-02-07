@@ -8,6 +8,7 @@ from llmling.cli.constants import output_format_opt, verbose_opt
 from llmling.cli.utils import format_output
 import typer as t
 
+from llmling_agent.utils.inspection import validate_import
 from llmling_agent_cli import agent_store, resolve_agent_config
 
 
@@ -34,6 +35,7 @@ def init_agent_config(
     from upath import UPath
 
     if interactive:
+        validate_import("promptantic", "chat")
         from promptantic import ModelGenerator
 
         from llmling_agent.models import AgentsManifest
