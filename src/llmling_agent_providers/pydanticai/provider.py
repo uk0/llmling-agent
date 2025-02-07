@@ -109,9 +109,7 @@ class PydanticAIProvider(AgentLLMProvider):
             debug: Whether to enable debug mode
             model_settings: Additional model-specific settings
         """
-        super().__init__(model=model)
-        self._debug = debug
-        self.model_settings = model_settings or {}
+        super().__init__(model=model, model_settings=model_settings, debug=debug)
         self._kwargs: dict[str, Any] = dict(
             model=model,
             name=name,

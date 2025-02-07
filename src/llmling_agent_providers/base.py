@@ -205,5 +205,9 @@ class AgentProvider[TDeps]:
 class AgentLLMProvider[TDeps](AgentProvider[TDeps]):
     """Provider using LLM backend."""
 
+    def __init__(self, model_settings: dict[str, Any] | None = None, **kwargs: Any):
+        self.model_settings = model_settings or {}
+        super().__init__(**kwargs)
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(model={self.model_name})"

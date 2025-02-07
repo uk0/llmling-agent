@@ -129,10 +129,9 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         model_settings: dict[str, Any] | None = None,
         retries: int = 1,
     ):
-        super().__init__(name=name, debug=debug)
+        super().__init__(name=name, debug=debug, model_settings=model_settings)
         self._model = model
         self.num_retries = retries
-        self.model_settings = model_settings or {}
 
     async def get_model_names(self) -> list[str]:
         """Get list of all known model names."""
