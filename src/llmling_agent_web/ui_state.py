@@ -15,12 +15,12 @@ import yamling
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_web.handlers import AgentHandler
 from llmling_agent_web.log_capturer import LogCapturer
+from llmling_agent_web.type_utils import ChatHistory  # noqa: TC001
 
 
 if TYPE_CHECKING:
     from llmling_agent import Agent
     from llmling_agent.tools.base import ToolInfo
-    from llmling_agent_web.type_utils import ChatHistory
 
 
 logger = logging.getLogger(__name__)
