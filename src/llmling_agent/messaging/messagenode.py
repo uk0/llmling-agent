@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Coroutine, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, overload
 from uuid import uuid4
@@ -393,6 +393,11 @@ class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
             prompts = await convert_prompts([user_msg.content])
             # Update received message's chain to show it came through its source
             user_msg = user_msg.forwarded(prompt[0])
+            user_msg = replace(
+                user_msg,
+                role="user",  # change role since "perspective" changes
+                cost_info=None,  # Clear cost info to avoid double-counting
+            )
             final_prompt = "\n\n".join(str(p) for p in prompts)
         else:
             prompts = await convert_prompts(prompt)
