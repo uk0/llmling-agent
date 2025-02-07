@@ -12,8 +12,8 @@ This example demonstrates:
 - Function result handling
 """
 
-from llmling_agent.agent import Agent
-from llmling_agent.running import node_function
+from llmling_agent import Agent
+from llmling_agent_running import node_function
 
 
 AGENT_CONFIG = """
@@ -60,7 +60,7 @@ async def summarize_analysis(writer: Agent, analyze_data: str):
 
 
 async def run():
-    from llmling_agent.running import run_nodes_async
+    from llmling_agent_running import run_nodes_async
 
     results = await run_nodes_async(config_path, parallel=True)
     print("Analysis:", results["analyze_data"])

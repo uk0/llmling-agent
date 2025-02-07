@@ -9,13 +9,14 @@ from pathlib import Path
 import sys
 from typing import TYPE_CHECKING, Any, get_type_hints
 
-from llmling_agent.delegation import AgentPool, with_nodes
 from llmling_agent.log import get_logger
+from llmling_agent_running import with_nodes
 
 
 if TYPE_CHECKING:
     from llmling_agent.common_types import StrPath
-    from llmling_agent.running.discovery import NodeFunction
+    from llmling_agent.delegation import AgentPool
+    from llmling_agent_running.discovery import NodeFunction
 
 
 logger = get_logger(__name__)
@@ -189,7 +190,7 @@ async def execute_single(
 
             value = available_results[dep]
             if dep in hints:  # If parameter is type hinted
-                validate_value_type(value, hints[dep], func.name, dep)
+                _validate_value_type(value, hints[dep], func.name, dep)
             kwargs[dep] = value
 
         # Execute with agent injection
@@ -198,7 +199,7 @@ async def execute_single(
 
         # Validate return type if hinted
         if "return" in hints:
-            validate_value_type(result, hints["return"], func.name, "return")
+            _validate_value_type(result, hints["return"], func.name, "return")
     except Exception as e:
         msg = f"Error executing {func.name}: {e}"
         raise ExecutionError(msg) from e
@@ -232,7 +233,9 @@ def _validate_dependency_types(functions: list[NodeFunction]):
                     raise TypeError(msg)
 
 
-def validate_value_type(value: Any, expected_type: type, func_name: str, param_name: str):
+def _validate_value_type(
+    value: Any, expected_type: type, func_name: str, param_name: str
+):
     """Validate that a value matches its expected type."""
     if not isinstance(value, expected_type):
         msg = (

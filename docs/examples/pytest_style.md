@@ -35,7 +35,7 @@ Here's how we use the pytest-style decorators:
 
 ```python
 from llmling_agent.agent import Agent
-from llmling_agent.running import node_function, run_nodes_async
+from llmling_agent_running import node_function, run_nodes_async
 
 # Sample data to analyze
 DATA = """

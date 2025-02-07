@@ -7,8 +7,8 @@ from typing import Any
 import pytest
 
 from llmling_agent.agent import Agent
-from llmling_agent.delegation.decorators import with_nodes
-from llmling_agent.delegation.injection import NodeInjectionError
+from llmling_agent_running.decorators import with_nodes
+from llmling_agent_running.injection import NodeInjectionError
 
 
 async def test_basic_injection(pool):

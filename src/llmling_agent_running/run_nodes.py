@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from llmling_agent.delegation import AgentPool
-from llmling_agent.running.discovery import node_function
-from llmling_agent.running.executor import discover_functions, execute_functions
+from llmling_agent_running.executor import discover_functions, execute_functions
+
 
 if TYPE_CHECKING:
-    from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.common_types import StrPath
+    from llmling_agent.models.manifest import AgentsManifest
 
 
 async def run_nodes_async(
@@ -44,6 +43,8 @@ async def run_nodes_async(
         print(results["analyze"])
         ```
     """
+    from llmling_agent.delegation import AgentPool
+
     # Find functions to run
     if module:
         discovered = discover_functions(module)
@@ -74,7 +75,7 @@ async def run_nodes_async(
         )
 
 
-def run_agents(
+def run_nodes(
     config: str,
     **kwargs: Any,
 ) -> dict[str, Any]:
@@ -91,6 +92,3 @@ def run_agents(
         Dict mapping function names to their results
     """
     return asyncio.run(run_nodes_async(config, **kwargs))
-
-
-__all__ = ["node_function", "run_agents", "run_nodes_async"]
