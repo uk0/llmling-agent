@@ -17,6 +17,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.agent import Agent, AnyAgent, StructuredAgent
 from llmling_agent.common_types import AgentName, NodeName
+from llmling_agent.delegation.message_flow_tracker import MessageFlowTracker
 from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
@@ -41,7 +42,6 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
-    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.models.result_types import ResponseDefinition
     from llmling_agent.models.session import SessionQuery
@@ -54,27 +54,6 @@ logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=Any)
 TPoolDeps = TypeVar("TPoolDeps", default=None)
-
-
-class MessageFlowTracker:
-    def __init__(self):
-        self.events: list[Talk.ConnectionProcessed] = []
-
-    def track(self, event: Talk.ConnectionProcessed):
-        self.events.append(event)
-
-    def visualize(self, message: ChatMessage) -> str:
-        """Get flow visualization for specific conversation."""
-        # Filter events for this conversation
-        conv_events = [
-            e for e in self.events if e.message.conversation_id == message.conversation_id
-        ]
-        lines = ["flowchart LR"]
-        for event in conv_events:
-            source = event.message.name
-            for target in event.targets:
-                lines.append(f"    {source}-->{target.name}")  # noqa: PERF401
-        return "\n".join(lines)
 
 
 class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
