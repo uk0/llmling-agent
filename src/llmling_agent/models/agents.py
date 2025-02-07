@@ -233,15 +233,10 @@ class AgentConfig(NodeConfig):
     @classmethod
     def handle_model_types(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Convert model inputs to appropriate format."""
-        from pydantic_ai.models.test import TestModel
-
         model = data.get("model")
         match model:
             case str():
                 data["model"] = {"type": "string", "identifier": model}
-            case TestModel():
-                # Wrap TestModel in our custom wrapper
-                data["model"] = {"type": "test", "model": model}
         return data
 
     async def get_toolsets(self) -> list[ResourceProvider]:
