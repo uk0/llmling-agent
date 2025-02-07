@@ -56,6 +56,12 @@ license = { file = "LICENSE" }
 dependencies = [
     "llmling>=1.0.0",
     "pydantic",
+    # these 4 could be optional, but until we get deeper into pyodide (which is not working
+    # with pydantic-ai), we will keep them here.
+    "prompt-toolkit>=3.0.48",
+    "promptantic>=0.4.5",
+    "pydantic_ai",
+    "llmling-models",
     # Only add below (Copier)
     "python-dotenv>=1.0.1",
     "sqlmodel>=0.0.22",
@@ -79,7 +85,7 @@ llmling-agent = "llmling_agent.__main__:cli"
 
 [project.optional-dependencies]
 ui = ["gradio>=5.8.0"]
-chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]
+# chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]
 clipboard = ["clipman"]
 tiktoken = ["tiktoken"]
 markdown = ["markitdown"]
@@ -87,7 +93,7 @@ file_events = ["watchfiles"]
 textual = ["textual>=1.0.0", "textualicious"]
 litellm = ["litellm"]
 image = ["pillow"]
-pydantic_ai = ["pydantic_ai", "llmling-models"]
+# pydantic_ai = ["pydantic_ai", "llmling-models"]
 remote = ["websockets>=14.2"]
 mem0 = ["mem0ai>=0.1.48"]
 logfire = ["logfire"]
