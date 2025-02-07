@@ -289,7 +289,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
         self._provider.context = ctx
-        self._provider.conversation = self.conversation
         self.tools.add_provider(CapabilitiesResourceProvider(ctx.capabilities))
 
         if ctx and ctx.definition:
@@ -569,7 +568,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self._provider.tool_used.connect(self.tool_used)
         self._provider.model_changed.connect(self.model_changed)
         self._provider.context = self._context
-        self._provider.conversation = self.conversation
 
     @overload
     def to_structured(

@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from tokonomics.pydanticai_cost import Usage
 
     from llmling_agent.agent.context import AgentContext
-    from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelProtocol, ModelType
     from llmling_agent.messaging.messages import ChatMessage, TokenCost
     from llmling_agent.models.content import Content
@@ -97,7 +96,6 @@ class AgentProvider[TDeps]:
         self._name = name
         self._model = model
         self._context: AgentContext[TDeps] | None = None
-        self._conversation: ConversationManager | None = None
         self._debug = debug
 
     def __repr__(self) -> str:
@@ -118,19 +116,6 @@ class AgentProvider[TDeps]:
     def context(self, value: AgentContext[TDeps]):
         """Set context."""
         self._context = value
-
-    @property
-    def conversation(self) -> ConversationManager:
-        """Get conversation manager."""
-        if self._conversation is None:
-            msg = "Conversation manager not set"
-            raise RuntimeError(msg)
-        return self._conversation
-
-    @conversation.setter
-    def conversation(self, value: ConversationManager):
-        """Set conversation manager."""
-        self._conversation = value
 
     @property
     def model_name(self) -> str | None:
