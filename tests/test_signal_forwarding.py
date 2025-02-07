@@ -99,7 +99,6 @@ async def test_agent_forwarding(basic_config: Path):
             def callback(message):
                 responded_agents.add(agent_name)
                 received_messages.append(f"{agent_name}: {message.content}")
-                print(f"Message from {agent_name}: {message.content}")
 
             return callback
 
@@ -112,8 +111,6 @@ async def test_agent_forwarding(basic_config: Path):
         await agent1.complete_tasks()
         await agent2.complete_tasks()
         await agent3.complete_tasks()
-
-        print("Received messages:", received_messages)
         assert responded_agents == {"agent1", "agent2", "agent3"}
 
 

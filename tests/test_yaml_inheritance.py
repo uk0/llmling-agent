@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import yamling
-
 from llmling_agent.models.manifest import AgentsManifest
 
 
@@ -60,8 +58,6 @@ def test_prompt_inheritance(tmp_path: Path):
     base_file.write_text(YAML_BASE)
 
     child_yaml = YAML_CHILD.format(base_path=base_file)
-    data = yamling.load_yaml(child_yaml, resolve_inherit=base_file)
-    print(data)
     manifest = AgentsManifest.from_yaml(child_yaml, inherit_path=base_file)
     assert len(manifest.prompts.system_prompts) == 3  # noqa: PLR2004
     assert manifest.prompts.system_prompts["reviewer"].content == "Specialized reviewer"

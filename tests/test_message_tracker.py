@@ -47,8 +47,7 @@ async def test_callback_chain():
         def process(msg: str) -> str:
             return f"Processed: {msg}"
 
-        talk = agent1 >> process >> agent2
-        print(talk)
+        _talk = agent1 >> process >> agent2
         async with pool.track_message_flow() as tracker:
             msg = await agent1.run("test")
             mermaid = tracker.visualize(msg)

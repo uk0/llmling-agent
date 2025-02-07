@@ -47,12 +47,7 @@ def test_agent_run_action_tracking(mock_provider: MockProvider):
     # Create agent with test model
     model = TestModel(custom_result_text="Test response")
     agent = Agent[None](name="test-agent", model=model)
-
-    # Run the agent
-    print("Mock provider calls after agent creation:", mock_provider.calls)
-
     _result = agent.run_sync("Test prompt")
-    print("Mock provider calls after run:", mock_provider.calls)
     # Verify that _run method was tracked as an action
     tracked_actions = [
         call
