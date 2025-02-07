@@ -1459,16 +1459,11 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 if __name__ == "__main__":
     # import logging
 
-    from llmling_agent import config_resources
-
-    # logging.basicConfig(level=logging.DEBUG)
-
     sys_prompt = "Open browser with google, please"
-    path = config_resources.OPEN_BROWSER
     _model = "openai:gpt-4o-mini"
 
     async def main():
-        async with Agent[None].open(path, model=_model, debug=True) as agent:
+        async with Agent[None](model=_model, tools=["webbrowser.open"]) as agent:
             print(agent.tools.list_items())
             result = await agent.run(sys_prompt)
             print(result.data)

@@ -4,12 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from llmling import RuntimeConfig
 from pydantic_ai.models.test import TestModel
 import pytest
 import yamling
 
-from llmling_agent import Agent, AgentConfig, AgentPool, AgentsManifest, config_resources
+from llmling_agent import Agent, AgentConfig, AgentPool, AgentsManifest
 
 
 TEST_RESPONSE = "I am a test response"
@@ -50,12 +49,6 @@ agents:
     system_prompts:
       - You are a researcher
 """
-
-
-@pytest.fixture
-def runtime() -> RuntimeConfig:
-    """Provide a RuntimeConfig for testing."""
-    return RuntimeConfig.from_file(config_resources.OPEN_BROWSER)
 
 
 @pytest.fixture
