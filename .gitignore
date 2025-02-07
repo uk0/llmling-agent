@@ -33,3 +33,9 @@ uv.lock
 
 # textual-web
 serve.toml
+
+# logfire
+.logfire
+
+# tach
+.tach
