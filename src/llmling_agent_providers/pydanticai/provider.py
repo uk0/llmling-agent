@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from dataclasses import asdict
 from functools import wraps
 import inspect
 from typing import TYPE_CHECKING, Any, cast, get_args
@@ -15,6 +16,7 @@ from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.result import RunResult, StreamedRunResult
 from pydantic_ai.tools import RunContext
+from pydantic_ai.usage import UsageLimits as PydanticAiUsageLimits
 
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.common_types import EndStrategy, ModelProtocol
@@ -29,7 +31,7 @@ from llmling_agent.tasks.exceptions import (
 )
 from llmling_agent.utils.inspection import has_argument_type
 from llmling_agent_observability.decorators import track_action
-from llmling_agent_providers.base import AgentLLMProvider, ProviderResponse
+from llmling_agent_providers.base import AgentLLMProvider, ProviderResponse, UsageLimits
 from llmling_agent_providers.pydanticai.utils import (
     format_part,
     get_tool_calls,
@@ -118,7 +120,6 @@ class PydanticAIProvider(AgentLLMProvider):
             end_strategy=end_strategy,
             result_retries=result_retries,
             defer_model_check=defer_model_check,
-            deps_type=AgentContext,
         )
 
     async def get_model_names(self) -> list[str]:
@@ -247,6 +248,7 @@ class PydanticAIProvider(AgentLLMProvider):
         model: ModelType = None,
         tools: list[ToolInfo] | None = None,
         system_prompt: str | None = None,
+        usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate response using pydantic-ai."""
@@ -272,6 +274,7 @@ class PydanticAIProvider(AgentLLMProvider):
             # Run with complete history
             to_use = model or self.model
             to_use = infer_model(to_use) if isinstance(to_use, str) else to_use
+            limits = asdict(usage_limits) if usage_limits else {}
             result: RunResult = await agent.run(
                 prompt,
                 deps=self._context,  # type: ignore
@@ -279,6 +282,7 @@ class PydanticAIProvider(AgentLLMProvider):
                 model=to_use,  # type: ignore
                 result_type=result_type or str,
                 model_settings=self.model_settings,  # type: ignore
+                usage_limits=PydanticAiUsageLimits(**limits),
             )
 
             # Extract tool calls and set message_id
@@ -363,11 +367,13 @@ class PydanticAIProvider(AgentLLMProvider):
         model: ModelType = None,
         tools: list[ToolInfo] | None = None,
         system_prompt: str | None = None,
+        usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamedRunResult]:  # type: ignore[type-var]
         """Stream response using pydantic-ai."""
         agent = await self.get_agent(system_prompt or "", tools=tools or [])
         use_model = model or self.model
+        limits = asdict(usage_limits) if usage_limits else {}
         if isinstance(use_model, str):
             use_model = infer_model(use_model)
 
@@ -395,6 +401,7 @@ class PydanticAIProvider(AgentLLMProvider):
             model=model or self.model,  # type: ignore
             result_type=result_type or str,
             model_settings=self.model_settings,  # type: ignore
+            usage_limits=PydanticAiUsageLimits(**limits),
         ) as stream_result:
             stream_result = cast(StreamedRunResult[AgentContext[Any], Any], stream_result)
             original_stream = stream_result.stream

@@ -19,6 +19,7 @@ from llmling_agent_providers.base import (
     AgentProvider,
     ProviderResponse,
     StreamingResponseProtocol,
+    UsageLimits,
 )
 
 
@@ -239,6 +240,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         result_type: type[Any] | None = None,
         tools: list[ToolInfo] | None = None,
         model: ModelType = None,
+        usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate response via WebSocket connection."""
@@ -306,6 +308,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         result_type: type[Any] | None = None,
         tools: list[ToolInfo] | None = None,
         model: ModelType = None,
+        usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamingResponseProtocol]:
         """Stream response from remote agent."""

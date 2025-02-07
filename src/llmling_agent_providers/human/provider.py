@@ -16,6 +16,7 @@ from llmling_agent_providers.base import (
     AgentProvider,
     ProviderResponse,
     StreamingResponseProtocol,
+    UsageLimits,
 )
 from llmling_agent_providers.human.utils import get_textual_streaming_app
 
@@ -72,6 +73,7 @@ class HumanProvider(AgentProvider):
         result_type: type[Any] | None = None,
         model: ModelType = None,
         system_prompt: str | None = None,
+        usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Get response through human input.
@@ -83,6 +85,7 @@ class HumanProvider(AgentProvider):
             result_type: Optional type for structured responses
             model: Model override (unused for human)
             system_prompt: System prompt from SystemPrompts manager
+            usage_limits: Usage limits for the model
             kwargs: Additional arguments for human (unused)
         """
         # Show prompt and get response
@@ -104,6 +107,7 @@ class HumanProvider(AgentProvider):
         result_type: type[Any] | None = None,
         model: ModelType = None,
         system_prompt: str | None = None,
+        usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamingResponseProtocol]:
         """Stream response keystroke by keystroke."""

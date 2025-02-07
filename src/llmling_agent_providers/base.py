@@ -61,6 +61,23 @@ class StreamingResponseProtocol[TResult](Protocol):
         ...
 
 
+@dataclass
+class UsageLimits:
+    """Limits on model usage."""
+
+    request_limit: int | None = 50
+    """The maximum number of requests allowed to the model."""
+
+    request_tokens_limit: int | None = None
+    """The maximum number of tokens allowed in requests to the model."""
+
+    response_tokens_limit: int | None = None
+    """The maximum number of tokens allowed in responses from the model."""
+
+    total_tokens_limit: int | None = None
+    """The maximum number of tokens allowed in requests and responses combined."""
+
+
 class AgentProvider[TDeps]:
     """Base class for agent providers."""
 
@@ -138,6 +155,7 @@ class AgentProvider[TDeps]:
         result_type: type[Any] | None = None,
         model: ModelType = None,
         tools: list[ToolInfo] | None = None,
+        usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate a response. Must be implemented by providers."""
@@ -151,6 +169,7 @@ class AgentProvider[TDeps]:
         result_type: type[Any] | None = None,
         model: ModelType = None,
         tools: list[ToolInfo] | None = None,
+        usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> AbstractAsyncContextManager[StreamingResponseProtocol]:
         """Stream a response. Must be implemented by providers."""

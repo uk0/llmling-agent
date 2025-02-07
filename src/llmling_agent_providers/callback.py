@@ -13,6 +13,7 @@ from llmling_agent_providers.base import (
     AgentProvider,
     ProviderResponse,
     StreamingResponseProtocol,
+    UsageLimits,
 )
 
 
@@ -58,6 +59,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         message_id: str,
         result_type: type[TResult] | None = None,
         system_prompt: str | None = None,
+        usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Process message through callback."""
@@ -98,6 +100,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         system_prompt: str | None = None,
+        usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamingResponseProtocol]:
         """Simulate streaming by yielding complete result as one chunk."""

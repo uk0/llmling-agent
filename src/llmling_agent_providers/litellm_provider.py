@@ -26,6 +26,7 @@ from llmling_agent_providers.base import (
     AgentLLMProvider,
     ProviderResponse,
     StreamingResponseProtocol,
+    UsageLimits,
 )
 
 
@@ -221,6 +222,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         model: ModelProtocol | str | None = None,
         tools: list[ToolInfo] | None = None,
         system_prompt: str | None = None,
+        usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate response using LiteLLM."""
@@ -254,6 +256,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                 stream=False,
                 model=model_name,
                 messages=messages,
+                max_tokens=usage_limits.response_tokens_limit if usage_limits else None,
                 response_format=result_type
                 if result_type and issubclass(result_type, BaseModel)
                 else None,
@@ -361,6 +364,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         model: ModelProtocol | str | None = None,
         tools: list[ToolInfo] | None = None,
         system_prompt: str | None = None,
+        usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamingResponseProtocol[Any]]:
         """Stream responses from LiteLLM."""
@@ -393,6 +397,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                 stream=True,
                 model=model_name,
                 messages=messages,
+                max_tokens=usage_limits.response_tokens_limit if usage_limits else None,
                 response_format=result_type
                 if result_type and issubclass(result_type, BaseModel)
                 else None,

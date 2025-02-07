@@ -62,7 +62,11 @@ if TYPE_CHECKING:
     from llmling_agent.models.task import Job
     from llmling_agent.tools.base import ToolInfo
     from llmling_agent_input.base import InputProvider
-    from llmling_agent_providers.base import AgentProvider, StreamingResponseProtocol
+    from llmling_agent_providers.base import (
+        AgentProvider,
+        StreamingResponseProtocol,
+        UsageLimits,
+    )
 
     AgentType = (
         Literal["pydantic_ai", "human", "litellm"] | AgentProvider | Callable[..., Any]
@@ -874,6 +878,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         model: ModelType = None,
         store_history: bool = True,
         tool_choice: bool | str | list[str] = True,
+        usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         wait_for_connections: bool | None = None,
@@ -891,6 +896,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 - False: No tools
                 - str: Use specific tool
                 - list[str]: Allow specific tools
+            usage_limits: Optional usage limits for the model
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
@@ -926,6 +932,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 message_history=message_history,
                 tools=tools,
                 result_type=result_type,
+                usage_limits=usage_limits,
                 model=model,
                 system_prompt=sys_prompt,
             )
@@ -960,6 +967,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         model: ModelType = None,
         tool_choice: bool | str | list[str] = True,
         store_history: bool = True,
+        usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         wait_for_connections: bool | None = None,
@@ -977,6 +985,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 - list[str]: Allow specific tools
             store_history: Whether the message exchange should be added to the
                            context window
+            usage_limits: Optional usage limits for the model
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
@@ -1013,6 +1022,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 model=model,
                 store_history=store_history,
                 tools=tools,
+                usage_limits=usage_limits,
                 system_prompt=sys_prompt,
             ) as stream:
                 yield stream
