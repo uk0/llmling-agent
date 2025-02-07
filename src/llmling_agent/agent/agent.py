@@ -27,7 +27,11 @@ from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools.manager import ToolManager
-from llmling_agent.utils.inspection import call_with_context, has_return_type
+from llmling_agent.utils.inspection import (
+    call_with_context,
+    has_return_type,
+    validate_import,
+)
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_observability.decorators import track_action, track_agent
@@ -251,6 +255,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         # Initialize provider
         match provider:
             case "pydantic_ai":
+                validate_import("pydantic_ai", "pydantic_ai")
                 from llmling_agent_providers.pydanticai import PydanticAIProvider
 
                 if model and not isinstance(model, str):
@@ -274,6 +279,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
                 self._provider = CallbackProvider(provider, name=name, debug=debug)
             case "litellm":
+                validate_import("litellm", "litellm")
                 from llmling_agent_providers.litellm_provider import LiteLLMProvider
 
                 self._provider = LiteLLMProvider(name=name, debug=debug, retries=retries)
@@ -538,6 +544,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             case AgentProvider():
                 self._provider = value
             case "pydantic_ai":
+                validate_import("pydantic_ai", "pydantic_ai")
                 from llmling_agent_providers.pydanticai import PydanticAIProvider
 
                 self._provider = PydanticAIProvider(model=model, name=name, debug=debug)
@@ -546,6 +553,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
                 self._provider = HumanProvider(name=name, debug=debug)
             case "litellm":
+                validate_import("litellm", "litellm")
                 from llmling_agent_providers.litellm_provider import LiteLLMProvider
 
                 self._provider = LiteLLMProvider(model=model, name=name, debug=debug)
