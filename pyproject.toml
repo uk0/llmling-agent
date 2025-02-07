@@ -71,6 +71,7 @@ dependencies = [
     "croniter>=6.0.0",
     "morefs[asynclocal]",
     "bigtree>=0.23.1",
+    "typing_extensions",
 ]
 
 [project.scripts]
