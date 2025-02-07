@@ -18,6 +18,7 @@ packages = [
     "src/llmling_agent_converters",
     "src/llmling_agent_prompts",
     "src/llmling_agent_models",
+    "src/llmling_agent_observability",
     "src/llmling_agent_running",
     "src/llmling_textual",
 ]
