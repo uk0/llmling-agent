@@ -7,13 +7,10 @@
 import asyncio
 import tempfile
 import time
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from llmling_agent.delegation import AgentPool
+from llmling_agent import Agent, AgentPool
 
-
-if TYPE_CHECKING:
-    from llmling_agent.agent import Agent
 
 AGENT_CONFIG = """\
 agents:

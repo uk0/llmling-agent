@@ -10,7 +10,7 @@ using the can_ask_agents capability and a human agent in the pool.
 
 from __future__ import annotations
 
-from llmling_agent.delegation import AgentPool
+from llmling_agent import AgentPool
 
 
 AGENT_CONFIG = """

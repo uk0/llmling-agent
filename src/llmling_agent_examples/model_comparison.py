@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import tempfile
 
-from llmling_agent.delegation import AgentPool
+from llmling_agent import AgentPool
 
 
 AGENT_CONFIG = """\

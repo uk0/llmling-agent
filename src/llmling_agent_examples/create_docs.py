@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from mypy import api
 
-from llmling_agent.delegation import AgentPool
+from llmling_agent import AgentPool
 
 
 def check_types(path: str) -> str:

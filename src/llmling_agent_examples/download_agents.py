@@ -15,13 +15,8 @@ This example explains:
 
 import asyncio
 import tempfile
-from typing import TYPE_CHECKING
 
-from llmling_agent.delegation import AgentPool
-
-
-if TYPE_CHECKING:
-    from llmling_agent.agent import Agent
+from llmling_agent import Agent, AgentPool
 
 
 # we will give this function as a tool to the fan agent. It allows him to cheer

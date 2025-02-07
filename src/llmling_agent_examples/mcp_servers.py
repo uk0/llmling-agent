@@ -6,8 +6,7 @@
 
 from __future__ import annotations
 
-from llmling_agent import Agent
-from llmling_agent.delegation.team import Team
+from llmling_agent import Agent, Team
 
 
 PICKER = """
