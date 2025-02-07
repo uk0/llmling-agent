@@ -70,7 +70,6 @@ dependencies = [
     "toprompt>=0.0.1",
     "mcp>=1.2.0",
     "griffe>=1.5.4",
-    "pillow>=11.1.0",
     "aioimaplib>=2.0.1",
     "croniter>=6.0.0",
     "morefs[asynclocal]",
@@ -87,6 +86,7 @@ markdown = ["markitdown"]
 file_events = ["watchfiles"]
 textual = ["textual>=1.0.0", "textualicious"]
 litellm = ["litellm"]
+image = ["pillow"]
 pydantic_ai = ["pydantic_ai", "llmling-models"]
 remote = ["websockets>=14.2"]
 mem0 = ["mem0ai>=0.1.48"]

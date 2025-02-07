@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from importlib.util import find_spec
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from toprompt import AnyPromptType, to_prompt
 
@@ -23,6 +24,15 @@ if TYPE_CHECKING:
     import PIL.Image
 
 
+def is_pil_image(obj: Any) -> bool:
+    """Check if object is a PIL.Image.Image instance without direct import."""
+    if not find_spec("PIL"):
+        return False
+    import PIL.Image
+
+    return isinstance(obj, PIL.Image.Image)
+
+
 async def convert_prompts(
     prompts: Sequence[AnyPromptType | PIL.Image.Image | os.PathLike[str] | Content],
 ) -> list[str | Content]:
@@ -34,14 +44,14 @@ async def convert_prompts(
     - Regular prompts -> str via to_prompt
     - Content objects -> pass through
     """
-    import PIL.Image
     from upath import UPath
 
     result: list[str | Content] = []
     for p in prompts:
         match p:
-            case PIL.Image.Image():
-                result.append(ImageBase64Content.from_pil_image(p))
+            case _ if is_pil_image(p):
+                # Only convert PIL images if PIL is available
+                result.append(ImageBase64Content.from_pil_image(p))  # type: ignore
 
             case os.PathLike():
                 from mimetypes import guess_type
