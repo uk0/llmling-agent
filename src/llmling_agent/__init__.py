@@ -7,7 +7,7 @@ from llmling_agent.delegation import AgentPool, Team, TeamRun
 from dotenv import load_dotenv
 from llmling_agent.messaging.messages import ChatMessage
 
-__version__ = "0.99.2"
+__version__ = "0.99.3"
 
 load_dotenv()
 
