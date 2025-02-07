@@ -140,7 +140,7 @@ class BaseInputApp(App[str]):
         self._result: str | None = None
 
     async def on_mount(self) -> None:
-        self._result = await self.push_screen_wait(self._input_screen)
+        self._result = await self.push_screen_wait(self._input_screen)  # type: ignore
         self.exit()
 
 
