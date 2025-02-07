@@ -12,7 +12,8 @@ from llmling import LLMCallableTool
 class ModelProtocol(Protocol):
     """Protocol for model objects."""
 
-    def name(self) -> str: ...
+    @property
+    def model_name(self) -> str: ...
 
 
 # Define what we consider JSON-serializable

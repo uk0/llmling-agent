@@ -338,11 +338,11 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
     def _get_model_name(self, override: ModelProtocol | str | None = None) -> str:
         """Get effective model name."""
         if isinstance(override, ModelProtocol):
-            return override.name()
+            return override.model_name
         if isinstance(override, str):
             return override.replace(":", "/")
         if isinstance(self._model, ModelProtocol):
-            return self._model.name()
+            return self._model.model_name
         if self._model:
             return self._model.replace(":", "/")
         return "openai/gpt-4o-mini"

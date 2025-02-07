@@ -53,13 +53,11 @@ keywords = []
 requires-python = ">=3.12"
 license = { file = "LICENSE" }
 dependencies = [
-    "llmling-models>=0.0.2",
     "llmling>=1.0.0",
     "prompt-toolkit>=3.0.48",
     "promptantic>=0.4.5",
     "pydantic",
     # Only add below (Copier)
-    "pydantic-ai",
     "python-dotenv>=1.0.1",
     "sqlmodel>=0.0.22",
     "aiosqlite>=0.19.0",
@@ -67,7 +65,6 @@ dependencies = [
     "psygnal>=0.11.1",
     "tokonomics>=0.1.2",
     "slashed>=0.1.0",
-    "watchfiles>=1.0.3",
     "tiktoken>=0.8.0",
     "toprompt>=0.0.1",
     "mcp>=1.2.0",
@@ -86,8 +83,10 @@ llmling-agent = "llmling_agent.__main__:cli"
 ui = ["gradio>=5.8.0"]
 clipboard = ["clipman"]
 markdown = ["markitdown"]
+file_events = ["watchfiles"]
 textual = ["textual>=1.0.0", "textualicious"]
 litellm = ["litellm"]
+pydantic_ai = ["pydantic_ai", "llmling-models"]
 remote = ["websockets>=14.2"]
 mem0 = ["mem0ai>=0.1.48"]
 logfire = ["logfire"]

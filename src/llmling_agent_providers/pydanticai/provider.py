@@ -291,7 +291,7 @@ class PydanticAIProvider(AgentLLMProvider):
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
             resolved_model = (
-                use_model.name() if isinstance(use_model, Model) else str(use_model)
+                use_model.model_name if isinstance(use_model, Model) else str(use_model)
             )
             usage = result.usage()
             cost_str = prompt + str(content_prompts)  # dirty
@@ -350,7 +350,7 @@ class PydanticAIProvider(AgentLLMProvider):
             case str() | None:
                 return model
             case ModelProtocol():
-                return model.name()
+                return model.model_name
             case _:
                 msg = f"Invalid model type: {model}"
                 raise ValueError(msg)
@@ -428,7 +428,7 @@ class PydanticAIProvider(AgentLLMProvider):
                     parts = [p for msg in responses for p in msg.parts]
                     content = "\n".join(format_part(p) for p in parts)
                     resolved_model = (
-                        use_model.name()
+                        use_model.model_name
                         if isinstance(use_model, Model)
                         else str(use_model)
                     )
