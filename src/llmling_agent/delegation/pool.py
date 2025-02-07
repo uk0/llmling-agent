@@ -142,7 +142,19 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
         for name, task in self.manifest.jobs.items():
             self._tasks.register(name, task)
         self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
+        if self.manifest.pool_server and self.manifest.pool_server.enabled:
+            from llmling_agent.resource_providers.pool import PoolResourceProvider
+            from llmling_agent_mcp.server import LLMLingServer
 
+            provider = PoolResourceProvider(
+                self, zed_mode=self.manifest.pool_server.zed_mode
+            )
+            self.server: LLMLingServer | None = LLMLingServer(
+                provider=provider,
+                config=self.manifest.pool_server,
+            )
+        else:
+            self.server = None
         # Create requested agents immediately
         for name in self.manifest.agents:
             agent = self.manifest.get_agent(name, deps=shared_deps)
@@ -173,18 +185,8 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
             ]
 
             # Add MCP server if configured
-            if self.manifest.pool_server and self.manifest.pool_server.enabled:
-                from llmling_agent.resource_providers.pool import PoolResourceProvider
-                from llmling_agent_mcp.server import LLMLingServer
-
-                provider = PoolResourceProvider(
-                    self, zed_mode=self.manifest.pool_server.zed_mode
-                )
-                server = LLMLingServer(
-                    provider=provider,
-                    config=self.manifest.pool_server,
-                )
-                components.append(server)
+            if self.server:
+                components.append(self.server)
 
             # Initialize all components
             if self.parallel_load:

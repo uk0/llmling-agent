@@ -134,6 +134,21 @@ class LLMLingServer(TaskManagerMixin):
             msg = "No active request context"
             raise RuntimeError(msg) from exc
 
+    async def report_progress(self, progress: float, total: float | None = None) -> None:
+        """Report progress for the current operation."""
+        progress_token = (
+            self.server.request_context.meta.progressToken
+            if self.server.request_context.meta
+            else None
+        )
+
+        if progress_token is None:
+            return
+
+        await self.server.request_context.session.send_progress_notification(
+            progress_token=progress_token, progress=progress, total=total
+        )
+
     @property
     def client_info(self) -> mcp.Implementation | None:
         """Get client info from current session."""

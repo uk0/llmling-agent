@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Coroutine, Sequence
+from collections.abc import Awaitable, Callable, Coroutine, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, overload
@@ -49,6 +49,7 @@ if TYPE_CHECKING:
 
 NodeType = TypeVar("NodeType", bound="MessageNode")
 TResult = TypeVar("TResult")
+ProgressCallback = Callable[[float, float | None], Awaitable[None]]
 
 
 @dataclass(kw_only=True)
@@ -103,6 +104,13 @@ class NodeContext[TDeps]:
     def prompt_manager(self) -> PromptManager:
         """Get prompt manager from manifest."""
         return self.definition.prompt_manager
+
+    @property
+    def report_progress(self) -> ProgressCallback | None:
+        """Access progress reporting from pool server if available."""
+        return (
+            self.pool.server.report_progress if self.pool and self.pool.server else None
+        )
 
 
 class MessageNode[TDeps, TResult](TaskManagerMixin, ABC):
