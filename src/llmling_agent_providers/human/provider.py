@@ -53,7 +53,7 @@ class HumanProvider(AgentProvider):
         """Initialize human provider."""
         from llmling_agent_commands import get_commands
 
-        super().__init__(model=None, context=context)
+        super().__init__(context=context)
         self.name = name or "human"
         self._debug = debug
         self._timeout = timeout
