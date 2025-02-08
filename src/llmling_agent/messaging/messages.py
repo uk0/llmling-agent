@@ -208,13 +208,8 @@ class ChatMessage[TContent]:
         Returns:
             New message with updated chain showing the path through previous message
         """
-        return replace(
-            self,
-            forwarded_from=[
-                *previous_message.forwarded_from,
-                previous_message.name or "unknown",
-            ],
-        )
+        from_ = [*previous_message.forwarded_from, previous_message.name or "unknown"]
+        return replace(self, forwarded_from=from_)
 
     def to_text_message(self) -> ChatMessage[str]:
         """Convert this message to a text-only version."""
@@ -230,17 +225,6 @@ class ChatMessage[TContent]:
             case _:
                 msg = f"Unexpected content type: {type(self.content)}"
                 raise ValueError(msg)
-
-    def to_gradio_format(self) -> tuple[str | None, str | None]:
-        """Convert to Gradio chatbot format."""
-        content_str = self._get_content_str()
-        match self.role:
-            case "user":
-                return (content_str, None)
-            case "assistant":
-                return (None, content_str)
-            case "system":
-                return (None, f"System: {content_str}")
 
     @property
     def data(self) -> TContent:
