@@ -61,13 +61,10 @@ class ImportToolConfig(BaseToolConfig):
 
     def get_tool(self) -> ToolInfo:
         """Import and create tool from configuration."""
-        tool = LLMCallableTool.from_callable(
+        return ToolInfo.from_callable(
             self.import_path,
             name_override=self.name,
             description_override=self.description,
-        )
-        return ToolInfo(
-            tool,
             enabled=self.enabled,
             requires_confirmation=self.requires_confirmation,
             requires_capability=self.requires_capability,

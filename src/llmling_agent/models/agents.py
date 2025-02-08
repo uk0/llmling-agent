@@ -11,7 +11,6 @@ from llmling import (
     Config,
     ConfigStore,
     GlobalSettings,
-    LLMCallableTool,
     LLMCapabilitiesConfig,
     PromptMessage,
     StaticPrompt,
@@ -107,7 +106,7 @@ class AgentConfig(NodeConfig):
     """The model to use for this agent. Can be either a simple model name
     string (e.g. 'openai:gpt-4') or a structured model definition."""
 
-    tools: list[ToolConfig] = Field(default_factory=list)
+    tools: list[ToolConfig | str] = Field(default_factory=list)
     """A list of tools to register with this agent."""
 
     toolsets: list[ToolsetConfig] = Field(default_factory=list)
@@ -269,8 +268,8 @@ class AgentConfig(NodeConfig):
             try:
                 match tool_config:
                     case str():
-                        tool = LLMCallableTool.from_callable(tool_config)
-                        static_tools.append(ToolInfo(tool))
+                        tool = ToolInfo.from_callable(tool_config)
+                        static_tools.append(tool)
                     case BaseToolConfig():
                         static_tools.append(tool_config.get_tool())
             except Exception:

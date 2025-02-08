@@ -6,12 +6,13 @@ from llmling import LLMCallableTool
 import pytest
 
 from llmling_agent.tools import ToolError, ToolManager
+from llmling_agent.tools.base import ToolInfo
 
 
 def test_basic_tool_management():
     """Test basic tool enabling/disabling."""
-    tool1 = LLMCallableTool.from_callable(lambda x: x, name_override="tool1")
-    tool2 = LLMCallableTool.from_callable(lambda x: x, name_override="tool2")
+    tool1 = ToolInfo.from_callable(lambda x: x, name_override="tool1")
+    tool2 = ToolInfo.from_callable(lambda x: x, name_override="tool2")
 
     manager = ToolManager([tool1, tool2])
     assert manager.is_tool_enabled("tool1")

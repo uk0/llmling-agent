@@ -103,33 +103,7 @@ class OpenAPITools(ResourceProvider):
         """Get all API operations as tools."""
         # Only load spec if not already loaded
         if not self._spec:
-            import httpx
-            import yaml
-
-            # Create client if needed
-            if not self._client:
-                self._client = httpx.AsyncClient(
-                    base_url=self.base_url, headers=self.headers
-                )
-
-            # Load spec
-            try:
-                if self.spec_url.startswith(("http://", "https://")):
-                    response = await self._client.get(self.spec_url)
-                    response.raise_for_status()
-                    content = response.text
-                else:
-                    content = await read_path(self.spec_url)
-
-                self._spec = yaml.safe_load(content)
-                assert self._spec
-                self._schemas = self._spec.get("components", {}).get("schemas", {})
-                self._operations = parse_operations(self._spec.get("paths", {}))
-
-            except Exception as e:
-                msg = f"Failed to load OpenAPI spec from {self.spec_url}"
-                raise ValueError(msg) from e
-
+            await self._load_spec()
         # Create tools from operations
         tools = []
         for op_id, config in self._operations.items():
@@ -140,6 +114,34 @@ class OpenAPITools(ResourceProvider):
                 )
             )
         return tools
+
+    async def _load_spec(self):
+        import httpx
+        import yaml
+
+        # Create client if needed
+        if not self._client:
+            self._client = httpx.AsyncClient(base_url=self.base_url, headers=self.headers)
+
+        # Load spec
+        try:
+            if self.spec_url.startswith(("http://", "https://")):
+                response = await self._client.get(self.spec_url)
+                response.raise_for_status()
+                content = response.text
+            else:
+                content = await read_path(self.spec_url)
+
+            self._spec = yaml.safe_load(content)
+            assert self._spec
+            self._schemas = self._spec.get("components", {}).get("schemas", {})
+            self._operations = parse_operations(self._spec.get("paths", {}))
+
+        except Exception as e:
+            msg = f"Failed to load OpenAPI spec from {self.spec_url}"
+            raise ValueError(msg) from e
+        else:
+            return self._spec
 
     def _resolve_schema_ref(self, schema: dict[str, Any]) -> dict[str, Any]:
         """Resolve schema reference."""
