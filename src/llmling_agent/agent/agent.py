@@ -82,8 +82,6 @@ logger = get_logger(__name__)
 TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=None)
 
-JINJA_PROC = "jinja_template"  # Name of builtin LLMling Jinja2 processor
-
 
 class AgentKwargs(TypedDict, total=False):
     # Core Identity
@@ -247,13 +245,14 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         all_tools = list(tools or [])
         self.tools = ToolManager(all_tools)
         self.tools.add_provider(self.mcp)
+        if builtin_tools := ctx.config.get_tool_provider():
+            self.tools.add_provider(builtin_tools)
 
         # Initialize conversation manager
         resources = list(resources)
         if ctx.config.knowledge:
             resources.extend(ctx.config.knowledge.get_resources())
         self.conversation = ConversationManager(self, memory_cfg, resources=resources)
-
         # Initialize provider
         match provider:
             case "pydantic_ai":
@@ -316,10 +315,10 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         # Set up system prompts
         config_prompts = ctx.config.system_prompts if ctx else []
         all_prompts: list[AnyPromptType] = list(config_prompts)
-        if not isinstance(system_prompt, list):
-            all_prompts.append(system_prompt)
-        else:
+        if isinstance(system_prompt, list):
             all_prompts.extend(system_prompt)
+        else:
+            all_prompts.append(system_prompt)
         self.sys_prompts = SystemPrompts(all_prompts, context=ctx)
 
     def __repr__(self) -> str:

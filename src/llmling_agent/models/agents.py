@@ -242,24 +242,6 @@ class AgentConfig(NodeConfig):
     async def get_toolsets(self) -> list[ResourceProvider]:
         """Get all resource providers for this agent."""
         providers: list[ResourceProvider] = []
-        from llmling_agent.tools.base import ToolInfo
-
-        # Create provider for static tools
-        if self.tools:
-            static_tools: list[ToolInfo] = []
-            for tool_config in self.tools:
-                try:
-                    match tool_config:
-                        case str():
-                            tool = LLMCallableTool.from_callable(tool_config)
-                            static_tools.append(ToolInfo(tool))
-                        case BaseToolConfig():
-                            static_tools.append(tool_config.get_tool())
-                except Exception:
-                    logger.exception("Failed to load tool %r", tool_config)
-                    continue
-
-            providers.append(StaticResourceProvider(name="builtin", tools=static_tools))
 
         # Add providers from toolsets
         for toolset_config in self.toolsets:
@@ -274,6 +256,28 @@ class AgentConfig(NodeConfig):
                 raise ValueError(msg) from e
 
         return providers
+
+    def get_tool_provider(self) -> ResourceProvider | None:
+        """Get tool provider for this agent."""
+        from llmling_agent.tools.base import ToolInfo
+
+        # Create provider for static tools
+        if not self.tools:
+            return None
+        static_tools: list[ToolInfo] = []
+        for tool_config in self.tools:
+            try:
+                match tool_config:
+                    case str():
+                        tool = LLMCallableTool.from_callable(tool_config)
+                        static_tools.append(ToolInfo(tool))
+                    case BaseToolConfig():
+                        static_tools.append(tool_config.get_tool())
+            except Exception:
+                logger.exception("Failed to load tool %r", tool_config)
+                continue
+
+        return StaticResourceProvider(name="builtin", tools=static_tools)
 
     def get_session_config(self) -> MemoryConfig:
         """Get resolved memory configuration."""
