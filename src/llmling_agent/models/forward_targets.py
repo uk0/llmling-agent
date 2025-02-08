@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable  # noqa: TC003
 from datetime import datetime, timedelta
-import inspect
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 
 from llmling_agent.models.conditions import Condition  # noqa: TC001
+from llmling_agent.utils.inspection import execute
 
 
 if TYPE_CHECKING:
@@ -186,10 +186,7 @@ class CallableConnectionConfig(ConnectionConfig):
 
         Handles both sync and async callables transparently.
         """
-        result = self.callable(message, **self.kw_args)
-        if inspect.iscoroutine(result):
-            return await result
-        return result
+        return await execute(self.callable, message, **self.kw_args)
 
     def get_provider(self) -> CallbackProvider[Any]:
         """Get provider for callable."""

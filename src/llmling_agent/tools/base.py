@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass, field
-import inspect
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar
 
 from llmling import LLMCallableTool
 import py2openai  # noqa: TC002
 
 from llmling_agent.log import get_logger
+from llmling_agent.utils.inspection import execute
 
 
 if TYPE_CHECKING:
@@ -149,11 +148,7 @@ class ToolInfo:
 
     async def execute(self, *args: Any, **kwargs: Any) -> Any:
         """Execute tool, handling both sync and async cases."""
-        if inspect.iscoroutinefunction(self.callable.callable):
-            return await self.callable.callable(*args, **kwargs)
-        # use thread for sync tools - the overhead doesn't matter
-        # in the context of LLM operations
-        return await asyncio.to_thread(self.callable.callable, *args, **kwargs)
+        return await execute(self.callable.callable, *args, **kwargs, use_thread=True)
 
     @classmethod
     def from_callable(

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from llmling_agent.log import get_logger
 from llmling_agent.models.content import BaseContent
 from llmling_agent.prompts.convert import format_prompts
-from llmling_agent.utils.inspection import has_argument_type
+from llmling_agent.utils.inspection import execute, has_argument_type
 from llmling_agent_providers.base import (
     AgentProvider,
     ProviderResponse,
@@ -76,11 +76,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
                 if has_argument_type(self.callback, "AgentContext")
                 else (prompt, *content_prompts)
             )
-            if inspect.iscoroutinefunction(self.callback):
-                raw = await self.callback(*args)
-            else:
-                raw = await asyncio.to_thread(self.callback, *args)
-
+            raw = await execute(self.callback, *args, use_thread=True)
             # Handle potential awaitable result
             result = await raw if inspect.isawaitable(raw) else raw
             return ProviderResponse(content=result)

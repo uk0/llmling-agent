@@ -21,6 +21,7 @@ from llmling_agent.models.events import (
     TimeEventConfig,
     WebhookConfig,
 )
+from llmling_agent.utils.inspection import execute
 
 
 if TYPE_CHECKING:
@@ -473,10 +474,7 @@ class EventManager:
 
             @wraps(func)
             async def wrapper(*args: Any, **kwargs: Any) -> Any:
-                result = func(*args, **kwargs)
-                if inspect.iscoroutine(result):
-                    result = await result
-
+                result = await execute(func, *args, **kwargs)
                 # Convert result to event and emit
                 if self.enabled:
                     typ = type(result).__name__
@@ -501,8 +499,6 @@ class EventObserver:
     async def __call__(self, event: EventData):
         """Handle an event."""
         try:
-            result = self.callback(event)
-            if inspect.iscoroutine(result):
-                await result
+            await execute(self.callback, event)
         except Exception:
             logger.exception("Error in event observer")

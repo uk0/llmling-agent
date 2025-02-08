@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Sequence
 from importlib.util import find_spec
 import inspect
@@ -26,6 +27,22 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 PACKAGE_NAME = "llmling-agent"
+
+
+async def execute[T](
+    func: Callable[..., T | Awaitable[T]],
+    *args: Any,
+    use_thread: bool = False,
+    **kwargs: Any,
+) -> T:
+    """Execute callable, handling both sync and async cases."""
+    if inspect.iscoroutinefunction(func):
+        return await func(*args, **kwargs)
+
+    if use_thread:
+        return await asyncio.to_thread(func, *args, **kwargs)  # type: ignore
+
+    return func(*args, **kwargs)  # type: ignore
 
 
 def has_argument_type(

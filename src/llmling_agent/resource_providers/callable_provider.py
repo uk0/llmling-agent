@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-import inspect
 from typing import TYPE_CHECKING, TypeVar
 
 from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.utils.inspection import execute
 
 
 if TYPE_CHECKING:
@@ -56,11 +56,7 @@ class CallableResourceProvider(ResourceProvider):
         """Helper to handle sync/async provider calls."""
         if not provider:
             return default
-
-        result = provider()
-        if inspect.isawaitable(result):
-            return await result
-        return result
+        return await execute(provider)
 
     async def get_tools(self) -> list[ToolInfo]:
         """Get tools from callable if provided."""

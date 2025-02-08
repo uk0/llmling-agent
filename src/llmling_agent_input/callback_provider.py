@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
-import inspect
 from typing import TYPE_CHECKING, Any
 
+from llmling_agent.utils.inspection import execute
 from llmling_agent_input.base import InputProvider
 
 
@@ -41,13 +41,13 @@ class CallbackInputProvider(InputProvider):
     ) -> Any:
         if not self._get_input:
             return input(prompt)  # fallback
-        result = self._get_input(
+        return await execute(
+            self._get_input,
             context=context,
             prompt=prompt,
             result_type=result_type,
             message_history=message_history,
         )
-        return await result if inspect.isawaitable(result) else result  # type: ignore
 
     async def _get_streaming_input(  # type: ignore
         self,
@@ -87,13 +87,13 @@ class CallbackInputProvider(InputProvider):
     ) -> ConfirmationResult:
         if not self._get_confirmation:
             return "allow"  # fallback: always allow
-        result = self._get_confirmation(
+        return await execute(
+            self._get_confirmation,
             context=context,
             tool=tool,
             args=args,
             message_history=message_history,
         )
-        return await result if inspect.isawaitable(result) else result  # type: ignore
 
     async def get_code_input(
         self,
@@ -104,10 +104,10 @@ class CallbackInputProvider(InputProvider):
     ) -> str:
         if not self._get_code:
             return input("Enter code: ")  # basic fallback
-        result = self._get_code(
+        return await execute(
+            self._get_code,
             context=context,
             template=template,
             language=language,
             description=description,
         )
-        return await result if inspect.isawaitable(result) else result  # type: ignore

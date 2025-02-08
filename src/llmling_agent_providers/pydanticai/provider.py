@@ -5,7 +5,6 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from functools import wraps
-import inspect
 from typing import TYPE_CHECKING, Any, cast, get_args
 
 from llmling import ToolError
@@ -29,7 +28,7 @@ from llmling_agent.tasks.exceptions import (
     RunAbortedError,
     ToolSkippedError,
 )
-from llmling_agent.utils.inspection import has_argument_type
+from llmling_agent.utils.inspection import execute, has_argument_type
 from llmling_agent_observability.decorators import track_action
 from llmling_agent_providers.base import AgentLLMProvider, ProviderResponse, UsageLimits
 from llmling_agent_providers.pydanticai.utils import (
@@ -173,9 +172,7 @@ class PydanticAIProvider(AgentLLMProvider):
             result = await agent_ctx.handle_confirmation(agent_ctx, tool, kwargs)
             match result:
                 case "allow":
-                    if inspect.iscoroutinefunction(original_tool):
-                        return await original_tool(ctx, *args, **kwargs)
-                    return original_tool(ctx, *args, **kwargs)
+                    return await execute(original_tool, ctx, *args, **kwargs)
                 case "skip":
                     msg = f"Tool {tool.name} execution skipped"
                     raise ToolSkippedError(msg)
@@ -194,9 +191,7 @@ class PydanticAIProvider(AgentLLMProvider):
             result = await agent_ctx.handle_confirmation(agent_ctx, tool, kwargs)
             match result:
                 case "allow":
-                    if inspect.iscoroutinefunction(original_tool):
-                        return await original_tool(*args, **kwargs)
-                    return original_tool(*args, **kwargs)
+                    return await execute(original_tool, *args, **kwargs)
                 case "skip":
                     msg = f"Tool {tool.name} execution skipped"
                     raise ToolError(msg)
@@ -215,9 +210,7 @@ class PydanticAIProvider(AgentLLMProvider):
             result = await agent_ctx.handle_confirmation(agent_ctx, tool, kwargs)
             match result:
                 case "allow":
-                    if inspect.iscoroutinefunction(original_tool):
-                        return await original_tool(agent_ctx, *args, **kwargs)
-                    return original_tool(agent_ctx, *args, **kwargs)
+                    return await execute(original_tool, agent_ctx, *args, **kwargs)
                 case "skip":
                     msg = f"Tool {tool.name} execution skipped"
                     raise ToolSkippedError(msg)

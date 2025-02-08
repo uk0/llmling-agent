@@ -6,7 +6,6 @@ from collections.abc import Callable, Iterator, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
 from datetime import datetime
-import inspect
 from typing import TYPE_CHECKING, Any, Literal, Self, overload
 
 from psygnal import Signal
@@ -16,6 +15,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.models.events import ConnectionEvent, ConnectionEventType, EventData
 from llmling_agent.talk.stats import AggregatedTalkStats, TalkStats
+from llmling_agent.utils.inspection import execute
 
 
 if TYPE_CHECKING:
@@ -199,8 +199,7 @@ class Talk[TTransmittedData]:
             else None,
             talk=self,
         )
-        result = condition(ctx)
-        return await result if inspect.isawaitable(result) else result
+        return await execute(condition, ctx)
 
     def on_event(
         self,
@@ -211,9 +210,7 @@ class Talk[TTransmittedData]:
 
         async def wrapped_callback(event: EventData):
             if isinstance(event, ConnectionEvent) and event.event_type == event_type:
-                result = callback(event)
-                if inspect.isawaitable(result):
-                    await result
+                await execute(callback, event)
 
         self.source._events.add_callback(wrapped_callback)
         return self
@@ -262,12 +259,7 @@ class Talk[TTransmittedData]:
         # 5. Transform if configured
         processed_message = message
         if self._transform:
-            transformed = self._transform(message)
-            if inspect.isawaitable(transformed):
-                processed_message = await transformed
-            else:
-                processed_message = transformed
-
+            processed_message = await execute(self._transform, message)
         # 6. First pass: Determine target list
         target_list: list[MessageNode] = [
             target
@@ -480,13 +472,8 @@ class Talk[TTransmittedData]:
             async def chained_transform(
                 data: ChatMessage[TTransmittedData],
             ) -> ChatMessage[TNewData]:
-                intermediate = old_transform(data)
-                if inspect.isawaitable(intermediate):
-                    intermediate = await intermediate
-                result = transformer(intermediate)
-                if inspect.isawaitable(result):
-                    return await result
-                return result
+                intermediate = await execute(old_transform, data)
+                return await execute(transformer, intermediate)
 
             new_talk._transform = chained_transform  # type: ignore
         else:

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable  # noqa: TC003
 from datetime import datetime, timedelta
-import inspect
 from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ImportString
+
+from llmling_agent.utils.inspection import execute
 
 
 if TYPE_CHECKING:
@@ -206,10 +207,7 @@ class CallableCondition(ConnectionCondition):
 
     async def check(self, context: EventContext) -> bool:
         """Execute predicate function."""
-        result = self.predicate(context.message, context.stats)
-        if inspect.isawaitable(result):
-            return await result
-        return result
+        return await execute(self.predicate, context.message, context.stats)
 
 
 class AndCondition(ConnectionCondition):
