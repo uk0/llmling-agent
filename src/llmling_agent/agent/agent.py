@@ -282,7 +282,12 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 validate_import("litellm", "litellm")
                 from llmling_agent_providers.litellm_provider import LiteLLMProvider
 
-                self._provider = LiteLLMProvider(name=name, debug=debug, retries=retries)
+                self._provider = LiteLLMProvider(
+                    name=name,
+                    debug=debug,
+                    retries=retries,
+                    model=model,
+                )
             case AgentProvider():
                 self._provider = provider
             case _:

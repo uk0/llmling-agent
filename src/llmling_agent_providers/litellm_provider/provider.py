@@ -328,15 +328,23 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
 
     def _get_model_name(self, override: ModelProtocol | str | None = None) -> str:
         """Get effective model name."""
-        if isinstance(override, ModelProtocol):
-            return override.model_name
-        if isinstance(override, str):
-            return override.replace(":", "/")
-        if isinstance(self._model, ModelProtocol):
-            return self._model.model_name
-        if self._model:
-            return self._model.replace(":", "/")
-        return "openai/gpt-4o-mini"
+        final_model = override or self._model
+        match final_model:
+            case ModelProtocol():
+                name = final_model.model_name
+            case str():
+                name = final_model
+            case _:
+                msg = "No model specified"
+                raise ValueError(msg)
+        name = name.replace(":", "/")
+        if "/" in name:
+            return name
+        if name.startswith("gpt"):
+            return f"openai/{name}"
+        if name.startswith("claude"):
+            return f"anthropic/{name}"
+        return name
 
     def _convert_message_to_chat(self, message: Any) -> list[dict[str, str]]:
         """Convert message to chat format."""

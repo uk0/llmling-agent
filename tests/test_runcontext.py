@@ -104,7 +104,7 @@ async def test_capability_tools(provider: Literal["pydantic_ai", "litellm"]):
         agent = await pool.add_agent(
             name="test_agent",
             provider=provider,
-            model="gpt-4o-mini",
+            model="openai:gpt-4o-mini",
             capabilities=Capabilities(can_list_agents=True),
         )
         result = await agent.run(
@@ -115,14 +115,14 @@ async def test_capability_tools(provider: Literal["pydantic_ai", "litellm"]):
         agent_2 = await pool.add_agent(
             name="test_agent_2",
             provider=provider,
-            model="gpt-4o-mini",
+            model="openai:gpt-4o-mini",
             capabilities=Capabilities(can_delegate_tasks=True),
         )
 
         await pool.add_agent(
             "helper",
             system_prompt="You help with tasks",
-            model="gpt-4o-mini",
+            model="openai:gpt-4o-mini",
             provider=provider,
         )
         result = await agent_2.run("Delegate 'say hello' to agent with name `helper`")
