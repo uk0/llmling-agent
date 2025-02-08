@@ -269,15 +269,18 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                     result_retries=result_retries,
                     defer_model_check=defer_model_check,
                     debug=debug,
+                    context=ctx,
                 )
             case "human":
                 from llmling_agent_providers.human import HumanProvider
 
-                self._provider = HumanProvider(name=name, debug=debug)
+                self._provider = HumanProvider(name=name, debug=debug, context=ctx)
             case Callable():
                 from llmling_agent_providers.callback import CallbackProvider
 
-                self._provider = CallbackProvider(provider, name=name, debug=debug)
+                self._provider = CallbackProvider(
+                    provider, name=name, debug=debug, context=ctx
+                )
             case "litellm":
                 validate_import("litellm", "litellm")
                 from llmling_agent_providers.litellm_provider import LiteLLMProvider
@@ -286,14 +289,15 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                     name=name,
                     debug=debug,
                     retries=retries,
+                    context=ctx,
                     model=model,
                 )
             case AgentProvider():
                 self._provider = provider
+                self._provider.context = ctx
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
-        self._provider.context = ctx
         self.tools.add_provider(CapabilitiesResourceProvider(ctx.capabilities))
 
         if ctx and ctx.definition:
