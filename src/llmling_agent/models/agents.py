@@ -11,11 +11,12 @@ from llmling import (
     Config,
     ConfigStore,
     GlobalSettings,
+    LLMCallableTool,
     LLMCapabilitiesConfig,
     PromptMessage,
     StaticPrompt,
 )
-from llmling.utils.importing import import_callable
+from llmling.utils.importing import import_callable, import_class
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from toprompt import render_prompt
 
@@ -268,8 +269,17 @@ class AgentConfig(NodeConfig):
             try:
                 match tool_config:
                     case str():
-                        tool = ToolInfo.from_callable(tool_config)
-                        static_tools.append(tool)
+                        if tool_config.startswith("crewai_tools"):
+                            obj = import_class(tool_config)()
+                            llm_tool = LLMCallableTool.from_crewai_tool(obj)
+                            static_tools.append(ToolInfo(llm_tool))
+                        elif tool_config.startswith("langchain"):
+                            obj = import_class(tool_config)()
+                            llm_tool = LLMCallableTool.from_langchain_tool(obj)
+                            static_tools.append(ToolInfo(llm_tool))
+                        else:
+                            tool = ToolInfo.from_callable(tool_config)
+                            static_tools.append(tool)
                     case BaseToolConfig():
                         static_tools.append(tool_config.get_tool())
             except Exception:
@@ -455,5 +465,7 @@ class AgentConfig(NodeConfig):
 
 if __name__ == "__main__":
     model = {"type": "input"}
-    agent_cfg = AgentConfig(name="test_agent", model=model)  # type: ignore
+    agent_cfg = AgentConfig(
+        name="test_agent", model=model, tools=["crewai_tools.BraveSearchTool"]
+    )  # type: ignore
     print(agent_cfg)

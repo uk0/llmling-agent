@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling import BaseRegistry, LLMCallableTool, ToolError
+from llmling.utils.importing import import_class
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
@@ -142,14 +143,24 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         """Error class for tool operations."""
         return ToolError
 
-    def _validate_item(self, item: ToolInfo | ToolType | dict[str, Any]) -> ToolInfo:
+    def _validate_item(self, item: ToolInfo | ToolType | dict[str, Any]) -> ToolInfo:  # noqa: PLR0911
         """Validate and convert items before registration."""
         match item:
             case ToolInfo():
                 return item
             case LLMCallableTool():
                 return ToolInfo(callable=item)
-            case str() | Callable():
+            case str():
+                if item.startswith("crewai_tools"):
+                    obj = import_class(item)()
+                    llm_tool = LLMCallableTool.from_crewai_tool(obj)
+                    return ToolInfo(llm_tool)
+                if item.startswith("langchain"):
+                    obj = import_class(item)()
+                    llm_tool = LLMCallableTool.from_langchain_tool(obj)
+                    return ToolInfo(llm_tool)
+                return ToolInfo.from_callable(item)
+            case Callable():
                 return ToolInfo.from_callable(item)
             case {"callable": callable_item, **config} if callable(
                 callable_item
