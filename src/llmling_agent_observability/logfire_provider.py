@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 P = ParamSpec("P")
 R = TypeVar("R")
-T = TypeVar("T")
+
 logger = get_logger(__name__)
 
 
@@ -36,7 +36,7 @@ class LogfireProvider(ObservabilityProvider):
             **kwargs,
         )
 
-    def wrap_tool(self, func: Callable[..., T], name: str) -> Callable[..., T]:
+    def wrap_tool[T](self, func: Callable[..., T], name: str) -> Callable[..., T]:
         """Wrap a tool function with logfire instrumentation."""
         return logfire.instrument(
             span_name=f"tool.{name}",

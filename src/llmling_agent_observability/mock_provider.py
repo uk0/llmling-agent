@@ -8,7 +8,6 @@ from llmling_agent_observability.base_provider import ObservabilityProvider
 
 P = ParamSpec("P")
 R = TypeVar("R")
-T = TypeVar("T")
 
 
 @dataclass
@@ -33,7 +32,7 @@ class MockProvider(ObservabilityProvider):
         self.calls.append(MockCall(call_type="span", name=name, kwargs=kwargs))
         yield
 
-    def wrap_agent(self, kls: type[T], name: str) -> type[T]:
+    def wrap_agent[T](self, kls: type[T], name: str) -> type[T]:
         """Record agent wrapper creation."""
         self.calls.append(MockCall(call_type="wrap_agent", name=name))
         return kls
