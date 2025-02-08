@@ -21,7 +21,6 @@ from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.models import AgentsManifest
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
@@ -711,107 +710,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         )
         async with agent:
             yield (agent if result_type is None else agent.to_structured(result_type))
-
-    @classmethod
-    @overload
-    def open_agent(
-        cls,
-        config: StrPath | AgentsManifest,
-        agent_name: str,
-        *,
-        deps: TDeps | None = None,
-        result_type: None = None,
-    ) -> AbstractAsyncContextManager[Agent[TDeps]]: ...
-
-    @classmethod
-    @overload
-    def open_agent[TResult](
-        cls,
-        config: StrPath | AgentsManifest,
-        agent_name: str,
-        *,
-        deps: TDeps | None = None,
-        result_type: type[TResult],
-    ) -> AbstractAsyncContextManager[StructuredAgent[TDeps, TResult]]: ...
-
-    @classmethod
-    @asynccontextmanager
-    async def open_agent[TResult](
-        cls,
-        config: StrPath | AgentsManifest,
-        agent_name: str,
-        *,
-        deps: TDeps | None = None,  # TDeps from class
-        result_type: type[TResult] | None = None,
-    ) -> AsyncIterator[Agent[TDeps] | StructuredAgent[TDeps, TResult]]:
-        """Open and configure a specific agent from configuration."""
-        """Implementation with all parameters..."""
-        """Open and configure a specific agent from configuration.
-
-        Args:
-            config: Path to agent configuration file or AgentsManifest instance
-            agent_name: Name of the agent to load
-
-            # Basic Configuration
-            deps: Optional deps for the agent
-            result_type: Optional type for structured responses
-
-        Yields:
-            Configured Agent instance
-
-        Raises:
-            ValueError: If agent not found or configuration invalid
-            RuntimeError: If agent initialization fails
-
-        Example:
-            ```python
-            async with Agent.open_agent(
-                "agents.yml",
-                "my_agent",
-                model="gpt-4",
-                tools=[my_custom_tool],
-            ) as agent:
-                result = await agent.run("Do something")
-            ```
-        """
-        from llmling_agent.agent import AgentContext
-
-        if isinstance(config, AgentsManifest):
-            agent_def = config
-        else:
-            agent_def = AgentsManifest.from_file(config)
-
-        if agent_name not in agent_def.agents:
-            msg = f"Agent {agent_name!r} not found in {config}"
-            raise ValueError(msg)
-
-        agent_config = agent_def.agents[agent_name]
-        resolved_type = result_type or agent_def.get_result_type(agent_name)
-
-        # Use model from override or agent config
-        if not agent_config.model:
-            msg = "Model must be specified in config"
-            raise ValueError(msg)
-
-        # Create context
-        context = AgentContext[TDeps](
-            node_name=agent_name,
-            capabilities=agent_config.capabilities,
-            definition=agent_def,
-            config=agent_config,
-        )
-
-        # Set up runtime
-        cfg = agent_config.get_config()
-        base_agent = cls(runtime=cfg, context=context, model=agent_config.get_model())
-        async with base_agent:
-            if resolved_type is not None and resolved_type is not str:
-                # Yield structured agent with correct typing
-                from llmling_agent.agent.structured import StructuredAgent
-
-                yield StructuredAgent[TDeps, TResult](base_agent, resolved_type)
-            else:
-                yield base_agent
 
     def is_busy(self) -> bool:
         """Check if agent is currently processing tasks."""

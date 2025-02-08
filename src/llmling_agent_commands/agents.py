@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from slashed import Command, CommandContext, CommandError
 from slashed.completers import CallbackCompleter
 
-from llmling_agent.agent import Agent, AnyAgent
 from llmling_agent_commands.completers import get_available_agents
 
 
@@ -191,22 +190,6 @@ async def switch_agent(
     if not args:
         await ctx.output.print("Usage: /switch-agent <name>")
         return
-
-    name = args[0]
-    definition = ctx.context.agent.context.definition
-
-    if name not in definition.agents:
-        await ctx.output.print(f"Unknown agent: {name}")
-        return
-
-    try:
-        new_agent: AnyAgent[Any, Any]
-        async with Agent[Any].open_agent(definition, name) as new_agent:
-            # Update session's agent
-            ctx.context.agent = new_agent
-            await ctx.output.print(f"Switched to agent: {name}")
-    except Exception as e:  # noqa: BLE001
-        await ctx.output.print(f"Failed to switch agent: {e}")
 
 
 create_agent_cmd = Command(

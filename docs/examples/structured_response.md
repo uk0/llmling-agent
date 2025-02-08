@@ -56,8 +56,6 @@ class PythonResult(BaseModel):
 
 
 async def example_structured_response():
-    manifest = AgentsManifest.from_yaml("structured_agents.yml")
-
     # Example 1: Python-defined structure
     agent = Agent[None](
             model="openai:gpt-4o-mini",
@@ -72,7 +70,9 @@ async def example_structured_response():
 
     # Example 2: YAML-defined structure
     # Note: For programmatic use, Python definitions are recommended
-    async with Agent[Any].open_agent(manifest, "analyzer") as analyzer:
+    manifest = AgentsManifest.from_yaml(AGENT_CONFIG)
+    async with AgentPool[None](manifest) as pool:
+        analyzer = pool.get_agent("analyzer")
         result = await analyzer.run("I'm really excited about this project!")
         analysis = result.data
         print("\nYAML-defined Response:")

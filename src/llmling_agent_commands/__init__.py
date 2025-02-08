@@ -6,7 +6,7 @@ from llmling_agent_commands.agents import (
     create_agent_cmd,
     list_agents_cmd,
     show_agent_cmd,
-    switch_agent_cmd,
+    # switch_agent_cmd,
 )
 from llmling_agent_commands.connections import (
     connect_cmd,
@@ -84,7 +84,7 @@ def get_pool_commands() -> list[BaseCommand | type[SlashedCommand]]:
         create_agent_cmd,  # Creates new agent in pool
         list_agents_cmd,  # Shows all agents in pool
         show_agent_cmd,  # Shows config from pool's manifest
-        switch_agent_cmd,  # Changes active agent in pool
+        # switch_agent_cmd,  # Changes active agent in pool
         # Pool configuration
         edit_env_cmd,  # Edits pool's environment config
         EditAgentFileCommand,  # Edits pool's manifest
