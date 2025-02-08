@@ -6,7 +6,7 @@ LLMling is built with asyncio at its core to handle concurrent operations effici
 
 ```python
 # Single agent
-async with Agent.open("config.yml") as agent:
+async with Agent(...) as agent:
     result = await agent.run("What can you do?")
     print(result.content)
 

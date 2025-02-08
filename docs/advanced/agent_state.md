@@ -14,7 +14,7 @@ An agent maintains several types of state that influence its behavior. While som
 ## Runtime State Management
 
 ```python
-async with Agent.open("config.yml") as agent:
+async with Agent(...) as agent:
     # Modify system prompts by reference
     agent.sys_prompts.add("technical_style")
 

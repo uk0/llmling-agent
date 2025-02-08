@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
 
 from pydantic_ai.messages import (
     ModelRequest,
@@ -13,15 +12,10 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.test import TestModel
 import pytest
-import yamling
 
 from llmling_agent.agent import Agent
 from llmling_agent.delegation.pool import AgentPool
 from llmling_agent.messaging.messages import ChatMessage
-
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 SIMPLE_PROMPT = "Hello, how are you?"
@@ -119,33 +113,6 @@ def test_sync_wrapper(test_agent: Agent[None]):
     """Test synchronous wrapper method."""
     result = test_agent.run_sync(SIMPLE_PROMPT)
     assert result.data == TEST_RESPONSE
-
-
-@pytest.mark.asyncio
-async def test_agent_context_manager(tmp_path: Path):
-    """Test using agent as async context manager."""
-    # Create a minimal config file
-    caps = {"load_resource": False, "get_resources": False}
-    config = {"global_settings": {"llm_capabilities": caps}}
-
-    # Write config to temporary file
-    config_path = tmp_path / "test_config.yml"
-    config_path.write_text(yamling.dump_yaml(config))
-    model = TestModel(custom_result_text=TEST_RESPONSE)
-
-    async with Agent[None].open(config_path, name="test-agent", model=model) as agent:
-        agent.sys_prompts.inject_agent_info = False
-        result = await agent.run(SIMPLE_PROMPT)
-        assert result.data == TEST_RESPONSE
-
-        # Verify we get expected message sequence
-        messages = agent.conversation
-        # user prompt -> model response
-        assert len(messages) == 2  # noqa: PLR2004
-
-        # Check prompt message
-        assert messages[0].content.strip() == SIMPLE_PROMPT
-        assert messages[1].content == TEST_RESPONSE
 
 
 @pytest.mark.asyncio

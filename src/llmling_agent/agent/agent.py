@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Coroutine, Sequence
-from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 import os
@@ -620,96 +620,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             tool_name=tool_name,
             tool_description=tool_description,
         )
-
-    @classmethod
-    @overload
-    def open(
-        cls,
-        config_path: StrPath | Config | None = None,
-        *,
-        result_type: None = None,
-        model: ModelType = None,
-        session: SessionIdType | SessionQuery = None,
-        system_prompt: str | Sequence[str] = (),
-        name: str = "llmling-agent",
-        retries: int = 1,
-        result_retries: int | None = None,
-        end_strategy: EndStrategy = "early",
-        debug: bool = False,
-    ) -> AbstractAsyncContextManager[Agent[TDeps]]: ...
-
-    @classmethod
-    @overload
-    def open[TResult](
-        cls,
-        config_path: StrPath | Config | None = None,
-        *,
-        result_type: type[TResult],
-        model: ModelType = None,
-        session: SessionIdType | SessionQuery = None,
-        system_prompt: str | Sequence[str] = (),
-        name: str = "llmling-agent",
-        retries: int = 1,
-        result_retries: int | None = None,
-        end_strategy: EndStrategy = "early",
-        debug: bool = False,
-    ) -> AbstractAsyncContextManager[StructuredAgent[TDeps, TResult]]: ...
-
-    @classmethod
-    @asynccontextmanager
-    async def open[TResult](
-        cls,
-        config_path: StrPath | Config | None = None,
-        *,
-        result_type: type[TResult] | None = None,
-        model: ModelType = None,
-        session: SessionIdType | SessionQuery = None,
-        system_prompt: str | Sequence[str] = (),
-        name: str = "llmling-agent",
-        retries: int = 1,
-        result_retries: int | None = None,
-        end_strategy: EndStrategy = "early",
-        debug: bool = False,
-    ) -> AsyncIterator[Agent[TDeps] | StructuredAgent[TDeps, TResult]]:
-        """Open and configure an agent with an auto-managed runtime configuration.
-
-        Args:
-            config_path: Path to the runtime configuration file or a Config instance
-                        (defaults to Config())
-            result_type: Optional type for structured responses
-            model: The default model to use (defaults to GPT-4)
-            session: Optional id or Session query to recover a conversation
-            system_prompt: Static system prompts to use for this agent
-            name: Name of the agent for logging
-            retries: Default number of retries for failed operations
-            result_retries: Max retries for result validation (defaults to retries)
-            end_strategy: Strategy for handling tool calls that are requested alongside
-                        a final result
-            debug: Whether to enable debug logging
-
-        Yields:
-            Configured Agent instance
-
-        Example:
-            ```python
-            async with Agent.open("config.yml") as agent:
-                result = await agent.run("Hello!")
-                print(result.data)
-            ```
-        """
-        agent = cls(
-            runtime=config_path,
-            model=model,
-            session=session,
-            system_prompt=system_prompt,
-            name=name,
-            retries=retries,
-            end_strategy=end_strategy,
-            result_retries=result_retries,
-            debug=debug,
-        )
-        async with agent:
-            yield (agent if result_type is None else agent.to_structured(result_type))
 
     def is_busy(self) -> bool:
         """Check if agent is currently processing tasks."""
