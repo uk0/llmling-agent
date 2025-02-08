@@ -86,7 +86,7 @@ class OpenAPITools(ResourceProvider):
         name: str | None = None,
         headers: dict[str, str] | None = None,
     ):
-        super().__init__(name=name or f"openapi_{base_url}")
+        super().__init__(name=name or "openapi_tools")
         self.spec_url = spec
         self.base_url = base_url
         self.headers = headers or {}
