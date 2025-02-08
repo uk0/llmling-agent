@@ -1,6 +1,0 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling/refs/heads/main/schema/config-schema.json
-resources:
-  llmling_agent_manual:
-    type: path
-    path: "https://raw.githubusercontent.com/phil65/llmling_agent/refs/heads/main/README.md"
-    description: "LLMling Agent Manual"

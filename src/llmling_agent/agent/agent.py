@@ -25,6 +25,7 @@ from llmling_agent.models import AgentsManifest
 from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
+from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import (
@@ -214,10 +215,11 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         # save some stuff for asnyc init
         self._owns_runtime = False
         # prepare context
-        ctx = context or AgentContext[TDeps].create_default(name)
-        ctx.input_provider = input_provider
-        if capabilities is not None:
-            ctx.capabilities = capabilities
+        ctx = context or AgentContext[TDeps].create_default(
+            name,
+            input_provider=input_provider,
+            capabilities=capabilities,
+        )
         self._context = ctx
         memory_cfg = (
             session
@@ -360,11 +362,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 for coro in coros:
                     await coro
             if runtime_ref:
-                runtime_tools = runtime_ref.tools.values()
-                names = [t.name for t in runtime_tools]
-                logger.debug("Registering runtime tools: %s", names)
-                for tool in runtime_tools:
-                    self.tools.register_tool(tool, source="runtime")
+                self.tools.add_provider(RuntimeResourceProvider(runtime_ref))
         except Exception as e:
             # Clean up in reverse order
             if self._owns_runtime and runtime_ref and self.context.runtime == runtime_ref:

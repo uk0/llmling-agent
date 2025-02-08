@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig
     from llmling_agent.tools.base import ToolInfo
+    from llmling_agent_input.base import InputProvider
 
 
 TDeps = TypeVar("TDeps", default=Any)
@@ -56,6 +57,7 @@ class AgentContext[TDeps](NodeContext[TDeps]):
         capabilities: Capabilities | None = None,
         deps: TDeps | None = None,
         pool: AgentPool | None = None,
+        input_provider: InputProvider | None = None,
     ) -> AgentContext[TDeps]:
         """Create a default agent context with minimal privileges.
 
@@ -63,7 +65,8 @@ class AgentContext[TDeps](NodeContext[TDeps]):
             name: Name of the agent
             capabilities: Optional custom capabilities (defaults to minimal access)
             deps: Optional dependencies for the agent
-            pool:(optional): Optional pool the agent is part of
+            pool: Optional pool the agent is part of
+            input_provider: Optional input provider for the agent
         """
         from llmling_agent.config.capabilities import Capabilities
         from llmling_agent.models import AgentConfig, AgentsManifest
@@ -72,6 +75,7 @@ class AgentContext[TDeps](NodeContext[TDeps]):
         defn = AgentsManifest()
         cfg = AgentConfig(name=name)
         return cls(
+            input_provider=input_provider,
             node_name=name,
             capabilities=caps,
             definition=defn,
