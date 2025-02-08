@@ -284,10 +284,7 @@ class AgentsManifest(ConfigModel):
         )
 
         provider = config.get_provider()
-        # set model for provider (the setting should move to provider config soon)
-        provider._model = config.get_model()
-        sys_prompts: list[str] = []
-        sys_prompts.extend(config.system_prompts)
+        sys_prompts = config.system_prompts.copy()
         # Library prompts
         if config.library_system_prompts:
             for prompt_ref in config.library_system_prompts:
