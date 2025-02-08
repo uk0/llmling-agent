@@ -271,7 +271,9 @@ class AgentConfig(NodeConfig):
                     case str():
                         if tool_config.startswith("crewai_tools"):
                             obj = import_class(tool_config)()
-                            llm_tool = LLMCallableTool.from_crewai_tool(obj)
+                            llm_tool: LLMCallableTool[Any] = (
+                                LLMCallableTool.from_crewai_tool(obj)
+                            )
                             static_tools.append(ToolInfo(llm_tool))
                         elif tool_config.startswith("langchain"):
                             obj = import_class(tool_config)()

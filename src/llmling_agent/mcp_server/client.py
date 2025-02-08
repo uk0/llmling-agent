@@ -6,8 +6,6 @@ from contextlib import AsyncExitStack, suppress
 import sys
 from typing import TYPE_CHECKING, Any, Self, TextIO
 
-from py2openai.functionschema import FunctionSchema
-
 from llmling_agent.log import get_logger
 from llmling_agent.models.resources import ResourceInfo
 
@@ -158,6 +156,8 @@ class MCPClient:
 
     def create_tool_callable(self, tool: MCPTool) -> Callable[..., Awaitable[str]]:
         """Create a properly typed callable from MCP tool schema."""
+        from py2openai.functionschema import FunctionSchema
+
         schema = mcp_tool_to_fn_schema(tool)
         fn_schema = FunctionSchema.from_dict(schema)
         sig = fn_schema.to_python_signature()

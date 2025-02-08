@@ -153,7 +153,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             case str():
                 if item.startswith("crewai_tools"):
                     obj = import_class(item)()
-                    llm_tool = LLMCallableTool.from_crewai_tool(obj)
+                    llm_tool: LLMCallableTool[Any] = LLMCallableTool.from_crewai_tool(obj)
                     return ToolInfo(llm_tool)
                 if item.startswith("langchain"):
                     obj = import_class(item)()
