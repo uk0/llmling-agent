@@ -99,12 +99,18 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         self,
         name: str,
         model: str | ModelProtocol | None = None,
+        context: AgentContext | None = None,
         *,
         debug: bool = False,
         model_settings: dict[str, Any] | None = None,
         retries: int = 1,
     ):
-        super().__init__(name=name, debug=debug, model_settings=model_settings)
+        super().__init__(
+            name=name,
+            debug=debug,
+            model_settings=model_settings,
+            context=context,
+        )
         self._model = model
         self.num_retries = retries
 

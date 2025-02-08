@@ -24,6 +24,7 @@ from llmling_agent_providers.human.utils import get_textual_streaming_app
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+    from llmling_agent.agent.context import AgentContext
     from llmling_agent.common_types import ModelType
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
@@ -42,6 +43,7 @@ class HumanProvider(AgentProvider):
         self,
         *,
         name: str = "human",
+        context: AgentContext | None = None,
         timeout: int | None = None,
         show_context: bool = True,
         command_store: CommandStore | None = None,
@@ -51,7 +53,7 @@ class HumanProvider(AgentProvider):
         """Initialize human provider."""
         from llmling_agent_commands import get_commands
 
-        super().__init__(model=None)
+        super().__init__(model=None, context=context)
         self.name = name or "human"
         self._debug = debug
         self._timeout = timeout

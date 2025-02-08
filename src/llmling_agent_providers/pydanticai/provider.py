@@ -87,6 +87,7 @@ class PydanticAIProvider(AgentLLMProvider):
         self,
         *,
         model: str | ModelProtocol | None = None,
+        context: AgentContext | None = None,
         name: str = "agent",
         retries: int = 1,
         result_retries: int | None = None,
@@ -99,6 +100,7 @@ class PydanticAIProvider(AgentLLMProvider):
 
         Args:
             model: Model to use for responses
+            context: Agent context
             name: Agent name
             retries: Number of retries for failed operations
             result_retries: Max retries for result validation
@@ -107,7 +109,12 @@ class PydanticAIProvider(AgentLLMProvider):
             debug: Whether to enable debug mode
             model_settings: Additional model-specific settings
         """
-        super().__init__(model=model, model_settings=model_settings, debug=debug)
+        super().__init__(
+            model=model,
+            model_settings=model_settings,
+            debug=debug,
+            context=context,
+        )
         self._kwargs: dict[str, Any] = dict(
             model=model,
             name=name,

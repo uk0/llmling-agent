@@ -26,6 +26,7 @@ from llmling_agent_providers.base import (
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+    from llmling_agent.agent.context import AgentContext
     from llmling_agent.common_types import ModelType
     from llmling_agent.models.content import Content
     from llmling_agent.tools.base import ToolInfo
@@ -72,11 +73,12 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
     def __init__(
         self,
         url: str,
+        context: AgentContext | None = None,
         *,
         timeout: float = 30.0,
         auto_reconnect: bool = True,
     ):
-        super().__init__()
+        super().__init__(context=context)
         self.url = url
         self.timeout = timeout
         self.auto_reconnect = auto_reconnect

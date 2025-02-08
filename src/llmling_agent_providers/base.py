@@ -90,12 +90,13 @@ class AgentProvider[TDeps]:
         *,
         model: str | ModelProtocol | None = None,
         name: str = "agent",
+        context: AgentContext[TDeps] | None = None,
         debug: bool = False,
     ):
         super().__init__()
         self._name = name
         self._model = model
-        self._context: AgentContext[TDeps] | None = None
+        self._context = context
         self._debug = debug
 
     def __repr__(self) -> str:

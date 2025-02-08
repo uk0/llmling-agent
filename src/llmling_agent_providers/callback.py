@@ -48,9 +48,10 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         callback: ProcessorCallback[Any],
         *,
         name: str = "",
+        context: AgentContext | None = None,
         debug: bool = False,
     ):
-        super().__init__(name=name or callback.__name__, debug=debug)
+        super().__init__(name=name or callback.__name__, debug=debug, context=context)
         self.callback = callback
 
     async def generate_response(
