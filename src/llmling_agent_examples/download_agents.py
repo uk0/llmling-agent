@@ -72,26 +72,17 @@ agents:
         1. Find all other agents using your tool (don't include yourself!)
         2. Cheer them on with over-the-top supportive messages considering the situation.
         3. Never stop believing in your team! 🎉
-    environment:
-      type: inline
-      tools:
-        show_love:
-          import_path: llmling_agent_examples.download_agents.cheer
-          description: "Share your enthusiasm and support for the agents!"
+    tools:
+      - llmling_agent_examples.download_agents.cheer
   file_getter_1:
     name: "Mr. File Downloader"
     description: "Downloads files from URLs"
     model: openai:gpt-4o-mini
     system_prompts:
       - "You have ONE job: use the download_file tool to download files."
-    environment:
-      type: inline
-      tools:
-        download_file:
-          import_path: llmling_agent_tools.download_file
-
-# file_getter_2 will get created programatically, see below
-
+    tools:
+      - llmling_agent_tools.download_file
+  # file_getter_2 will get created programatically, see below
   overseer:
     name: "Download Coordinator"
     description: "Coordinates parallel downloads"
@@ -136,9 +127,11 @@ async def run(config_path: str):
         sequential_team = worker_1 | worker_2
         sequential = await sequential_team.execute(TEAM_PROMPT)
         progress.update(f"Downloads completed in {sequential.duration:.2f} secs!")
+
         parallel_team = worker_1 & worker_2
         parallel = await parallel_team.execute(TEAM_PROMPT)
         progress.update(f"Downloads completed in {parallel.duration:.2f} secs!")
+
         overseer: Agent[None] = pool.get_agent("overseer")
         # this call will make the overseer use his ability to list pool agents
         # and to delegate a task to them. See the capabilities of the overseer

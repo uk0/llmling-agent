@@ -154,10 +154,10 @@ agents:
     model: openai:gpt-4o-mini
     system_prompts:
       - "Open Wikipedia pages matching the topics you receive."
-    environment:
-      tools:
-        open_url:
-          import_path: webbrowser.open
+    tools:
+      - type: import
+        name: open_url
+        import_path: webbrowser.open
 
   assistant:
     model: openai:gpt-4o-mini
@@ -407,10 +407,9 @@ The `AgentPool` allows multiple agents to work together on tasks. Here's a pract
 agents:
   file_getter:
     model: openai:gpt-4o-mini
-    environment:
-      tools:
-        download_file:
-          import_path: llmling_agent_tools.download_file  # a simple httpx based async callable
+    tools:
+      - type: import
+        import_path: llmling_agent_tools.download_file  # a simple httpx based async callable
     system_prompts:
       - |
         You are a download specialist. Just use the download_file tool

@@ -50,11 +50,8 @@ agents:
     model: openai:gpt-4o-mini
     system_prompts:
       - You are a helpful technical assistant.
-    environment:
-      type: inline
-      tools:
-        read_file:
-          import_path: llmling_agent_tools.file.read_source_file
+    tools:
+      - llmling_agent_tools.file.read_source_file
 ```
 
 Use it in code:

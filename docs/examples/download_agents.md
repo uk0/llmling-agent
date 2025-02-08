@@ -44,11 +44,10 @@ agents:
         1. Find all other agents using your tool (don't include yourself!)
         2. Cheer them on with over-the-top supportive messages considering the situation.
         3. Never stop believing in your team! 🎉
-    environment:
-      type: inline
-      tools:
-        show_love:
-          import_path: llmling_agent_examples.download_agents.cheer
+    tools:
+      - type: import
+        name: show_love
+        import_path: llmling_agent_examples.download_agents.cheer
 
   file_getter_1:
     name: "Mr. File Downloader"
@@ -56,11 +55,9 @@ agents:
     model: openai:gpt-4o-mini
     system_prompts:
       - "You have ONE job: use the download_file tool to download files."
-    environment:
-      type: inline
-      tools:
-        download_file:
-          import_path: llmling_agent_tools.download_file
+    tools:
+      - type: import
+        import_path: llmling_agent_tools.download_file
 
   overseer:
     name: "Download Coordinator"

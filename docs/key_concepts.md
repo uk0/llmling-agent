@@ -58,18 +58,10 @@ Define complete agents in YAML without writing code:
 agents:
   web_assistant:
     model: openai:gpt-4
-    environment:  # LLMling Config structure
-      type: inline
-      tools:
-        open_browser:
-          import_path: webbrowser.open
-          description: "Open URL in default browser"
-      resources:
-        bookmarks:
-          type: text
-          content: |
-            Python: https://python.org
-            Docs: https://docs.python.org
+    tools:
+      - type: import
+        name: open_url
+        import_path: webbrowser.open
     system_prompts:
       - "You are a helpful web assistant."
 ```

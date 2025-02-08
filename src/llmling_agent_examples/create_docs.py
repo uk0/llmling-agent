@@ -30,34 +30,29 @@ agents:
     model: openai:gpt-4o-mini
     system_prompts:
       - You scan directories and list source files that need documentation.
-    environment:
-      type: inline
-      tools:
-        list_source_files:
-          import_path: os.listdir
+    tools:
+      - type: import
+        name: list_source_files
+        import_path: os.listdir
 
   doc_writer:
     name: "Documentation Writer"
     model: openai:gpt-4o-mini
     system_prompts:
       - You are a docs writer. Write markdown documentation for the files given to you.
-    environment:
-      type: inline
-      tools:
-        read_source_file:
-          import_path: llmling_agent_tools.file.read_source_file
+    tools:
+      - llmling_agent_tools.file.read_source_file
 
   error_checker:
     name: "Code Validator"
     model: openai:gpt-4o-mini
     system_prompts:
       - You validate Python source files for syntax errors.
-    environment:
-      type: inline
-      tools:
-        validate_syntax:
-          import_path: __main__.check_types
-          description: Type check Python file using mypy.
+    tools:
+      - type: import
+        name: validate_syntax
+        import_path: __main__.check_types
+        description: Type check Python file using mypy.
 """
 
 

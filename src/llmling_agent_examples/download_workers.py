@@ -20,13 +20,8 @@ agents:
     model: openai:gpt-4o-mini
     system_prompts:
       - "You have ONE job: use the download_file tool to download files."
-    environment:
-      type: inline
-      tools:
-        download_file:
-          import_path: llmling_agent_tools.download_file
-          description: "Download file from URL to local path"
-
+    tools:
+      - llmling_agent_tools.download_file
   overseer:
     name: "Download Coordinator"
     description: "Coordinates parallel downloads"

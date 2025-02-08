@@ -12,20 +12,10 @@ agents:
     description: "Helps with web tasks"  # Optional description
     model: openai:gpt-4           # Model to use
 
-    # Environment configuration (file reference or inline)
-    environment:
-      type: inline               # Can be 'inline' or 'file'
-      tools:
-        open_browser:
-          import_path: webbrowser.open
-          description: "Opens URLs in browser"
-      resources:
-        bookmarks:
-          type: text
-          content: "Python: https://python.org"
-
-    # Alternative environment reference
-    # environment: env_file.yml
+    tools:
+      open_browser:
+        import_path: webbrowser.open
+        description: "Opens URLs in browser"
 
     # Response type for structured output (optional)
     result_type: WebResult       # Must be defined in 'responses' section
