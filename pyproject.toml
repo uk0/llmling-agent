@@ -102,6 +102,7 @@ arize = [
     "openinference-instrumentation-litellm",
     "openinference-instrumentation-openai",
 ]
+mlflow = ["mlflow>=2.20.1"]
 langsmith = ["langsmith"]
 
 [tool.uv]

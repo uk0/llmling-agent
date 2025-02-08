@@ -10,6 +10,7 @@ from llmling_agent.models.observability import (
     BaseObservabilityProviderConfig,
     LangsmithProviderConfig,
     LogfireProviderConfig,
+    MlFlowProviderConfig,
     ObservabilityConfig,
 )
 
@@ -198,6 +199,11 @@ def get_provider_cls(
             from llmling_agent_observability.arize_provider import ArizePhoenixProvider
 
             return ArizePhoenixProvider
+        case MlFlowProviderConfig():
+            from llmling_agent_observability.mlflow_provider import MlFlowProvider
+
+            return MlFlowProvider
+
         case _:
             msg = f"Unknown provider config: {provider_config}"
             raise ValueError(msg)

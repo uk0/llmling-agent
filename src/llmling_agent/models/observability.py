@@ -103,10 +103,20 @@ class ArizePhoenixProviderConfig(BaseObservabilityProviderConfig):
     """Environment name."""
 
 
+class MlFlowProviderConfig(BaseObservabilityProviderConfig):
+    """Configuration for MlFlow provider."""
+
+    type: Literal["mlflow"] = Field("mlflow", init=False)
+
+    tracking_uri: str | None = None
+    """Tracking URI for MLFlow."""
+
+
 ObservabilityProviderConfig = Annotated[
     LogfireProviderConfig
     | AgentOpsProviderConfig
     | LangsmithProviderConfig
+    | MlFlowProviderConfig
     | ArizePhoenixProviderConfig,
     Field(discriminator="type"),
 ]
