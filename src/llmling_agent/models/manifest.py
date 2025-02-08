@@ -295,7 +295,7 @@ class AgentsManifest(ConfigModel):
                     logger.exception(msg)
                     raise ValueError(msg) from e
         # Create agent with runtime and context
-        agent: AnyAgent[TAgentDeps, Any] = Agent[Any](
+        agent = Agent[Any](
             runtime=runtime,
             context=context,
             provider=config.get_provider(),
