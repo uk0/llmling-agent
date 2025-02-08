@@ -29,6 +29,7 @@ from llmling_agent_providers.base import (
     StreamingResponseProtocol,
     UsageLimits,
 )
+from llmling_agent_providers.litellm_provider.utils import Usage
 
 
 if TYPE_CHECKING:
@@ -40,33 +41,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
-
-@dataclass
-class Usage:
-    total_tokens: int | None
-    request_tokens: int | None
-    response_tokens: int | None
-
-
-class LiteLLMModel:
-    """Compatible model class for LiteLLM."""
-
-    def __init__(self, model_name: str):
-        self._name = model_name
-
-    def name(self) -> str:
-        return self._name.replace(":", "/")
-
-
-@dataclass
-class LiteLLMRunContext:
-    """Simple run context for LiteLLM provider."""
-
-    message_id: str
-    model: LiteLLMModel
-    prompt: str
-    deps: Any
 
 
 @dataclass
