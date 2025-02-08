@@ -412,33 +412,6 @@ class AgentConfig(NodeConfig):
                 return str(base_dir / env)
             return env
 
-    def get_agent_kwargs(self, **overrides) -> dict[str, Any]:
-        """Get kwargs for Agent constructor.
-
-        Returns:
-            dict[str, Any]: Kwargs to pass to Agent
-        """
-        # Include only the fields that Agent expects
-        dct = {
-            "name": self.name,
-            "description": self.description,
-            "provider": self.provider,
-            "model": self.model,
-            "system_prompt": self.system_prompts,
-            "retries": self.retries,
-            # "result_tool_name": self.result_tool_name,
-            "session": self.get_session_config(),
-            # "result_tool_description": self.result_tool_description,
-            "result_retries": self.result_retries,
-            "end_strategy": self.end_strategy,
-            "debug": self.debug,
-        }
-        # Note: result_type is handled separately as it needs to be resolved
-        # from string to actual type in Agent initialization
-
-        dct.update(overrides)
-        return dct
-
 
 if __name__ == "__main__":
     model = "openai:gpt-4o-mini"

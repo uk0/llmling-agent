@@ -294,7 +294,6 @@ class AgentsManifest(ConfigModel):
                     msg = f"Failed to load library prompt {prompt_ref!r} for agent {name}"
                     logger.exception(msg)
                     raise ValueError(msg) from e
-
         # Create agent with runtime and context
         agent: AnyAgent[TAgentDeps, Any] = Agent[Any](
             runtime=runtime,
@@ -302,6 +301,12 @@ class AgentsManifest(ConfigModel):
             provider=config.get_provider(),
             system_prompt=sys_prompts,
             name=name,
+            description=config.description,
+            retries=config.retries,
+            session=config.get_session_config(),
+            result_retries=config.result_retries,
+            end_strategy=config.end_strategy,
+            debug=config.debug,
             # name=config.name or name,
         )
         if result_type := self.get_result_type(name):
