@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 import inspect
 from typing import TYPE_CHECKING, Any, TypeVar
 
+from llmling_agent.agent.context import AgentContext
 from llmling_agent.log import get_logger
 from llmling_agent.models.content import BaseContent
 from llmling_agent.prompts.convert import format_prompts
@@ -73,7 +74,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
             # Create args tuple based on callback requirements
             args = (
                 (self.context, prompt, *content_prompts)
-                if has_argument_type(self.callback, "AgentContext")
+                if has_argument_type(self.callback, AgentContext)
                 else (prompt, *content_prompts)
             )
             raw = await execute(self.callback, *args, use_thread=True)

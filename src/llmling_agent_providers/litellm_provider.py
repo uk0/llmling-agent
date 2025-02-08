@@ -11,6 +11,7 @@ import tokonomics
 from tokonomics import get_available_models
 from tokonomics.toko_types import TokenUsage
 
+from llmling_agent.agent.context import AgentContext
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
@@ -166,7 +167,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                         pass  # Continue with execution
 
             # 2. Add context if needed
-            if has_argument_type(original_tool, "AgentContext"):
+            if has_argument_type(original_tool, AgentContext):
                 enhanced_function_args = {"ctx": self._context, **function_args}
             else:
                 enhanced_function_args = function_args
