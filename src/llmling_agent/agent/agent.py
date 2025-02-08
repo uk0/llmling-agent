@@ -366,6 +366,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                     await coro
             if runtime_ref:
                 self.tools.add_provider(RuntimeResourceProvider(runtime_ref))
+            for provider in await self.context.config.get_toolsets():
+                self.tools.add_provider(provider)
         except Exception as e:
             # Clean up in reverse order
             if self._owns_runtime and runtime_ref and self.context.runtime == runtime_ref:
@@ -389,6 +391,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             if self._owns_runtime and self.context.runtime:
                 self.tools.remove_provider("runtime")
                 await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)
+            # for provider in await self.context.config.get_toolsets():
+            #     self.tools.remove_provider(provider.name)
 
     @overload
     def __and__(
