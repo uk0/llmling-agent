@@ -384,6 +384,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             await self.mcp.__aexit__(exc_type, exc_val, exc_tb)
         finally:
             if self._owns_runtime and self.context.runtime:
+                self.tools.remove_provider("runtime")
                 await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)
 
     @overload

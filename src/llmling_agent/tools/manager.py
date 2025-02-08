@@ -31,6 +31,8 @@ logger = get_logger(__name__)
 
 MAX_LEN_DESCRIPTION = 1000
 ToolState = Literal["all", "enabled", "disabled"]
+ProviderName = str
+OwnerType = Literal["pool", "team", "node"]
 
 
 class ToolManager(BaseRegistry[str, ToolInfo]):
@@ -105,21 +107,30 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             prov.owner = owner
         self.providers.append(prov)
 
-    def remove_provider(self, provider: ResourceProvider | ResourceCallable):
+    def remove_provider(
+        self, provider: ResourceProvider | ResourceCallable | ProviderName
+    ):
         """Remove a resource provider."""
         from llmling_agent.resource_providers.base import ResourceProvider
 
-        if isinstance(provider, ResourceProvider):
-            self.providers.remove(provider)
-        else:
-            # Find and remove wrapped callable
-            for p in self.providers:
-                if (
-                    isinstance(p, CallableResourceProvider)
-                    and p.tool_callable == provider
-                ):
-                    self.providers.remove(p)
-                    break
+        match provider:
+            case ResourceProvider():
+                self.providers.remove(provider)
+            case Callable():
+                # Find and remove wrapped callable
+                for p in self.providers:
+                    if (
+                        isinstance(p, CallableResourceProvider)
+                        and p.tool_callable == provider
+                    ):
+                        self.providers.remove(p)
+            case str():
+                for p in self.providers:
+                    if p.name == provider:
+                        self.providers.remove(p)
+            case _:
+                msg = f"Invalid provider type: {type(provider)}"
+                raise ValueError(msg)
 
     def reset_states(self):
         """Reset all tools to their default enabled states."""
