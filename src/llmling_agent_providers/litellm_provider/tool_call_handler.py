@@ -44,7 +44,7 @@ class ToolCallHandler:
     tool_used = Signal(ToolCallInfo)
     """Emitted when a tool is used."""
 
-    def __init__(self, agent_name: str, context: AgentContext | None = None):
+    def __init__(self, agent_name: str):
         """Initialize tool call handler.
 
         Args:
@@ -52,13 +52,13 @@ class ToolCallHandler:
             context: Optional agent context for confirmation handling
         """
         self.agent_name = agent_name
-        self.context = context
 
     async def handle_tool_call(
         self,
         tool_call: ChatCompletionMessageToolCall,
         tool: ToolInfo,
         message_id: str,
+        context: AgentContext | None,
     ) -> ToolCallResult:
         """Handle a single tool call execution.
 
@@ -66,6 +66,7 @@ class ToolCallHandler:
             tool_call: Tool call from LLM
             tool: Tool info containing callable
             message_id: ID of the message that triggered this
+            context: Optional agent context for confirmation handling
 
         Returns:
             Tool call result with info and message for model
@@ -81,8 +82,8 @@ class ToolCallHandler:
 
         try:
             # 1. Handle confirmation if we have context
-            if self.context:
-                result = await self.context.handle_confirmation(tool, function_args)
+            if context:
+                result = await context.handle_confirmation(tool, function_args)
                 match result:
                     case "skip":
                         msg = f"Tool {tool.name} execution skipped"
@@ -98,7 +99,7 @@ class ToolCallHandler:
 
             # 2. Add context if needed
             if has_argument_type(original_tool, AgentContext):
-                enhanced_function_args = {"ctx": self.context, **function_args}
+                enhanced_function_args = {"ctx": context, **function_args}
             else:
                 enhanced_function_args = function_args
 
@@ -114,7 +115,7 @@ class ToolCallHandler:
                 tool_call_id=tool_call.id,
                 timing=perf_counter() - start_time,
                 message_id=message_id,
-                context_data=self.context.data if self.context else None,
+                context_data=context.data if context else None,
             )
             self.tool_used.emit(info)
 
@@ -135,7 +136,7 @@ class ToolCallHandler:
                 tool_call_id=tool_call.id,
                 error=str(e),
                 message_id=message_id,
-                context_data=self.context.data if self.context else None,
+                context_data=context.data if context else None,
             )
             message = {
                 "tool_call_id": tool_call.id,
@@ -150,6 +151,7 @@ class ToolCallHandler:
         self,
         tool_calls: list[ChatCompletionMessageToolCall],
         tools: list[ToolInfo],
+        context: AgentContext | None,
         message_id: str,
     ) -> tuple[list[dict[str, Any]], list[ToolCallInfo]]:
         """Handle multiple tool calls in sequence.
@@ -157,6 +159,7 @@ class ToolCallHandler:
         Args:
             tool_calls: List of tool calls from LLM
             tools: Available tools
+            context: Optional agent context for confirmation handling
             message_id: ID of message that triggered these calls
 
         Returns:
@@ -168,15 +171,15 @@ class ToolCallHandler:
         new_messages.append(pre)
 
         for i, tool_call in enumerate(tool_calls):
-            if self.context and self.context.report_progress:
-                await self.context.report_progress(i, None)
+            if context and context.report_progress:
+                await context.report_progress(i, None)
 
             function_name = tool_call.function.name
             if not function_name:
                 continue
 
             tool = next(t for t in tools if t.name == function_name)
-            result = await self.handle_tool_call(tool_call, tool, message_id)
+            result = await self.handle_tool_call(tool_call, tool, message_id, context)
             calls.append(result.info)
             new_messages.append(result.message)
 
