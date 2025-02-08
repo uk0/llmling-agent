@@ -181,6 +181,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                 tool_call_id=tool_call.id,
                 timing=perf_counter() - start_time,
                 message_id=message_id,
+                context_data=self._context.data if self._context else None,
             )
             self.tool_used.emit(info)
             message = {
@@ -199,6 +200,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                 tool_call_id=tool_call.id,
                 error=str(e),
                 message_id=message_id,
+                context_data=self._context.data if self._context else None,
             )
             message = {
                 "tool_call_id": tool_call.id,
