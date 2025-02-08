@@ -117,6 +117,7 @@ dev = [
     # Only add below (Copier)
     "pytest-asyncio>=0.24.0",
     "textual-dev>=1.7.0",
+    "openapi_spec_validator",
 ]
 benchmark = ["pyinstrument"]
 lint = [
