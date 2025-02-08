@@ -213,6 +213,28 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         else:
             return info, message
 
+    async def handle_tool_calls(
+        self,
+        tool_calls: list[ChatCompletionMessageToolCall],
+        tools: list[ToolInfo],
+        message_id: str,
+    ) -> tuple[list[dict[str, Any]], list[ToolCallInfo]]:
+        calls: list[ToolCallInfo] = []
+        new_messages = []
+        pre = {"role": "assistant", "content": None, "tool_calls": tool_calls}
+        new_messages.append(pre)
+        for i, tool_call in enumerate(tool_calls):
+            if self._context and self._context.report_progress:
+                await self._context.report_progress(i, None)
+            function_name = tool_call.function.name
+            if not function_name:
+                continue
+            tool = next(i for i in tools if i.name == function_name)
+            info, message = await self.handle_tool_call(tool_call, tool, message_id)
+            calls.append(info)
+            new_messages.append(message)
+        return new_messages, calls
+
     async def generate_response(
         self,
         *prompts: str | Content,
@@ -268,31 +290,19 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             assert isinstance(response, ModelResponse)
             assert isinstance(response.choices[0], Choices)
             calls: list[ToolCallInfo] = []
-            new_messages = []
             if tool_calls := response.choices[0].message.tool_calls:
-                pre = {"role": "assistant", "content": None, "tool_calls": tool_calls}
-                new_messages.append(pre)
-                for tool_call in tool_calls:
-                    function_name = tool_call.function.name
-                    if not function_name:
-                        continue
-                    tool = next(i for i in tools if i.name == function_name)
-                    info, message = await self.handle_tool_call(
-                        tool_call, tool, message_id
-                    )
-                    calls.append(info)
-                    new_messages.append(message)
-                import devtools
+                new_messages, calls = await self.handle_tool_calls(
+                    tool_calls,
+                    tools,
+                    message_id,
+                )
 
-                devtools.debug(new_messages)
                 response = await acompletion(
                     model=model_name,
                     messages=messages + new_messages,
                     stream=False,
                     **self.model_settings,
                 )
-                assert isinstance(response, ModelResponse)
-                assert isinstance(response.choices[0], Choices)
             # Extract content
             content: Any = response.choices[0].message.content  # type: ignore
             if content and result_type and issubclass(result_type, BaseModel):
