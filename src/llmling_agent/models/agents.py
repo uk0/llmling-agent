@@ -20,7 +20,7 @@ from llmling.utils.importing import import_callable, import_class
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from toprompt import render_prompt
 
-from llmling_agent.common_types import EndStrategy, ModelProtocol  # noqa: TC001
+from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.config import Capabilities
 from llmling_agent.models.environment import (
     AgentEnvironment,
@@ -36,7 +36,6 @@ from llmling_agent.models.tools import BaseToolConfig, ToolConfig
 from llmling_agent.models.toolsets import ToolsetConfig  # noqa: TC001
 from llmling_agent.resource_providers.static import StaticResourceProvider
 from llmling_agent_models import AnyModelConfig  # noqa: TC001
-from llmling_agent_models.base import BaseModelConfig
 
 
 if TYPE_CHECKING:
@@ -174,16 +173,6 @@ class AgentConfig(NodeConfig):
     debug: bool = False
     """Enable debug output for this agent."""
 
-    def get_model(self) -> str | ModelProtocol | None:
-        """Get the model to use for this agent."""
-        match self.model:
-            case str():
-                return self.model
-            case BaseModelConfig():
-                return self.model.get_model()
-            case _:
-                return None
-
     def is_structured(self) -> bool:
         """Check if this config defines a structured agent."""
         return self.result_type is not None
@@ -237,6 +226,15 @@ class AgentConfig(NodeConfig):
         match model:
             case str():
                 data["model"] = {"type": "string", "identifier": model}
+        return data
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_paths(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Store config file path for later use."""
+        if "environment" in data:
+            # Just store the config path for later use
+            data["config_file_path"] = data.get("config_file_path")
         return data
 
     async def get_toolsets(self) -> list[ResourceProvider]:
@@ -400,22 +398,6 @@ class AgentConfig(NodeConfig):
             case _:
                 return None
 
-    def get_environment_display(self) -> str:
-        """Get human-readable environment description."""
-        match self.environment:
-            case str() as path:
-                return f"File: {path}"
-            case {"type": "file", "uri": uri} | FileEnvironment(uri=uri):
-                return f"File: {uri}"
-            case {"type": "inline", "uri": uri} | InlineEnvironment(uri=uri) if uri:
-                return f"Inline: {uri}"
-            case {"type": "inline"} | InlineEnvironment():
-                return "Inline configuration"
-            case None:
-                return "No environment configured"
-            case _:
-                return "Invalid environment configuration"
-
     @staticmethod
     def _resolve_environment_path(env: str, config_file_path: str | None = None) -> str:
         """Resolve environment path from config store or relative path."""
@@ -429,15 +411,6 @@ class AgentConfig(NodeConfig):
                 base_dir = UPath(config_file_path).parent
                 return str(base_dir / env)
             return env
-
-    @model_validator(mode="before")
-    @classmethod
-    def resolve_paths(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Store config file path for later use."""
-        if "environment" in data:
-            # Just store the config path for later use
-            data["config_file_path"] = data.get("config_file_path")
-        return data
 
     def get_agent_kwargs(self, **overrides) -> dict[str, Any]:
         """Get kwargs for Agent constructor.
@@ -468,7 +441,7 @@ class AgentConfig(NodeConfig):
 
 
 if __name__ == "__main__":
-    model = {"type": "input"}
+    model = "openai:gpt-4o-mini"
     agent_cfg = AgentConfig(
         name="test_agent", model=model, tools=["crewai_tools.BraveSearchTool"]
     )  # type: ignore

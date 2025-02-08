@@ -283,7 +283,6 @@ class AgentsManifest(ConfigModel):
             # confirmation_callback=confirmation_callback,
         )
 
-        provider = config.get_provider()
         sys_prompts = config.system_prompts.copy()
         # Library prompts
         if config.library_system_prompts:
@@ -300,8 +299,7 @@ class AgentsManifest(ConfigModel):
         agent: AnyAgent[TAgentDeps, Any] = Agent[Any](
             runtime=runtime,
             context=context,
-            model=config.get_model(),
-            provider=provider,
+            provider=config.get_provider(),
             system_prompt=sys_prompts,
             name=name,
             # name=config.name or name,
