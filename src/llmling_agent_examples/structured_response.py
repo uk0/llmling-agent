@@ -6,7 +6,7 @@
 
 from pydantic import BaseModel
 
-from llmling_agent import Agent, AgentsManifest
+from llmling_agent import Agent, AgentPool, AgentsManifest
 
 
 class PythonResult(BaseModel):
@@ -48,8 +48,6 @@ agents:
 
 async def example_structured_response():
     """Show both ways of defining structured responses."""
-    manifest = AgentsManifest.from_yaml(AGENT_CONFIG)
-
     # Example 1: Python-defined structure
     agent = Agent[None](
         model="openai:gpt-4o-mini",
@@ -65,7 +63,9 @@ async def example_structured_response():
     # Example 2: YAML-defined structure
     # NOTE: this is not recommended for programmatic usage and is just a demo. Use this
     # only for complete YAML workflows, otherwise your linter wont like what you are doin.
-    async with Agent[None].open_agent(manifest, "analyzer") as analyzer:
+    manifest = AgentsManifest.from_yaml(AGENT_CONFIG)
+    async with AgentPool[None](manifest) as pool:
+        analyzer = pool.get_agent("analyzer")
         result_2 = await analyzer.run("I'm really excited about this project!")
         analysis = result_2.data
         print("\nYAML-defined Response:")
