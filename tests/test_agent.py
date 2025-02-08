@@ -13,9 +13,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent.agent import Agent
-from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent import Agent, AgentPool, ChatMessage
 
 
 SIMPLE_PROMPT = "Hello, how are you?"

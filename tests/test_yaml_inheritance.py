@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from llmling_agent.models.manifest import AgentsManifest
+from llmling_agent import AgentsManifest
 
 
 if TYPE_CHECKING:

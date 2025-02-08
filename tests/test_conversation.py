@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent.agent.agent import Agent
+from llmling_agent import Agent
 
 
 @pytest.mark.asyncio

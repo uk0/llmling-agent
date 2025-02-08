@@ -8,7 +8,7 @@ from pydantic import ValidationError
 import pytest
 import yamling
 
-from llmling_agent.models import AgentsManifest
+from llmling_agent import AgentsManifest
 
 
 if TYPE_CHECKING:

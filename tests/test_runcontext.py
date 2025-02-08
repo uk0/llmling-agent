@@ -6,10 +6,8 @@ from typing import Any, Literal
 from pydantic_ai import RunContext
 import pytest
 
-from llmling_agent.agent import Agent
-from llmling_agent.agent.context import AgentContext
+from llmling_agent import Agent, AgentContext, AgentPool
 from llmling_agent.config.capabilities import Capabilities
-from llmling_agent.delegation.pool import AgentPool
 
 
 async def run_ctx_tool(ctx: RunContext[AgentContext], arg: str) -> str:

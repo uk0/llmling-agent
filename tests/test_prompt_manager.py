@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import yaml
 
-from llmling_agent.models.manifest import AgentsManifest
+from llmling_agent import AgentsManifest
 
 
 TEST_CONFIG = """

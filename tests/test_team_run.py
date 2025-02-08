@@ -4,8 +4,7 @@ import asyncio
 
 import pytest
 
-from llmling_agent import AgentPool
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent import AgentPool, ChatMessage
 
 
 async def delayed_processor(msg: str, delay: float = 0.1) -> str:

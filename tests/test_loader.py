@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from llmling_agent.models import AgentsManifest
+from llmling_agent import AgentsManifest
 
 
 if TYPE_CHECKING:

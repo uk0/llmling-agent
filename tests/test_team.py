@@ -4,11 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent.agent.agent import Agent
-from llmling_agent.delegation import AgentPool
-from llmling_agent.delegation.team import Team
-from llmling_agent.delegation.teamrun import TeamRun
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent import Agent, AgentPool, ChatMessage, Team, TeamRun
 
 
 @pytest.mark.asyncio
