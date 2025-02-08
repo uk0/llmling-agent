@@ -373,7 +373,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                 case BaseContent():
                     content_parts.append(p.to_openai_format())
         messages.append({"role": "user", "content": content_parts})
-        schemas = [t.schema for t in tools or []]
+        schemas = [t.schema for t in tools or []] or None
 
         try:
             # Get streaming completion
