@@ -338,11 +338,13 @@ class AgentConfig(NodeConfig):
         if isinstance(provider_config, str):
             match provider_config:
                 case "pydantic_ai":
-                    provider_config = PydanticAIProviderConfig()
+                    provider_config = PydanticAIProviderConfig(model=self.model)
                 case "human":
                     provider_config = HumanProviderConfig()
                 case "litellm":
-                    provider_config = LiteLLMProviderConfig()
+                    provider_config = LiteLLMProviderConfig(
+                        model=self.model if isinstance(self.model, str) else None
+                    )
                 case _:
                     try:
                         fn = import_callable(provider_config)
