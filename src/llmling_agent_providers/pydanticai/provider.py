@@ -7,7 +7,6 @@ from dataclasses import asdict
 from functools import wraps
 from typing import TYPE_CHECKING, Any, cast, get_args
 
-from llmling import ToolError
 from llmling_models import AllModels, infer_model
 from pydantic_ai import Agent as PydanticAgent
 import pydantic_ai._pydantic
@@ -166,68 +165,61 @@ class PydanticAIProvider(AgentLLMProvider):
         at least provides some information.
         """
         original_tool = tool.callable.callable
+        if has_argument_type(original_tool, RunContext):
 
-        @wraps(original_tool)
-        async def wrapped_with_ctx(ctx: RunContext[AgentContext], *args, **kwargs):
-            result = await agent_ctx.handle_confirmation(tool, kwargs)
-            match result:
-                case "allow":
-                    return await execute(original_tool, ctx, *args, **kwargs)
-                case "skip":
-                    msg = f"Tool {tool.name} execution skipped"
-                    raise ToolSkippedError(msg)
-                case "abort_run":
-                    msg = "Run aborted by user"
-                    raise RunAbortedError(msg)
-                case "abort_chain":
-                    msg = "Agent chain aborted by user"
-                    raise ChainAbortedError(msg)
+            async def wrapped(ctx: RunContext[AgentContext], *args, **kwargs):  # pyright: ignore
+                result = await agent_ctx.handle_confirmation(tool, kwargs)
+                match result:
+                    case "allow":
+                        return await execute(original_tool, ctx, *args, **kwargs)
+                    case "skip":
+                        msg = f"Tool {tool.name} execution skipped"
+                        raise ToolSkippedError(msg)
+                    case "abort_run":
+                        msg = "Run aborted by user"
+                        raise RunAbortedError(msg)
+                    case "abort_chain":
+                        msg = "Agent chain aborted by user"
+                        raise ChainAbortedError(msg)
 
-        wrapped_with_ctx.__doc__ = tool.description
-        wrapped_with_ctx.__name__ = tool.name
+        elif has_argument_type(original_tool, AgentContext):
 
-        @wraps(original_tool)
-        async def wrapped_without_ctx(*args, **kwargs):
-            result = await agent_ctx.handle_confirmation(tool, kwargs)
-            match result:
-                case "allow":
-                    return await execute(original_tool, *args, **kwargs)
-                case "skip":
-                    msg = f"Tool {tool.name} execution skipped"
-                    raise ToolError(msg)
-                case "abort_run":
-                    msg = "Run aborted by user"
-                    raise ToolError(msg)
-                case "abort_chain":
-                    msg = "Agent chain aborted by user"
-                    raise ToolError(msg)
+            async def wrapped(ctx: AgentContext, *args, **kwargs):  # pyright: ignore
+                result = await agent_ctx.handle_confirmation(tool, kwargs)
+                match result:
+                    case "allow":
+                        return await execute(original_tool, agent_ctx, *args, **kwargs)
+                    case "skip":
+                        msg = f"Tool {tool.name} execution skipped"
+                        raise ToolSkippedError(msg)
+                    case "abort_run":
+                        msg = "Run aborted by user"
+                        raise RunAbortedError(msg)
+                    case "abort_chain":
+                        msg = "Agent chain aborted by user"
+                        raise ChainAbortedError(msg)
 
-        wrapped_without_ctx.__doc__ = tool.description
-        wrapped_without_ctx.__name__ = tool.name
+        else:
 
-        @wraps(original_tool)
-        async def wrapped_with_agent_ctx(ctx: AgentContext, *args, **kwargs):
-            result = await agent_ctx.handle_confirmation(tool, kwargs)
-            match result:
-                case "allow":
-                    return await execute(original_tool, agent_ctx, *args, **kwargs)
-                case "skip":
-                    msg = f"Tool {tool.name} execution skipped"
-                    raise ToolSkippedError(msg)
-                case "abort_run":
-                    msg = "Run aborted by user"
-                    raise RunAbortedError(msg)
-                case "abort_chain":
-                    msg = "Agent chain aborted by user"
-                    raise ChainAbortedError(msg)
+            async def wrapped(*args, **kwargs):  # pyright: ignore
+                result = await agent_ctx.handle_confirmation(tool, kwargs)
+                match result:
+                    case "allow":
+                        return await execute(original_tool, *args, **kwargs)
+                    case "skip":
+                        msg = f"Tool {tool.name} execution skipped"
+                        raise ToolSkippedError(msg)
+                    case "abort_run":
+                        msg = "Run aborted by user"
+                        raise RunAbortedError(msg)
+                    case "abort_chain":
+                        msg = "Agent chain aborted by user"
+                        raise ChainAbortedError(msg)
 
-        wrapped_with_agent_ctx.__doc__ = tool.description
-        wrapped_with_agent_ctx.__name__ = tool.name
-        if has_argument_type(original_tool, "RunContext"):
-            return wrapped_with_ctx
-        if has_argument_type(original_tool, "AgentContext"):
-            return wrapped_with_agent_ctx
-        return wrapped_without_ctx
+        wraps(original_tool)(wrapped)  # pyright: ignore
+        wrapped.__doc__ = tool.description
+        wrapped.__name__ = tool.name
+        return wrapped
 
     @track_action("Pydantic-AI call. model: {model} result type {result_type}.")
     async def generate_response(
