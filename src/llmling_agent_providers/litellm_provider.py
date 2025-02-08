@@ -151,9 +151,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         try:
             # 1. Handle confirmation if we have context
             if self._context:
-                result = await self._context.handle_confirmation(
-                    self._context, tool, function_args
-                )
+                result = await self._context.handle_confirmation(tool, function_args)
                 match result:
                     case "skip":
                         msg = f"Tool {tool.name} execution skipped"

@@ -99,7 +99,6 @@ class AgentContext[TDeps](NodeContext[TDeps]):
 
     async def handle_confirmation(
         self,
-        ctx: AgentContext,
         tool: ToolInfo,
         args: dict[str, Any],
     ) -> ConfirmationResult:
@@ -110,8 +109,8 @@ class AgentContext[TDeps](NodeContext[TDeps]):
         - Handler confirms the execution
         """
         provider = self.get_input_provider()
-        mode = ctx.config.requires_tool_confirmation
+        mode = self.config.requires_tool_confirmation
         if (mode == "per_tool" and not tool.requires_confirmation) or mode == "never":
             return "allow"
-        history = ctx.agent.conversation.get_history() if ctx.pool else []
-        return await provider.get_tool_confirmation(ctx, tool, args, history)
+        history = self.agent.conversation.get_history() if self.pool else []
+        return await provider.get_tool_confirmation(self, tool, args, history)

@@ -169,7 +169,7 @@ class PydanticAIProvider(AgentLLMProvider):
 
         @wraps(original_tool)
         async def wrapped_with_ctx(ctx: RunContext[AgentContext], *args, **kwargs):
-            result = await agent_ctx.handle_confirmation(agent_ctx, tool, kwargs)
+            result = await agent_ctx.handle_confirmation(tool, kwargs)
             match result:
                 case "allow":
                     return await execute(original_tool, ctx, *args, **kwargs)
@@ -188,7 +188,7 @@ class PydanticAIProvider(AgentLLMProvider):
 
         @wraps(original_tool)
         async def wrapped_without_ctx(*args, **kwargs):
-            result = await agent_ctx.handle_confirmation(agent_ctx, tool, kwargs)
+            result = await agent_ctx.handle_confirmation(tool, kwargs)
             match result:
                 case "allow":
                     return await execute(original_tool, *args, **kwargs)
@@ -207,7 +207,7 @@ class PydanticAIProvider(AgentLLMProvider):
 
         @wraps(original_tool)
         async def wrapped_with_agent_ctx(ctx: AgentContext, *args, **kwargs):
-            result = await agent_ctx.handle_confirmation(agent_ctx, tool, kwargs)
+            result = await agent_ctx.handle_confirmation(tool, kwargs)
             match result:
                 case "allow":
                     return await execute(original_tool, agent_ctx, *args, **kwargs)
