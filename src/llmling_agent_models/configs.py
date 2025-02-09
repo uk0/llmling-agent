@@ -261,11 +261,9 @@ class TestModelConfig(BaseModelConfig):
     call_tools: list[str] | Literal["all"] = "all"
 
     def get_model(self) -> Any:
-        from llmling_models.model_types import _TestModelWrapper
         from pydantic_ai.models.test import TestModel
 
-        model = TestModel(
+        return TestModel(
             custom_result_text=self.custom_result_text,
             call_tools=self.call_tools,
         )
-        return _TestModelWrapper(model=model)
