@@ -12,6 +12,9 @@ class MCPServerBase(BaseModel):
     type: str
     """Type discriminator for MCP server configurations."""
 
+    name: str | None = None
+    """Optional name for referencing the server."""
+
     enabled: bool = True
     """Whether this server is currently enabled."""
 
