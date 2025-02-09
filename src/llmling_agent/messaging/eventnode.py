@@ -9,10 +9,39 @@ from llmling_agent.messaging.messageemitter import MessageEmitter
 
 
 if TYPE_CHECKING:
-    from collections.abc import Coroutine
+    from collections.abc import AsyncGenerator, Coroutine
 
+    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent.models.events import EventSourceConfig
+
+
+class Event[TEventData]:
+    """Base class for event implementations.
+
+    Handles monitoring for and converting specific types of events.
+    Generically typed with the type of event data produced.
+    """
+
+    @abstractmethod
+    def create_monitor(self) -> AsyncGenerator[Any, None]:
+        """Create async generator that yields raw event data.
+
+        Yields:
+            Raw event data that will be passed to convert_data
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def convert_data(self, raw_data: Any) -> TEventData:
+        """Convert raw event data to typed event data.
+
+        Args:
+            raw_data: Data from create_monitor
+
+        Returns:
+            Typed event data
+        """
+        raise NotImplementedError
 
 
 class EventNode[TEventData](MessageEmitter[None, TEventData]):
@@ -24,24 +53,31 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
 
     def __init__(
         self,
-        config: EventSourceConfig,
+        event: Event[TEventData],
         name: str | None = None,
+        context: NodeContext | None = None,
+        description: str | None = None,
     ) -> None:
-        """Initialize event source.
+        """Initialize event node.
 
         Args:
-            config: Configuration for this event source
-            name: Optional name override
+            event: Event implementation
+            name: Optional name for this node
+            context: Optional node context
+            description: Optional description
         """
-        super().__init__(name=name or f"{config.type}_{config.name}")
-        self.config = config
+        super().__init__(name=name, context=context, description=description)
+        self.event = event
         self._running = False
 
     async def start(self) -> None:
         """Start monitoring for events."""
         self._running = True
         try:
-            await self._monitor()
+            async for data in self.event.create_monitor():
+                if not self._running:
+                    break
+                await self.run(data)
         finally:
             self._running = False
 
