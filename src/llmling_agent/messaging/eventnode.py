@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from llmling_agent.messaging.messageemitter import MessageEmitter
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Coroutine
+    from types import TracebackType
 
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.messaging.messages import ChatMessage
@@ -21,6 +22,18 @@ class Event[TEventData]:
     Handles monitoring for and converting specific types of events.
     Generically typed with the type of event data produced.
     """
+
+    async def __aenter__(self) -> Self:
+        """Set up event resources."""
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Clean up event resources."""
 
     @abstractmethod
     def create_monitor(self) -> AsyncGenerator[Any, None]:
@@ -69,6 +82,27 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
         super().__init__(name=name, context=context, description=description)
         self.event = event
         self._running = False
+
+    async def __aenter__(self) -> Self:
+        """Initialize event resources and start monitoring."""
+        await super().__aenter__()
+        await self.event.__aenter__()
+        # Start monitoring after everything is initialized
+        self.create_task(self.start())  # Non-blocking
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Stop monitoring and clean up resources."""
+        # First stop monitoring
+        await self.stop()
+        # Then cleanup in reverse order
+        await self.event.__aexit__(exc_type, exc_val, exc_tb)
+        await super().__aexit__(exc_type, exc_val, exc_tb)
 
     async def start(self) -> None:
         """Start monitoring for events."""
