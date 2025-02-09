@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -92,7 +92,7 @@ class EventNodeConfig(NodeConfig):
     2. Implement get_event() to create their event instance
     """
 
-    type: Literal["event"] = Field("event", init=False)
+    type: str = Field("event", init=False)
     """Discriminator field for event configs."""
 
     enabled: bool = True
