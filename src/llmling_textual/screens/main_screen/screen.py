@@ -43,8 +43,8 @@ class MainScreen(Screen):
         self.message_stream = MessageStream(pool)
 
         # Connect pool events
-        self.pool.nodes.events.added.connect(self._on_node_change)
-        self.pool.nodes.events.removed.connect(self._on_node_change)
+        self.pool.node_events.added.connect(self._on_node_change)
+        self.pool.node_events.removed.connect(self._on_node_change)
 
     def on_mount(self):
         """Initialize screen."""
@@ -66,8 +66,8 @@ class MainScreen(Screen):
     def cleanup(self):
         """Disconnect event handlers."""
         # Disconnect pool events
-        self.pool.nodes.events.added.disconnect(self._on_node_change)
-        self.pool.nodes.events.removed.disconnect(self._on_node_change)
+        self.pool.node_events.added.disconnect(self._on_node_change)
+        self.pool.node_events.removed.disconnect(self._on_node_change)
 
         # Clean up stream
         self.message_stream.cleanup()

@@ -37,6 +37,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
 
+    from psygnal.containers._evented_dict import DictEvents
+
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
@@ -430,6 +432,11 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
         from llmling_agent.messaging.eventnode import EventNode
 
         return {i.name: i for i in self._items.values() if isinstance(i, EventNode)}
+
+    @property
+    def node_events(self) -> DictEvents:
+        """Get node events."""
+        return self._items.events
 
     @property
     def _error_class(self) -> type[LLMLingError]:
