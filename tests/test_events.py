@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 
 import pytest
@@ -25,7 +24,6 @@ def event_manager(agent):
     return EventManager(agent, enable_events=True)
 
 
-@dataclass(frozen=True)
 class _TestEvent(EventData):
     """Simple event type for testing."""
 

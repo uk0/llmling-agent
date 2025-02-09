@@ -224,7 +224,7 @@ class Talk[TTransmittedData]:
     ):
         from llmling_agent.messaging.events import ConnectionEventData
 
-        event = ConnectionEventData(
+        event = ConnectionEventData[Any](
             connection=self,
             source="connection",
             connection_name=self.name,

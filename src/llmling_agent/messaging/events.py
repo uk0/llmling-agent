@@ -3,28 +3,36 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from dataclasses import dataclass, field
 from datetime import datetime
 import json
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import Any, Literal, Self
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from llmling_agent.messaging.messages import ChatMessage  # noqa: TC001
+from llmling_agent.models.events import (  # noqa: TC001
+    ConnectionEventType,
+    EventSourceConfig,
+)
+from llmling_agent.talk.talk import Talk  # noqa: TC001
 
 
 ChangeType = Literal["added", "modified", "deleted"]
 
 
-if TYPE_CHECKING:
-    from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent.models.events import ConnectionEventType, EventSourceConfig
-    from llmling_agent.talk.talk import Talk
-
-
-@dataclass(frozen=True, kw_only=True)
-class EventData:
+class EventData(BaseModel):
     """Base class for event data."""
 
     source: str
-    timestamp: datetime = field(default_factory=datetime.now)
-    metadata: dict[str, Any] = field(default_factory=dict)
+    timestamp: datetime = Field(default_factory=datetime.now)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    model_config = ConfigDict(
+        frozen=True,
+        use_attribute_docstrings=True,
+        extra="forbid",
+        arbitrary_types_allowed=True,
+    )
 
     @classmethod
     def create(cls, source: str, **kwargs: Any) -> Self:
@@ -52,7 +60,6 @@ class EventData:
         )
 
 
-@dataclass(frozen=True, kw_only=True)
 class UIEventData(EventData):
     """Event triggered through UI interaction."""
 
@@ -62,10 +69,10 @@ class UIEventData(EventData):
     content: str
     """The actual content (command string, voice command, etc.)."""
 
-    args: list[str] = field(default_factory=list)
+    args: list[str] = Field(default_factory=list)
     """Additional arguments for the interaction."""
 
-    kwargs: dict[str, Any] = field(default_factory=dict)
+    kwargs: dict[str, Any] = Field(default_factory=dict)
     """Additional options/parameters."""
 
     agent_name: str | None = None
@@ -86,7 +93,6 @@ class UIEventData(EventData):
                 raise ValueError(self.type)
 
 
-@dataclass(frozen=True)
 class ConnectionEventData[TTransmittedData](EventData):
     """Event from connection activity."""
 
@@ -110,7 +116,6 @@ class ConnectionEventData[TTransmittedData](EventData):
         return base
 
 
-@dataclass(frozen=True, kw_only=True)
 class FileEventData(EventData):
     """File system event."""
 
@@ -121,7 +126,6 @@ class FileEventData(EventData):
         return f"File {self.type}: {self.path}"
 
 
-@dataclass(frozen=True)
 class FunctionResultEvent(EventData):
     """Event from a function execution result."""
 
@@ -132,7 +136,6 @@ class FunctionResultEvent(EventData):
         return str(self.result)
 
 
-@dataclass(frozen=True)
 class EmailEventData(EventData):
     """Email event with specific content structure."""
 
@@ -145,7 +148,6 @@ class EmailEventData(EventData):
         return f"Email from {self.sender} with subject: {self.subject}\n\n{self.body}"
 
 
-@dataclass(frozen=True)
 class TimeEventData(EventData):
     """Time-based event."""
 
@@ -160,7 +162,6 @@ class TimeEventData(EventData):
         return f"Scheduled task triggered by {self.schedule}: {self.prompt}"
 
 
-@dataclass(frozen=True)
 class WebhookEventData(EventData):
     """Webhook payload with formatting."""
 

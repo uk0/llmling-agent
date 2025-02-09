@@ -470,7 +470,9 @@ class EventManager:
                 if self.enabled:
                     typ = type(result).__name__
                     meta = {"type": "function_result", "result_type": typ}
-                    event = FunctionResultEvent(result, source=event_type, metadata=meta)
+                    event = FunctionResultEvent(
+                        result=result, source=event_type, metadata=meta
+                    )
                     await self.emit_event(event)
                 return result
 
