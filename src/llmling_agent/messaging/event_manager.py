@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import wraps
 import inspect
-from typing import TYPE_CHECKING, Any, Self, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from psygnal import Signal
 from pydantic import SecretStr
@@ -35,8 +35,6 @@ logger = get_logger(__name__)
 
 
 type EventCallback = Callable[[EventData], None | Awaitable[None]]
-
-T = TypeVar("T")
 
 
 class EventManager:
@@ -429,14 +427,14 @@ class EventManager:
         return decorator
 
     @overload
-    def poll(
+    def poll[T](
         self,
         event_type: str,
         interval: timedelta | None = None,
     ) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
 
     @overload
-    def poll(
+    def poll[T](
         self,
         event_type: str,
         interval: timedelta | None = None,

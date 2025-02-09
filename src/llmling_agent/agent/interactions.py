@@ -24,14 +24,13 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.messaging.messagenode import MessageNode
 
-
-logger = get_logger(__name__)
 TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=None)
 ExtractionMode = Literal["structured", "tool_calls"]
-T = TypeVar("T")
 
 type EndCondition = Callable[[list[ChatMessage[Any]], ChatMessage[Any]], bool]
+
+logger = get_logger(__name__)
 
 
 class LLMPick(BaseModel):
