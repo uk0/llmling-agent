@@ -12,7 +12,6 @@ from psygnal import Signal
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.events import ConnectionEventData, EventData
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.talk.stats import AggregatedTalkStats, TalkStats
 from llmling_agent.utils.inspection import execute
@@ -27,6 +26,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.common_types import AnyFilterFn, AnyTransformFn
+    from llmling_agent.messaging.events import ConnectionEventData, EventData
     from llmling_agent.messaging.messageemitter import MessageEmitter
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.events import ConnectionEventType
@@ -211,6 +211,7 @@ class Talk[TTransmittedData]:
         ],
     ) -> Self:
         """Register callback for connection events."""
+        from llmling_agent.messaging.events import ConnectionEventData
 
         async def wrapped_callback(event: EventData):
             if isinstance(event, ConnectionEventData) and event.event_type == event_type:
@@ -224,6 +225,8 @@ class Talk[TTransmittedData]:
         event_type: ConnectionEventType,
         message: ChatMessage[TTransmittedData] | None,
     ):
+        from llmling_agent.messaging.events import ConnectionEventData
+
         event = ConnectionEventData(
             connection=self,
             source="connection",

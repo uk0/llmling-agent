@@ -17,7 +17,6 @@ from llmling import Config, LLMCallableTool, RuntimeConfig, ToolError
 from psygnal import Signal
 from typing_extensions import TypeVar
 
-from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
@@ -47,6 +46,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AgentContext, AnyAgent
+    from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.agent.interactions import Interactions
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import (
@@ -201,6 +201,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             debug: Whether to enable debug mode
         """
         from llmling_agent.agent import AgentContext
+        from llmling_agent.agent.conversation import ConversationManager
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
         from llmling_agent.resource_providers.capability_provider import (
