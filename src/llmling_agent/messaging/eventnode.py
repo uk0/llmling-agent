@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+import asyncio
 from typing import TYPE_CHECKING, Any, Self
 
 from llmling_agent.messaging.messageemitter import MessageEmitter
@@ -25,6 +26,9 @@ class Event[TEventData]:
     Generically typed with the type of event data produced.
     """
 
+    def __init__(self):
+        self._stop_event: asyncio.Event = asyncio.Event()
+
     async def __aenter__(self) -> Self:
         """Set up event resources."""
         return self
@@ -36,6 +40,7 @@ class Event[TEventData]:
         exc_tb: TracebackType | None,
     ) -> None:
         """Clean up event resources."""
+        self._stop_event.set()
 
     @abstractmethod
     def create_monitor(self) -> AsyncGenerator[Any, None]:
