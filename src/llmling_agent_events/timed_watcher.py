@@ -3,33 +3,18 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from llmling_agent.messaging.events import EventData
+from llmling_agent.messaging.events import TimeEvent
 from llmling_agent_events.base import EventSource
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
+    from llmling_agent.messaging.events import EventData
     from llmling_agent.models.events import TimeEventConfig
-
-
-@dataclass(frozen=True)
-class TimeEvent(EventData):
-    """Time-based event."""
-
-    schedule: str
-    """Cron expression that triggered this event."""
-
-    prompt: str
-    """Cron expression that triggered this event."""
-
-    def to_prompt(self) -> str:
-        """Format scheduled event."""
-        return f"Scheduled task triggered by {self.schedule}: {self.prompt}"
 
 
 class TimeEventSource(EventSource):

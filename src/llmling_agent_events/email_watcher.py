@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 from email.parser import BytesParser
 import ssl
 from typing import TYPE_CHECKING
@@ -9,7 +8,7 @@ from typing import TYPE_CHECKING
 import aioimaplib
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.events import EventData
+from llmling_agent.messaging.events import EmailEvent
 from llmling_agent_events.base import EventSource
 
 
@@ -17,22 +16,10 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
     from email.message import Message
 
+    from llmling_agent.messaging.events import EventData
     from llmling_agent.models.events import EmailConfig
 
 logger = get_logger(__name__)
-
-
-@dataclass(frozen=True)
-class EmailEvent(EventData):
-    """Email event with specific content structure."""
-
-    subject: str
-    sender: str
-    body: str
-
-    def to_prompt(self) -> str:
-        """Core email message."""
-        return f"Email from {self.sender} with subject: {self.subject}\n\n{self.body}"
 
 
 class EmailEventSource(EventSource):

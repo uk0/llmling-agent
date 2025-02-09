@@ -5,7 +5,11 @@ from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
+import json
 from typing import TYPE_CHECKING, Any, Literal, Self
+
+
+ChangeType = Literal["added", "modified", "deleted"]
 
 
 if TYPE_CHECKING:
@@ -106,6 +110,17 @@ class ConnectionEvent[TTransmittedData](EventData):
         return base
 
 
+@dataclass(frozen=True, kw_only=True)
+class FileEvent(EventData):
+    """File system event."""
+
+    path: str
+    type: ChangeType
+
+    def to_prompt(self) -> str:
+        return f"File {self.type}: {self.path}"
+
+
 @dataclass(frozen=True)
 class FunctionResultEvent(EventData):
     """Event from a function execution result."""
@@ -115,3 +130,42 @@ class FunctionResultEvent(EventData):
     def to_prompt(self) -> str:
         """Convert result to prompt format."""
         return str(self.result)
+
+
+@dataclass(frozen=True)
+class EmailEvent(EventData):
+    """Email event with specific content structure."""
+
+    subject: str
+    sender: str
+    body: str
+
+    def to_prompt(self) -> str:
+        """Core email message."""
+        return f"Email from {self.sender} with subject: {self.subject}\n\n{self.body}"
+
+
+@dataclass(frozen=True)
+class TimeEvent(EventData):
+    """Time-based event."""
+
+    schedule: str
+    """Cron expression that triggered this event."""
+
+    prompt: str
+    """Cron expression that triggered this event."""
+
+    def to_prompt(self) -> str:
+        """Format scheduled event."""
+        return f"Scheduled task triggered by {self.schedule}: {self.prompt}"
+
+
+@dataclass(frozen=True)
+class WebhookEvent(EventData):
+    """Webhook payload with formatting."""
+
+    payload: dict[str, Any]
+
+    def to_prompt(self) -> str:
+        """Format webhook payload."""
+        return f"Webhook received:\n{json.dumps(self.payload, indent=2)}"

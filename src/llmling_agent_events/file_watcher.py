@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from asyncio import Event
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
+import asyncio
+from typing import TYPE_CHECKING
 
-from llmling_agent.messaging.events import EventData
+from llmling_agent.messaging.events import ChangeType, FileEvent
 from llmling_agent_events.base import EventSource
 
 
@@ -16,21 +15,8 @@ if TYPE_CHECKING:
     from watchfiles import Change
     from watchfiles.main import FileChange
 
+    from llmling_agent.messaging.events import EventData
     from llmling_agent.models.events import FileWatchConfig
-
-
-ChangeType = Literal["added", "modified", "deleted"]
-
-
-@dataclass(frozen=True, kw_only=True)
-class FileEvent(EventData):
-    """File system event."""
-
-    path: str
-    type: ChangeType
-
-    def to_prompt(self) -> str:
-        return f"File {self.type}: {self.path}"
 
 
 class ExtensionFilter:
@@ -66,7 +52,7 @@ class FileSystemEventSource(EventSource):
         """
         self.config = config
         self._watch: AsyncIterator[set[FileChange]] | None = None
-        self._stop_event: Event | None = None
+        self._stop_event: asyncio.Event | None = None
 
     async def connect(self):
         """Set up watchfiles watcher."""
@@ -76,7 +62,7 @@ class FileSystemEventSource(EventSource):
 
         from watchfiles.main import awatch
 
-        self._stop_event = Event()
+        self._stop_event = asyncio.Event()
 
         # Create filter from extensions if provided
         watch_filter = None

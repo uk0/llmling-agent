@@ -6,14 +6,16 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Self
 
 from llmling_agent.messaging.messageemitter import MessageEmitter
+from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.talk.stats import MessageStats
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Coroutine
+    from collections.abc import AsyncGenerator, Sequence
     from types import TracebackType
 
     from llmling_agent.messaging.context import NodeContext
-    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent.models.mcp_server import MCPServerConfig
 
 
 class Event[TEventData]:
@@ -69,6 +71,7 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
         event: Event[TEventData],
         name: str | None = None,
         context: NodeContext | None = None,
+        mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         description: str | None = None,
     ) -> None:
         """Initialize event node.
@@ -77,6 +80,7 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
             event: Event implementation
             name: Optional name for this node
             context: Optional node context
+            mcp_servers: Optional MCP server configurations
             description: Optional description
         """
         super().__init__(name=name, context=context, description=description)
@@ -119,19 +123,20 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
         """Stop monitoring for events."""
         self._running = False
 
-    @abstractmethod
-    async def _monitor(self) -> None:
-        """Implementation-specific event monitoring.
+    @property
+    def stats(self) -> MessageStats:
+        return MessageStats(messages=self._logger.message_history)
 
-        Should continuously monitor for events and call run() when they occur.
-        Must respect self._running flag for clean shutdown.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def _run(
+    async def _run(
         self,
-        *prompts: Any,
+        *content: Any,
         **kwargs: Any,
-    ) -> Coroutine[None, None, ChatMessage[TEventData]]:
-        """Implementation-specific run logic."""
+    ) -> ChatMessage[TEventData]:
+        """Convert event data to message."""
+        result = await self.event.convert_data(content[0])
+        return ChatMessage(
+            content=result,
+            role="system",
+            name=self.name,
+            metadata=kwargs.get("metadata", {}),
+        )

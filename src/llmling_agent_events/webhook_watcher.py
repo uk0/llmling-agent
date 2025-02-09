@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 import hashlib
 import hmac
-import json
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request
 
@@ -17,17 +15,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
     from llmling_agent.models.events import WebhookConfig
-
-
-@dataclass(frozen=True)
-class WebhookEvent(EventData):
-    """Webhook payload with formatting."""
-
-    payload: dict[str, Any]
-
-    def to_prompt(self) -> str:
-        """Format webhook payload."""
-        return f"Webhook received:\n{json.dumps(self.payload, indent=2)}"
 
 
 class WebhookEventSource(EventSource):

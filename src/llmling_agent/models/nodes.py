@@ -17,7 +17,7 @@ from llmling_agent.models.mcp_server import (
 
 
 if TYPE_CHECKING:
-    from llmling_agent.messaging.eventnode import Event
+    from llmling_agent.messaging.eventnode import Event, EventNode
 
 
 class NodeConfig(BaseModel):
@@ -117,3 +117,15 @@ class EventNodeConfig(NodeConfig):
         3. Return the configured event
         """
         raise NotImplementedError
+
+    def get_event_node(self) -> EventNode[Any]:
+        """Create event node from config."""
+        from llmling_agent.messaging.eventnode import EventNode
+
+        event = self.get_event()
+        return EventNode(
+            event=event,
+            name=self.name,
+            description=self.description,
+            mcp_servers=self.mcp_servers,
+        )
