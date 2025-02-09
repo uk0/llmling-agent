@@ -14,10 +14,10 @@ from psygnal import Signal
 from pydantic import SecretStr
 
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.events import EventData, FunctionResultEvent
 from llmling_agent.models.events import (
     EmailConfig,
     EventConfig,
-    EventData,
     FileWatchConfig,
     TimeEventConfig,
     WebhookConfig,
@@ -37,17 +37,6 @@ logger = get_logger(__name__)
 type EventCallback = Callable[[EventData], None | Awaitable[None]]
 
 T = TypeVar("T")
-
-
-@dataclass(frozen=True)
-class FunctionResultEvent(EventData):
-    """Event from a function execution result."""
-
-    result: Any
-
-    def to_prompt(self) -> str:
-        """Convert result to prompt format."""
-        return str(self.result)
 
 
 class EventManager:

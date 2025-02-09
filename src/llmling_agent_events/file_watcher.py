@@ -6,7 +6,7 @@ from asyncio import Event
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
-from llmling_agent.models.events import EventData, FileWatchConfig
+from llmling_agent.messaging.events import EventData
 from llmling_agent_events.base import EventSource
 
 
@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
     from watchfiles import Change
     from watchfiles.main import FileChange
+
+    from llmling_agent.models.events import FileWatchConfig
 
 
 ChangeType = Literal["added", "modified", "deleted"]

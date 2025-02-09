@@ -12,8 +12,8 @@ from psygnal import Signal
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.events import ConnectionEvent, EventData
 from llmling_agent.messaging.messages import ChatMessage
-from llmling_agent.models.events import ConnectionEvent, ConnectionEventType, EventData
 from llmling_agent.talk.stats import AggregatedTalkStats, TalkStats
 from llmling_agent.utils.inspection import execute
 
@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import AnyFilterFn, AnyTransformFn
     from llmling_agent.messaging.messageemitter import MessageEmitter
     from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent.models.events import ConnectionEventType
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.providers import ProcessorCallback
 

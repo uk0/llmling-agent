@@ -7,12 +7,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from llmling_agent.models.events import EventData, TimeEventConfig
+from llmling_agent.messaging.events import EventData
 from llmling_agent_events.base import EventSource
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
+
+    from llmling_agent.models.events import TimeEventConfig
 
 
 @dataclass(frozen=True)

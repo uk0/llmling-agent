@@ -175,7 +175,7 @@ class HumanProvider(AgentProvider):
 
     async def handle_input(self, content: str):
         """Handle all human input."""
-        from llmling_agent.models.events import UIEvent
+        from llmling_agent.messaging.events import UIEvent
 
         if not content.strip():
             return

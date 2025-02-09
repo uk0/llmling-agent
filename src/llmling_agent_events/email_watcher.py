@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import aioimaplib
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.events import EventData
+from llmling_agent.messaging.events import EventData
 from llmling_agent_events.base import EventSource
 
 
