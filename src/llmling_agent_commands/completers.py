@@ -25,7 +25,7 @@ def get_available_agents(ctx: CompletionContext[AgentContext]) -> list[str]:
     """Get available agent names."""
     if not ctx.command_context.context.pool:
         return []
-    return ctx.command_context.context.pool.list_agents()
+    return list(ctx.command_context.context.pool.agents.keys())
 
 
 def get_available_nodes(ctx: CompletionContext[NodeContext]) -> list[str]:

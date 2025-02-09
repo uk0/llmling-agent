@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from rich.tree import Tree
 from slashed import Command, CommandContext, CommandError
@@ -10,11 +10,8 @@ from slashed.completers import CallbackCompleter
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent_commands.completers import get_available_nodes
-
-
-if TYPE_CHECKING:
-    from llmling_agent.messaging.messagenode import MessageNode
 
 
 logger = get_logger(__name__)
@@ -72,6 +69,7 @@ async def connect_command(
     try:
         assert ctx.context.pool
         target_node = ctx.context.pool[target]
+        assert isinstance(target_node, MessageNode)
         ctx.context.node.connect_to(target_node)
         ctx.context.node.connections.set_wait_state(
             target, wait if wait is not None else True
@@ -100,6 +98,7 @@ async def disconnect_command(
     try:
         assert ctx.context.pool
         target_node = ctx.context.pool[target]
+        assert isinstance(target_node, MessageNode)
         ctx.context.node.connections.disconnect(target_node)
         await ctx.output.print(f"{source!r} stopped forwarding messages to {target!r}")
     except Exception as e:

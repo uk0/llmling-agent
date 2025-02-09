@@ -20,7 +20,7 @@ class NodeListView(DataTable):
 
     def update_agents(self, pool: AgentPool):
         self.clear()
-        for name in pool.list_agents():
+        for name in pool.agents:
             agent = pool.get_agent(name)
             status = "🔄 busy" if agent.is_busy() else "⏳ idle"
             connections = [a.name for a in agent.connections.get_targets()]
