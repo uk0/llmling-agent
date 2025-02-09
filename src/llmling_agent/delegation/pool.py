@@ -22,7 +22,7 @@ from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
-from llmling_agent.messaging.messagenode import MessageNode
+from llmling_agent.messaging.messageemitter import MessageEmitter
 from llmling_agent.models.forward_targets import (
     CallableConnectionConfig,
     FileConnectionConfig,
@@ -37,11 +37,11 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
 
-    from psygnal.containers import EventedDict
-
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
+    from llmling_agent.messaging.eventnode import EventNode
+    from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.models.result_types import ResponseDefinition
     from llmling_agent.models.session import SessionQuery
@@ -56,7 +56,7 @@ TResult = TypeVar("TResult", default=Any)
 TPoolDeps = TypeVar("TPoolDeps", default=None)
 
 
-class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
+class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
     """Pool managing message processing nodes (agents and teams).
 
     Acts as a unified registry for all nodes, providing:
@@ -383,7 +383,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
         import sys
 
         print("Starting event watch mode...")
-        print("Active agents: ", ", ".join(self.list_agents()))
+        print("Active nodes: ", ", ".join(self.list_nodes()))
         print("Press Ctrl+C to stop")
 
         stop_event = asyncio.Event()
@@ -418,16 +418,27 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
         return {i.name: i for i in self._items.values() if isinstance(i, BaseTeam)}
 
     @property
-    def nodes(self) -> EventedDict[str, MessageNode[Any, Any]]:
+    def nodes(self) -> dict[str, MessageNode[Any, Any]]:
         """Get agents dict (backward compatibility)."""
-        return self._items
+        from llmling_agent.messaging.messagenode import MessageNode
+
+        return {i.name: i for i in self._items.values() if isinstance(i, MessageNode)}
+
+    @property
+    def event_nodes(self) -> dict[str, EventNode[Any]]:
+        """Get agents dict (backward compatibility)."""
+        from llmling_agent.messaging.eventnode import EventNode
+
+        return {i.name: i for i in self._items.values() if isinstance(i, EventNode)}
 
     @property
     def _error_class(self) -> type[LLMLingError]:
         """Error class for agent operations."""
         return LLMLingError
 
-    def _validate_item(self, item: MessageNode[Any, Any] | Any) -> MessageNode[Any, Any]:
+    def _validate_item(
+        self, item: MessageEmitter[Any, Any] | Any
+    ) -> MessageEmitter[Any, Any]:
         """Validate and convert items before registration.
 
         Args:
@@ -439,7 +450,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
         Raises:
             LLMlingError: If item is not a valid node
         """
-        if not isinstance(item, MessageNode):
+        if not isinstance(item, MessageEmitter):
             msg = f"Item must be Agent or Team, got {type(item)}"
             raise self._error_class(msg)
         item.context.pool = self
@@ -806,7 +817,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageNode[Any, Any]]):
 
         return base
 
-    def list_agents(self) -> list[str]:
+    def list_nodes(self) -> list[str]:
         """List available agent names."""
         return list(self.list_items())
 
