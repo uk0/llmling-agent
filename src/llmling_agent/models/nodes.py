@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
+from abc import abstractmethod
+from typing import TYPE_CHECKING, Any, Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
-from llmling_agent.models.events import EventConfig  # noqa: TC001
+from llmling_agent.models.events import DEFAULT_TEMPLATE, EventConfig
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 from llmling_agent.models.mcp_server import (
     MCPServerBase,
     MCPServerConfig,
     StdioMCPServer,
 )
+
+
+if TYPE_CHECKING:
+    from llmling_agent.messaging.eventnode import Event
 
 
 class NodeConfig(BaseModel):
@@ -75,3 +82,38 @@ class NodeConfig(BaseModel):
                     configs.append(server)
 
         return configs
+
+
+class EventNodeConfig(NodeConfig):
+    """Base configuration for event nodes.
+
+    All event node configurations must:
+    1. Specify their type for discrimination
+    2. Implement get_event() to create their event instance
+    """
+
+    type: Literal["event"] = Field("event", init=False)
+    """Discriminator field for event configs."""
+
+    enabled: bool = True
+    """Whether this event source is active."""
+
+    template: str = DEFAULT_TEMPLATE
+    """Jinja2 template for formatting events."""
+
+    include_metadata: bool = True
+    """Control metadata visibility in template."""
+
+    include_timestamp: bool = True
+    """Control timestamp visibility in template."""
+
+    @abstractmethod
+    def get_event(self) -> Event[Any]:
+        """Create event instance from this configuration.
+
+        This method should:
+        1. Create the event instance
+        2. Wrap any functions if needed
+        3. Return the configured event
+        """
+        raise NotImplementedError
