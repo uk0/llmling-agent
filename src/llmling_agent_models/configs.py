@@ -126,9 +126,7 @@ class ImportModelConfig(BaseModelConfig):
     kw_args: dict[str, str] = Field(default_factory=dict)
 
     def get_model(self) -> Any:
-        from llmling_models.importmodel import ImportModel
-
-        return ImportModel(model=self.model, kw_args=self.kw_args)
+        return self.model(**self.kw_args) if isinstance(self.model, type) else self.model
 
 
 class InputModelConfig(BaseModelConfig):
