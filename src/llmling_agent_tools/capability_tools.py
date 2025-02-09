@@ -416,3 +416,81 @@ async def ask_agent(  # noqa: D417
         store_history=store_history,
     )
     return str(result.content)
+
+
+async def connect_nodes(  # noqa: D417
+    ctx: AgentContext,
+    source: str,
+    target: str,
+    *,
+    connection_type: Literal["run", "context", "forward"] = "run",
+    priority: int = 0,
+    delay_seconds: float | None = None,
+    queued: bool = False,
+    queue_strategy: Literal["concat", "latest", "buffer"] = "latest",
+    wait_for_completion: bool = True,
+    name: str | None = None,
+) -> str:
+    """Connect two nodes to enable message flow between them.
+
+    Nodes can be agents, teams, or EventNodes.
+
+    Args:
+        source: Name of the source node
+        target: Name of the target node
+        connection_type: How messages should be handled:
+            - run: Execute message as a new run in target
+            - context: Add message as context to target
+            - forward: Forward message to target's outbox
+        priority: Task priority (lower = higher priority)
+        delay_seconds: Optional delay before processing messages
+        queued: Whether messages should be queued for manual processing
+        queue_strategy: How to process queued messages:
+            - concat: Combine all messages with newlines
+            - latest: Use only the most recent message
+            - buffer: Process all messages individually
+        wait_for_completion: Whether to wait for target to complete
+        name: Optional name for this connection
+
+    Returns:
+        Description of the created connection
+    """
+    from datetime import timedelta
+
+    from pydantic_ai.tools import RunContext
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+    if not ctx.pool:
+        msg = "No agent pool available"
+        raise ToolError(msg)
+
+    # Get the nodes
+    if source not in ctx.pool.nodes:
+        msg = f"Source node not found: {source}"
+        raise ToolError(msg)
+    if target not in ctx.pool.nodes:
+        msg = f"Target node not found: {target}"
+        raise ToolError(msg)
+
+    source_node = ctx.pool.nodes[source]
+    target_node = ctx.pool.nodes[target]
+
+    # Create the connection
+    delay = timedelta(seconds=delay_seconds) if delay_seconds is not None else None
+    _talk = source_node.connect_to(
+        target_node,
+        connection_type=connection_type,
+        priority=priority,
+        delay=delay,
+        queued=queued,
+        queue_strategy=queue_strategy,
+        name=name,
+    )
+    source_node.connections.set_wait_state(target_node, wait=wait_for_completion)
+
+    return (
+        f"Created connection from {source} to {target} "
+        f"(type={connection_type}, queued={queued}, "
+        f"strategy={queue_strategy if queued else 'n/a'})"
+    )

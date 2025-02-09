@@ -153,6 +153,16 @@ class CapabilitiesResourceProvider(ResourceProvider):
                     requires_capability="can_add_teams",
                 )
             )
+
+        if self.capabilities.can_connect_nodes:
+            tools.append(
+                ToolInfo.from_callable(
+                    capability_tools.connect_nodes,
+                    source="builtin",
+                    requires_capability="can_can_connect_nodes",
+                )
+            )
+
         if self.capabilities.can_ask_agents:
             tools.append(
                 ToolInfo.from_callable(

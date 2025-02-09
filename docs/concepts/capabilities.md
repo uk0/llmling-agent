@@ -47,6 +47,7 @@ agents:
       can_create_delegates: false  # Whether agent can spawn temporary delegate agents
       can_add_agents: false       # Whether agent can add new agents to the pool
       can_add_teams: false       # Whether agent can add new teams to the pool
+      can_connect_nodes: false       # Whether agent can connect two nodes
 ```
 
 Or in Python:
