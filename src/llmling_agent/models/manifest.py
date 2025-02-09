@@ -72,12 +72,12 @@ class AgentsManifest(ConfigModel):
     """Mapping of response names to their definitions"""
 
     jobs: dict[str, Job] = Field(default_factory=dict)
-    """Pre-defined jobs, ready to be used by agents."""
+    """Pre-defined jobs, ready to be used by nodes."""
 
     mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list)
     """List of MCP server configurations:
 
-    These MCP servers are used to provide tools and other resources to the agents.
+    These MCP servers are used to provide tools and other resources to the nodes.
     """
     pool_server: PoolServerConfig = Field(default_factory=PoolServerConfig)
     """Pool server configuration.
@@ -147,11 +147,11 @@ class AgentsManifest(ConfigModel):
     @classmethod
     def resolve_inheritance(cls, data: dict) -> dict:
         """Resolve agent inheritance chains."""
-        agents = data.get("agents", {})
+        nodes = data.get("agents", {})
         resolved: dict[str, dict] = {}
         seen: set[str] = set()
 
-        def resolve_agent(name: str) -> dict:
+        def resolve_node(name: str) -> dict:
             if name in resolved:
                 return resolved[name]
 
@@ -161,20 +161,20 @@ class AgentsManifest(ConfigModel):
 
             seen.add(name)
             config = (
-                agents[name].model_copy()
-                if hasattr(agents[name], "model_copy")
-                else agents[name].copy()
+                nodes[name].model_copy()
+                if hasattr(nodes[name], "model_copy")
+                else nodes[name].copy()
             )
             inherit = (
                 config.get("inherits") if isinstance(config, dict) else config.inherits
             )
             if inherit:
-                if inherit not in agents:
+                if inherit not in nodes:
                     msg = f"Parent agent {inherit} not found"
                     raise ValueError(msg)
 
                 # Get resolved parent config
-                parent = resolve_agent(inherit)
+                parent = resolve_node(inherit)
                 # Merge parent with child (child overrides parent)
                 merged = parent.copy()
                 merged.update(config)
@@ -184,11 +184,11 @@ class AgentsManifest(ConfigModel):
             resolved[name] = config
             return config
 
-        # Resolve all agents
-        for name in agents:
-            resolved[name] = resolve_agent(name)
+        # Resolve all nodes
+        for name in nodes:
+            resolved[name] = resolve_node(name)
 
-        # Update agents with resolved configs
+        # Update nodes with resolved configs
         data["agents"] = resolved
         return data
 
@@ -326,43 +326,6 @@ class AgentsManifest(ConfigModel):
                 case BaseProviderConfig():
                     providers.add(agent_config.provider.type)
         return providers
-
-    def register_agent(
-        self,
-        name: str,
-        *,
-        model: str | None = None,
-        system_prompts: list[str] | None = None,
-        description: str | None = None,
-        temporary: bool = False,
-        **kwargs: Any,
-    ) -> AgentConfig:
-        """Register a new agent configuration.
-
-        Args:
-            name: Name of the new agent
-            model: Model to use
-            system_prompts: System prompts for the agent
-            description: Optional description
-            temporary: If True, won't be added to manifest's agents
-            **kwargs: Additional AgentConfig fields
-        """
-        if name in self.agents:
-            msg = f"Agent {name} already exists"
-            raise ValueError(msg)
-
-        config = AgentConfig(
-            name=name,
-            model=model,
-            system_prompts=system_prompts or [],
-            description=description,
-            **kwargs,
-        )
-
-        if not temporary:
-            self.agents[name] = config
-
-        return config
 
     @classmethod
     def from_file(cls, path: StrPath) -> Self:
