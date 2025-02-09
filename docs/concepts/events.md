@@ -168,9 +168,9 @@ Register custom callbacks to handle events:
 ```python
 async def handle_events(event: EventData):
     match event:
-        case FileEvent(type="modified", path=p) if p.endswith('.py'):
+        case FileEventData(type="modified", path=p) if p.endswith('.py'):
             await agent.run(f"Python file modified: {p}")
-        case WebhookEvent(path="/github"):
+        case WebhookEventData(path="/github"):
             await agent.run(f"GitHub webhook received: {event.data}")
 
 # Register callback
@@ -220,7 +220,7 @@ Each event type provides specific data:
 ### FileEvent
 ```python
 @dataclass(frozen=True)
-class FileEvent(EventData):
+class FileEventData(EventData):
     path: str           # Path to affected file
     type: ChangeType    # "added" | "modified" | "deleted"
     timestamp: datetime # When event occurred
@@ -230,7 +230,7 @@ class FileEvent(EventData):
 ### WebhookEvent
 ```python
 @dataclass(frozen=True)
-class WebhookEvent(EventData):
+class WebhookEventData(EventData):
     path: str          # Request path
     method: str        # HTTP method
     data: dict        # Request data
@@ -332,7 +332,7 @@ agents:
 ```python
 # Custom handling for specific cases
 async def special_handler(event: EventData):
-    if isinstance(event, FileEvent) and event.path.endswith('.secret'):
+    if isinstance(event, FileEventData) and event.path.endswith('.secret'):
         await handle_secret_file(event.path)
 
 # Register custom handler but keep auto-handling

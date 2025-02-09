@@ -175,7 +175,7 @@ class HumanProvider(AgentProvider):
 
     async def handle_input(self, content: str):
         """Handle all human input."""
-        from llmling_agent.messaging.events import UIEvent
+        from llmling_agent.messaging.events import UIEventData
 
         if not content.strip():
             return
@@ -187,7 +187,7 @@ class HumanProvider(AgentProvider):
             if content.startswith("/"):
                 # Regular command
                 parsed = parse_command(content[1:])
-                _event = UIEvent(
+                _event = UIEventData(
                     source=self.name,
                     type="command",
                     content=parsed.name,
@@ -211,7 +211,7 @@ class HumanProvider(AgentProvider):
                 if message.startswith("/"):
                     # Command for specific agent
                     parsed = parse_command(message[1:])
-                    _event = UIEvent(
+                    _event = UIEventData(
                         source=self.name,
                         type="agent_command",
                         content=parsed.name,
@@ -226,7 +226,7 @@ class HumanProvider(AgentProvider):
                     )
                 else:
                     # Message for specific agent
-                    _event = UIEvent(
+                    _event = UIEventData(
                         source=self.name,
                         type="agent_message",
                         content=message,
@@ -236,7 +236,7 @@ class HumanProvider(AgentProvider):
 
             else:
                 # Regular message
-                _event = UIEvent(source=self.name, type="message", content=content)
+                _event = UIEventData(source=self.name, type="message", content=content)
 
             # self.agent.message_received.emit(event)
 

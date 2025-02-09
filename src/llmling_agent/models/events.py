@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 
 if TYPE_CHECKING:
-    from llmling_agent.messaging.events import ConnectionEvent
+    from llmling_agent.messaging.events import ConnectionEventData
 
 
 ConnectionEventType = Literal[
@@ -175,7 +175,7 @@ class ConnectionTriggerConfig(EventSourceConfig):
     condition: ConnectionEventConditionType | None = None
     """Condition-based filter for the event."""
 
-    async def matches_event(self, event: ConnectionEvent[Any]) -> bool:
+    async def matches_event(self, event: ConnectionEventData[Any]) -> bool:
         """Check if this trigger matches the event."""
         # First check event type
         if event.event_type != self.event:
@@ -211,7 +211,7 @@ class ConnectionEventCondition(BaseModel):
 
     type: str = Field(init=False)
 
-    async def check(self, event: ConnectionEvent[Any]) -> bool:
+    async def check(self, event: ConnectionEventData[Any]) -> bool:
         raise NotImplementedError
 
 
@@ -227,7 +227,7 @@ class ConnectionContentCondition(ConnectionEventCondition):
     mode: Literal["any", "all"] = "any"
     """Matching mode."""
 
-    async def check(self, event: ConnectionEvent[Any]) -> bool:
+    async def check(self, event: ConnectionEventData[Any]) -> bool:
         if not event.message:
             return False
         text = str(event.message.content)
@@ -243,7 +243,7 @@ class ConnectionJinja2Condition(ConnectionEventCondition):
     template: str
     """Jinja2-Template (needs to return a "boolean" string)."""
 
-    async def check(self, event: ConnectionEvent[Any]) -> bool:
+    async def check(self, event: ConnectionEventData[Any]) -> bool:
         from jinja2 import Environment
 
         env = Environment()

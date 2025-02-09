@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import aioimaplib
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.events import EmailEvent
+from llmling_agent.messaging.events import EmailEventData
 from llmling_agent_events.base import EventSource
 
 
@@ -97,7 +97,7 @@ class EmailEventSource(EventSource):
                     content = payload.decode()
 
         # Create event with email metadata
-        return EmailEvent(
+        return EmailEventData(
             source=self.config.name,
             subject=email_msg["subject"],
             sender=email_msg["from"],

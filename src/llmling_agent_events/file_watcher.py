@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from llmling_agent.messaging.events import ChangeType, FileEvent
+from llmling_agent.messaging.events import ChangeType, FileEventData
 from llmling_agent_events.base import EventSource
 
 
@@ -103,4 +103,6 @@ class FileSystemEventSource(EventSource):
                 if change not in change_to_type:
                     continue
                 typ = change_to_type[change]
-                yield FileEvent.create(source=self.config.name, path=str(path), type=typ)
+                yield FileEventData.create(
+                    source=self.config.name, path=str(path), type=typ
+                )

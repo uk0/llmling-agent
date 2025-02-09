@@ -6,7 +6,7 @@ import asyncio
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from llmling_agent.messaging.events import TimeEvent
+from llmling_agent.messaging.events import TimeEventData
 from llmling_agent_events.base import EventSource
 
 
@@ -65,7 +65,7 @@ class TimeEventSource(EventSource):
                 if (current - next_run).total_seconds() > 1:
                     continue
 
-            yield TimeEvent(
+            yield TimeEventData(
                 source=self.config.name,
                 schedule=self.config.schedule,
                 prompt=self.config.prompt,

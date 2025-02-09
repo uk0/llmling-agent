@@ -457,7 +457,7 @@ class EventManager:
 
         Example:
             @event_manager.observe("file_changed")
-            async def handle_file_change(event: FileEvent):
+            async def handle_file_change(event: FileEventData):
                 await process_file(event.path)
         """
 

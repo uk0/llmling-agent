@@ -12,7 +12,7 @@ from psygnal import Signal
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.events import ConnectionEvent, EventData
+from llmling_agent.messaging.events import ConnectionEventData, EventData
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.talk.stats import AggregatedTalkStats, TalkStats
 from llmling_agent.utils.inspection import execute
@@ -206,12 +206,14 @@ class Talk[TTransmittedData]:
     def on_event(
         self,
         event_type: ConnectionEventType,
-        callback: Callable[[ConnectionEvent[TTransmittedData]], None | Awaitable[None]],
+        callback: Callable[
+            [ConnectionEventData[TTransmittedData]], None | Awaitable[None]
+        ],
     ) -> Self:
         """Register callback for connection events."""
 
         async def wrapped_callback(event: EventData):
-            if isinstance(event, ConnectionEvent) and event.event_type == event_type:
+            if isinstance(event, ConnectionEventData) and event.event_type == event_type:
                 await execute(callback, event)
 
         self.source._events.add_callback(wrapped_callback)
@@ -222,7 +224,7 @@ class Talk[TTransmittedData]:
         event_type: ConnectionEventType,
         message: ChatMessage[TTransmittedData] | None,
     ):
-        event = ConnectionEvent(
+        event = ConnectionEventData(
             connection=self,
             source="connection",
             connection_name=self.name,

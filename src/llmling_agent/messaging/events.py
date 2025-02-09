@@ -53,7 +53,7 @@ class EventData:
 
 
 @dataclass(frozen=True, kw_only=True)
-class UIEvent(EventData):
+class UIEventData(EventData):
     """Event triggered through UI interaction."""
 
     type: Literal["command", "message", "agent_command", "agent_message"]
@@ -87,7 +87,7 @@ class UIEvent(EventData):
 
 
 @dataclass(frozen=True)
-class ConnectionEvent[TTransmittedData](EventData):
+class ConnectionEventData[TTransmittedData](EventData):
     """Event from connection activity."""
 
     connection_name: str
@@ -111,7 +111,7 @@ class ConnectionEvent[TTransmittedData](EventData):
 
 
 @dataclass(frozen=True, kw_only=True)
-class FileEvent(EventData):
+class FileEventData(EventData):
     """File system event."""
 
     path: str
@@ -133,7 +133,7 @@ class FunctionResultEvent(EventData):
 
 
 @dataclass(frozen=True)
-class EmailEvent(EventData):
+class EmailEventData(EventData):
     """Email event with specific content structure."""
 
     subject: str
@@ -146,7 +146,7 @@ class EmailEvent(EventData):
 
 
 @dataclass(frozen=True)
-class TimeEvent(EventData):
+class TimeEventData(EventData):
     """Time-based event."""
 
     schedule: str
@@ -161,7 +161,7 @@ class TimeEvent(EventData):
 
 
 @dataclass(frozen=True)
-class WebhookEvent(EventData):
+class WebhookEventData(EventData):
     """Webhook payload with formatting."""
 
     payload: dict[str, Any]
