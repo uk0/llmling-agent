@@ -6,10 +6,9 @@ from collections.abc import Callable, Iterator, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, Self, overload
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from psygnal import Signal
-from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage
@@ -25,7 +24,7 @@ if TYPE_CHECKING:
     import PIL.Image
     from toprompt import AnyPromptType
 
-    from llmling_agent.common_types import AnyFilterFn, AnyTransformFn
+    from llmling_agent.common_types import AnyFilterFn, AnyTransformFn, QueueStrategy
     from llmling_agent.messaging.events import ConnectionEventData, EventData
     from llmling_agent.messaging.messageemitter import MessageEmitter
     from llmling_agent.messaging.messagenode import MessageNode
@@ -33,8 +32,6 @@ if TYPE_CHECKING:
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.providers import ProcessorCallback
 
-TContent = TypeVar("TContent")
-QueueStrategy = Literal["concat", "latest", "buffer"]
 logger = get_logger(__name__)
 
 

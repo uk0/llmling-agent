@@ -16,12 +16,16 @@ from llmling_agent.talk import AggregatedTalkStats, Talk, TeamTalk
 if TYPE_CHECKING:
     from datetime import timedelta
 
-    from llmling_agent.common_types import AgentName, AnyTransformFn, AsyncFilterFn
+    from llmling_agent.common_types import (
+        AgentName,
+        AnyTransformFn,
+        AsyncFilterFn,
+        QueueStrategy,
+    )
     from llmling_agent.messaging.messageemitter import MessageEmitter
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.forward_targets import ConnectionType
-    from llmling_agent.talk.talk import QueueStrategy
 
 logger = get_logger(__name__)
 

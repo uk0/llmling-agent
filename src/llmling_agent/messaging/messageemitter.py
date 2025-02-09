@@ -31,14 +31,14 @@ if TYPE_CHECKING:
     import PIL.Image
     from toprompt import AnyPromptType
 
-    from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn
+    from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn, QueueStrategy
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.content import Content
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.mcp_server import MCPServerConfig
     from llmling_agent.models.providers import ProcessorCallback
-    from llmling_agent.talk import QueueStrategy, Talk, TeamTalk
+    from llmling_agent.talk import Talk, TeamTalk
 
 
 class MessageEmitter[TDeps, TResult](TaskManagerMixin, ABC):
