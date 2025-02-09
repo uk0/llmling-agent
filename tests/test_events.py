@@ -172,7 +172,7 @@ async def test_event_manager_async_context(agent):
     """Test async context management."""
     async with EventManager(agent) as manager:
         assert manager.enabled
-        assert manager.agent == agent
+        assert manager.node == agent
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from datetime import timedelta
 
     from llmling_agent.common_types import AgentName, AnyTransformFn, AsyncFilterFn
+    from llmling_agent.messaging.messageemitter import MessageEmitter
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.forward_targets import ConnectionType
@@ -33,7 +34,7 @@ class ConnectionManager:
     node_connected = Signal(object)  # Node
     connection_added = Signal(Talk)  # Agent
 
-    def __init__(self, owner: MessageNode):
+    def __init__(self, owner: MessageEmitter):
         self.owner = owner
         # helper class for the user
         self._connections = EventedList[Talk]()
@@ -114,7 +115,7 @@ class ConnectionManager:
 
     def create_connection(
         self,
-        source: MessageNode,
+        source: MessageEmitter,
         target: MessageNode | Sequence[MessageNode],
         *,
         connection_type: ConnectionType = "run",

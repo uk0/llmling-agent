@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.common_types import AnyFilterFn, AnyTransformFn
+    from llmling_agent.messaging.messageemitter import MessageEmitter
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.forward_targets import ConnectionType
     from llmling_agent.models.providers import ProcessorCallback
@@ -44,7 +45,7 @@ class Talk[TTransmittedData]:
         """Event emitted when a message flows through a connection."""
 
         message: ChatMessage
-        source: MessageNode
+        source: MessageEmitter
         targets: list[MessageNode]
         queued: bool
         connection_type: ConnectionType
@@ -59,7 +60,7 @@ class Talk[TTransmittedData]:
 
     def __init__(
         self,
-        source: MessageNode,
+        source: MessageEmitter,
         targets: Sequence[MessageNode],
         group: TeamTalk | None = None,
         *,

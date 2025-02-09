@@ -13,7 +13,7 @@ from llmling_agent.models.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
-    from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent.messaging.messageemitter import MessageEmitter
     from llmling_agent.messaging.messages import ChatMessage
 
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class NodeLogger:
     """Handles database logging for node interactions."""
 
-    def __init__(self, node: MessageNode[Any, Any], enable_db_logging: bool = True):
+    def __init__(self, node: MessageEmitter[Any, Any], enable_db_logging: bool = True):
         """Initialize logger.
 
         Args:

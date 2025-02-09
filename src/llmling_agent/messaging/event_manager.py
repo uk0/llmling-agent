@@ -10,6 +10,7 @@ from functools import wraps
 import inspect
 from typing import TYPE_CHECKING, Any, Self, TypeVar, overload
 
+from psygnal import Signal
 from pydantic import SecretStr
 
 from llmling_agent.log import get_logger
@@ -25,7 +26,7 @@ from llmling_agent.utils.inspection import execute
 
 
 if TYPE_CHECKING:
-    from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent.messaging.messageemitter import MessageEmitter
     from llmling_agent_events.base import EventSource
     from llmling_agent_events.timed_watcher import TimeEventSource
 
@@ -52,20 +53,22 @@ class FunctionResultEvent(EventData):
 class EventManager:
     """Manages multiple event sources and their lifecycles."""
 
+    event_processed = Signal(EventData)
+
     def __init__(
         self,
-        agent: MessageNode[Any, Any],
+        node: MessageEmitter[Any, Any],
         enable_events: bool = True,
         auto_run: bool = True,
     ):
         """Initialize event manager.
 
         Args:
-            agent: Agent to manage events for
+            node: Agent to manage events for
             enable_events: Whether to enable event processing
             auto_run: Whether to automatically call run() for event callbacks
         """
-        self.agent = agent
+        self.node = node
         self.enabled = enable_events
         self._sources: dict[str, EventSource] = {}
         self._callbacks: list[EventCallback] = []
@@ -73,9 +76,9 @@ class EventManager:
         self._observers: dict[str, list[EventObserver]] = {}
 
     async def _default_handler(self, event: EventData):
-        """Default event handler that converts events to agent runs."""
+        """Default event handler that converts events to node runs."""
         if prompt := event.to_prompt():  # Only run if event provides a prompt
-            await self.agent.run(prompt)
+            await self.node.run(prompt)
 
     def add_callback(self, callback: EventCallback):
         """Register an event callback."""
@@ -86,7 +89,7 @@ class EventManager:
         self._callbacks.remove(callback)
 
     async def emit_event(self, event: EventData):
-        """Emit event to all callbacks and optionally handle via agent."""
+        """Emit event to all callbacks and optionally handle via node."""
         if not self.enabled:
             return
 
@@ -104,9 +107,10 @@ class EventManager:
             try:
                 prompt = event.to_prompt()
                 if prompt:
-                    await self.agent.run(prompt)
+                    await self.node.run(prompt)
             except Exception:
                 logger.exception("Error in default event handler")
+        self.event_processed.emit(event)
 
     async def add_file_watch(
         self,
@@ -253,7 +257,7 @@ class EventManager:
             self._sources[config.name] = source
             # Start processing events
             name = f"event_processor_{config.name}"
-            self.agent.create_task(self._process_events(source), name=name)
+            self.node.create_task(self._process_events(source), name=name)
             logger.debug("Added event source: %s", config.name)
         except Exception as e:
             msg = f"Failed to add event source {config.name}"
@@ -307,11 +311,11 @@ class EventManager:
 
         # Set up triggers from config
         if (
-            self.agent.context
-            and self.agent.context.config
-            and self.agent.context.config.triggers
+            self.node.context
+            and self.node.context.config
+            and self.node.context.config.triggers
         ):
-            for trigger in self.agent.context.config.triggers:
+            for trigger in self.node.context.config.triggers:
                 await self.add_source(trigger)
 
         return self
@@ -411,7 +415,7 @@ class EventManager:
                                 **event_metadata,
                             },
                         )
-                        self.agent.run_background(self.emit_event(event))
+                        self.node.run_background(self.emit_event(event))
                 except Exception as e:
                     if self.enabled:
                         event = EventData.create(
@@ -426,7 +430,7 @@ class EventManager:
                                 **event_metadata,
                             },
                         )
-                        self.agent.run_background(self.emit_event(event))
+                        self.node.run_background(self.emit_event(event))
                     raise
                 else:
                     return result
