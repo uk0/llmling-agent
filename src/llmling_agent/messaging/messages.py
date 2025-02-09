@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     import tokonomics
 
 
-TContent = TypeVar("TContent", str, BaseModel, default=str)
+TContent = TypeVar("TContent", str, BaseModel)
 FormatStyle = Literal["simple", "detailed", "markdown", "custom"]
 logger = get_logger(__name__)
 
