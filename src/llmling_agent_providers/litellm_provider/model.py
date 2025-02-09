@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
-from llmling_models import BaseModel
+from pydantic import BaseModel
 
 
 if TYPE_CHECKING:
     from litellm import ModelResponse
-    from litellm.files.main import StreamingResponse
+    from litellm.utils import CustomStreamWrapper
     from pydantic import BaseModel as PydanticModel
 
 
@@ -82,7 +82,7 @@ class LiteLLMModel(BaseModel):
         tool_choice: str | None = None,
         num_retries: int = 1,
         **extra_kwargs: Any,
-    ) -> StreamingResponse:
+    ) -> CustomStreamWrapper:
         """Stream completions using litellm.
 
         Args:
