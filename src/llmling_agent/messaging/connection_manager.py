@@ -62,7 +62,7 @@ class ConnectionManager:
 
     def set_wait_state(
         self,
-        target: MessageNode | AgentName,
+        target: MessageEmitter | AgentName,
         wait: bool = True,
     ):
         """Set waiting behavior for target."""
