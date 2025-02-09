@@ -9,7 +9,8 @@ from typing import TYPE_CHECKING, Any, Literal, Self, overload
 from psygnal.containers import EventedList
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messagenode import MessageNode, NodeContext
+from llmling_agent.messaging.context import NodeContext
+from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent.models.teams import TeamConfig
 from llmling_agent.talk.stats import AggregatedMessageStats, AggregatedTalkStats

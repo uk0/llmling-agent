@@ -9,7 +9,7 @@ from slashed import Command, CommandContext, CommandError
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messagenode import NodeContext  # noqa: TC001
+from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 from llmling_agent_commands.completers import get_available_nodes
 
 

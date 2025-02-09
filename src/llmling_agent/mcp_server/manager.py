@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
     from mcp.types import Prompt as MCPPrompt, Resource as MCPResource
 
-    from llmling_agent.messaging.messagenode import NodeContext
+    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.tools.base import ToolInfo
 
 

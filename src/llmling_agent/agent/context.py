@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from typing_extensions import TypeVar
 
-from llmling_agent.messaging.messagenode import NodeContext
+from llmling_agent.messaging.context import NodeContext
 from llmling_agent.prompts.conversion_manager import ConversionManager
 
 

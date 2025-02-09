@@ -3,7 +3,7 @@ from __future__ import annotations
 from slashed import CommandContext, SlashedCommand
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messagenode import NodeContext  # noqa: TC001
+from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 
 
 logger = get_logger(__name__)
