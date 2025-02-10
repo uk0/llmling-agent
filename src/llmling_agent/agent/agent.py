@@ -1020,11 +1020,13 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             block: Whether to block until completion
             **kwargs: Arguments passed to run()
         """
+        self._infinite = max_count is None
 
         async def _continuous():
             count = 0
             msg = "%s: Starting continuous run (max_count=%s, interval=%s) for %r"
             logger.debug(msg, self.name, max_count, interval, self.name)
+            latest = None
             while max_count is None or count < max_count:
                 try:
                     current_prompts = [
@@ -1034,7 +1036,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                     msg = "%s: Generated prompt #%d: %s"
                     logger.debug(msg, self.name, count, current_prompts)
 
-                    await self.run(current_prompts, **kwargs)
+                    latest = await self.run(current_prompts, **kwargs)
                     msg = "%s: Run continous result #%d"
                     logger.debug(msg, self.name, count)
 
@@ -1048,15 +1050,14 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                     await asyncio.sleep(interval)
             msg = "%s: Continuous run completed after %d iterations"
             logger.debug(msg, self.name, count)
+            return latest
 
         # Cancel any existing background task
         await self.stop()
         task = asyncio.create_task(_continuous(), name=f"background_{self.name}")
-
         if block:
             try:
-                await task
-                return None
+                return await task  # type: ignore
             finally:
                 if not task.done():
                     task.cancel()
