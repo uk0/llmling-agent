@@ -169,7 +169,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
     def __or__(
         self,
         other: AnyAgent[Any, Any] | ProcessorCallback[Any] | BaseTeam[Any, Any],
-    ) -> TeamRun[TDeps, Any]:
+    ) -> TeamRun[Any, Any]:
         """Create a sequential pipeline."""
         from llmling_agent.agent import Agent, StructuredAgent
         from llmling_agent.delegation.teamrun import TeamRun
