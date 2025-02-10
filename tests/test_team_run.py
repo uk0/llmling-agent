@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 
 import pytest
 
@@ -119,23 +120,23 @@ class TestTeamRunBackground:
             with pytest.raises(RuntimeError):
                 await run.wait()
 
-    # async def test_timing_accuracy(self):
-    #     """Test that timing information is accurate."""
-    #     async with AgentPool[None]() as pool:
-    #         agent = await pool.add_agent(
-    #             "agent", provider=lambda x: delayed_processor(x, 0.2)
-    #         )
+    async def test_timing_accuracy(self):
+        """Test that timing information is accurate."""
+        async with AgentPool[None]() as pool:
+            agent = await pool.add_agent(
+                "agent", provider=lambda x: delayed_processor(x, 0.2)
+            )
 
-    #         run = agent
-    #         start = datetime.now()
-    #         _stats = await run.run_in_background("test")
+            run = agent
+            start = datetime.now()
+            _stats = await run.run_in_background("test", max_count=1)
 
-    #         # Wait should return message
-    #         result = await run.wait()
-    #         assert isinstance(result, ChatMessage)
-    #         # Message should have timestamp
-    #         assert result.timestamp >= start
-    #         assert result.timestamp < datetime.now()
+            # Wait should return message
+            result = await run.wait()
+            assert isinstance(result, ChatMessage)
+            # Message should have timestamp
+            assert result.timestamp >= start
+            assert result.timestamp < datetime.now()
 
 
 if __name__ == "__main__":
