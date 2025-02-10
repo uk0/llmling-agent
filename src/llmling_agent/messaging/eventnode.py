@@ -132,16 +132,8 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
     def stats(self) -> MessageStats:
         return MessageStats(messages=self._logger.message_history)
 
-    async def _run(
-        self,
-        *content: Any,
-        **kwargs: Any,
-    ) -> ChatMessage[TEventData]:
+    async def _run(self, *content: Any, **kwargs: Any) -> ChatMessage[TEventData]:
         """Convert event data to message."""
         result = await self.event.convert_data(content[0])
-        return ChatMessage(
-            content=result,
-            role="system",
-            name=self.name,
-            metadata=kwargs.get("metadata", {}),
-        )
+        meta = kwargs.get("metadata", {})
+        return ChatMessage(content=result, role="system", name=self.name, metadata=meta)

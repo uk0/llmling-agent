@@ -51,11 +51,8 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
             prompts = await convert_prompts([user_msg.content])
             # Update received message's chain to show it came through its source
             user_msg = user_msg.forwarded(prompt[0])
-            user_msg = replace(
-                user_msg,
-                role="user",  # change role since "perspective" changes
-                cost_info=None,  # Clear cost info to avoid double-counting
-            )
+            # clear cost info to avoid double-counting
+            user_msg = replace(user_msg, role="user", cost_info=None)
             final_prompt = "\n\n".join(str(p) for p in prompts)
         else:
             prompts = await convert_prompts(prompt)
