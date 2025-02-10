@@ -347,11 +347,8 @@ class Talk[TTransmittedData]:
                             )
 
                 if self.delay is not None or self.priority != 0:
-                    target.run_background(
-                        add_context(),
-                        priority=self.priority,
-                        delay=self.delay,
-                    )
+                    coro = add_context()
+                    target.run_background(coro, priority=self.priority, delay=self.delay)
                 else:
                     await add_context()
                 return None
@@ -362,11 +359,8 @@ class Talk[TTransmittedData]:
                     async def delayed_emit():
                         target.outbox.emit(message, prompt)
 
-                    target.run_background(
-                        delayed_emit(),
-                        priority=self.priority,
-                        delay=self.delay,
-                    )
+                    coro = delayed_emit()
+                    target.run_background(coro, priority=self.priority, delay=self.delay)
                 else:
                     target.outbox.emit(message, prompt)
                 return None
@@ -383,11 +377,9 @@ class Talk[TTransmittedData]:
                 # Process each agent's queue
                 for target in self.targets:
                     queue = self._pending_messages[target.name]
-                    for message in queue:
-                        if response := await self._process_for_target(
-                            message, target, prompt
-                        ):
-                            results.append(response)  # noqa: PERF401
+                    for msg in queue:
+                        if resp := await self._process_for_target(msg, target, prompt):
+                            results.append(resp)  # noqa: PERF401
                     queue.clear()
                 return results
 
@@ -398,10 +390,8 @@ class Talk[TTransmittedData]:
                     queue = self._pending_messages[target.name]
                     if queue:
                         latest = queue[-1]
-                        if response := await self._process_for_target(
-                            latest, target, prompt
-                        ):
-                            results.append(response)
+                        if resp := await self._process_for_target(latest, target, prompt):
+                            results.append(resp)
                         queue.clear()
                 return results
 

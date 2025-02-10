@@ -47,11 +47,7 @@ class MessageStats:
         """Total bytes transmitted."""
         return sum(len(str(msg.content).encode()) for msg in self.messages)
 
-    def format(
-        self,
-        style: FormatStyle = "simple",
-        **kwargs: Any,
-    ) -> str:
+    def format(self, style: FormatStyle = "simple", **kwargs: Any) -> str:
         """Format the conversation that happened on this connection."""
         return "\n".join(msg.format(style, **kwargs) for msg in self.messages)
 
@@ -125,11 +121,7 @@ class AggregatedMessageStats:
             return None
         return max(msg.timestamp for msg in self.messages)
 
-    def format(
-        self,
-        style: FormatStyle = "simple",
-        **kwargs: Any,
-    ) -> str:
+    def format(self, style: FormatStyle = "simple", **kwargs: Any) -> str:
         """Format all conversations in the team."""
         return "\n".join(msg.format(style, **kwargs) for msg in self.messages)
 

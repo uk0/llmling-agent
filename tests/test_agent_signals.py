@@ -51,12 +51,12 @@ async def test_run_result_not_modified_by_connections():
             # or possibly just [agent_a.name] if we decide that's the expected behavior
 
             # While messages received by B should have the full chain
-            def collect_b(msg: ChatMessage[Any], _prompt: str | None = None):
+            def collect_b(msg: ChatMessage[Any]):
                 assert msg.forwarded_from == ["agent-a"], (
                     "Forwarded message should contain chain"
                 )
 
-            agent_b.outbox.connect(collect_b)
+            agent_b.message_sent.connect(collect_b)
 
 
 @pytest.mark.asyncio
@@ -70,7 +70,7 @@ async def test_message_chain_through_routing():
             async with Agent[None](name="agent-c", model=model_c) as agent_c:
                 # Track messages received by C
                 received_by_c: list[ChatMessage[Any]] = []
-                agent_c.message_received.connect(lambda msg: received_by_c.append(msg))
+                agent_c.message_received.connect(received_by_c.append)
 
                 # Connect the chain
                 agent_a.connect_to(agent_b)
