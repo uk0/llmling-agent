@@ -58,3 +58,13 @@ class LangfuseConfig(PromptHubConfig):
 
     fetch_timeout_seconds: int = 20
     """Timeout for fetching responses in seconds."""
+
+
+class TraceloopConfig(PromptHubConfig):
+    """Configuration for Traceloop prompt provider."""
+
+    type: Literal["traceloop"] = Field("traceloop", init=False)
+    """Configuration for Traceloop prompt provider."""
+
+    api_key: SecretStr | None = None  # Optional, defaults to TRACELOOP_API_KEY env var
+    """API key for the Traceloop API."""

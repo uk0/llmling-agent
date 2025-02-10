@@ -8,6 +8,7 @@ from llmling_agent.models.prompt_hubs import (
     LangfuseConfig,
     OpenLITConfig,
     PromptLayerConfig,
+    TraceloopConfig,
 )
 from llmling_agent.prompts.builtin_provider import BuiltinPromptProvider
 from llmling_agent.utils.tasks import TaskManagerMixin
@@ -93,6 +94,10 @@ class PromptManager(TaskManagerMixin):
                     from llmling_agent_prompts.promptlayer import PromptLayerProvider
 
                     self.providers["promptlayer"] = PromptLayerProvider(provider_config)
+                case TraceloopConfig():
+                    from llmling_agent_prompts.traceloop import TraceloopPromptHub
+
+                    self.providers["traceloop"] = TraceloopPromptHub(provider_config)
 
     async def get_from(
         self,
