@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Callable, Sequence
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -351,7 +351,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
         *,
         name: str | None = None,
         **kwargs: Any,
-    ) -> StructuredAgent[TDeps, TResult]:
+    ) -> StructuredAgent[None, TResult]:
         """Create a structured agent from a processing callback.
 
         Args:
@@ -385,11 +385,12 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
         return_type = hints.get("return")
 
         # If async, unwrap from Awaitable
-        if return_type and hasattr(return_type, "__origin__"):
-            from collections.abc import Awaitable
-
-            if return_type.__origin__ is Awaitable:
-                return_type = return_type.__args__[0]
+        if (
+            return_type
+            and hasattr(return_type, "__origin__")
+            and return_type.__origin__ is Awaitable
+        ):
+            return_type = return_type.__args__[0]
         return cls(agent, return_type or str)  # type: ignore
 
     def is_busy(self) -> bool:
