@@ -391,7 +391,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
             and return_type.__origin__ is Awaitable
         ):
             return_type = return_type.__args__[0]
-        return cls(agent, return_type or str)  # type: ignore
+        return StructuredAgent[None, TResult](agent, return_type or str)  # type: ignore
 
     def is_busy(self) -> bool:
         """Check if agent is currently processing tasks."""

@@ -140,7 +140,7 @@ if __name__ == "__main__":
         # Create processor
         from llmling_agent.agent.agent import Agent
 
-        provider = CallbackProvider[Any](str.upper, name="uppercase")
+        provider = CallbackProvider(str.upper, name="uppercase")
         uppercase = Agent[Any](provider=provider)
 
         # Normal usage

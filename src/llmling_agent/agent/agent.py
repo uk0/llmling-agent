@@ -470,7 +470,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         name: str | None = None,
         debug: bool = False,
         **kwargs: Any,
-    ) -> Agent[TDeps]:
+    ) -> Agent[None]:
         """Create an agent from a processing callback.
 
         Args:
@@ -486,7 +486,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
         name = name or callback.__name__ or "processor"
         provider = CallbackProvider(callback, name=name)
-        return cls(provider=provider, name=name, debug=debug, **kwargs)
+        return Agent[None](provider=provider, name=name, debug=debug, **kwargs)
 
     @property
     def name(self) -> str:
