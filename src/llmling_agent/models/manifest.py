@@ -279,6 +279,7 @@ class AgentsManifest(ConfigModel):
             capabilities=config.capabilities,
             definition=self,
             config=config,
+            runtime=runtime,
             # pool=self,
             # confirmation_callback=confirmation_callback,
         )
@@ -306,6 +307,7 @@ class AgentsManifest(ConfigModel):
             session=config.get_session_config(),
             result_retries=config.result_retries,
             end_strategy=config.end_strategy,
+            capabilities=config.capabilities,
             debug=config.debug,
             # name=config.name or name,
         )

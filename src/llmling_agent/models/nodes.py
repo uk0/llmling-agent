@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ImportString
 
 from llmling_agent.models.events import DEFAULT_TEMPLATE, EventConfig
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
@@ -14,6 +14,7 @@ from llmling_agent.models.mcp_server import (
     MCPServerConfig,
     StdioMCPServer,
 )
+from llmling_agent_input.base import InputProvider  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -40,6 +41,9 @@ class NodeConfig(BaseModel):
     - str entries are converted to StdioMCPServer
     - MCPServerConfig for full server configuration
     """
+
+    input_provider: ImportString[InputProvider] | None = None
+    """Provider for human-input-handling."""
 
     # Future extensions:
     # tools: list[str] | None = None
