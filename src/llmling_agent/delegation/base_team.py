@@ -180,6 +180,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                 other = Agent.from_callback(other)
             else:
                 other = StructuredAgent.from_callback(other)
+            other.context.pool = self.context.pool
 
         # If we're already a TeamRun, extend it
         if isinstance(self, TeamRun):
@@ -218,6 +219,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                 other = Agent.from_callback(other)
             else:
                 other = StructuredAgent.from_callback(other)
+            other.context.pool = self.context.pool
 
         match other:
             case Team():
@@ -266,7 +268,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
     async def run_in_background(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
-        max_count: int = 1,  # 1 = single execution, None = indefinite
+        max_count: int | None = 1,  # 1 = single execution, None = indefinite
         interval: float = 1.0,
         **kwargs: Any,
     ) -> ExtendedTeamTalk:

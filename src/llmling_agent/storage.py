@@ -151,10 +151,8 @@ class StorageManager(TaskManagerMixin):
         if self.config.default_provider:
             if provider := find_provider(self.config.default_provider):
                 return provider
-            logger.warning(
-                "Default provider %s not found or not capable of loading history",
-                self.config.default_provider,
-            )
+            msg = "Default provider %s not found or not capable of loading history"
+            logger.warning(msg, self.config.default_provider)
 
         # Find first capable provider
         for provider in self.providers:
@@ -318,9 +316,8 @@ class StorageManager(TaskManagerMixin):
                     model=model,
                 )
             except Exception:
-                logger.exception(
-                    "Error logging context message to provider: %r", provider
-                )
+                msg = "Error logging context message to provider: %r"
+                logger.exception(msg, provider)
 
     async def reset(
         self,
@@ -337,9 +334,8 @@ class StorageManager(TaskManagerMixin):
             try:
                 counts = await provider.reset(agent_name=agent_name, hard=hard)
             except Exception:
-                logger.exception(
-                    "Error resetting provider: %r", provider.__class__.__name__
-                )
+                msg = "Error resetting provider: %r"
+                logger.exception(msg, provider.__class__.__name__)
         return counts
 
     async def get_conversation_counts(

@@ -43,7 +43,7 @@ class InputProvider(ABC):
 
     async def get_text_input(
         self,
-        context: AgentContext,
+        context: AgentContext[Any],
         prompt: str,
         message_history: list[ChatMessage] | None = None,
     ) -> str:
@@ -52,7 +52,7 @@ class InputProvider(ABC):
 
     async def get_structured_input(
         self,
-        context: AgentContext,
+        context: AgentContext[Any],
         prompt: str,
         result_type: type[BaseModel],
         message_history: list[ChatMessage] | None = None,
@@ -62,7 +62,7 @@ class InputProvider(ABC):
 
     async def get_streaming_input(
         self,
-        context: AgentContext,
+        context: AgentContext[Any],
         prompt: str,
         result_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
@@ -79,7 +79,7 @@ class InputProvider(ABC):
 
     async def _get_streaming_input(
         self,
-        context: AgentContext,
+        context: AgentContext[Any],
         prompt: str,
         result_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
@@ -91,7 +91,7 @@ class InputProvider(ABC):
     @abstractmethod
     def get_tool_confirmation(
         self,
-        context: AgentContext,
+        context: AgentContext[Any],
         tool: ToolInfo,
         args: dict[str, Any],
         message_history: list[ChatMessage] | None = None,
@@ -108,7 +108,7 @@ class InputProvider(ABC):
     @abstractmethod
     def get_code_input(
         self,
-        context: AgentContext,
+        context: AgentContext[Any],
         template: str | None = None,
         language: str = "python",
         description: str | None = None,

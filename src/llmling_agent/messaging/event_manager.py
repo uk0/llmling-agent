@@ -14,7 +14,7 @@ from psygnal import Signal
 from pydantic import SecretStr
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.events import EventData, FunctionResultEvent
+from llmling_agent.messaging.events import EventData, FunctionResultEventData
 from llmling_agent.models.events import (
     EmailConfig,
     EventConfig,
@@ -458,7 +458,7 @@ class EventManager:
                 if self.enabled:
                     typ = type(result).__name__
                     meta = {"type": "function_result", "result_type": typ}
-                    event = FunctionResultEvent(
+                    event = FunctionResultEventData(
                         result=result, source=event_type, metadata=meta
                     )
                     await self.emit_event(event)

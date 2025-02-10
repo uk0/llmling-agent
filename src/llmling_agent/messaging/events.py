@@ -126,7 +126,7 @@ class FileEventData(EventData):
         return f"File {self.type}: {self.path}"
 
 
-class FunctionResultEvent(EventData):
+class FunctionResultEventData(EventData):
     """Event from a function execution result."""
 
     result: Any
