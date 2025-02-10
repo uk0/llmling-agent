@@ -97,6 +97,7 @@ remote = ["websockets>=14.2"]
 mem0 = ["mem0ai>=0.1.48"]
 logfire = ["logfire"]
 agentops = ["agentops"]
+traceloop = ["traceloop-sdk>=0.38.4"]
 arize = [
     "arize",
     "arize-phoenix-otel",
