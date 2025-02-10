@@ -349,7 +349,6 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
         cls,
         callback: ProcessorCallback[TResult],
         *,
-        deps: TDeps | None = None,
         name: str | None = None,
         **kwargs: Any,
     ) -> StructuredAgent[TDeps, TResult]:
@@ -361,7 +360,6 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
                 - with or without context
                 - with explicit return type
             name: Optional name for the agent
-            deps: Optional dependencies for the agent
             **kwargs: Additional arguments for agent
 
         Example:
@@ -380,10 +378,8 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
         from llmling_agent_providers.callback import CallbackProvider
 
         name = name or callback.__name__ or "processor"
-        provider = CallbackProvider[TDeps](callback, name=name)
-        agent = Agent[TDeps](provider=provider, name=name, **kwargs)
-        if deps is not None:
-            agent.context.data = deps
+        provider = CallbackProvider(callback, name=name)
+        agent = Agent[None](provider=provider, name=name, **kwargs)
         # Get return type from signature for validation
         hints = get_type_hints(callback)
         return_type = hints.get("return")

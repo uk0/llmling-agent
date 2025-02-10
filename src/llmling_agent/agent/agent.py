@@ -466,7 +466,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         callback: ProcessorCallback[str],
         *,
         name: str | None = None,
-        deps: TDeps | None = None,
         debug: bool = False,
         **kwargs: Any,
     ) -> Agent[TDeps]:
@@ -478,18 +477,14 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 - with or without context
                 - must return str for pipeline compatibility
             name: Optional name for the agent
-            deps: Optional dependencies for the agent
             debug: Whether to enable debug mode
             kwargs: Additional arguments for agent
         """
         from llmling_agent_providers.callback import CallbackProvider
 
         name = name or callback.__name__ or "processor"
-        provider = CallbackProvider[Any](callback, name=name)
-        agent = cls(provider=provider, name=name, debug=debug, **kwargs)
-        if deps is not None:
-            agent.context.data = deps
-        return agent
+        provider = CallbackProvider(callback, name=name)
+        return cls(provider=provider, name=name, debug=debug, **kwargs)
 
     @property
     def name(self) -> str:

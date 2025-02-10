@@ -29,10 +29,9 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 TResult = TypeVar("TResult")
-TDeps = TypeVar("TDeps")
 
 
-class CallbackProvider[TDeps](AgentProvider[TDeps]):
+class CallbackProvider(AgentProvider[None]):
     """Provider that processes messages through callbacks.
 
     Supports:
@@ -48,7 +47,7 @@ class CallbackProvider[TDeps](AgentProvider[TDeps]):
         callback: ProcessorCallback[Any],
         *,
         name: str = "",
-        context: AgentContext | None = None,
+        context: AgentContext[Any] | None = None,
         debug: bool = False,
     ):
         super().__init__(name=name or callback.__name__, debug=debug, context=context)

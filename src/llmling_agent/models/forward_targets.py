@@ -141,7 +141,7 @@ class FileConnectionConfig(ConnectionConfig):
         variables = {"date": date, "time": time_, **context}
         return UPath(self.path.format(**variables))
 
-    def get_provider(self) -> CallbackProvider[str]:
+    def get_provider(self) -> CallbackProvider:
         """Get provider for file writing."""
         from jinja2 import Template
         from upath import UPath
@@ -188,7 +188,7 @@ class CallableConnectionConfig(ConnectionConfig):
         """
         return await execute(self.callable, message, **self.kw_args)
 
-    def get_provider(self) -> CallbackProvider[Any]:
+    def get_provider(self) -> CallbackProvider:
         """Get provider for callable."""
         from llmling_agent_providers.callback import CallbackProvider
 
