@@ -193,11 +193,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
 
         # Convert tools to schema format
         tool_schemas = [
-            {
-                "name": t.name,
-                "description": t.description,
-                "schema": t.callable.get_schema(),
-            }
+            {"name": t.name, "description": t.description, "schema": t.schema}
             for t in tools or []
         ]
 
@@ -252,14 +248,12 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
             await self._send_context(message_history, tools or [])
 
             # Send prompt
-            msg_id = await self._send_message(
-                type_="prompt",
-                content={
-                    "prompts": prompts,
-                    "result_type": str(result_type) if result_type else None,
-                    "model": str(model) if model else None,
-                },
-            )
+            content = {
+                "prompts": prompts,
+                "result_type": str(result_type) if result_type else None,
+                "model": str(model) if model else None,
+            }
+            msg_id = await self._send_message(type_="prompt", content=content)
 
             # Create future for response
             future: asyncio.Future[Any] = asyncio.Future()
@@ -318,16 +312,13 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
             # Always ensure context is in sync
             await self._ensure_connection()
             await self._send_context(message_history, tools or [])
-
-            msg_id = await self._send_message(
-                type_="prompt",
-                content={
-                    "prompts": prompts,
-                    "stream": True,
-                    "result_type": str(result_type) if result_type else None,
-                    "model": str(model) if model else None,
-                },
-            )
+            content = {
+                "prompts": prompts,
+                "stream": True,
+                "result_type": str(result_type) if result_type else None,
+                "model": str(model) if model else None,
+            }
+            msg_id = await self._send_message(type_="prompt", content=content)
 
             queue: asyncio.Queue[Any] = asyncio.Queue()
             self._active_streams[msg_id] = queue

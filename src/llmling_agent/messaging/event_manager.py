@@ -354,32 +354,26 @@ class EventManager:
                 try:
                     result = await func(*args, **kwargs)
                     if self.enabled:
-                        event = EventData.create(
-                            source=name,
-                            content=result,
-                            metadata={
-                                "status": "success",
-                                "duration": datetime.now() - start_time,
-                                "args": args,
-                                "kwargs": kwargs,
-                                **event_metadata,
-                            },
-                        )
+                        meta = {
+                            "status": "success",
+                            "duration": datetime.now() - start_time,
+                            "args": args,
+                            "kwargs": kwargs,
+                            **event_metadata,
+                        }
+                        event = EventData.create(name, content=result, metadata=meta)
                         await self.emit_event(event)
                 except Exception as e:
                     if self.enabled:
-                        event = EventData.create(
-                            source=name,
-                            content=str(e),
-                            metadata={
-                                "status": "error",
-                                "error": str(e),
-                                "duration": datetime.now() - start_time,
-                                "args": args,
-                                "kwargs": kwargs,
-                                **event_metadata,
-                            },
-                        )
+                        meta = {
+                            "status": "error",
+                            "error": str(e),
+                            "duration": datetime.now() - start_time,
+                            "args": args,
+                            "kwargs": kwargs,
+                            **event_metadata,
+                        }
+                        event = EventData.create(name, content=str(e), metadata=meta)
                         await self.emit_event(event)
                     raise
                 else:
@@ -391,32 +385,26 @@ class EventManager:
                 try:
                     result = func(*args, **kwargs)
                     if self.enabled:
-                        event = EventData.create(
-                            source=name,
-                            content=result,
-                            metadata={
-                                "status": "success",
-                                "duration": datetime.now() - start_time,
-                                "args": args,
-                                "kwargs": kwargs,
-                                **event_metadata,
-                            },
-                        )
+                        meta = {
+                            "status": "success",
+                            "duration": datetime.now() - start_time,
+                            "args": args,
+                            "kwargs": kwargs,
+                            **event_metadata,
+                        }
+                        event = EventData.create(name, content=result, metadata=meta)
                         self.node.run_background(self.emit_event(event))
                 except Exception as e:
                     if self.enabled:
-                        event = EventData.create(
-                            source=name,
-                            content=str(e),
-                            metadata={
-                                "status": "error",
-                                "error": str(e),
-                                "duration": datetime.now() - start_time,
-                                "args": args,
-                                "kwargs": kwargs,
-                                **event_metadata,
-                            },
-                        )
+                        meta = {
+                            "status": "error",
+                            "error": str(e),
+                            "duration": datetime.now() - start_time,
+                            "args": args,
+                            "kwargs": kwargs,
+                            **event_metadata,
+                        }
+                        event = EventData.create(name, content=str(e), metadata=meta)
                         self.node.run_background(self.emit_event(event))
                     raise
                 else:

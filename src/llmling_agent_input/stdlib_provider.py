@@ -44,11 +44,8 @@ class StdlibInputProvider(InputProvider):
             return result
 
         # Fallback: Get raw input and validate
-        raw_input = await self.get_input(
-            context,
-            f"{prompt}\n(Please provide response as {result_type.__name__})",
-            message_history=message_history,
-        )
+        prompt = f"{prompt}\n(Please provide response as {result_type.__name__})"
+        raw_input = await self.get_input(context, prompt, message_history=message_history)
         try:
             return result_type.model_validate_json(raw_input)
         except Exception as e:

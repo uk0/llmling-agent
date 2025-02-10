@@ -338,13 +338,8 @@ class TextualInputProvider(InputProvider):
         description: str | None = None,
     ) -> str:
         if self.app:
-            result = await self.app.push_screen_wait(
-                CodeInputModal(
-                    template=template,
-                    language=language,
-                    description=description,
-                )
-            )
+            modal = CodeInputModal(template, language=language, description=description)
+            result = await self.app.push_screen_wait(modal)
             if result is None:
                 msg = "Code input cancelled"
                 raise UserCancelledError(msg)
