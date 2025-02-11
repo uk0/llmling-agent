@@ -13,6 +13,7 @@ from llmling_agent.models.observability import (
     LogfireProviderConfig,
     MlFlowProviderConfig,
     ObservabilityConfig,
+    TraceloopProviderConfig,
 )
 
 
@@ -163,9 +164,14 @@ class ObservabilityRegistry:
                 logger.debug("Registering %s", provider_cls.__name__)
                 self._registered_provider_classes.add(provider_cls)
                 self.configure_provider(provider)
+        # for provider_config in observability_config.providers:
+        #     provider = provider_config.get_provider()
+        #     logger.debug("Registering %s", provider.__class__.__name__)
+        #     self._registered_provider_classes.add(provider.__class__)
+        #     self.configure_provider(provider)
 
 
-def get_provider_cls(
+def get_provider_cls(  # noqa: PLR0911
     provider_config: BaseObservabilityProviderConfig,
 ) -> type[ObservabilityProvider]:
     match provider_config:
@@ -192,6 +198,11 @@ def get_provider_cls(
             from llmling_agent_observability.mlflow_provider import MlFlowProvider
 
             return MlFlowProvider
+
+        case TraceloopProviderConfig():
+            from llmling_agent_observability.traceloop_provider import TraceloopProvider
+
+            return TraceloopProvider
 
         case _:
             msg = f"Unknown provider config: {provider_config}"

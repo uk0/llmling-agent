@@ -121,12 +121,22 @@ class BraintrustProviderConfig(BaseObservabilityProviderConfig):
     """Braintrust API key."""
 
 
+class TraceloopProviderConfig(BaseObservabilityProviderConfig):
+    """Configuration for Traceloop provider."""
+
+    type: Literal["traceloop"] = Field("traceloop", init=False)
+
+    api_key: SecretStr | None = None
+    """Traceloop API key."""
+
+
 ObservabilityProviderConfig = Annotated[
     LogfireProviderConfig
     | AgentOpsProviderConfig
     | LangsmithProviderConfig
     | MlFlowProviderConfig
     | BraintrustProviderConfig
+    | TraceloopProviderConfig
     | ArizePhoenixProviderConfig,
     Field(discriminator="type"),
 ]
