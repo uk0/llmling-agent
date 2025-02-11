@@ -19,8 +19,6 @@ if TYPE_CHECKING:
 P = ParamSpec("P")
 R = TypeVar("R")
 
-T = TypeVar("T")
-
 
 class AgentOpsProvider(ObservabilityProvider):
     """AgentOps implementation of observability provider."""
@@ -55,7 +53,7 @@ class AgentOpsProvider(ObservabilityProvider):
         wrapped = agentops.record_action(name)(func)
         return cast(Callable[P, R], wrapped)
 
-    def wrap_agent(self, kls: type[T], name: str) -> type[T]:
+    def wrap_agent[T](self, kls: type[T], name: str) -> type[T]:
         """Wrap an agent class with AgentOps tracking."""
         if not isinstance(kls, type):
             msg = "AgentOps @track_agent can only be used with classes"
@@ -64,7 +62,7 @@ class AgentOpsProvider(ObservabilityProvider):
         wrapped = agentops.track_agent(name)(kls)
         return cast(type[T], wrapped)
 
-    def wrap_tool(self, func: Callable[..., T], name: str) -> Callable[..., T]:
+    def wrap_tool[T](self, func: Callable[..., T], name: str) -> Callable[..., T]:
         """Wrap a tool function with AgentOps tracking."""
         wrapped = agentops.record_tool(name)(func)
         return cast(Callable[..., T], wrapped)
