@@ -346,10 +346,6 @@ class AgentsManifest(ConfigModel):
 
         try:
             data = yamling.load_yaml_file(path, resolve_inherit=True)
-            # Set identifier as name if not set
-            for identifier, config in data["agents"].items():
-                if not config.get("name"):
-                    config["name"] = identifier
             agent_def = cls.model_validate(data)
             # Update all agents with the config file path and ensure names
             agents = {
