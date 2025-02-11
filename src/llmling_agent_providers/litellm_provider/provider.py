@@ -29,6 +29,7 @@ from llmling_agent_providers.base import (
     StreamingResponseProtocol,
     UsageLimits,
 )
+from llmling_agent_providers.litellm_provider.call_wrapper import FakeAgent
 from llmling_agent_providers.litellm_provider.utils import Usage
 
 
@@ -228,11 +229,12 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate response using LiteLLM."""
-        from litellm import Choices, acompletion
+        from litellm import Choices
         from litellm.files.main import ModelResponse
 
         tools = tools or []
         model_name = self._get_model_name(model)
+        agent = FakeAgent(model_name, model_settings=self.model_settings)
         try:
             # Create messages list from history and new prompt
             messages: list[dict[str, Any]] = []
@@ -251,21 +253,13 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                         content_parts.append(p.to_openai_format())
             # Add the multi-modal content as user message
             messages.append({"role": "user", "content": content_parts})
-
-            schemas = [t.schema for t in tools or []]
             # Get completion
-            response = await acompletion(
-                stream=False,
-                model=model_name,
+            response = await agent.run(
                 messages=messages,
-                max_tokens=usage_limits.response_tokens_limit if usage_limits else None,
-                response_format=result_type
-                if result_type and issubclass(result_type, BaseModel)
-                else None,
+                usage_limits=usage_limits,
+                result_type=result_type,
                 num_retries=self.num_retries,
-                tools=schemas or None,
-                tool_choice="auto" if schemas else None,
-                **self.model_settings,
+                tools=tools,
             )
             assert isinstance(response, ModelResponse)
             assert isinstance(response.choices[0], Choices)
@@ -276,13 +270,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                     tools,
                     message_id,
                 )
-
-                response = await acompletion(
-                    model=model_name,
-                    messages=messages + new_messages,
-                    stream=False,
-                    **self.model_settings,
-                )
+                response = await agent.run(messages=messages + new_messages)
             # Extract content
             content: Any = response.choices[0].message.content  # type: ignore
             if content and result_type and issubclass(result_type, BaseModel):
