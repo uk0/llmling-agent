@@ -66,3 +66,24 @@ resp = requests.get(
 resp_json = resp.json()
 token = resp_json.get("token")
 print("Token:", token)
+
+# from httpx import AsyncClient
+# from pydantic_ai.models.openai import OpenAIModel
+# from pydantic_ai.agent import Agent
+#
+# client = AsyncClient(
+#     headers={
+#         "Authorization": f"Bearer {token}",
+#         "editor-version": "Neovim/0.9.0",
+#         "Copilot-Integration-Id": "vscode-chat",
+#     }
+# )
+# model = OpenAIModel(
+#     model_name="gpt-4o-mini",
+#     base_url="https://api.githubcopilot.com",
+#     api_key=token,
+#     http_client=client,
+# )
+# agent = Agent(model=model)
+# result = agent.run_sync("test")
+# print(result)
