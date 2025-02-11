@@ -36,6 +36,14 @@ class ConversionManager:
     def __del__(self):
         self._executor.shutdown(wait=False)
 
+    def supports_file(self, path: StrPath) -> bool:
+        """Check if any converter supports the file."""
+        return any(c.supports_file(path) for c in self._converters)
+
+    def supports_content(self, content: Any, mime_type: str | None = None) -> bool:
+        """Check if any converter supports the file."""
+        return any(c.supports_content(content, mime_type) for c in self._converters)
+
     def _setup_converters(self) -> list[DocumentConverter]:
         """Create converter instances from config."""
         from llmling_agent_converters.plain_converter import PlainConverter
