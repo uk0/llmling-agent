@@ -219,9 +219,6 @@ async def search_history(
 
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
-    if ctx.capabilities.history_access == "none":
-        msg = "No permission to access history"
-        raise ToolError(msg)
 
     provider = ctx.storage.get_history_provider()
     results = await provider.get_filtered_conversations(
@@ -245,10 +242,6 @@ async def show_statistics(
 
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
-    if ctx.capabilities.stats_access == "none":
-        msg = "No permission to view statistics"
-        raise ToolError(msg)
-
     cutoff = datetime.now() - timedelta(hours=hours)
     filters = StatsFilters(cutoff=cutoff, group_by=group_by)
 
@@ -279,10 +272,6 @@ async def execute_python(ctx: AgentContext, code: str) -> str:
 
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
-    if not ctx.capabilities.can_execute_code:
-        msg = "No permission to execute code"
-        raise ToolError(msg)
-
     try:
         # Capture output
         with io.StringIO() as buf, contextlib.redirect_stdout(buf):
@@ -298,10 +287,6 @@ async def execute_command(ctx: AgentContext, command: str) -> str:
 
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
-    if not ctx.capabilities.can_execute_commands:
-        msg = "No permission to execute commands"
-        raise ToolError(msg)
-
     try:
         pipe = asyncio.subprocess.PIPE
         proc = await asyncio.create_subprocess_shell(command, stdout=pipe, stderr=pipe)
