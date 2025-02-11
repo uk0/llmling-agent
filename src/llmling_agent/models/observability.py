@@ -112,11 +112,21 @@ class MlFlowProviderConfig(BaseObservabilityProviderConfig):
     """Tracking URI for MLFlow."""
 
 
+class BraintrustProviderConfig(BaseObservabilityProviderConfig):
+    """Configuration for MlFlow provider."""
+
+    type: Literal["braintrust"] = Field("braintrust", init=False)
+
+    api_key: str | None = None
+    """Braintrust API key."""
+
+
 ObservabilityProviderConfig = Annotated[
     LogfireProviderConfig
     | AgentOpsProviderConfig
     | LangsmithProviderConfig
     | MlFlowProviderConfig
+    | BraintrustProviderConfig
     | ArizePhoenixProviderConfig,
     Field(discriminator="type"),
 ]
