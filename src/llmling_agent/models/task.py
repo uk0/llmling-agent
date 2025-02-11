@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from llmling import BasePrompt, LLMCallableTool
+from llmling import BasePrompt
 from llmling.config.models import ToolConfig
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 from typing_extensions import TypeVar
@@ -112,8 +112,6 @@ class Job[TDeps, TResult](BaseModel):
                     tools.append(ToolInfo.from_callable(tool))
                 case ToolConfig():
                     tools.append(ToolInfo.from_callable(tool.import_path))
-                case LLMCallableTool():
-                    tools.append(ToolInfo(tool))
                 case ToolInfo():
                     tools.append(tool)
                 case _:

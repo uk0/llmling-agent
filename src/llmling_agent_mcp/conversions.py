@@ -13,12 +13,13 @@ from llmling_agent.messaging.messages import ChatMessage
 if TYPE_CHECKING:
     from llmling.prompts.models import BasePrompt, PromptMessage, PromptParameter
     from llmling.resources.models import LoadedResource
-    from llmling.tools.base import LLMCallableTool
+
+    from llmling_agent.tools.base import ToolInfo
 
 
-def to_mcp_tool(tool: LLMCallableTool) -> types.Tool:
+def to_mcp_tool(tool: ToolInfo) -> types.Tool:
     """Convert internal Tool to MCP Tool."""
-    schema = tool.get_schema()
+    schema = tool.schema
     return types.Tool(
         name=schema["function"]["name"],
         description=schema["function"]["description"],

@@ -50,7 +50,7 @@ def register_handlers(llm_server: LLMLingServer) -> None:
     async def handle_list_tools() -> list[types.Tool]:
         """Handle tools/list request."""
         tools = await llm_server.provider.get_tools()
-        return [conversions.to_mcp_tool(tool.callable) for tool in tools]
+        return [conversions.to_mcp_tool(tool) for tool in tools]
 
     @llm_server.server.call_tool()
     async def handle_call_tool(

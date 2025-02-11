@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from llmling import LLMCallableTool
 import pytest
 
 from llmling_agent.tools import ToolError, ToolManager
@@ -29,8 +28,8 @@ def test_basic_tool_management():
 @pytest.mark.asyncio
 async def test_priority_sorting():
     """Test tools are sorted by priority."""
-    tool1 = LLMCallableTool.from_callable(lambda x: x, name_override="tool1")
-    tool2 = LLMCallableTool.from_callable(lambda x: x, name_override="tool2")
+    tool1 = ToolInfo.from_callable(lambda x: x, name_override="tool1")
+    tool2 = ToolInfo.from_callable(lambda x: x, name_override="tool2")
 
     manager = ToolManager([tool1, tool2])
     manager["tool1"].priority = 200
@@ -43,8 +42,8 @@ async def test_priority_sorting():
 @pytest.mark.asyncio
 async def test_state_filtering():
     """Test filtering tools by state."""
-    tool1 = LLMCallableTool.from_callable(lambda x: x, name_override="tool1")
-    tool2 = LLMCallableTool.from_callable(lambda x: x, name_override="tool2")
+    tool1 = ToolInfo.from_callable(lambda x: x, name_override="tool1")
+    tool2 = ToolInfo.from_callable(lambda x: x, name_override="tool2")
 
     manager = ToolManager([tool1, tool2])
     manager.disable_tool("tool1")

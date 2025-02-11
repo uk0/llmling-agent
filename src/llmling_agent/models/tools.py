@@ -7,7 +7,6 @@ from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
-from llmling import LLMCallableTool
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 
 from llmling_agent.tools.base import ToolInfo
@@ -89,15 +88,10 @@ class CrewAIToolConfig(BaseToolConfig):
     def get_tool(self) -> ToolInfo:
         """Import and create CrewAI tool."""
         try:
-            tool_cls = self.import_path
-            tool = tool_cls(**self.params)
-            llm_tool: LLMCallableTool[Any] = LLMCallableTool.from_crewai_tool(
-                tool,
+            return ToolInfo.from_crewai_tool(
+                self.import_path(**self.params),
                 name_override=self.name,
                 description_override=self.description,
-            )
-            return ToolInfo(
-                llm_tool,
                 enabled=self.enabled,
                 requires_confirmation=self.requires_confirmation,
                 requires_capability=self.requires_capability,
@@ -127,14 +121,10 @@ class LangChainToolConfig(BaseToolConfig):
         try:
             from langchain.tools import load_tool
 
-            tool = load_tool(self.tool_name, **self.params)
-            llm_tool: LLMCallableTool[Any] = LLMCallableTool.from_langchain_tool(
-                tool,
+            return ToolInfo.from_langchain_tool(
+                load_tool(self.tool_name, **self.params),
                 name_override=self.name,
                 description_override=self.description,
-            )
-            return ToolInfo(
-                llm_tool,
                 enabled=self.enabled,
                 requires_confirmation=self.requires_confirmation,
                 requires_capability=self.requires_capability,
