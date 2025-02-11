@@ -70,7 +70,21 @@ class TraceloopConfig(BasePromptHubConfig):
     """API key for the Traceloop API."""
 
 
+class BraintrustConfig(BasePromptHubConfig):
+    """Configuration for Briantrust prompt provider."""
+
+    type: Literal["braintrust"] = Field("braintrust", init=False)
+    """Configuration for Briantrust prompt provider."""
+
+    api_key: SecretStr | None = None  # Optional, defaults to BRAINTRUST_API_KEY env var
+    """API key for the Briantrust API."""
+
+
 PromptHubConfig = Annotated[
-    PromptLayerConfig | OpenLITConfig | LangfuseConfig | TraceloopConfig,
+    PromptLayerConfig
+    | OpenLITConfig
+    | LangfuseConfig
+    | TraceloopConfig
+    | BraintrustConfig,
     Field(discriminator="type"),
 ]
