@@ -24,8 +24,9 @@ class ArizePhoenixProvider(ObservabilityProvider):
 
     def _configure(self) -> None:
         """Initialize Arize Phoenix with OpenTelemetry."""
-        if self.config.api_key:
-            os.environ["PHOENIX_CLIENT_HEADERS"] = f"api_key={self.config.api_key}"
+        key = self.config.api_key.get_secret_value() if self.config.api_key else None
+        if key:
+            os.environ["PHOENIX_CLIENT_HEADERS"] = f"api_key={key}"
 
         os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = "https://app.phoenix.arize.com"
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 
 class BaseObservabilityProviderConfig(BaseModel):
@@ -21,7 +21,7 @@ class LogfireProviderConfig(BaseObservabilityProviderConfig):
 
     type: Literal["logfire"] = Field("logfire", init=False)
 
-    token: str | None = None
+    token: SecretStr | None = None
     """Logfire API token."""
 
     service_name: str | None = None
@@ -36,7 +36,7 @@ class AgentOpsProviderConfig(BaseObservabilityProviderConfig):
 
     type: Literal["agentops"] = Field("agentops", init=False)
 
-    api_key: str | None = None
+    api_key: SecretStr | None = None
     """AgentOps API key."""
 
     parent_key: str | None = None
@@ -72,7 +72,7 @@ class LangsmithProviderConfig(BaseObservabilityProviderConfig):
 
     type: Literal["langsmith"] = Field("langsmith", init=False)
 
-    api_key: str | None = None
+    api_key: SecretStr | None = None
     """Langsmith API key."""
 
     project_name: str | None = None
@@ -90,7 +90,7 @@ class ArizePhoenixProviderConfig(BaseObservabilityProviderConfig):
 
     type: Literal["arize"] = Field("arize", init=False)
 
-    api_key: str | None = None
+    api_key: SecretStr | None = None
     """Arize API key."""
 
     space_key: str | None = None
@@ -113,11 +113,11 @@ class MlFlowProviderConfig(BaseObservabilityProviderConfig):
 
 
 class BraintrustProviderConfig(BaseObservabilityProviderConfig):
-    """Configuration for MlFlow provider."""
+    """Configuration for Braintrust provider."""
 
     type: Literal["braintrust"] = Field("braintrust", init=False)
 
-    api_key: str | None = None
+    api_key: SecretStr | None = None
     """Braintrust API key."""
 
 

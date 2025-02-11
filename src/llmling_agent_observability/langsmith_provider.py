@@ -31,8 +31,9 @@ class LangsmithProvider(ObservabilityProvider):
             os.environ["LANGCHAIN_PROJECT"] = self.config.project_name
         if self.config.environment:
             os.environ["LANGCHAIN_ENVIRONMENT"] = self.config.environment
+        key = self.config.api_key.get_secret_value() if self.config.api_key else None
 
-        self._client = Client(api_key=self.config.api_key)
+        self._client = Client(api_key=key)
 
     @contextmanager
     def span(self, name: str, **attributes: Any) -> Iterator[None]:

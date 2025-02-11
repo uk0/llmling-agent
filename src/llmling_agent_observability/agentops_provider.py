@@ -26,7 +26,7 @@ class AgentOpsProvider(ObservabilityProvider):
     def __init__(self, config: AgentOpsProviderConfig):
         """Initialize AgentOps with configuration."""
         self.config = {
-            "api_key": config.api_key,
+            "api_key": config.api_key.get_secret_value() if config.api_key else None,
             "parent_key": config.parent_key,
             "endpoint": config.endpoint,
             "max_wait_time": config.max_wait_time,

@@ -29,8 +29,10 @@ class LogfireProvider(ObservabilityProvider):
 
     def __init__(self, config: LogfireProviderConfig, **kwargs: Any):
         """Initialize Logfire with configuration."""
+        self.config = config
+        token = self.config.token.get_secret_value() if self.config.token else None
         logfire.configure(
-            token=config.token,
+            token=token,
             service_name=config.service_name,
             environment=config.environment,
             **kwargs,

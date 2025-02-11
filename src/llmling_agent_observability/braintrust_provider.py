@@ -21,8 +21,9 @@ R = TypeVar("R")
 class BraintrustProvider(ObservabilityProvider):
     def __init__(self, config: BraintrustProviderConfig):
         self.config = config
+        key = self.config.api_key.get_secret_value() if self.config.api_key else None
 
-        braintrust.init_logger(api_key=config.api_key)
+        braintrust.init_logger(api_key=key)
 
     def wrap_tool[T](self, func: Callable[..., T], name: str) -> Callable[..., T]:
         """Wrap a tool function with braintrust instrumentation."""
