@@ -30,7 +30,7 @@ from llmling_agent_providers.base import (
     UsageLimits,
 )
 from llmling_agent_providers.litellm_provider.call_wrapper import FakeAgent
-from llmling_agent_providers.litellm_provider.utils import Usage
+from llmling_agent_providers.litellm_provider.utils import Usage, convert_message_to_chat
 
 
 if TYPE_CHECKING:
@@ -241,7 +241,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
             for msg in message_history:
-                messages.extend(self._convert_message_to_chat(msg))
+                messages.extend(convert_message_to_chat(msg))
 
             # Convert new prompts to message content
             content_parts: list[dict[str, Any]] = []
@@ -334,12 +334,6 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             return f"anthropic/{name}"
         return name
 
-    def _convert_message_to_chat(self, message: Any) -> list[dict[str, str]]:
-        """Convert message to chat format."""
-        # This is a basic implementation - would need to properly handle
-        # different message types and parts
-        return [{"role": "user", "content": str(message)}]
-
     @asynccontextmanager
     async def stream_response(
         self,
@@ -354,9 +348,8 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         **kwargs: Any,
     ) -> AsyncIterator[StreamingResponseProtocol[Any]]:
         """Stream responses from LiteLLM."""
-        from litellm import acompletion
-
         model_name = self._get_model_name(model)
+        agent = FakeAgent(model_name, model_settings=self.model_settings)
         messages: list[dict[str, Any]] = []
 
         # Add system prompt if provided
@@ -364,7 +357,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             messages.append({"role": "system", "content": system_prompt})
 
         for msg in message_history:
-            messages.extend(self._convert_message_to_chat(msg))
+            messages.extend(convert_message_to_chat(msg))
 
         # Convert new prompts to message content
         content_parts: list[dict[str, Any]] = []
@@ -375,22 +368,15 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                 case BaseContent():
                     content_parts.append(p.to_openai_format())
         messages.append({"role": "user", "content": content_parts})
-        schemas = [t.schema for t in tools or []] or None
 
         try:
             # Get streaming completion
-            completion_stream = await acompletion(
-                stream=True,
-                model=model_name,
+            completion_stream = await agent.run_stream(
                 messages=messages,
-                max_tokens=usage_limits.response_tokens_limit if usage_limits else None,
-                response_format=result_type
-                if result_type and issubclass(result_type, BaseModel)
-                else None,
-                tools=schemas,
-                tool_choice="auto" if schemas else None,
+                usage_limits=usage_limits,
+                result_type=result_type,
+                tools=tools,
                 num_retries=self.num_retries,
-                **self.model_settings,
             )
 
             # Create stream wrapper that matches our protocol
