@@ -3,6 +3,9 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+FormatterType = Literal["text", "json", "vtt", "srt"]
+
+
 class BaseConverterConfig(BaseModel):
     """Base configuration for document converters."""
 
@@ -33,6 +36,34 @@ class MarkItDownConfig(BaseConverterConfig):
 
     max_size: int | None = None
     """Optional size limit in bytes."""
+
+
+class YouTubeConverterConfig(BaseConverterConfig):
+    """Configuration for YouTube transcript converter."""
+
+    type: Literal["youtube"] = Field("youtube", init=False)
+    """Type discriminator for converter config."""
+
+    languages: list[str] = Field(default_factory=lambda: ["en"])
+    """Preferred language codes in priority order. Defaults to ['en']."""
+
+    format: FormatterType = "text"
+    """Output format. One of: text, json, vtt, srt."""
+
+    preserve_formatting: bool = False
+    """Whether to keep HTML formatting elements like <i> and <b>."""
+
+    cookies_path: str | None = None
+    """Optional path to cookies file for age-restricted videos."""
+
+    https_proxy: str | None = None
+    """Optional HTTPS proxy URL (format: https://user:pass@domain:port)."""
+
+    max_retries: int = 3
+    """Maximum number of retries for failed requests."""
+
+    timeout: int = 30
+    """Request timeout in seconds."""
 
 
 class PlainConverterConfig(BaseConverterConfig):
