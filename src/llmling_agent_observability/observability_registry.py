@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import AsyncExitStack, asynccontextmanager, contextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -16,7 +17,7 @@ from llmling_agent.models.observability import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import AsyncIterator, Callable, Iterator
 
     from llmling_agent_observability.base_provider import ObservabilityProvider
 
@@ -207,6 +208,43 @@ def get_provider_cls(
         case _:
             msg = f"Unknown provider config: {provider_config}"
             raise ValueError(msg)
+
+    @contextmanager
+    def span(
+        self, name: str, attributes: dict[str, Any] | None = None
+    ) -> Iterator[list[Any]]:
+        """Create sync spans in all providers."""
+        spans = []
+        for provider in self.providers:
+            try:
+                with provider.span(name, attributes) as span:
+                    spans.append(span)
+            except Exception:
+                logger.exception(
+                    "Failed to create span in provider %s", provider.__class__.__name__
+                )
+        yield spans
+
+    @asynccontextmanager
+    async def aspan(
+        self, name: str, attributes: dict[str, Any] | None = None
+    ) -> AsyncIterator[list[Any]]:
+        """Create async spans in all providers."""
+        async with AsyncExitStack() as stack:
+            spans = []
+            for provider in self.providers:
+                try:
+                    span_ctx = provider.aspan(name, attributes)
+                    span = await stack.enter_async_context(span_ctx)
+                    spans.append(span)
+                except Exception:
+                    logger.exception(
+                        "Failed to create span in provider %s",
+                        provider.__class__.__name__,
+                    )
+            yield spans
+
+    return None
 
 
 registry = ObservabilityRegistry()
