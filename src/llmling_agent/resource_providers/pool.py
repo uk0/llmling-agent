@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
-from llmling_agent.tools.base import ToolInfo
 
 
 if TYPE_CHECKING:
@@ -12,6 +11,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.delegation import AgentPool
     from llmling_agent.models.resources import ResourceInfo
+    from llmling_agent.tools.base import ToolInfo
 
 logger = get_logger(__name__)
 
@@ -41,7 +41,7 @@ class PoolResourceProvider(ResourceProvider):
         tools: list[ToolInfo] = []
         for agent in self.pool.agents.values():
             try:
-                tool = ToolInfo(agent.to_tool())
+                tool = agent.to_tool()
                 tools.append(tool)
             except Exception:
                 logger.exception("Failed to create tool from agent: %s", agent.name)

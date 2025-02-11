@@ -72,7 +72,7 @@ class Job[TDeps, TResult]:
     requires_vision: bool = False
     """Whether the agent requires vision"""
 
-    tools: list[ToolConfig | str | LLMCallableTool]
+    tools: list[ToolConfig | str]
     """Tools provided for this task"""
 
     knowledge: Knowledge | None

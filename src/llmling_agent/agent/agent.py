@@ -13,7 +13,7 @@ import time
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, cast, overload
 from uuid import uuid4
 
-from llmling import Config, LLMCallableTool, RuntimeConfig, ToolError
+from llmling import Config, RuntimeConfig, ToolError
 from psygnal import Signal
 from typing_extensions import TypeVar
 
@@ -25,6 +25,7 @@ from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
 from llmling_agent.talk.stats import MessageStats
+from llmling_agent.tools.base import ToolInfo
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import (
     call_with_context,
@@ -64,7 +65,6 @@ if TYPE_CHECKING:
     from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.models.result_types import ResponseDefinition
     from llmling_agent.models.task import Job
-    from llmling_agent.tools.base import ToolInfo
     from llmling_agent_input.base import InputProvider
     from llmling_agent_providers.base import (
         AgentProvider,
@@ -649,7 +649,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         pass_message_history: bool = False,
         share_context: bool = False,
         parent: AnyAgent[Any, Any] | None = None,
-    ) -> LLMCallableTool:
+    ) -> ToolInfo:
         """Create a tool from this agent.
 
         Args:
@@ -687,7 +687,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         wrapped_tool.__doc__ = docstring
         wrapped_tool.__name__ = tool_name
 
-        return LLMCallableTool.from_callable(
+        return ToolInfo.from_callable(
             wrapped_tool,
             name_override=tool_name,
             description_override=docstring,

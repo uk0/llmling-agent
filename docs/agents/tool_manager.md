@@ -15,7 +15,6 @@ The `ToolManager` is a central component that manages the lifecycle and availabi
 ### 1. Tool Registration and Access
 
 ```python
-from llmling import LLMCallableTool
 from llmling_agent.tools import ToolManager
 
 
