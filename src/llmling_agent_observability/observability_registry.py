@@ -9,6 +9,7 @@ from llmling_agent.models.observability import (
     AgentOpsProviderConfig,
     ArizePhoenixProviderConfig,
     BaseObservabilityProviderConfig,
+    BraintrustProviderConfig,
     LangsmithProviderConfig,
     LogfireProviderConfig,
     MlFlowProviderConfig,
@@ -203,6 +204,11 @@ def get_provider_cls(  # noqa: PLR0911
             from llmling_agent_observability.traceloop_provider import TraceloopProvider
 
             return TraceloopProvider
+
+        case BraintrustProviderConfig():
+            from llmling_agent_observability.braintrust_provider import BraintrustProvider
+
+            return BraintrustProvider
 
         case _:
             msg = f"Unknown provider config: {provider_config}"
