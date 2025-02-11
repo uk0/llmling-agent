@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import os
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from openai import NOT_GIVEN
@@ -53,7 +54,12 @@ class WhisperAPIConverter(DocumentConverter):
         """Convert audio content to text."""
         from openai import OpenAI
 
-        client = OpenAI(api_key=self.config.api_key)
+        key = (
+            self.config.api_key.get_secret_value()
+            if self.config.api_key
+            else os.getenv("OPENAI_API_KEY")
+        )
+        client = OpenAI(api_key=key)
 
         file = io.BytesIO(content)
         file.name = "audio.mp3"  # Required for MIME type detection

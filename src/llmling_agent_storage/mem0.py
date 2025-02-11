@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import os
 from typing import TYPE_CHECKING, Any
 
 from mem0 import AsyncMemoryClient
@@ -30,7 +31,12 @@ class Mem0StorageProvider(StorageProvider):
         """Initialize mem0 client."""
         super().__init__(config)
         self.config: Mem0Config = config
-        self.client = AsyncMemoryClient(api_key=config.api_key)
+        key = (
+            self.config.api_key.get_secret_value()
+            if self.config.api_key
+            else os.getenv("MEM0_API_KEY")
+        )
+        self.client = AsyncMemoryClient(api_key=key)
 
     def _to_mem0_message(
         self,

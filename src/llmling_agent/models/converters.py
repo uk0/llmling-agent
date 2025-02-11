@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from llmling_agent_converters.base import DocumentConverter
 
@@ -124,7 +124,7 @@ class WhisperAPIConfig(BaseConverterConfig):
     model: str | None = None
     """Optional model name."""
 
-    api_key: str
+    api_key: SecretStr | None = None
     """OpenAI API key."""
 
     language: str | None = None

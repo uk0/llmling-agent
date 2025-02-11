@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, ImportString
+from pydantic import BaseModel, Field, ImportString, SecretStr
 
 from llmling_agent_models.base import BaseModelConfig
 
@@ -169,12 +169,13 @@ class RemoteInputConfig(BaseModelConfig):
 
     type: Literal["remote-input"] = Field(default="remote-input", init=False)
     url: str = "ws://localhost:8000/v1/chat/stream"
-    api_key: str | None = None
+    api_key: SecretStr | None = None
 
     def get_model(self) -> Any:
         from llmling_models.remote_input.client import RemoteInputModel
 
-        return RemoteInputModel(url=self.url, api_key=self.api_key)
+        key = self.api_key.get_secret_value() if self.api_key else None
+        return RemoteInputModel(url=self.url, api_key=key)
 
 
 class RemoteProxyConfig(BaseModelConfig):
@@ -182,12 +183,13 @@ class RemoteProxyConfig(BaseModelConfig):
 
     type: Literal["remote-proxy"] = Field(default="remote-proxy", init=False)
     url: str = "ws://localhost:8000/v1/completion/stream"
-    api_key: str | None = None
+    api_key: SecretStr | None = None
 
     def get_model(self) -> Any:
         from llmling_models.remote_model.client import RemoteProxyModel
 
-        return RemoteProxyModel(url=self.url, api_key=self.api_key)
+        key = self.api_key.get_secret_value() if self.api_key else None
+        return RemoteProxyModel(url=self.url, api_key=key)
 
 
 class TokenOptimizedModelConfig(BaseModelConfig):

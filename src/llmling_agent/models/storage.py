@@ -1,9 +1,8 @@
-import os
 from pathlib import Path
 from typing import Annotated, Final, Literal
 
 from platformdirs import user_data_dir
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 
 LogFormat = Literal["chronological", "conversations"]
@@ -109,7 +108,7 @@ class Mem0Config(BaseStorageProviderConfig):
     type: Literal["mem0"] = Field("mem0", init=False)
     """Type discriminator for storage config."""
 
-    api_key: str | None = os.getenv("MEM0_API_KEY")
+    api_key: SecretStr | None = None
     """API key for mem0 service."""
 
     page_size: int = 100
