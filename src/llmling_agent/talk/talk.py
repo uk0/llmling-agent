@@ -189,13 +189,16 @@ class Talk[TTransmittedData]:
 
         if not condition:
             return default_return
+        registry = (
+            context.pool.connection_registry
+            if (context := self.source.context) and context.pool
+            else None
+        )
         ctx = EventContext(
             message=message,
             target=target,
             stats=self.stats,
-            registry=self.source.context.pool.connection_registry
-            if self.source.context and self.source.context.pool
-            else None,
+            registry=registry,
             talk=self,
         )
         return await execute(condition, ctx)

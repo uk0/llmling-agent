@@ -228,15 +228,6 @@ class AgentConfig(NodeConfig):
                 data["model"] = {"type": "string", "identifier": model}
         return data
 
-    @model_validator(mode="before")
-    @classmethod
-    def resolve_paths(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Store config file path for later use."""
-        if "environment" in data:
-            # Just store the config path for later use
-            data["config_file_path"] = data.get("config_file_path")
-        return data
-
     async def get_toolsets(self) -> list[ResourceProvider]:
         """Get all resource providers for this agent."""
         providers: list[ResourceProvider] = []
