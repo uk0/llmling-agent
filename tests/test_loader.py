@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 def test_load_valid_config(valid_config: str):
     """Test loading valid configuration."""
     config = AgentsManifest.model_validate(valid_config)
-    assert isinstance(config, AgentsManifest)
     assert config.agents["support"].name == "Support Agent"
     assert "SupportResult" in config.responses
 
@@ -37,3 +36,7 @@ def test_load_invalid_yaml(tmp_path: Path, caplog):
 
     with pytest.raises(ValueError):  # noqa: PT011
         AgentsManifest.from_file(invalid_file)
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])
