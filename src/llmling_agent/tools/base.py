@@ -195,6 +195,7 @@ class ToolInfo:
         name_override: str | None = None,
         description_override: str | None = None,
         schema_override: py2openai.OpenAIFunctionDefinition | None = None,
+        **kwargs: Any,
     ) -> Self:
         """Allows importing crewai tools."""
         # vaidate_import("crewai_tools", "crewai")
@@ -213,6 +214,7 @@ class ToolInfo:
             name_override=name_override or tool.__class__.__name__.removesuffix("Tool"),
             description_override=description_override or tool.description,
             schema_override=schema_override,
+            **kwargs,
         )
 
     @classmethod
@@ -223,6 +225,7 @@ class ToolInfo:
         name_override: str | None = None,
         description_override: str | None = None,
         schema_override: py2openai.OpenAIFunctionDefinition | None = None,
+        **kwargs: Any,
     ) -> Self:
         """Create a tool from a LangChain tool."""
         # vaidate_import("langchain_core", "langchain")
@@ -241,6 +244,7 @@ class ToolInfo:
             name_override=name_override or tool.name,
             description_override=description_override or tool.description,
             schema_override=schema_override,
+            **kwargs,
         )
 
     @classmethod
@@ -251,6 +255,7 @@ class ToolInfo:
         name_override: str | None = None,
         description_override: str | None = None,
         schema_override: py2openai.OpenAIFunctionDefinition | None = None,
+        **kwargs: Any,
     ) -> Self:
         """Create a tool from a AutoGen tool."""
         # vaidate_import("autogen_core", "autogen")
@@ -286,6 +291,7 @@ class ToolInfo:
             name_override=name,
             description_override=description,
             schema_override=schema_override,
+            **kwargs,
         )
 
 
