@@ -149,6 +149,19 @@
           "title": "Mcp Servers",
           "type": "array"
         },
+        "input_provider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input Provider"
+        },
         "provider": {
           "anyOf": [
             {
@@ -283,27 +296,60 @@
         "tools": {
           "description": "A list of tools to register with this agent.",
           "items": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "crewai": "#/$defs/CrewAIToolConfig",
+                    "import": "#/$defs/ImportToolConfig",
+                    "langchain": "#/$defs/LangChainToolConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/ImportToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/CrewAIToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/LangChainToolConfig"
+                  }
+                ]
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Tools",
+          "type": "array"
+        },
+        "toolsets": {
+          "description": "Toolset configurations for extensible tool collections.",
+          "items": {
             "discriminator": {
               "mapping": {
-                "crewai": "#/$defs/CrewAIToolConfig",
-                "import": "#/$defs/ImportToolConfig",
-                "langchain": "#/$defs/LangChainToolConfig"
+                "custom": "#/$defs/CustomToolsetConfig",
+                "entry_points": "#/$defs/EntryPointToolsetConfig",
+                "openapi": "#/$defs/OpenAPIToolsetConfig"
               },
               "propertyName": "type"
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/ImportToolConfig"
+                "$ref": "#/$defs/OpenAPIToolsetConfig"
               },
               {
-                "$ref": "#/$defs/CrewAIToolConfig"
+                "$ref": "#/$defs/EntryPointToolsetConfig"
               },
               {
-                "$ref": "#/$defs/LangChainToolConfig"
+                "$ref": "#/$defs/CustomToolsetConfig"
               }
             ]
           },
-          "title": "Tools",
+          "title": "Toolsets",
           "type": "array"
         },
         "environment": {
@@ -551,13 +597,125 @@
           "description": "AgentOps API key.",
           "title": "Api Key"
         },
+        "parent_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Parent key for session inheritance.",
+          "title": "Parent Key"
+        },
+        "endpoint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Custom endpoint URL for AgentOps service.",
+          "title": "Endpoint"
+        },
+        "max_wait_time": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum time to wait for batch processing in seconds.",
+          "title": "Max Wait Time"
+        },
+        "max_queue_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum size of the event queue.",
+          "title": "Max Queue Size"
+        },
         "tags": {
-          "description": "Tags for session grouping.",
-          "items": {
-            "type": "string"
-          },
-          "title": "Tags",
-          "type": "array"
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tags to apply to all events in this session.",
+          "title": "Tags"
+        },
+        "instrument_llm_calls": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether to automatically instrument LLM API calls.",
+          "title": "Instrument Llm Calls"
+        },
+        "auto_start_session": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether to automatically start a session on initialization.",
+          "title": "Auto Start Session"
+        },
+        "inherited_session_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Session ID to inherit from.",
+          "title": "Inherited Session Id"
+        },
+        "skip_auto_end_session": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether to skip auto-ending the session on exit.",
+          "title": "Skip Auto End Session"
         }
       },
       "title": "AgentOpsProviderConfig",
@@ -764,6 +922,63 @@
         "description"
       ],
       "title": "BasePrompt",
+      "type": "object"
+    },
+    "BraintrustConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Briantrust prompt provider.",
+      "properties": {
+        "type": {
+          "const": "braintrust",
+          "default": "braintrust",
+          "description": "Configuration for Briantrust prompt provider.",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "API key for the Briantrust API.",
+          "title": "Api Key"
+        }
+      },
+      "title": "BraintrustConfig",
+      "type": "object"
+    },
+    "BraintrustProviderConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for MlFlow provider.",
+      "properties": {
+        "type": {
+          "const": "braintrust",
+          "default": "braintrust",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Braintrust API key.",
+          "title": "Api Key"
+        }
+      },
+      "title": "BraintrustProviderConfig",
       "type": "object"
     },
     "CLIResource": {
@@ -1427,6 +1642,12 @@
           "description": "Whether the agent can add teams to the pool.",
           "title": "Can Add Teams",
           "type": "boolean"
+        },
+        "can_connect_nodes": {
+          "default": false,
+          "description": "Whether the agent can add teams to the pool.",
+          "title": "Can Connect Nodes",
+          "type": "boolean"
         }
       },
       "title": "Capabilities",
@@ -1637,8 +1858,12 @@
                 "discriminator": {
                   "mapping": {
                     "docling": "#/$defs/DoclingConverterConfig",
+                    "google_speech": "#/$defs/GoogleSpeechConfig",
+                    "local_whisper": "#/$defs/LocalWhisperConfig",
                     "markitdown": "#/$defs/MarkItDownConfig",
-                    "plain": "#/$defs/PlainConverterConfig"
+                    "plain": "#/$defs/PlainConverterConfig",
+                    "whisper_api": "#/$defs/WhisperAPIConfig",
+                    "youtube": "#/$defs/YouTubeConverterConfig"
                   },
                   "propertyName": "type"
                 },
@@ -1651,6 +1876,18 @@
                   },
                   {
                     "$ref": "#/$defs/PlainConverterConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/YouTubeConverterConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/WhisperAPIConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/LocalWhisperConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/GoogleSpeechConfig"
                   }
                 ]
               },
@@ -2933,6 +3170,50 @@
       "title": "GlobalSettings",
       "type": "object"
     },
+    "GoogleSpeechConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Google Cloud Speech-to-Text.",
+      "properties": {
+        "type": {
+          "const": "google_speech",
+          "default": "google_speech",
+          "description": "Type discriminator for converter config.",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this converter is currently active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "language": {
+          "default": "en-US",
+          "description": "Language code for transcription.",
+          "title": "Language",
+          "type": "string"
+        },
+        "model": {
+          "default": "default",
+          "description": "Speech model to use.",
+          "title": "Model",
+          "type": "string"
+        },
+        "encoding": {
+          "default": "LINEAR16",
+          "description": "Audio encoding format.",
+          "enum": [
+            "LINEAR16",
+            "FLAC",
+            "MP3"
+          ],
+          "title": "Encoding",
+          "type": "string"
+        }
+      },
+      "title": "GoogleSpeechConfig",
+      "type": "object"
+    },
     "HumanProviderConfig": {
       "additionalProperties": false,
       "description": "Configuration for human-in-the-loop provider.\n\nThis provider enables direct human interaction for responses and decisions.\nUseful for testing, training, and oversight of agent operations.",
@@ -3981,6 +4262,63 @@
       "title": "LangChainToolConfig",
       "type": "object"
     },
+    "LangfuseConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Langfuse prompt provider.",
+      "properties": {
+        "type": {
+          "const": "langfuse",
+          "default": "langfuse",
+          "description": "Configuration for Langfuse prompt provider.",
+          "title": "Type",
+          "type": "string"
+        },
+        "secret_key": {
+          "description": "Secret key for the Langfuse API.",
+          "format": "password",
+          "title": "Secret Key",
+          "type": "string",
+          "writeOnly": true
+        },
+        "public_key": {
+          "description": "Public key for the Langfuse API.",
+          "format": "password",
+          "title": "Public Key",
+          "type": "string",
+          "writeOnly": true
+        },
+        "host": {
+          "default": "https://cloud.langfuse.com",
+          "description": "Langfuse host address.",
+          "title": "Host",
+          "type": "string"
+        },
+        "cache_ttl_seconds": {
+          "default": 60,
+          "description": "Cache TTL for responses in seconds.",
+          "title": "Cache Ttl Seconds",
+          "type": "integer"
+        },
+        "max_retries": {
+          "default": 2,
+          "description": "Maximum number of retries for failed requests.",
+          "title": "Max Retries",
+          "type": "integer"
+        },
+        "fetch_timeout_seconds": {
+          "default": 20,
+          "description": "Timeout for fetching responses in seconds.",
+          "title": "Fetch Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "secret_key",
+        "public_key"
+      ],
+      "title": "LangfuseConfig",
+      "type": "object"
+    },
     "LangsmithProviderConfig": {
       "additionalProperties": false,
       "description": "Configuration for Langsmith provider.",
@@ -4099,6 +4437,80 @@
         }
       },
       "title": "LiteLLMProviderConfig",
+      "type": "object"
+    },
+    "LocalWhisperConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for local Whisper model.",
+      "properties": {
+        "type": {
+          "const": "local_whisper",
+          "default": "local_whisper",
+          "description": "Type discriminator for converter config.",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this converter is currently active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional model name.",
+          "title": "Model"
+        },
+        "model_size": {
+          "default": "base",
+          "description": "Size of the Whisper model to use.",
+          "enum": [
+            "tiny",
+            "base",
+            "small",
+            "medium",
+            "large"
+          ],
+          "title": "Model Size",
+          "type": "string"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "enum": [
+                "cpu",
+                "cuda"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Device to run model on (None for auto-select).",
+          "title": "Device"
+        },
+        "compute_type": {
+          "default": "float16",
+          "description": "Compute precision to use.",
+          "enum": [
+            "float32",
+            "float16"
+          ],
+          "title": "Compute Type",
+          "type": "string"
+        }
+      },
+      "title": "LocalWhisperConfig",
       "type": "object"
     },
     "LogfireProviderConfig": {
@@ -4486,6 +4898,33 @@
         "max_messages"
       ],
       "title": "MessageCountCondition",
+      "type": "object"
+    },
+    "MlFlowProviderConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for MlFlow provider.",
+      "properties": {
+        "type": {
+          "const": "mlflow",
+          "default": "mlflow",
+          "title": "Type",
+          "type": "string"
+        },
+        "tracking_uri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tracking URI for MLFlow.",
+          "title": "Tracking Uri"
+        }
+      },
+      "title": "MlFlowProviderConfig",
       "type": "object"
     },
     "ModelSettings": {
@@ -4896,8 +5335,10 @@
               "mapping": {
                 "agentops": "#/$defs/AgentOpsProviderConfig",
                 "arize": "#/$defs/ArizePhoenixProviderConfig",
+                "braintrust": "#/$defs/BraintrustProviderConfig",
                 "langsmith": "#/$defs/LangsmithProviderConfig",
-                "logfire": "#/$defs/LogfireProviderConfig"
+                "logfire": "#/$defs/LogfireProviderConfig",
+                "mlflow": "#/$defs/MlFlowProviderConfig"
               },
               "propertyName": "type"
             },
@@ -4910,6 +5351,12 @@
               },
               {
                 "$ref": "#/$defs/LangsmithProviderConfig"
+              },
+              {
+                "$ref": "#/$defs/MlFlowProviderConfig"
+              },
+              {
+                "$ref": "#/$defs/BraintrustProviderConfig"
               },
               {
                 "$ref": "#/$defs/ArizePhoenixProviderConfig"
@@ -4986,6 +5433,49 @@
         "spec"
       ],
       "title": "OpenAPIToolsetConfig",
+      "type": "object"
+    },
+    "OpenLITConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for OpenLIT prompt provider.",
+      "properties": {
+        "type": {
+          "const": "openlit",
+          "default": "openlit",
+          "description": "Configuration for OpenLIT prompt provider.",
+          "title": "Type",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "URL of the OpenLIT API.",
+          "title": "Url"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "API key for the OpenLIT API.",
+          "title": "Api Key"
+        }
+      },
+      "title": "OpenLITConfig",
       "type": "object"
     },
     "OrCondition": {
@@ -5136,6 +5626,88 @@
       "title": "PlainConverterConfig",
       "type": "object"
     },
+    "PoolServerConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for pool-based MCP server.",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "description": "Whether this server is currently enabled.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "serve_nodes": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "default": true,
+          "description": "Which nodes to expose as tools:\n- True: All nodes\n- False: No nodes\n- list[str]: Specific node names",
+          "title": "Serve Nodes"
+        },
+        "serve_prompts": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "default": true,
+          "description": "Which prompts to expose:\n- True: All prompts from manifest\n- False: No prompts\n- list[str]: Specific prompt names",
+          "title": "Serve Prompts"
+        },
+        "transport": {
+          "default": "stdio",
+          "description": "Transport type to use.",
+          "enum": [
+            "stdio",
+            "sse"
+          ],
+          "title": "Transport",
+          "type": "string"
+        },
+        "host": {
+          "default": "localhost",
+          "description": "Host to bind server to (SSE only).",
+          "title": "Host",
+          "type": "string"
+        },
+        "port": {
+          "default": 8000,
+          "description": "Port to listen on (SSE only).",
+          "title": "Port",
+          "type": "integer"
+        },
+        "cors_origins": {
+          "description": "Allowed CORS origins (SSE only).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Cors Origins",
+          "type": "array"
+        },
+        "zed_mode": {
+          "default": false,
+          "description": "Enable Zed editor compatibility mode.",
+          "title": "Zed Mode",
+          "type": "boolean"
+        }
+      },
+      "title": "PoolServerConfig",
+      "type": "object"
+    },
     "PrePostPromptConfig": {
       "description": "Configuration for pre/post prompts.",
       "properties": {
@@ -5276,7 +5848,33 @@
         "providers": {
           "description": "List of external prompt providers to use.",
           "items": {
-            "$ref": "#/$defs/PromptHubConfig"
+            "discriminator": {
+              "mapping": {
+                "braintrust": "#/$defs/BraintrustConfig",
+                "langfuse": "#/$defs/LangfuseConfig",
+                "openlit": "#/$defs/OpenLITConfig",
+                "promptlayer": "#/$defs/PromptLayerConfig",
+                "traceloop": "#/$defs/TraceloopConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/PromptLayerConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenLITConfig"
+              },
+              {
+                "$ref": "#/$defs/LangfuseConfig"
+              },
+              {
+                "$ref": "#/$defs/TraceloopConfig"
+              },
+              {
+                "$ref": "#/$defs/BraintrustConfig"
+              }
+            ]
           },
           "title": "Providers",
           "type": "array"
@@ -5285,19 +5883,28 @@
       "title": "PromptConfig",
       "type": "object"
     },
-    "PromptHubConfig": {
+    "PromptLayerConfig": {
       "additionalProperties": false,
-      "description": "Configuration for prompt providers.",
       "properties": {
         "type": {
+          "const": "promptlayer",
+          "default": "promptlayer",
+          "description": "Configuration for PromptLayer prompt provider.",
           "title": "Type",
           "type": "string"
+        },
+        "api_key": {
+          "description": "API key for the PromptLayer API.",
+          "format": "password",
+          "title": "Api Key",
+          "type": "string",
+          "writeOnly": true
         }
       },
       "required": [
-        "type"
+        "api_key"
       ],
-      "title": "PromptHubConfig",
+      "title": "PromptLayerConfig",
       "type": "object"
     },
     "PromptMessage": {
@@ -5744,6 +6351,19 @@
           "title": "Type",
           "type": "string"
         },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for referencing the server.",
+          "title": "Name"
+        },
         "enabled": {
           "default": true,
           "description": "Whether this server is currently enabled.",
@@ -6050,6 +6670,19 @@
           "description": "Stdio server coniguration.",
           "title": "Type",
           "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for referencing the server.",
+          "title": "Name"
         },
         "enabled": {
           "default": true,
@@ -6379,6 +7012,19 @@
           },
           "title": "Mcp Servers",
           "type": "array"
+        },
+        "input_provider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input Provider"
         },
         "mode": {
           "description": "Execution mode for team members.",
@@ -6881,6 +7527,36 @@
       "title": "ToolConfig",
       "type": "object"
     },
+    "TraceloopConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Traceloop prompt provider.",
+      "properties": {
+        "type": {
+          "const": "traceloop",
+          "default": "traceloop",
+          "description": "Configuration for Traceloop prompt provider.",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "API key for the Traceloop API.",
+          "title": "Api Key"
+        }
+      },
+      "title": "TraceloopConfig",
+      "type": "object"
+    },
     "UserSelectModelConfig": {
       "description": "Configuration for interactive model selection.",
       "properties": {
@@ -7046,6 +7722,61 @@
       "title": "WebhookConfig",
       "type": "object"
     },
+    "WhisperAPIConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for OpenAI's Whisper API.",
+      "properties": {
+        "type": {
+          "const": "whisper_api",
+          "default": "whisper_api",
+          "description": "Type discriminator for converter config.",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this converter is currently active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional model name.",
+          "title": "Model"
+        },
+        "api_key": {
+          "description": "OpenAI API key.",
+          "title": "Api Key",
+          "type": "string"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional language code.",
+          "title": "Language"
+        }
+      },
+      "required": [
+        "api_key"
+      ],
+      "title": "WhisperAPIConfig",
+      "type": "object"
+    },
     "WordMatchCondition": {
       "additionalProperties": false,
       "description": "Disconnect when word/phrase is found in message.",
@@ -7134,6 +7865,91 @@
       ],
       "title": "WorkerConfig",
       "type": "object"
+    },
+    "YouTubeConverterConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for YouTube transcript converter.",
+      "properties": {
+        "type": {
+          "const": "youtube",
+          "default": "youtube",
+          "description": "Type discriminator for converter config.",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this converter is currently active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "languages": {
+          "description": "Preferred language codes in priority order. Defaults to ['en'].",
+          "items": {
+            "type": "string"
+          },
+          "title": "Languages",
+          "type": "array"
+        },
+        "format": {
+          "default": "text",
+          "description": "Output format. One of: text, json, vtt, srt.",
+          "enum": [
+            "text",
+            "json",
+            "vtt",
+            "srt"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "preserve_formatting": {
+          "default": false,
+          "description": "Whether to keep HTML formatting elements like <i> and <b>.",
+          "title": "Preserve Formatting",
+          "type": "boolean"
+        },
+        "cookies_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional path to cookies file for age-restricted videos.",
+          "title": "Cookies Path"
+        },
+        "https_proxy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional HTTPS proxy URL (format: https://user:pass@domain:port).",
+          "title": "Https Proxy"
+        },
+        "max_retries": {
+          "default": 3,
+          "description": "Maximum number of retries for failed requests.",
+          "title": "Max Retries",
+          "type": "integer"
+        },
+        "timeout": {
+          "default": 30,
+          "description": "Request timeout in seconds.",
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "title": "YouTubeConverterConfig",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -7212,12 +8028,12 @@
       "additionalProperties": {
         "$ref": "#/$defs/Job"
       },
-      "description": "Pre-defined jobs, ready to be used by agents.",
+      "description": "Pre-defined jobs, ready to be used by nodes.",
       "title": "Jobs",
       "type": "object"
     },
     "mcp_servers": {
-      "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServer\n- MCPServerConfig for full server configuration",
+      "description": "List of MCP server configurations:\n\nThese MCP servers are used to provide tools and other resources to the nodes.",
       "items": {
         "anyOf": [
           {
@@ -7244,6 +8060,10 @@
       },
       "title": "Mcp Servers",
       "type": "array"
+    },
+    "pool_server": {
+      "$ref": "#/$defs/PoolServerConfig",
+      "description": "Pool server configuration.\n\nThis MCP server configuration is used for the pool MCP server,\nwhich exposes pool functionality to other applications / clients."
     },
     "prompts": {
       "$ref": "#/$defs/PromptConfig"
