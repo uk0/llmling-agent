@@ -38,21 +38,14 @@ class ConversionManager:
 
     def _setup_converters(self) -> list[DocumentConverter]:
         """Create converter instances from config."""
+        from llmling_agent_converters.plain_converter import PlainConverter
+
         converters: list[DocumentConverter] = []
         for cfg in self.config.providers or []:
             if not cfg.enabled:
                 continue
-            match cfg:
-                case MarkItDownConfig():
-                    from llmling_agent_converters.markitdown_converter import (
-                        MarkItDownConverter,
-                    )
-
-                    converters.append(MarkItDownConverter(cfg))
-                case PlainConverterConfig():
-                    from llmling_agent_converters.plain_converter import PlainConverter
-
-                    converters.append(PlainConverter(cfg))
+            converter = cfg.get_converter()
+            converters.append(converter)
         # Always add PlainConverter as fallback
         # if it gets configured by user, that one gets preference.
         converters.append(PlainConverter(PlainConverterConfig()))

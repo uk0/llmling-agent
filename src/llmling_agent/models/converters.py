@@ -2,6 +2,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from llmling_agent_converters.base import DocumentConverter
+
 
 FormatterType = Literal["text", "json", "vtt", "srt"]
 
@@ -17,6 +19,10 @@ class BaseConverterConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
+    def get_converter(self) -> DocumentConverter:
+        """Get the converter instance."""
+        raise NotImplementedError
+
 
 class DoclingConverterConfig(BaseConverterConfig):
     """Configuration for docling-based converter."""
@@ -27,6 +33,12 @@ class DoclingConverterConfig(BaseConverterConfig):
     max_size: int | None = None
     """Optional size limit in bytes."""
 
+    def get_converter(self) -> DocumentConverter:
+        """Get the converter instance."""
+        from llmling_agent_converters.docling import DoclingConverter
+
+        return DoclingConverter(self)
+
 
 class MarkItDownConfig(BaseConverterConfig):
     """Configuration for MarkItDown-based converter."""
@@ -36,6 +48,12 @@ class MarkItDownConfig(BaseConverterConfig):
 
     max_size: int | None = None
     """Optional size limit in bytes."""
+
+    def get_converter(self) -> DocumentConverter:
+        """Get the converter instance."""
+        from llmling_agent_converters.markitdown_converter import MarkItDownConverter
+
+        return MarkItDownConverter(self)
 
 
 class YouTubeConverterConfig(BaseConverterConfig):
@@ -65,6 +83,81 @@ class YouTubeConverterConfig(BaseConverterConfig):
     timeout: int = 30
     """Request timeout in seconds."""
 
+    def get_converter(self) -> DocumentConverter:
+        """Get the converter instance."""
+        from llmling_agent_converters.youtubeconverter import YouTubeTranscriptConverter
+
+        return YouTubeTranscriptConverter(self)
+
+
+class LocalWhisperConfig(BaseConverterConfig):
+    """Configuration for local Whisper model."""
+
+    type: Literal["local_whisper"] = Field("local_whisper", init=False)
+    """Type discriminator for converter config."""
+
+    model: str | None = None
+    """Optional model name."""
+
+    model_size: Literal["tiny", "base", "small", "medium", "large"] = "base"
+    """Size of the Whisper model to use."""
+
+    device: Literal["cpu", "cuda"] | None = None
+    """Device to run model on (None for auto-select)."""
+
+    compute_type: Literal["float32", "float16"] = "float16"
+    """Compute precision to use."""
+
+    def get_converter(self) -> DocumentConverter:
+        """Get the converter instance."""
+        from llmling_agent_converters.local_whisper import LocalWhisperConverter
+
+        return LocalWhisperConverter(self)
+
+
+class WhisperAPIConfig(BaseConverterConfig):
+    """Configuration for OpenAI's Whisper API."""
+
+    type: Literal["whisper_api"] = Field("whisper_api", init=False)
+    """Type discriminator for converter config."""
+
+    model: str | None = None
+    """Optional model name."""
+
+    api_key: str
+    """OpenAI API key."""
+
+    language: str | None = None
+    """Optional language code."""
+
+    def get_converter(self) -> DocumentConverter:
+        """Get the converter instance."""
+        from llmling_agent_converters.whisper_api import WhisperAPIConverter
+
+        return WhisperAPIConverter(self)
+
+
+class GoogleSpeechConfig(BaseConverterConfig):
+    """Configuration for Google Cloud Speech-to-Text."""
+
+    type: Literal["google_speech"] = Field("google_speech", init=False)
+    """Type discriminator for converter config."""
+
+    language: str = "en-US"
+    """Language code for transcription."""
+
+    model: str = "default"
+    """Speech model to use."""
+
+    encoding: Literal["LINEAR16", "FLAC", "MP3"] = "LINEAR16"
+    """Audio encoding format."""
+
+    def get_converter(self) -> DocumentConverter:
+        """Get the converter instance."""
+        from llmling_agent_converters.google_speech import GoogleSpeechConverter
+
+        return GoogleSpeechConverter(self)
+
 
 class PlainConverterConfig(BaseConverterConfig):
     """Configuration for plain text fallback converter."""
@@ -75,9 +168,21 @@ class PlainConverterConfig(BaseConverterConfig):
     force: bool = False
     """Whether to attempt converting any file type."""
 
+    def get_converter(self) -> DocumentConverter:
+        """Get the converter instance."""
+        from llmling_agent_converters.plain_converter import PlainConverter
+
+        return PlainConverter(self)
+
 
 ConverterConfig = Annotated[
-    DoclingConverterConfig | MarkItDownConfig | PlainConverterConfig,
+    DoclingConverterConfig
+    | MarkItDownConfig
+    | PlainConverterConfig
+    | YouTubeConverterConfig
+    | WhisperAPIConfig
+    | LocalWhisperConfig
+    | GoogleSpeechConfig,
     Field(discriminator="type"),
 ]
 
