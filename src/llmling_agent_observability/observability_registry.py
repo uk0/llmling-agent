@@ -59,11 +59,7 @@ class ObservabilityRegistry:
         **kwargs: Any,
     ) -> None:
         """Register a class for agent tracking."""
-        self._registered_agents[name] = TrackedDecoration(
-            target=target,
-            name=name,
-            kwargs=kwargs,
-        )
+        self._registered_agents[name] = TrackedDecoration(target, name, kwargs=kwargs)
         logger.debug("Registered agent %r for observability tracking", name)
 
     def register_tool(
@@ -73,11 +69,7 @@ class ObservabilityRegistry:
         **kwargs: Any,
     ) -> None:
         """Register a function for tool tracking."""
-        self._registered_tools[name] = TrackedDecoration(
-            target=target,
-            name=name,
-            kwargs=kwargs,
-        )
+        self._registered_tools[name] = TrackedDecoration(target, name, kwargs=kwargs)
         logger.debug("Registered tool %r for observability tracking", name)
 
     def register_action(
@@ -87,11 +79,7 @@ class ObservabilityRegistry:
         **kwargs: Any,
     ) -> None:
         """Register a function for action tracking."""
-        self._registered_actions[name] = TrackedDecoration(
-            target=target,
-            name=name,
-            kwargs=kwargs,
-        )
+        self._registered_actions[name] = TrackedDecoration(target, name, kwargs=kwargs)
         msg = "Registered action %r for observability tracking with args %r"
         logger.debug(msg, name, kwargs)
 
@@ -220,9 +208,8 @@ def get_provider_cls(
                 with provider.span(name, attributes) as span:
                     spans.append(span)
             except Exception:
-                logger.exception(
-                    "Failed to create span in provider %s", provider.__class__.__name__
-                )
+                msg = "Failed to create span in provider %s"
+                logger.exception(msg, provider.__class__.__name__)
         yield spans
 
     @asynccontextmanager
@@ -238,10 +225,8 @@ def get_provider_cls(
                     span = await stack.enter_async_context(span_ctx)
                     spans.append(span)
                 except Exception:
-                    logger.exception(
-                        "Failed to create span in provider %s",
-                        provider.__class__.__name__,
-                    )
+                    msg = "Failed to create span in provider %s"
+                    logger.exception(msg, provider.__class__.__name__)
             yield spans
 
     return None
