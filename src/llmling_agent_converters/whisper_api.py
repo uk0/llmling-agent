@@ -1,9 +1,11 @@
-"""YouTube transcript converter."""
+"""Whisper API converter implementation."""
 
 from __future__ import annotations
 
 import io
 from typing import TYPE_CHECKING, Any, ClassVar
+
+from openai import NOT_GIVEN
 
 from llmling_agent.log import get_logger
 from llmling_agent_converters.base import DocumentConverter
@@ -13,19 +15,23 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import StrPath
     from llmling_agent.models.converters import WhisperAPIConfig
 
+
 logger = get_logger(__name__)
 
 
 class WhisperAPIConverter(DocumentConverter):
     """Converter using OpenAI's Whisper API."""
 
-    SUPPORTED_MIME_TYPES: ClassVar = {
+    SUPPORTED_MIME_TYPES: ClassVar[set[str]] = {
         "audio/mpeg",
         "audio/mp3",
         "audio/wav",
+        "audio/webm",
         "audio/x-wav",
         "audio/ogg",
         "audio/flac",
+        "audio/m4a",
+        "video/mp4",
     }
 
     def __init__(self, config: WhisperAPIConfig):
@@ -37,7 +43,7 @@ class WhisperAPIConverter(DocumentConverter):
         import mimetypes
 
         mime_type, _ = mimetypes.guess_type(str(path))
-        return mime_type in self.SUPPORTED_MIME_TYPES
+        return bool(mime_type and mime_type in self.SUPPORTED_MIME_TYPES)
 
     def supports_content(self, content: Any, mime_type: str | None = None) -> bool:
         """Check if content type is supported."""
@@ -45,16 +51,16 @@ class WhisperAPIConverter(DocumentConverter):
 
     def convert_content(self, content: bytes, mime_type: str | None = None) -> str:
         """Convert audio content to text."""
-        if not self.supports_content(content, mime_type):
-            msg = f"Unsupported audio format: {mime_type}"
-            raise ValueError(msg)
+        from openai import OpenAI
 
-        import openai
+        client = OpenAI(api_key=self.config.api_key)
 
-        openai.api_key = self.config.api_key
-        response = openai.Audio.transcribe(
-            "whisper-1",
-            io.BytesIO(content),
-            language=self.config.language,
+        file = io.BytesIO(content)
+        file.name = "audio.mp3"  # Required for MIME type detection
+
+        response = client.audio.transcriptions.create(
+            model=self.config.model or "whisper-1",
+            file=file,
+            language=self.config.language or NOT_GIVEN,
         )
-        return response["text"]
+        return response.text
