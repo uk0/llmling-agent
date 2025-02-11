@@ -40,7 +40,7 @@ class ArizePhoenixProvider(ObservabilityProvider):
         OpenAIInstrumentor().instrument(tracer_provider=self._tracer_provider)
 
     @contextmanager
-    def span(self, name: str, attributes: dict[str, Any] | None = None) -> Iterator[None]:
+    def span(self, name: str, **attributes: Any) -> Iterator[None]:
         """Create a trace span using OpenTelemetry context."""
         with using_attributes(
             tags=[self.config.environment] if self.config.environment else None,

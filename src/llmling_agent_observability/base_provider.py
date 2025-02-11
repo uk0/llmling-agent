@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import AsyncIterator, Callable, Iterator
 
 
 P = ParamSpec("P")
@@ -38,5 +38,11 @@ class ObservabilityProvider(ABC):
 
     @abstractmethod
     @contextmanager
-    def span(self, name: str) -> Iterator[Any]:
+    def span(self, name: str, **attributes: Any) -> Iterator[Any]:
         """Create a span for manual instrumentation."""
+
+    @asynccontextmanager
+    async def aspan(self, name: str, **attributes: Any) -> AsyncIterator[Any]:
+        """Create an async span for manual instrumentation."""
+        with self.span(name, attributes=attributes) as span:
+            yield span

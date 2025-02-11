@@ -26,7 +26,7 @@ class MockProvider(ObservabilityProvider):
     calls: list[MockCall] = field(default_factory=list)
 
     @contextmanager
-    def span(self, name: str, attributes: dict[str, Any] | None = None) -> Iterator[None]:
+    def span(self, name: str, **attributes: Any) -> Iterator[None]:
         """Record span creation."""
         kwargs = {"attributes": attributes}
         self.calls.append(MockCall(call_type="span", name=name, kwargs=kwargs))

@@ -44,9 +44,9 @@ class LogfireProvider(ObservabilityProvider):
         )(func)
 
     @contextmanager
-    def span(self, name: str) -> Iterator[Any]:
+    def span(self, name: str, **attributes: Any) -> Iterator[Any]:
         """Create a logfire span for manual instrumentation."""
-        with logfire.span(name) as span:
+        with logfire.span(name, **attributes) as span:
             yield span
 
     def wrap_action(

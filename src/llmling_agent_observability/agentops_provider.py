@@ -70,7 +70,7 @@ class AgentOpsProvider(ObservabilityProvider):
         return cast(Callable[..., T], wrapped)
 
     @contextmanager
-    def span(self, name: str) -> Iterator[Any]:
+    def span(self, name: str, **attributes: Any) -> Iterator[Any]:
         """Create an AgentOps span."""
         # Since record_action isn't a context manager, we create our own
         event_wrapper = agentops.record_action(name)

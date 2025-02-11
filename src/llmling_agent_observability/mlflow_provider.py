@@ -30,9 +30,9 @@ class MlFlowProvider(ObservabilityProvider):
         return mlflow.trace(name=name, span_type=SpanType.TOOL)(func)
 
     @contextmanager
-    def span(self, name: str) -> Iterator[Any]:
+    def span(self, name: str, **attributes: Any) -> Iterator[Any]:
         """Create a logfire span for manual instrumentation."""
-        with mlflow.start_span(name) as span:
+        with mlflow.start_span(name, attributes=attributes) as span:
             yield span
 
     def wrap_action(

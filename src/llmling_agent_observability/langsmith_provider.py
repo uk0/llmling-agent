@@ -35,7 +35,7 @@ class LangsmithProvider(ObservabilityProvider):
         self._client = Client(api_key=self.config.api_key)
 
     @contextmanager
-    def span(self, name: str, attributes: dict[str, Any] | None = None) -> Iterator[None]:
+    def span(self, name: str, **attributes: Any) -> Iterator[None]:
         """Create a trace span using Langsmith RunTree."""
         if self._client is None:
             yield
