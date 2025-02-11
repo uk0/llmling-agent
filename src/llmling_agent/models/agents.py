@@ -11,7 +11,6 @@ from llmling import (
     Config,
     ConfigStore,
     GlobalSettings,
-    LLMCallableTool,
     LLMCapabilitiesConfig,
     PromptMessage,
     StaticPrompt,
@@ -260,14 +259,10 @@ class AgentConfig(NodeConfig):
                     case str():
                         if tool_config.startswith("crewai_tools"):
                             obj = import_class(tool_config)()
-                            llm_tool: LLMCallableTool[Any] = (
-                                LLMCallableTool.from_crewai_tool(obj)
-                            )
-                            static_tools.append(ToolInfo(llm_tool))
+                            static_tools.append(ToolInfo.from_crewai_tool(obj))
                         elif tool_config.startswith("langchain"):
                             obj = import_class(tool_config)()
-                            llm_tool = LLMCallableTool.from_langchain_tool(obj)
-                            static_tools.append(ToolInfo(llm_tool))
+                            static_tools.append(ToolInfo.from_langchain_tool(obj))
                         else:
                             tool = ToolInfo.from_callable(tool_config)
                             static_tools.append(tool)

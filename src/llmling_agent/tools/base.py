@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import inspect
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar
 
 from llmling import LLMCallableTool
@@ -185,6 +186,107 @@ class ToolInfo:
             schema_override=schema_override,
         )
         return cls(tool, **kwargs)
+
+    @classmethod
+    def from_crewai_tool(
+        cls,
+        tool: Any,
+        *,
+        name_override: str | None = None,
+        description_override: str | None = None,
+        schema_override: py2openai.OpenAIFunctionDefinition | None = None,
+    ) -> Self:
+        """Allows importing crewai tools."""
+        # vaidate_import("crewai_tools", "crewai")
+        try:
+            from crewai.tools import BaseTool as CrewAiBaseTool
+        except ImportError as e:
+            msg = "crewai package not found. Please install it with 'pip install crewai'"
+            raise ImportError(msg) from e
+
+        if not isinstance(tool, CrewAiBaseTool):
+            msg = f"Expected CrewAI BaseTool, got {type(tool)}"
+            raise TypeError(msg)
+
+        return cls.from_callable(
+            tool._run,
+            name_override=name_override or tool.__class__.__name__.removesuffix("Tool"),
+            description_override=description_override or tool.description,
+            schema_override=schema_override,
+        )
+
+    @classmethod
+    def from_langchain_tool(
+        cls,
+        tool: Any,
+        *,
+        name_override: str | None = None,
+        description_override: str | None = None,
+        schema_override: py2openai.OpenAIFunctionDefinition | None = None,
+    ) -> Self:
+        """Create a tool from a LangChain tool."""
+        # vaidate_import("langchain_core", "langchain")
+        try:
+            from langchain_core.tools import BaseTool as LangChainBaseTool
+        except ImportError as e:
+            msg = "langchain-core package not found."
+            raise ImportError(msg) from e
+
+        if not isinstance(tool, LangChainBaseTool):
+            msg = f"Expected LangChain BaseTool, got {type(tool)}"
+            raise TypeError(msg)
+
+        return cls.from_callable(
+            tool.invoke,
+            name_override=name_override or tool.name,
+            description_override=description_override or tool.description,
+            schema_override=schema_override,
+        )
+
+    @classmethod
+    def from_autogen_tool(
+        cls,
+        tool: Any,
+        *,
+        name_override: str | None = None,
+        description_override: str | None = None,
+        schema_override: py2openai.OpenAIFunctionDefinition | None = None,
+    ) -> Self:
+        """Create a tool from a AutoGen tool."""
+        # vaidate_import("autogen_core", "autogen")
+        try:
+            from autogen_core import CancellationToken
+            from autogen_core.tools import BaseTool
+        except ImportError as e:
+            msg = "autogent_core package not found."
+            raise ImportError(msg) from e
+
+        if not isinstance(tool, BaseTool):
+            msg = f"Expected AutoGent BaseTool, got {type(tool)}"
+            raise TypeError(msg)
+        token = CancellationToken()
+
+        input_model = tool.__class__.__orig_bases__[0].__args__[0]  # type: ignore
+
+        name = name_override or tool.name or tool.__class__.__name__.removesuffix("Tool")
+        description = (
+            description_override
+            or tool.description
+            or inspect.getdoc(tool.__class__)
+            or ""
+        )
+
+        async def wrapper(**kwargs: Any) -> Any:
+            # Convert kwargs to the expected input model
+            model = input_model(**kwargs)
+            return await tool.run(model, cancellation_token=token)
+
+        return cls.from_callable(
+            wrapper,  # type: ignore
+            name_override=name,
+            description_override=description,
+            schema_override=schema_override,
+        )
 
 
 @dataclass
