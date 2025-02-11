@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 
-class PromptHubConfig(BaseModel):
+class BasePromptHubConfig(BaseModel):
     """Configuration for prompt providers."""
 
     type: str = Field(init=False)
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
-class PromptLayerConfig(PromptHubConfig):
+class PromptLayerConfig(BasePromptHubConfig):
     type: Literal["promptlayer"] = Field("promptlayer", init=False)
     """Configuration for PromptLayer prompt provider."""
 
@@ -22,7 +22,7 @@ class PromptLayerConfig(PromptHubConfig):
     """API key for the PromptLayer API."""
 
 
-class OpenLITConfig(PromptHubConfig):
+class OpenLITConfig(BasePromptHubConfig):
     """Configuration for OpenLIT prompt provider."""
 
     type: Literal["openlit"] = Field("openlit", init=False)
@@ -35,7 +35,7 @@ class OpenLITConfig(PromptHubConfig):
     """API key for the OpenLIT API."""
 
 
-class LangfuseConfig(PromptHubConfig):
+class LangfuseConfig(BasePromptHubConfig):
     """Configuration for Langfuse prompt provider."""
 
     type: Literal["langfuse"] = Field("langfuse", init=False)
@@ -60,7 +60,7 @@ class LangfuseConfig(PromptHubConfig):
     """Timeout for fetching responses in seconds."""
 
 
-class TraceloopConfig(PromptHubConfig):
+class TraceloopConfig(BasePromptHubConfig):
     """Configuration for Traceloop prompt provider."""
 
     type: Literal["traceloop"] = Field("traceloop", init=False)
@@ -68,3 +68,9 @@ class TraceloopConfig(PromptHubConfig):
 
     api_key: SecretStr | None = None  # Optional, defaults to TRACELOOP_API_KEY env var
     """API key for the Traceloop API."""
+
+
+PromptHubConfig = Annotated[
+    PromptLayerConfig | OpenLITConfig | LangfuseConfig | TraceloopConfig,
+    Field(discriminator="type"),
+]
