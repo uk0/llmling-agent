@@ -6,7 +6,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling.tools.base import BaseTool
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 
 if TYPE_CHECKING:
@@ -83,7 +83,6 @@ class PipelineStep(BaseModel):
     retry_delay: float = 1.0
     timeout: float | None = None
     depends_on: list[str] = Field(default_factory=list)  # Step dependencies
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class Pipeline(BaseModel):

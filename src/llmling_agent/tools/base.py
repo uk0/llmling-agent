@@ -151,6 +151,24 @@ class ToolInfo:
         return await execute(self.callable.callable, *args, **kwargs, use_thread=True)
 
     @classmethod
+    def from_code(
+        cls,
+        code: str,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> Self:
+        """Create a tool from a code string."""
+        namespace: dict[str, Any] = {}
+        exec(code, namespace)
+        func = next((v for v in namespace.values() if callable(v)), None)
+        if not func:
+            msg = "No callable found in provided code"
+            raise ValueError(msg)
+        return cls.from_callable(
+            func, name_override=name, description_override=description
+        )
+
+    @classmethod
     def from_callable(
         cls,
         fn: Callable[..., Any] | str,

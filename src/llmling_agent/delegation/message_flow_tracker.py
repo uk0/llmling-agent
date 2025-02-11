@@ -17,6 +17,14 @@ class MessageFlowTracker:
     def track(self, event: Talk.ConnectionProcessed):
         self.events.append(event)
 
+    def filter(self, message: ChatMessage) -> list[ChatMessage]:
+        """Filter events for specific conversation."""
+        return [
+            e.message
+            for e in self.events
+            if e.message.conversation_id == message.conversation_id
+        ]
+
     def visualize(self, message: ChatMessage) -> str:
         """Get flow visualization for specific conversation."""
         # Filter events for this conversation
