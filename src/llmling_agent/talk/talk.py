@@ -116,9 +116,9 @@ class Talk[TTransmittedData]:
         names = {t.name for t in targets}
         self._stats = TalkStats(source_name=source.name, target_names=names)
         self._transform = transform
-        self._filter_condition = filter_condition
-        self._stop_condition = stop_condition
-        self._exit_condition = exit_condition
+        self.filter_condition = filter_condition
+        self.stop_condition = stop_condition
+        self.exit_condition = exit_condition
 
     def __repr__(self):
         targets = [t.name for t in self.targets]
@@ -253,13 +253,13 @@ class Talk[TTransmittedData]:
         # 3. Check exit condition for any target
         for target in self.targets:
             # Exit if condition returns True
-            if await self._evaluate_condition(self._exit_condition, message, target):
+            if await self._evaluate_condition(self.exit_condition, message, target):
                 raise SystemExit
 
         # 4. Check stop condition for any target
         for target in self.targets:
             # Stop if condition returns True
-            if await self._evaluate_condition(self._stop_condition, message, target):
+            if await self._evaluate_condition(self.stop_condition, message, target):
                 self.disconnect()
                 return []
 
@@ -272,7 +272,7 @@ class Talk[TTransmittedData]:
             target
             for target in self.targets
             if await self._evaluate_condition(
-                self._filter_condition,
+                self.filter_condition,
                 processed_message,
                 target,
                 default_return=True,
@@ -427,7 +427,7 @@ class Talk[TTransmittedData]:
 
     def when(self, condition: AnyFilterFn) -> Self:
         """Add condition for message forwarding."""
-        self._filter_condition = condition
+        self.filter_condition = condition
         return self
 
     def transform[TNewData](
@@ -505,7 +505,7 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
         self, talks: Sequence[Talk[TTransmittedData] | TeamTalk[TTransmittedData]]
     ):
         super().__init__(talks)
-        self._filter_condition: AnyFilterFn | None = None
+        self.filter_condition: AnyFilterFn | None = None
         self.active = True
 
     def __repr__(self):

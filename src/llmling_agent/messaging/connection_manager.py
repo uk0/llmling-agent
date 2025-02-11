@@ -303,16 +303,16 @@ class ConnectionManager:
                 details.append(talk.connection_type)
                 if talk.queued:
                     details.append(f"queued({talk.queue_strategy})")
-                if talk._filter_condition:
-                    details.append(f"filter:{talk._filter_condition.__name__}")
-                if talk._stop_condition:
-                    details.append(f"stop:{talk._stop_condition.__name__}")
-                if talk._exit_condition:
-                    details.append(f"exit:{talk._exit_condition.__name__}")
+                if talk.filter_condition:
+                    details.append(f"filter:{talk.filter_condition.__name__}")
+                if talk.stop_condition:
+                    details.append(f"stop:{talk.stop_condition.__name__}")
+                if talk.exit_condition:
+                    details.append(f"exit:{talk.exit_condition.__name__}")
                 elif any([
-                    talk._filter_condition,
-                    talk._stop_condition,
-                    talk._exit_condition,
+                    talk.filter_condition,
+                    talk.stop_condition,
+                    talk.exit_condition,
                 ]):
                     details.append("conditions")
 

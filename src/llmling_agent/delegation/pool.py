@@ -911,11 +911,11 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
                         details.append(talk.connection_type)
                         if talk.queued:
                             details.append(f"queued({talk.queue_strategy})")
-                        if fn := talk._filter_condition:  # type: ignore
+                        if fn := talk.filter_condition:  # type: ignore
                             details.append(f"filter:{fn.__name__}")
-                        if fn := talk._stop_condition:  # type: ignore
+                        if fn := talk.stop_condition:  # type: ignore
                             details.append(f"stop:{fn.__name__}")
-                        if fn := talk._exit_condition:  # type: ignore
+                        if fn := talk.exit_condition:  # type: ignore
                             details.append(f"exit:{fn.__name__}")
 
                         label = f"|{' '.join(details)}|" if details else ""
