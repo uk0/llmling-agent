@@ -26,12 +26,12 @@ class MlFlowProvider(ObservabilityProvider):
             mlflow.set_tracking_uri(config.tracking_uri)
 
     def wrap_tool[T](self, func: Callable[..., T], name: str) -> Callable[..., T]:
-        """Wrap a tool function with logfire instrumentation."""
+        """Wrap a tool function with MlFlow instrumentation."""
         return mlflow.trace(name=name, span_type=SpanType.TOOL)(func)
 
     @contextmanager
     def span(self, name: str, **attributes: Any) -> Iterator[Any]:
-        """Create a logfire span for manual instrumentation."""
+        """Create a MlFlow span for manual instrumentation."""
         with mlflow.start_span(name, attributes=attributes) as span:
             yield span
 
