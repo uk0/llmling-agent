@@ -21,6 +21,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.models.session import MemoryConfig, SessionQuery
+from llmling_agent.observability import track_action, track_agent
 from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
@@ -34,7 +35,6 @@ from llmling_agent.utils.inspection import (
 )
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.tasks import TaskManagerMixin
-from llmling_agent_observability.decorators import track_action, track_agent
 
 
 if TYPE_CHECKING:
@@ -302,7 +302,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self.tools.add_provider(CapabilitiesResourceProvider(ctx.capabilities))
 
         if ctx and ctx.definition:
-            from llmling_agent_observability import registry
+            from llmling_agent.observability import registry
 
             registry.register_providers(ctx.definition.observability)
 

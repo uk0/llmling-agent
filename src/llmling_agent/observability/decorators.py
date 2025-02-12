@@ -4,7 +4,6 @@ from collections.abc import Callable
 from typing import Any, TypeVar
 
 from llmling_agent.log import get_logger
-from llmling_agent_observability import registry
 
 
 logger = get_logger(__name__)
@@ -17,6 +16,8 @@ def track_agent(name: str | None = None, **kwargs: Any) -> Callable[[T], T]:
     """Register a class for agent tracking."""
 
     def decorator(cls: T) -> T:
+        from llmling_agent.observability import registry
+
         agent_name = name or cls.__name__
         logger.debug("Registering agent class %r as %r", cls.__name__, agent_name)
         registry.register_agent(agent_name, cls, **kwargs)
@@ -29,6 +30,8 @@ def track_tool(name: str | None = None, **kwargs: Any) -> Callable[[F], F]:
     """Register a function for tool tracking."""
 
     def decorator(func: F) -> F:
+        from llmling_agent.observability import registry
+
         tool_name = name or func.__name__
         logger.debug("Registering tool function %r as %r", func.__name__, tool_name)
         registry.register_tool(tool_name, func, **kwargs)
@@ -41,6 +44,8 @@ def track_action(msg_template: str | None = None, **kwargs: Any) -> Callable[[F]
     """Register a function for action tracking."""
 
     def decorator(func: F) -> F:
+        from llmling_agent.observability import registry
+
         # If we have an active provider, decorate immediately
         logger.info(
             "Decorating function %s.%s with template %s. Current providers: %s",

@@ -3,7 +3,7 @@ import os
 import pytest
 
 from llmling_agent import AgentsManifest
-from llmling_agent_observability.observability_registry import registry
+from llmling_agent.observability import registry
 
 
 MANIFEST = """

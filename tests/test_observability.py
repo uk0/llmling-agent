@@ -4,8 +4,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import Agent
-from llmling_agent_observability import registry
-from llmling_agent_observability.decorators import track_action
+from llmling_agent.observability import registry, track_action
 from llmling_agent_observability.mock_provider import MockProvider
 
 

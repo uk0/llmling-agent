@@ -245,6 +245,3 @@ def get_provider_cls(  # noqa: PLR0911
             yield spans
 
     return None
-
-
-registry = ObservabilityRegistry()

@@ -13,11 +13,11 @@ from slashed import DefaultOutputWriter, ExitCommandError
 from slashed.prompt_toolkit_completer import PromptToolkitCompleter
 
 from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.observability import track_action
 from llmling_agent_cli.chat_session.base import AgentPoolView
 from llmling_agent_cli.chat_session.formatting import MessageFormatter
 from llmling_agent_cli.chat_session.history import SessionHistory
 from llmling_agent_cli.chat_session.welcome import create_welcome_messages
-from llmling_agent_observability.decorators import track_action
 
 
 if TYPE_CHECKING:

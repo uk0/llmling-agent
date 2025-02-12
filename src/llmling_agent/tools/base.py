@@ -10,8 +10,8 @@ from llmling import LLMCallableTool
 import py2openai  # noqa: TC002
 
 from llmling_agent.log import get_logger
+from llmling_agent.observability import track_tool
 from llmling_agent.utils.inspection import execute
-from llmling_agent_observability.decorators import track_tool
 
 
 if TYPE_CHECKING:

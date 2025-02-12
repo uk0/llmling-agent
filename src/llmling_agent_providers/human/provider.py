@@ -10,8 +10,8 @@ from llmling import ToolError
 from slashed import CommandStore, DefaultOutputWriter, parse_command
 
 from llmling_agent.log import get_logger
+from llmling_agent.observability import track_action
 from llmling_agent.prompts.convert import format_prompts
-from llmling_agent_observability.decorators import track_action
 from llmling_agent_providers.base import (
     AgentProvider,
     ProviderResponse,
