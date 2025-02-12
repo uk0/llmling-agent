@@ -44,21 +44,13 @@ responses:
 
 agents:
   url_opener:
-    environment:
-      tools:
-        open_url:
-          import_path: "webbrowser.open"
-          description: "Open URL in default browser"
-        get_user:
-          import_path: "getpass.getuser"
-          description: "Get current system username"
-      resources:
-        bookmarks:
-          type: text
-          content: |
-            Python Website: https://python.org
-            Documentation: https://docs.python.org
-          description: "Common Python URLs"
+    tools:
+      - type: import
+        import_path: "webbrowser.open"
+        description: "Open URL in default browser"
+      - type: import
+        import_path: "getpass.getuser"
+        description: "Get current system username"
     model: openai:gpt-4o-mini
     result_type: BasicResult
     system_prompts:
@@ -71,26 +63,16 @@ agents:
       - "Open my favorite coding sites"
 
   system_inspector:
-    environment:
-      tools:
-        platform_info:
-          import_path: "platform.platform"
-          description: "Get platform information"
-        cpu_count:
-          import_path: "os.cpu_count"
-          description: "Get number of CPUs"
-        memory_info:
-          import_path: "psutil.virtual_memory" # Common enough to be familiar
-          description: "Get memory information"
-
-      resources:
-        system_template:
-          type: text
-          content: |
-            System Summary:
-            Platform: {platform}
-            CPUs: {cpu_count}
-            Memory: {memory_info}
+    tools:
+      - type: import
+        import_path: "platform.platform"
+        description: "Get platform information"
+      - type: import
+        import_path: "os.cpu_count"
+        description: "Get number of CPUs"
+      - type: import
+        import_path: "psutil.virtual_memory"
+        description: "Get memory information"
     model: openai:gpt-4o-mini
     result_type: SystemInfoResult
     system_prompts:
@@ -106,27 +88,18 @@ agents:
       - "Give me a full system report"
 
   file_explorer:
-    environment:
-      tools:
-        list_dir:
-          import_path: "os.listdir"
-          description: "List directory contents"
-        file_info:
-          import_path: "os.stat"
-          description: "Get file information"
-        current_dir:
-          import_path: "os.getcwd"
-          description: "Get current working directory"
-
-      resources:
-        help_text:
-          type: text
-          content: |
-            Common file operations:
-            - List files in directory
-            - Get file size and modification time
-            - Show current working directory
-
+    tools:
+      - type: import
+        import_path: "os.listdir"
+        description: "List directory contents"
+      - type: import
+        name: file_info
+        import_path: "os.stat"
+        description: "Get file information"
+      - type: import
+        import_path: "os.getcwd"
+        name: current_dir
+        description: "Get current working directory"
     model: openai:gpt-4o-mini
     result_type: FileInfoResult
     system_prompts:
