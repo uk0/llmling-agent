@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 
 import pytest
 
@@ -60,7 +61,8 @@ async def test_agent_piping_with_monitoring():
 
 
 @pytest.mark.asyncio
-async def test_agent_piping_errors():
+async def test_agent_piping_errors(caplog):
+    caplog.set_level(logging.CRITICAL)
     agent1 = Agent[None].from_callback(lambda x: f"model: {x}", name="agent1")
     failing = Agent[None].from_callback(
         lambda x: exec('raise ValueError("Transform error")'),  # type: ignore
@@ -80,8 +82,9 @@ async def test_agent_piping_errors():
 
 
 @pytest.mark.asyncio
-async def test_agent_piping_iter():
+async def test_agent_piping_iter(caplog):
     """Test that execute_iter allows tracking the pipeline step by step."""
+    caplog.set_level(logging.CRITICAL)
     agent1 = Agent[None].from_callback(lambda x: f"model: {x}", name="agent1")
     failing = Agent[None].from_callback(
         lambda x: exec('raise ValueError("Transform error")'),  # type: ignore
@@ -109,8 +112,9 @@ async def test_agent_piping_iter():
 
 
 @pytest.mark.asyncio
-async def test_agent_piping_background_error():
+async def test_agent_piping_background_error(caplog):
     """Test that background execution properly handles errors."""
+    caplog.set_level(logging.CRITICAL)
     agent1 = Agent[None].from_callback(lambda x: f"model: {x}", name="agent1")
 
     def failing_transform(text: str) -> str:
