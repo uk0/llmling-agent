@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
+
+
+if TYPE_CHECKING:
+    from llmling_agent_observability.base_provider import ObservabilityProvider
 
 
 class BaseObservabilityProviderConfig(BaseModel):
@@ -14,6 +18,10 @@ class BaseObservabilityProviderConfig(BaseModel):
     """Observability provider."""
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+
+    def get_provider(self) -> ObservabilityProvider:
+        """Get the provider instance."""
+        raise NotImplementedError
 
 
 class LogfireProviderConfig(BaseObservabilityProviderConfig):
@@ -29,6 +37,12 @@ class LogfireProviderConfig(BaseObservabilityProviderConfig):
 
     environment: str | None = None
     """Environment name (dev/prod/etc)."""
+
+    def get_provider(self) -> ObservabilityProvider:
+        """Get the provider instance."""
+        from llmling_agent_observability.logfire_provider import LogfireProvider
+
+        return LogfireProvider(self)
 
 
 class AgentOpsProviderConfig(BaseObservabilityProviderConfig):
@@ -66,6 +80,12 @@ class AgentOpsProviderConfig(BaseObservabilityProviderConfig):
     skip_auto_end_session: bool | None = None
     """Whether to skip auto-ending the session on exit."""
 
+    def get_provider(self) -> ObservabilityProvider:
+        """Get the provider instance."""
+        from llmling_agent_observability.agentops_provider import AgentOpsProvider
+
+        return AgentOpsProvider(self)
+
 
 class LangsmithProviderConfig(BaseObservabilityProviderConfig):
     """Configuration for Langsmith provider."""
@@ -83,6 +103,12 @@ class LangsmithProviderConfig(BaseObservabilityProviderConfig):
 
     environment: str | None = None
     """Environment name (dev/prod/staging)."""
+
+    def get_provider(self) -> ObservabilityProvider:
+        """Get the provider instance."""
+        from llmling_agent_observability.langsmith_provider import LangsmithProvider
+
+        return LangsmithProvider(self)
 
 
 class ArizePhoenixProviderConfig(BaseObservabilityProviderConfig):
@@ -102,6 +128,12 @@ class ArizePhoenixProviderConfig(BaseObservabilityProviderConfig):
     environment: str | None = None
     """Environment name."""
 
+    def get_provider(self) -> ObservabilityProvider:
+        """Get the provider instance."""
+        from llmling_agent_observability.arize_provider import ArizePhoenixProvider
+
+        return ArizePhoenixProvider(self)
+
 
 class MlFlowProviderConfig(BaseObservabilityProviderConfig):
     """Configuration for MlFlow provider."""
@@ -110,6 +142,12 @@ class MlFlowProviderConfig(BaseObservabilityProviderConfig):
 
     tracking_uri: str | None = None
     """Tracking URI for MLFlow."""
+
+    def get_provider(self) -> ObservabilityProvider:
+        """Get the provider instance."""
+        from llmling_agent_observability.mlflow_provider import MlFlowProvider
+
+        return MlFlowProvider(self)
 
 
 class BraintrustProviderConfig(BaseObservabilityProviderConfig):
@@ -120,6 +158,12 @@ class BraintrustProviderConfig(BaseObservabilityProviderConfig):
     api_key: SecretStr | None = None
     """Braintrust API key."""
 
+    def get_provider(self) -> ObservabilityProvider:
+        """Get the provider instance."""
+        from llmling_agent_observability.braintrust_provider import BraintrustProvider
+
+        return BraintrustProvider(self)
+
 
 class TraceloopProviderConfig(BaseObservabilityProviderConfig):
     """Configuration for Traceloop provider."""
@@ -128,6 +172,12 @@ class TraceloopProviderConfig(BaseObservabilityProviderConfig):
 
     api_key: SecretStr | None = None
     """Traceloop API key."""
+
+    def get_provider(self) -> ObservabilityProvider:
+        """Get the provider instance."""
+        from llmling_agent_observability.traceloop_provider import TraceloopProvider
+
+        return TraceloopProvider(self)
 
 
 ObservabilityProviderConfig = Annotated[

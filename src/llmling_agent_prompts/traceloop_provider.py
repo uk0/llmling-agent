@@ -39,9 +39,15 @@ class TraceloopPromptHub(BasePromptProvider):
 if __name__ == "__main__":
     import asyncio
 
+    from traceloop.sdk.prompts.client import PromptRegistryClient
+
     from llmling_agent.models.prompt_hubs import TraceloopConfig
 
     config = TraceloopConfig()
     prompt_hub = TraceloopPromptHub(config)
+    print(PromptRegistryClient()._registry._prompts)
 
-    loop = asyncio.get_event_loop()
+    async def main():
+        print(await prompt_hub.get_prompt("test"))
+
+    asyncio.run(main())
