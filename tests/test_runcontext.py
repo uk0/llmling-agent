@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from typing import Any, Literal
 
 from pydantic_ai import RunContext
@@ -97,10 +96,6 @@ async def test_plain_tool_no_context():
 
 @pytest.mark.integration
 @pytest.mark.parametrize("provider", ["pydantic_ai", "litellm"])
-@pytest.mark.skipif(
-    sys.version_info >= (3, 13),
-    reason="litellm has issues on Python 3.13+ on macOS",
-)
 async def test_capability_tools(provider: Literal["pydantic_ai", "litellm"]):
     """Test that capability tools work with AgentContext."""
     async with AgentPool[None]() as pool:

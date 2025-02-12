@@ -101,6 +101,7 @@ braintrust = ["braintrust", "autoevals"]
 traceloop = ["traceloop-sdk>=0.38.4"]
 arize = [
     "arize",
+    "arize-otel",
     "arize-phoenix-otel",
     "openinference-instrumentation-litellm",
     "openinference-instrumentation-openai",

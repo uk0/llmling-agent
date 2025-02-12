@@ -117,13 +117,17 @@ def test_multi_level_inheritance(multi_level_config: Path):
     assert child.system_prompts == ["Middle prompt"]  # Inherited from middle
 
 
-# def test_circular_inheritance(circular_config: Path):
-#     """Test that circular inheritance is detected."""
-#     with pytest.raises(ValueError, match="Circular inheritance"):
-#         AgentsManifest.from_file(circular_config)
+def test_circular_inheritance(circular_config: Path):
+    """Test that circular inheritance is detected."""
+    with pytest.raises(ValueError, match="Circular inheritance"):
+        AgentsManifest.from_yaml(CIRCULAR)
 
 
-# def test_invalid_parent(invalid_parent_config: Path):
-#     """Test error on invalid parent reference."""
-#     with pytest.raises(ValueError, match="Parent agent.*not found"):
-#         AgentsManifest.from_file(invalid_parent_config)
+def test_invalid_parent(invalid_parent_config: Path):
+    """Test error on invalid parent reference."""
+    with pytest.raises(ValueError, match="Parent agent.*not found"):
+        AgentsManifest.from_yaml(INVALID_PARENT)
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-vv", "--log-level", "debug"])

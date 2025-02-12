@@ -51,10 +51,7 @@ async def test_default_inputs():
         return "test"
 
     metadata = test_func._node_function  # type: ignore
-    assert metadata.default_inputs == {
-        "optional": 42,
-        "another": "default",
-    }
+    assert metadata.default_inputs == {"optional": 42, "another": "default"}
 
 
 async def test_function_name():
