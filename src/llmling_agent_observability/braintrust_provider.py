@@ -53,4 +53,28 @@ class BraintrustProvider(ObservabilityProvider):
             msg_template: The message template for logging
             span_name: Optional span name for tracing
         """
-        return braintrust.traced(name=span_name)(func)
+        return braintrust.traced(span_name)(func)
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    from llmling_agent import Agent
+    from llmling_agent.models.observability import BraintrustProviderConfig
+    from llmling_agent.observability import registry
+
+    config = BraintrustProviderConfig()
+    provider = BraintrustProvider(config)
+    registry.configure_provider(provider)
+    agent = Agent[None](model="gpt-4o-mini", name="test")
+
+    @agent.tools.tool(name="test")
+    def square(x: int) -> int:
+        return x * x
+
+    async def main():
+        result = await agent.run("Square root of 16?")
+        await asyncio.sleep(2)
+        return result
+
+    asyncio.run(main())

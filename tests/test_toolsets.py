@@ -68,7 +68,7 @@ class MockResponse:
     def text(self):
         return self._text
 
-    async def raise_for_status(self):
+    def raise_for_status(self):
         pass
 
 
