@@ -97,11 +97,9 @@ class ObservabilityRegistry:
         collected through decorators at import time. Each provider uses
         these registrations to know what to track.
         """
-        logger.info(
-            "Configuring provider: %s, Current pending actions: %s",
-            provider.__class__.__name__,
-            list(self._registered_actions.keys()),
-        )
+        msg = "Configuring provider: %s, Current pending actions: %s"
+        actions = list(self._registered_actions.keys())
+        logger.info(msg, provider.__class__.__name__, actions)
         self.providers.append(provider)
 
         # Apply decorations for each type

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import os
 from typing import TYPE_CHECKING, Any, LiteralString, ParamSpec, TypeVar
 
 import braintrust
@@ -22,7 +23,10 @@ class BraintrustProvider(ObservabilityProvider):
     def __init__(self, config: BraintrustProviderConfig):
         self.config = config
         key = self.config.api_key.get_secret_value() if self.config.api_key else None
-
+        key = key or os.environ.get("BRAINTRUST_API_KEY")
+        if not key:
+            msg = "Braintrust API key not found"
+            raise ValueError(msg)
         braintrust.init_logger(api_key=key)
 
     def wrap_tool[T](self, func: Callable[..., T], name: str) -> Callable[..., T]:
