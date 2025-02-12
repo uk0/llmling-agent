@@ -10,6 +10,9 @@ from llmling_agent import Agent, AgentContext, AgentPool
 from llmling_agent.config.capabilities import Capabilities
 
 
+MODEL = "openai:gpt-4o-mini"
+
+
 async def run_ctx_tool(ctx: RunContext[AgentContext], arg: str) -> str:
     """Tool expecting RunContext."""
     assert isinstance(ctx, RunContext)
@@ -56,7 +59,7 @@ async def test_tool_context_injection():
     test_deps = {"key": "value"}
     context = AgentContext[Any].create_default("test_agent")
     context.data = test_deps
-    async with Agent[None](model="openai:gpt-4o-mini") as agent:
+    async with Agent[None](model=MODEL) as agent:
         agent.context = context
         # Register our test tool
         agent.tools.register_tool(test_tool, enabled=True)
@@ -83,7 +86,7 @@ async def test_plain_tool_no_context():
         """Tool without context parameter."""
         return f"Got arg: {arg}"
 
-    async with Agent[None](model="openai:gpt-4o-mini") as agent:
+    async with Agent[None](model=MODEL) as agent:
         agent.context = AgentContext.create_default("test_agent")
         agent.tools.register_tool(plain_tool, enabled=True)
 
@@ -104,7 +107,7 @@ async def test_capability_tools(provider: Literal["pydantic_ai", "litellm"]):
         agent = await pool.add_agent(
             name="test_agent",
             provider=provider,
-            model="openai:gpt-4o-mini",
+            model=MODEL,
             capabilities=Capabilities(can_list_agents=True),
         )
         result = await agent.run(
@@ -115,14 +118,14 @@ async def test_capability_tools(provider: Literal["pydantic_ai", "litellm"]):
         agent_2 = await pool.add_agent(
             name="test_agent_2",
             provider=provider,
-            model="openai:gpt-4o-mini",
+            model=MODEL,
             capabilities=Capabilities(can_delegate_tasks=True),
         )
 
         await pool.add_agent(
             "helper",
             system_prompt="You help with tasks",
-            model="openai:gpt-4o-mini",
+            model=MODEL,
             provider=provider,
         )
         result = await agent_2.run("Delegate 'say hello' to agent with name `helper`")
@@ -136,7 +139,7 @@ async def test_team_creation():
         caps = Capabilities(can_add_agents=True, can_add_teams=True)
         orchestrator = await pool.add_agent(
             name="orchestrator",
-            model="openai:gpt-4o-mini",
+            model=MODEL,
             capabilities=caps,
         )
 
@@ -160,7 +163,7 @@ async def test_team_creation():
 @pytest.mark.asyncio
 async def test_context_compatibility():
     """Test that both context types work in tools."""
-    async with Agent[None](model="openai:gpt-4o-mini") as agent:
+    async with Agent[None](model=MODEL) as agent:
         agent.tools.register_tool(run_ctx_tool, name_override="run_ctx_tool")
         agent.tools.register_tool(agent_ctx_tool, name_override="agent_ctx_tool")
         agent.tools.register_tool(no_ctx_tool, name_override="no_ctx_tool")
@@ -187,7 +190,7 @@ async def test_context_sharing():
     """Test that both context types access same data."""
     shared_data = {"key": "value"}
 
-    agent = Agent[dict](name="test", model="openai:gpt-4o-mini")
+    agent = Agent[dict](name="test", model=MODEL)
     agent.context.data = shared_data
 
     agent.tools.register_tool(data_with_run_ctx)

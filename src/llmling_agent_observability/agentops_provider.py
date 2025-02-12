@@ -90,3 +90,29 @@ class AgentOpsProvider(ObservabilityProvider):
         finally:
             # End of context will automatically finish the event
             pass
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    import pydantic_ai  # noqa: F401
+
+    from llmling_agent import Agent
+    from llmling_agent.models.observability import AgentOpsProviderConfig
+    from llmling_agent.observability import registry
+
+    config = AgentOpsProviderConfig()
+    provider = AgentOpsProvider(config)
+    registry.configure_provider(provider)
+    agent = Agent[None](model="gpt-4o-mini", name="test")
+
+    @agent.tools.tool(name="test")
+    def square(x: int) -> int:
+        return x * x
+
+    async def main():
+        result = await agent.run("Square root of 16?")
+        await asyncio.sleep(2)
+        return result
+
+    asyncio.run(main())
