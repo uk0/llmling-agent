@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
 
 from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import agent, task, tool
+from traceloop.sdk.instruments import Instruments
 
 from llmling_agent_observability.base_provider import ObservabilityProvider
 
@@ -29,7 +30,13 @@ class TraceloopProvider(ObservabilityProvider):
             if config.api_key
             else os.getenv("TRACELOOP_API_KEY")
         )
-        Traceloop.init(traceloop_sync_enabled=True, api_key=api_key)
+        Traceloop.init(
+            # app_name="appname",
+            traceloop_sync_enabled=True,
+            block_instruments={Instruments.MISTRAL},
+            api_key=api_key,
+            disable_batch=True,
+        )
 
     def wrap_action(
         self,
@@ -38,22 +45,22 @@ class TraceloopProvider(ObservabilityProvider):
         *,
         span_name: str | None = None,
     ) -> Callable[P, R]:
-        """Wrap a function with AgentOps tracking."""
+        """Wrap a function with Traceloop tracking."""
         name = span_name or msg_template or func.__name__
         wrapped = task(name)(func)
         return cast(Callable[P, R], wrapped)
 
     def wrap_agent[T](self, kls: type[T], name: str) -> type[T]:
-        """Wrap an agent class with AgentOps tracking."""
+        """Wrap an agent class with Traceloop tracking."""
         if not isinstance(kls, type):
-            msg = "AgentOps @track_agent can only be used with classes"
+            msg = "Traceloop @track_agent can only be used with classes"
             raise TypeError(msg)
-        # Only pass the name to AgentOps
+        # Only pass the name to Traceloop
         wrapped = agent(name)(kls)
         return cast(type[T], wrapped)
 
     def wrap_tool[T](self, func: Callable[..., T], name: str) -> Callable[..., T]:
-        """Wrap a tool function with AgentOps tracking."""
+        """Wrap a tool function with Traceloop tracking."""
         wrapped = tool(name)(func)
         return cast(Callable[..., T], wrapped)
 
