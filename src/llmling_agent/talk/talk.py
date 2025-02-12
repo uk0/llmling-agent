@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
@@ -110,9 +111,9 @@ class Talk[TTransmittedData]:
         self.wait_for_connections = wait_for_connections
         self.queued = queued
         self.queue_strategy = queue_strategy
-        self._pending_messages: dict[str, list[ChatMessage[TTransmittedData]]] = {
-            target.name: [] for target in targets
-        }
+        self._pending_messages = defaultdict[str, list[ChatMessage[TTransmittedData]]](
+            list
+        )
         names = {t.name for t in targets}
         self._stats = TalkStats(source_name=source.name, target_names=names)
         self._transform = transform
