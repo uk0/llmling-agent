@@ -116,7 +116,7 @@ class Talk[TTransmittedData]:
         )
         names = {t.name for t in targets}
         self._stats = TalkStats(source_name=source.name, target_names=names)
-        self._transform = transform
+        self.transform_fn = transform
         self.filter_condition = filter_condition
         self.stop_condition = stop_condition
         self.exit_condition = exit_condition
@@ -266,8 +266,8 @@ class Talk[TTransmittedData]:
 
         # 5. Transform if configured
         processed_message = message
-        if self._transform:
-            processed_message = await execute(self._transform, message)
+        if self.transform_fn:
+            processed_message = await execute(self.transform_fn, message)
         # 6. First pass: Determine target list
         target_list: list[MessageNode] = [
             target
@@ -464,18 +464,18 @@ class Talk[TTransmittedData]:
             connection_type=self.connection_type,  # type: ignore
         )
 
-        if self._transform is not None:
-            old_transform = self._transform
+        if self.transform_fn is not None:
+            oldtransform_fn = self.transform_fn
 
-            async def chained_transform(
+            async def chainedtransform_fn(
                 data: ChatMessage[TTransmittedData],
             ) -> ChatMessage[TNewData]:
-                intermediate = await execute(old_transform, data)
+                intermediate = await execute(oldtransform_fn, data)
                 return await execute(transformer, intermediate)
 
-            new_talk._transform = chained_transform  # type: ignore
+            new_talk.transform_fn = chainedtransform_fn  # type: ignore
         else:
-            new_talk._transform = transformer  # type: ignore
+            new_talk.transform_fn = transformer  # type: ignore
 
         return new_talk
 
