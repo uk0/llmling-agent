@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from functools import lru_cache
+import os
 from typing import TYPE_CHECKING, Literal, overload
 
 from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from fsspec.asyn import AsyncFileSystem
 
     from llmling_agent.common_types import StrPath
@@ -75,11 +78,125 @@ async def read_path(
         return await f.read()
 
 
+@overload
+async def read_folder(
+    path: StrPath,
+    *,
+    pattern: str = "**/*",
+    recursive: bool = True,
+    include_dirs: bool = False,
+    exclude: list[str] | None = None,
+    max_depth: int | None = None,
+    mode: Literal["rt"] = "rt",
+    encoding: str = "utf-8",
+) -> Mapping[str, str]: ...
+
+
+@overload
+async def read_folder(
+    path: StrPath,
+    *,
+    pattern: str = "**/*",
+    recursive: bool = True,
+    include_dirs: bool = False,
+    exclude: list[str] | None = None,
+    max_depth: int | None = None,
+    mode: Literal["rb"],
+    encoding: str = "utf-8",
+) -> Mapping[str, bytes]: ...
+
+
+async def read_folder(
+    path: StrPath,
+    *,
+    pattern: str = "**/*",
+    recursive: bool = True,
+    include_dirs: bool = False,
+    exclude: list[str] | None = None,
+    max_depth: int | None = None,
+    mode: Literal["rt", "rb"] = "rt",
+    encoding: str = "utf-8",
+) -> Mapping[str, str | bytes]:
+    """Asynchronously read all files in a folder.
+
+    Args:
+        path: Base path to read from
+        pattern: Glob pattern to filter files
+        recursive: Whether to traverse subdirectories
+        include_dirs: Whether to include directory paths
+        exclude: Patterns to exclude
+        max_depth: Optional depth limit
+        mode: Read mode ("rt" for text, "rb" for binary)
+        encoding: File encoding for text files
+
+    Returns:
+        Dict mapping relative paths to their contents
+    """
+    from fnmatch import fnmatch
+
+    from upath import UPath
+
+    base_path = UPath(path)
+    if not base_path.exists():
+        msg = f"Path does not exist: {path}"
+        raise FileNotFoundError(msg)
+
+    fs = await get_async_fs(base_path)
+    result: dict[str, str | bytes] = {}
+
+    # Get all matching paths
+    if recursive:
+        paths = await fs._find(str(base_path), maxdepth=max_depth)
+    else:
+        paths = await fs.ls(str(base_path))
+
+    # Filter paths
+    for file_path in paths:
+        rel_path = os.path.relpath(file_path, str(base_path))
+
+        # Skip excluded patterns
+        if exclude and any(fnmatch(rel_path, pat) for pat in exclude):
+            continue
+
+        # Skip directories unless explicitly included
+        is_dir = await fs._isdir(file_path)
+        if is_dir and not include_dirs:
+            continue
+
+        # Filter by pattern
+        if not fnmatch(rel_path, pattern):
+            continue
+
+        try:
+            if not is_dir:
+                content = await read_path(file_path, mode=mode, encoding=encoding)
+                result[rel_path] = content
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Failed to read %s: %s", rel_path, e)
+            continue
+
+    return result
+
+
 if __name__ == "__main__":
     import asyncio
+    from pprint import pprint
 
     async def main():
-        content = await read_path("README.md")
-        print(content)
+        # Test with current directory
+        files = await read_folder(
+            ".",
+            pattern="*.py",
+            recursive=True,
+            exclude=["__pycache__/*", "*.pyc"],
+            max_depth=2,
+        )
+        print("\nFound files:")
+        pprint(list(files.keys()))
+
+        print("\nFirst file content:")
+        first_file = next(iter(files))
+        print(f"\n{first_file}:")
+        print(files[first_file][:500] + "...")  # Show first 500 chars
 
     asyncio.run(main())
