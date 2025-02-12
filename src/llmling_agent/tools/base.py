@@ -11,6 +11,7 @@ import py2openai  # noqa: TC002
 
 from llmling_agent.log import get_logger
 from llmling_agent.utils.inspection import execute
+from llmling_agent_observability.decorators import track_tool
 
 
 if TYPE_CHECKING:
@@ -149,7 +150,8 @@ class ToolInfo:
 
     async def execute(self, *args: Any, **kwargs: Any) -> Any:
         """Execute tool, handling both sync and async cases."""
-        return await execute(self.callable.callable, *args, **kwargs, use_thread=True)
+        fn = track_tool(self.name)(self.callable.callable)
+        return await execute(fn, *args, **kwargs, use_thread=True)
 
     @classmethod
     def from_code(

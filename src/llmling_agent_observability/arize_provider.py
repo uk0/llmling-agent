@@ -3,10 +3,10 @@ from contextlib import contextmanager
 import os
 from typing import Any, ParamSpec, TypeVar
 
+from arize.otel import Transport, register
 from openinference.instrumentation import using_attributes
 from openinference.instrumentation.litellm import LiteLLMInstrumentor
 from openinference.instrumentation.openai import OpenAIInstrumentor
-from phoenix.otel import register
 
 from llmling_agent.models.observability import ArizePhoenixProviderConfig
 from llmling_agent_observability.base_provider import ObservabilityProvider
@@ -25,15 +25,13 @@ class ArizePhoenixProvider(ObservabilityProvider):
     def _configure(self) -> None:
         """Initialize Arize Phoenix with OpenTelemetry."""
         key = self.config.api_key.get_secret_value() if self.config.api_key else None
-        if key:
-            os.environ["PHOENIX_CLIENT_HEADERS"] = f"api_key={key}"
-
-        os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = "https://app.phoenix.arize.com"
-
-        # Configure the Phoenix tracer with batch processing for production
+        key = key or os.getenv("ARIZE_API_KEY")
+        if not key:
+            msg = "No API key set for Arize."
+            raise RuntimeError(msg)
+        space = self.config.space_key or os.getenv("ARIZE_SPACE_ID") or "default"
         self._tracer_provider = register(
-            project_name=self.config.space_key or "default",
-            batch=True,  # Use batch processing in production
+            space_id=space, api_key=key, transport=Transport.GRPC
         )
 
         # Instrument underlying LLM libraries
@@ -86,3 +84,29 @@ class ArizePhoenixProvider(ObservabilityProvider):
             return func(*args, **kwargs)
 
         return wrapped
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    from llmling_agent import Agent
+    from llmling_agent.models.observability import ArizePhoenixProviderConfig
+
+    config = ArizePhoenixProviderConfig(environment="dev")
+    provider = ArizePhoenixProvider(config)
+
+    agent = Agent[None](model="gpt-4o-mini", name="test")
+
+    @agent.tools.tool(name="test")
+    def square(x: int) -> int:
+        return x * x
+
+    with provider.span("test"):
+        pass
+
+    async def main():
+        result = await agent.run("Square root of 16?")
+        print(result)
+        await asyncio.sleep(5)
+
+    asyncio.run(main())

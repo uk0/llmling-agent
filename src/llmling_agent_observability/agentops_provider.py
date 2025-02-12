@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from contextlib import contextmanager
+import os
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
 
 import agentops
@@ -25,8 +26,13 @@ class AgentOpsProvider(ObservabilityProvider):
 
     def __init__(self, config: AgentOpsProviderConfig):
         """Initialize AgentOps with configuration."""
+        key = config.api_key.get_secret_value() if config.api_key else None
+        key = key or os.getenv("AGENTOPS_API_KEY")
+        if not key:
+            msg = "No API key provided for AgentOps"
+            raise RuntimeError(msg)
         self.config = {
-            "api_key": config.api_key.get_secret_value() if config.api_key else None,
+            "api_key": key,
             "parent_key": config.parent_key,
             "endpoint": config.endpoint,
             "max_wait_time": config.max_wait_time,
