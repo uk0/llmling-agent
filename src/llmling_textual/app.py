@@ -28,21 +28,20 @@ class PoolApp(App):
         Binding("p", "select_pool", "Select Pool"),
     ]
 
-    def __init__(self, config_path: str):
+    def __init__(self, pool: AgentPool):
         super().__init__()
-        self._config_path = config_path
-        self.agent_pool: AgentPool | None = None
+        self.agent_pool = pool
         self.main_screen: MainScreen | None = None
         self.log_widget = LoggingWidget()
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
         logger.addHandler(self.log_widget.handler)
 
+        # Set up input provider for the pool
+        self.agent_pool._input_provider = TextualInputProvider(self)
+
     async def on_mount(self):
         """Initialize pool and mount main screen."""
-        self.agent_pool = AgentPool(
-            self._config_path, input_provider=TextualInputProvider(self)
-        )
         await self.agent_pool.__aenter__()
 
         self.main_screen = MainScreen(self.agent_pool)
@@ -54,8 +53,7 @@ class PoolApp(App):
             # First disconnect event handlers
             self.main_screen.cleanup()
 
-        if self.agent_pool:
-            await self.agent_pool.__aexit__(None, None, None)
+        await self.agent_pool.__aexit__(None, None, None)
 
     def action_toggle_logs(self):
         """Toggle log window."""
@@ -70,5 +68,10 @@ class PoolApp(App):
 
 
 if __name__ == "__main__":
-    app = PoolApp("src/llmling_agent/config_resources/agents_template.yml")
+    # Example of direct usage (for development/testing)
+    from llmling_agent import AgentPool
+
+    path = "src/llmling_agent/config_resources/agents_template.yml"
+    pool = AgentPool[None](path)
+    app = PoolApp(pool)
     app.run()

@@ -28,7 +28,7 @@ class TextualUIProvider(UIProvider):
         from llmling_textual.app import PoolApp
 
         # TODO: change TextualApp to take a pool
-        app = PoolApp(pool)  # type: ignore
+        app = PoolApp(pool)
         app.run()  # This blocks and handles its own event loop
 
     def run_node(self, node: MessageNode) -> None:
