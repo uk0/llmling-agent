@@ -247,9 +247,8 @@ class InteractiveSession:
 async def start_interactive_session(
     agent: AnyAgent[Any, Any],
     *,
-    pool: AgentPool | None = None,
     stream: bool = False,
 ):
     """Start an interactive chat session."""
-    session = InteractiveSession(agent, pool=pool, stream=stream)
+    session = InteractiveSession(agent, pool=agent.context.pool, stream=stream)
     await session.start()

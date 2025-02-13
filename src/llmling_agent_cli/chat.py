@@ -79,7 +79,7 @@ def chat_command(
                         target_agent = pool.get_agent(target)
                         agent.connect_to(target_agent)
 
-                await start_interactive_session(agent, pool=pool, stream=stream)
+                await start_interactive_session(agent, stream=stream)
 
         show_logs = False
         output = DefaultOutputWriter() if show_logs else None

@@ -51,7 +51,7 @@ def quickstart_command(
         async def run_chat():
             async with AgentPool[None](agent_path) as pool:
                 agent = pool.get_agent("quickstart")
-                await start_interactive_session(agent, pool=pool, stream=stream)
+                await start_interactive_session(agent, stream=stream)
 
         show_logs = False
         output = DefaultOutputWriter() if show_logs else None
