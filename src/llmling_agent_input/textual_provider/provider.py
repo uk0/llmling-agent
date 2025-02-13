@@ -1,134 +1,27 @@
+from __future__ import annotations
+
 import json
 from textwrap import dedent
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any
 
-from textual.app import App, ComposeResult
-from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
-from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Label, TextArea
+from textual.app import App
 
-from llmling_agent.agent.context import AgentContext, ConfirmationResult
-from llmling_agent.messaging.messages import ChatMessage
-from llmling_agent.tools.base import Tool
 from llmling_agent_input.base import InputProvider
+from llmling_agent_input.textual_provider.code_input import CodeInputModal
+from llmling_agent_input.textual_provider.confirmation_input import ConfirmationModal
+from llmling_agent_input.textual_provider.run_input import InputModal
+
+
+if TYPE_CHECKING:
+    from textual.screen import ModalScreen
+
+    from llmling_agent.agent.context import AgentContext, ConfirmationResult
+    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent.tools.base import Tool
 
 
 class UserCancelledError(Exception):
     """Raised when user cancels input."""
-
-
-class ConfirmationModal(ModalScreen[str]):
-    """Modal for tool confirmation."""
-
-    DEFAULT_CSS = """
-    ConfirmationModal {
-        align: center middle;
-    }
-
-    .modal-container {
-        width: 60%;
-        height: auto;
-        border: heavy $primary;
-        padding: 1;
-    }
-    """
-
-    def __init__(self, prompt: str):
-        super().__init__()
-        self.prompt = prompt
-
-    def compose(self) -> ComposeResult:
-        with Vertical(classes="modal-container"):
-            yield Label(self.prompt)
-            with Horizontal(classes="buttons"):
-                yield Button("Yes", variant="success", id="yes")
-                yield Button("No", variant="primary", id="no")
-                yield Button("Abort", variant="warning", id="abort")
-                yield Button("Quit", variant="error", id="quit")
-
-    def on_button_pressed(self, event: Button.Pressed):
-        match event.button.id:
-            case "yes":
-                self.dismiss("allow")
-            case "abort":
-                self.dismiss("abort_run")
-            case "quit":
-                self.dismiss("abort_chain")
-            case _:
-                self.dismiss("skip")
-
-
-class InputModal(ModalScreen[str]):
-    """Modal for basic input requests."""
-
-    DEFAULT_CSS = """
-    InputModal {
-        align: center middle;
-    }
-
-    .modal-container {
-        width: 60%;
-        height: auto;
-        border: heavy $primary;
-        padding: 1;
-    }
-
-    #prompt {
-        margin: 1;
-        text-align: center;
-    }
-
-    #input {
-        margin: 1;
-    }
-
-    .buttons {
-        width: 100%;
-        height: auto;
-        align-horizontal: right;
-        margin-top: 1;
-    }
-    """
-    BINDINGS: ClassVar = [
-        Binding("escape", "cancel", "Cancel"),
-        Binding("enter", "submit", "Submit"),
-    ]
-
-    def __init__(self, prompt: str, result_type: type | None = None):
-        super().__init__()
-        self.prompt = prompt
-        self.result_type = result_type
-
-    def compose(self) -> ComposeResult:
-        with Vertical(classes="modal-container"):
-            yield Label(self.prompt, id="prompt")
-            if self.result_type:
-                yield Label(f"(Please provide response as {self.result_type.__name__})")
-            yield Input(id="input")
-            with Horizontal(classes="buttons"):
-                yield Button("Submit", variant="primary", id="submit")
-                yield Button("Cancel", variant="error", id="cancel")
-
-    def action_cancel(self):
-        """Handle cancel action."""
-        self.dismiss(None)
-
-    def action_submit(self):
-        """Handle submit action."""
-        input_value = self.query_one(Input).value
-        self.dismiss(input_value)
-
-    def on_button_pressed(self, event: Button.Pressed):
-        """Handle button presses."""
-        if event.button.id == "submit":
-            self.action_submit()
-        else:
-            self.action_cancel()
-
-    def on_input_submitted(self, event: Input.Submitted):
-        """Handle Enter key in input."""
-        self.action_submit()
 
 
 class BaseInputApp(App[str]):
@@ -168,61 +61,6 @@ class ConfirmationApp(BaseInputApp):
 
     def __init__(self, prompt: str):
         super().__init__(ConfirmationModal(prompt))
-
-
-class CodeInputModal(ModalScreen[str]):
-    """Modal for code input."""
-
-    DEFAULT_CSS = """
-    CodeInputModal {
-        align: center middle;
-    }
-
-    .modal-container {
-        width: 80%;
-        height: 60%;
-        border: heavy $primary;
-        padding: 1;
-    }
-
-    #description {
-        text-align: center;
-    }
-
-    #code-area {
-        height: 1fr;
-        margin: 1;
-    }
-    """
-
-    BINDINGS: ClassVar = [
-        Binding("escape,ctrl+c", "cancel", "Cancel"),
-        Binding("ctrl+enter", "submit", "Submit"),
-    ]
-
-    def __init__(
-        self,
-        template: str | None = None,
-        language: str = "python",
-        description: str | None = None,
-    ):
-        super().__init__()
-        self.template = template
-        self.language = language
-        self.description = description
-
-    def compose(self) -> ComposeResult:
-        with Vertical(classes="modal-container"):
-            if self.description:
-                yield Label(self.description, id="description")
-            yield TextArea(self.template or "", language=self.language, id="code-area")
-
-    def action_submit(self):
-        text_area = self.query_one(TextArea)
-        self.dismiss(text_area.text)
-
-    def action_cancel(self):
-        self.dismiss(None)
 
 
 class TextualInputProvider(InputProvider):
