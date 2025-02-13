@@ -44,6 +44,18 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/config_file/worker_config.md")
 
 
+@nav.route.page("Tool Configuration", icon="octicon:tools-16")
+def _(page: mk.MkPage):
+    """Tool registration and configuration."""
+    page += mk.MkTemplate("docs/config_file/tool_config.md")
+
+
+@nav.route.page("Toolset Configuration", icon="octicon:package-16")
+def _(page: mk.MkPage):
+    """Toolset setup and management."""
+    page += mk.MkTemplate("docs/config_file/toolset_config.md")
+
+
 @nav.route.page("Response Types", icon="octicon:reply-16")
 def _(page: mk.MkPage):
     """Structured response type configuration."""
