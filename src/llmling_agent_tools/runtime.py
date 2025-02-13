@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from llmling.tools.base import LLMCallableTool
+from llmling_agent.tools.base import ToolInfo
 
 
 if TYPE_CHECKING:
@@ -176,14 +176,14 @@ class LLMTools:
         """
         return await self.runtime.install_package(package)
 
-    def get_llm_resource_tools(self) -> list[LLMCallableTool]:
+    def get_llm_resource_tools(self) -> list[ToolInfo]:
         fns = [self.load_resource, self.get_resources]
-        return [LLMCallableTool.from_callable(fn) for fn in fns]  # type: ignore
+        return [ToolInfo.from_callable(fn) for fn in fns]  # type: ignore[arg-type]
 
-    def get_llm_tool_management_tools(self) -> list[LLMCallableTool]:
+    def get_llm_tool_management_tools(self) -> list[ToolInfo]:
         fns = [
             self.register_tool,
             self.register_code_tool,
             self.install_package,
         ]
-        return [LLMCallableTool.from_callable(fn) for fn in fns]  # type: ignore
+        return [ToolInfo.from_callable(fn) for fn in fns]  # type: ignore[arg-type]
