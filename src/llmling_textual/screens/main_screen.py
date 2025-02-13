@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from textual.screen import Screen
 from textual.widgets import Footer, Header
 
-from llmling_textual.screens.chat_screen import ChatScreen
+from llmling_textual.screens.chat_screen import ChatScreen  # type: ignore
 from llmling_textual.widgets.agent_list import NodeEntry, NodeList
 from llmling_textual.widgets.message_stream import MessageStream
 

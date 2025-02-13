@@ -11,7 +11,7 @@ from llmling_agent.delegation.pool import AgentPool
 from llmling_agent_input.textual_provider import TextualInputProvider
 from llmling_textual.screens.log_screen import LogWindow
 from llmling_textual.screens.main_screen import MainScreen
-from llmling_textual.screens.pool_selection_screen.screen import PoolSelectionScreen
+from llmling_textual.screens.pool_selection_screen import PoolSelectionScreen
 
 
 class PoolApp(App):
