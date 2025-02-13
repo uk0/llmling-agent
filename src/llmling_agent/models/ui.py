@@ -49,7 +49,7 @@ class StdlibUIConfig(BaseUIConfig):
     """Show token usage and costs."""
 
 
-class WebUIConfig(BaseUIConfig):
+class GradioUIConfig(BaseUIConfig):
     """Configuration for web interface."""
 
     type: Literal["web"] = Field("web", init=False)
@@ -86,6 +86,6 @@ class TextualUIConfig(BaseUIConfig):
 
 
 UIConfig = Annotated[
-    StdlibUIConfig | WebUIConfig | PromptToolkitUIConfig | TextualUIConfig,
+    StdlibUIConfig | GradioUIConfig | PromptToolkitUIConfig | TextualUIConfig,
     Field(discriminator="type"),
 ]
