@@ -82,15 +82,19 @@ dependencies = [
 llmling-agent = "llmling_agent.__main__:cli"
 
 [project.optional-dependencies]
-ui = ["gradio>=5.8.0"]
+ui = ["gradio>=5.8.0; python_version < '3.14'"]
 # chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]
 clipboard = ["clipman"]
 tiktoken = ["tiktoken"]
-markdown = ["markitdown"]
-events = ["watchfiles", "aioimaplib>=2.0.1", "croniter>=6.0.0"]
+markdown = ["markitdown; python_version < '3.14'"]
+events = [
+    "watchfiles; python_version < '3.14'",
+    "aioimaplib>=2.0.1",
+    "croniter>=6.0.0",
+]
 textual = ["textual>=1.0.0", "textualicious"]
 litellm = ["litellm"]
-image = ["pillow"]
+image = ["pillow; python_version < '3.14'"]
 # tools = ["crewai-tools>=0.33.0", "langchain-community>=0.3.17"]
 # pydantic_ai = ["pydantic_ai", "llmling-models"]
 remote = ["websockets>=14.2"]
@@ -106,8 +110,8 @@ arize = [
     "openinference-instrumentation-litellm",
     "openinference-instrumentation-openai",
 ]
-mlflow = ["mlflow>=2.20.1"]
-langsmith = ["langsmith"]
+mlflow = ["mlflow>=2.20.1; python_version < '3.14'"]
+langsmith = ["langsmith; python_version < '3.14'"]
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
