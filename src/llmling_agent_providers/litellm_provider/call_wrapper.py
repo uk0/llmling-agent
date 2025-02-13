@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from litellm import CustomStreamWrapper
     from litellm.files.main import ModelResponse
 
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
     from llmling_agent_providers.base import UsageLimits
 
 
@@ -36,7 +36,7 @@ class FakeAgent:
         result_type: type[BaseModel] | None = None,
         usage_limits: UsageLimits | None = None,
         num_retries: int | None = None,
-        tools: list[ToolInfo] | None = None,
+        tools: list[Tool] | None = None,
     ) -> ModelResponse:
         from litellm import acompletion
 
@@ -66,7 +66,7 @@ class FakeAgent:
         result_type: type[BaseModel] | None = None,
         usage_limits: UsageLimits | None = None,
         num_retries: int | None = None,
-        tools: list[ToolInfo] | None = None,
+        tools: list[Tool] | None = None,
     ) -> CustomStreamWrapper:
         from litellm import acompletion
 

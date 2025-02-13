@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 
-from llmling_agent.tools.base import ToolInfo
+from llmling_agent.tools.base import Tool
 
 
 class BaseToolConfig(BaseModel):
@@ -44,8 +44,8 @@ class BaseToolConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
-    def get_tool(self) -> ToolInfo:
-        """Convert config to ToolInfo instance."""
+    def get_tool(self) -> Tool:
+        """Convert config to Tool instance."""
         raise NotImplementedError
 
 
@@ -58,9 +58,9 @@ class ImportToolConfig(BaseToolConfig):
     import_path: ImportString[Callable[..., Any]]
     """Import path to the tool function."""
 
-    def get_tool(self) -> ToolInfo:
+    def get_tool(self) -> Tool:
         """Import and create tool from configuration."""
-        return ToolInfo.from_callable(
+        return Tool.from_callable(
             self.import_path,
             name_override=self.name,
             description_override=self.description,
@@ -85,10 +85,10 @@ class CrewAIToolConfig(BaseToolConfig):
     params: dict[str, Any] = Field(default_factory=dict)
     """Tool-specific parameters."""
 
-    def get_tool(self) -> ToolInfo:
+    def get_tool(self) -> Tool:
         """Import and create CrewAI tool."""
         try:
-            return ToolInfo.from_crewai_tool(
+            return Tool.from_crewai_tool(
                 self.import_path(**self.params),
                 name_override=self.name,
                 description_override=self.description,
@@ -116,12 +116,12 @@ class LangChainToolConfig(BaseToolConfig):
     params: dict[str, Any] = Field(default_factory=dict)
     """Tool-specific parameters."""
 
-    def get_tool(self) -> ToolInfo:
+    def get_tool(self) -> Tool:
         """Import and create LangChain tool."""
         try:
             from langchain.tools import load_tool
 
-            return ToolInfo.from_langchain_tool(
+            return Tool.from_langchain_tool(
                 load_tool(self.tool_name, **self.params),
                 name_override=self.name,
                 description_override=self.description,

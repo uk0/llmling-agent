@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.context import AgentContext
     from llmling_agent.common_types import ModelType
     from llmling_agent.models.content import Content
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
 logger = get_logger(__name__)
@@ -85,7 +85,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         self._ws: websockets.ClientConnection | None = None
         self._pending_responses: dict[str, asyncio.Future[Any]] = {}
         self._active_streams: dict[str, asyncio.Queue[Any]] = {}
-        self._current_tools: list[ToolInfo] = []  # Track current request's tools
+        self._current_tools: list[Tool] = []  # Track current request's tools
 
     async def _ensure_connection(self) -> websockets.ClientConnection:
         """Ensure we have an active connection."""
@@ -171,7 +171,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
     async def _send_context(
         self,
         messages: list[ChatMessage],
-        tools: list[ToolInfo],
+        tools: list[Tool],
     ):
         """Send current context to server.
 
@@ -236,7 +236,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         message_id: str,
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
-        tools: list[ToolInfo] | None = None,
+        tools: list[Tool] | None = None,
         model: ModelType = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,
@@ -302,7 +302,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         message_id: str,
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
-        tools: list[ToolInfo] | None = None,
+        tools: list[Tool] | None = None,
         model: ModelType = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,

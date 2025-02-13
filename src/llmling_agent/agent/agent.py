@@ -26,7 +26,7 @@ from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
 from llmling_agent.talk.stats import MessageStats
-from llmling_agent.tools.base import ToolInfo
+from llmling_agent.tools.base import Tool
 from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import (
     call_with_context,
@@ -649,7 +649,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         pass_message_history: bool = False,
         share_context: bool = False,
         parent: AnyAgent[Any, Any] | None = None,
-    ) -> ToolInfo:
+    ) -> Tool:
         """Create a tool from this agent.
 
         Args:
@@ -687,7 +687,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         wrapped_tool.__doc__ = docstring
         wrapped_tool.__name__ = tool_name
 
-        return ToolInfo.from_callable(
+        return Tool.from_callable(
             wrapped_tool,
             name_override=tool_name,
             description_override=docstring,
@@ -1156,7 +1156,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
         share_context: bool = False,
-    ) -> ToolInfo:
+    ) -> Tool:
         """Register another agent as a worker tool."""
         return self.tools.register_worker(
             worker,

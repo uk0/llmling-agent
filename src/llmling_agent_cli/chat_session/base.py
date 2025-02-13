@@ -14,7 +14,7 @@ from psygnal import Signal
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.tools.base import ToolInfo
+from llmling_agent.tools.base import Tool
 from llmling_agent_cli.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent_cli.chat_session.models import SessionState
 from llmling_agent_commands import get_commands
@@ -36,9 +36,9 @@ HISTORY_DIR = pathlib.Path(user_data_dir("llmling", "llmling")) / "cli_history"
 
 class AgentPoolView:
     history_cleared = Signal(ConversationManager.HistoryCleared)
-    tool_added = Signal(str, ToolInfo)
+    tool_added = Signal(str, Tool)
     tool_removed = Signal(str)  # tool_name
-    tool_changed = Signal(str, ToolInfo)  # name, new_info
+    tool_changed = Signal(str, Tool)  # name, new_info
 
     def __init__(
         self,

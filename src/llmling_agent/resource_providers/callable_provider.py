@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from llmling import BasePrompt
 
     from llmling_agent.models.resources import ResourceInfo
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
 T = TypeVar("T")
@@ -29,7 +29,7 @@ class CallableResourceProvider(ResourceProvider):
     def __init__(
         self,
         name: str = "callable",
-        tool_callable: ResourceCallable[list[ToolInfo]] | None = None,
+        tool_callable: ResourceCallable[list[Tool]] | None = None,
         prompt_callable: ResourceCallable[list[BasePrompt]] | None = None,
         resource_callable: ResourceCallable[list[ResourceInfo]] | None = None,
     ):
@@ -58,7 +58,7 @@ class CallableResourceProvider(ResourceProvider):
             return default
         return await execute(provider)
 
-    async def get_tools(self) -> list[ToolInfo]:
+    async def get_tools(self) -> list[Tool]:
         """Get tools from callable if provided."""
         return await self._call_provider(self.tool_callable, [])
 

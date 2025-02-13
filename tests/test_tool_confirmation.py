@@ -4,7 +4,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import Agent
-from llmling_agent.tools.base import ToolInfo
+from llmling_agent.tools.base import Tool
 from llmling_agent_input.mock_provider import MockInputProvider
 
 
@@ -18,11 +18,11 @@ async def test_tool_confirmation():
         """Tool not requiring confirmation."""
         return f"Regular tool got: {text}"
 
-    tool_info_with = ToolInfo.from_callable(
+    tool_info_with = Tool.from_callable(
         tool_with_confirm,
         requires_confirmation=True,
     )
-    tool_info_without = ToolInfo.from_callable(
+    tool_info_without = Tool.from_callable(
         tool_without_confirm,
         requires_confirmation=False,
     )
@@ -30,7 +30,7 @@ async def test_tool_confirmation():
     mock = MockInputProvider(tool_confirmation="allow")
     model = TestModel(call_tools=[tool_info_with.name])
 
-    agent = Agent("test-agent", model=model, input_provider=mock)
+    agent = Agent[None]("test-agent", model=model, input_provider=mock)
     agent.tools.register(tool_info_with.name, tool_info_with)
 
     # Run agent - should trigger confirmation for the tool
@@ -46,7 +46,7 @@ async def test_tool_confirmation():
     mock = MockInputProvider(tool_confirmation="allow")
     model = TestModel(call_tools=[tool_info_without.name])
 
-    agent = Agent("test-agent", model=model, input_provider=mock)
+    agent = Agent[None]("test-agent", model=model, input_provider=mock)
     agent.tools.register(tool_info_without.name, tool_info_without)
 
     # Run agent - should NOT trigger confirmation

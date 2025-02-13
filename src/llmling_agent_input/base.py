@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.context import AgentContext, ConfirmationResult
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
 class InputProvider(ABC):
@@ -92,7 +92,7 @@ class InputProvider(ABC):
     def get_tool_confirmation(
         self,
         context: AgentContext[Any],
-        tool: ToolInfo,
+        tool: Tool,
         args: dict[str, Any],
         message_history: list[ChatMessage] | None = None,
     ) -> Coroutine[Any, Any, ConfirmationResult]:

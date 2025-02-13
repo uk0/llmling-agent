@@ -8,7 +8,7 @@ from uuid import UUID
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
-from llmling_agent.tools.base import ToolInfo
+from llmling_agent.tools.base import Tool
 from llmling_agent.utils.async_read import read_path
 
 
@@ -99,7 +99,7 @@ class OpenAPITools(ResourceProvider):
     def requires_async(self) -> bool:
         return True
 
-    async def get_tools(self) -> list[ToolInfo]:
+    async def get_tools(self) -> list[Tool]:
         """Get all API operations as tools."""
         # Only load spec if not already loaded
         if not self._spec:
@@ -109,7 +109,7 @@ class OpenAPITools(ResourceProvider):
         for op_id, config in self._operations.items():
             method = self._create_operation_method(op_id, config)
             tools.append(
-                ToolInfo.from_callable(
+                Tool.from_callable(
                     method, source="openapi", metadata={"operation": op_id}
                 )
             )

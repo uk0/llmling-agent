@@ -22,7 +22,7 @@ from llmling_agent.utils.inspection import execute, has_argument_type
 if TYPE_CHECKING:
     from litellm import ChatCompletionMessageToolCall
 
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 logger = get_logger(__name__)
 
@@ -56,7 +56,7 @@ class ToolCallHandler:
     async def handle_tool_call(
         self,
         tool_call: ChatCompletionMessageToolCall,
-        tool: ToolInfo,
+        tool: Tool,
         message_id: str,
         context: AgentContext | None,
     ) -> ToolCallResult:
@@ -150,7 +150,7 @@ class ToolCallHandler:
     async def handle_tool_calls(
         self,
         tool_calls: list[ChatCompletionMessageToolCall],
-        tools: list[ToolInfo],
+        tools: list[Tool],
         context: AgentContext | None,
         message_id: str,
     ) -> tuple[list[dict[str, Any]], list[ToolCallInfo]]:

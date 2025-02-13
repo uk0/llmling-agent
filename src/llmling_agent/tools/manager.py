@@ -17,7 +17,7 @@ from llmling_agent.resource_providers.callable_provider import (
     CallableResourceProvider,
     ResourceCallable,
 )
-from llmling_agent.tools.base import ToolInfo
+from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
@@ -36,11 +36,11 @@ ProviderName = str
 OwnerType = Literal["pool", "team", "node"]
 
 
-class ToolManager(BaseRegistry[str, ToolInfo]):
+class ToolManager(BaseRegistry[str, Tool]):
     """Manages tool registration, enabling/disabling and access.
 
     Inherits from BaseRegistry providing:
-    - Dict-like access: manager["tool_name"] -> ToolInfo
+    - Dict-like access: manager["tool_name"] -> Tool
     - Async startup/shutdown: await manager.startup()
     - Event observation: manager.add_observer(observer)
     - Registration: manager.register("tool_name", tool)
@@ -61,7 +61,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
     def __init__(
         self,
-        tools: Sequence[ToolInfo | ToolType | dict[str, Any]] | None = None,
+        tools: Sequence[Tool | ToolType | dict[str, Any]] | None = None,
     ):
         """Initialize tool manager.
 
@@ -143,21 +143,21 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         """Error class for tool operations."""
         return ToolError
 
-    def _validate_item(self, item: ToolInfo | ToolType | dict[str, Any]) -> ToolInfo:
+    def _validate_item(self, item: Tool | ToolType | dict[str, Any]) -> Tool:
         """Validate and convert items before registration."""
         match item:
-            case ToolInfo():
+            case Tool():
                 return item
             case str():
                 if item.startswith("crewai_tools"):
                     obj = import_class(item)()
-                    return ToolInfo.from_crewai_tool(obj)
+                    return Tool.from_crewai_tool(obj)
                 if item.startswith("langchain"):
                     obj = import_class(item)()
-                    return ToolInfo.from_langchain_tool(obj)
-                return ToolInfo.from_callable(item)
+                    return Tool.from_langchain_tool(obj)
+                return Tool.from_callable(item)
             case Callable():
-                return ToolInfo.from_callable(item)
+                return Tool.from_callable(item)
             case {"callable": callable_item, **config} if callable(
                 callable_item
             ) or isinstance(callable_item, LLMCallableTool):
@@ -168,15 +168,15 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                     else LLMCallableTool.from_callable(callable_item)
                 )
 
-                # Get valid fields from ToolInfo dataclass (excluding 'callable')
-                valid_keys = {f.name for f in fields(ToolInfo)} - {"callable"}
+                # Get valid fields from Tool dataclass (excluding 'callable')
+                valid_keys = {f.name for f in fields(Tool)} - {"callable"}
                 tool_config = {k: v for k, v in config.items() if k in valid_keys}
 
-                return ToolInfo(callable=tool, **tool_config)  # type: ignore
+                return Tool(callable=tool, **tool_config)  # type: ignore
 
             case _:
                 typ = type(item)
-                msg = f"Item must be ToolInfo or callable. Got {typ}"
+                msg = f"Item must be Tool or callable. Got {typ}"
                 raise ToolError(msg)
 
     def enable_tool(self, tool_name: str):
@@ -210,9 +210,9 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
     async def get_tools(
         self,
         state: ToolState = "all",
-    ) -> list[ToolInfo]:
+    ) -> list[Tool]:
         """Get tool objects based on filters."""
-        tools: list[ToolInfo] = []
+        tools: list[Tool] = []
 
         # Get tools from registry
         tools.extend(t for t in self.values() if t.matches_filter(state))
@@ -237,7 +237,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
     def register_tool(
         self,
-        tool: ToolType | ToolInfo,
+        tool: ToolType | Tool,
         *,
         name_override: str | None = None,
         description_override: str | None = None,
@@ -247,7 +247,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         requires_confirmation: bool = False,
         requires_capability: str | None = None,
         metadata: dict[str, str] | None = None,
-    ) -> ToolInfo:
+    ) -> Tool:
         """Register a new tool with custom settings.
 
         Args:
@@ -262,15 +262,15 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             metadata: Additional tool metadata
 
         Returns:
-            Created ToolInfo instance
+            Created Tool instance
         """
-        # First convert to basic ToolInfo
+        # First convert to basic Tool
         match tool:
             case LLMCallableTool():
                 llm_tool = tool
                 llm_tool.name = name_override or llm_tool.name
                 llm_tool.description = description_override or llm_tool.description
-            case ToolInfo():
+            case Tool():
                 llm_tool = tool.callable
                 llm_tool.description = description_override or llm_tool.description
                 llm_tool.name = name_override or llm_tool.name
@@ -284,7 +284,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         if llm_tool.description and len(llm_tool.description) > MAX_LEN_DESCRIPTION:
             msg = f"Too long description for {tool}"
             raise ToolError(msg)
-        tool_info = ToolInfo(
+        tool_info = Tool(
             llm_tool,
             enabled=enabled,
             source=source,
@@ -306,7 +306,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         pass_message_history: bool = False,
         share_context: bool = False,
         parent: AnyAgent[Any, Any] | None = None,
-    ) -> ToolInfo:
+    ) -> Tool:
         """Register an agent as a worker tool.
 
         Args:
@@ -340,10 +340,10 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
     @contextmanager
     def temporary_tools(
         self,
-        tools: ToolType | ToolInfo | Sequence[ToolType | ToolInfo],
+        tools: ToolType | Tool | Sequence[ToolType | Tool],
         *,
         exclusive: bool = False,
-    ) -> Iterator[list[ToolInfo]]:
+    ) -> Iterator[list[Tool]]:
         """Temporarily register tools.
 
         Args:
@@ -362,7 +362,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
             ```
         """
         # Normalize inputs to lists
-        tools_list: list[ToolType | ToolInfo] = (
+        tools_list: list[ToolType | Tool] = (
             [tools] if not isinstance(tools, Sequence) else list(tools)
         )
 
@@ -375,7 +375,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
                 t.enabled = False
 
         # Register all tools
-        registered_tools: list[ToolInfo] = []
+        registered_tools: list[Tool] = []
         try:
             for tool in tools_list:
                 tool_info = self.register_tool(tool)

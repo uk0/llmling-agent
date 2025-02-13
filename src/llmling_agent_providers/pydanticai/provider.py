@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import ModelType
     from llmling_agent.models.content import Content
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
 logger = get_logger(__name__)
@@ -132,7 +132,7 @@ class PydanticAIProvider(AgentLLMProvider):
     async def get_agent(
         self,
         system_prompt: str,
-        tools: list[ToolInfo],
+        tools: list[Tool],
     ) -> PydanticAgent[Any, Any]:
         kwargs = self._kwargs.copy()
         model = kwargs.pop("model", None)
@@ -158,7 +158,7 @@ class PydanticAIProvider(AgentLLMProvider):
 
     def wrap_tool(
         self,
-        tool: ToolInfo,
+        tool: Tool,
         agent_ctx: AgentContext,
     ) -> Callable[..., Awaitable[Any]]:
         """Wrap tool with confirmation handling.
@@ -238,7 +238,7 @@ class PydanticAIProvider(AgentLLMProvider):
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelType = None,
-        tools: list[ToolInfo] | None = None,
+        tools: list[Tool] | None = None,
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,
@@ -357,7 +357,7 @@ class PydanticAIProvider(AgentLLMProvider):
         message_id: str,
         result_type: type[Any] | None = None,
         model: ModelType = None,
-        tools: list[ToolInfo] | None = None,
+        tools: list[Tool] | None = None,
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,

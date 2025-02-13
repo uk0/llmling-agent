@@ -6,7 +6,7 @@ from llmling_agent.agent import Agent, StructuredAgent, AnyAgent, AgentContext
 from llmling_agent.delegation import AgentPool, Team, TeamRun
 from dotenv import load_dotenv
 from llmling_agent.messaging.messages import ChatMessage
-from llmling_agent.tools import ToolInfo
+from llmling_agent.tools import Tool
 
 __version__ = "0.99.5"
 
@@ -23,5 +23,5 @@ __all__ = [
     "StructuredAgent",
     "Team",
     "TeamRun",
-    "ToolInfo",
+    "Tool",
 ]

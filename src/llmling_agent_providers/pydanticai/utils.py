@@ -28,7 +28,7 @@ from llmling_agent.models.tools import ToolCallInfo
 
 if TYPE_CHECKING:
     from llmling_agent.common_types import MessageRole
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
 def format_part(  # noqa: PLR0911
@@ -62,7 +62,7 @@ def format_part(  # noqa: PLR0911
 
 def get_tool_calls(
     messages: list[ModelMessage],
-    tools: dict[str, ToolInfo] | None = None,
+    tools: dict[str, Tool] | None = None,
     agent_name: str | None = None,
     context_data: Any | None = None,
 ) -> list[ToolCallInfo]:
@@ -70,7 +70,7 @@ def get_tool_calls(
 
     Args:
         messages: Messages from captured run
-        tools: Original ToolInfo set to enrich ToolCallInfos with additional info
+        tools: Original Tool set to enrich ToolCallInfos with additional info
         agent_name: Name of the caller
         context_data: Optional context data to attach to tool calls
     """
@@ -97,7 +97,7 @@ def get_tool_calls(
 def parts_to_tool_call_info(
     call_part: ToolCallPart,
     return_part: ToolReturnPart,
-    tool_info: ToolInfo | None,
+    tool_info: Tool | None,
     agent_name: str | None = None,
     context_data: Any | None = None,
 ) -> ToolCallInfo:
@@ -120,7 +120,7 @@ def parts_to_tool_call_info(
 
 def convert_model_message(  # noqa: PLR0911
     message: ModelMessage | ModelRequestPart | ModelResponsePart,
-    tools: dict[str, ToolInfo],
+    tools: dict[str, Tool],
     agent_name: str,
     filter_system_prompts: bool = False,
 ) -> ChatMessage:
@@ -130,7 +130,7 @@ def convert_model_message(  # noqa: PLR0911
 
     Args:
         message: Message to convert (ModelMessage or its parts)
-        tools: Original ToolInfo set to enrich ToolCallInfos with additional info
+        tools: Original Tool set to enrich ToolCallInfos with additional info
         agent_name: Name of the agent of this message
         filter_system_prompts: Whether to filter out system prompt parts from
                                ModelRequests

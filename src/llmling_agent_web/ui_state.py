@@ -20,7 +20,7 @@ from llmling_agent_web.type_utils import ChatHistory  # noqa: TC001
 
 if TYPE_CHECKING:
     from llmling_agent import Agent
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
 logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ class UIState(TaskManagerMixin):
         self._agent.tools.events.removed.connect(self._handle_tool_removed)
         self._agent.tools.events.changed.connect(self._handle_tool_changed)
 
-    def _handle_tool_added(self, name: str, tool: ToolInfo):
+    def _handle_tool_added(self, name: str, tool: Tool):
         """Handle tool addition."""
         self.create_task(self.update_tool_states({name: tool.enabled}))
 
@@ -92,7 +92,7 @@ class UIState(TaskManagerMixin):
         """Handle tool removal."""
         self.create_task(self.update_tool_states({}))
 
-    def _handle_tool_changed(self, name: str, tool: ToolInfo):
+    def _handle_tool_changed(self, name: str, tool: Tool):
         """Handle tool state changes."""
         self.create_task(self.update_tool_states({name: tool.enabled}))
 

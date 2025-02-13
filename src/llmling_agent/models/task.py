@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, ImportString
 from typing_extensions import TypeVar
 
 from llmling_agent.models.knowledge import Knowledge  # noqa: TC001
-from llmling_agent.tools.base import ToolInfo
+from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
@@ -103,16 +103,16 @@ class Job[TDeps, TResult](BaseModel):
             return "\n\n".join(m.get_text_content() for m in messages)
         return self.prompt
 
-    def get_tools(self) -> list[ToolInfo]:
-        """Get all tools as ToolInfo instances."""
-        tools: list[ToolInfo] = []
+    def get_tools(self) -> list[Tool]:
+        """Get all tools as Tool instances."""
+        tools: list[Tool] = []
         for tool in self.tools:
             match tool:
                 case str():
-                    tools.append(ToolInfo.from_callable(tool))
+                    tools.append(Tool.from_callable(tool))
                 case ToolConfig():
-                    tools.append(ToolInfo.from_callable(tool.import_path))
-                case ToolInfo():
+                    tools.append(Tool.from_callable(tool.import_path))
+                case Tool():
                     tools.append(tool)
                 case _:
                     msg = f"Invalid tool type: {type(tool)}"

@@ -39,7 +39,7 @@ from llmling_agent_models import AnyModelConfig  # noqa: TC001
 
 if TYPE_CHECKING:
     from llmling_agent.resource_providers.base import ResourceProvider
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
     from llmling_agent_providers.base import AgentProvider
 
 
@@ -247,24 +247,24 @@ class AgentConfig(NodeConfig):
 
     def get_tool_provider(self) -> ResourceProvider | None:
         """Get tool provider for this agent."""
-        from llmling_agent.tools.base import ToolInfo
+        from llmling_agent.tools.base import Tool
 
         # Create provider for static tools
         if not self.tools:
             return None
-        static_tools: list[ToolInfo] = []
+        static_tools: list[Tool] = []
         for tool_config in self.tools:
             try:
                 match tool_config:
                     case str():
                         if tool_config.startswith("crewai_tools"):
                             obj = import_class(tool_config)()
-                            static_tools.append(ToolInfo.from_crewai_tool(obj))
+                            static_tools.append(Tool.from_crewai_tool(obj))
                         elif tool_config.startswith("langchain"):
                             obj = import_class(tool_config)()
-                            static_tools.append(ToolInfo.from_langchain_tool(obj))
+                            static_tools.append(Tool.from_langchain_tool(obj))
                         else:
-                            tool = ToolInfo.from_callable(tool_config)
+                            tool = Tool.from_callable(tool_config)
                             static_tools.append(tool)
                     case BaseToolConfig():
                         static_tools.append(tool_config.get_tool())

@@ -85,7 +85,7 @@ async def list_tools(
 ):
     """List all available tools."""
     agent = ctx.context.agent
-    # Format output using ToolInfo formatting
+    # Format output using Tool formatting
     sections = ["# Available Tools\n"]
     for tool_info in agent.tools.values():
         status = "✓" if tool_info.enabled else "✗"

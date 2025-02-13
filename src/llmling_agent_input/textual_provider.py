@@ -10,7 +10,7 @@ from textual.widgets import Button, Input, Label, TextArea
 
 from llmling_agent.agent.context import AgentContext, ConfirmationResult
 from llmling_agent.messaging.messages import ChatMessage
-from llmling_agent.tools.base import ToolInfo
+from llmling_agent.tools.base import Tool
 from llmling_agent_input.base import InputProvider
 
 
@@ -354,7 +354,7 @@ class TextualInputProvider(InputProvider):
     async def get_tool_confirmation(
         self,
         context: AgentContext,
-        tool: ToolInfo,
+        tool: Tool,
         args: dict[str, Any],
         message_history: list[ChatMessage] | None = None,
     ) -> ConfirmationResult:

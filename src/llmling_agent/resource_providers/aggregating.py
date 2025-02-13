@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.resources import ResourceInfo
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
 class AggregatingResourceProvider(ResourceProvider):
@@ -28,9 +28,9 @@ class AggregatingResourceProvider(ResourceProvider):
         super().__init__(name=name)
         self.providers = list(providers)
 
-    async def get_tools(self) -> list[ToolInfo]:
+    async def get_tools(self) -> list[Tool]:
         """Get tools from all providers."""
-        tools: list[ToolInfo] = []
+        tools: list[Tool] = []
         for provider in self.providers:
             tools.extend(await provider.get_tools())
         return tools

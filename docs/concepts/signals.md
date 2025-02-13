@@ -30,7 +30,7 @@ pool.events.added.connect(on_agent_added)
 #### ToolManager
 Tracks tool registration and modifications:
 ```python
-def on_tool_changed(name: str, old_info: ToolInfo, new_info: ToolInfo):
+def on_tool_changed(name: str, old_info: Tool, new_info: Tool):
     print(f"Tool {name} configuration changed")
 
 agent.tools.events.changed.connect(on_tool_changed)

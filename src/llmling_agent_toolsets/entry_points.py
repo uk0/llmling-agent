@@ -9,7 +9,7 @@ from epregistry import EntryPointRegistry
 from llmling.core.log import get_logger
 
 from llmling_agent.resource_providers.base import ResourceProvider
-from llmling_agent.tools.base import ToolInfo
+from llmling_agent.tools.base import Tool
 
 
 logger = get_logger(__name__)
@@ -21,10 +21,10 @@ class EntryPointTools(ResourceProvider):
     def __init__(self, module: str) -> None:
         super().__init__(name=module)
         self.module = module
-        self._tools: list[ToolInfo] | None = None
+        self._tools: list[Tool] | None = None
         self.registry = EntryPointRegistry[Callable[..., Any]]("llmling")
 
-    async def get_tools(self) -> list[ToolInfo]:
+    async def get_tools(self) -> list[Tool]:
         """Get tools from entry points."""
         # Return cached tools if available
         if self._tools is not None:
@@ -40,7 +40,7 @@ class EntryPointTools(ResourceProvider):
         for item in get_tools():
             try:
                 self._tools.append(
-                    ToolInfo.from_callable(
+                    Tool.from_callable(
                         item, source="entry_point", metadata={"module": self.module}
                     )
                 )

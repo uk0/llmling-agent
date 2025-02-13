@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from llmling_agent.log import get_logger
 from llmling_agent.models.resources import ResourceInfo
 from llmling_agent.resource_providers.base import ResourceProvider
-from llmling_agent.tools.base import ToolInfo
+from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
@@ -30,13 +30,13 @@ class RuntimeResourceProvider(ResourceProvider):
         super().__init__(name=name)
         self._runtime = runtime
 
-    async def get_tools(self) -> list[ToolInfo]:
-        """Convert RuntimeConfig tools to ToolInfos."""
-        tools: list[ToolInfo] = []
+    async def get_tools(self) -> list[Tool]:
+        """Convert RuntimeConfig tools to Tools."""
+        tools: list[Tool] = []
 
         for tool in self._runtime.get_tools():
             try:
-                tools.append(ToolInfo(tool, source="runtime"))
+                tools.append(Tool(tool, source="runtime"))
             except Exception:
                 logger.exception("Failed to convert runtime tool: %s", tool.name)
                 continue

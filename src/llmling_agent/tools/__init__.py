@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from llmling_agent.tools.base import ToolContext, ToolInfo
+from llmling_agent.tools.base import ToolContext, Tool
 from llmling_agent.tools.manager import ToolManager, ToolError
 
 
-__all__ = ["ToolContext", "ToolError", "ToolInfo", "ToolManager"]
+__all__ = ["Tool", "ToolContext", "ToolError", "ToolManager"]

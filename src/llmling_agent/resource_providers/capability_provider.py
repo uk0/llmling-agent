@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from llmling_agent.resource_providers.base import ResourceProvider
-from llmling_agent.tools.base import ToolInfo
+from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
@@ -27,42 +27,42 @@ class CapabilitiesResourceProvider(ResourceProvider):
         self.capabilities = capabilities
         self.runtime = runtime
 
-    async def get_tools(self) -> list[ToolInfo]:
+    async def get_tools(self) -> list[Tool]:
         """Get all tools enabled by current capabilities."""
-        tools: list[ToolInfo] = []
+        tools: list[Tool] = []
 
         # Resource tools (require runtime)
         if self.runtime:
             if self.capabilities.can_load_resources:
-                tool = ToolInfo.from_callable(
+                tool = Tool.from_callable(
                     self.runtime.load_resource,
                     source="builtin",
                     requires_capability="can_load_resources",
                 )
                 tools.append(tool)
             if self.capabilities.can_list_resources:
-                tool = ToolInfo.from_callable(
+                tool = Tool.from_callable(
                     self.runtime.get_resources,
                     source="builtin",
                     requires_capability="can_list_resources",
                 )
                 tools.append(tool)
             if self.capabilities.can_register_tools:
-                tool = ToolInfo.from_callable(
+                tool = Tool.from_callable(
                     self.runtime.register_tool,
                     source="builtin",
                     requires_capability="can_register_tools",
                 )
                 tools.append(tool)
             if self.capabilities.can_register_code:
-                tool = ToolInfo.from_callable(
+                tool = Tool.from_callable(
                     self.runtime.register_code_tool,
                     source="builtin",
                     requires_capability="can_register_code",
                 )
                 tools.append(tool)
             if self.capabilities.can_install_packages:
-                tool = ToolInfo.from_callable(
+                tool = Tool.from_callable(
                     self.runtime.install_package,
                     source="builtin",
                     requires_capability="can_install_packages",
@@ -73,35 +73,35 @@ class CapabilitiesResourceProvider(ResourceProvider):
         from llmling_agent_tools import capability_tools
 
         if self.capabilities.can_create_workers:
-            tool = ToolInfo.from_callable(
+            tool = Tool.from_callable(
                 capability_tools.create_worker_agent,
                 source="builtin",
                 requires_capability="can_create_workers",
             )
             tools.append(tool)
         if self.capabilities.can_create_delegates:
-            tool = ToolInfo.from_callable(
+            tool = Tool.from_callable(
                 capability_tools.spawn_delegate,
                 source="builtin",
                 requires_capability="can_create_delegates",
             )
             tools.append(tool)
         if self.capabilities.can_list_agents:
-            tool = ToolInfo.from_callable(
+            tool = Tool.from_callable(
                 capability_tools.list_available_agents,
                 source="builtin",
                 requires_capability="can_list_agents",
             )
             tools.append(tool)
         if self.capabilities.can_list_teams:
-            tool = ToolInfo.from_callable(
+            tool = Tool.from_callable(
                 capability_tools.list_available_teams,
                 source="builtin",
                 requires_capability="can_list_teams",
             )
             tools.append(tool)
         if self.capabilities.can_delegate_tasks:
-            tool = ToolInfo.from_callable(
+            tool = Tool.from_callable(
                 capability_tools.delegate_to,
                 source="builtin",
                 requires_capability="can_delegate_tasks",
@@ -110,14 +110,14 @@ class CapabilitiesResourceProvider(ResourceProvider):
 
         # History and stats tools
         if self.capabilities.history_access != "none":
-            tool = ToolInfo.from_callable(
+            tool = Tool.from_callable(
                 capability_tools.search_history,
                 source="builtin",
                 requires_capability="history_access",
             )
             tools.append(tool)
         if self.capabilities.stats_access != "none":
-            tool = ToolInfo.from_callable(
+            tool = Tool.from_callable(
                 capability_tools.show_statistics,
                 source="builtin",
                 requires_capability="stats_access",
@@ -126,14 +126,14 @@ class CapabilitiesResourceProvider(ResourceProvider):
 
         # Agent/team management
         if self.capabilities.can_add_agents:
-            tool = ToolInfo.from_callable(
+            tool = Tool.from_callable(
                 capability_tools.add_agent,
                 source="builtin",
                 requires_capability="can_add_agents",
             )
             tools.append(tool)
         if self.capabilities.can_add_teams:
-            tool = ToolInfo.from_callable(
+            tool = Tool.from_callable(
                 capability_tools.add_team,
                 source="builtin",
                 requires_capability="can_add_teams",
@@ -141,7 +141,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
             tools.append(tool)
 
         if self.capabilities.can_connect_nodes:
-            tool = ToolInfo.from_callable(
+            tool = Tool.from_callable(
                 capability_tools.connect_nodes,
                 source="builtin",
                 requires_capability="can_can_connect_nodes",
@@ -149,7 +149,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
             tools.append(tool)
 
         if self.capabilities.can_ask_agents:
-            tool = ToolInfo.from_callable(
+            tool = Tool.from_callable(
                 capability_tools.ask_agent,
                 source="builtin",
                 requires_capability="can_ask_agents",

@@ -805,7 +805,7 @@ classDiagram
         Runtime state of a config with instantiated components
         +
         +config: Config
-        +tools: dict[str, ToolInfo]
+        +tools: dict[str, Tool]
         +resources: dict[str, Resource]
         +prompts: dict[str, BasePrompt]
         +register_tool()

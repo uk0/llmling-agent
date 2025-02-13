@@ -119,7 +119,7 @@ manager.tool_states_reset.connect(
 
 ## Tool Information
 
-Each registered tool provides rich metadata through `ToolInfo`:
+Each registered tool provides rich metadata through `Tool`:
 
 ```python
 tool_info = manager["tool_name"]

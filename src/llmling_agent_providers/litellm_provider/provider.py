@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 
     from litellm import ChatCompletionMessageToolCall
 
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
 logger = get_logger(__name__)
@@ -122,7 +122,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
     async def handle_tool_call(
         self,
         tool_call: ChatCompletionMessageToolCall,
-        tool: ToolInfo,
+        tool: Tool,
         message_id: str,
     ) -> tuple[ToolCallInfo, dict]:
         """Handle a single tool call properly."""
@@ -197,7 +197,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
     async def handle_tool_calls(
         self,
         tool_calls: list[ChatCompletionMessageToolCall],
-        tools: list[ToolInfo],
+        tools: list[Tool],
         message_id: str,
     ) -> tuple[list[dict[str, Any]], list[ToolCallInfo]]:
         calls: list[ToolCallInfo] = []
@@ -223,7 +223,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelProtocol | str | None = None,
-        tools: list[ToolInfo] | None = None,
+        tools: list[Tool] | None = None,
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,
@@ -342,7 +342,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelProtocol | str | None = None,
-        tools: list[ToolInfo] | None = None,
+        tools: list[Tool] | None = None,
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,

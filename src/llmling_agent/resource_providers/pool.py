@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.delegation import AgentPool
     from llmling_agent.models.resources import ResourceInfo
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 logger = get_logger(__name__)
 
@@ -36,9 +36,9 @@ class PoolResourceProvider(ResourceProvider):
         self.pool = pool
         self.zed_mode = zed_mode
 
-    async def get_tools(self) -> list[ToolInfo]:
+    async def get_tools(self) -> list[Tool]:
         """Get tools from all agents in pool."""
-        tools: list[ToolInfo] = []
+        tools: list[Tool] = []
         for agent in self.pool.agents.values():
             try:
                 tool = agent.to_tool()

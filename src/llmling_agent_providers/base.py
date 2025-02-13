@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import ModelProtocol, ModelType
     from llmling_agent.messaging.messages import ChatMessage, TokenCost
     from llmling_agent.models.content import Content
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
 logger = get_logger(__name__)
@@ -139,7 +139,7 @@ class AgentProvider[TDeps]:
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelType = None,
-        tools: list[ToolInfo] | None = None,
+        tools: list[Tool] | None = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
@@ -153,7 +153,7 @@ class AgentProvider[TDeps]:
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
         model: ModelType = None,
-        tools: list[ToolInfo] | None = None,
+        tools: list[Tool] | None = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> AbstractAsyncContextManager[StreamingResponseProtocol]:

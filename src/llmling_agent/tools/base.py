@@ -63,7 +63,7 @@ class ToolContext:
 
 
 @dataclass
-class ToolInfo:
+class Tool:
     """Information about a registered tool."""
 
     callable: LLMCallableTool

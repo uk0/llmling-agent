@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.tools import ToolCallInfo
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
 class InteractiveSession:
@@ -96,7 +96,7 @@ class InteractiveSession:
             self.formatter.print_message_content(message.content)
             self.formatter.print_message_end(message)
 
-    def _on_tool_added(self, name: str, tool: ToolInfo):
+    def _on_tool_added(self, name: str, tool: Tool):
         """Handle tool addition."""
         self.console.print(f"\nTool added: {tool.name}")
 
@@ -109,7 +109,7 @@ class InteractiveSession:
         """Handle tool usage signal."""
         self.formatter.print_tool_call(tool_call)
 
-    def _on_tool_changed(self, name: str, tool: ToolInfo):
+    def _on_tool_changed(self, name: str, tool: Tool):
         """Handle tool state changes."""
         state = "enabled" if tool.enabled else "disabled"
         self.console.print(f"\nTool '{name}' {state}")

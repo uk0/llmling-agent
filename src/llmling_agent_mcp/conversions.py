@@ -14,10 +14,10 @@ if TYPE_CHECKING:
     from llmling.prompts.models import BasePrompt, PromptMessage, PromptParameter
     from llmling.resources.models import LoadedResource
 
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
-def to_mcp_tool(tool: ToolInfo) -> types.Tool:
+def to_mcp_tool(tool: Tool) -> types.Tool:
     """Convert internal Tool to MCP Tool."""
     schema = tool.schema
     return types.Tool(

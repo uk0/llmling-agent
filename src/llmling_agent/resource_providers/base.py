@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.resources import ResourceInfo
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
 class ResourceProvider:
@@ -39,7 +39,7 @@ class ResourceProvider:
     def requires_async(self) -> bool:
         return False
 
-    async def get_tools(self) -> list[ToolInfo]:
+    async def get_tools(self) -> list[Tool]:
         """Get available tools. Override to provide tools."""
         return []
 

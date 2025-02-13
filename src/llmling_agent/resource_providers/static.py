@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from llmling.prompts import BasePrompt
 
     from llmling_agent.models.resources import ResourceInfo
-    from llmling_agent.tools.base import ToolInfo
+    from llmling_agent.tools.base import Tool
 
 
 class StaticResourceProvider(ResourceProvider):
@@ -27,7 +27,7 @@ class StaticResourceProvider(ResourceProvider):
     def __init__(
         self,
         name: str = "static",
-        tools: Sequence[ToolInfo] | None = None,
+        tools: Sequence[Tool] | None = None,
         prompts: Sequence[BasePrompt] | None = None,
         resources: Sequence[ResourceInfo] | None = None,
     ) -> None:
@@ -44,7 +44,7 @@ class StaticResourceProvider(ResourceProvider):
         self._prompts = list(prompts) if prompts else []
         self._resources = list(resources) if resources else []
 
-    async def get_tools(self) -> list[ToolInfo]:
+    async def get_tools(self) -> list[Tool]:
         """Get pre-configured tools."""
         return self._tools
 
