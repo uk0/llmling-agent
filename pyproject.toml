@@ -85,7 +85,7 @@ llmling-agent = "llmling_agent.__main__:cli"
 ui = ["gradio>=5.8.0; python_version < '3.14'"]
 # chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]
 clipboard = ["clipman"]
-tiktoken = ["tiktoken"]
+tiktoken = ["tiktoken; python_version < '3.14'"]
 markdown = ["markitdown; python_version < '3.14'"]
 events = [
     "watchfiles; python_version < '3.14'",
@@ -93,16 +93,16 @@ events = [
     "croniter>=6.0.0",
 ]
 textual = ["textual>=1.0.0", "textualicious"]
-litellm = ["litellm"]
+litellm = ["litellm; python_version < '3.14'"]
 image = ["pillow; python_version < '3.14'"]
 # tools = ["crewai-tools>=0.33.0", "langchain-community>=0.3.17"]
 # pydantic_ai = ["pydantic_ai", "llmling-models"]
 remote = ["websockets>=14.2"]
-mem0 = ["mem0ai>=0.1.48"]
+mem0 = ["mem0ai>=0.1.48; python_version < '3.14'"]
 logfire = ["logfire"]
 agentops = ["agentops"]
-braintrust = ["braintrust", "autoevals"]
-traceloop = ["traceloop-sdk>=0.38.4"]
+braintrust = ["braintrust", "autoevals; python_version < '3.14'"]
+traceloop = ["traceloop-sdk>=0.38.4; python_version < '3.14'"]
 git = ["pygit2; python_version < '3.14'"] # for fsspec git support
 arize = [
     "arize",
@@ -127,7 +127,7 @@ dev = [
     # Only add below (Copier)
     "pytest-asyncio>=0.24.0",
     "textual-dev>=1.7.0",
-    "openapi_spec_validator",
+    "openapi_spec_validator; python_version < '3.14'",
 ]
 benchmark = ["pyinstrument"]
 lint = [

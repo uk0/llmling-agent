@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import json
+import sys
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
-from openapi_spec_validator import validate
-from openapi_spec_validator.exceptions import OpenAPISpecValidatorError
 import pytest
 
 from llmling_agent_toolsets.openapi import OpenAPITools
@@ -13,6 +12,11 @@ from llmling_agent_toolsets.openapi import OpenAPITools
 
 if TYPE_CHECKING:
     from jsonschema_path.typing import Schema
+
+skip_py314 = pytest.mark.skipif(
+    sys.version_info >= (3, 14),
+    reason="openapi-spec-validator is not compatible with Python 3.14",
+)
 
 
 BASE_URL = "https://api.example.com"
@@ -73,8 +77,12 @@ class MockResponse:
 
 
 @pytest.fixture
+@skip_py314
 def mock_openapi_spec(tmp_path):
     """Set up OpenAPI spec mocking and local file."""
+    from openapi_spec_validator import validate
+    from openapi_spec_validator.exceptions import OpenAPISpecValidatorError
+
     try:
         validate(PETSTORE_SPEC)
         print("\nOpenAPI spec validation passed")
@@ -95,6 +103,8 @@ def mock_openapi_spec(tmp_path):
 @pytest.mark.asyncio
 async def test_openapi_toolset_local(mock_openapi_spec):
     """Test OpenAPI toolset with local file."""
+    from openapi_spec_validator import validate
+
     local_path = mock_openapi_spec["local_path"]
     toolset = OpenAPITools(spec=local_path, base_url=BASE_URL)
 
@@ -110,6 +120,8 @@ async def test_openapi_toolset_local(mock_openapi_spec):
 @pytest.mark.asyncio
 async def test_openapi_toolset_remote(mock_openapi_spec, caplog, monkeypatch):
     """Test OpenAPI toolset with remote spec."""
+    from openapi_spec_validator import validate
+
     caplog.set_level("DEBUG")
     url = mock_openapi_spec["remote_url"]
 
