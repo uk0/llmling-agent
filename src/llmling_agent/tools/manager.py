@@ -143,13 +143,11 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
         """Error class for tool operations."""
         return ToolError
 
-    def _validate_item(self, item: ToolInfo | ToolType | dict[str, Any]) -> ToolInfo:  # noqa: PLR0911
+    def _validate_item(self, item: ToolInfo | ToolType | dict[str, Any]) -> ToolInfo:
         """Validate and convert items before registration."""
         match item:
             case ToolInfo():
                 return item
-            case LLMCallableTool():
-                return ToolInfo(callable=item)
             case str():
                 if item.startswith("crewai_tools"):
                     obj = import_class(item)()
@@ -178,7 +176,7 @@ class ToolManager(BaseRegistry[str, ToolInfo]):
 
             case _:
                 typ = type(item)
-                msg = f"Item must be ToolInfo, LLMCallableTool, or callable. Got {typ}"
+                msg = f"Item must be ToolInfo or callable. Got {typ}"
                 raise ToolError(msg)
 
     def enable_tool(self, tool_name: str):
