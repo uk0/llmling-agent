@@ -18,15 +18,9 @@ if TYPE_CHECKING:
 
 
 def run_command(
-    agent_name: str = t.Argument(help="Agent name(s) to run (can be comma-separated)"),
+    node_name: str = t.Argument(help="Agent / Team name to run"),
     prompts: list[str] = t.Argument(None, help="Additional prompts to send"),  # noqa: B008
     config_path: str = t.Option(None, "-c", "--config", help="Override config path"),
-    execution_mode: str = t.Option(
-        "parallel",
-        "-x",
-        "--execution",
-        help="Execution mode for multiple agents: parallel/sequential",
-    ),
     show_messages: bool = t.Option(
         True, "--show-messages", help="Show all messages (not just final responses)"
     ),
@@ -37,20 +31,17 @@ def run_command(
     show_costs: bool = t.Option(False, "--costs", help="Show token usage and costs"),
     verbose: bool = verbose_opt,
 ):
-    """Run agent(s) with prompts.
+    """Run a node (agent/team) with prompts.
 
     Examples:
-        # Single agent
-        llmling-agent run myagent "Analyze this"
+            # Single agent
+            llmling run myagent "Analyze this"
 
-        # Parallel execution (default)
-        llmling-agent run "agent1,agent2,agent3" "Process this"
+            # Team
+            llmling run myteam "Process this"
 
-        # Sequential chain
-        llmling-agent run "agent1,agent2,agent3" -x sequential "Process this"
-
-        # Show all messages
-        llmling-agent run "agent1,agent2" --show-messages "Process this"
+            # Sequential team
+            llmling run mysequence "Process this"
     """
     try:
         # Resolve configuration path
@@ -74,35 +65,19 @@ def run_command(
 
                 # Connect message handlers if showing all messages
                 if show_messages:
-                    for agent in pool.agents.values():
-                        agent.message_sent.connect(on_message)
-
-                agent_names = [name.strip() for name in agent_name.split(",")]
+                    for node in pool.nodes.values():
+                        node.message_sent.connect(on_message)
                 for prompt in prompts:
-                    match execution_mode:
-                        case "parallel":
-                            team = pool.create_team(agent_names)
-                            responses = await team.execute(prompt)
-                        case "sequential":
-                            team_run = pool.create_team_run(agent_names)
-                            responses = await team_run.execute(prompt)
-                        # case "controlled":
-                        #     responses = await group.run_controlled(prompt)
-                        case _:
-                            error_msg = f"Invalid execution mode: {execution_mode}"
-                            raise t.BadParameter(error_msg)  # noqa: TRY301
+                    response = await node.run(prompt)
 
                     if not show_messages:
-                        messages = [r.message for r in responses]
-                        for msg in messages:
-                            assert msg
-                            print(
-                                msg.format(
-                                    style=detail_level,  # type: ignore
-                                    show_metadata=show_metadata,
-                                    show_costs=show_costs,
-                                )
+                        print(
+                            response.format(
+                                style=detail_level,  # type: ignore
+                                show_metadata=show_metadata,
+                                show_costs=show_costs,
                             )
+                        )
 
         # Run the async code in the sync command
         asyncio.run(run())
