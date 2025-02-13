@@ -95,7 +95,7 @@ the framework makes it natural to build systems that combine AI capabilities wit
 The fastest way to start chatting with an AI:
 ```bash
 # Start an ephemeral chat session (requires uv)
-uvx llmling-agent quickstart openai:gpt-4o-mini
+uvx llmling-agent[default] quickstart openai:gpt-4o-mini
 ```
 
 This creates a temporary agent ready for chat - no configuration needed!

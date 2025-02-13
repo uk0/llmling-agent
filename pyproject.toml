@@ -60,7 +60,7 @@ dependencies = [
     # with pydantic-ai), we will keep them here.
     "prompt-toolkit>=3.0.48",
     "promptantic>=0.4.5",
-    "pydantic_ai",
+    "pydantic_ai_slim",
     "llmling-models",
     # Only add below (Copier)
     "python-dotenv>=1.0.1",
@@ -113,6 +113,7 @@ arize = [
 ]
 mlflow = ["mlflow>=2.20.1; python_version < '3.14'"]
 langsmith = ["langsmith; python_version < '3.14'"]
+default = ["llmling-models", "pydantic_ai[logfire]; python_version < '3.14'"]
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]

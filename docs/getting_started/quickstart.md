@@ -5,10 +5,10 @@
 Start an interactive session:
 ```bash
 # Quick chat with GPT-4
-uvx llmling-agent quickstart openai:gpt-4o-mini
+uvx llmling-agent[default] quickstart openai:gpt-4o-mini
 
 # Enable streaming mode
-uvx llmling-agent quickstart openai:gpt-4o-mini --stream
+uvx llmling-agent[default] quickstart openai:gpt-4o-mini --stream
 ```
 
 Initialize and manage configurations:
