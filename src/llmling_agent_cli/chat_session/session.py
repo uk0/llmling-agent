@@ -245,7 +245,7 @@ class InteractiveSession:
 
 # Helper function for CLI
 async def start_interactive_session(
-    agent: Agent[Any],
+    agent: AnyAgent[Any, Any],
     *,
     pool: AgentPool | None = None,
     stream: bool = False,
