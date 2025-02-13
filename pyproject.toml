@@ -93,7 +93,7 @@ events = [
     "aioimaplib>=2.0.1",
     "croniter>=6.0.0",
 ]
-textual = ["textual>=1.0.0", "textualicious"]
+textual = ["textual>=1.0.0", "textualicious", "pygments"]
 litellm = ["litellm; python_version < '3.14'"]
 image = ["pillow; python_version < '3.14'"]
 # tools = ["crewai-tools>=0.33.0", "langchain-community>=0.3.17"]
