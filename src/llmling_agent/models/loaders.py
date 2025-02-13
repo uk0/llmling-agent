@@ -276,28 +276,28 @@ class LangChainResourceLoader(BaseResourceLoaderConfig):
     loader_args: JsonObject = Field(default_factory=dict)
     """Arguments for loader initialization."""
 
-    async def load(self, **kwargs: Any) -> AsyncIterator[Content]:
-        """Load documents using LangChain loader.
+    # async def load(self, **kwargs: Any) -> AsyncIterator[Content]:
+    #     """Load documents using LangChain loader.
 
-        Converts LangChain documents to Content objects.
-        """
-        from langchain.document_loaders import BaseLoader
-        from llmling.utils.importing import import_class
+    #     Converts LangChain documents to Content objects.
+    #     """
+    #     from langchain.document_loaders import BaseLoader
+    #     from llmling.utils.importing import import_class
 
-        # Import and initialize loader
-        loader_cls = import_class(self.loader_class)
-        if not issubclass(loader_cls, BaseLoader):
-            msg = f"{self.loader_class} is not a LangChain loader"
-            raise ValueError(msg)
+    #     # Import and initialize loader
+    #     loader_cls = import_class(self.loader_class)
+    #     if not issubclass(loader_cls, BaseLoader):
+    #         msg = f"{self.loader_class} is not a LangChain loader"
+    #         raise ValueError(msg)
 
-        loader = loader_cls(**self.loader_args)
+    #     loader = loader_cls(**self.loader_args)
 
-        # Load documents
-        for doc in await loader.aload():
-            yield Content(
-                content=doc.page_content,
-                metadata=Metadata(mime_type="text/plain", extra=doc.metadata),
-            )
+    #     # Load documents
+    #     for doc in await loader.aload():
+    #         yield Content(
+    #             content=doc.page_content,
+    #             metadata=Metadata(mime_type="text/plain", extra=doc.metadata),
+    #         )
 
 
 Resource = Annotated[
@@ -305,6 +305,7 @@ Resource = Annotated[
     | TextResourceLoaderConfig
     | CLIResourceLoaderConfig
     | SourceResourceLoaderConfig
+    | LangChainResourceLoader
     | CallableResourceLoaderConfig,
     Field(discriminator="type"),
 ]
