@@ -587,7 +587,9 @@
         "api_key": {
           "anyOf": [
             {
-              "type": "string"
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
             },
             {
               "type": "null"
@@ -773,7 +775,9 @@
         "api_key": {
           "anyOf": [
             {
-              "type": "string"
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
             },
             {
               "type": "null"
@@ -926,12 +930,12 @@
     },
     "BraintrustConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Briantrust prompt provider.",
+      "description": "Configuration for Braintrust prompt provider.",
       "properties": {
         "type": {
           "const": "braintrust",
           "default": "braintrust",
-          "description": "Configuration for Briantrust prompt provider.",
+          "description": "Configuration for Braintrust prompt provider.",
           "title": "Type",
           "type": "string"
         },
@@ -947,8 +951,21 @@
             }
           ],
           "default": null,
-          "description": "API key for the Briantrust API.",
+          "description": "API key for the Braintrust API.",
           "title": "Api Key"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Braintrust Project name.",
+          "title": "Project"
         }
       },
       "title": "BraintrustConfig",
@@ -956,7 +973,7 @@
     },
     "BraintrustProviderConfig": {
       "additionalProperties": false,
-      "description": "Configuration for MlFlow provider.",
+      "description": "Configuration for Braintrust provider.",
       "properties": {
         "type": {
           "const": "braintrust",
@@ -967,7 +984,9 @@
         "api_key": {
           "anyOf": [
             {
-              "type": "string"
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
             },
             {
               "type": "null"
@@ -3214,6 +3233,70 @@
       "title": "GoogleSpeechConfig",
       "type": "object"
     },
+    "GradioUIConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for web interface.",
+      "properties": {
+        "type": {
+          "const": "web",
+          "default": "web",
+          "description": "Web interface.",
+          "title": "Type",
+          "type": "string"
+        },
+        "trigger": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TriggerConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional trigger configuration to run on startup."
+        },
+        "host": {
+          "default": "127.0.0.1",
+          "description": "Host to bind to.",
+          "title": "Host",
+          "type": "string"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Port to bind to.",
+          "title": "Port"
+        },
+        "share": {
+          "default": false,
+          "description": "Create public URL.",
+          "title": "Share",
+          "type": "boolean"
+        },
+        "theme": {
+          "default": "soft",
+          "description": "UI theme.",
+          "enum": [
+            "soft",
+            "base",
+            "monochrome",
+            "glass"
+          ],
+          "title": "Theme",
+          "type": "string"
+        }
+      },
+      "title": "GradioUIConfig",
+      "type": "object"
+    },
     "HumanProviderConfig": {
       "additionalProperties": false,
       "description": "Configuration for human-in-the-loop provider.\n\nThis provider enables direct human interaction for responses and decisions.\nUseful for testing, training, and oversight of agent operations.",
@@ -4332,7 +4415,9 @@
         "api_key": {
           "anyOf": [
             {
-              "type": "string"
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
             },
             {
               "type": "null"
@@ -4526,7 +4611,9 @@
         "token": {
           "anyOf": [
             {
-              "type": "string"
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
             },
             {
               "type": "null"
@@ -4661,13 +4748,15 @@
         "api_key": {
           "anyOf": [
             {
-              "type": "string"
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
             },
             {
               "type": "null"
             }
           ],
-          "default": "m0-YGtDf0qoTdzSPH6nTIfoYEV1lhUIdNwLYYSZKLxN",
+          "default": null,
           "description": "API key for mem0 service.",
           "title": "Api Key"
         },
@@ -5338,7 +5427,8 @@
                 "braintrust": "#/$defs/BraintrustProviderConfig",
                 "langsmith": "#/$defs/LangsmithProviderConfig",
                 "logfire": "#/$defs/LogfireProviderConfig",
-                "mlflow": "#/$defs/MlFlowProviderConfig"
+                "mlflow": "#/$defs/MlFlowProviderConfig",
+                "traceloop": "#/$defs/TraceloopProviderConfig"
               },
               "propertyName": "type"
             },
@@ -5357,6 +5447,9 @@
               },
               {
                 "$ref": "#/$defs/BraintrustProviderConfig"
+              },
+              {
+                "$ref": "#/$defs/TraceloopProviderConfig"
               },
               {
                 "$ref": "#/$defs/ArizePhoenixProviderConfig"
@@ -6009,6 +6102,39 @@
       "title": "PromptParameter",
       "type": "object"
     },
+    "PromptToolkitUIConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for prompt-toolkit interface.",
+      "properties": {
+        "type": {
+          "const": "prompt",
+          "default": "prompt",
+          "description": "Prompt-toolkit interface.",
+          "title": "Type",
+          "type": "string"
+        },
+        "trigger": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TriggerConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional trigger configuration to run on startup."
+        },
+        "stream": {
+          "default": true,
+          "description": "Enable response streaming.",
+          "title": "Stream",
+          "type": "boolean"
+        }
+      },
+      "title": "PromptToolkitUIConfig",
+      "type": "object"
+    },
     "PydanticAIProviderConfig": {
       "additionalProperties": false,
       "description": "Configuration for PydanticAI-based provider.\n\nThis provider uses PydanticAI for handling model interactions, tool calls,\nand structured outputs. It provides fine-grained control over model behavior\nand validation.",
@@ -6185,7 +6311,9 @@
         "api_key": {
           "anyOf": [
             {
-              "type": "string"
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
             },
             {
               "type": "null"
@@ -6215,7 +6343,9 @@
         "api_key": {
           "anyOf": [
             {
-              "type": "string"
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
             },
             {
               "type": "null"
@@ -6724,6 +6854,62 @@
         "command"
       ],
       "title": "StdioMCPServer",
+      "type": "object"
+    },
+    "StdlibUIConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for basic CLI interface.",
+      "properties": {
+        "type": {
+          "const": "cli",
+          "default": "cli",
+          "description": "Basic CLI interface.",
+          "title": "Type",
+          "type": "string"
+        },
+        "trigger": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TriggerConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional trigger configuration to run on startup."
+        },
+        "show_messages": {
+          "default": true,
+          "description": "Show all messages or just final responses.",
+          "title": "Show Messages",
+          "type": "boolean"
+        },
+        "detail_level": {
+          "default": "simple",
+          "description": "Output detail level.",
+          "enum": [
+            "simple",
+            "detailed",
+            "markdown"
+          ],
+          "title": "Detail Level",
+          "type": "string"
+        },
+        "show_metadata": {
+          "default": false,
+          "description": "Show message metadata.",
+          "title": "Show Metadata",
+          "type": "boolean"
+        },
+        "show_costs": {
+          "default": false,
+          "description": "Show token usage and costs.",
+          "title": "Show Costs",
+          "type": "boolean"
+        }
+      },
+      "title": "StdlibUIConfig",
       "type": "object"
     },
     "StorageConfig": {
@@ -7284,6 +7470,33 @@
       "title": "TextResource",
       "type": "object"
     },
+    "TextualUIConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Textual TUI interface.",
+      "properties": {
+        "type": {
+          "const": "textual",
+          "default": "textual",
+          "description": "Textual terminal UI.",
+          "title": "Type",
+          "type": "string"
+        },
+        "trigger": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TriggerConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional trigger configuration to run on startup."
+        }
+      },
+      "title": "TextualUIConfig",
+      "type": "object"
+    },
     "TimeCondition": {
       "additionalProperties": false,
       "description": "Disconnect after time period.",
@@ -7557,6 +7770,62 @@
       "title": "TraceloopConfig",
       "type": "object"
     },
+    "TraceloopProviderConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Traceloop provider.",
+      "properties": {
+        "type": {
+          "const": "traceloop",
+          "default": "traceloop",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Traceloop API key.",
+          "title": "Api Key"
+        }
+      },
+      "title": "TraceloopProviderConfig",
+      "type": "object"
+    },
+    "TriggerConfig": {
+      "description": "Configuration for initial trigger on UI startup.",
+      "properties": {
+        "node_name": {
+          "title": "Node Name",
+          "type": "string"
+        },
+        "prompts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Prompts",
+          "type": "array"
+        },
+        "exit_after": {
+          "default": false,
+          "title": "Exit After",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "node_name",
+        "prompts"
+      ],
+      "title": "TriggerConfig",
+      "type": "object"
+    },
     "UserSelectModelConfig": {
       "description": "Configuration for interactive model selection.",
       "properties": {
@@ -7753,9 +8022,19 @@
           "title": "Model"
         },
         "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
           "description": "OpenAI API key.",
-          "title": "Api Key",
-          "type": "string"
+          "title": "Api Key"
         },
         "language": {
           "anyOf": [
@@ -7771,9 +8050,6 @@
           "title": "Language"
         }
       },
-      "required": [
-        "api_key"
-      ],
       "title": "WhisperAPIConfig",
       "type": "object"
     },
@@ -7973,6 +8249,32 @@
       "default": null,
       "description": "Inheritance references.",
       "title": "Inherit"
+    },
+    "ui": {
+      "discriminator": {
+        "mapping": {
+          "cli": "#/$defs/StdlibUIConfig",
+          "prompt": "#/$defs/PromptToolkitUIConfig",
+          "textual": "#/$defs/TextualUIConfig",
+          "web": "#/$defs/GradioUIConfig"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/StdlibUIConfig"
+        },
+        {
+          "$ref": "#/$defs/GradioUIConfig"
+        },
+        {
+          "$ref": "#/$defs/PromptToolkitUIConfig"
+        },
+        {
+          "$ref": "#/$defs/TextualUIConfig"
+        }
+      ],
+      "title": "Ui"
     },
     "agents": {
       "additionalProperties": {

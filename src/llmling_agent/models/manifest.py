@@ -24,6 +24,7 @@ from llmling_agent.models.result_types import ResponseDefinition  # noqa: TC001
 from llmling_agent.models.storage import StorageConfig
 from llmling_agent.models.task import Job  # noqa: TC001
 from llmling_agent.models.teams import TeamConfig  # noqa: TC001
+from llmling_agent.models.ui import StdlibUIConfig, UIConfig
 
 
 if TYPE_CHECKING:
@@ -52,6 +53,8 @@ class AgentsManifest(ConfigModel):
 
     INHERIT: str | list[str] | None = None
     """Inheritance references."""
+
+    ui: UIConfig = Field(default_factory=StdlibUIConfig)
 
     agents: dict[str, AgentConfig] = Field(default_factory=dict)
     """Mapping of agent IDs to their configurations"""
