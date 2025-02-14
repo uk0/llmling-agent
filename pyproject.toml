@@ -151,6 +151,9 @@ Issues = "https://github.com/phil65/llmling-agent/issues"
 Discussions = "https://github.com/phil65/llmling-agent/discussions"
 "Code coverage" = "https://app.codecov.io/gh/phil65/llmling-agent"
 
+[project.entry-points."jinjarope.environment"]
+llmling_agent = "llmling_agent.utils:setup_env"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 log_cli = true

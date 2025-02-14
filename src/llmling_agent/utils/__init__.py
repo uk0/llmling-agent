@@ -1,0 +1,20 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    import jinja2
+
+
+def setup_env(env: jinja2.Environment):
+    """Used as extension point for the jinjarope environment.
+
+    Args:
+        env: The jinjarope environment to extend
+    """
+    from llmling_agent.agent.agent import Agent
+    from llmling_agent_functional import run_agent, run_agent_sync
+
+    env.globals |= dict(agent=Agent)
+    env.filters |= {"run_agent": run_agent, "run_agent_sync": run_agent_sync}
