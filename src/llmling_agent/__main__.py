@@ -12,6 +12,7 @@ from llmling_agent_cli.quickstart import quickstart_command
 from llmling_agent_cli.run import run_command
 from llmling_agent_cli.serve import serve_command
 from llmling_agent_cli.task import task_command
+from llmling_agent_cli.ui import ui_command
 from llmling_agent_cli.watch import watch_command
 
 
@@ -33,6 +34,7 @@ cli.command(name="quickstart")(quickstart_command)
 cli.command(name="watch")(watch_command)
 cli.command(name="serve")(serve_command)
 cli.command(name="task")(task_command)
+cli.command(name="ui")(ui_command)
 
 cli.add_typer(history_cli, name="history")
 
