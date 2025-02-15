@@ -12,9 +12,10 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
 
     from fsspec.asyn import AsyncFileSystem
+    from upath import UPath
 
     from llmling_agent.common_types import StrPath
 
@@ -147,6 +148,80 @@ async def read_folder(
     Raises:
         FileNotFoundError: If base path doesn't exist
     """
+    from upath import UPath
+
+    base_path = UPath(path)
+    matching_files = await list_files(
+        path,
+        pattern=pattern,
+        recursive=recursive,
+        include_dirs=include_dirs,
+        exclude=exclude,
+        max_depth=max_depth,
+    )
+
+    result: dict[str, str | bytes] = {}
+
+    if load_parallel:
+        # Process files in chunks
+        for chunk in batched(matching_files, chunk_size):
+            # Create tasks for this chunk
+            tasks = [
+                read_path(file_path, mode=mode, encoding=encoding) for file_path in chunk
+            ]
+
+            # Execute chunk in parallel
+            try:
+                contents: Sequence[str | bytes] = await asyncio.gather(*tasks)
+                # Map results back to relative paths
+                for file_path, content in zip(chunk, contents, strict=True):
+                    rel_path = os.path.relpath(file_path, base_path)
+                    result[rel_path] = content
+            except Exception as e:  # noqa: BLE001
+                logger.warning(
+                    "Failed to read chunk starting at %s: %s",
+                    os.path.relpath(chunk[0], base_path),
+                    e,
+                )
+    else:
+        # Sequential reading
+        for file_path in matching_files:
+            try:
+                content = await read_path(file_path, mode=mode, encoding=encoding)
+                rel_path = os.path.relpath(file_path, base_path)
+                result[rel_path] = content
+            except Exception as e:  # noqa: BLE001
+                rel_path = os.path.relpath(file_path, base_path)
+                logger.warning("Failed to read %s: %s", rel_path, e)
+
+    return result
+
+
+async def list_files(
+    path: StrPath,
+    *,
+    pattern: str = "**/*",
+    recursive: bool = True,
+    include_dirs: bool = False,
+    exclude: list[str] | None = None,
+    max_depth: int | None = None,
+) -> list[UPath]:
+    """List files in a folder matching a pattern.
+
+    Args:
+        path: Base directory to read from
+        pattern: Glob pattern to match files against (e.g. "**/*.py" for Python files)
+        recursive: Whether to search subdirectories
+        include_dirs: Whether to include directories in results
+        exclude: List of patterns to exclude (uses fnmatch against relative paths)
+        max_depth: Maximum directory depth for recursive search
+
+    Returns:
+        List of UPath objects for matching files
+
+    Raises:
+        FileNotFoundError: If base path doesn't exist
+    """
     from fnmatch import fnmatch
 
     from upath import UPath
@@ -157,7 +232,7 @@ async def read_folder(
         raise FileNotFoundError(msg)
 
     fs = await get_async_fs(base_path)
-    result: dict[str, str | bytes] = {}
+    matching_files: list[UPath] = []
 
     # Get all matching paths
     if recursive:
@@ -165,10 +240,9 @@ async def read_folder(
     else:
         paths = await fs._glob(str(base_path / pattern))
 
-    # Collect files to read
-    files_to_read: list[tuple[str, str]] = []  # [(rel_path, abs_path), ...]
-
+    # Filter and collect paths
     for file_path in paths:
+        path_obj = UPath(file_path)
         rel_path = os.path.relpath(file_path, str(base_path))  # type: ignore
 
         # Skip excluded patterns
@@ -181,35 +255,9 @@ async def read_folder(
             continue
 
         if not is_dir:
-            files_to_read.append((rel_path, file_path))  # type: ignore
+            matching_files.append(path_obj)
 
-    if load_parallel:
-        # Process files in chunks to avoid too many concurrent operations
-        for chunk in batched(files_to_read, chunk_size):
-            # Create tasks for this chunk
-            tasks = [
-                read_path(abs_path, mode=mode, encoding=encoding)
-                for rel_path, abs_path in chunk
-            ]
-
-            # Execute chunk in parallel
-            try:
-                contents = await asyncio.gather(*tasks)
-                # Map results back to relative paths
-                for (rel_path, _), content in zip(chunk, contents, strict=True):
-                    result[rel_path] = content  # type: ignore
-            except Exception as e:  # noqa: BLE001
-                logger.warning("Failed to read chunk starting at %s: %s", chunk[0][0], e)
-    else:
-        # Original sequential reading
-        for rel_path, file_path in files_to_read:
-            try:
-                content = await read_path(file_path, mode=mode, encoding=encoding)
-                result[rel_path] = content
-            except Exception as e:  # noqa: BLE001
-                logger.warning("Failed to read %s: %s", rel_path, e)
-
-    return result
+    return matching_files
 
 
 if __name__ == "__main__":
