@@ -284,6 +284,8 @@ class PydanticAIProvider(AgentLLMProvider):
             for call in tool_calls:
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
+                self.tool_used.emit(call)
+
             resolved_model = (
                 use_model.model_name if isinstance(use_model, Model) else str(use_model)
             )
@@ -416,7 +418,7 @@ class PydanticAIProvider(AgentLLMProvider):
                     for call in tool_calls:
                         call.message_id = message_id
                         call.context_data = self._context.data if self._context else None
-
+                        self.tool_used.emit(call)
                     # Format final content
                     responses = [m for m in messages if isinstance(m, ModelResponse)]
                     parts = [p for msg in responses for p in msg.parts]
