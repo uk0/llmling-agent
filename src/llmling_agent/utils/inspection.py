@@ -119,15 +119,19 @@ def has_argument_type(
 
 def _type_to_string(type_hint: Any) -> str:
     """Convert type to normalized string representation for comparison."""
-    if isinstance(type_hint, str):
-        return type_hint
-    if isinstance(type_hint, type):
-        return type_hint.__name__
-    if isinstance(type_hint, TypeAliasType):
-        return _type_to_string(type_hint.__value__)
-    if isinstance(type_hint, UnionType):
-        return f"Union[{', '.join(_type_to_string(t) for t in get_args(type_hint))}]"
-    return str(type_hint)
+    match type_hint:
+        case str():
+            return type_hint
+        case type():
+            return type_hint.__name__
+        case TypeAliasType():
+            return _type_to_string(type_hint.__value__)
+        case UnionType():
+            args = get_args(type_hint)
+            args_str = ", ".join(_type_to_string(t) for t in args)
+            return f"Union[{args_str}]"
+        case _:
+            return str(type_hint)
 
 
 def has_return_type[T](  # noqa: PLR0911
