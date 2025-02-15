@@ -64,7 +64,7 @@ class SystemPrompts:
         tool_usage_style: ToolUsageStyle = "suggestive",
     ):
         """Initialize prompt manager."""
-        from jinja2 import Environment
+        from jinjarope import Environment
         from toprompt import to_prompt
 
         match prompts:

@@ -41,7 +41,7 @@ class Jinja2Condition(ConnectionCondition):
     async def check(self, ctx: EventContext) -> bool:
         from datetime import datetime
 
-        from jinja2 import Environment
+        from jinjarope import Environment
 
         env = Environment(trim_blocks=True, lstrip_blocks=True)
         template = env.from_string(self.template)

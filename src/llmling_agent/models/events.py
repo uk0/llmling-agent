@@ -244,7 +244,7 @@ class ConnectionJinja2Condition(ConnectionEventCondition):
     """Jinja2-Template (needs to return a "boolean" string)."""
 
     async def check(self, event: ConnectionEventData[Any]) -> bool:
-        from jinja2 import Environment
+        from jinjarope import Environment
 
         env = Environment()
         template = env.from_string(self.template)

@@ -11,7 +11,7 @@ from llmling_agent.models.tools import ToolConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from jinja2 import Environment, Template
+    from jinjarope import Environment, Template
 
 UndefinedBehaviour = Literal["default", "strict", "debug", "chainable"]
 
@@ -79,7 +79,7 @@ class Jinja2EnvironmentConfig(ConfigModel):
         Args:
             enable_async: Whether to enable async features
         """
-        from jinja2 import Environment
+        from jinjarope import Environment
 
         return Environment(enable_async=enable_async, **self.create_environment_kwargs())
 

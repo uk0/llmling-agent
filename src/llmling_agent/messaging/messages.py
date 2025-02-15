@@ -253,7 +253,7 @@ class ChatMessage[TContent]:
             ValueError: If style is "custom" but no template provided
                     or if style is invalid
         """
-        from jinja2 import Environment
+        from jinjarope import Environment
         import yamling
 
         env = Environment(trim_blocks=True, lstrip_blocks=True)

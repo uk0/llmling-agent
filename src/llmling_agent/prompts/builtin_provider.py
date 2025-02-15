@@ -20,7 +20,7 @@ class BuiltinPromptProvider(BasePromptProvider):
     name = "builtin"
 
     def __init__(self, manifest_prompts: dict[str, SystemPrompt]):
-        from jinja2 import Environment
+        from jinjarope import Environment
 
         from llmling_agent_functional.run import run_agent, run_agent_sync
 

@@ -45,7 +45,7 @@ class EventData(BaseModel):
 
     async def format(self, config: EventSourceConfig) -> str:
         """Wraps core message with configurable template."""
-        from jinja2 import Environment
+        from jinjarope import Environment
 
         env = Environment(trim_blocks=True, lstrip_blocks=True)
         template = env.from_string(config.template)

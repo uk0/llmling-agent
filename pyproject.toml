@@ -73,6 +73,7 @@ dependencies = [
     "slashed>=0.1.0",
     "toprompt>=0.0.1",
     "mcp>=1.2.0",
+    "jinjarope",
     "griffe>=1.5.4",
     "morefs[asynclocal]",
     "bigtree>=0.23.1",
