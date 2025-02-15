@@ -16,6 +16,8 @@ async def delayed_processor(msg: str, delay: float = 0.1) -> str:
 
 @pytest.mark.asyncio
 class TestTeamRunBackground:
+    """Test background execution of a team run."""
+
     async def test_single_execution(self):
         """Test single background execution."""
         async with AgentPool[None]() as pool:

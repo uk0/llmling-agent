@@ -64,6 +64,8 @@ PETSTORE_SPEC: Schema = {
 
 # Create mock httpx response
 class MockResponse:
+    """Mock httpx response."""
+
     def __init__(self):
         self.status_code = 200
         self._text = json.dumps(PETSTORE_SPEC)

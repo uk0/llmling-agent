@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pydantic import BaseModel
 import pytest
 
@@ -5,6 +7,8 @@ from llmling_agent import AgentsManifest
 
 
 class Result(BaseModel):
+    """Structured response result."""
+
     is_positive: bool
 
 
