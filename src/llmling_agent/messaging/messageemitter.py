@@ -111,9 +111,8 @@ class MessageEmitter[TDeps, TResult](TaskManagerMixin, ABC):
     @property
     def connection_stats(self) -> AggregatedTalkStats:
         """Get stats for all active connections of this node."""
-        return AggregatedTalkStats(
-            stats=[talk.stats for talk in self.connections.get_connections()]
-        )
+        stats = [talk.stats for talk in self.connections.get_connections()]
+        return AggregatedTalkStats(stats=stats)
 
     @property
     def context(self) -> NodeContext:
@@ -318,11 +317,8 @@ class MessageEmitter[TDeps, TResult](TaskManagerMixin, ABC):
             prompts = await convert_prompts([user_msg.content])
             # Update received message's chain to show it came through its source
             user_msg = user_msg.forwarded(prompt[0])
-            user_msg = replace(
-                user_msg,
-                role="user",  # change role since "perspective" changes
-                cost_info=None,  # Clear cost info to avoid double-counting
-            )
+            # change role since "perspective" changes, clear cost to avoid counting twice
+            user_msg = replace(user_msg, role="user", cost_info=None)
             final_prompt = "\n\n".join(str(p) for p in prompts)
         else:
             prompts = await convert_prompts(prompt)

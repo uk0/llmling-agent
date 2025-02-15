@@ -207,10 +207,7 @@ class ToolManager(BaseRegistry[str, Tool]):
         """Get a mapping of all tools and their enabled status."""
         return {tool.name: tool.enabled for tool in await self.get_tools()}
 
-    async def get_tools(
-        self,
-        state: ToolState = "all",
-    ) -> list[Tool]:
+    async def get_tools(self, state: ToolState = "all") -> list[Tool]:
         """Get tool objects based on filters."""
         tools: list[Tool] = []
 
