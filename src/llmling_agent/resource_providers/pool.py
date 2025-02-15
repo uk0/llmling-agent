@@ -1,3 +1,5 @@
+"""Resource provider exposing Nodes as tools."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -38,15 +40,9 @@ class PoolResourceProvider(ResourceProvider):
 
     async def get_tools(self) -> list[Tool]:
         """Get tools from all agents in pool."""
-        tools: list[Tool] = []
-        for agent in self.pool.agents.values():
-            try:
-                tool = agent.to_tool()
-                tools.append(tool)
-            except Exception:
-                logger.exception("Failed to create tool from agent: %s", agent.name)
-                continue
-        return tools
+        agent_tools = [agent.to_tool() for agent in self.pool.agents.values()]
+        team_tools = [team.to_tool() for team in self.pool.teams.values()]
+        return agent_tools + team_tools
 
     async def get_prompts(self) -> list[BasePrompt]:
         """Get prompts from pool's manifest."""
