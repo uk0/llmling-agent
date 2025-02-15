@@ -21,10 +21,10 @@ async def run_nodes_async(
     inputs: dict[str, Any] | None = None,
     parallel: bool = False,
 ) -> dict[str, Any]:
-    """Execute agent functions with dependency handling.
+    """Execute node functions with dependency handling.
 
     Args:
-        config: Agent configuration (path or manifest)
+        config: Node configuration (path or manifest)
         module: Optional module to discover functions from
         functions: Optional list of function names to run (auto-discovers if None)
         inputs: Optional input values for function parameters
@@ -75,11 +75,8 @@ async def run_nodes_async(
         )
 
 
-def run_nodes(
-    config: str,
-    **kwargs: Any,
-) -> dict[str, Any]:
-    """Run agent functions synchronously.
+def run_nodes(config: StrPath | AgentsManifest, **kwargs: Any) -> dict[str, Any]:
+    """Run node functions synchronously.
 
     Convenience wrapper around run_nodes_async for sync contexts.
     See run_nodes_async for full documentation.

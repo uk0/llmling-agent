@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 @dataclass
 class NodeFunction:
-    """Metadata for a function that uses agents."""
+    """Metadata for a function that uses nodes."""
 
     func: AnyCallable
     """The actual function to execute."""
@@ -48,7 +48,7 @@ class NodeFunction:
             for name, param in sig.parameters.items()
             if param.default is not param.empty
         }
-        msg = "Registered agent function %s (deps=%s)"
+        msg = "Registered node function %s (deps=%s)"
         logger.debug(msg, self.name, self.depends_on)
 
 
@@ -58,7 +58,7 @@ def node_function(
     deps: Any | None = None,
     depends_on: str | Sequence[str | Callable] | Callable | None = None,
 ) -> Callable:
-    """Mark a function for automatic agent execution.
+    """Mark a function for automatic node execution.
 
     Can be used as simple decorator or with arguments:
 

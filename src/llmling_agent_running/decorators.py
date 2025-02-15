@@ -38,7 +38,7 @@ def with_nodes(
     Callable[P, Awaitable[T]]
     | Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]
 ):
-    """Inject agents into function parameters."""
+    """Inject nodes into function parameters."""
 
     def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
         @wraps(func)
@@ -48,11 +48,11 @@ def with_nodes(
             bound_args = sig.bind_partial(*args)
             all_kwargs = {**bound_args.arguments, **kwargs}
 
-            # Get needed agents
-            agents = inject_nodes(func, pool, all_kwargs)
+            # Get needed nodes
+            nodes = inject_nodes(func, pool, all_kwargs)
 
-            # Create kwargs with agents first, then other args
-            final_kwargs = {**agents, **kwargs}
+            # Create kwargs with nodes first, then other args
+            final_kwargs = {**nodes, **kwargs}
 
             # Convert back to args/kwargs using signature
             bound = sig.bind(**final_kwargs)

@@ -42,13 +42,13 @@ def _validate_path(path: StrPath) -> Path:
 
 
 def discover_functions(path: StrPath) -> list[NodeFunction]:
-    """Find all agent functions in a module.
+    """Find all node functions in a module.
 
     Args:
         path: Path to Python module file
 
     Returns:
-        List of discovered agent functions
+        List of discovered node functions
 
     Raises:
         ImportError: If module cannot be imported
@@ -69,7 +69,7 @@ def discover_functions(path: StrPath) -> list[NodeFunction]:
     for name, obj in inspect.getmembers(module):
         if hasattr(obj, "_node_function"):
             functions.append(obj._node_function)
-            logger.debug("Discovered agent function: %s", name)
+            logger.debug("Discovered node function: %s", name)
 
     return functions
 
@@ -193,7 +193,7 @@ async def execute_single(
                 _validate_value_type(value, hints[dep], func.name, dep)
             kwargs[dep] = value
 
-        # Execute with agent injection
+        # Execute with node injection
         wrapped = with_nodes(pool)(func.func)
         result = await wrapped(**kwargs)
 
