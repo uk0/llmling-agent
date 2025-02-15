@@ -1,3 +1,5 @@
+"""Slashed command to list nodes."""
+
 from __future__ import annotations
 
 from slashed import CommandContext, SlashedCommand

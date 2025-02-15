@@ -1,3 +1,5 @@
+"""Task-related exceptions."""
+
 from __future__ import annotations
 
 from llmling import LLMLingError

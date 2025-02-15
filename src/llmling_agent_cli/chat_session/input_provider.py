@@ -1,3 +1,5 @@
+"""CLI session input provider."""
+
 from __future__ import annotations
 
 import json

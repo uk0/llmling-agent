@@ -1,3 +1,5 @@
+"""Converter configuration."""
+
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr

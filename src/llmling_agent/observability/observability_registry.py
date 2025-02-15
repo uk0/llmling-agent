@@ -1,3 +1,5 @@
+"""Observability registry for tracking items and providers."""
+
 from __future__ import annotations
 
 from contextlib import AsyncExitStack, asynccontextmanager, contextmanager

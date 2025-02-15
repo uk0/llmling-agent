@@ -1,3 +1,5 @@
+"""File-related tools for documentation."""
+
 from __future__ import annotations
 
 
