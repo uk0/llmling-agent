@@ -75,12 +75,8 @@ class MessageEmitter[TDeps, TResult](TaskManagerMixin, ABC):
         self.connections = ConnectionManager(self)
         self._events = EventManager(self, enable_events=True)
         servers = mcp_servers or []
-        self.mcp = MCPManager(
-            name=f"node_{self._name}",
-            servers=servers,
-            context=context,
-            owner=self.name,
-        )
+        name = f"node_{self._name}"
+        self.mcp = MCPManager(name, servers=servers, context=context, owner=self.name)
         self._logger = NodeLogger(self, enable_db_logging=enable_logging)
 
     async def __aenter__(self) -> Self:

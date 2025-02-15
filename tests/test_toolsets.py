@@ -83,23 +83,14 @@ class MockResponse:
 def mock_openapi_spec(tmp_path):
     """Set up OpenAPI spec mocking and local file."""
     from openapi_spec_validator import validate
-    from openapi_spec_validator.exceptions import OpenAPISpecValidatorError
 
-    try:
-        validate(PETSTORE_SPEC)
-        print("\nOpenAPI spec validation passed")
-    except OpenAPISpecValidatorError as e:
-        print(f"\nOpenAPI spec validation failed: {e}")
-        raise
+    validate(PETSTORE_SPEC)
 
     # Create local spec file
     local_spec = tmp_path / "openapi.json"
     local_spec.write_text(json.dumps(PETSTORE_SPEC))
-    print(f"\nCreated local spec at: {local_spec}")
-    return {
-        "local_path": str(local_spec),
-        "remote_url": f"{BASE_URL}/openapi.json",
-    }
+    url = f"{BASE_URL}/openapi.json"
+    return {"local_path": str(local_spec), "remote_url": url}
 
 
 @pytest.mark.asyncio
