@@ -6,10 +6,11 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, Literal, Union
 from uuid import UUID
 
+from upathtools import read_path
+
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent.tools.base import Tool
-from llmling_agent.utils.async_read import read_path
 
 
 if TYPE_CHECKING:

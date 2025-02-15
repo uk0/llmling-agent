@@ -7,9 +7,9 @@ from textual.containers import ScrollableContainer
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Static
+from upathtools import read_path
 
 from llmling_agent.log import get_logger
-from llmling_agent.utils.async_read import read_path
 
 
 logger = get_logger(__name__)

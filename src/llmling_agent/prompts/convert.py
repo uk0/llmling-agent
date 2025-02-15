@@ -7,6 +7,7 @@ import os
 from typing import TYPE_CHECKING, Any
 
 from toprompt import AnyPromptType, to_prompt
+from upathtools import read_path
 
 from llmling_agent.models.content import (
     BaseContent,
@@ -15,7 +16,6 @@ from llmling_agent.models.content import (
     Content,
     ImageBase64Content,
 )
-from llmling_agent.utils.async_read import read_path
 
 
 if TYPE_CHECKING:

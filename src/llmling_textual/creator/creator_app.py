@@ -7,11 +7,11 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Header, Input, Static
 from upath import UPath
+from upathtools import read_path
 from yaml import YAMLError
 
 from llmling_agent.agent.agent import Agent
 from llmling_agent.models.manifest import AgentsManifest
-from llmling_agent.utils.async_read import read_path
 from llmling_agent.utils.count_tokens import count_tokens
 from llmling_agent_cli import agent_store
 

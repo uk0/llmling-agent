@@ -7,8 +7,7 @@ import io
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field
-
-from llmling_agent.utils.async_read import read_path
+from upathtools import read_path
 
 
 if TYPE_CHECKING:

@@ -4,12 +4,13 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any
 
+from upathtools import read_path
+
 from llmling_agent.models.converters import (
     ConversionConfig,
     MarkItDownConfig,
     PlainConverterConfig,
 )
-from llmling_agent.utils.async_read import read_path
 
 
 if TYPE_CHECKING:

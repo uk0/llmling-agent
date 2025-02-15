@@ -78,6 +78,7 @@ dependencies = [
     "morefs[asynclocal]",
     "bigtree>=0.23.1",
     "typing_extensions",
+    "upathtools>=0.1.0",
 ]
 
 [project.scripts]
