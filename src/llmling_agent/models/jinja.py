@@ -102,18 +102,10 @@ class Jinja2EnvironmentConfig(ConfigModel):
 
         try:
             # Convert filters - use tool name as filter name
-            filters = {}
-            for tool_config in self.filters:
-                tool = tool_config.get_tool()
-                filters[tool.name] = tool.callable.callable
-            kwargs["filters"] = filters
-
-            # Convert tests - same pattern
-            tests = {}
-            for tool_config in self.tests:
-                tool = tool_config.get_tool()
-                tests[tool.name] = tool.callable.callable
-            kwargs["tests"] = tests
+            tools = [cfg.get_tool() for cfg in self.filters]
+            kwargs["filters"] = {tool.name: tool.callable.callable for tool in tools}
+            tools = [cfg.get_tool() for cfg in self.tests]
+            kwargs["tests"] = {tool.name: tool.callable.callable for tool in tools}
 
         except Exception as exc:
             msg = f"Failed to import Jinja2 filters/tests: {exc}"
