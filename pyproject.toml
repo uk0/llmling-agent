@@ -89,7 +89,7 @@ ui = ["gradio>=5.8.0; python_version < '3.14'"]
 clipboard = ["clipman"]
 tiktoken = ["tiktoken; python_version < '3.14'"]
 markitdown = ["markitdown; python_version < '3.14'"]
-docling = ["docling; python_version < '3.14'"]
+docling = ["docling; python_version < '3.13'"]
 events = [
     "watchfiles; python_version < '3.14'",
     "aioimaplib>=2.0.1",
