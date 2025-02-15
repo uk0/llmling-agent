@@ -57,8 +57,7 @@ license = { file = "LICENSE" }
 dependencies = [
     "llmling>=1.0.0",
     "pydantic",
-    # these 4 could be optional, but until we get deeper into pyodide (which is not working
-    # with pydantic-ai), we will keep them here.
+    # these 4 could be optional
     "prompt-toolkit>=3.0.48",
     "promptantic>=0.4.5",
     "pydantic_ai_slim",
@@ -67,7 +66,7 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "sqlmodel>=0.0.22",
     "aiosqlite>=0.19.0",
-    "typer>=0.15.1",
+    "typer",
     "psygnal>=0.11.1",
     "tokonomics>=0.1.2",
     "slashed>=0.1.0",
@@ -89,7 +88,8 @@ ui = ["gradio>=5.8.0; python_version < '3.14'"]
 # chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]
 clipboard = ["clipman"]
 tiktoken = ["tiktoken; python_version < '3.14'"]
-markdown = ["markitdown; python_version < '3.14'"]
+markitdown = ["markitdown; python_version < '3.14'"]
+docling = ["docling; python_version < '3.14'"]
 events = [
     "watchfiles; python_version < '3.14'",
     "aioimaplib>=2.0.1",
