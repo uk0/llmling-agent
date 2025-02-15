@@ -36,7 +36,7 @@ from llmling_agent_providers.litellm_provider.utils import Usage, convert_messag
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncGenerator, AsyncIterator
 
     from litellm import ChatCompletionMessageToolCall
 
@@ -58,7 +58,7 @@ class LiteLLMStream[TResult]:
     _accumulated_content: str = ""
     _final_usage: Usage | None = None
 
-    async def stream(self) -> AsyncIterator[TResult]:
+    async def stream(self) -> AsyncGenerator[TResult, None]:
         """Stream chunks as they arrive."""
         try:
             final_chunk = None
