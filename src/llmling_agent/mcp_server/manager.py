@@ -10,7 +10,11 @@ from llmling.prompts import PromptMessage, StaticPrompt
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.client import MCPClient
-from llmling_agent.models.mcp_server import MCPServerConfig, SSEMCPServer, StdioMCPServer
+from llmling_agent.models.mcp_server import (
+    MCPServerConfig,
+    SSEMCPServerConfig,
+    StdioMCPServerConfig,
+)
 from llmling_agent.models.resources import ResourceInfo
 from llmling_agent.resource_providers.base import ResourceProvider
 
@@ -72,7 +76,11 @@ class MCPManager(ResourceProvider):
 
     def add_server_config(self, server: MCPServerConfig | str):
         """Add a new MCP server to the manager."""
-        server = StdioMCPServer.from_string(server) if isinstance(server, str) else server
+        server = (
+            StdioMCPServerConfig.from_string(server)
+            if isinstance(server, str)
+            else server
+        )
         self.servers.append(server)
 
     def __repr__(self) -> str:
@@ -106,12 +114,12 @@ class MCPManager(ResourceProvider):
             return
         env = config.get_env_vars()
         match config:
-            case StdioMCPServer():
+            case StdioMCPServerConfig():
                 client = MCPClient(stdio_mode=True)
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect(config.command, args=config.args, env=env)
                 client_id = f"{config.command}_{' '.join(config.args)}"
-            case SSEMCPServer():
+            case SSEMCPServerConfig():
                 client = MCPClient(stdio_mode=False)
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect("", [], url=config.url, env=env)

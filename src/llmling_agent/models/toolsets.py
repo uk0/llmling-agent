@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from llmling import ConfigModel
 from llmling.tools.toolsets import ToolSet
 from llmling.utils.importing import import_class
 from pydantic import Field, field_validator
 
-from llmling_agent.resource_providers.base import ResourceProvider
+
+if TYPE_CHECKING:
+    from llmling_agent.resource_providers.base import ResourceProvider
 
 
 class BaseToolsetConfig(ConfigModel):
@@ -80,6 +82,8 @@ class CustomToolsetConfig(BaseToolsetConfig):
     def get_provider(self) -> ResourceProvider:
         """Create custom provider from import path."""
         from llmling.utils.importing import import_class
+
+        from llmling_agent.resource_providers.base import ResourceProvider
 
         provider_cls = import_class(self.import_path)
         if not issubclass(provider_cls, ResourceProvider):

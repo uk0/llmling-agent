@@ -9,7 +9,6 @@ from pydantic import BaseModel, ConfigDict, Field, ImportString
 
 from llmling_agent.common_types import EndStrategy, ModelProtocol  # noqa: TC001
 from llmling_agent_models import AnyModelConfig  # noqa: TC001
-from llmling_agent_models.base import BaseModelConfig
 
 
 if TYPE_CHECKING:
@@ -78,6 +77,7 @@ class PydanticAIProviderConfig(BaseProviderConfig):
 
     def get_provider(self) -> AgentProvider:
         """Create PydanticAI provider instance."""
+        from llmling_agent_models.base import BaseModelConfig
         from llmling_agent_providers.pydanticai import PydanticAIProvider
 
         settings = (

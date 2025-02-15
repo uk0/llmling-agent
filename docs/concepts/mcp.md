@@ -32,7 +32,7 @@ agents:
 
 ### In Agent Constructor
 ```python
-from llmling_agent import Agent, StdioMCPServer
+from llmling_agent import Agent, StdioMCPServerConfig
 
 # Create agent with MCP servers
 agent = Agent(
@@ -41,7 +41,7 @@ agent = Agent(
         "python -m myserver",
 
         # Full configuration
-        StdioMCPServer(
+        StdioMCPServerConfig(
             command="python",
             args=["-m", "codetools"],
             environment={"DEBUG": "1"}
@@ -91,9 +91,9 @@ Tools are automatically converted to LLMling's tool format with proper typing an
 
 ## Configuration Options
 
-### StdioMCPServer
+### StdioMCPServerConfig
 ```python
-class StdioMCPServer:
+class StdioMCPServerConfig:
     """MCP server using stdio communication."""
     command: str
     """Command to execute"""
@@ -108,9 +108,9 @@ class StdioMCPServer:
     """Whether server is active"""
 ```
 
-### SSEMCPServer (Coming Soon)
+### SSEMCPServerConfig (Coming Soon)
 ```python
-class SSEMCPServer:
+class SSEMCPServerConfig:
     """MCP server using SSE transport."""
     url: str
     """Server endpoint URL"""

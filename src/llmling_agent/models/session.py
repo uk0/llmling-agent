@@ -1,3 +1,5 @@
+"""Memory configuration for agent memory and history handling."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -7,7 +9,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 from llmling_agent.common_types import MessageRole  # noqa: TC001
-from llmling_agent.utils.parse_time import parse_time_period
 
 
 class MemoryConfig(BaseModel):
@@ -81,6 +82,8 @@ class SessionQuery(BaseModel):
 
     def get_time_cutoff(self) -> datetime | None:
         """Get datetime from time period string."""
+        from llmling_agent.utils.parse_time import parse_time_period
+
         if not self.since:
             return None
         delta = parse_time_period(self.since)

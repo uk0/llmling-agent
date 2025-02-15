@@ -12,10 +12,10 @@ from pydantic import ConfigDict, Field, model_validator
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent.models.converters import ConversionConfig
 from llmling_agent.models.mcp_server import (
-    MCPServerBase,
+    BaseMCPServerConfig,
     MCPServerConfig,
     PoolServerConfig,
-    StdioMCPServer,
+    StdioMCPServerConfig,
 )
 from llmling_agent.models.observability import ObservabilityConfig
 from llmling_agent.models.prompts import PromptConfig
@@ -219,7 +219,7 @@ class AgentsManifest(ConfigModel):
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.
 
-        Converts string entries to StdioMCPServer configs by splitting
+        Converts string entries to StdioMCPServerConfig configs by splitting
         into command and arguments.
 
         Returns:
@@ -238,8 +238,8 @@ class AgentsManifest(ConfigModel):
                         msg = "Empty MCP server command"
                         raise ValueError(msg)
 
-                    configs.append(StdioMCPServer(command=parts[0], args=parts[1:]))
-                case MCPServerBase():
+                    configs.append(StdioMCPServerConfig(command=parts[0], args=parts[1:]))
+                case BaseMCPServerConfig():
                     configs.append(server)
 
         return configs

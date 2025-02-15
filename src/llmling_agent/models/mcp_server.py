@@ -8,7 +8,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class MCPServerBase(BaseModel):
+class BaseMCPServerConfig(BaseModel):
     """Base model for MCP server configuration."""
 
     type: str
@@ -34,7 +34,7 @@ class MCPServerBase(BaseModel):
         return env
 
 
-class StdioMCPServer(MCPServerBase):
+class StdioMCPServerConfig(BaseMCPServerConfig):
     """MCP server started via stdio.
 
     Uses subprocess communication through standard input/output streams.
@@ -50,13 +50,13 @@ class StdioMCPServer(MCPServerBase):
     """Command arguments (e.g. ["run", "some-server", "--debug"])."""
 
     @classmethod
-    def from_string(cls, command: str) -> StdioMCPServer:
+    def from_string(cls, command: str) -> StdioMCPServerConfig:
         """Create a MCP server from a command string."""
         cmd, args = command.split(maxsplit=1)
         return cls(command=cmd, args=args.split())
 
 
-class SSEMCPServer(MCPServerBase):
+class SSEMCPServerConfig(BaseMCPServerConfig):
     """MCP server using Server-Sent Events transport.
 
     Connects to a server over HTTP with SSE for real-time communication.
@@ -69,7 +69,9 @@ class SSEMCPServer(MCPServerBase):
     """URL of the SSE server endpoint."""
 
 
-MCPServerConfig = Annotated[StdioMCPServer | SSEMCPServer, Field(discriminator="type")]
+MCPServerConfig = Annotated[
+    StdioMCPServerConfig | SSEMCPServerConfig, Field(discriminator="type")
+]
 
 
 class PoolServerConfig(BaseModel):

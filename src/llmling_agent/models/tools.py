@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Callable  # noqa: TC003
 from datetime import datetime
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 
-from llmling_agent.tools.base import Tool
+
+if TYPE_CHECKING:
+    from llmling_agent.tools.base import Tool
 
 
 class BaseToolConfig(BaseModel):
@@ -60,6 +62,8 @@ class ImportToolConfig(BaseToolConfig):
 
     def get_tool(self) -> Tool:
         """Import and create tool from configuration."""
+        from llmling_agent.tools.base import Tool
+
         return Tool.from_callable(
             self.import_path,
             name_override=self.name,
@@ -87,6 +91,8 @@ class CrewAIToolConfig(BaseToolConfig):
 
     def get_tool(self) -> Tool:
         """Import and create CrewAI tool."""
+        from llmling_agent.tools.base import Tool
+
         try:
             return Tool.from_crewai_tool(
                 self.import_path(**self.params),
@@ -120,6 +126,8 @@ class LangChainToolConfig(BaseToolConfig):
         """Import and create LangChain tool."""
         try:
             from langchain.tools import load_tool
+
+            from llmling_agent.tools.base import Tool
 
             return Tool.from_langchain_tool(
                 load_tool(self.tool_name, **self.params),

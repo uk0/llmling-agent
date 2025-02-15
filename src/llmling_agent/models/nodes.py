@@ -10,9 +10,9 @@ from pydantic import BaseModel, ConfigDict, Field, ImportString
 from llmling_agent.models.events import DEFAULT_TEMPLATE, EventConfig
 from llmling_agent.models.forward_targets import ForwardingTarget  # noqa: TC001
 from llmling_agent.models.mcp_server import (
-    MCPServerBase,
+    BaseMCPServerConfig,
     MCPServerConfig,
-    StdioMCPServer,
+    StdioMCPServerConfig,
 )
 from llmling_agent_input.base import InputProvider  # noqa: TC001
 
@@ -38,7 +38,7 @@ class NodeConfig(BaseModel):
 
     mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list)
     """List of MCP server configurations:
-    - str entries are converted to StdioMCPServer
+    - str entries are converted to StdioMCPServerConfig
     - MCPServerConfig for full server configuration
     """
 
@@ -62,7 +62,7 @@ class NodeConfig(BaseModel):
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.
 
-        Converts string entries to StdioMCPServer configs by splitting
+        Converts string entries to StdioMCPServerConfigs by splitting
         into command and arguments.
 
         Returns:
@@ -81,8 +81,8 @@ class NodeConfig(BaseModel):
                         msg = "Empty MCP server command"
                         raise ValueError(msg)
 
-                    configs.append(StdioMCPServer(command=parts[0], args=parts[1:]))
-                case MCPServerBase():
+                    configs.append(StdioMCPServerConfig(command=parts[0], args=parts[1:]))
+                case BaseMCPServerConfig():
                     configs.append(server)
 
         return configs

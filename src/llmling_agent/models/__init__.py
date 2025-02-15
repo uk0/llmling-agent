@@ -11,22 +11,22 @@ from llmling_agent.models.session import SessionQuery
 from llmling_agent.models.teams import TeamConfig
 from llmling_agent.models.tools import ToolCallInfo
 from llmling_agent.models.mcp_server import (
-    MCPServerBase,
-    StdioMCPServer,
+    BaseMCPServerConfig,
+    StdioMCPServerConfig,
     MCPServerConfig,
-    SSEMCPServer,
+    SSEMCPServerConfig,
 )
 
 __all__ = [
     "AgentConfig",
     "AgentsManifest",
+    "BaseMCPServerConfig",
     "ForwardingTarget",
-    "MCPServerBase",
     "MCPServerConfig",
     "ResourceInfo",
-    "SSEMCPServer",
+    "SSEMCPServerConfig",
     "SessionQuery",
-    "StdioMCPServer",
+    "StdioMCPServerConfig",
     "TeamConfig",
     "ToolCallInfo",
 ]

@@ -24,9 +24,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "model"
-      ],
+      "required": ["model"],
       "title": "AISuiteModelConfig",
       "type": "object"
     },
@@ -121,7 +119,7 @@
           "type": "array"
         },
         "mcp_servers": {
-          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServer\n- MCPServerConfig for full server configuration",
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
           "items": {
             "anyOf": [
               {
@@ -130,17 +128,17 @@
               {
                 "discriminator": {
                   "mapping": {
-                    "sse": "#/$defs/SSEMCPServer",
-                    "stdio": "#/$defs/StdioMCPServer"
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig"
                   },
                   "propertyName": "type"
                 },
                 "oneOf": [
                   {
-                    "$ref": "#/$defs/StdioMCPServer"
+                    "$ref": "#/$defs/StdioMCPServerConfig"
                   },
                   {
-                    "$ref": "#/$defs/SSEMCPServer"
+                    "$ref": "#/$defs/SSEMCPServerConfig"
                   }
                 ]
               }
@@ -190,11 +188,7 @@
               ]
             },
             {
-              "enum": [
-                "pydantic_ai",
-                "human",
-                "litellm"
-              ],
+              "enum": ["pydantic_ai", "human", "litellm"],
               "type": "string"
             }
           ],
@@ -476,10 +470,7 @@
         "end_strategy": {
           "default": "early",
           "description": "The strategy for handling multiple tool calls when a final result is found",
-          "enum": [
-            "early",
-            "exhaustive"
-          ],
+          "enum": ["early", "exhaustive"],
           "title": "End Strategy",
           "type": "string"
         },
@@ -556,11 +547,7 @@
         "requires_tool_confirmation": {
           "default": "per_tool",
           "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
-          "enum": [
-            "always",
-            "never",
-            "per_tool"
-          ],
+          "enum": ["always", "never", "per_tool"],
           "title": "Requires Tool Confirmation",
           "type": "string"
         },
@@ -756,9 +743,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "conditions"
-      ],
+      "required": ["conditions"],
       "title": "AndCondition",
       "type": "object"
     },
@@ -866,9 +851,7 @@
           "default": null
         }
       },
-      "required": [
-        "main_model"
-      ],
+      "required": ["main_model"],
       "title": "AugmentedModelConfig",
       "type": "object"
     },
@@ -880,9 +863,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "title": "BaseModelConfig",
       "type": "object"
     },
@@ -922,9 +903,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "description"
-      ],
+      "required": ["description"],
       "title": "BasePrompt",
       "type": "object"
     },
@@ -1110,9 +1089,7 @@
           "title": "Timeout"
         }
       },
-      "required": [
-        "command"
-      ],
+      "required": ["command"],
       "title": "CLIResource",
       "type": "object"
     },
@@ -1146,9 +1123,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "predicate"
-      ],
+      "required": ["predicate"],
       "title": "CallableCondition",
       "type": "object"
     },
@@ -1178,11 +1153,7 @@
         "queue_strategy": {
           "default": "latest",
           "description": "How to process queued messages.",
-          "enum": [
-            "concat",
-            "latest",
-            "buffer"
-          ],
+          "enum": ["concat", "latest", "buffer"],
           "title": "Queue Strategy",
           "type": "string"
         },
@@ -1402,9 +1373,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "callable"
-      ],
+      "required": ["callable"],
       "title": "CallableConnectionConfig",
       "type": "object"
     },
@@ -1481,9 +1450,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "CallableResource",
       "type": "object"
     },
@@ -1528,9 +1495,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "callback"
-      ],
+      "required": ["callback"],
       "title": "CallbackProviderConfig",
       "type": "object"
     },
@@ -1565,22 +1530,14 @@
         "history_access": {
           "default": "none",
           "description": "Level of access to conversation history.",
-          "enum": [
-            "none",
-            "own",
-            "all"
-          ],
+          "enum": ["none", "own", "all"],
           "title": "History Access",
           "type": "string"
         },
         "stats_access": {
           "default": "none",
           "description": "Level of access to usage statistics.",
-          "enum": [
-            "none",
-            "own",
-            "all"
-          ],
+          "enum": ["none", "own", "all"],
           "title": "Stats Access",
           "type": "string"
         },
@@ -1695,9 +1652,7 @@
           "title": "Name"
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "title": "ConnectionCondition",
       "type": "object"
     },
@@ -1719,17 +1674,12 @@
         },
         "mode": {
           "default": "any",
-          "enum": [
-            "any",
-            "all"
-          ],
+          "enum": ["any", "all"],
           "title": "Mode",
           "type": "string"
         }
       },
-      "required": [
-        "words"
-      ],
+      "required": ["words"],
       "title": "ConnectionContentCondition",
       "type": "object"
     },
@@ -1747,9 +1697,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "template"
-      ],
+      "required": ["template"],
       "title": "ConnectionJinja2Condition",
       "type": "object"
     },
@@ -1859,10 +1807,7 @@
           "title": "Condition"
         }
       },
-      "required": [
-        "name",
-        "event"
-      ],
+      "required": ["name", "event"],
       "title": "ConnectionTriggerConfig",
       "type": "object"
     },
@@ -1980,9 +1925,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "max_cost"
-      ],
+      "required": ["max_cost"],
       "title": "CostLimitCondition",
       "type": "object"
     },
@@ -2016,18 +1959,12 @@
         },
         "strategy": {
           "default": "best_within_budget",
-          "enum": [
-            "cheapest_possible",
-            "best_within_budget"
-          ],
+          "enum": ["cheapest_possible", "best_within_budget"],
           "title": "Strategy",
           "type": "string"
         }
       },
-      "required": [
-        "models",
-        "max_input_cost"
-      ],
+      "required": ["models", "max_input_cost"],
       "title": "CostOptimizedModelConfig",
       "type": "object"
     },
@@ -2123,9 +2060,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "CrewAIToolConfig",
       "type": "object"
     },
@@ -2159,9 +2094,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "CustomToolsetConfig",
       "type": "object"
     },
@@ -2219,11 +2152,7 @@
           "title": "Model Descriptions"
         }
       },
-      "required": [
-        "selector_model",
-        "models",
-        "selection_prompt"
-      ],
+      "required": ["selector_model", "models", "selection_prompt"],
       "title": "DelegationModelConfig",
       "type": "object"
     },
@@ -2338,10 +2267,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "description",
-        "import_path"
-      ],
+      "required": ["description", "import_path"],
       "title": "DynamicPrompt",
       "type": "object"
     },
@@ -2455,12 +2381,7 @@
           "title": "Max Size"
         }
       },
-      "required": [
-        "name",
-        "host",
-        "username",
-        "password"
-      ],
+      "required": ["name", "host", "username", "password"],
       "title": "EmailConfig",
       "type": "object"
     },
@@ -2494,9 +2415,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "module"
-      ],
+      "required": ["module"],
       "title": "EntryPointToolsetConfig",
       "type": "object"
     },
@@ -2524,9 +2443,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "models"
-      ],
+      "required": ["models"],
       "title": "FallbackModelConfig",
       "type": "object"
     },
@@ -2556,11 +2473,7 @@
         "queue_strategy": {
           "default": "latest",
           "description": "How to process queued messages.",
-          "enum": [
-            "concat",
-            "latest",
-            "buffer"
-          ],
+          "enum": ["concat", "latest", "buffer"],
           "title": "Queue Strategy",
           "type": "string"
         },
@@ -2787,9 +2700,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "title": "FileConnectionConfig",
       "type": "object"
     },
@@ -2824,9 +2735,7 @@
           "title": "Config File Path"
         }
       },
-      "required": [
-        "uri"
-      ],
+      "required": ["uri"],
       "title": "FileEnvironment",
       "type": "object"
     },
@@ -2881,11 +2790,7 @@
         "format": {
           "default": "text",
           "description": "Format of the file content (text, markdown, or jinja2 template).",
-          "enum": [
-            "text",
-            "markdown",
-            "jinja2"
-          ],
+          "enum": ["text", "markdown", "jinja2"],
           "title": "Format",
           "type": "string"
         },
@@ -2903,10 +2808,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "description",
-        "path"
-      ],
+      "required": ["description", "path"],
       "title": "FilePrompt",
       "type": "object"
     },
@@ -2975,12 +2877,7 @@
         "format": {
           "anyOf": [
             {
-              "enum": [
-                "yaml",
-                "toml",
-                "json",
-                "ini"
-              ],
+              "enum": ["yaml", "toml", "json", "ini"],
               "type": "string"
             },
             {
@@ -2999,9 +2896,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "title": "FileStorageConfig",
       "type": "object"
     },
@@ -3098,10 +2993,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "name",
-        "paths"
-      ],
+      "required": ["name", "paths"],
       "title": "FileWatchConfig",
       "type": "object"
     },
@@ -3167,13 +3059,7 @@
         "log_level": {
           "default": "INFO",
           "description": "Log level for LLMling core.",
-          "enum": [
-            "DEBUG",
-            "INFO",
-            "WARNING",
-            "ERROR",
-            "CRITICAL"
-          ],
+          "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
           "title": "Log Level",
           "type": "string"
         },
@@ -3221,11 +3107,7 @@
         "encoding": {
           "default": "LINEAR16",
           "description": "Audio encoding format.",
-          "enum": [
-            "LINEAR16",
-            "FLAC",
-            "MP3"
-          ],
+          "enum": ["LINEAR16", "FLAC", "MP3"],
           "title": "Encoding",
           "type": "string"
         }
@@ -3284,12 +3166,7 @@
         "theme": {
           "default": "soft",
           "description": "UI theme.",
-          "enum": [
-            "soft",
-            "base",
-            "monochrome",
-            "glass"
-          ],
+          "enum": ["soft", "base", "monochrome", "glass"],
           "title": "Theme",
           "type": "string"
         }
@@ -3377,9 +3254,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "model"
-      ],
+      "required": ["model"],
       "title": "ImportModelConfig",
       "type": "object"
     },
@@ -3470,9 +3345,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "ImportToolConfig",
       "type": "object"
     },
@@ -3538,9 +3411,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "ImportedResponseDefinition",
       "type": "object"
     },
@@ -3772,9 +3643,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "fields"
-      ],
+      "required": ["fields"],
       "title": "InlineResponseDefinition",
       "type": "object"
     },
@@ -3841,9 +3710,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "template"
-      ],
+      "required": ["template"],
       "title": "Jinja2Condition",
       "type": "object"
     },
@@ -3928,11 +3795,7 @@
         "newline_sequence": {
           "default": "\n",
           "description": "Sequence that starts a newline (default: '\n').",
-          "enum": [
-            "\n",
-            "\r\n",
-            "\r"
-          ],
+          "enum": ["\n", "\r\n", "\r"],
           "title": "Newline Sequence",
           "type": "string"
         },
@@ -3953,12 +3816,7 @@
         "undefined": {
           "default": "default",
           "description": "Behavior when accessing undefined variables (default, strict, debug, chainable).",
-          "enum": [
-            "default",
-            "strict",
-            "debug",
-            "chainable"
-          ],
+          "enum": ["default", "strict", "debug", "chainable"],
           "title": "Undefined",
           "type": "string"
         },
@@ -4095,9 +3953,7 @@
           "title": "Min Context Tokens"
         }
       },
-      "required": [
-        "prompt"
-      ],
+      "required": ["prompt"],
       "title": "Job",
       "type": "object"
     },
@@ -4197,9 +4053,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "model_name"
-      ],
+      "required": ["model_name"],
       "title": "LLMAdapterConfig",
       "type": "object"
     },
@@ -4339,9 +4193,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "tool_name"
-      ],
+      "required": ["tool_name"],
       "title": "LangChainToolConfig",
       "type": "object"
     },
@@ -4395,10 +4247,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "secret_key",
-        "public_key"
-      ],
+      "required": ["secret_key", "public_key"],
       "title": "LangfuseConfig",
       "type": "object"
     },
@@ -4557,23 +4406,14 @@
         "model_size": {
           "default": "base",
           "description": "Size of the Whisper model to use.",
-          "enum": [
-            "tiny",
-            "base",
-            "small",
-            "medium",
-            "large"
-          ],
+          "enum": ["tiny", "base", "small", "medium", "large"],
           "title": "Model Size",
           "type": "string"
         },
         "device": {
           "anyOf": [
             {
-              "enum": [
-                "cpu",
-                "cuda"
-              ],
+              "enum": ["cpu", "cuda"],
               "type": "string"
             },
             {
@@ -4587,10 +4427,7 @@
         "compute_type": {
           "default": "float16",
           "description": "Compute precision to use.",
-          "enum": [
-            "float32",
-            "float16"
-          ],
+          "enum": ["float32", "float16"],
           "title": "Compute Type",
           "type": "string"
         }
@@ -4769,10 +4606,7 @@
         "output_format": {
           "default": "v1.1",
           "description": "API output format version. 1.1 is recommended and provides enhanced details.",
-          "enum": [
-            "v1.0",
-            "v1.1"
-          ],
+          "enum": ["v1.0", "v1.1"],
           "title": "Output Format",
           "type": "string"
         }
@@ -4910,12 +4744,7 @@
       "description": "Content item in a message.",
       "properties": {
         "type": {
-          "enum": [
-            "text",
-            "resource",
-            "image_url",
-            "image_base64"
-          ],
+          "enum": ["text", "resource", "image_url", "image_base64"],
           "title": "Type",
           "type": "string"
         },
@@ -4936,10 +4765,7 @@
           "title": "Alt Text"
         }
       },
-      "required": [
-        "type",
-        "content"
-      ],
+      "required": ["type", "content"],
       "title": "MessageContent",
       "type": "object"
     },
@@ -4975,17 +4801,12 @@
         "count_mode": {
           "default": "total",
           "description": "How to count messages:\n- total: All messages in conversation\n- per_agent: Messages from each agent separately",
-          "enum": [
-            "total",
-            "per_agent"
-          ],
+          "enum": ["total", "per_agent"],
           "title": "Count Mode",
           "type": "string"
         }
       },
-      "required": [
-        "max_messages"
-      ],
+      "required": ["max_messages"],
       "title": "MessageCountCondition",
       "type": "object"
     },
@@ -5178,11 +4999,7 @@
         "queue_strategy": {
           "default": "latest",
           "description": "How to process queued messages.",
-          "enum": [
-            "concat",
-            "latest",
-            "buffer"
-          ],
+          "enum": ["concat", "latest", "buffer"],
           "title": "Queue Strategy",
           "type": "string"
         },
@@ -5392,18 +5209,12 @@
         "connection_type": {
           "default": "run",
           "description": "How messages should be handled by the target agent:\n- run: Execute message as a new run\n- context: Add message to agent's context\n- forward: Forward message to agent's outbox",
-          "enum": [
-            "run",
-            "context",
-            "forward"
-          ],
+          "enum": ["run", "context", "forward"],
           "title": "Connection Type",
           "type": "string"
         }
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "title": "NodeConnectionConfig",
       "type": "object"
     },
@@ -5522,9 +5333,7 @@
           "title": "Base Url"
         }
       },
-      "required": [
-        "spec"
-      ],
+      "required": ["spec"],
       "title": "OpenAPIToolsetConfig",
       "type": "object"
     },
@@ -5604,9 +5413,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "conditions"
-      ],
+      "required": ["conditions"],
       "title": "OrCondition",
       "type": "object"
     },
@@ -5686,9 +5493,7 @@
           "title": "Path"
         }
       },
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "title": "PathResource",
       "type": "object"
     },
@@ -5764,10 +5569,7 @@
         "transport": {
           "default": "stdio",
           "description": "Transport type to use.",
-          "enum": [
-            "stdio",
-            "sse"
-          ],
+          "enum": ["stdio", "sse"],
           "title": "Transport",
           "type": "string"
         },
@@ -5813,10 +5615,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "text",
-        "model"
-      ],
+      "required": ["text", "model"],
       "title": "PrePostPromptConfig",
       "type": "object"
     },
@@ -5842,9 +5641,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "title": "ProcessingStep",
       "type": "object"
     },
@@ -5907,9 +5704,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "ProcessorConfig",
       "type": "object"
     },
@@ -5994,9 +5789,7 @@
           "writeOnly": true
         }
       },
-      "required": [
-        "api_key"
-      ],
+      "required": ["api_key"],
       "title": "PromptLayerConfig",
       "type": "object"
     },
@@ -6004,12 +5797,7 @@
       "description": "A message in a prompt template.",
       "properties": {
         "role": {
-          "enum": [
-            "system",
-            "user",
-            "assistant",
-            "tool"
-          ],
+          "enum": ["system", "user", "assistant", "tool"],
           "title": "Role",
           "type": "string"
         },
@@ -6032,9 +5820,7 @@
           "title": "Content"
         }
       },
-      "required": [
-        "role"
-      ],
+      "required": ["role"],
       "title": "PromptMessage",
       "type": "object"
     },
@@ -6096,9 +5882,7 @@
           "title": "Completion Function"
         }
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "title": "PromptParameter",
       "type": "object"
     },
@@ -6174,10 +5958,7 @@
         "end_strategy": {
           "default": "early",
           "description": "How to handle tool calls when final result found:\n- early: Stop when valid result found\n- complete: Run all requested tools\n- confirm: Ask user what to do",
-          "enum": [
-            "early",
-            "exhaustive"
-          ],
+          "enum": ["early", "exhaustive"],
           "title": "End Strategy",
           "type": "string"
         },
@@ -6386,9 +6167,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "title": "ResponseField",
       "type": "object"
     },
@@ -6470,7 +6249,7 @@
       "title": "SQLStorageConfig",
       "type": "object"
     },
-    "SSEMCPServer": {
+    "SSEMCPServerConfig": {
       "additionalProperties": false,
       "description": "MCP server using Server-Sent Events transport.\n\nConnects to a server over HTTP with SSE for real-time communication.",
       "properties": {
@@ -6522,10 +6301,8 @@
           "type": "string"
         }
       },
-      "required": [
-        "url"
-      ],
-      "title": "SSEMCPServer",
+      "required": ["url"],
+      "title": "SSEMCPServerConfig",
       "type": "object"
     },
     "SessionQuery": {
@@ -6605,11 +6382,7 @@
           "anyOf": [
             {
               "items": {
-                "enum": [
-                  "user",
-                  "assistant",
-                  "system"
-                ],
+                "enum": ["user", "assistant", "system"],
                 "type": "string"
               },
               "type": "array",
@@ -6726,9 +6499,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "SourceResource",
       "type": "object"
     },
@@ -6783,14 +6554,11 @@
           "type": "string"
         }
       },
-      "required": [
-        "description",
-        "messages"
-      ],
+      "required": ["description", "messages"],
       "title": "StaticPrompt",
       "type": "object"
     },
-    "StdioMCPServer": {
+    "StdioMCPServerConfig": {
       "additionalProperties": false,
       "description": "MCP server started via stdio.\n\nUses subprocess communication through standard input/output streams.",
       "properties": {
@@ -6850,10 +6618,8 @@
           "type": "array"
         }
       },
-      "required": [
-        "command"
-      ],
-      "title": "StdioMCPServer",
+      "required": ["command"],
+      "title": "StdioMCPServerConfig",
       "type": "object"
     },
     "StdlibUIConfig": {
@@ -6888,11 +6654,7 @@
         "detail_level": {
           "default": "simple",
           "description": "Output detail level.",
-          "enum": [
-            "simple",
-            "detailed",
-            "markdown"
-          ],
+          "enum": ["simple", "detailed", "markdown"],
           "title": "Detail Level",
           "type": "string"
         },
@@ -6991,10 +6753,7 @@
         "filter_mode": {
           "default": "and",
           "description": "How to combine global and provider agent filters:\n- \"and\": Both global and provider filters must allow the agent\n- \"override\": Provider filter overrides global filter if set",
-          "enum": [
-            "and",
-            "override"
-          ],
+          "enum": ["and", "override"],
           "title": "Filter Mode",
           "type": "string"
         },
@@ -7046,9 +6805,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "identifier"
-      ],
+      "required": ["identifier"],
       "title": "StringModelConfig",
       "type": "object"
     },
@@ -7064,19 +6821,12 @@
         "type": {
           "default": "role",
           "description": "Categorization for template organization.",
-          "enum": [
-            "role",
-            "methodology",
-            "quality",
-            "task"
-          ],
+          "enum": ["role", "methodology", "quality", "task"],
           "title": "Type",
           "type": "string"
         }
       },
-      "required": [
-        "content"
-      ],
+      "required": ["content"],
       "title": "SystemPrompt",
       "type": "object"
     },
@@ -7171,7 +6921,7 @@
           "type": "array"
         },
         "mcp_servers": {
-          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServer\n- MCPServerConfig for full server configuration",
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
           "items": {
             "anyOf": [
               {
@@ -7180,17 +6930,17 @@
               {
                 "discriminator": {
                   "mapping": {
-                    "sse": "#/$defs/SSEMCPServer",
-                    "stdio": "#/$defs/StdioMCPServer"
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig"
                   },
                   "propertyName": "type"
                 },
                 "oneOf": [
                   {
-                    "$ref": "#/$defs/StdioMCPServer"
+                    "$ref": "#/$defs/StdioMCPServerConfig"
                   },
                   {
-                    "$ref": "#/$defs/SSEMCPServer"
+                    "$ref": "#/$defs/SSEMCPServerConfig"
                   }
                 ]
               }
@@ -7214,10 +6964,7 @@
         },
         "mode": {
           "description": "Execution mode for team members.",
-          "enum": [
-            "parallel",
-            "sequential"
-          ],
+          "enum": ["parallel", "sequential"],
           "title": "Mode",
           "type": "string"
         },
@@ -7243,10 +6990,7 @@
           "title": "Shared Prompt"
         }
       },
-      "required": [
-        "mode",
-        "members"
-      ],
+      "required": ["mode", "members"],
       "title": "TeamConfig",
       "type": "object"
     },
@@ -7356,20 +7100,14 @@
         "format": {
           "default": "chronological",
           "description": "Log format template to use",
-          "enum": [
-            "chronological",
-            "conversations"
-          ],
+          "enum": ["chronological", "conversations"],
           "title": "Format",
           "type": "string"
         },
         "template": {
           "anyOf": [
             {
-              "enum": [
-                "chronological",
-                "conversations"
-              ],
+              "enum": ["chronological", "conversations"],
               "type": "string"
             },
             {
@@ -7390,9 +7128,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "title": "TextLogConfig",
       "type": "object"
     },
@@ -7464,9 +7200,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "content"
-      ],
+      "required": ["content"],
       "title": "TextResource",
       "type": "object"
     },
@@ -7528,9 +7262,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "duration"
-      ],
+      "required": ["duration"],
       "title": "TimeCondition",
       "type": "object"
     },
@@ -7604,11 +7336,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "name",
-        "schedule",
-        "prompt"
-      ],
+      "required": ["name", "schedule", "prompt"],
       "title": "TimeEventConfig",
       "type": "object"
     },
@@ -7637,17 +7365,12 @@
         },
         "strategy": {
           "default": "efficient",
-          "enum": [
-            "efficient",
-            "maximum_context"
-          ],
+          "enum": ["efficient", "maximum_context"],
           "title": "Strategy",
           "type": "string"
         }
       },
-      "required": [
-        "models"
-      ],
+      "required": ["models"],
       "title": "TokenOptimizedModelConfig",
       "type": "object"
     },
@@ -7683,18 +7406,12 @@
         "count_type": {
           "default": "total",
           "description": "What tokens to count:\n- total: All tokens used\n- prompt: Only prompt tokens\n- completion: Only completion tokens",
-          "enum": [
-            "total",
-            "prompt",
-            "completion"
-          ],
+          "enum": ["total", "prompt", "completion"],
           "title": "Count Type",
           "type": "string"
         }
       },
-      "required": [
-        "max_tokens"
-      ],
+      "required": ["max_tokens"],
       "title": "TokenThresholdCondition",
       "type": "object"
     },
@@ -7734,9 +7451,7 @@
           "title": "Description"
         }
       },
-      "required": [
-        "import_path"
-      ],
+      "required": ["import_path"],
       "title": "ToolConfig",
       "type": "object"
     },
@@ -7819,10 +7534,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "node_name",
-        "prompts"
-      ],
+      "required": ["node_name", "prompts"],
       "title": "TriggerConfig",
       "type": "object"
     },
@@ -7870,9 +7582,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "models"
-      ],
+      "required": ["models"],
       "title": "UserSelectModelConfig",
       "type": "object"
     },
@@ -7983,11 +7693,7 @@
           "title": "Secret"
         }
       },
-      "required": [
-        "name",
-        "port",
-        "path"
-      ],
+      "required": ["name", "port", "path"],
       "title": "WebhookConfig",
       "type": "object"
     },
@@ -8094,17 +7800,12 @@
         "mode": {
           "default": "any",
           "description": "Match mode:\n- any: Trigger if any word matches\n- all: Require all words to match",
-          "enum": [
-            "any",
-            "all"
-          ],
+          "enum": ["any", "all"],
           "title": "Mode",
           "type": "string"
         }
       },
-      "required": [
-        "words"
-      ],
+      "required": ["words"],
       "title": "WordMatchCondition",
       "type": "object"
     },
@@ -8136,9 +7837,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "title": "WorkerConfig",
       "type": "object"
     },
@@ -8170,12 +7869,7 @@
         "format": {
           "default": "text",
           "description": "Output format. One of: text, json, vtt, srt.",
-          "enum": [
-            "text",
-            "json",
-            "vtt",
-            "srt"
-          ],
+          "enum": ["text", "json", "vtt", "srt"],
           "title": "Format",
           "type": "string"
         },
@@ -8344,17 +8038,17 @@
           {
             "discriminator": {
               "mapping": {
-                "sse": "#/$defs/SSEMCPServer",
-                "stdio": "#/$defs/StdioMCPServer"
+                "sse": "#/$defs/SSEMCPServerConfig",
+                "stdio": "#/$defs/StdioMCPServerConfig"
               },
               "propertyName": "type"
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/StdioMCPServer"
+                "$ref": "#/$defs/StdioMCPServerConfig"
               },
               {
-                "$ref": "#/$defs/SSEMCPServer"
+                "$ref": "#/$defs/SSEMCPServerConfig"
               }
             ]
           }
