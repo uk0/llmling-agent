@@ -136,9 +136,9 @@ class SQLModelProvider(StorageProvider[Message]):
                 model_provider=provider,
                 model_name=model_name,
                 response_time=response_time,
-                total_tokens=cost_info.token_usage["total"] if cost_info else None,
-                prompt_tokens=cost_info.token_usage["prompt"] if cost_info else None,
-                completion_tokens=cost_info.token_usage["completion"]
+                total_tokens=cost_info.token_usage.get("total") if cost_info else None,
+                prompt_tokens=cost_info.token_usage.get("prompt") if cost_info else None,
+                completion_tokens=cost_info.token_usage.get("completion")
                 if cost_info
                 else None,
                 cost=cost_info.total_cost if cost_info else None,
