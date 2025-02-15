@@ -25,10 +25,10 @@ agents:
   doc_writer:
     name: "Documentation Writer"
     model: openai:gpt-4o-mini
+    capabilities:
+      can_read_files: true
     system_prompts:
       - You are a docs writer. Write markdown documentation for the files given to you.
-    tools:
-      - llmling_agent_tools.file.read_source_file
 
   error_checker:
     name: "Code Validator"

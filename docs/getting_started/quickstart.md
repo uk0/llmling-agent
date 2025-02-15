@@ -50,8 +50,8 @@ agents:
     model: openai:gpt-4o-mini
     system_prompts:
       - You are a helpful technical assistant.
-    tools:
-      - llmling_agent_tools.file.read_source_file
+    capabilities:
+      can_read_files: true
 ```
 
 Use it in code:

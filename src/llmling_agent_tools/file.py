@@ -43,29 +43,3 @@ def list_source_files(
         )
 
     return sorted(files)
-
-
-def read_source_file(filepath: str) -> str:
-    """Read the content of a source code file.
-
-    Use this tool to get the actual content of source files for documentation.
-
-    Args:
-        filepath: Path to the file to read (absolute or relative)
-
-    Returns:
-        Content of the file as text
-
-    """
-    from upath import UPath
-
-    path = UPath(filepath).resolve()  # Convert to absolute path
-    if not path.exists():
-        msg = f"File not found: {filepath}"
-        raise ValueError(msg)
-
-    try:
-        return path.read_text(encoding="utf-8")
-    except Exception as e:
-        msg = f"Failed to read {filepath}: {e}"
-        raise ValueError(msg) from e

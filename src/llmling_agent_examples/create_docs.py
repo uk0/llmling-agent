@@ -40,8 +40,8 @@ agents:
     model: openai:gpt-4o-mini
     system_prompts:
       - You are a docs writer. Write markdown documentation for the files given to you.
-    tools:
-      - llmling_agent_tools.file.read_source_file
+    capabilities:
+      can_read_files: true
 
   error_checker:
     name: "Code Validator"
