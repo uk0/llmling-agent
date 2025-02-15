@@ -11,7 +11,8 @@ from llmling_agent.models.tools import ToolConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from jinjarope import Environment, Template
+    from jinja2 import Template
+    from jinjarope import Environment
 
 UndefinedBehaviour = Literal["default", "strict", "debug", "chainable"]
 
