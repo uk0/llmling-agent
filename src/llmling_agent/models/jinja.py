@@ -14,7 +14,8 @@ if TYPE_CHECKING:
     from jinja2 import Template
     from jinjarope import Environment
 
-UndefinedBehaviour = Literal["default", "strict", "debug", "chainable"]
+UndefinedBehaviour = Literal["default", "strict", "debug", "chainable", "lax"]
+NewLineType = Literal["\n", "\r\n", "\r"]
 
 
 class Jinja2EnvironmentConfig(ConfigModel):
@@ -53,7 +54,7 @@ class Jinja2EnvironmentConfig(ConfigModel):
     lstrip_blocks: bool = False
     """Remove leading spaces and tabs from the start of a line to a block."""
 
-    newline_sequence: Literal["\n", "\r\n", "\r"] = "\n"
+    newline_sequence: NewLineType = "\n"
     """Sequence that starts a newline (default: '\n')."""
 
     keep_trailing_newline: bool = False
@@ -96,23 +97,8 @@ class Jinja2EnvironmentConfig(ConfigModel):
         Raises:
             ValueError: If filter or test imports fail
         """
-        from jinja2 import (
-            ChainableUndefined,
-            DebugUndefined,
-            StrictUndefined,
-            Undefined,
-        )
-
         # Basic config
-        kwargs = self.model_dump(exclude={"undefined", "filters", "tests"})
-
-        # Handle undefined setting
-        kwargs["undefined"] = {
-            "default": Undefined,
-            "strict": StrictUndefined,
-            "debug": DebugUndefined,
-            "chainable": ChainableUndefined,
-        }[self.undefined]
+        kwargs = self.model_dump(exclude={"filters", "tests"})
 
         try:
             # Convert filters - use tool name as filter name
