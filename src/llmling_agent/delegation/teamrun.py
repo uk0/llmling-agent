@@ -18,7 +18,7 @@ from llmling_agent.talk.talk import Talk, TeamTalk
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncGenerator, AsyncIterator, Sequence
     import os
 
     import PIL.Image
@@ -275,7 +275,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
                     return Usage(0, 0, 0)
 
-                async def stream(self) -> AsyncIterator[str]:  # type: ignore
+                async def stream(self) -> AsyncGenerator[str, None]:  # type: ignore
                     for idx, stream in enumerate(self.streams):
                         self.current_stream_idx = idx
                         async for chunk in stream.stream():

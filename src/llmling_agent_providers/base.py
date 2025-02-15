@@ -12,7 +12,7 @@ from llmling_agent.models.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncGenerator
     from contextlib import AbstractAsyncContextManager
 
     import tokonomics
@@ -51,7 +51,7 @@ class StreamingResponseProtocol[TResult](Protocol):
     is_complete: bool
     formatted_content: TResult = None  # type: ignore
 
-    def stream(self) -> AsyncIterator[TResult]:
+    def stream(self) -> AsyncGenerator[TResult, None]:
         """Stream individual chunks as they arrive."""
         ...
 
