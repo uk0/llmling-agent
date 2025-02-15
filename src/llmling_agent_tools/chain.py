@@ -1,3 +1,5 @@
+"""Tool to chain multiple function calls."""
+
 from __future__ import annotations
 
 import asyncio
@@ -14,6 +16,8 @@ if TYPE_CHECKING:
 
 
 class ErrorStrategy(str, Enum):
+    """Strategy for handling errors in the pipeline."""
+
     STOP = "stop"  # Stop pipeline on error
     SKIP = "skip"  # Skip failed step, continue with previous result
     DEFAULT = "default"  # Use provided default value

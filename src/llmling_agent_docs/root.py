@@ -1,3 +1,5 @@
+"""Root of the documentation tree."""
+
 from __future__ import annotations
 
 import mknodes as mk
@@ -20,6 +22,8 @@ def build(project) -> mk.MkNav:
 
 
 class Build:
+    """Class for building the documentation tree."""
+
     @classmethod
     def build(cls, root, theme):
         b = cls()

@@ -1,3 +1,5 @@
+"""Knowledge configuration."""
+
 from __future__ import annotations
 
 from llmling.config.models import Resource  # noqa: TC002

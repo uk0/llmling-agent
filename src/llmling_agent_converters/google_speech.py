@@ -1,4 +1,4 @@
-"""Audio transcription converter."""
+"""Google-speech based Audio transcription converter."""
 
 from __future__ import annotations
 

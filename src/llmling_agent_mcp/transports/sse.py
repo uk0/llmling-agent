@@ -1,4 +1,4 @@
-"""SSE (Server-Sent Events) transport implementation for LLMling."""
+"""SSE (Server-Sent Events) transport implementation."""
 
 from __future__ import annotations
 

@@ -1,3 +1,5 @@
+"""MCP server configuration."""
+
 from __future__ import annotations
 
 import os

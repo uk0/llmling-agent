@@ -1,3 +1,5 @@
+"""Observability provider using Traceloop."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -23,6 +25,8 @@ R = TypeVar("R")
 
 
 class TraceloopProvider(ObservabilityProvider):
+    """Observability provider using Traceloop."""
+
     def __init__(self, config: TraceloopProviderConfig):
         self.config = config
         api_key = (

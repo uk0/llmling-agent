@@ -1,3 +1,5 @@
+"""BaseModel tools."""
+
 from __future__ import annotations
 
 import dataclasses
@@ -117,6 +119,8 @@ def get_ctor_basemodel(cls: type) -> type[BaseModel]:
 if __name__ == "__main__":
 
     class Person:
+        """Person class."""
+
         def __init__(self, name: str, age: int | None = None):
             self.name = name
             self.age = age

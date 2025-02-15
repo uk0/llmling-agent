@@ -1,3 +1,5 @@
+"""LiteLLM model wrapper."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
@@ -97,7 +99,7 @@ class LiteLLMModel(BaseModel):
         """
         from litellm import acompletion
 
-        return await acompletion(
+        return await acompletion(  # pyright: ignore
             model=self.model_name,
             messages=messages,
             stream=True,

@@ -1,3 +1,5 @@
+"""OpenLIT prompt provider implementation."""
+
 from typing import Any
 
 import openlit

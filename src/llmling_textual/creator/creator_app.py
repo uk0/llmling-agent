@@ -74,6 +74,8 @@ class YamlDisplay(Static):
 
 
 class ConfigGeneratorApp(App):
+    """Application for generating configuration files."""
+
     CSS = """
     Screen {
         layout: grid;

@@ -1,3 +1,5 @@
+"""Base UI provider class."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol

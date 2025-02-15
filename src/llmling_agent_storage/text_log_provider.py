@@ -1,3 +1,5 @@
+"""Text-based storage provider."""
+
 from datetime import datetime
 from typing import Any, ClassVar
 

@@ -1,3 +1,5 @@
+"""Observability provider that collects calls for testing."""
+
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field

@@ -23,6 +23,8 @@ ProgressCallback = Callable[[float, float | None], Awaitable[None]]
 
 @dataclass(kw_only=True)
 class NodeContext[TDeps]:
+    """Context for message processing nodes."""
+
     node_name: str
     """Name of the current node."""
 

@@ -1,3 +1,5 @@
+"""Observability provider using Langsmith."""
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -20,6 +22,8 @@ R = TypeVar("R")
 
 
 class LangsmithProvider(ObservabilityProvider):
+    """Observability provider using Langsmith."""
+
     def __init__(self, config: LangsmithProviderConfig):
         self.config = config
         self._client: Client | None = None

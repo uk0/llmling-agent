@@ -1,3 +1,5 @@
+"""Storage configuration."""
+
 from pathlib import Path
 from typing import Annotated, Final, Literal
 
@@ -24,6 +26,8 @@ def get_database_path() -> str:
 
 
 class BaseStorageProviderConfig(BaseModel):
+    """Base storage provider configuration."""
+
     type: str = Field(init=False)
 
     log_messages: bool = True

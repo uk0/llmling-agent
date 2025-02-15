@@ -1,3 +1,5 @@
+"""Wrapper for LiteLLM API calls."""
+
 from __future__ import annotations
 
 import os
@@ -15,6 +17,8 @@ if TYPE_CHECKING:
 
 
 class FakeAgent:
+    """Fake LiteLLM agent entity with model settings and extra headers."""
+
     def __init__(self, model: str, model_settings: dict[str, Any] | None = None):
         self.model = model
         self.model_settings = model_settings or {}

@@ -11,18 +11,22 @@ from textual.widgets import TextArea
 
 
 class PromptInput(TextArea):
+    """Widget for user input with prompt functionality."""
+
     @dataclass
     class PromptSubmitted(Message):
+        """Message sent when a prompt is submitted."""
+
         text: str
         prompt_input: "PromptInput"
 
     @dataclass
     class CursorEscapingTop(Message):
-        pass
+        """Message sent when the cursor escapes the top of the widget."""
 
     @dataclass
     class CursorEscapingBottom(Message):
-        pass
+        """Message sent when the cursor escapes the bottom of the widget."""
 
     BINDINGS: ClassVar = [
         Binding("ctrl+j,ctrl+enter", "submit_prompt", "Send message", key_display="^J/^↵")

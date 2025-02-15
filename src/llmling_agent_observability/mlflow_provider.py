@@ -1,3 +1,5 @@
+"""Observability provider using MlFlow."""
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -20,6 +22,8 @@ R = TypeVar("R")
 
 
 class MlFlowProvider(ObservabilityProvider):
+    """Observability provider using MlFlow."""
+
     def __init__(self, config: MlFlowProviderConfig):
         self.config = config
         if config.tracking_uri:

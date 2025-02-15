@@ -1,3 +1,5 @@
+"""Base class for teams."""
+
 from __future__ import annotations
 
 from abc import abstractmethod
@@ -41,6 +43,8 @@ logger = get_logger(__name__)
 
 @dataclass(kw_only=True)
 class TeamContext[TDeps](NodeContext[TDeps]):
+    """Context for team nodes."""
+
     config: TeamConfig
     """Current team's specific configuration."""
 

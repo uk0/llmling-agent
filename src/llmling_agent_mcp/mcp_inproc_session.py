@@ -1,3 +1,5 @@
+"""MCP In-Process Session."""
+
 from __future__ import annotations
 
 import asyncio

@@ -1,4 +1,4 @@
-"""Team execution management and monitoring."""
+"""Sequential, ordered group of agents / nodes."""
 
 from __future__ import annotations
 

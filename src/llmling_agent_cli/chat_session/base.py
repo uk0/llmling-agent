@@ -35,6 +35,8 @@ HISTORY_DIR = pathlib.Path(user_data_dir("llmling", "llmling")) / "cli_history"
 
 
 class AgentPoolView:
+    """Helper class for agent (pool)."""
+
     history_cleared = Signal(ConversationManager.HistoryCleared)
     tool_added = Signal(str, Tool)
     tool_removed = Signal(str)  # tool_name

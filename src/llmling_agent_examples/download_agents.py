@@ -27,6 +27,8 @@ def cheer(slogan: str):
 
 
 class CheerProgress:
+    """Class for tracking the progress of downloads and providing feedback."""
+
     def __init__(self):
         self.situation = "The team is assembling, ready to start the downloads!"
 

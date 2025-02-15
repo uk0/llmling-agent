@@ -1,3 +1,5 @@
+"""Two-node team with a validator node."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any

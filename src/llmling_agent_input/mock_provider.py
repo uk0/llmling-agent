@@ -1,3 +1,5 @@
+"""Mock input provider implementation."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

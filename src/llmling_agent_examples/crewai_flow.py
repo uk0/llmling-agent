@@ -1,6 +1,7 @@
 # /// script
 # dependencies = ["llmling-agent"]
 # ///
+"""Adaption of a CrewAI-like flow."""
 
 from __future__ import annotations
 

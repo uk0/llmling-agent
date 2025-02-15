@@ -1,4 +1,4 @@
-"""Prompt models for agent configuration."""
+"""PromptLayer prompt provider implementation."""
 
 from __future__ import annotations
 
@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
 
 class PromptLayerProvider(BasePromptProvider):
+    """PromptLayer provider."""
+
     name = "promptlayer"
     supports_versions = True
 

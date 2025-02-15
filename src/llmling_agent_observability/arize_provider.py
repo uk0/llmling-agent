@@ -1,3 +1,5 @@
+"""Observability provider using Arize Phoenix."""
+
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 import os
@@ -17,6 +19,8 @@ R = TypeVar("R")
 
 
 class ArizePhoenixProvider(ObservabilityProvider):
+    """Observability provider using Arize Phoenix."""
+
     def __init__(self, config: ArizePhoenixProviderConfig):
         self.config = config
         self._tracer_provider = None

@@ -1,4 +1,4 @@
-"""Models for tools."""
+"""Models for toolsets."""
 
 from __future__ import annotations
 

@@ -18,6 +18,8 @@ if TYPE_CHECKING:
 
 @dataclass
 class TokenAnalysisRenderable:
+    """Renderable for token analysis."""
+
     tokens: list[int]
     encoder: Encoding
 
@@ -33,6 +35,8 @@ class TokenAnalysisRenderable:
 
 
 class TokenAnalysis(Widget):
+    """Widget for token analysis."""
+
     def __init__(
         self,
         tokens: list[int],

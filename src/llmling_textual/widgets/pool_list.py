@@ -1,3 +1,5 @@
+"""Pool list widget."""
+
 from __future__ import annotations
 
 from llmling.config.store import ConfigFile, ConfigStore

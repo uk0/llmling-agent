@@ -1,3 +1,5 @@
+"""Observability provider using Braintrust."""
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -20,6 +22,8 @@ R = TypeVar("R")
 
 
 class BraintrustProvider(ObservabilityProvider):
+    """Observability provider using Braintrust."""
+
     def __init__(self, config: BraintrustProviderConfig):
         self.config = config
         key = self.config.api_key.get_secret_value() if self.config.api_key else None

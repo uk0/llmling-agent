@@ -83,6 +83,8 @@ TDeps = TypeVar("TDeps", default=None)
 
 
 class AgentKwargs(TypedDict, total=False):
+    """Keyword arguments for configuring an Agent instance."""
+
     # Core Identity
     provider: AgentType
     description: str | None

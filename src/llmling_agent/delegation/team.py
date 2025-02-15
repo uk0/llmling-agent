@@ -1,3 +1,5 @@
+"""Parallel, unordered group of agents / nodes."""
+
 from __future__ import annotations
 
 import asyncio

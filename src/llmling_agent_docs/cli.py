@@ -1,3 +1,5 @@
+"""CLI documentation."""
+
 from __future__ import annotations
 
 import mknodes as mk

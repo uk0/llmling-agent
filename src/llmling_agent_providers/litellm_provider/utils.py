@@ -1,3 +1,5 @@
+"""LiteLLM provider utils."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,6 +14,8 @@ logger = get_logger(__name__)
 
 @dataclass
 class Usage:
+    """Usage information for a model."""
+
     total_tokens: int | None
     request_tokens: int | None
     response_tokens: int | None

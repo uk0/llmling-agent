@@ -1,4 +1,4 @@
-"""YouTube transcript converter."""
+"""Local Whisper audio-to-text converter."""
 
 from __future__ import annotations
 

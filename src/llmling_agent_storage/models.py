@@ -1,3 +1,5 @@
+"""Data classes for storing agent data."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

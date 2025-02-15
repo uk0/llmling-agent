@@ -15,6 +15,8 @@ class BasePromptHubConfig(BaseModel):
 
 
 class PromptLayerConfig(BasePromptHubConfig):
+    """Configuration for PromptLayer prompt provider."""
+
     type: Literal["promptlayer"] = Field("promptlayer", init=False)
     """Configuration for PromptLayer prompt provider."""
 

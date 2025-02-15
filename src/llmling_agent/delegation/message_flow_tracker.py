@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class MessageFlowTracker:
+    """Class for tracking message flow in conversations."""
+
     def __init__(self):
         self.events: list[Talk.ConnectionProcessed] = []
 

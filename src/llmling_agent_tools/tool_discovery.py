@@ -1,3 +1,5 @@
+"""Functions to discover available tools."""
+
 from __future__ import annotations
 
 import importlib

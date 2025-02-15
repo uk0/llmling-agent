@@ -27,6 +27,8 @@ class BaseField:
 
 
 class ModelField(BaseField):
+    """Model information."""
+
     label = "Model"
     align = "left"
     icon = "🤖"
@@ -34,24 +36,32 @@ class ModelField(BaseField):
 
 
 class TokensField(BaseField):
+    """Token usage information."""
+
     label = "Tokens"
     icon = "🎯"
     tooltip = "Token usage"
 
 
 class CostField(BaseField):
+    """Cost information."""
+
     label = "Cost"
     icon = "💰"
     tooltip = "Total cost in USD"
 
 
 class MessagesField(BaseField):
+    """Message count information."""
+
     label = "Messages"
     icon = "💬"
     tooltip = "Message count"
 
 
 class TimeField(BaseField):
+    """Session duration information."""
+
     label = "Time"
     icon = "⏱️"
     tooltip = "Session duration"

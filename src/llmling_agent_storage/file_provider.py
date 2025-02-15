@@ -1,3 +1,5 @@
+"""File provider implementation."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -21,6 +23,8 @@ logger = get_logger(__name__)
 
 
 class MessageData(TypedDict):
+    """Data structure for storing message information."""
+
     conversation_id: str
     content: str
     role: str
@@ -34,12 +38,16 @@ class MessageData(TypedDict):
 
 
 class ConversationData(TypedDict):
+    """Data structure for storing conversation information."""
+
     id: str
     agent_name: str
     start_time: str
 
 
 class ToolCallData(TypedDict):
+    """Data structure for storing tool call information."""
+
     conversation_id: str
     message_id: str
     tool_name: str
@@ -49,6 +57,8 @@ class ToolCallData(TypedDict):
 
 
 class CommandData(TypedDict):
+    """Data structure for storing command information."""
+
     agent_name: str
     session_id: str
     command: str
@@ -58,6 +68,8 @@ class CommandData(TypedDict):
 
 
 class StorageData(TypedDict):
+    """Data structure for storing storage information."""
+
     messages: list[MessageData]
     conversations: list[ConversationData]
     tool_calls: list[ToolCallData]
