@@ -45,10 +45,7 @@ class FakeAgent:
         from litellm import acompletion
 
         schemas = [t.schema for t in tools or []]
-        if self.base_url:
-            self.model_settings["base_url"] = self.base_url
-        if self.extra_headers:
-            self.model_settings["extra_headers"] = self.extra_headers
+        settings = self.get_settings()
         return await acompletion(  # type: ignore
             stream=False,
             model=self.model,
@@ -60,7 +57,7 @@ class FakeAgent:
             num_retries=num_retries,
             tools=schemas or None,
             tool_choice="auto" if schemas else None,
-            **self.model_settings,
+            **settings,
         )
 
     async def run_stream(
@@ -75,10 +72,7 @@ class FakeAgent:
         from litellm import acompletion
 
         schemas = [t.schema for t in tools or []]
-        if self.base_url:
-            self.model_settings["base_url"] = self.base_url
-        if self.extra_headers:
-            self.model_settings["extra_headers"] = self.extra_headers
+        settings = self.get_settings()
         return await acompletion(  # type: ignore
             stream=True,
             model=self.model,
@@ -90,8 +84,19 @@ class FakeAgent:
             num_retries=num_retries,
             tools=schemas or None,
             tool_choice="auto" if schemas else None,
-            **self.model_settings,
+            **settings,
         )
+
+    def get_settings(self) -> dict[str, Any]:
+        """Prepare settings for Litellm."""
+        settings = self.model_settings.copy()
+        if self.base_url:
+            settings["base_url"] = self.base_url
+        if self.extra_headers:
+            settings["extra_headers"] = self.extra_headers
+        if self.model.startswith("openrouter/deepseek"):
+            settings["include_reasoning"] = True
+        return settings
 
 
 if __name__ == "__main__":
