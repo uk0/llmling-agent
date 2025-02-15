@@ -108,11 +108,9 @@ class OpenAPITools(ResourceProvider):
         tools = []
         for op_id, config in self._operations.items():
             method = self._create_operation_method(op_id, config)
-            tools.append(
-                Tool.from_callable(
-                    method, source="openapi", metadata={"operation": op_id}
-                )
-            )
+            meta = {"operation": op_id}
+            tool = Tool.from_callable(method, source="openapi", metadata=meta)
+            tools.append(tool)
         return tools
 
     async def _load_spec(self):

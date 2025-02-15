@@ -39,11 +39,9 @@ class EntryPointTools(ResourceProvider):
         get_tools = entry_point.load()
         for item in get_tools():
             try:
-                self._tools.append(
-                    Tool.from_callable(
-                        item, source="entry_point", metadata={"module": self.module}
-                    )
-                )
+                meta = {"module": self.module}
+                tool = Tool.from_callable(item, source="entry_point", metadata=meta)
+                self._tools.append(tool)
             except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to load tool from %s: %s", self.module, e)
 
