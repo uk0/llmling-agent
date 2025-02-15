@@ -157,5 +157,12 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 requires_capability="can_ask_agents",
             )
             tools.append(tool)
+        if self.capabilities.can_read_files:
+            tool = Tool.from_callable(
+                capability_tools.read_file,
+                source="builtin",
+                requires_capability="can_read_files",
+            )
+            tools.append(tool)
 
         return tools

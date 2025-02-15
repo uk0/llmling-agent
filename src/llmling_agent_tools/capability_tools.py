@@ -12,10 +12,13 @@ from uuid import uuid4
 from llmling import ToolError
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
+
+logger = get_logger(__name__)
 
 
 async def delegate_to(  # noqa: D417
@@ -481,3 +484,46 @@ async def connect_nodes(  # noqa: D417
         f"(type={connection_type}, queued={queued}, "
         f"strategy={queue_strategy if queued else 'n/a'})"
     )
+
+
+async def read_file(  # noqa: D417
+    ctx: AgentContext,
+    path: str,
+    *,
+    convert_to_markdown: bool = True,
+    encoding: str = "utf-8",
+) -> str:
+    """Read file content from local or remote path.
+
+    Args:
+        path: Path or URL to read
+        convert_to_markdown: Whether to convert content to markdown
+        encoding: Text encoding to use (default: utf-8)
+
+    Returns:
+        File content, optionally converted to markdown
+    """
+    from pydantic_ai.tools import RunContext
+    from upathtools import read_path
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+
+    try:
+        # First try to read raw content
+        content = await read_path(path, encoding=encoding)
+
+        # Convert to markdown if requested
+        if convert_to_markdown and ctx.converter:
+            try:
+                content = await ctx.converter.convert_file(path)
+            except Exception as e:  # noqa: BLE001
+                msg = f"Failed to convert to markdown: {e}"
+                logger.warning(msg)
+                # Continue with raw content
+
+    except Exception as e:
+        msg = f"Failed to read file {path}: {e}"
+        raise ToolError(msg) from e
+    else:
+        return content
