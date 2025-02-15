@@ -62,9 +62,14 @@ async def main(config_path: str):
         writer = pool.get_agent("doc_writer")
         checker = pool.get_agent("error_checker")
 
+        scanner.message_sent.connect(lambda msg: print(msg.format()))
+        writer.message_sent.connect(lambda msg: print(msg.format()))
+        checker.message_sent.connect(lambda msg: print(msg.format()))
+        scanner.tool_used.connect(lambda call: print(call.format()))
+        writer.tool_used.connect(lambda call: print(call.format()))
+        checker.tool_used.connect(lambda call: print(call.format()))
         # Setup async chain: scanner -> writer -> console output
         scanner.connect_to(writer)
-        writer.message_sent.connect(lambda msg: print(f"Documentation:\n{msg.content}"))
         # Start async docs generation (the writer will start working in async fashion)
         await scanner.run('List all Python files in "src/llmling_agent/agent"')
 
@@ -80,10 +85,8 @@ async def main(config_path: str):
 
 if __name__ == "__main__":
     import asyncio
-    import logging
     import tempfile
 
-    logging.basicConfig(level=logging.DEBUG)
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp:
         tmp.write(AGENT_CONFIG)
         tmp.flush()
