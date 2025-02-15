@@ -44,6 +44,9 @@ class Capabilities(EventedModel):
     can_read_files: bool = False
     """Whether the agent can read local and remote files."""
 
+    can_list_directories: bool = False
+    """Whether the agent can list directories and their contents."""
+
     # Tool management
     can_register_tools: bool = False
     """Whether the agent can register importable functions as tools."""

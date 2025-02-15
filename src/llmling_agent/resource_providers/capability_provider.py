@@ -164,5 +164,12 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 requires_capability="can_read_files",
             )
             tools.append(tool)
+        if self.capabilities.can_list_directories:
+            tool = Tool.from_callable(
+                capability_tools.list_directory,
+                source="builtin",
+                requires_capability="can_list_directories",
+            )
+            tools.append(tool)
 
         return tools

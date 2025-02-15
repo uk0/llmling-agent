@@ -17,6 +17,7 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
+    from llmling_agent.common_types import StrPath
 
 logger = get_logger(__name__)
 
@@ -527,3 +528,39 @@ async def read_file(  # noqa: D417
         raise ToolError(msg) from e
     else:
         return content
+
+
+async def list_directory(
+    path: StrPath,
+    *,
+    pattern: str | None = None,
+    recursive: bool = True,
+    include_dirs: bool = False,
+    exclude: list[str] | None = None,
+    max_depth: int | None = None,
+) -> str:
+    """List files / subfolders in a folder.
+
+    Args:
+        path: Base directory to read from
+        pattern: Glob pattern to match files against (e.g. "**/*.py" for Python files)
+        recursive: Whether to search subdirectories
+        include_dirs: Whether to include directories in results
+        exclude: List of patterns to exclude (uses fnmatch against relative paths)
+        max_depth: Maximum directory depth for recursive search
+
+    Returns:
+        A list of files / folders.
+    """
+    from upathtools import list_files
+
+    pattern = pattern or "**/*"
+    files = await list_files(
+        path,
+        pattern=pattern,
+        include_dirs=include_dirs,
+        recursive=recursive,
+        exclude=exclude,
+        max_depth=max_depth,
+    )
+    return "\n".join(str(f) for f in files)
