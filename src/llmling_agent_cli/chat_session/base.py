@@ -25,8 +25,7 @@ if TYPE_CHECKING:
 
     from slashed import OutputWriter
 
-    from llmling_agent.agent import AnyAgent
-    from llmling_agent.delegation.pool import AgentPool
+    from llmling_agent import AgentPool, AnyAgent
     from llmling_agent.tools.manager import ToolManager
 
 

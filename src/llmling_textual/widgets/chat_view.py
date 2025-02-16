@@ -11,7 +11,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent import ChatMessage
 
 
 logger = get_logger(__name__)

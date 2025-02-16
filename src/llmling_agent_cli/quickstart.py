@@ -10,7 +10,7 @@ from tempfile import NamedTemporaryFile
 
 import typer as t
 
-from llmling_agent.delegation import AgentPool
+from llmling_agent import AgentPool
 from llmling_agent.log import set_handler_level
 
 

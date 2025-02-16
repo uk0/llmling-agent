@@ -8,7 +8,7 @@ from textual.widgets import DataTable
 
 
 if TYPE_CHECKING:
-    from llmling_agent.delegation.pool import AgentPool
+    from llmling_agent import AgentPool
 
 
 class NodeListView(DataTable):

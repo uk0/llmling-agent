@@ -9,7 +9,7 @@ from llmling.cli.constants import output_format_opt
 from llmling.cli.utils import format_output
 import typer as t
 
-from llmling_agent.models import AgentsManifest
+from llmling_agent import AgentsManifest
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_cli import resolve_agent_config
 

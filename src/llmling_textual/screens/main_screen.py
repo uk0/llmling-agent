@@ -15,7 +15,7 @@ from llmling_textual.widgets.message_stream import MessageStream
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
-    from llmling_agent.delegation.pool import AgentPool
+    from llmling_agent import AgentPool
 
 
 class MainScreen(Screen):

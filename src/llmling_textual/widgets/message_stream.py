@@ -12,7 +12,7 @@ from llmling_textual.widgets.message_flow import MessageFlowWidget
 
 
 if TYPE_CHECKING:
-    from llmling_agent.delegation.pool import AgentPool
+    from llmling_agent import AgentPool
     from llmling_agent.talk.talk import Talk
 
 logger = get_logger(__name__)

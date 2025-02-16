@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent import AnyAgent
 
 
 @dataclass

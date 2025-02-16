@@ -13,8 +13,7 @@ from llmling_agent_cli.chat_session.exceptions import ChatSessionConfigError
 if TYPE_CHECKING:
     from rich.markdown import Markdown
 
-    from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent.tools import ToolCallInfo
+    from llmling_agent import ChatMessage, ToolCallInfo
     from llmling_agent_cli.chat_session.welcome import WelcomeInfo
 
 

@@ -16,7 +16,7 @@ from llmling import (
     StaticPrompt,
 )
 from llmling.utils.importing import import_callable, import_class
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import Field, model_validator
 from toprompt import render_prompt
 
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
@@ -34,6 +34,7 @@ from llmling_agent_config.result_types import InlineResponseDefinition, Response
 from llmling_agent_config.session import MemoryConfig, SessionQuery
 from llmling_agent_config.tools import BaseToolConfig, ToolConfig
 from llmling_agent_config.toolsets import ToolsetConfig  # noqa: TC001
+from llmling_agent_config.workers import WorkerConfig
 from llmling_agent_models import AnyModelConfig  # noqa: TC001
 
 
@@ -46,39 +47,6 @@ if TYPE_CHECKING:
 ToolConfirmationMode = Literal["always", "never", "per_tool"]
 
 logger = logging.getLogger(__name__)
-
-
-class WorkerConfig(BaseModel):
-    """Configuration for a worker agent.
-
-    Worker agents are agents that are registered as tools with a parent agent.
-    This allows building hierarchies and specializations of agents.
-    """
-
-    name: str
-    """Name of the agent to use as a worker"""
-
-    reset_history_on_run: bool = True
-    """Whether to clear worker's conversation history before each run.
-    True (default): Fresh conversation each time
-    False: Maintain conversation context between runs"""
-
-    pass_message_history: bool = False
-    """Whether to pass parent agent's message history to worker.
-    True: Worker sees parent's conversation context
-    False (default): Worker only sees current request"""
-
-    share_context: bool = False
-    """Whether to share parent agent's context/dependencies with worker.
-    True: Worker has access to parent's context data
-    False (default): Worker uses own isolated context"""
-
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
-
-    @classmethod
-    def from_str(cls, name: str) -> WorkerConfig:
-        """Create config from simple string form."""
-        return cls(name=name)
 
 
 class AgentConfig(NodeConfig):
@@ -182,7 +150,7 @@ class AgentConfig(NodeConfig):
         """Convert string workers to WorkerConfig."""
         if workers := data.get("workers"):
             data["workers"] = [
-                WorkerConfig.from_str(w)
+                WorkerConfig(name=w)
                 if isinstance(w, str)
                 else w
                 if isinstance(w, WorkerConfig)  # Keep existing WorkerConfig

@@ -4,16 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import typer as t
 
-from llmling_agent.delegation.pool import AgentPool
+from llmling_agent import AgentPool, ChatMessage
 from llmling_agent.log import get_logger
-
-
-if TYPE_CHECKING:
-    from llmling_agent.messaging.messages import ChatMessage
 
 
 logger = get_logger(__name__)
