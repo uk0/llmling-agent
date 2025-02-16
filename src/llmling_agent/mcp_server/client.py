@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import AsyncExitStack, suppress
+import shutil
 import sys
 from typing import TYPE_CHECKING, Any, Self, TextIO
 
@@ -110,7 +111,7 @@ class MCPClient:
             logger.info("SSE servers not yet implemented")
             self.session = None
             return
-
+        command = shutil.which(command) or command
         # Stdio connection
         params = StdioServerParameters(command=command, args=args, env=env)
         stdio_transport = await self.exit_stack.enter_async_context(stdio_client(params))
