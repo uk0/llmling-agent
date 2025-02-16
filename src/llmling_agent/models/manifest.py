@@ -25,6 +25,11 @@ from llmling_agent_config.storage import StorageConfig
 from llmling_agent_config.task import Job  # noqa: TC001
 from llmling_agent_config.teams import TeamConfig  # noqa: TC001
 from llmling_agent_config.ui import StdlibUIConfig, UIConfig
+from llmling_agent_config.workers import (
+    AgentWorkerConfig,
+    BaseWorkerConfig,
+    TeamWorkerConfig,
+)
 
 
 if TYPE_CHECKING:
@@ -91,6 +96,75 @@ class AgentsManifest(ConfigModel):
     prompts: PromptConfig = Field(default_factory=PromptConfig)
 
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_workers(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Convert string workers to appropriate WorkerConfig for all agents."""
+        teams = data.get("teams", {})
+        agents = data.get("agents", {})
+
+        # Process workers for all agents that have them
+        for agent_name, agent_config in agents.items():
+            if isinstance(agent_config, dict):
+                workers = agent_config.get("workers", [])
+            else:
+                workers = agent_config.workers
+
+            if workers:
+                normalized: list[BaseWorkerConfig] = []
+
+                for worker in workers:
+                    match worker:
+                        case str() as name:
+                            # Determine type based on presence in teams/agents
+                            if name in teams:
+                                normalized.append(TeamWorkerConfig(name=name))
+                            elif name in agents:
+                                normalized.append(AgentWorkerConfig(name=name))
+                            else:
+                                # Default to agent if type can't be determined
+                                normalized.append(AgentWorkerConfig(name=name))
+
+                        case dict() as config:
+                            # If type is explicitly specified, use it
+                            if worker_type := config.get("type"):
+                                match worker_type:
+                                    case "team":
+                                        normalized.append(TeamWorkerConfig(**config))
+                                    case "agent":
+                                        normalized.append(AgentWorkerConfig(**config))
+                                    case _:
+                                        msg = f"Invalid worker type: {worker_type}"
+                                        raise ValueError(msg)
+                            else:
+                                # Determine type based on worker name
+                                worker_name = config.get("name")
+                                if not worker_name:
+                                    msg = "Worker config missing name"
+                                    raise ValueError(msg)
+
+                                if worker_name in teams:
+                                    normalized.append(TeamWorkerConfig(**config))
+                                else:
+                                    normalized.append(AgentWorkerConfig(**config))
+
+                        case BaseWorkerConfig():  # Already normalized
+                            normalized.append(worker)
+
+                        case _:
+                            msg = f"Invalid worker configuration: {worker}"
+                            raise ValueError(msg)
+
+                if isinstance(agent_config, dict):
+                    agent_config["workers"] = normalized
+                else:
+                    # Need to create a new dict with updated workers
+                    agent_dict = agent_config.model_dump()
+                    agent_dict["workers"] = normalized
+                    agents[agent_name] = agent_dict
+
+        return data
 
     def clone_agent_config(
         self,
