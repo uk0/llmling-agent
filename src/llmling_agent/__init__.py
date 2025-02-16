@@ -7,6 +7,7 @@ from llmling_agent.delegation import AgentPool, Team, TeamRun
 from dotenv import load_dotenv
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.tools import Tool
+from llmling_agent.models.tools import ToolCallInfo
 
 __version__ = "0.99.11"
 
@@ -24,4 +25,5 @@ __all__ = [
     "Team",
     "TeamRun",
     "Tool",
+    "ToolCallInfo",
 ]
