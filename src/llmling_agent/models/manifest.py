@@ -441,7 +441,7 @@ class AgentsManifest(ConfigModel):
         Returns:
             Configured agent pool
         """
-        from llmling_agent.delegation import AgentPool
+        from llmling_agent import AgentPool
 
         return AgentPool(manifest=self)
 

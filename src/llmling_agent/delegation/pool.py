@@ -423,7 +423,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
     @property
     def nodes(self) -> dict[str, MessageNode[Any, Any]]:
         """Get agents dict (backward compatibility)."""
-        from llmling_agent.messaging.messagenode import MessageNode
+        from llmling_agent import MessageNode
 
         return {i.name: i for i in self._items.values() if isinstance(i, MessageNode)}
 

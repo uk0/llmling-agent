@@ -23,9 +23,8 @@ from llmling_agent.tools.base import Tool
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent import AnyAgent, MessageNode
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
-    from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.resource_providers.base import ResourceProvider
 
 

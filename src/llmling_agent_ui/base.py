@@ -8,8 +8,7 @@ from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
     from llmling import ConfigStore
 
-    from llmling_agent.delegation import AgentPool
-    from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent import AgentPool, MessageNode
 
 
 class UIProvider(Protocol):

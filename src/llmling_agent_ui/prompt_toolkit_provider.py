@@ -11,8 +11,7 @@ from llmling_agent_ui.base import UIProvider
 if TYPE_CHECKING:
     from llmling.config.store import ConfigStore
 
-    from llmling_agent.delegation.pool import AgentPool
-    from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent import AgentPool, MessageNode
     from llmling_agent_config.ui import PromptToolkitUIConfig
 
 

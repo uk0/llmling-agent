@@ -8,8 +8,7 @@ from llmling_agent.delegation.teamrun import TeamRun
 
 
 if TYPE_CHECKING:
-    from llmling_agent import AnyAgent
-    from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent import AnyAgent, MessageNode
 
 
 class StructuredTeam[TResult](TeamRun[Any, TResult]):

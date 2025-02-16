@@ -15,9 +15,9 @@ from llmling_agent.prompts.conversion_manager import ConversionManager
 if TYPE_CHECKING:
     from llmling import RuntimeConfig
 
+    from llmling_agent import AgentPool
     from llmling_agent.agent import AnyAgent
     from llmling_agent.config.capabilities import Capabilities
-    from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.models.agents import AgentConfig
     from llmling_agent.tools.base import Tool
     from llmling_agent_input.base import InputProvider

@@ -12,8 +12,7 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from llmling_agent.delegation.pool import AgentPool
-    from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent import AgentPool, MessageNode
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -23,7 +22,7 @@ logger = get_logger(__name__)
 
 def is_node_type(typ: Any) -> bool:
     """Check if a type is or inherits from MessageNode."""
-    from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent import MessageNode
 
     # Direct type check
     if typ is MessageNode:

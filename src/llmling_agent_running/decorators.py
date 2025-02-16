@@ -12,7 +12,7 @@ from llmling_agent_running.injection import inject_nodes
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    from llmling_agent.delegation.pool import AgentPool
+    from llmling_agent import AgentPool
 
 P = ParamSpec("P")
 T = TypeVar("T")

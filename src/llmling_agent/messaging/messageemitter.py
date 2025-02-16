@@ -241,9 +241,9 @@ class MessageEmitter[TDeps, TResult](TaskManagerMixin, ABC):
     ) -> Talk[Any] | TeamTalk:
         """Create connection(s) to target(s)."""
         # Handle callable case
+        from llmling_agent import MessageNode
         from llmling_agent.agent import Agent, StructuredAgent
         from llmling_agent.delegation.base_team import BaseTeam
-        from llmling_agent.messaging.messagenode import MessageNode
 
         if callable(target):
             if has_return_type(target, str):

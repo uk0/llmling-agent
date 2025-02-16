@@ -43,7 +43,7 @@ async def run_nodes_async(
         print(results["analyze"])
         ```
     """
-    from llmling_agent.delegation import AgentPool
+    from llmling_agent import AgentPool
 
     # Find functions to run
     if module:

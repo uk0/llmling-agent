@@ -28,10 +28,8 @@ if TYPE_CHECKING:
     from psygnal.containers._evented_list import ListEvents
     from toprompt import AnyPromptType
 
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent import AgentPool, AnyAgent, Team
     from llmling_agent.common_types import ModelType, ToolType
-    from llmling_agent.delegation.pool import AgentPool
-    from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
     from llmling_agent.messaging.messages import ChatMessage, TeamResponse
     from llmling_agent_config.mcp_server import MCPServerConfig

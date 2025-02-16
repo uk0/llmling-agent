@@ -153,8 +153,7 @@ class Talk[TTransmittedData]:
             connection >> other_agent  # Connect to single agent
             connection >> (agent2 & agent3)  # Connect to group
         """
-        from llmling_agent.agent import Agent, StructuredAgent
-        from llmling_agent.messaging.messagenode import MessageNode
+        from llmling_agent import Agent, MessageNode, StructuredAgent
         from llmling_agent.talk import TeamTalk
         from llmling_agent.utils.inspection import has_return_type
 
@@ -524,8 +523,7 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
             connection >> other_agent  # Connect to single agent
             connection >> (agent2 & agent3)  # Connect to group
         """
-        from llmling_agent.agent import Agent, StructuredAgent
-        from llmling_agent.messaging.messagenode import MessageNode
+        from llmling_agent import Agent, MessageNode, StructuredAgent
         from llmling_agent.talk import TeamTalk
         from llmling_agent.utils.inspection import has_return_type
 

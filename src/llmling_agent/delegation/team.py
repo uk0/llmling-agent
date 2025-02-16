@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     import PIL.Image
     from toprompt import AnyPromptType
 
-    from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent import MessageNode
     from llmling_agent.talk import Talk
     from llmling_agent_config.task import Job
 

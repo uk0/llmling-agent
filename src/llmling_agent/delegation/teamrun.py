@@ -25,8 +25,8 @@ if TYPE_CHECKING:
     from tokonomics.pydanticai_cost import Usage
     from toprompt import AnyPromptType
 
+    from llmling_agent import MessageNode
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent_providers.base import StreamingResponseProtocol
 
 

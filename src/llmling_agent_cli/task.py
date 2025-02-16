@@ -32,7 +32,7 @@ async def execute_job(
     prompt: str | None = None,
 ):
     """Execute task with agent."""
-    from llmling_agent.delegation import AgentPool
+    from llmling_agent import AgentPool
 
     async with AgentPool[None](config) as pool:
         # Get both agent and task

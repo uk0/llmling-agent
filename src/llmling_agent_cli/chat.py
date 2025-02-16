@@ -48,7 +48,7 @@ def chat_command(
     """
     from slashed import DefaultOutputWriter
 
-    from llmling_agent.delegation import AgentPool
+    from llmling_agent import AgentPool
     from llmling_agent_cli.chat_session.session import start_interactive_session
 
     level = getattr(logging, log_level.upper())

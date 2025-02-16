@@ -19,10 +19,9 @@ if TYPE_CHECKING:
 
     from toprompt import AnyPromptType
 
+    from llmling_agent import AgentPool, MessageNode
     from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.base_team import BaseTeam
-    from llmling_agent.delegation.pool import AgentPool
-    from llmling_agent.messaging.messagenode import MessageNode
 
 TResult = TypeVar("TResult", default=str)
 TDeps = TypeVar("TDeps", default=None)
@@ -75,7 +74,7 @@ def get_label(item: Any) -> str:
         - types use __name__
         - others use __repr__ for unique identifiable string
     """
-    from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent import MessageNode
 
     match item:
         case str():
@@ -207,8 +206,8 @@ class Interactions[TDeps, TResult]:
         # Get items and create label mapping
         from toprompt import to_prompt
 
+        from llmling_agent import AgentPool
         from llmling_agent.delegation.base_team import BaseTeam
-        from llmling_agent.delegation.pool import AgentPool
 
         match selections:
             case dict():
@@ -318,8 +317,8 @@ Select ONE option by its exact label."""
         """
         from toprompt import to_prompt
 
+        from llmling_agent import AgentPool
         from llmling_agent.delegation.base_team import BaseTeam
-        from llmling_agent.delegation.pool import AgentPool
 
         match selections:
             case Mapping():
