@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.tools import Tool
 
-__version__ = "0.99.9"
+__version__ = "0.99.10"
 
 load_dotenv()
 
