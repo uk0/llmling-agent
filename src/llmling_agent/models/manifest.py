@@ -33,8 +33,7 @@ from llmling_agent_config.workers import (
 
 
 if TYPE_CHECKING:
-    from llmling_agent import AgentPool
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent import AgentPool, AnyAgent
     from llmling_agent.common_types import StrPath
     from llmling_agent.prompts.manager import PromptManager
 

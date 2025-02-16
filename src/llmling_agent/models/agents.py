@@ -45,6 +45,7 @@ if TYPE_CHECKING:
 
 
 ToolConfirmationMode = Literal["always", "never", "per_tool"]
+ProviderName = Literal["pydantic_ai", "human", "litellm"]
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ class AgentConfig(NodeConfig):
     The configuration can be loaded from YAML or created programmatically.
     """
 
-    provider: ProviderConfig | Literal["pydantic_ai", "human", "litellm"] = "pydantic_ai"
+    provider: ProviderConfig | ProviderName = "pydantic_ai"
     """Provider configuration or shorthand type"""
 
     inherits: str | None = None
