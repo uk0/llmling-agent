@@ -8,8 +8,8 @@ from upath import UPath
 
 from llmling_agent.common_types import JsonValue, StrPath
 from llmling_agent.log import get_logger
-from llmling_agent.models.storage import LogFormat, TextLogConfig
-from llmling_agent.models.tools import ToolCallInfo
+from llmling_agent.tools import ToolCallInfo
+from llmling_agent_config.storage import LogFormat, TextLogConfig
 from llmling_agent_storage.base import StorageProvider
 
 

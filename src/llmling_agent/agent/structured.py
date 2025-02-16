@@ -16,8 +16,8 @@ from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
-from llmling_agent.models.result_types import BaseResponseDefinition, ResponseDefinition
 from llmling_agent.utils.result_utils import to_type
+from llmling_agent_config.result_types import BaseResponseDefinition, ResponseDefinition
 
 
 if TYPE_CHECKING:
@@ -36,9 +36,9 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent.models.task import Job
     from llmling_agent.talk.stats import MessageStats
     from llmling_agent.tools.manager import ToolManager
+    from llmling_agent_config.task import Job
     from llmling_agent_providers.callback import ProcessorCallback
 
 

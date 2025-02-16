@@ -12,9 +12,9 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.messaging.messageemitter import MessageEmitter
     from llmling_agent.models.manifest import AgentsManifest
-    from llmling_agent.models.nodes import NodeConfig
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.storage import StorageManager
+    from llmling_agent_config.nodes import NodeConfig
     from llmling_agent_input.base import InputProvider
 
 

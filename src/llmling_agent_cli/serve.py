@@ -11,7 +11,7 @@ import typer as t
 from llmling_agent.delegation import AgentPool
 from llmling_agent.log import get_logger
 from llmling_agent.models.manifest import AgentsManifest
-from llmling_agent.models.mcp_server import PoolServerConfig
+from llmling_agent_config.mcp_server import PoolServerConfig
 
 
 if TYPE_CHECKING:

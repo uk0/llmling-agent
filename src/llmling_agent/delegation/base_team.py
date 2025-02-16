@@ -14,10 +14,10 @@ from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models.manifest import AgentsManifest
-from llmling_agent.models.teams import TeamConfig
 from llmling_agent.talk.stats import AggregatedMessageStats, AggregatedTalkStats
 from llmling_agent.tools.base import Tool
 from llmling_agent.utils.inspection import has_return_type
+from llmling_agent_config.teams import TeamConfig
 
 
 if TYPE_CHECKING:
@@ -34,9 +34,9 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
     from llmling_agent.messaging.messages import ChatMessage, TeamResponse
-    from llmling_agent.models.mcp_server import MCPServerConfig
-    from llmling_agent.models.providers import ProcessorCallback
-    from llmling_agent.models.session import SessionQuery
+    from llmling_agent_config.mcp_server import MCPServerConfig
+    from llmling_agent_config.providers import ProcessorCallback
+    from llmling_agent_config.session import SessionQuery
     from llmling_agent_providers.base import AgentProvider
 
 logger = get_logger(__name__)
@@ -66,7 +66,7 @@ class TeamContext[TDeps](NodeContext[TDeps]):
             mode: Execution mode (sequential or parallel)
             pool:(optional): Optional pool the agent is part of
         """
-        from llmling_agent.models import TeamConfig
+        from llmling_agent_config import TeamConfig
 
         cfg = TeamConfig(name=name, mode=mode, members=[])
         defn = AgentsManifest()

@@ -7,6 +7,7 @@ path = "src/llmling_agent/__init__.py"
 packages = [
     "src/llmling_agent",
     "src/llmling_agent_web",
+    "src/llmling_agent_config",
     "src/llmling_agent_cli",
     "src/llmling_agent_tools",
     "src/llmling_agent_commands",

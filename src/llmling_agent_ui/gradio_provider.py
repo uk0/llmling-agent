@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.messaging.messagenode import MessageNode
-    from llmling_agent.models.ui import GradioUIConfig
+    from llmling_agent_config.ui import GradioUIConfig
 
 
 class GradioUIProvider(UIProvider):

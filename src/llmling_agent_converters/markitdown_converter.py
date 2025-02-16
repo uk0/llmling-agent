@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from upath import UPath
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.converters import MarkItDownConfig
+from llmling_agent_config.converters import MarkItDownConfig
 from llmling_agent_converters.base import DocumentConverter
 
 

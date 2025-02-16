@@ -9,8 +9,8 @@ from llmling.config.models import ToolConfig
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 from typing_extensions import TypeVar
 
-from llmling_agent.models.knowledge import Knowledge  # noqa: TC001
 from llmling_agent.tools.base import Tool
+from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
 
 
 if TYPE_CHECKING:

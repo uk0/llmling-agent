@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from llmling_agent.messaging.context import NodeContext
-    from llmling_agent.models.mcp_server import MCPServerConfig
+    from llmling_agent_config.mcp_server import MCPServerConfig
 
 
 class Event[TEventData]:

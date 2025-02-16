@@ -12,13 +12,13 @@ from psygnal import Signal
 
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.messaging.messages import ChatMessage
-from llmling_agent.models.tools import ToolCallInfo
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import (
     AggregatedMessageStats,
     AggregatedTalkStats,
     MessageStats,
 )
+from llmling_agent.tools import ToolCallInfo
 from llmling_agent.utils.inspection import has_return_type
 from llmling_agent.utils.tasks import TaskManagerMixin
 
@@ -34,11 +34,11 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn, QueueStrategy
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.messaging.messagenode import MessageNode
-    from llmling_agent.models.content import Content
-    from llmling_agent.models.forward_targets import ConnectionType
-    from llmling_agent.models.mcp_server import MCPServerConfig
-    from llmling_agent.models.providers import ProcessorCallback
     from llmling_agent.talk import Talk, TeamTalk
+    from llmling_agent_config.content import Content
+    from llmling_agent_config.forward_targets import ConnectionType
+    from llmling_agent_config.mcp_server import MCPServerConfig
+    from llmling_agent_config.providers import ProcessorCallback
 
 
 class MessageEmitter[TDeps, TResult](TaskManagerMixin, ABC):

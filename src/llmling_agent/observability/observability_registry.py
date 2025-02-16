@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.observability import (
+from llmling_agent_config.observability import (
     AgentOpsProviderConfig,
     ArizePhoenixProviderConfig,
     BaseObservabilityProviderConfig,

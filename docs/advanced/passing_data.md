@@ -39,7 +39,7 @@ await agent.run(img)
 await agent.run(Path("photo.jpg"))
 
 # As base64 or URL content
-from llmling_agent.models import ImageBase64Content, ImageURLContent
+from llmling_agent_config import ImageBase64Content, ImageURLContent
 img_content = ImageBase64Content.from_bytes(binary_data)
 await agent.run(img_content)
 ```

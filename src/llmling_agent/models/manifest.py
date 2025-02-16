@@ -10,21 +10,21 @@ from llmling import ConfigModel
 from pydantic import ConfigDict, Field, model_validator
 
 from llmling_agent.models.agents import AgentConfig
-from llmling_agent.models.converters import ConversionConfig
-from llmling_agent.models.mcp_server import (
+from llmling_agent_config.converters import ConversionConfig
+from llmling_agent_config.mcp_server import (
     BaseMCPServerConfig,
     MCPServerConfig,
     PoolServerConfig,
     StdioMCPServerConfig,
 )
-from llmling_agent.models.observability import ObservabilityConfig
-from llmling_agent.models.prompts import PromptConfig
-from llmling_agent.models.providers import BaseProviderConfig
-from llmling_agent.models.result_types import ResponseDefinition  # noqa: TC001
-from llmling_agent.models.storage import StorageConfig
-from llmling_agent.models.task import Job  # noqa: TC001
-from llmling_agent.models.teams import TeamConfig  # noqa: TC001
-from llmling_agent.models.ui import StdlibUIConfig, UIConfig
+from llmling_agent_config.observability import ObservabilityConfig
+from llmling_agent_config.prompts import PromptConfig
+from llmling_agent_config.providers import BaseProviderConfig
+from llmling_agent_config.result_types import ResponseDefinition  # noqa: TC001
+from llmling_agent_config.storage import StorageConfig
+from llmling_agent_config.task import Job  # noqa: TC001
+from llmling_agent_config.teams import TeamConfig  # noqa: TC001
+from llmling_agent_config.ui import StdlibUIConfig, UIConfig
 
 
 if TYPE_CHECKING:

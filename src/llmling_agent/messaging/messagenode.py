@@ -11,8 +11,8 @@ from psygnal import Signal
 
 from llmling_agent.messaging.messageemitter import MessageEmitter
 from llmling_agent.messaging.messages import ChatMessage
-from llmling_agent.models.tools import ToolCallInfo
 from llmling_agent.prompts.convert import convert_prompts
+from llmling_agent.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     import PIL.Image
     from toprompt import AnyPromptType
 
-    from llmling_agent.models.content import Content
+    from llmling_agent_config.content import Content
 
 
 class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):

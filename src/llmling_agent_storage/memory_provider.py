@@ -16,9 +16,9 @@ if TYPE_CHECKING:
     from tokonomics.toko_types import TokenUsage
 
     from llmling_agent.common_types import JsonValue
-    from llmling_agent.models.session import SessionQuery
-    from llmling_agent.models.storage import MemoryStorageConfig
-    from llmling_agent.models.tools import ToolCallInfo
+    from llmling_agent.tools import ToolCallInfo
+    from llmling_agent_config.session import SessionQuery
+    from llmling_agent_config.storage import MemoryStorageConfig
 
 
 class MemoryStorageProvider(StorageProvider):

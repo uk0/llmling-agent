@@ -16,7 +16,7 @@ from llmling_agent_events.base import EventSource
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
-    from llmling_agent.models.events import WebhookConfig
+    from llmling_agent_config.events import WebhookConfig
 
 
 class WebhookEventSource(EventSource):

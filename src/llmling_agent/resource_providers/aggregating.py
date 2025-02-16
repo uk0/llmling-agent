@@ -13,8 +13,8 @@ if TYPE_CHECKING:
     from llmling import BasePrompt
 
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent.models.resources import ResourceInfo
     from llmling_agent.tools.base import Tool
+    from llmling_agent_config.resources import ResourceInfo
 
 
 class AggregatingResourceProvider(ResourceProvider):

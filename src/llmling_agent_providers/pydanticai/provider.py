@@ -20,7 +20,6 @@ from llmling_agent.agent.context import AgentContext
 from llmling_agent.common_types import EndStrategy, ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.models.content import BaseContent
 from llmling_agent.observability import track_action
 from llmling_agent.prompts.convert import format_prompts
 from llmling_agent.tasks.exceptions import (
@@ -29,6 +28,7 @@ from llmling_agent.tasks.exceptions import (
     ToolSkippedError,
 )
 from llmling_agent.utils.inspection import execute, has_argument_type
+from llmling_agent_config.content import BaseContent
 from llmling_agent_providers.base import AgentLLMProvider, ProviderResponse, UsageLimits
 from llmling_agent_providers.pydanticai.utils import (
     format_part,
@@ -41,8 +41,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable
 
     from llmling_agent.common_types import ModelType
-    from llmling_agent.models.content import Content
     from llmling_agent.tools.base import Tool
+    from llmling_agent_config.content import Content
 
 
 logger = get_logger(__name__)

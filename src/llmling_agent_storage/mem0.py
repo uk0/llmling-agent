@@ -14,9 +14,9 @@ from llmling_agent_storage.base import StorageProvider
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.session import SessionQuery
-    from llmling_agent.models.storage import Mem0Config
-    from llmling_agent.models.tools import ToolCallInfo
+    from llmling_agent.tools import ToolCallInfo
+    from llmling_agent_config.session import SessionQuery
+    from llmling_agent_config.storage import Mem0Config
 
 logger = get_logger(__name__)
 

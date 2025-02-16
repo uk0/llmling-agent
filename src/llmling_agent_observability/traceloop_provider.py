@@ -17,7 +17,7 @@ from llmling_agent_observability.base_provider import ObservabilityProvider
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from llmling_agent.models.observability import TraceloopProviderConfig
+    from llmling_agent_config.observability import TraceloopProviderConfig
 
 
 P = ParamSpec("P")

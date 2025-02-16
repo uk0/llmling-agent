@@ -38,7 +38,7 @@ def init_agent_config(
         validate_import("promptantic", "chat")
         from promptantic import ModelGenerator
 
-        from llmling_agent.models import AgentsManifest
+        from llmling_agent import AgentsManifest
 
         generator = ModelGenerator()
         manifest = generator.populate(AgentsManifest)
@@ -100,7 +100,7 @@ def list_agents(
     verbose: bool = verbose_opt,
 ):
     """List agents from the active (or specified) configuration."""
-    from llmling_agent.models import AgentsManifest
+    from llmling_agent import AgentsManifest
 
     try:
         try:

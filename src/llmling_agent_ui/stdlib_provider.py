@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.delegation import AgentPool
     from llmling_agent.messaging.messagenode import MessageNode
-    from llmling_agent.models.ui import StdlibUIConfig
+    from llmling_agent_config.ui import StdlibUIConfig
 
 
 class StdlibUIProvider(UIProvider):

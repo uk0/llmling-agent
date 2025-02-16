@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
     from llmling_agent.messaging.events import EventData
-    from llmling_agent.models.events import TimeEventConfig
+    from llmling_agent_config.events import TimeEventConfig
 
 
 class TimeEventSource(EventSource):

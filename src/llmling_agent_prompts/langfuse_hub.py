@@ -10,7 +10,7 @@ from llmling_agent.prompts.base import BasePromptProvider
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.prompt_hubs import LangfuseConfig
+    from llmling_agent_config.prompt_hubs import LangfuseConfig
 
 
 class LangfusePromptHub(BasePromptProvider):

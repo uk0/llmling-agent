@@ -15,14 +15,14 @@ from pydantic import SecretStr
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.events import EventData, FunctionResultEventData
-from llmling_agent.models.events import (
+from llmling_agent.utils.inspection import execute
+from llmling_agent_config.events import (
     EmailConfig,
     EventConfig,
     FileWatchConfig,
     TimeEventConfig,
     WebhookConfig,
 )
-from llmling_agent.utils.inspection import execute
 
 
 if TYPE_CHECKING:

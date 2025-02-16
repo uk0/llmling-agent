@@ -7,7 +7,7 @@ import sys
 from typing import TYPE_CHECKING, Any, Self, TextIO
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.resources import ResourceInfo
+from llmling_agent_config.resources import ResourceInfo
 
 
 if TYPE_CHECKING:

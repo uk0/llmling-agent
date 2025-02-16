@@ -14,7 +14,7 @@ from youtube_transcript_api.formatters import (
 )
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.converters import YouTubeConverterConfig
+from llmling_agent_config.converters import YouTubeConverterConfig
 from llmling_agent_converters.base import DocumentConverter
 
 

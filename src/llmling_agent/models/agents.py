@@ -21,19 +21,19 @@ from toprompt import render_prompt
 
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.config import Capabilities
-from llmling_agent.models.environment import (
+from llmling_agent.resource_providers.static import StaticResourceProvider
+from llmling_agent_config.environment import (
     AgentEnvironment,
     FileEnvironment,
     InlineEnvironment,
 )
-from llmling_agent.models.knowledge import Knowledge  # noqa: TC001
-from llmling_agent.models.nodes import NodeConfig
-from llmling_agent.models.providers import ProviderConfig  # noqa: TC001
-from llmling_agent.models.result_types import InlineResponseDefinition, ResponseDefinition
-from llmling_agent.models.session import MemoryConfig, SessionQuery
-from llmling_agent.models.tools import BaseToolConfig, ToolConfig
-from llmling_agent.models.toolsets import ToolsetConfig  # noqa: TC001
-from llmling_agent.resource_providers.static import StaticResourceProvider
+from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
+from llmling_agent_config.nodes import NodeConfig
+from llmling_agent_config.providers import ProviderConfig  # noqa: TC001
+from llmling_agent_config.result_types import InlineResponseDefinition, ResponseDefinition
+from llmling_agent_config.session import MemoryConfig, SessionQuery
+from llmling_agent_config.tools import BaseToolConfig, ToolConfig
+from llmling_agent_config.toolsets import ToolsetConfig  # noqa: TC001
 from llmling_agent_models import AnyModelConfig  # noqa: TC001
 
 
@@ -311,7 +311,7 @@ class AgentConfig(NodeConfig):
         - Shorthand type: Create default provider config
         """
         # If string shorthand is used, convert to default provider config
-        from llmling_agent.models.providers import (
+        from llmling_agent_config.providers import (
             CallbackProviderConfig,
             HumanProviderConfig,
             LiteLLMProviderConfig,

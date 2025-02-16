@@ -12,7 +12,7 @@ from llmling_agent.prompts.base import BasePromptProvider
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.prompt_hubs import TraceloopConfig
+    from llmling_agent_config.prompt_hubs import TraceloopConfig
 
 
 class TraceloopPromptHub(BasePromptProvider):
@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     from traceloop.sdk.prompts.client import PromptRegistryClient
 
-    from llmling_agent.models.prompt_hubs import TraceloopConfig
+    from llmling_agent_config.prompt_hubs import TraceloopConfig
 
     config = TraceloopConfig()
     prompt_hub = TraceloopPromptHub(config)

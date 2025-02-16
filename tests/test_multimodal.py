@@ -1,13 +1,13 @@
 import pytest
 
 from llmling_agent import Agent
-from llmling_agent.models.content import ImageURLContent
+from llmling_agent_config.content import ImageURLContent
 
 
 @pytest.mark.asyncio
 async def test_litellm_vision():
     """Test basic vision capability with a small, public image."""
-    agent = Agent(provider="pydantic_ai", name="test-vision", model="gpt-4o")
+    agent = Agent[None](provider="pydantic_ai", name="test-vision", model="gpt-4o")
 
     # Using a small, public image
     msg = "https://python.org/static/community_logos/python-logo-master-v3-TM.png"

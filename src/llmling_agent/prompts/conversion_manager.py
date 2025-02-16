@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from upathtools import read_path
 
-from llmling_agent.models.converters import (
+from llmling_agent_config.converters import (
     ConversionConfig,
     MarkItDownConfig,
     PlainConverterConfig,
@@ -122,7 +122,7 @@ class ConversionManager:
 
 
 if __name__ == "__main__":
-    from llmling_agent.models.converters import ConversionConfig
+    from llmling_agent_config.converters import ConversionConfig
 
     config = ConversionConfig(
         providers=[

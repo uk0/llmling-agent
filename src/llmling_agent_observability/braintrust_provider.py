@@ -14,7 +14,7 @@ from llmling_agent_observability.base_provider import ObservabilityProvider
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
-    from llmling_agent.models.observability import BraintrustProviderConfig
+    from llmling_agent_config.observability import BraintrustProviderConfig
 
 
 P = ParamSpec("P")
@@ -64,8 +64,8 @@ if __name__ == "__main__":
     import asyncio
 
     from llmling_agent import Agent
-    from llmling_agent.models.observability import BraintrustProviderConfig
     from llmling_agent.observability import registry
+    from llmling_agent_config.observability import BraintrustProviderConfig
 
     config = BraintrustProviderConfig()
     provider = BraintrustProvider(config)

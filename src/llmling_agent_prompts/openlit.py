@@ -4,8 +4,8 @@ from typing import Any
 
 import openlit
 
-from llmling_agent.models.prompt_hubs import OpenLITConfig
 from llmling_agent.prompts.base import BasePromptProvider
+from llmling_agent_config.prompt_hubs import OpenLITConfig
 
 
 class OpenLITProvider(BasePromptProvider):

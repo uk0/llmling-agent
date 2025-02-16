@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from llmling_agent.models.converters import LocalWhisperConfig
+from llmling_agent_config.converters import LocalWhisperConfig
 from llmling_agent_converters.base import DocumentConverter
 
 

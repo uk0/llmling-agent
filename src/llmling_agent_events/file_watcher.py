@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from watchfiles.main import FileChange
 
     from llmling_agent.messaging.events import EventData
-    from llmling_agent.models.events import FileWatchConfig
+    from llmling_agent_config.events import FileWatchConfig
 
 
 class ExtensionFilter:

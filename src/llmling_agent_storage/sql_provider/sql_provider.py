@@ -28,9 +28,9 @@ if TYPE_CHECKING:
     from sqlalchemy import Engine
 
     from llmling_agent.common_types import JsonValue
-    from llmling_agent.models.session import SessionQuery
-    from llmling_agent.models.storage import SQLStorageConfig
-    from llmling_agent.models.tools import ToolCallInfo
+    from llmling_agent.tools import ToolCallInfo
+    from llmling_agent_config.session import SessionQuery
+    from llmling_agent_config.storage import SQLStorageConfig
 
 
 logger = get_logger(__name__)

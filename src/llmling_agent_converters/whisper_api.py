@@ -14,7 +14,7 @@ from llmling_agent_converters.base import DocumentConverter
 
 if TYPE_CHECKING:
     from llmling_agent.common_types import StrPath
-    from llmling_agent.models.converters import WhisperAPIConfig
+    from llmling_agent_config.converters import WhisperAPIConfig
 
 
 logger = get_logger(__name__)

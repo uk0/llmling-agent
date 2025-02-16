@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import MutableSequence, Sequence
 
     from llmling_agent.messaging.messages import ChatMessage, FormatStyle
-    from llmling_agent.models.tools import ToolCallInfo
+    from llmling_agent.tools import ToolCallInfo
 
 
 @dataclass(frozen=True, kw_only=True)

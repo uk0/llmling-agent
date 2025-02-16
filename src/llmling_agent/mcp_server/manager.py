@@ -10,13 +10,13 @@ from llmling.prompts import PromptMessage, StaticPrompt
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.client import MCPClient
-from llmling_agent.models.mcp_server import (
+from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent_config.mcp_server import (
     MCPServerConfig,
     SSEMCPServerConfig,
     StdioMCPServerConfig,
 )
-from llmling_agent.models.resources import ResourceInfo
-from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent_config.resources import ResourceInfo
 
 
 if TYPE_CHECKING:

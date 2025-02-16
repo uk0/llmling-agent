@@ -10,11 +10,11 @@ from typing import Any, Literal, Self
 from pydantic import BaseModel, ConfigDict, Field
 
 from llmling_agent.messaging.messages import ChatMessage  # noqa: TC001
-from llmling_agent.models.events import (  # noqa: TC001
+from llmling_agent.talk.talk import Talk  # noqa: TC001
+from llmling_agent_config.events import (  # noqa: TC001
     ConnectionEventType,
     EventSourceConfig,
 )
-from llmling_agent.talk.talk import Talk  # noqa: TC001
 
 
 ChangeType = Literal["added", "modified", "deleted"]

@@ -6,8 +6,8 @@ import pytest
 from sqlmodel import Session, SQLModel, create_engine, delete, select
 
 from llmling_agent.messaging.messages import TokenCost
-from llmling_agent.models.storage import SQLStorageConfig
 from llmling_agent.utils.parse_time import parse_time_period
+from llmling_agent_config.storage import SQLStorageConfig
 from llmling_agent_storage.models import QueryFilters, StatsFilters
 from llmling_agent_storage.sql_provider import Conversation, Message, SQLModelProvider
 

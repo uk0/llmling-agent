@@ -23,14 +23,14 @@ from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.messaging.messageemitter import MessageEmitter
-from llmling_agent.models.forward_targets import (
+from llmling_agent.talk import Talk, TeamTalk
+from llmling_agent.talk.registry import ConnectionRegistry
+from llmling_agent.tasks import TaskRegistry
+from llmling_agent_config.forward_targets import (
     CallableConnectionConfig,
     FileConnectionConfig,
     NodeConnectionConfig,
 )
-from llmling_agent.talk import Talk, TeamTalk
-from llmling_agent.talk.registry import ConnectionRegistry
-from llmling_agent.tasks import TaskRegistry
 
 
 if TYPE_CHECKING:
@@ -45,9 +45,9 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.eventnode import EventNode
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.manifest import AgentsManifest
-    from llmling_agent.models.result_types import ResponseDefinition
-    from llmling_agent.models.session import SessionQuery
-    from llmling_agent.models.task import Job
+    from llmling_agent_config.result_types import ResponseDefinition
+    from llmling_agent_config.session import SessionQuery
+    from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
 
 

@@ -9,9 +9,9 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.log import get_logger
-from llmling_agent.models.content import BaseContent
 from llmling_agent.prompts.convert import format_prompts
 from llmling_agent.utils.inspection import execute, has_argument_type
+from llmling_agent_config.content import BaseContent
 from llmling_agent_providers.base import (
     AgentProvider,
     ProviderResponse,
@@ -24,8 +24,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent.models.content import Content
-    from llmling_agent.models.providers import ProcessorCallback
+    from llmling_agent_config.content import Content
+    from llmling_agent_config.providers import ProcessorCallback
 
 
 logger = get_logger(__name__)

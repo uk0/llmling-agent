@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 
-from llmling_agent.models.conditions import Condition  # noqa: TC001
 from llmling_agent.utils.inspection import execute
+from llmling_agent_config.conditions import Condition  # noqa: TC001
 
 
 if TYPE_CHECKING:

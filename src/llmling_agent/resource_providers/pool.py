@@ -12,8 +12,8 @@ if TYPE_CHECKING:
     from llmling import BasePrompt
 
     from llmling_agent.delegation import AgentPool
-    from llmling_agent.models.resources import ResourceInfo
     from llmling_agent.tools.base import Tool
+    from llmling_agent_config.resources import ResourceInfo
 
 logger = get_logger(__name__)
 

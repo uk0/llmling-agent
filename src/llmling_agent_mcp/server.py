@@ -18,8 +18,8 @@ from llmling_agent_mcp.transports.stdio import StdioServer
 if TYPE_CHECKING:
     import mcp
 
-    from llmling_agent.models.mcp_server import PoolServerConfig
     from llmling_agent.resource_providers.base import ResourceProvider
+    from llmling_agent_config.mcp_server import PoolServerConfig
     from llmling_agent_mcp.transports.base import TransportBase
 
 logger = get_logger(__name__)

@@ -10,7 +10,7 @@ from openinference.instrumentation import using_attributes
 from openinference.instrumentation.litellm import LiteLLMInstrumentor
 from openinference.instrumentation.openai import OpenAIInstrumentor
 
-from llmling_agent.models.observability import ArizePhoenixProviderConfig
+from llmling_agent_config.observability import ArizePhoenixProviderConfig
 from llmling_agent_observability.base_provider import ObservabilityProvider
 
 
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     import asyncio
 
     from llmling_agent import Agent
-    from llmling_agent.models.observability import ArizePhoenixProviderConfig
+    from llmling_agent_config.observability import ArizePhoenixProviderConfig
 
     config = ArizePhoenixProviderConfig(environment="dev")
     provider = ArizePhoenixProvider(config)

@@ -15,7 +15,7 @@ from llmling_agent_observability.base_provider import ObservabilityProvider
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from llmling_agent.models.observability import AgentOpsProviderConfig
+    from llmling_agent_config.observability import AgentOpsProviderConfig
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -98,8 +98,8 @@ if __name__ == "__main__":
     import pydantic_ai  # noqa: F401
 
     from llmling_agent import Agent
-    from llmling_agent.models.observability import AgentOpsProviderConfig
     from llmling_agent.observability import registry
+    from llmling_agent_config.observability import AgentOpsProviderConfig
 
     config = AgentOpsProviderConfig()
     provider = AgentOpsProvider(config)

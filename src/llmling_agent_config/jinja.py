@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from llmling import ConfigModel
 from pydantic import BaseModel, Field
 
-from llmling_agent.models.tools import ToolConfig  # noqa: TC001
+from llmling_agent_config.tools import ToolConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:

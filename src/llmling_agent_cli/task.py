@@ -12,7 +12,7 @@ from llmling_agent_cli import resolve_agent_config
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models import AgentsManifest
+    from llmling_agent import AgentsManifest
 
 
 TASK_HELP = """
@@ -80,7 +80,7 @@ def task_command(
             raise t.BadParameter(msg) from e
 
         # Load manifest
-        from llmling_agent.models import AgentsManifest
+        from llmling_agent import AgentsManifest
 
         manifest = AgentsManifest.from_file(config_path)
 

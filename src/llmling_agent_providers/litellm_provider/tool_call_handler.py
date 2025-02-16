@@ -10,12 +10,12 @@ from psygnal import Signal
 
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.log import get_logger
-from llmling_agent.models.tools import ToolCallInfo
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
     RunAbortedError,
     ToolSkippedError,
 )
+from llmling_agent.tools import ToolCallInfo
 from llmling_agent.utils.inspection import execute, has_argument_type
 
 

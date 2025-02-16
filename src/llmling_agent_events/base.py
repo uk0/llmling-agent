@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
     from llmling_agent.messaging.events import EventData
-    from llmling_agent.models.events import EventConfig
+    from llmling_agent_config.events import EventConfig
 
 
 class EventSource(ABC):
@@ -52,7 +52,7 @@ class EventSource(ABC):
         Raises:
             ValueError: If source type is unknown or disabled
         """
-        from llmling_agent.models.events import (
+        from llmling_agent_config.events import (
             EmailConfig,
             FileWatchConfig,
             TimeEventConfig,

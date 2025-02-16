@@ -8,7 +8,7 @@ import webbrowser
 from llmling import Config, RuntimeConfig
 from slashed import Command, CommandContext, CommandError, PathCompleter
 
-from llmling_agent.models.environment import FileEnvironment, InlineEnvironment
+from llmling_agent_config.environment import FileEnvironment, InlineEnvironment
 
 
 if TYPE_CHECKING:

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.tools import ToolCallInfo
+from llmling_agent.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
@@ -21,8 +21,8 @@ if TYPE_CHECKING:
     from llmling_agent.agent.context import AgentContext
     from llmling_agent.common_types import ModelProtocol, ModelType
     from llmling_agent.messaging.messages import ChatMessage, TokenCost
-    from llmling_agent.models.content import Content
     from llmling_agent.tools.base import Tool
+    from llmling_agent_config.content import Content
 
 
 logger = get_logger(__name__)

@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from sqlmodel.sql.expression import SelectOfScalar
     from tokonomics.toko_types import TokenUsage
 
-    from llmling_agent.models.session import SessionQuery
+    from llmling_agent_config.session import SessionQuery
     from llmling_agent_storage.sql_provider.models import Message
 
 

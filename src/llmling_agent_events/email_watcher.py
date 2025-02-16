@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from email.message import Message
 
     from llmling_agent.messaging.events import EventData
-    from llmling_agent.models.events import EmailConfig
+    from llmling_agent_config.events import EmailConfig
 
 logger = get_logger(__name__)
 

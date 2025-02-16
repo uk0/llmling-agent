@@ -9,7 +9,7 @@ from uuid import uuid4
 from psygnal.containers import EventedList
 
 from llmling_agent.messaging.message_container import ChatMessageContainer
-from llmling_agent.models.tools import ToolCallInfo
+from llmling_agent.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:

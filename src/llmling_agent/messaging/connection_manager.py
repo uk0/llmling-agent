@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.messageemitter import MessageEmitter
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent.models.forward_targets import ConnectionType
+    from llmling_agent_config.forward_targets import ConnectionType
 
 logger = get_logger(__name__)
 

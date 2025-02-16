@@ -26,8 +26,8 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.messaging.messagenode import MessageNode
-    from llmling_agent.models.task import Job
     from llmling_agent.talk import Talk
+    from llmling_agent_config.task import Job
 
 
 TDeps = TypeVar("TDeps", default=None)

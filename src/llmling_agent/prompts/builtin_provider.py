@@ -10,7 +10,7 @@ from llmling_agent.prompts.base import BasePromptProvider
 if TYPE_CHECKING:
     from llmling.config.runtime import RuntimeConfig
 
-    from llmling_agent.models.prompts import SystemPrompt
+    from llmling_agent_config.prompts import SystemPrompt
 
 
 class BuiltinPromptProvider(BasePromptProvider):

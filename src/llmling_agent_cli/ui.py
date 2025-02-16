@@ -12,7 +12,7 @@ def ui_command(
     config_path: str = t.Option(None, "-c", "--config", help="Override config path"),
 ):
     """Start the UI configured in the manifest."""
-    from llmling_agent.models.ui import (
+    from llmling_agent_config.ui import (
         GradioUIConfig,
         PromptToolkitUIConfig,
         StdlibUIConfig,

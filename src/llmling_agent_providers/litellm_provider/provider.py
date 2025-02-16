@@ -17,14 +17,14 @@ from llmling_agent.agent.context import AgentContext
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.models.content import BaseContent, Content
-from llmling_agent.models.tools import ToolCallInfo
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
     RunAbortedError,
     ToolSkippedError,
 )
+from llmling_agent.tools import ToolCallInfo
 from llmling_agent.utils.inspection import has_argument_type
+from llmling_agent_config.content import BaseContent, Content
 from llmling_agent_providers.base import (
     AgentLLMProvider,
     ProviderResponse,

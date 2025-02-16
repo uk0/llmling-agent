@@ -52,7 +52,7 @@ agents:
 
 Or via code:
 ```python
-from llmling_agent.models.session import MemoryConfig, SessionQuery
+from llmling_agent_config.session import MemoryConfig, SessionQuery
 
 # Configure memory management
 memory_cfg = MemoryConfig(

@@ -15,7 +15,7 @@ from llmling_agent_observability.base_provider import ObservabilityProvider
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
-    from llmling_agent.models.observability import LangsmithProviderConfig
+    from llmling_agent_config.observability import LangsmithProviderConfig
 
 P = ParamSpec("P")
 R = TypeVar("R")

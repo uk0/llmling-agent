@@ -6,19 +6,19 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.prompt_hubs import (
+from llmling_agent.prompts.builtin_provider import BuiltinPromptProvider
+from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent_config.prompt_hubs import (
     LangfuseConfig,
     OpenLITConfig,
     PromptLayerConfig,
     TraceloopConfig,
 )
-from llmling_agent.prompts.builtin_provider import BuiltinPromptProvider
-from llmling_agent.utils.tasks import TaskManagerMixin
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.prompts import PromptConfig
     from llmling_agent.prompts.base import BasePromptProvider
+    from llmling_agent_config.prompts import PromptConfig
 
 logger = get_logger(__name__)
 

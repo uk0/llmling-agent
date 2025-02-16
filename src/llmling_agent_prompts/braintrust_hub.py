@@ -7,8 +7,8 @@ from typing import Any
 
 from braintrust import init_logger, load_prompt
 
-from llmling_agent.models.prompt_hubs import BraintrustConfig
 from llmling_agent.prompts.base import BasePromptProvider
+from llmling_agent_config.prompt_hubs import BraintrustConfig
 
 
 class BraintrustPromptHub(BasePromptProvider):
@@ -40,7 +40,7 @@ class BraintrustPromptHub(BasePromptProvider):
 if __name__ == "__main__":
     import asyncio
 
-    from llmling_agent.models.prompt_hubs import BraintrustConfig
+    from llmling_agent_config.prompt_hubs import BraintrustConfig
 
     config = BraintrustConfig(project="test")
     prompt_hub = BraintrustPromptHub(config)

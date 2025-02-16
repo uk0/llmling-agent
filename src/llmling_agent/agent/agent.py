@@ -20,7 +20,6 @@ from typing_extensions import TypeVar
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.models.session import MemoryConfig, SessionQuery
 from llmling_agent.observability import track_action, track_agent
 from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
@@ -35,6 +34,7 @@ from llmling_agent.utils.inspection import (
 )
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent_config.session import MemoryConfig, SessionQuery
 
 
 if TYPE_CHECKING:
@@ -61,10 +61,10 @@ if TYPE_CHECKING:
     from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
-    from llmling_agent.models.mcp_server import MCPServerConfig
-    from llmling_agent.models.providers import ProcessorCallback
-    from llmling_agent.models.result_types import ResponseDefinition
-    from llmling_agent.models.task import Job
+    from llmling_agent_config.mcp_server import MCPServerConfig
+    from llmling_agent_config.providers import ProcessorCallback
+    from llmling_agent_config.result_types import ResponseDefinition
+    from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
     from llmling_agent_providers.base import (
         AgentProvider,
