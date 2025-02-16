@@ -75,7 +75,8 @@ agents:
 
     # Agent relationships
     workers:
-      - name: "formatter"
+      - type: agent
+        name: "formatter"
         reset_history_on_run: true
         pass_message_history: false
         share_context: false

@@ -125,7 +125,8 @@ parent.register_worker(
 agents:
   parent:
     workers:
-      - name: "researcher"
+      - type: agent
+        name: "researcher"
         reset_history_on_run: true
 ```
 

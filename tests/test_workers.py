@@ -193,3 +193,7 @@ async def test_multiple_workers_same_prompt(tmp_path: Path):
 
         assert len(responses) > 0
         assert any("helpful worker" in r.lower() for r in responses)
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

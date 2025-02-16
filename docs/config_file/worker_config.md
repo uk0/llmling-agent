@@ -8,7 +8,7 @@ Simple worker by name:
 agents:
   senior_dev:
     workers:
-      - "code_reviewer"     # Simple reference to another agent
+      - "code_reviewer"     # Simple reference to another node
       - "bug_analyzer"      # Each becomes available as a tool
 ```
 
@@ -18,12 +18,14 @@ Full worker configuration with all options:
 agents:
   senior_dev:
     workers:
-      - name: "code_reviewer"
+      - type: agent
+        name: "code_reviewer"
         reset_history_on_run: true    # Fresh conversation each time
         pass_message_history: false   # Don't share parent's history
         share_context: false          # Don't share parent's context/deps
 
-      - name: "bug_analyzer"
+      - type: agent
+        name: "bug_analyzer"
         reset_history_on_run: false   # Maintain conversation between runs
         pass_message_history: true    # See parent's conversation
         share_context: true           # Access parent's context data
@@ -51,7 +53,8 @@ Workers that operate independently:
 agents:
   lead_dev:
     workers:
-      - name: "linter"
+      - type: agent
+        name: "linter"
         reset_history_on_run: true     # Fresh start each time
         pass_message_history: false    # Independent operation
         share_context: false           # Own context
@@ -63,7 +66,8 @@ Workers that share context with parent:
 agents:
   architect:
     workers:
-      - name: "code_reviewer"
+      - type: agent
+        name: "code_reviewer"
         reset_history_on_run: false    # Remember previous reviews
         pass_message_history: true     # See full discussion
         share_context: true            # Access shared context
@@ -76,11 +80,13 @@ agents:
   team_lead:
     workers:
       # Independent linting
-      - name: "linter"
+      - type: agent
+        name: "linter"
         reset_history_on_run: true
 
       # Contextual code review
-      - name: "reviewer"
+      - type: agent
+        name: "reviewer"
         reset_history_on_run: false
         pass_message_history: true
 
