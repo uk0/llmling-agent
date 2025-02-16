@@ -34,7 +34,12 @@ from llmling_agent_config.result_types import InlineResponseDefinition, Response
 from llmling_agent_config.session import MemoryConfig, SessionQuery
 from llmling_agent_config.tools import BaseToolConfig, ToolConfig
 from llmling_agent_config.toolsets import ToolsetConfig  # noqa: TC001
-from llmling_agent_config.workers import WorkerConfig
+from llmling_agent_config.workers import (
+    AgentWorkerConfig,
+    BaseWorkerConfig,
+    TeamWorkerConfig,
+    WorkerConfig,
+)
 from llmling_agent_models import AnyModelConfig  # noqa: TC001
 
 
@@ -147,16 +152,59 @@ class AgentConfig(NodeConfig):
     @model_validator(mode="before")
     @classmethod
     def normalize_workers(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Convert string workers to WorkerConfig."""
-        if workers := data.get("workers"):
-            data["workers"] = [
-                WorkerConfig(name=w)
-                if isinstance(w, str)
-                else w
-                if isinstance(w, WorkerConfig)  # Keep existing WorkerConfig
-                else WorkerConfig(**w)  # Convert dict to WorkerConfig
-                for w in workers
-            ]
+        """Convert string workers to appropriate WorkerConfig."""
+        if not (workers := data.get("workers")):
+            return data
+
+        normalized: list[BaseWorkerConfig] = []
+
+        # Get teams and agents from parent manifest if available
+        teams = data.get("teams", {})
+        agents = data.get("agents", {})
+
+        for worker in workers:
+            match worker:
+                case str() as name:
+                    # Determine type based on presence in teams/agents
+                    if name in teams:
+                        normalized.append(TeamWorkerConfig(name=name))
+                    elif name in agents:
+                        normalized.append(AgentWorkerConfig(name=name))
+                    else:
+                        # Default to agent if type can't be determined
+                        normalized.append(AgentWorkerConfig(name=name))
+
+                case dict() as config:
+                    # If type is explicitly specified, use it
+                    if worker_type := config.get("type"):
+                        match worker_type:
+                            case "team":
+                                normalized.append(TeamWorkerConfig(**config))
+                            case "agent":
+                                normalized.append(AgentWorkerConfig(**config))
+                            case _:
+                                msg = f"Invalid worker type: {worker_type}"
+                                raise ValueError(msg)
+                    else:
+                        # Determine type based on worker name
+                        worker_name = config.get("name")
+                        if not worker_name:
+                            msg = "Worker config missing name"
+                            raise ValueError(msg)
+
+                        if worker_name in teams:
+                            normalized.append(TeamWorkerConfig(**config))
+                        else:
+                            normalized.append(AgentWorkerConfig(**config))
+
+                case BaseWorkerConfig():  # Already normalized
+                    normalized.append(worker)
+
+                case _:
+                    msg = f"Invalid worker configuration: {worker}"
+                    raise ValueError(msg)
+
+        data["workers"] = normalized
         return data
 
     @model_validator(mode="before")

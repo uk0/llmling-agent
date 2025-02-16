@@ -31,6 +31,7 @@ from llmling_agent_config.forward_targets import (
     FileConnectionConfig,
     NodeConnectionConfig,
 )
+from llmling_agent_config.workers import AgentWorkerConfig, TeamWorkerConfig
 
 
 if TYPE_CHECKING:
@@ -712,14 +713,18 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
         """Set up workers for an agent from configuration."""
         for worker_config in agent.context.config.workers:
             try:
-                worker = self.get_agent(worker_config.name)
-                agent.register_worker(
-                    worker,
-                    name=worker_config.name,
-                    reset_history_on_run=worker_config.reset_history_on_run,
-                    pass_message_history=worker_config.pass_message_history,
-                    share_context=worker_config.share_context,
-                )
+                worker = self.nodes[worker_config.name]
+                match worker_config:
+                    case TeamWorkerConfig():
+                        agent.register_worker(worker)
+                    case AgentWorkerConfig():
+                        agent.register_worker(
+                            worker,
+                            name=worker_config.name,
+                            reset_history_on_run=worker_config.reset_history_on_run,
+                            pass_message_history=worker_config.pass_message_history,
+                            share_context=worker_config.share_context,
+                        )
             except KeyError as e:
                 msg = f"Worker agent {worker_config.name!r} not found"
                 raise ValueError(msg) from e

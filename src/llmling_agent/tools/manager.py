@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
+    from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.resource_providers.base import ResourceProvider
 
 
@@ -296,7 +297,7 @@ class ToolManager(BaseRegistry[str, Tool]):
 
     def register_worker(
         self,
-        worker: AnyAgent[Any, Any],
+        worker: MessageNode[Any, Any],
         *,
         name: str | None = None,
         reset_history_on_run: bool = True,
@@ -314,13 +315,22 @@ class ToolManager(BaseRegistry[str, Tool]):
             share_context: Whether to pass parent's context/deps
             parent: Optional parent agent for history/context sharing
         """
-        tool = worker.to_tool(
-            parent=parent,
-            name=name,
-            reset_history_on_run=reset_history_on_run,
-            pass_message_history=pass_message_history,
-            share_context=share_context,
-        )
+        from llmling_agent import Agent, BaseTeam, StructuredAgent
+
+        match worker:
+            case BaseTeam():
+                tool = worker.to_tool(name=name)
+            case Agent() | StructuredAgent():
+                tool = worker.to_tool(
+                    parent=parent,
+                    name=name,
+                    reset_history_on_run=reset_history_on_run,
+                    pass_message_history=pass_message_history,
+                    share_context=share_context,
+                )
+            case _:
+                msg = f"Unsupported worker type: {type(worker)}"
+                raise ValueError(msg)
         msg = "Registering worker %s as tool %s"
         logger.debug(msg, worker.name, tool.name)
         return self.register_tool(tool, source="agent", metadata={"agent": worker.name})

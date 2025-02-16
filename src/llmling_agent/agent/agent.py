@@ -1152,7 +1152,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
     def register_worker(
         self,
-        worker: AnyAgent[Any, Any],
+        worker: MessageNode[Any, Any],
         *,
         name: str | None = None,
         reset_history_on_run: bool = True,

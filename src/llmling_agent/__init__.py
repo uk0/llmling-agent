@@ -3,7 +3,7 @@
 from llmling_agent.models import AgentsManifest, AgentConfig
 from llmling_agent.agent import Agent, StructuredAgent, AnyAgent, AgentContext
 
-from llmling_agent.delegation import AgentPool, Team, TeamRun
+from llmling_agent.delegation import AgentPool, Team, TeamRun, BaseTeam
 from dotenv import load_dotenv
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.tools import Tool, ToolCallInfo
@@ -20,6 +20,7 @@ __all__ = [
     "AgentPool",
     "AgentsManifest",
     "AnyAgent",
+    "BaseTeam",
     "ChatMessage",
     "MessageNode",
     "StructuredAgent",
