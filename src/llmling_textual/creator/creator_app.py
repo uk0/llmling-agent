@@ -10,8 +10,7 @@ from upath import UPath
 from upathtools import read_path
 from yaml import YAMLError
 
-from llmling_agent.agent.agent import Agent
-from llmling_agent.models.manifest import AgentsManifest
+from llmling_agent import Agent, AgentsManifest
 from llmling_agent.utils.count_tokens import count_tokens
 from llmling_agent_cli import agent_store
 

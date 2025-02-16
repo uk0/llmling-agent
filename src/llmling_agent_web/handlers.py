@@ -5,8 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from llmling_agent import Agent, AgentPool
-from llmling_agent.models import AgentsManifest
+from llmling_agent import Agent, AgentPool, AgentsManifest
 
 
 @dataclass

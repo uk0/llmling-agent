@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 
 from llmling_agent import AgentPool, AgentsManifest
 from llmling_agent.log import get_logger
-from llmling_agent.models import AgentsManifest  # noqa: F811
 from llmling_agent_web.type_utils import ChatHistory  # noqa: TC001
 
 
