@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
 from llmling_agent.log import get_logger
@@ -191,22 +192,21 @@ class StorageManager(TaskManagerMixin):
         """Log message to all providers."""
         if not self.config.log_messages:
             return
+
         for provider in self.providers:
-            try:
-                if not provider.should_log_agent(name or "no name"):
-                    continue
-                await provider.log_message(
-                    conversation_id=conversation_id,
-                    content=content,
-                    role=role,
-                    name=name,
-                    cost_info=cost_info,
-                    model=model,
-                    response_time=response_time,
-                    forwarded_from=forwarded_from,
+            if provider.should_log_agent(name or "no name"):
+                self.create_task(
+                    provider.log_message(
+                        conversation_id=conversation_id,
+                        content=content,
+                        role=role,
+                        name=name,
+                        cost_info=cost_info,
+                        model=model,
+                        response_time=response_time,
+                        forwarded_from=forwarded_from,
+                    )
                 )
-            except Exception:
-                logger.exception("Error logging message to provider: %r", provider)
 
     async def log_conversation(
         self,
@@ -220,14 +220,13 @@ class StorageManager(TaskManagerMixin):
             return
 
         for provider in self.providers:
-            try:
-                await provider.log_conversation(
+            self.create_task(
+                provider.log_conversation(
                     conversation_id=conversation_id,
                     node_name=node_name,
                     start_time=start_time,
                 )
-            except Exception:
-                logger.exception("Error logging conversation to provider: %r", provider)
+            )
 
     async def log_tool_call(
         self,
@@ -241,14 +240,13 @@ class StorageManager(TaskManagerMixin):
             return
 
         for provider in self.providers:
-            try:
-                await provider.log_tool_call(
+            self.create_task(
+                provider.log_tool_call(
                     conversation_id=conversation_id,
                     message_id=message_id,
                     tool_call=tool_call,
                 )
-            except Exception:
-                logger.exception("Error logging tool call to provider: %r", provider)
+            )
 
     async def log_command(
         self,
@@ -264,16 +262,67 @@ class StorageManager(TaskManagerMixin):
             return
 
         for provider in self.providers:
-            try:
-                await provider.log_command(
+            self.create_task(
+                provider.log_command(
                     agent_name=agent_name,
                     session_id=session_id,
                     command=command,
                     context_type=context_type,
                     metadata=metadata,
                 )
+            )
+
+    async def log_context_message(
+        self,
+        *,
+        conversation_id: str,
+        content: str,
+        role: str,
+        name: str | None = None,
+        model: str | None = None,
+    ):
+        """Log context message to all providers."""
+        for provider in self.providers:
+            self.create_task(
+                provider.log_context_message(
+                    conversation_id=conversation_id,
+                    content=content,
+                    role=role,
+                    name=name,
+                    model=model,
+                )
+            )
+
+    async def reset(
+        self,
+        *,
+        agent_name: str | None = None,
+        hard: bool = False,
+    ) -> tuple[int, int]:
+        """Reset storage in all providers concurrently."""
+
+        async def reset_provider(provider: StorageProvider) -> tuple[int, int]:
+            try:
+                return await provider.reset(agent_name=agent_name, hard=hard)
             except Exception:
-                logger.exception("Error logging command to provider: %r", provider)
+                msg = "Error resetting provider: %r"
+                logger.exception(msg, provider.__class__.__name__)
+                return (0, 0)
+
+        results = await asyncio.gather(
+            *(reset_provider(provider) for provider in self.providers)
+        )
+        # Return the counts from the last provider (maintaining existing behavior)
+        return results[-1] if results else (0, 0)
+
+    async def get_conversation_counts(
+        self,
+        *,
+        agent_name: str | None = None,
+    ) -> tuple[int, int]:
+        """Get counts from primary provider."""
+        provider = self.get_history_provider()
+        return await provider.get_conversation_counts(agent_name=agent_name)
 
     async def get_commands(
         self,
@@ -295,57 +344,6 @@ class StorageManager(TaskManagerMixin):
             limit=limit,
             current_session_only=current_session_only,
         )
-
-    async def log_context_message(
-        self,
-        *,
-        conversation_id: str,
-        content: str,
-        role: str,
-        name: str | None = None,
-        model: str | None = None,
-    ):
-        """Log context message to all providers."""
-        for provider in self.providers:
-            try:
-                await provider.log_context_message(
-                    conversation_id=conversation_id,
-                    content=content,
-                    role=role,
-                    name=name,
-                    model=model,
-                )
-            except Exception:
-                msg = "Error logging context message to provider: %r"
-                logger.exception(msg, provider)
-
-    async def reset(
-        self,
-        *,
-        agent_name: str | None = None,
-        hard: bool = False,
-    ) -> tuple[int, int]:
-        """Reset storage in all providers.
-
-        Returns counts from primary provider.
-        """
-        counts = (0, 0)
-        for provider in self.providers:
-            try:
-                counts = await provider.reset(agent_name=agent_name, hard=hard)
-            except Exception:
-                msg = "Error resetting provider: %r"
-                logger.exception(msg, provider.__class__.__name__)
-        return counts
-
-    async def get_conversation_counts(
-        self,
-        *,
-        agent_name: str | None = None,
-    ) -> tuple[int, int]:
-        """Get counts from primary provider."""
-        provider = self.get_history_provider()
-        return await provider.get_conversation_counts(agent_name=agent_name)
 
     # Sync wrappers
     def reset_sync(self, *args, **kwargs) -> tuple[int, int]:
