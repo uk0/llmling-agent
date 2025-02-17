@@ -149,14 +149,13 @@ class SupabaseConfig(BaseStorageProviderConfig):
     """Database schema name for multi-tenant setups"""
 
     @property
-    def supabase_url(self) -> str:
+    def supabase_url(self) -> str | None:
         """Get Supabase URL, defaulting to cloud if not specified."""
         if self.url:
             return str(self.url)
-        if not self.project_id:
-            msg = "Either url or project_id must be provided"
-            raise ValueError(msg)
-        return f"https://{self.project_id}.supabase.co"
+        if self.project_id:
+            return f"https://{self.project_id}.supabase.co"
+        return None
 
 
 StorageProviderConfig = Annotated[

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import os
 from typing import TYPE_CHECKING, Any, Self
 
 from supabase import AsyncClient, create_async_client
@@ -48,10 +49,11 @@ class SupabaseProvider(StorageProvider):
 
     async def __aenter__(self) -> Self:
         """Initialize async client and tables."""
-        self.client = await create_async_client(
-            self.config.supabase_url,
-            self.config.key.get_secret_value(),
-        )
+        url = self.config.supabase_url or os.getenv("SUPABASE_PROJECT_URL")
+        api_key = self.config.key.get_secret_value() or os.getenv("SUPABASE_API_KEY")
+        assert url, "Supabase URL not provided"
+        assert api_key, "Supabase API key not provided"
+        self.client = await create_async_client(url, api_key)
         await self._init_tables()
         return self
 
