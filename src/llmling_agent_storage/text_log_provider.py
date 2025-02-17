@@ -1,16 +1,25 @@
-"""Text-based storage provider."""
+"""Text-based storage provider with dynamic paths."""
+
+from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
-from jinja2 import Template
 from upath import UPath
 
-from llmling_agent.common_types import JsonValue, StrPath
 from llmling_agent.log import get_logger
-from llmling_agent.tools import ToolCallInfo
-from llmling_agent_config.storage import LogFormat, TextLogConfig
 from llmling_agent_storage.base import StorageProvider
+
+
+if TYPE_CHECKING:
+    from jinja2 import Template
+
+    from llmling_agent.common_types import JsonValue, StrPath
+    from llmling_agent.tools import ToolCallInfo
+    from llmling_agent_config.storage import LogFormat, TextLogConfig
+
+
+logger = get_logger(__name__)
 
 
 CONVERSATIONS_TEMPLATE = """\
@@ -79,38 +88,58 @@ Result: {{ entry.result }}
 """  # noqa: E501
 
 
-logger = get_logger(__name__)
-
-
 class TextLogProvider(StorageProvider):
-    """Human-readable text log provider."""
+    """Human-readable text log provider with dynamic paths.
+
+    Available template variables:
+    - now: datetime - Current timestamp
+    - date: date - Current date
+    - operation: str - Type of operation (message/conversation/tool_call/command)
+    - conversation_id: str - ID of current conversation
+    - agent_name: str - Name of the agent
+    - content: str - Message content
+    - role: str - Message role
+    - model: str - Model name
+    - session_id: str - Session ID
+    - tool_name: str - Name of tool being called
+    - command: str - Command being executed
+
+    All variables default to empty string if not available for current operation.
+    """
 
     TEMPLATES: ClassVar[dict[LogFormat, str]] = {
         "chronological": CHRONOLOGICAL_TEMPLATE,
         "conversations": CONVERSATIONS_TEMPLATE,
     }
-    can_load_history = False  # Text logs are write-only
+    can_load_history = False
 
     def __init__(self, config: TextLogConfig):
-        """Initialize text log provider.
+        """Initialize text log provider."""
+        from jinja2 import Environment, Undefined
 
-        Args:
-            config: Configuration for provider
-            kwargs: Additional arguments to pass to StorageProvider
-        """
+        class EmptyStringUndefined(Undefined):
+            """Return empty string for undefined variables."""
+
+            def __str__(self) -> str:
+                return ""
+
         super().__init__(config)
-        self.path = UPath(config.path)
         self.encoding = config.encoding
-        self.template = self._load_template(config.template)
+        self.content_template = self._load_template(config.template)
+
+        # Configure Jinja env with empty string for undefined
+        env = Environment(undefined=EmptyStringUndefined)
+        self.path_template = env.from_string(config.path)
+
         self._entries: list[dict[str, Any]] = []
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._write()  # Create initial empty file
 
     def _load_template(
         self,
         template: LogFormat | StrPath | None,
     ) -> Template:
         """Load template from predefined or file."""
+        from jinja2 import Template
+
         if template is None:
             template_str = self.TEMPLATES["chronological"]
         elif template in self.TEMPLATES:
@@ -121,14 +150,70 @@ class TextLogProvider(StorageProvider):
                 template_str = f.read()
         return Template(template_str)
 
-    async def log_message(self, **kwargs):
+    def _get_base_context(self, operation: str) -> dict[str, Any]:
+        """Get base context with defaults.
+
+        Args:
+            operation: Type of operation being logged
+
+        Returns:
+            Base context dict with defaults
+        """
+        return {
+            "now": datetime.now(),
+            "date": datetime.now().date(),
+            "operation": operation,
+            # All other variables will default to empty string via EmptyStringUndefined
+        }
+
+    def _get_path(self, operation: str, **context: Any) -> UPath:
+        """Render path template with context.
+
+        Args:
+            operation: Type of operation being logged
+            **context: Additional context variables
+
+        Returns:
+            Concrete path for current operation
+        """
+        # Combine base context with provided values
+        path_context = self._get_base_context(operation)
+        path_context.update(context)
+
+        path = self.path_template.render(**path_context)
+        resolved_path = UPath(path)
+        resolved_path.parent.mkdir(parents=True, exist_ok=True)
+        return resolved_path
+
+    async def log_message(
+        self,
+        *,
+        conversation_id: str,
+        content: str,
+        role: str,
+        name: str | None = None,
+        cost_info: Any | None = None,
+        model: str | None = None,
+        response_time: float | None = None,
+        forwarded_from: list[str] | None = None,
+    ):
         """Store message and update log."""
-        self._entries.append({
+        entry = {
             "type": "message",
             "timestamp": datetime.now(),
-            **kwargs,
-        })
-        self._write()
+            "conversation_id": conversation_id,
+            "content": content,
+            "role": role,
+            "agent_name": name,
+            "model": model,
+            "cost_info": cost_info,
+            "response_time": response_time,
+            "forwarded_from": forwarded_from,
+        }
+        self._entries.append(entry)
+
+        path = self._get_path("message", **entry)
+        self._write(path)
 
     async def log_conversation(
         self,
@@ -137,14 +222,17 @@ class TextLogProvider(StorageProvider):
         node_name: str,
         start_time: datetime | None = None,
     ):
-        """Store conversation start and update log."""
-        self._entries.append({
-            "type": "conversation_start",
+        """Store conversation start."""
+        entry = {
+            "type": "conversation",
             "timestamp": start_time or datetime.now(),
             "conversation_id": conversation_id,
             "agent_name": node_name,
-        })
-        self._write()
+        }
+        self._entries.append(entry)
+
+        path = self._get_path("conversation", **entry)
+        self._write(path)
 
     async def log_tool_call(
         self,
@@ -153,8 +241,8 @@ class TextLogProvider(StorageProvider):
         message_id: str,
         tool_call: ToolCallInfo,
     ):
-        """Store tool call and update log."""
-        self._entries.append({
+        """Store tool call."""
+        entry = {
             "type": "tool_call",
             "timestamp": tool_call.timestamp,
             "conversation_id": conversation_id,
@@ -162,8 +250,11 @@ class TextLogProvider(StorageProvider):
             "tool_name": tool_call.tool_name,
             "args": tool_call.args,
             "result": tool_call.result,
-        })
-        self._write()
+        }
+        self._entries.append(entry)
+
+        path = self._get_path("tool_call", **entry)
+        self._write(path)
 
     async def log_command(
         self,
@@ -174,37 +265,28 @@ class TextLogProvider(StorageProvider):
         context_type: type | None = None,
         metadata: dict[str, JsonValue] | None = None,
     ):
-        """Store command and update log."""
-        self._entries.append({
+        """Store command."""
+        entry = {
             "type": "command",
             "timestamp": datetime.now(),
             "agent_name": agent_name,
             "session_id": session_id,
             "command": command,
-            "context_type": context_type.__name__ if context_type else None,
-            "metadata": metadata,
-        })
-        self._write()
+            "context_type": context_type.__name__ if context_type else "",
+            "metadata": metadata or {},
+        }
+        self._entries.append(entry)
 
-    def _write(self):
-        """Write current state to file."""
+        path = self._get_path("command", **entry)
+        self._write(path)
+
+    def _write(self, path: UPath):
+        """Write current state to file at given path."""
         try:
             context = {"entries": self._entries}
-            text = self.template.render(context)
-            self.path.write_text(text, encoding=self.encoding)
+            text = self.content_template.render(context)
+            path.write_text(text, encoding=self.encoding)
         except Exception as e:
-            logger.exception("Failed to write to log file: %s", self.path)
+            logger.exception("Failed to write to log file: %s", path)
             msg = f"Failed to write to log file: {e}"
             raise RuntimeError(msg) from e
-
-    async def get_commands(
-        self,
-        agent_name: str,
-        session_id: str,
-        *,
-        limit: int | None = None,
-        current_session_only: bool = False,
-    ) -> list[str]:
-        """Not supported for text logs."""
-        msg = f"{self.__class__.__name__} does not support retrieving commands"
-        raise NotImplementedError(msg)
