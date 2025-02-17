@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Annotated, Final, Literal
 
 from platformdirs import user_data_dir
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, SecretStr
 
 
 LogFormat = Literal["chronological", "conversations"]
@@ -122,11 +122,33 @@ class Mem0Config(BaseStorageProviderConfig):
     """API output format version. 1.1 is recommended and provides enhanced details."""
 
 
+class SupabaseConfig(BaseStorageProviderConfig):
+    """Configuration for Supabase storage."""
+
+    type: Literal["supabase"] = "supabase"
+    key: SecretStr
+    url: HttpUrl | None = None
+    project_id: str | None = None
+    pool_size: int = Field(default=20, gt=0)
+    db_schema: str = "public"  # For multi-tenant setups
+
+    @property
+    def supabase_url(self) -> str:
+        """Get Supabase URL, defaulting to cloud if not specified."""
+        if self.url:
+            return str(self.url)
+        if not self.project_id:
+            msg = "Either url or project_id must be provided"
+            raise ValueError(msg)
+        return f"https://{self.project_id}.supabase.co"
+
+
 StorageProviderConfig = Annotated[
     SQLStorageConfig
     | FileStorageConfig
     | TextLogConfig
     | MemoryStorageConfig
+    | SupabaseConfig
     | Mem0Config,
     Field(discriminator="type"),
 ]
