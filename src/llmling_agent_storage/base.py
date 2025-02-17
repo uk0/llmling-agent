@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar
 
 from llmling_agent.utils.tasks import TaskManagerMixin
 
@@ -12,6 +12,7 @@ from llmling_agent.utils.tasks import TaskManagerMixin
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
+    from types import TracebackType
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging.messages import ChatMessage, TokenCost
@@ -63,6 +64,19 @@ class StorageProvider[T](TaskManagerMixin):
         self.log_tool_calls = config.log_tool_calls
         self.log_commands = config.log_commands
         self.log_context = config.log_context
+
+    async def __aenter__(self) -> Self:
+        """Initialize provider resources."""
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Clean up provider resources."""
+        self.cleanup()
 
     def cleanup(self):
         """Clean up resources."""

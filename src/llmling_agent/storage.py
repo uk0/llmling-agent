@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManagerMixin
@@ -19,6 +19,7 @@ from llmling_agent_config.storage import (
 
 if TYPE_CHECKING:
     from datetime import datetime
+    from types import TracebackType
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging.messages import ChatMessage, TokenCost
@@ -50,6 +51,33 @@ class StorageManager(TaskManagerMixin):
         self.providers = [
             self._create_provider(cfg) for cfg in self.config.effective_providers
         ]
+
+    async def __aenter__(self) -> Self:
+        """Initialize all providers."""
+        for provider in self.providers:
+            await provider.__aenter__()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Clean up all providers."""
+        errors = []
+        for provider in self.providers:
+            try:
+                await provider.__aexit__(exc_type, exc_val, exc_tb)
+            except Exception as e:
+                errors.append(e)
+                logger.exception("Error cleaning up provider: %r", provider)
+
+        await self.cleanup_tasks()
+
+        if errors:
+            msg = "Provider cleanup errors"
+            raise ExceptionGroup(msg, errors)
 
     def cleanup(self):
         """Clean up all providers."""
