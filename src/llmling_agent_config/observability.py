@@ -165,6 +165,21 @@ class BraintrustProviderConfig(BaseObservabilityProviderConfig):
         return BraintrustProvider(self)
 
 
+class LaminarProviderConfig(BaseObservabilityProviderConfig):
+    """Configuration for Laminar provider."""
+
+    type: Literal["laminar"] = Field("laminar", init=False)
+
+    api_key: SecretStr | None = None
+    """Laminar API key."""
+
+    def get_provider(self) -> ObservabilityProvider:
+        """Get the provider instance."""
+        from llmling_agent_observability.laminar_provider import LaminarProvider
+
+        return LaminarProvider(self)
+
+
 class TraceloopProviderConfig(BaseObservabilityProviderConfig):
     """Configuration for Traceloop provider."""
 

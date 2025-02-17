@@ -106,6 +106,7 @@ remote = ["websockets>=14.2"]
 mem0 = ["mem0ai>=0.1.48; python_version < '3.14'"]
 logfire = ["logfire"]
 agentops = ["agentops"]
+laminar = ["lmnr"]
 braintrust = ["braintrust", "autoevals; python_version < '3.14'"]
 traceloop = ["traceloop-sdk>=0.38.4; python_version < '3.14'"]
 git = ["pygit2; python_version < '3.14'"] # for fsspec git support
