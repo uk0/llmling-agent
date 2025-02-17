@@ -29,6 +29,7 @@ class BaseStorageProviderConfig(BaseModel):
     """Base storage provider configuration."""
 
     type: str = Field(init=False)
+    """Storage provider type."""
 
     log_messages: bool = True
     """Whether to log messages"""
@@ -55,6 +56,7 @@ class SQLStorageConfig(BaseStorageProviderConfig):
     """SQL database storage configuration."""
 
     type: Literal["sql"] = Field("sql", init=False)
+    """SQLModel storage configuration."""
 
     url: str = Field(default_factory=get_database_path)
     """Database URL (e.g. sqlite:///history.db)"""
@@ -70,6 +72,7 @@ class TextLogConfig(BaseStorageProviderConfig):
     """Text log configuration."""
 
     type: Literal["text_file"] = Field("text_file", init=False)
+    """Text log storage configuration."""
 
     path: str
     """Path to log file"""
@@ -89,6 +92,7 @@ class FileStorageConfig(BaseStorageProviderConfig):
     """File storage configuration."""
 
     type: Literal["file"] = Field("file", init=False)
+    """File storage configuration."""
 
     path: str
     """Path to storage file (extension determines format unless specified)"""
@@ -104,13 +108,14 @@ class MemoryStorageConfig(BaseStorageProviderConfig):
     """In-memory storage configuration for testing."""
 
     type: Literal["memory"] = Field("memory", init=False)
+    """In-memory storage configuration for testing."""
 
 
 class Mem0Config(BaseStorageProviderConfig):
     """Configuration for mem0 storage."""
 
     type: Literal["mem0"] = Field("mem0", init=False)
-    """Type discriminator for storage config."""
+    """Mem0 storage config."""
 
     api_key: SecretStr | None = None
     """API key for mem0 service."""
@@ -126,11 +131,22 @@ class SupabaseConfig(BaseStorageProviderConfig):
     """Configuration for Supabase storage."""
 
     type: Literal["supabase"] = "supabase"
+    """Supabase storage configuration"""
+
     key: SecretStr
+    """Authentication key for Supabase service"""
+
     url: HttpUrl | None = None
+    """Custom Supabase instance URL. If None, uses project_id to construct URL"""
+
     project_id: str | None = None
+    """Supabase project ID. Required if url is not provided"""
+
     pool_size: int = Field(default=20, gt=0)
-    db_schema: str = "public"  # For multi-tenant setups
+    """Maximum number of database connections in the pool"""
+
+    db_schema: str = "public"
+    """Database schema name for multi-tenant setups"""
 
     @property
     def supabase_url(self) -> str:
