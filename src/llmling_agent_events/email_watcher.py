@@ -3,11 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from email.parser import BytesParser
-import ssl
 from typing import TYPE_CHECKING
-
-import aioimaplib
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.events import EmailEventData
@@ -17,6 +13,8 @@ from llmling_agent_events.base import EventSource
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
     from email.message import Message
+
+    import aioimaplib
 
     from llmling_agent.messaging.events import EventData
     from llmling_agent_config.events import EmailConfig
@@ -34,6 +32,10 @@ class EmailEventSource(EventSource):
 
     async def connect(self):
         """Connect to email server with configured protocol."""
+        import ssl
+
+        import aioimaplib
+
         if self.config.ssl:
             ssl_context = ssl.create_default_context()
             self._client = aioimaplib.IMAP4_SSL(
@@ -77,6 +79,8 @@ class EmailEventSource(EventSource):
         return " ".join(criteria)
 
     def _process_email(self, email_bytes: bytes) -> EventData:
+        from email.parser import BytesParser
+
         parser = BytesParser()
         email_msg: Message = parser.parsebytes(email_bytes)
 

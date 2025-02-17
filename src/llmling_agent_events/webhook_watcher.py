@@ -3,11 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
-import hmac
 from typing import TYPE_CHECKING
-
-from fastapi import FastAPI, Request
 
 from llmling_agent.messaging.events import EventData
 from llmling_agent_events.base import EventSource
@@ -23,6 +19,8 @@ class WebhookEventSource(EventSource):
     """Listens for webhook events on configured endpoint."""
 
     def __init__(self, config: WebhookConfig):
+        from fastapi import FastAPI, Request
+
         self.config = config
         self.app = FastAPI()
         self._queue: asyncio.Queue[EventData] = asyncio.Queue()
@@ -65,6 +63,9 @@ class WebhookEventSource(EventSource):
 
     def _verify_signature(self, payload: bytes, signature: str | None) -> bool:
         """Verify webhook signature."""
+        import hashlib
+        import hmac
+
         if not signature or not self.config.secret:
             return False
         key = self.config.secret.encode()
