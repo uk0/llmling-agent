@@ -231,6 +231,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             context=ctx,
             description=description,
             enable_logging=memory_cfg.enable,
+            mcp_servers=mcp_servers,
         )
         # Initialize runtime
         match runtime:
