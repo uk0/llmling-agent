@@ -936,7 +936,7 @@ if __name__ == "__main__":
     async def main():
         path = "src/llmling_agent/config_resources/agents.yml"
         async with AgentPool[None](path) as pool:
-            agent: Agent[Any] = pool.get_agent("overseer")
+            agent: Agent[None] = pool.get_agent("overseer")
             print(agent)
 
     import asyncio

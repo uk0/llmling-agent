@@ -68,7 +68,7 @@ async def main(config_path: str):
         scanner.tool_used.connect(lambda call: print(call.format()))
         writer.tool_used.connect(lambda call: print(call.format()))
         checker.tool_used.connect(lambda call: print(call.format()))
-        # Setup async chain: scanner -> writer -> console output
+        # Setup chain: scanner -> writer -> console output
         scanner.connect_to(writer)
         # Start async docs generation (the writer will start working in async fashion)
         await scanner.run('List all Python files in "src/llmling_agent/agent"')
@@ -79,7 +79,7 @@ async def main(config_path: str):
         result = await scanner.run(prompt)
         print(f"Type checking result:\n{result.data}")
 
-        # Wait for async documentation to finish and print.
+        # Wait for documentation to finish and print.
         await writer.complete_tasks()
 
 

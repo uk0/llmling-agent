@@ -28,7 +28,7 @@ class NodeContext[TDeps]:
     node_name: str
     """Name of the current node."""
 
-    pool: AgentPool | None = None
+    pool: AgentPool[Any] | None = None
     """The agent pool the node is part of."""
 
     config: NodeConfig

@@ -401,11 +401,7 @@ async def ask_agent(  # noqa: D417
         ctx = ctx.deps
     assert ctx.pool, "No agent pool available"
     agent = ctx.pool.get_agent(agent_name)
-    result = await agent.run(
-        message,
-        model=model,
-        store_history=store_history,
-    )
+    result = await agent.run(message, model=model, store_history=store_history)
     return str(result.content)
 
 
