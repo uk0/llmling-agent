@@ -10,7 +10,6 @@ from uuid import uuid4
 
 from psygnal import Signal
 
-from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import (
@@ -66,6 +65,7 @@ class MessageEmitter[TDeps, TResult](TaskManagerMixin, ABC):
     ):
         """Initialize message node."""
         super().__init__()
+        from llmling_agent.mcp_server.manager import MCPManager
         from llmling_agent.messaging.connection_manager import ConnectionManager
         from llmling_agent.messaging.event_manager import EventManager
         from llmling_agent.messaging.node_logger import NodeLogger

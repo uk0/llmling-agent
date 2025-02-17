@@ -21,7 +21,6 @@ from llmling_agent.delegation.message_flow_tracker import MessageFlowTracker
 from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
-from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.messaging.messageemitter import MessageEmitter
 from llmling_agent.talk import Talk, TeamTalk
 from llmling_agent.talk.registry import ConnectionRegistry
@@ -97,6 +96,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
             RuntimeError: If node initialization fails
         """
         super().__init__()
+        from llmling_agent.mcp_server.manager import MCPManager
         from llmling_agent.models.manifest import AgentsManifest
         from llmling_agent.storage import StorageManager
 
