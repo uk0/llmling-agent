@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-import json
-from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
@@ -12,17 +10,9 @@ import tokonomics
 from tokonomics import get_available_models
 from tokonomics.toko_types import TokenUsage
 
-from llmling_agent.agent.context import AgentContext
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.tasks.exceptions import (
-    ChainAbortedError,
-    RunAbortedError,
-    ToolSkippedError,
-)
-from llmling_agent.tools import ToolCallInfo
-from llmling_agent.utils.inspection import has_argument_type
 from llmling_agent_config.content import BaseContent, Content
 from llmling_agent_providers.base import (
     AgentLLMProvider,
@@ -32,14 +22,15 @@ from llmling_agent_providers.base import (
 )
 from llmling_agent_providers.litellm_provider.call_wrapper import FakeAgent
 from llmling_agent_providers.litellm_provider.stream import LiteLLMStream
+from llmling_agent_providers.litellm_provider.tool_call_handler import ToolCallHandler
 from llmling_agent_providers.litellm_provider.utils import convert_message_to_chat
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from litellm import ChatCompletionMessageToolCall
-
+    from llmling_agent.agent.context import AgentContext
+    from llmling_agent.tools import ToolCallInfo
     from llmling_agent.tools.base import Tool
 
 
@@ -74,103 +65,6 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         """Get list of all known model names."""
         return await get_available_models()
 
-    async def handle_tool_call(
-        self,
-        tool_call: ChatCompletionMessageToolCall,
-        tool: Tool,
-        message_id: str,
-    ) -> tuple[ToolCallInfo, dict]:
-        """Handle a single tool call properly."""
-        function_args = json.loads(tool_call.function.arguments)
-        original_tool = tool.callable.callable
-        start_time = perf_counter()
-
-        try:
-            # 1. Handle confirmation if we have context
-            if self._context:
-                result = await self._context.handle_confirmation(tool, function_args)
-                match result:
-                    case "skip":
-                        msg = f"Tool {tool.name} execution skipped"
-                        raise ToolSkippedError(msg)  # noqa: TRY301
-                    case "abort_run":
-                        msg = "Run aborted by user"
-                        raise RunAbortedError(msg)  # noqa: TRY301
-                    case "abort_chain":
-                        msg = "Agent chain aborted by user"
-                        raise ChainAbortedError(msg)  # noqa: TRY301
-                    case "allow":
-                        pass  # Continue with execution
-
-            # 2. Add context if needed
-            if has_argument_type(original_tool, AgentContext):
-                enhanced_function_args = {"ctx": self._context, **function_args}
-            else:
-                enhanced_function_args = function_args
-            # 3. Handle sync/async execution
-            result = await tool.execute(**enhanced_function_args)
-            # Create tool call info
-            info = ToolCallInfo(
-                tool_name=tool.name,
-                agent_name=self.name,
-                args=function_args,
-                result=result,
-                tool_call_id=tool_call.id,
-                timing=perf_counter() - start_time,
-                message_id=message_id,
-                context_data=self._context.data if self._context else None,
-            )
-            self.tool_used.emit(info)
-            message = {
-                "tool_call_id": tool_call.id,
-                "role": "tool",
-                "name": tool_call.function.name,
-                "content": str(result),
-            }
-        except (ToolSkippedError, RunAbortedError, ChainAbortedError) as e:
-            # Handle confirmation-related errors
-            info = ToolCallInfo(
-                tool_name=tool.name,
-                agent_name=self.name,
-                args=function_args,
-                result=str(e),
-                tool_call_id=tool_call.id,
-                error=str(e),
-                message_id=message_id,
-                context_data=self._context.data if self._context else None,
-            )
-            message = {
-                "tool_call_id": tool_call.id,
-                "role": "tool",
-                "name": tool_call.function.name,
-                "content": str(e),
-            }
-            return info, message
-        else:
-            return info, message
-
-    async def handle_tool_calls(
-        self,
-        tool_calls: list[ChatCompletionMessageToolCall],
-        tools: list[Tool],
-        message_id: str,
-    ) -> tuple[list[dict[str, Any]], list[ToolCallInfo]]:
-        calls: list[ToolCallInfo] = []
-        new_messages = []
-        pre = {"role": "assistant", "content": None, "tool_calls": tool_calls}
-        new_messages.append(pre)
-        for i, tool_call in enumerate(tool_calls):
-            if self._context and self._context.report_progress:
-                await self._context.report_progress(i, None)
-            function_name = tool_call.function.name
-            if not function_name:
-                continue
-            tool = next(i for i in tools if i.name == function_name)
-            info, message = await self.handle_tool_call(tool_call, tool, message_id)
-            calls.append(info)
-            new_messages.append(message)
-        return new_messages, calls
-
     async def generate_response(
         self,
         *prompts: str | Content,
@@ -190,6 +84,9 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         tools = tools or []
         model_name = self._get_model_name(model)
         agent = FakeAgent(model_name, model_settings=self.model_settings)
+        tool_handler = ToolCallHandler(self.name)
+        tool_handler.tool_used.connect(self.tool_used)
+
         try:
             # Create messages list from history and new prompt
             messages: list[dict[str, Any]] = []
@@ -220,9 +117,10 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             assert isinstance(response.choices[0], Choices)
             calls: list[ToolCallInfo] = []
             if tool_calls := response.choices[0].message.tool_calls:
-                new_messages, calls = await self.handle_tool_calls(
+                new_messages, calls = await tool_handler.handle_tool_calls(
                     tool_calls,
                     tools,
+                    self._context,
                     message_id,
                 )
                 response = await agent.run(messages=messages + new_messages)
@@ -255,7 +153,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                     )
                 else:
                     cost_and_usage = None
-                # Store in history if requested
+
             return ProviderResponse(
                 content=content,
                 tool_calls=calls,
@@ -268,6 +166,8 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             logger.exception("LiteLLM completion failed")
             error_msg = f"LiteLLM completion failed: {e}"
             raise RuntimeError(error_msg) from e
+        finally:
+            tool_handler.tool_used.disconnect(self.tool_used)
 
     def _get_model_name(self, override: ModelProtocol | str | None = None) -> str:
         """Get effective model name."""
