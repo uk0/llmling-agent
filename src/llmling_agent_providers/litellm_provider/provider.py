@@ -29,12 +29,26 @@ from llmling_agent_providers.litellm_provider.utils import convert_message_to_ch
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+    from litellm import ChatCompletionMessageToolCall
+
     from llmling_agent.agent.context import AgentContext
     from llmling_agent.tools import ToolCallInfo
     from llmling_agent.tools.base import Tool
 
 
 logger = get_logger(__name__)
+
+
+def convert_litellm_tool_call(tool_call: ChatCompletionMessageToolCall) -> dict[str, Any]:
+    """Convert LiteLLM tool call to standard format."""
+    return {
+        "id": tool_call.id,
+        "function": {
+            "name": tool_call.function.name,
+            "arguments": tool_call.function.arguments,
+        },
+        "type": tool_call.type,
+    }
 
 
 class LiteLLMProvider(AgentLLMProvider[Any]):
