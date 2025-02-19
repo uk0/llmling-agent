@@ -20,8 +20,6 @@ from llmling_agent.utils.inspection import execute, has_argument_type
 
 
 if TYPE_CHECKING:
-    from litellm import ChatCompletionMessageToolCall
-
     from llmling_agent.tools.base import Tool
 
 logger = get_logger(__name__)
@@ -49,13 +47,12 @@ class ToolCallHandler:
 
         Args:
             agent_name: Name of the agent this handler belongs to
-            context: Optional agent context for confirmation handling
         """
         self.agent_name = agent_name
 
     async def handle_tool_call(
         self,
-        tool_call: ChatCompletionMessageToolCall,
+        tool_call: dict[str, Any],  # OpenAI API format
         tool: Tool,
         message_id: str,
         context: AgentContext | None,
@@ -63,7 +60,15 @@ class ToolCallHandler:
         """Handle a single tool call execution.
 
         Args:
-            tool_call: Tool call from LLM
+            tool_call: Tool call in OpenAI API format:
+                {
+                    "id": str,
+                    "function": {
+                        "name": str,
+                        "arguments": str,  # JSON string
+                    },
+                    "type": str | None
+                }
             tool: Tool info containing callable
             message_id: ID of the message that triggered this
             context: Optional agent context for confirmation handling
@@ -76,7 +81,7 @@ class ToolCallHandler:
         """
         import json
 
-        function_args = json.loads(tool_call.function.arguments)
+        function_args = json.loads(tool_call["function"]["arguments"])
         original_tool = tool.callable.callable
         start_time = perf_counter()
 
@@ -112,7 +117,7 @@ class ToolCallHandler:
                 agent_name=self.agent_name,
                 args=function_args,
                 result=result,
-                tool_call_id=tool_call.id,
+                tool_call_id=tool_call["id"],
                 timing=perf_counter() - start_time,
                 message_id=message_id,
                 context_data=context.data if context else None,
@@ -120,9 +125,9 @@ class ToolCallHandler:
             self.tool_used.emit(info)
 
             message = {
-                "tool_call_id": tool_call.id,
+                "tool_call_id": tool_call["id"],
                 "role": "tool",
-                "name": tool_call.function.name,
+                "name": tool_call["function"]["name"],
                 "content": str(result),
             }
 
@@ -133,15 +138,15 @@ class ToolCallHandler:
                 agent_name=self.agent_name,
                 args=function_args,
                 result=str(e),
-                tool_call_id=tool_call.id,
+                tool_call_id=tool_call["id"],
                 error=str(e),
                 message_id=message_id,
                 context_data=context.data if context else None,
             )
             message = {
-                "tool_call_id": tool_call.id,
+                "tool_call_id": tool_call["id"],
                 "role": "tool",
-                "name": tool_call.function.name,
+                "name": tool_call["function"]["name"],
                 "content": str(e),
             }
 
@@ -149,7 +154,7 @@ class ToolCallHandler:
 
     async def handle_tool_calls(
         self,
-        tool_calls: list[ChatCompletionMessageToolCall],
+        tool_calls: list[dict[str, Any]],  # List of OpenAI API format tool calls
         tools: list[Tool],
         context: AgentContext | None,
         message_id: str,
@@ -157,7 +162,7 @@ class ToolCallHandler:
         """Handle multiple tool calls in sequence.
 
         Args:
-            tool_calls: List of tool calls from LLM
+            tool_calls: List of tool calls in OpenAI API format
             tools: Available tools
             context: Optional agent context for confirmation handling
             message_id: ID of message that triggered these calls
@@ -174,7 +179,7 @@ class ToolCallHandler:
             if context and context.report_progress:
                 await context.report_progress(i, None)
 
-            function_name = tool_call.function.name
+            function_name = tool_call["function"]["name"]
             if not function_name:
                 continue
 

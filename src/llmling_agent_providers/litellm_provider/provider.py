@@ -22,8 +22,8 @@ from llmling_agent_providers.base import (
 )
 from llmling_agent_providers.litellm_provider.call_wrapper import FakeAgent
 from llmling_agent_providers.litellm_provider.stream import LiteLLMStream
-from llmling_agent_providers.litellm_provider.tool_call_handler import ToolCallHandler
 from llmling_agent_providers.litellm_provider.utils import convert_message_to_chat
+from llmling_agent_providers.tool_call_handler import ToolCallHandler
 
 
 if TYPE_CHECKING:
@@ -131,8 +131,9 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             assert isinstance(response.choices[0], Choices)
             calls: list[ToolCallInfo] = []
             if tool_calls := response.choices[0].message.tool_calls:
+                raw_tool_calls = [convert_litellm_tool_call(tc) for tc in tool_calls]
                 new_messages, calls = await tool_handler.handle_tool_calls(
-                    tool_calls,
+                    raw_tool_calls,
                     tools,
                     self._context,
                     message_id,
