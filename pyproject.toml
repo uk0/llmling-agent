@@ -57,7 +57,7 @@ requires-python = ">=3.12"
 license = { file = "LICENSE" }
 dependencies = [
     "llmling>=1.0.0",
-    "pydantic",
+    "pydantic >= 2.11.0a2",
     # these 4 could be optional
     "prompt-toolkit>=3.0.48",
     "promptantic>=0.4.5",
@@ -134,14 +134,13 @@ dev = [
     "devtools",
     # Only add below (Copier)
     "pytest-asyncio>=0.24.0",
-    "textual-dev>=1.7.0",
     "openapi_spec_validator; python_version < '3.14'",
 ]
 benchmark = ["pyinstrument"]
 lint = [
     "ruff",
-    "mypy[faster-cache]; python_version < '3.14'",
-    "mypy; python_version >= '3.14'",
+    # "mypy[faster-cache]; python_version < '3.14'",
+    "mypy",
     # Only add below (Copier)
 ]
 docs = [
