@@ -22,8 +22,8 @@ from llmling_agent_providers.base import (
 )
 from llmling_agent_providers.litellm_provider.call_wrapper import FakeAgent
 from llmling_agent_providers.litellm_provider.stream import LiteLLMStream
-from llmling_agent_providers.litellm_provider.utils import convert_message_to_chat
 from llmling_agent_providers.tool_call_handler import ToolCallHandler
+from llmling_agent_providers.utils import convert_message_to_chat
 
 
 if TYPE_CHECKING:

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
@@ -30,10 +29,3 @@ class LiteLLMModel(ModelProtocol):
     @property
     def model_name(self) -> str:
         return self._name.replace(":", "/")
-
-
-def convert_message_to_chat(message: Any) -> list[dict[str, str]]:
-    """Convert message to chat format."""
-    # This is a basic implementation - would need to properly handle
-    # different message types and parts
-    return [{"role": "user", "content": str(message)}]
