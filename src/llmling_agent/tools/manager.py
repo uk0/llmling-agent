@@ -159,22 +159,10 @@ class ToolManager(BaseRegistry[str, Tool]):
                 return Tool.from_callable(item)
             case Callable():
                 return Tool.from_callable(item)
-            case {"callable": callable_item, **config} if callable(
-                callable_item
-            ) or isinstance(callable_item, LLMCallableTool):
-                # First convert callable to LLMCallableTool if needed
-                tool = (
-                    callable_item
-                    if isinstance(callable_item, LLMCallableTool)
-                    else LLMCallableTool.from_callable(callable_item)
-                )
-
-                # Get valid fields from Tool dataclass (excluding 'callable')
+            case {"callable": callable_item, **config} if callable(callable_item):
                 valid_keys = {f.name for f in fields(Tool)} - {"callable"}
                 tool_config = {k: v for k, v in config.items() if k in valid_keys}
-
-                return Tool(callable=tool, **tool_config)  # type: ignore
-
+                return Tool.from_callable(callable_item, **tool_config)  # type: ignore
             case _:
                 typ = type(item)
                 msg = f"Item must be Tool or callable. Got {typ}"

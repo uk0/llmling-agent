@@ -187,10 +187,8 @@ def reset_history(
             if input(msg).lower() != "y":
                 print("Operation cancelled.")
                 return
-
-        conv_count, msg_count = provider.run_task_sync(
-            provider.reset(agent_name=agent_name, hard=hard)
-        )
+        coro = provider.reset(agent_name=agent_name, hard=hard)
+        conv_count, msg_count = provider.run_task_sync(coro)
 
         what = f" for {agent_name}" if agent_name else ""
         print(f"Deleted {conv_count} conversations and {msg_count} messages{what}.")

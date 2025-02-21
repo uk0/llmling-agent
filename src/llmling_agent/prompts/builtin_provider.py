@@ -22,12 +22,8 @@ class BuiltinPromptProvider(BasePromptProvider):
     def __init__(self, manifest_prompts: dict[str, SystemPrompt]):
         from jinjarope import Environment
 
-        from llmling_agent_functional.run import run_agent, run_agent_sync
-
         self.prompts = manifest_prompts
         self.env = Environment(autoescape=False, enable_async=True)
-        self.env.globals["run_agent"] = run_agent
-        self.env.globals["run_agent_sync"] = run_agent_sync
 
     async def get_prompt(
         self,
