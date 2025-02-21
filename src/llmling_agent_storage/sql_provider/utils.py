@@ -57,6 +57,8 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
         )
 
     return ChatMessage[str](
+        message_id=db_message.id,
+        conversation_id=db_message.conversation_id,
         content=db_message.content,
         role=db_message.role,  # type: ignore
         name=db_message.name,
@@ -64,6 +66,7 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
         cost_info=cost_info,
         response_time=db_message.response_time,
         forwarded_from=db_message.forwarded_from or [],
+        timestamp=db_message.timestamp,
     )
 
 
