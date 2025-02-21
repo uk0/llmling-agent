@@ -614,7 +614,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
         # Register in pool
         agent_name = new_agent.name
         self.manifest.agents[agent_name] = new_config
-        self.agents[agent_name] = new_agent
+        self.register(agent_name, new_agent)
         return await self.exit_stack.enter_async_context(new_agent)
 
     @overload
