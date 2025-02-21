@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Annotated, Literal
 
 from llmling import ConfigModel
 from llmling.tools.toolsets import ToolSet
 from llmling.utils.importing import import_class
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 
 
 if TYPE_CHECKING:
@@ -25,12 +26,12 @@ class OpenAPIToolsetConfig(BaseToolsetConfig):
     """Configuration for OpenAPI toolsets."""
 
     type: Literal["openapi"] = Field("openapi", init=False)
-    """Discriminator field identifying this as an OpenAPI toolset."""
+    """OpenAPI toolset."""
 
     spec: str = Field(...)
     """URL or path to the OpenAPI specification document."""
 
-    base_url: str | None = Field(default=None)
+    base_url: str | None = None
     """Optional base URL for API requests, overrides the one in spec."""
 
     def get_provider(self) -> ResourceProvider:
@@ -44,9 +45,9 @@ class EntryPointToolsetConfig(BaseToolsetConfig):
     """Configuration for entry point toolsets."""
 
     type: Literal["entry_points"] = Field("entry_points", init=False)
-    """Discriminator field identifying this as an entry point toolset."""
+    """Entry point toolset."""
 
-    module: str = Field(..., description="Python module path")
+    module: str = Field(...)
     """Python module path to load tools from via entry points."""
 
     def get_provider(self) -> ResourceProvider:
@@ -56,11 +57,34 @@ class EntryPointToolsetConfig(BaseToolsetConfig):
         return EntryPointTools(module=self.module)
 
 
+class ComposioToolSetConfig(BaseToolsetConfig):
+    """Configuration for entry point toolsets."""
+
+    type: Literal["composio"] = Field("composio", init=False)
+    """Composio Toolsets."""
+
+    api_key: SecretStr | None = None
+
+    entitiy_id: str = "default"
+    """Toolset entity id."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create entry point tools provider from this config."""
+        from llmling_agent_toolsets.composio_toolset import ComposioTools
+
+        key = (
+            self.api_key.get_secret_value()
+            if self.api_key
+            else os.getenv("COMPOSIO_API_KEY")
+        )
+        return ComposioTools(entity_id=self.entitiy_id, api_key=key)
+
+
 class CustomToolsetConfig(BaseToolsetConfig):
     """Configuration for custom toolsets."""
 
     type: Literal["custom"] = Field("custom", init=False)
-    """Discriminator field identifying this as a custom toolset."""
+    """Custom toolset."""
 
     import_path: str = Field(...)
     """Dotted import path to the custom toolset implementation class."""
@@ -94,6 +118,9 @@ class CustomToolsetConfig(BaseToolsetConfig):
 
 # Use discriminated union for toolset types
 ToolsetConfig = Annotated[
-    OpenAPIToolsetConfig | EntryPointToolsetConfig | CustomToolsetConfig,
+    OpenAPIToolsetConfig
+    | EntryPointToolsetConfig
+    | ComposioToolSetConfig
+    | CustomToolsetConfig,
     Field(discriminator="type"),
 ]
