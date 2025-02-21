@@ -31,6 +31,7 @@ class MCPServer:
         self._initialized = asyncio.Event()
         self._shutdown = asyncio.Event()
         self.name = config.name or "unnamed"
+        self.session: ClientSession | None = None
 
     async def initialize(self):
         """Initialize server if not already done."""
@@ -97,7 +98,6 @@ class MCPServer:
             logger.info("Shutting down MCP server: %s", self.name)
             self._shutdown.set()
             if self.session:
-                await self.session.aclose()
                 self.session = None
             self._initialized.clear()
             logger.info("MCP server shut down: %s", self.name)

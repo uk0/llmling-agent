@@ -23,6 +23,9 @@ class BaseMCPServerConfig(BaseModel):
     environment: dict[str, str] | None = None
     """Environment variables to pass to the server process."""
 
+    timeout: float = 30.0
+    """Timeout for the server process."""
+
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
     def get_env_vars(self) -> dict[str, str]:
