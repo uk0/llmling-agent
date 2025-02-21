@@ -1,0 +1,29 @@
+agents:
+  file_scanner:
+    name: "File Scanner"
+    model: openai:gpt-4o-mini
+    system_prompts:
+      - You scan directories and list source files that need documentation.
+    tools:
+      - type: import
+        name: list_source_files
+        import_path: os.listdir
+
+  doc_writer:
+    name: "Documentation Writer"
+    model: openai:gpt-4o-mini
+    system_prompts:
+      - You are a docs writer. Write markdown documentation for the files given to you.
+    capabilities:
+      can_read_files: true
+
+  error_checker:
+    name: "Code Validator"
+    model: openai:gpt-4o-mini
+    system_prompts:
+      - You validate Python source files for syntax errors.
+    tools:
+      - type: import
+        name: validate_syntax
+        import_path: __main__.check_types
+        description: Type check Python file using mypy.

@@ -2,6 +2,7 @@
 # dependencies = ["llmling-agent"]
 # ///
 
+
 """Example showing agent function discovery and execution.
 
 This example demonstrates:
@@ -12,26 +13,21 @@ This example demonstrates:
 - Function result handling
 """
 
-from llmling_agent import Agent
-from llmling_agent_running import node_function
+from __future__ import annotations
+
+import os
+from typing import TYPE_CHECKING
+
+from llmling_agent_examples.utils import get_config_path, is_pyodide, run
+from llmling_agent_running import node_function, run_nodes_async
 
 
-AGENT_CONFIG = """
-agents:
-  analyzer:
-    name: Data Analyzer
-    model: openai:gpt-4o-mini
-    system_prompts:
-      - You are a data analyst specializing in business metrics.
-      - Focus on key trends, patterns, and notable changes.
+if TYPE_CHECKING:
+    from llmling_agent import Agent
 
-  writer:
-    name: Technical Writer
-    model: openai:gpt-4o-mini
-    system_prompts:
-      - You are a business writer creating clear executive summaries.
-      - Focus on actionable insights and bottom-line impact.
-"""
+# set your OpenAI API key here
+os.environ["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY", "your_api_key_here")
+
 
 DATA = """
 Monthly Sales Data (2023):
@@ -54,25 +50,21 @@ async def analyze_data(analyzer: Agent):
 @node_function(depends_on="analyze_data")
 async def summarize_analysis(writer: Agent, analyze_data: str):
     """Second step: Create an executive summary."""
-    prompt = "Create a brief executive summary of this sales analysis:\n{analyze_data}"
+    prompt = f"Create a brief executive summary of this sales analysis:\n{analyze_data}"
     result = await writer.run(prompt)
     return result.data
 
 
-async def run():
-    from llmling_agent_running import run_nodes_async
-
+async def run_example():
+    """Run the analysis pipeline."""
+    # Load config and run nodes
+    config_path = get_config_path(None if is_pyodide() else __file__)
     results = await run_nodes_async(config_path, parallel=True)
+
+    # Print results
     print("Analysis:", results["analyze_data"])
     print("Summary:", results["summarize_analysis"])
 
 
 if __name__ == "__main__":
-    import asyncio
-    import tempfile
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp:
-        tmp.write(AGENT_CONFIG)
-        tmp.flush()
-        config_path = tmp.name
-        asyncio.run(run())
+    run(run_example())

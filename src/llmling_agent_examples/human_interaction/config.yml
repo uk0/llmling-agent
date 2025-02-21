@@ -1,0 +1,13 @@
+agents:
+  assistant:
+    model: openai:gpt-4o-mini
+    capabilities:
+      can_ask_agents: true
+    system_prompts:
+      - |
+        You are a helpful assistant. When you're not sure about something,
+        don't hesitate to ask the human agent for guidance.
+
+  human:
+    provider: "human"
+    description: "A human who can provide answers"

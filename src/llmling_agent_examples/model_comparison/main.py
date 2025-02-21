@@ -2,30 +2,27 @@
 # dependencies = ["llmling-agent"]
 # ///
 
-"""Example of comparing different models using parallel teams."""
+
+"""Example of comparing different models using parallel teams.
+
+This example demonstrates:
+- Dynamic agent creation using different models
+- Team creation and management
+- Parallel execution for model comparison
+- Result analysis and comparison
+"""
 
 from __future__ import annotations
 
-import asyncio
-import tempfile
+import os
 
-from llmling_agent import AgentPool
+from llmling_agent import AgentPool, AgentsManifest
+from llmling_agent_examples.utils import get_config_path, is_pyodide, run
 
 
-AGENT_CONFIG = """\
-agents:
-  overseer:
-    name: "Model Comparison Coordinator"
-    model: openai:gpt-4o-mini
-    capabilities:
-      can_add_teams: true
-      can_list_teams: true
-      can_delegate_tasks: true
-      can_list_agents: true
-      can_add_agents: true
-    system_prompts:
-      - You are a model comparison coordinator.
-"""
+# set your OpenAI API key here
+os.environ["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY", "your_api_key_here")
+
 
 PROMPT = """Please perform the following steps:
 
@@ -34,7 +31,7 @@ PROMPT = """Please perform the following steps:
    - Name: "gpt4_agent" using model "openai:gpt-4o-mini"
 
 2. Create a parallel team with the name "comparison_team".
-  It should contain both agents just created.
+   It should contain both agents just created.
 
 3. Delegate this task to the team:
    "Explain the concept of quantum entanglement in exactly three sentences."
@@ -47,18 +44,20 @@ PROMPT = """Please perform the following steps:
 """
 
 
-async def run(config_path: str):
+async def run_example():
     """Run the model comparison example."""
-    async with AgentPool[None](config_path) as pool:
+    # Load config from YAML
+    config_path = get_config_path(None if is_pyodide() else __file__)
+    manifest = AgentsManifest.from_file(config_path)
+
+    async with AgentPool[None](manifest) as pool:
         # Get the overseer agent with all needed capabilities
         overseer = pool.get_agent("overseer")
+
         print("\n=== Running Model Comparison ===")
         result = await overseer.run(PROMPT)
         print(result.content)
 
 
 if __name__ == "__main__":
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp:
-        tmp.write(AGENT_CONFIG)
-        tmp.flush()
-        asyncio.run(run(tmp.name))
+    run(run_example())

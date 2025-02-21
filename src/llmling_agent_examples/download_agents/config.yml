@@ -1,0 +1,54 @@
+storage:
+  # List of storage providers (can use multiple)
+  providers:
+    # Primary storage using SQLite
+    - type: sql
+      url: "sqlite:///history.db" # Database URL (SQLite, PostgreSQL, etc.)
+    # Also output all messages, tool calls etc as a pretty printed text file
+    - type: text_file
+      path: "logs/chat.log"
+      format: "chronological" # "chronological" or "conversations"
+      template: "chronological"
+
+agents:
+  fan:
+    name: "Async Agent Fan"
+    description: "The #1 supporter of all agents!"
+    model:
+      type: fallback # all llmling-models work here!
+      models:
+        - openai:gpt-4o-mini
+        - openai:gpt-3.5-turbo
+    capabilities:
+      can_list_agents: true # Need to know who to cheer for!
+    system_prompts:
+      - |
+        You are the MOST ENTHUSIASTIC async fan who runs in the background!
+        Your job is to:
+        1. Find all other agents using your tool (don't include yourself!)
+        2. Cheer them on with over-the-top supportive messages considering the situation.
+        3. Never stop believing in your team! 🎉
+    tools:
+      - llmling_agent_examples.download_agents.main.cheer
+
+  file_getter_1:
+    name: "Mr. File Downloader"
+    description: "Downloads files from URLs"
+    model: openai:gpt-4o-mini
+    system_prompts:
+      - "You have ONE job: use the download_file tool to download files."
+    tools:
+      - llmling_agent_tools.download_file
+
+  overseer:
+    name: "Download Coordinator"
+    description: "Coordinates parallel downloads"
+    model: openai:gpt-4o-mini
+    capabilities:
+      can_delegate_tasks: true
+      can_list_agents: true
+    system_prompts:
+      - |
+        You coordinate file downloads using available agents. Your job is to:
+        1. Check out the available agents and assign each of them the download task
+        2. Report the EXACT download results from the agents including speeds and sizes

@@ -1,0 +1,18 @@
+mcp_servers:
+  - "uvx mcp-server-git"
+
+agents:
+  picker:
+    model: openai:gpt-4o-mini
+    description: Git commit history explorer
+    system_prompts:
+      - You are a specialist in looking up git commits using your tools from the current working directory.
+    connections:
+      - type: node
+        name: analyzer
+
+  analyzer:
+    model: openai:gpt-4o-mini
+    description: Git commit analyzer
+    system_prompts:
+      - You are an expert in retrieving and returning information about a specific commit from the current working directory.
