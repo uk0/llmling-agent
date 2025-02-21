@@ -27,14 +27,15 @@ class BraintrustPromptHub(BasePromptProvider):
         variables: dict[str, Any] | None = None,
     ) -> str:
         """Get and optionally compile a prompt from Braintrust."""
-        import jinja2
+        import jinjarope
 
+        env = jinjarope.Environment(enable_async=True)
         variables = variables or {}
         prompt = load_prompt(slug=name, version=version, project=self.config.project)
-        # TODO: braintrust has typing wrong here. Caching fails and it returns
-        # a PromptSchema instead of a Prompt, so typing is wrong.
-        env = jinja2.Template(prompt.prompt.messages[0].content)  # type: ignore
-        return env.render(**variables)
+        assert prompt.prompt
+        string = prompt.prompt.messages[0].content  # type: ignore
+        assert isinstance(string, str)
+        return await env.render_string_async(string, **variables)
 
 
 if __name__ == "__main__":

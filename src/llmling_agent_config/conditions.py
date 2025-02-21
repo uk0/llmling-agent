@@ -45,15 +45,9 @@ class Jinja2Condition(ConnectionCondition):
 
         from jinjarope import Environment
 
-        env = Environment(trim_blocks=True, lstrip_blocks=True)
+        env = Environment(trim_blocks=True, lstrip_blocks=True, enable_async=True)
         template = env.from_string(self.template)
-
-        # Just pass the entire context to the template
-        result = template.render(
-            ctx=ctx,
-            now=datetime.now(),  # Extra convenience
-        )
-
+        result = await template.render_async(ctx=ctx, now=datetime.now())
         return result.strip().lower() == "true" or bool(result)
 
 

@@ -47,10 +47,10 @@ class EventData(BaseModel):
         """Wraps core message with configurable template."""
         from jinjarope import Environment
 
-        env = Environment(trim_blocks=True, lstrip_blocks=True)
+        env = Environment(trim_blocks=True, lstrip_blocks=True, enable_async=True)
         template = env.from_string(config.template)
 
-        return template.render(
+        return await template.render_async(
             source=self.source,
             content=self.to_prompt(),  # Use the core message
             metadata=self.metadata,

@@ -128,7 +128,7 @@ class TextLogProvider(StorageProvider):
         self.content_template = self._load_template(config.template)
 
         # Configure Jinja env with empty string for undefined
-        env = Environment(undefined=EmptyStringUndefined)
+        env = Environment(undefined=EmptyStringUndefined, enable_async=True)
         self.path_template = env.from_string(config.path)
 
         self._entries: list[dict[str, Any]] = []
@@ -166,7 +166,7 @@ class TextLogProvider(StorageProvider):
             # All other variables will default to empty string via EmptyStringUndefined
         }
 
-    def _get_path(self, operation: str, **context: Any) -> UPath:
+    async def _get_path(self, operation: str, **context: Any) -> UPath:
         """Render path template with context.
 
         Args:
@@ -180,7 +180,7 @@ class TextLogProvider(StorageProvider):
         path_context = self._get_base_context(operation)
         path_context.update(context)
 
-        path = self.path_template.render(**path_context)
+        path = await self.path_template.render_async(**path_context)
         resolved_path = UPath(path)
         resolved_path.parent.mkdir(parents=True, exist_ok=True)
         return resolved_path
@@ -212,7 +212,7 @@ class TextLogProvider(StorageProvider):
         }
         self._entries.append(entry)
 
-        path = self._get_path("message", **entry)
+        path = await self._get_path("message", **entry)
         self._write(path)
 
     async def log_conversation(
@@ -231,7 +231,7 @@ class TextLogProvider(StorageProvider):
         }
         self._entries.append(entry)
 
-        path = self._get_path("conversation", **entry)
+        path = await self._get_path("conversation", **entry)
         self._write(path)
 
     async def log_tool_call(
@@ -253,7 +253,7 @@ class TextLogProvider(StorageProvider):
         }
         self._entries.append(entry)
 
-        path = self._get_path("tool_call", **entry)
+        path = await self._get_path("tool_call", **entry)
         self._write(path)
 
     async def log_command(
@@ -277,7 +277,7 @@ class TextLogProvider(StorageProvider):
         }
         self._entries.append(entry)
 
-        path = self._get_path("command", **entry)
+        path = await self._get_path("command", **entry)
         self._write(path)
 
     def _write(self, path: UPath):

@@ -246,9 +246,9 @@ class ConnectionJinja2Condition(ConnectionEventCondition):
     async def check(self, event: ConnectionEventData[Any]) -> bool:
         from jinjarope import Environment
 
-        env = Environment()
+        env = Environment(enable_async=True)
         template = env.from_string(self.template)
-        result = template.render(event=event)
+        result = await template.render_async(event=event)
         return result.strip().lower() == "true"
 
 

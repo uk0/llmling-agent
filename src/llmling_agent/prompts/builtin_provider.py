@@ -71,8 +71,8 @@ class BuiltinPromptProvider(BasePromptProvider):
                 raise KeyError(msg)
 
             try:
-                template = Template(content)
-                content = template.render(**variables)
+                template = Template(content, enable_async=True)
+                content = await template.render_async(**variables)
             except Exception as e:
                 msg = f"Failed to render prompt {identifier}: {e}"
                 raise ValueError(msg) from e
