@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from llmling_agent import Agent, Team
+from llmling_agent_examples.utils import run
 
 
 PICKER = """
@@ -22,7 +23,7 @@ MODEL = "openai:gpt-4o-mini"
 SERVERS = ["uvx mcp-server-git"]
 
 
-async def main():
+async def run_example():
     picker = Agent[None](model=MODEL, system_prompt=PICKER, mcp_servers=SERVERS)
     analyzer = Agent[None](model=MODEL, system_prompt=ANALYZER, mcp_servers=SERVERS)
 
@@ -46,9 +47,7 @@ async def main():
 
 
 if __name__ == "__main__":
-    import anyio
-
-    anyio.run(main)
+    run(run_example())
 
 
 """
