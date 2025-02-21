@@ -26,6 +26,7 @@ logger = get_logger(__name__)
 class MessageData(TypedDict):
     """Data structure for storing message information."""
 
+    message_id: str
     conversation_id: str
     content: str
     role: str
@@ -164,6 +165,7 @@ class FileProvider(StorageProvider):
 
             chat_message = ChatMessage[str](
                 content=msg["content"],
+                conversation_id=msg["conversation_id"],
                 role=cast(MessageRole, msg["role"]),
                 name=msg["name"],
                 model=msg["model"],
@@ -182,6 +184,7 @@ class FileProvider(StorageProvider):
     async def log_message(
         self,
         *,
+        message_id: str,
         conversation_id: str,
         content: str,
         role: str,
@@ -194,6 +197,7 @@ class FileProvider(StorageProvider):
         """Log a new message."""
         self._data["messages"].append({
             "conversation_id": conversation_id,
+            "message_id": message_id,
             "content": content,
             "role": cast(MessageRole, role),
             "timestamp": get_now().isoformat(),

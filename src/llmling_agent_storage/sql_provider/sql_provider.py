@@ -114,6 +114,7 @@ class SQLModelProvider(StorageProvider[Message]):
         self,
         *,
         conversation_id: str,
+        message_id: str,
         content: str,
         role: str,
         name: str | None = None,
@@ -130,6 +131,7 @@ class SQLModelProvider(StorageProvider[Message]):
         with Session(self.engine) as session:
             msg = Message(
                 conversation_id=conversation_id,
+                id=message_id,
                 content=content,
                 role=role,
                 name=name,

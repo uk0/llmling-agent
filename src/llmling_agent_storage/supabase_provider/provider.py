@@ -89,6 +89,7 @@ class SupabaseProvider(StorageProvider):
         self,
         *,
         conversation_id: str,
+        message_id: str,
         content: str,
         role: str,
         name: str | None = None,
@@ -107,6 +108,7 @@ class SupabaseProvider(StorageProvider):
 
         data = {
             "conversation_id": conversation_id,
+            "id": message_id,
             "content": content,
             "role": role,
             "name": name,

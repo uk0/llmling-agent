@@ -209,6 +209,7 @@ class StorageManager(TaskManagerMixin):
         self,
         *,
         conversation_id: str,
+        message_id: str,
         content: str,
         role: str,
         name: str | None = None,
@@ -226,6 +227,7 @@ class StorageManager(TaskManagerMixin):
                 self.create_task(
                     provider.log_message(
                         conversation_id=conversation_id,
+                        message_id=message_id,
                         content=content,
                         role=role,
                         name=name,

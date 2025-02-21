@@ -108,6 +108,7 @@ class MemoryStorageProvider(StorageProvider):
         self,
         *,
         conversation_id: str,
+        message_id: str,
         content: str,
         role: str,
         name: str | None = None,
@@ -119,6 +120,7 @@ class MemoryStorageProvider(StorageProvider):
         """Store message in memory."""
         self.messages.append({
             "conversation_id": conversation_id,
+            "message_id": message_id,
             "content": content,
             "role": role,
             "name": name,

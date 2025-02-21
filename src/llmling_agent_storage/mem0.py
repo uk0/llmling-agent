@@ -66,6 +66,7 @@ class Mem0StorageProvider(StorageProvider):
     async def log_message(
         self,
         conversation_id: str,
+        message_id: str,
         content: str,
         role: str,
         name: str | None = None,
@@ -79,6 +80,7 @@ class Mem0StorageProvider(StorageProvider):
             "model": model,
             "response_time": response_time,
             "forwarded_from": forwarded_from,
+            "message_id": message_id,
         }
         if cost_info:
             metadata.update({

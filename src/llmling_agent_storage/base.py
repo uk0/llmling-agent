@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar
+from uuid import uuid4
 
 from llmling_agent.utils.tasks import TaskManagerMixin
 
@@ -94,6 +95,7 @@ class StorageProvider[T](TaskManagerMixin):
         self,
         *,
         conversation_id: str,
+        message_id: str,
         content: str,
         role: str,
         name: str | None = None,
@@ -153,6 +155,7 @@ class StorageProvider[T](TaskManagerMixin):
         role: str,
         name: str | None = None,
         model: str | None = None,
+        message_id: str | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """Log a context message if context logging is enabled."""
@@ -161,6 +164,7 @@ class StorageProvider[T](TaskManagerMixin):
 
         await self.log_message(
             conversation_id=conversation_id,
+            message_id=message_id or str(uuid4()),
             content=content,
             role=role,
             name=name,

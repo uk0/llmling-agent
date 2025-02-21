@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 import pytest
 from sqlmodel import Session, SQLModel, create_engine, delete, select
@@ -96,6 +97,7 @@ async def sample_data(cleanup_database: None):
         for conv_id, content, role, name, model, cost_info in test_data:
             await provider.log_message(
                 conversation_id=conv_id,
+                message_id=str(uuid4()),
                 content=content,
                 role=role,
                 name=name,

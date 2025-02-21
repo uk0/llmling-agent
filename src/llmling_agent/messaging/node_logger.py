@@ -73,7 +73,8 @@ class NodeLogger:
         if not self.enable_db_logging:
             return
         self.node.context.storage.log_message_sync(
-            conversation_id=self.conversation_id,
+            message_id=message.message_id,
+            conversation_id=message.conversation_id,
             content=str(message.content),
             role=message.role,
             name=message.name,
