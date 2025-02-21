@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime  # noqa: TC003
 import logging
-from typing import TYPE_CHECKING
 
 from llmling.cli.constants import output_format_opt
 from llmling.cli.utils import format_output
@@ -13,10 +13,6 @@ from llmling_agent import AgentsManifest
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_cli import resolve_agent_config
-
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
