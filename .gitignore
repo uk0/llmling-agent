@@ -39,3 +39,6 @@ serve.toml
 
 # tach
 .tach
+
+# composio
+.composio.lock
