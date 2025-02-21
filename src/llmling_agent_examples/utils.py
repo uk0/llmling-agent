@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-import sys
 from typing import TYPE_CHECKING, TypeVar
 
 
@@ -16,8 +15,13 @@ T = TypeVar("T")
 
 
 def is_pyodide() -> bool:
-    """Check if we're running in Pyodide."""
-    return sys.platform == "emscripten"
+    """Check if code is running in a Pyodide environment."""
+    try:
+        from js import Object  # type: ignore  # noqa: F401
+
+        return True  # noqa: TRY300
+    except ImportError:
+        return False
 
 
 def get_config_path(module_path: str | None = None, filename: str = "config.yml") -> Path:
