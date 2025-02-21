@@ -7,9 +7,15 @@
 
 from __future__ import annotations
 
+import os
+
 from llmling_agent import Agent, AgentsManifest
 from llmling_agent_examples.utils import get_config_path, is_pyodide, run
 from llmling_agent_running import node_function, run_nodes_async
+
+
+# set your OpenAI API key here
+os.environ["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY", "your_api_key_here")
 
 
 @node_function

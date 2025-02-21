@@ -14,11 +14,16 @@ This example shows:
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 
 from mypy import api
 
 from llmling_agent import AgentPool, AgentsManifest
+
+
+# set your OpenAI API key here
+os.environ["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY", "your_api_key_here")
 
 
 def check_types(path: str) -> str:
