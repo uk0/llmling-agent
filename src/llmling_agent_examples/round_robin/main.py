@@ -1,4 +1,3 @@
-# llmling-agent\src\llmling_agent_examples\round_robin\main.py
 # /// script
 # dependencies = ["llmling-agent"]
 # ///

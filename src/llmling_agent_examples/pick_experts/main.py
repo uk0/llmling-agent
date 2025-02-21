@@ -1,4 +1,3 @@
-# docs/examples/pick/main.py
 # /// script
 # dependencies = ["llmling-agent"]
 # ///
