@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
@@ -14,6 +13,7 @@ from typing_extensions import TypeVar
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import AgentResponse, ChatMessage, TeamResponse
+from llmling_agent.utils.now import get_now
 
 
 logger = get_logger(__name__)
@@ -46,7 +46,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
 
         self._team_talk.clear()
 
-        start_time = datetime.now()
+        start_time = get_now()
         responses: list[AgentResponse[Any]] = []
         errors: dict[str, Exception] = {}
         final_prompt = list(prompts)
@@ -189,7 +189,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
 
         responses: list[AgentResponse[TJobResult]] = []
         errors: dict[str, Exception] = {}
-        start_time = datetime.now()
+        start_time = get_now()
 
         # Validate dependencies for all agents
         if job.required_dependency is not None:

@@ -6,6 +6,7 @@ import pytest
 from sqlmodel import Session, SQLModel, create_engine, delete, select
 
 from llmling_agent.messaging.messages import TokenCost
+from llmling_agent.utils.now import get_now
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_config.storage import SQLStorageConfig
 from llmling_agent_storage.models import QueryFilters, StatsFilters
@@ -241,7 +242,7 @@ async def test_period_filtering(provider: SQLModelProvider, sample_data: None):
     """Test just the period filtering to isolate the issue."""
     # Test direct period parsing
     period = "2h"
-    since = datetime.now() - parse_time_period(period)
+    since = get_now() - parse_time_period(period)
     print(f"\nPeriod '2h' parsed to: {since}")
 
     # Test with QueryFilters
@@ -257,3 +258,7 @@ async def test_period_filtering(provider: SQLModelProvider, sample_data: None):
             print(
                 f"Comparison: {conv.start_time} >= {since} = {conv.start_time >= since}"
             )
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

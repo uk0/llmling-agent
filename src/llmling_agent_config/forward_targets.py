@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable  # noqa: TC003
-from datetime import datetime, timedelta
+from datetime import timedelta  # noqa: TC003
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 
 from llmling_agent.utils.inspection import execute
+from llmling_agent.utils.now import get_now
 from llmling_agent_config.conditions import Condition  # noqa: TC001
 
 
@@ -135,7 +136,7 @@ class FileConnectionConfig(ConnectionConfig):
         """Resolve path template with context variables."""
         from upath import UPath
 
-        now = datetime.now()
+        now = get_now()
         date = now.strftime("%Y-%m-%d")
         time_ = now.strftime("%H-%M-%S")
         variables = {"date": date, "time": time_, **context}

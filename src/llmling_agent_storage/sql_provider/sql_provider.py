@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlmodel import Session, SQLModel, desc, select
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
+from llmling_agent.utils.now import get_now
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_storage.base import StorageProvider
 from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
@@ -24,6 +24,7 @@ from llmling_agent_storage.sql_provider.utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from datetime import datetime
 
     from sqlalchemy import Engine
 
@@ -143,7 +144,7 @@ class SQLModelProvider(StorageProvider[Message]):
                 else None,
                 cost=cost_info.total_cost if cost_info else None,
                 forwarded_from=forwarded_from,
-                timestamp=datetime.now(),
+                timestamp=get_now(),
             )
             session.add(msg)
             session.commit()
@@ -162,7 +163,7 @@ class SQLModelProvider(StorageProvider[Message]):
             conversation = Conversation(
                 id=conversation_id,
                 agent_name=node_name,
-                start_time=start_time or datetime.now(),
+                start_time=start_time or get_now(),
             )
             session.add(conversation)
             session.commit()
@@ -228,7 +229,7 @@ class SQLModelProvider(StorageProvider[Message]):
         """Get filtered conversations with formatted output."""
         # Convert period to since if provided
         if period:
-            since = datetime.now() - parse_time_period(period)
+            since = get_now() - parse_time_period(period)
 
         # Create filters
         filters = QueryFilters(

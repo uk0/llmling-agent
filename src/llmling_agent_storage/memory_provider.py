@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
+from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
 from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
 
@@ -125,7 +126,7 @@ class MemoryStorageProvider(StorageProvider):
             "model": model,
             "response_time": response_time,
             "forwarded_from": forwarded_from,
-            "timestamp": datetime.now(),
+            "timestamp": get_now(),
         })
 
     async def log_conversation(
@@ -139,7 +140,7 @@ class MemoryStorageProvider(StorageProvider):
         self.conversations.append({
             "id": conversation_id,
             "agent_name": node_name,
-            "start_time": start_time or datetime.now(),
+            "start_time": start_time or get_now(),
         })
 
     async def log_tool_call(
@@ -173,7 +174,7 @@ class MemoryStorageProvider(StorageProvider):
             "agent_name": agent_name,
             "session_id": session_id,
             "command": command,
-            "timestamp": datetime.now(),
+            "timestamp": get_now(),
             "context_type": context_type.__name__ if context_type else None,
             "metadata": metadata or {},
         })

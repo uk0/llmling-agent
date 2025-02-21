@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections import deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, Self, overload
 from uuid import UUID, uuid4
 
@@ -18,11 +17,13 @@ from llmling_agent.log import get_logger
 from llmling_agent.messaging.message_container import ChatMessageContainer
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.utils.count_tokens import count_tokens
+from llmling_agent.utils.now import get_now
 from llmling_agent_config.session import MemoryConfig, SessionQuery
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Coroutine, Sequence
+    from datetime import datetime
     from types import TracebackType
 
     from llmling.config.models import Resource
@@ -56,7 +57,7 @@ class ConversationManager:
         """Emitted when chat history is cleared."""
 
         session_id: str
-        timestamp: datetime = field(default_factory=datetime.now)
+        timestamp: datetime = field(default_factory=get_now)
 
     history_cleared = Signal(HistoryCleared)
 

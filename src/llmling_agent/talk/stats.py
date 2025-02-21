@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
+
+from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
     from collections.abc import MutableSequence, Sequence
+    from datetime import datetime
 
     from llmling_agent.messaging.messages import ChatMessage, FormatStyle
     from llmling_agent.tools import ToolCallInfo
@@ -20,7 +22,7 @@ class MessageStats:
     """Statistics for a single connection."""
 
     messages: MutableSequence[ChatMessage[Any]] = field(default_factory=list)
-    start_time: datetime = field(default_factory=datetime.now)
+    start_time: datetime = field(default_factory=get_now)
 
     @property
     def message_count(self) -> int:

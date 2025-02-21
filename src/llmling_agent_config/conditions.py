@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable  # noqa: TC003
-from datetime import datetime, timedelta
+from datetime import timedelta  # noqa: TC003
 from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ImportString
 
 from llmling_agent.utils.inspection import execute
+from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
@@ -41,13 +42,11 @@ class Jinja2Condition(ConnectionCondition):
     """Jinja2 template to evaluate."""
 
     async def check(self, ctx: EventContext) -> bool:
-        from datetime import datetime
-
         from jinjarope import Environment
 
         env = Environment(trim_blocks=True, lstrip_blocks=True, enable_async=True)
         template = env.from_string(self.template)
-        result = await template.render_async(ctx=ctx, now=datetime.now())
+        result = await template.render_async(ctx=ctx, now=get_now())
         return result.strip().lower() == "true" or bool(result)
 
 
@@ -120,7 +119,7 @@ class TimeCondition(ConnectionCondition):
 
     async def check(self, context: EventContext) -> bool:
         """Check if time duration has elapsed."""
-        elapsed = datetime.now() - context.stats.start_time
+        elapsed = get_now() - context.stats.start_time
         return elapsed >= self.duration
 
 

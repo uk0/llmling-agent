@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from upath import UPath
 
 from llmling_agent.log import get_logger
+from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
 
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from jinja2 import Template
 
     from llmling_agent.common_types import JsonValue, StrPath
@@ -160,8 +162,8 @@ class TextLogProvider(StorageProvider):
             Base context dict with defaults
         """
         return {
-            "now": datetime.now(),
-            "date": datetime.now().date(),
+            "now": get_now(),
+            "date": get_now().date(),
             "operation": operation,
             # All other variables will default to empty string via EmptyStringUndefined
         }
@@ -200,7 +202,7 @@ class TextLogProvider(StorageProvider):
         """Store message and update log."""
         entry = {
             "type": "message",
-            "timestamp": datetime.now(),
+            "timestamp": get_now(),
             "conversation_id": conversation_id,
             "content": content,
             "role": role,
@@ -225,7 +227,7 @@ class TextLogProvider(StorageProvider):
         """Store conversation start."""
         entry = {
             "type": "conversation",
-            "timestamp": start_time or datetime.now(),
+            "timestamp": start_time or get_now(),
             "conversation_id": conversation_id,
             "agent_name": node_name,
         }
@@ -268,7 +270,7 @@ class TextLogProvider(StorageProvider):
         """Store command."""
         entry = {
             "type": "command",
-            "timestamp": datetime.now(),
+            "timestamp": get_now(),
             "agent_name": agent_name,
             "session_id": session_id,
             "command": command,

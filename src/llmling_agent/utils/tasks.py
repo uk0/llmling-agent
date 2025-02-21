@@ -4,15 +4,16 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
 import heapq
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from llmling_agent.log import get_logger
+from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine
+    from datetime import datetime, timedelta
 
 
 T = TypeVar("T")
@@ -76,7 +77,7 @@ class TaskManagerMixin:
         self._pending_tasks.add(task)
 
         if delay is not None:
-            execute_at = datetime.now() + delay
+            execute_at = get_now() + delay
             # Store the coroutine instead of the task
             heapq.heappush(
                 self._task_queue, PrioritizedTask(priority, execute_at, coro, name)
@@ -96,7 +97,7 @@ class TaskManagerMixin:
             while self._task_queue:
                 # Get next task without removing
                 next_task = self._task_queue[0]
-                now = datetime.now()
+                now = get_now()
 
                 if now >= next_task.execute_at:
                     # Remove and execute

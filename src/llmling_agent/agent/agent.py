@@ -6,7 +6,6 @@ import asyncio
 from collections.abc import Callable, Coroutine, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
 import os
 from os import PathLike
 import time
@@ -32,6 +31,7 @@ from llmling_agent.utils.inspection import (
     has_return_type,
     validate_import,
 )
+from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_config.session import MemoryConfig, SessionQuery
@@ -39,6 +39,7 @@ from llmling_agent_config.session import MemoryConfig, SessionQuery
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+    from datetime import datetime
     from types import TracebackType
 
     from llmling.config.models import Resource
@@ -138,7 +139,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         agent_name: AgentName
         previous_tools: dict[str, bool]
         new_tools: dict[str, bool]
-        timestamp: datetime = field(default_factory=datetime.now)
+        timestamp: datetime = field(default_factory=get_now)
 
     # this fixes weird mypy issue
     conversation: ConversationManager

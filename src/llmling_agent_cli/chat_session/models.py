@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
+from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from llmling_agent import ChatMessage
 
 
@@ -26,7 +28,7 @@ class SessionState:
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_cost: float = 0.0
-    start_time: datetime = field(default_factory=datetime.now)
+    start_time: datetime = field(default_factory=get_now)
     last_command: str | None = None
     last_response_time: float | None = None
 
@@ -49,7 +51,7 @@ class SessionState:
     @property
     def duration(self) -> str:
         """Get formatted duration since session start."""
-        duration = datetime.now() - self.start_time
+        duration = get_now() - self.start_time
         hours, remainder = divmod(int(duration.total_seconds()), 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}"

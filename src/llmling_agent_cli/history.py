@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import logging
+from typing import TYPE_CHECKING
 
 from llmling.cli.constants import output_format_opt
 from llmling.cli.utils import format_output
 import typer as t
 
 from llmling_agent import AgentsManifest
+from llmling_agent.utils.now import get_now
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_cli import resolve_agent_config
+
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
@@ -137,7 +142,7 @@ def show_stats(
         provider = get_history_provider(config_path)
 
         # Create filters
-        cutoff = datetime.now() - parse_time_period(period)
+        cutoff = get_now() - parse_time_period(period)
         filters = StatsFilters(cutoff=cutoff, group_by=group_by, agent_name=agent_name)  # type: ignore
 
         stats = provider.run_task_sync(provider.get_conversation_stats(filters))

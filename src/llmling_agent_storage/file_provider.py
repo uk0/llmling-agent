@@ -11,6 +11,7 @@ from upath import UPath
 from llmling_agent.common_types import JsonValue, MessageRole
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
+from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
 
 
@@ -195,7 +196,7 @@ class FileProvider(StorageProvider):
             "conversation_id": conversation_id,
             "content": content,
             "role": cast(MessageRole, role),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": get_now().isoformat(),
             "name": name,
             "model": model,
             "cost": cost_info.total_cost if cost_info else None,
@@ -216,7 +217,7 @@ class FileProvider(StorageProvider):
         conversation: ConversationData = {
             "id": conversation_id,
             "agent_name": node_name,
-            "start_time": (start_time or datetime.now()).isoformat(),
+            "start_time": (start_time or get_now()).isoformat(),
         }
         self._data["conversations"].append(conversation)
         self._save()
@@ -256,7 +257,7 @@ class FileProvider(StorageProvider):
             "command": command,
             "context_type": context_type.__name__ if context_type else None,
             "metadata": metadata or {},
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": get_now().isoformat(),
         }
         self._data["commands"].append(cmd)
         self._save()

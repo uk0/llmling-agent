@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import pathlib
 import time
 from typing import TYPE_CHECKING, Any, Literal, overload
@@ -15,6 +14,7 @@ from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.tools.base import Tool
+from llmling_agent.utils.now import get_now
 from llmling_agent_cli.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent_cli.chat_session.models import SessionState
 from llmling_agent_commands import get_commands
@@ -63,7 +63,7 @@ class AgentPoolView:
         self._agent.conversation.history_cleared.connect(self.history_cleared)
         file_path = HISTORY_DIR / f"{agent.name}.history"
         self.commands = CommandStore(history_file=file_path, enable_system_commands=True)
-        self.start_time = datetime.now()
+        self.start_time = get_now()
         self._state = SessionState(current_model=self._agent.model_name)
         # Store wait state for this connection
         self.commands._initialize_sync()

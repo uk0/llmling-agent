@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import os
 from typing import TYPE_CHECKING, Any, Self
 
@@ -10,6 +9,7 @@ from supabase import AsyncClient, create_async_client
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import TokenCost
+from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
 from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
 from llmling_agent_storage.supabase_provider.queries import (
@@ -26,6 +26,7 @@ from llmling_agent_storage.supabase_provider.utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from datetime import datetime
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging.messages import ChatMessage
@@ -135,7 +136,7 @@ class SupabaseProvider(StorageProvider):
         data = {
             "id": conversation_id,
             "agent_name": node_name,
-            "start_time": start_time or datetime.now(),
+            "start_time": start_time or get_now(),
         }
         await self.client.from_("conversations").insert(data).execute()
 

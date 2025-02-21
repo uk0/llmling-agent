@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime  # noqa: TC003
 from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from llmling_agent.utils.now import get_now
 
 
 FormatStyle = Literal["simple", "detailed", "markdown"]
@@ -83,7 +85,7 @@ class ToolCallInfo(BaseModel):
     tool_call_id: str = Field(default_factory=lambda: str(uuid4()))
     """ID provided by the model (e.g. OpenAI function call ID)."""
 
-    timestamp: datetime = Field(default_factory=datetime.now)
+    timestamp: datetime = Field(default_factory=get_now)
     """When the tool was called."""
 
     message_id: str | None = None

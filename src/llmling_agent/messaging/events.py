@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from datetime import datetime
+from datetime import datetime  # noqa: TC003
 import json
 from typing import Any, Literal, Self
 
@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from llmling_agent.messaging.messages import ChatMessage  # noqa: TC001
 from llmling_agent.talk.talk import Talk  # noqa: TC001
+from llmling_agent.utils.now import get_now
 from llmling_agent_config.events import (  # noqa: TC001
     ConnectionEventType,
     EventSourceConfig,
@@ -24,7 +25,7 @@ class EventData(BaseModel):
     """Base class for event data."""
 
     source: str
-    timestamp: datetime = Field(default_factory=datetime.now)
+    timestamp: datetime = Field(default_factory=get_now)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(
@@ -37,7 +38,7 @@ class EventData(BaseModel):
     @classmethod
     def create(cls, source: str, **kwargs: Any) -> Self:
         """Create event with current timestamp."""
-        return cls(source=source, timestamp=datetime.now(), **kwargs)
+        return cls(source=source, **kwargs)
 
     @abstractmethod
     def to_prompt(self) -> str:

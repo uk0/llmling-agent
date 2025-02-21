@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable, Coroutine, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta
 from functools import wraps
 import inspect
 from typing import TYPE_CHECKING, Any, Self, overload
@@ -16,6 +15,7 @@ from pydantic import SecretStr
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.events import EventData, FunctionResultEventData
 from llmling_agent.utils.inspection import execute
+from llmling_agent.utils.now import get_now
 from llmling_agent_config.events import (
     EmailConfig,
     EventConfig,
@@ -26,6 +26,8 @@ from llmling_agent_config.events import (
 
 
 if TYPE_CHECKING:
+    from datetime import datetime, timedelta
+
     from llmling_agent.messaging.messageemitter import MessageEmitter
     from llmling_agent_events.base import EventSource
     from llmling_agent_events.timed_watcher import TimeEventSource
@@ -350,13 +352,13 @@ class EventManager:
 
             @wraps(func)
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-                start_time = datetime.now()
+                start_time = get_now()
                 try:
                     result = await func(*args, **kwargs)
                     if self.enabled:
                         meta = {
                             "status": "success",
-                            "duration": datetime.now() - start_time,
+                            "duration": get_now() - start_time,
                             "args": args,
                             "kwargs": kwargs,
                             **event_metadata,
@@ -368,7 +370,7 @@ class EventManager:
                         meta = {
                             "status": "error",
                             "error": str(e),
-                            "duration": datetime.now() - start_time,
+                            "duration": get_now() - start_time,
                             "args": args,
                             "kwargs": kwargs,
                             **event_metadata,
@@ -381,13 +383,13 @@ class EventManager:
 
             @wraps(func)
             def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-                start_time = datetime.now()
+                start_time = get_now()
                 try:
                     result = func(*args, **kwargs)
                     if self.enabled:
                         meta = {
                             "status": "success",
-                            "duration": datetime.now() - start_time,
+                            "duration": get_now() - start_time,
                             "args": args,
                             "kwargs": kwargs,
                             **event_metadata,
@@ -399,7 +401,7 @@ class EventManager:
                         meta = {
                             "status": "error",
                             "error": str(e),
-                            "duration": datetime.now() - start_time,
+                            "duration": get_now() - start_time,
                             "args": args,
                             "kwargs": kwargs,
                             **event_metadata,

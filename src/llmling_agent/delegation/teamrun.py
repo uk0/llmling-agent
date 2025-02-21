@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
 from itertools import pairwise
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal
@@ -15,10 +14,12 @@ from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import AgentResponse, ChatMessage, TeamResponse
 from llmling_agent.talk.talk import Talk, TeamTalk
+from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, AsyncIterator, Sequence
+    from datetime import datetime
     import os
 
     import PIL.Image
@@ -48,7 +49,7 @@ class ExtendedTeamTalk(TeamTalk):
 
     def add_error(self, agent: str, error: str):
         """Track errors from AgentResponses."""
-        self.errors.append((agent, error, datetime.now()))
+        self.errors.append((agent, error, get_now()))
 
     @property
     def error_log(self) -> list[tuple[str, str, datetime]]:
@@ -139,7 +140,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
     ) -> TeamResponse[TResult]:
         """Start execution with optional monitoring."""
         self._team_talk.clear()
-        start_time = datetime.now()
+        start_time = get_now()
         final_prompt = list(prompts)
         if self.shared_prompt:
             final_prompt.insert(0, self.shared_prompt)

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
 
 import pytest
 
 from llmling_agent import AgentPool, ChatMessage
+from llmling_agent.utils.now import get_now
 
 
 async def delayed_processor(msg: str, delay: float = 0.1) -> str:
@@ -47,7 +47,7 @@ class TestTeamRunBackground:
             assert result.name == "agent2"
 
             # Verify stats captured all messages
-            messages = []
+            messages: list[ChatMessage] = []
             for talk in stats:
                 messages.extend(talk.stats.messages)
             assert len(messages) == 2  # One from each agent  # noqa: PLR2004
@@ -130,7 +130,7 @@ class TestTeamRunBackground:
             )
 
             run = agent
-            start = datetime.now()
+            start = get_now()
             _stats = await run.run_in_background("test", max_count=1)
 
             # Wait should return message
@@ -138,7 +138,7 @@ class TestTeamRunBackground:
             assert isinstance(result, ChatMessage)
             # Message should have timestamp
             assert result.timestamp >= start
-            assert result.timestamp < datetime.now()
+            assert result.timestamp < get_now()
 
 
 if __name__ == "__main__":

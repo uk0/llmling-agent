@@ -6,7 +6,6 @@ from collections import defaultdict
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, Self, overload
 
 from psygnal import Signal
@@ -15,11 +14,12 @@ from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.talk.stats import AggregatedTalkStats, TalkStats
 from llmling_agent.utils.inspection import execute
+from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable
-    from datetime import timedelta
+    from datetime import datetime, timedelta
     import os
 
     import PIL.Image
@@ -48,7 +48,7 @@ class Talk[TTransmittedData]:
         targets: list[MessageNode]
         queued: bool
         connection_type: ConnectionType
-        timestamp: datetime = field(default_factory=datetime.now)
+        timestamp: datetime = field(default_factory=get_now)
 
     # Original message "coming in"
     message_received = Signal(ChatMessage)
@@ -233,7 +233,7 @@ class Talk[TTransmittedData]:
             connection_name=self.name,
             event_type=event_type,
             message=message,
-            timestamp=datetime.now(),
+            timestamp=get_now(),
         )
         # Propagate to all event managers through registry
         if self.source.context and (pool := self.source.context.pool):

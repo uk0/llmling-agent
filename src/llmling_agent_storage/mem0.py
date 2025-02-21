@@ -10,6 +10,7 @@ from mem0 import AsyncMemoryClient
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
 
 
@@ -46,14 +47,14 @@ class Mem0StorageProvider(StorageProvider):
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Convert to mem0 message format."""
-        ts = datetime.now().isoformat()
+        ts = get_now().isoformat()
         meta = {"name": name, "timestamp": ts, **(metadata or {})}
         return {"role": role, "content": content, "metadata": meta}
 
     def _from_mem0_message(self, msg: dict[str, Any]) -> ChatMessage[str]:
         """Convert from mem0 message format."""
         metadata = msg.get("metadata", {})
-        ts = datetime.fromisoformat(metadata.get("timestamp", datetime.now().isoformat()))
+        ts = datetime.fromisoformat(metadata.get("timestamp", get_now().isoformat()))
         return ChatMessage(
             content=msg["content"],
             role=msg["role"],
@@ -104,7 +105,7 @@ class Mem0StorageProvider(StorageProvider):
         start_time: datetime | None = None,
     ):
         """Log conversation metadata."""
-        t = (start_time or datetime.now()).isoformat()
+        t = (start_time or get_now()).isoformat()
         meta = {"type": "conversation_start", "agent_name": node_name, "start_time": t}
         message = self._to_mem0_message("Conversation started", "system", metadata=meta)
         fmt = self.config.output_format

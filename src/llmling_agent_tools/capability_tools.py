@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from datetime import datetime, timedelta
+from datetime import timedelta
 import io
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
@@ -13,6 +13,7 @@ from llmling import ToolError
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
+from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
@@ -248,7 +249,7 @@ async def show_statistics(
 
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
-    cutoff = datetime.now() - timedelta(hours=hours)
+    cutoff = get_now() - timedelta(hours=hours)
     filters = StatsFilters(cutoff=cutoff, group_by=group_by)
 
     provider = ctx.storage.get_history_provider()

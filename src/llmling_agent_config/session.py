@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Self
+from typing import TYPE_CHECKING, Self
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
 from llmling_agent.common_types import MessageRole  # noqa: TC001
+from llmling_agent.utils.now import get_now
+
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class MemoryConfig(BaseModel):
@@ -87,4 +91,4 @@ class SessionQuery(BaseModel):
         if not self.since:
             return None
         delta = parse_time_period(self.since)
-        return datetime.now() - delta
+        return get_now() - delta

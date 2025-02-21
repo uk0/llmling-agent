@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import asdict, dataclass, field, replace
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict
 from uuid import uuid4
 
@@ -14,9 +13,12 @@ from typing_extensions import TypeVar
 from llmling_agent.common_types import JsonObject, MessageRole  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.tools import ToolCallInfo  # noqa: TC001
+from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     import tokonomics
 
 
@@ -169,7 +171,7 @@ class ChatMessage[TContent]:
     metadata: JsonObject = field(default_factory=dict)
     """Additional metadata about the message."""
 
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=get_now)
     """When this message was created."""
 
     cost_info: TokenCost | None = None
@@ -316,8 +318,8 @@ class TeamResponse[TMessageContent](list[AgentResponse[Any]]):
         errors: dict[str, Exception] | None = None,
     ):
         super().__init__(responses)
-        self.start_time = start_time or datetime.now()
-        self.end_time = datetime.now()
+        self.start_time = start_time or get_now()
+        self.end_time = get_now()
         self.errors = errors or {}
 
     @property

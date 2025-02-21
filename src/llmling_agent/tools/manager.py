@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field, fields
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling import BaseRegistry, LLMCallableTool, ToolError
@@ -18,10 +17,12 @@ from llmling_agent.resource_providers.callable_provider import (
     ResourceCallable,
 )
 from llmling_agent.tools.base import Tool
+from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from datetime import datetime
 
     from llmling_agent import AnyAgent, MessageNode
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
@@ -55,7 +56,7 @@ class ToolManager(BaseRegistry[str, Tool]):
 
         previous_tools: dict[str, bool]
         new_tools: dict[str, bool]
-        timestamp: datetime = field(default_factory=datetime.now)
+        timestamp: datetime = field(default_factory=get_now)
 
     tool_states_reset = Signal(ToolStateReset)
 

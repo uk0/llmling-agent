@@ -2,19 +2,44 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, DateTime
 from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.types import TypeDecorator
 from sqlmodel import JSON, Field, SQLModel
 from sqlmodel.main import SQLModelConfig
 
+from llmling_agent.utils.now import get_now
+
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from llmling_agent.common_types import JsonValue
+
+
+class UTCDateTime(TypeDecorator):
+    """Stores DateTime as UTC."""
+
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value: datetime | None, dialect):
+        if value is not None:
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=UTC)
+            else:
+                value = value.astimezone(UTC)
+        return value
+
+    def process_result_value(self, value: datetime | None, dialect):
+        if value is not None:
+            value = value.replace(tzinfo=UTC)
+        return value
 
 
 class CommandHistory(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
@@ -41,7 +66,7 @@ class CommandHistory(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg
     """Additional context information about command execution"""
 
     timestamp: datetime = Field(
-        sa_column=Column(DateTime, default=datetime.now), default_factory=datetime.now
+        sa_column=Column(UTCDateTime, default=get_now), default_factory=get_now
     )
     """When the command was executed"""
 
@@ -99,7 +124,9 @@ class Message(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     conversation_id: str = Field(index=True)
     """ID of the conversation this message belongs to"""
 
-    timestamp: datetime = Field(sa_column=Column(DateTime), default_factory=datetime.now)
+    timestamp: datetime = Field(
+        sa_column=Column(UTCDateTime, default=get_now), default_factory=get_now
+    )
     """When the message was sent"""
 
     role: str
@@ -156,7 +183,9 @@ class ToolCall(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     message_id: str = Field(index=True)
     """ID of the message that triggered this tool call"""
 
-    timestamp: datetime = Field(sa_column=Column(DateTime), default_factory=datetime.now)
+    timestamp: datetime = Field(
+        sa_column=Column(UTCDateTime, default=get_now), default_factory=get_now
+    )
     """When the tool was called"""
 
     tool_call_id: str | None = None
@@ -184,7 +213,7 @@ class Conversation(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     """Name of the agent handling the conversation"""
 
     start_time: datetime = Field(
-        default_factory=datetime.now, sa_column=Column(DateTime, index=True)
+        sa_column=Column(UTCDateTime, index=True), default_factory=get_now
     )
     """When the conversation started"""
 

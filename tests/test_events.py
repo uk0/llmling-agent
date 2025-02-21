@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 import pytest
 
 from llmling_agent.messaging.event_manager import EventManager
 from llmling_agent.messaging.events import EventData
 from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.utils.now import get_now
 from llmling_agent_config.events import TimeEventConfig
 
 
@@ -42,7 +41,7 @@ async def test_event_manager_basic_callback(event_manager: EventManager):
         received_events.append(event)
 
     event_manager.add_callback(test_callback)
-    event = _TestEvent(source="test", timestamp=datetime.now(), message="test message")
+    event = _TestEvent(source="test", message="test message")
     await event_manager.emit_event(event)
 
     assert len(received_events) == 1
@@ -66,7 +65,7 @@ async def test_event_manager_multiple_callbacks(event_manager: EventManager):
     event_manager.add_callback(callback1)
     event_manager.add_callback(callback2)
 
-    event = _TestEvent(source="test", timestamp=datetime.now())
+    event = _TestEvent(source="test")
     await event_manager.emit_event(event)
 
     assert counter1 == 1
@@ -83,7 +82,7 @@ async def test_event_manager_disabled(agent):
         counter += 1
 
     manager.add_callback(callback)
-    event = _TestEvent(source="test", timestamp=datetime.now())
+    event = _TestEvent(source="test")
     await manager.emit_event(event)
 
     assert counter == 0
@@ -98,7 +97,7 @@ async def test_event_manager_remove_callback(event_manager: EventManager):
         counter += 1
 
     event_manager.add_callback(callback)
-    event = _TestEvent(source="test", timestamp=datetime.now())
+    event = _TestEvent(source="test")
     await event_manager.emit_event(event)
     assert counter == 1
 
@@ -145,7 +144,7 @@ async def test_auto_run_handling(event_manager, agent):
     # Create and emit event with a prompt
     event = _TestEvent(
         source="test",
-        timestamp=datetime.now(),
+        timestamp=get_now(),
         message="Test prompt",
     )
     await event_manager.emit_event(event)

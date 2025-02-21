@@ -214,7 +214,7 @@ messages = await storage.filter_messages(
 # Get statistics
 stats = await storage.get_conversation_stats(
     filters=StatsFilters(
-        cutoff=datetime.now() - timedelta(days=1),
+        cutoff=datetime.now(UTC) - timedelta(days=1),
         group_by="agent"
     )
 )
