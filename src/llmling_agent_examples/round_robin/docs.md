@@ -2,45 +2,6 @@
 
 This example demonstrates how to set up a cyclic communication pattern between agents using LLMling's connection system.
 
-## Basic Setup
-
-Create a word chain game where each agent must respond with a word starting with the last letter of the previous word:
-
-```yaml
-prompts:
-  system_prompts:
-    word_chain:
-      type: role
-      content: "Respond with a word that starts with the last letter of the given word."
-
-agents:
-  player1:
-    model: gpt-3.5-turbo
-    library_system_prompts:
-      - word_chain
-    connections:
-      - type: node
-        name: player2  # All messages are forwarded in a circle
-
-  player2:
-    model: gpt-3.5-turbo
-    library_system_prompts:
-      - word_chain
-    connections:
-      - type: node
-        name: player3
-
-  player3:
-    model: gpt-3.5-turbo
-    library_system_prompts:
-      - word_chain
-    connections:
-      - type: node
-        name: player1
-        stop_condition:  # NOTE: this only checks the cost for this "connection"
-          type: cost_limit
-          max_cost: 0.05
-```
 
 ```mermaid
 flowchart LR

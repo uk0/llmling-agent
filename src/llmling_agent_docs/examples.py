@@ -7,6 +7,7 @@ import pathlib
 import mknodes as mk
 
 from llmling_agent.agent.agent import Agent
+from llmling_agent_examples.utils import iter_examples
 
 
 nav = mk.MkNav("Examples")
@@ -19,55 +20,17 @@ for this homepage section below.  This system is perfectly suited for Agent usag
 documentation generation.
 """
 
+for example in iter_examples():
 
-@nav.route.page("Creating Documentation", icon="octicon:book-16", hide="toc")
-def _(page: mk.MkPage):
-    """Agents creating documentation."""
-    page += mk.MkTemplate("docs/examples/create_docs.md")
-
-
-@nav.route.page("Download Agents", icon="octicon:download-16", hide="toc")
-def _(page: mk.MkPage):
-    """Sequential vs parallel downloads with cheerleader."""
-    page += mk.MkTemplate("docs/examples/download_agents.md")
-
-
-@nav.route.page("Pytest-Style Functions", icon="octicon:code-16", hide="toc")
-def _(page: mk.MkPage):
-    """Using agents with pytest-style fixtures."""
-    page += mk.MkTemplate("docs/examples/pytest_style.md")
-
-
-@nav.route.page("Human Interaction", icon="octicon:person-16", hide="toc")
-def _(page: mk.MkPage):
-    """AI-Human interaction patterns."""
-    page += mk.MkTemplate("docs/examples/human_interaction.md")
-
-
-@nav.route.page("MCP Servers", icon="octicon:server-16", hide="toc")
-def _(page: mk.MkPage):
-    """MCP server usage."""
-    page += mk.MkTemplate("docs/examples/mcp_servers.md")
-
-
-@nav.route.page("Expert Selection", icon="octicon:people-16", hide="toc")
-def _(page: mk.MkPage):
-    """Type-safe expert selection with pick()."""
-    page += mk.MkTemplate("docs/examples/pick_team.md")
-
-
-@nav.route.page("Structured Responses", icon="simple-icons:instructure", hide="toc")
-def _(page: mk.MkPage):
-    """Using structured response types."""
-    page += mk.MkTemplate("docs/examples/structured_response.md")
-
-
-@nav.route.page(
-    "Round-robin communication YAML Edition", icon="octicon:project-16", hide="toc"
-)
-def _(page: mk.MkPage):
-    """Using structured response types."""
-    page += mk.MkTemplate("docs/examples/round_robin.md")
+    @nav.route.page(example.title, icon=example.icon, hide="toc")
+    def _(page: mk.MkPage, ex=example):  # type: ignore
+        """Add example page with description from its docstring."""
+        if ex.docs:
+            page += mk.MkTemplate(str(ex.docs))
+        if ex.files:
+            link = mk.MkLink.for_pydantic_playground(ex.files)
+            page += link
+            page += mk.MkIFrame(link.url, width=1200, height=900)
 
 
 @nav.route.page(

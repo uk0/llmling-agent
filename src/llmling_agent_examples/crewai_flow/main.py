@@ -1,23 +1,15 @@
+# docs/examples/crewai_flow/main.py
 # /// script
 # dependencies = ["llmling-agent"]
 # ///
+
 """Adaption of a CrewAI-like flow."""
 
 from __future__ import annotations
 
 from llmling_agent import Agent, AgentsManifest
+from llmling_agent_examples.utils import get_config_path, is_pyodide, run
 from llmling_agent_running import node_function, run_nodes_async
-
-
-agents_yaml = """
-agents:
-  city_picker:
-    model: gpt-4o-mini
-    system_prompts: ["You generate random city names."]
-  fact_finder:
-    model: gpt-4o-mini
-    system_prompts: ["You provide interesting facts about cities."]
-"""
 
 
 @node_function
@@ -34,15 +26,14 @@ async def generate_fun_fact(fact_finder: Agent[None], generate_city: str) -> str
     return result.data
 
 
-# Execute the flow
-async def main():
-    manifest = AgentsManifest.from_yaml(agents_yaml)
+async def run_example() -> None:
+    """Run the CrewAI-like flow example."""
+    config_path = get_config_path(None if is_pyodide() else __file__)
+    manifest = AgentsManifest.from_file(config_path)
     results = await run_nodes_async(manifest)
     print(f"City: {results['generate_city']}")
     print(f"Fun fact: {results['generate_fun_fact']}")
 
 
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
+    run(run_example())

@@ -1,3 +1,4 @@
+# docs/examples/pick/main.py
 # /// script
 # dependencies = ["llmling-agent"]
 # ///
@@ -7,30 +8,12 @@
 from __future__ import annotations
 
 from llmling_agent import AgentPool
+from llmling_agent_examples.utils import get_config_path, is_pyodide, run
 
 
-AGENT_CONFIG = """
-agents:
-  coordinator:
-    model: openai:gpt-4o-mini
-    system_prompts:
-      - You select the most suitable expert(s) for each task.
-
-  database_expert:
-    model: openai:gpt-4o-mini
-    description: Expert in SQL optimization and database design.
-
-  frontend_dev:
-    model: openai:gpt-4o-mini
-    description: Specialist in React and modern web interfaces.
-
-  security_expert:
-    model: openai:gpt-4o-mini
-    description: Expert in penetration testing and security audits.
-"""
-
-
-async def main(config_path: str):
+async def run_example() -> None:
+    """Run the expert selection example."""
+    config_path = get_config_path(None if is_pyodide() else __file__)
     async with AgentPool[None](config_path) as pool:
         coordinator = pool.get_agent("coordinator")
         experts = pool.create_team(["database_expert", "frontend_dev", "security_expert"])
@@ -44,17 +27,15 @@ async def main(config_path: str):
 
         # Multiple expert selection
         task = "Who should we assign to create a secure login page?"
-        multi_pick = await coordinator.talk.pick_multiple(experts, task=task, min_picks=2)
+        multi_pick = await coordinator.talk.pick_multiple(
+            experts,
+            task=task,
+            min_picks=2,
+        )
         # also here type-safe result
         selected = ", ".join(e.name for e in multi_pick.selections)
         print(f"Selected: {selected} Reason: {multi_pick.reason}")
 
 
 if __name__ == "__main__":
-    import asyncio
-    import tempfile
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp:
-        tmp.write(AGENT_CONFIG)
-        tmp.flush()
-        asyncio.run(main(tmp.name))
+    run(run_example())

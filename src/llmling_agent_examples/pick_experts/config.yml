@@ -1,0 +1,17 @@
+agents:
+  coordinator:
+    model: openai:gpt-4o-mini
+    system_prompts:
+      - You select the most suitable expert(s) for each task.
+
+  database_expert:
+    model: openai:gpt-4o-mini
+    description: Expert in SQL optimization and database design.
+
+  frontend_dev:
+    model: openai:gpt-4o-mini
+    description: Specialist in React and modern web interfaces.
+
+  security_expert:
+    model: openai:gpt-4o-mini
+    description: Expert in penetration testing and security audits.
