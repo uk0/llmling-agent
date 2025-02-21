@@ -262,7 +262,7 @@ def launch_app(
             server_name=server_name,
             server_port=server_port,
             prevent_thread_lock=not block,
-            pwa=pwa,
+            # pwa=pwa,
             **kwargs,
         )
 
