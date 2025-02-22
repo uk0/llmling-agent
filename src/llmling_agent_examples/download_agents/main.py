@@ -36,7 +36,7 @@ Delegate to file_getter_1 and file_getter_2. Report the results.
 
 
 def cheer(slogan: str):
-    """🥳🎉 Use this tool to show your apprreciation!"""
+    """🥳🎉 Cheer! Use this tool to show your apprreciation."""
     print(slogan)
 
 

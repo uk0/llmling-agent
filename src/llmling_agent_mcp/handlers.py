@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def register_handlers(llm_server: LLMLingServer) -> None:
+def register_handlers(llm_server: LLMLingServer) -> None:  # noqa: PLR0915
     """Register all MCP protocol handlers.
 
     Args:

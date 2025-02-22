@@ -274,7 +274,6 @@ select = [
 ]
 ignore = [
     "C408",   # Unnecessary {obj_type} call (rewrite as a literal)
-    "B905",   # zip() without an explicit strict= parameter
     "C901",   # {name} is too complex ({complexity} > {max_complexity})
     "COM812",
     # "CPY001", # Missing copyright notice at top of file
@@ -286,14 +285,12 @@ ignore = [
     "D203",    # 1 blank line required before class docstring
     "D204",    # 1 blank line required after class docstring
     "D213",    # Multi-line docstring summary should start at the second line
-    "D400",    # First line should end with a period
     "D401",    # First line of docstring should be in imperative mood: "{first_line}"
     "D408",    # Section underline should be in the line following the section's name ("{name}")
     "D413",    # Missing blank line after last section ("{name}")
     "ISC001",
     "PLR0912", # Too many branches
     "PLR0913", # Too many arguments to function call
-    "PLR0915", # Too many statements
     # "PLR2004", # Magic values instead of named consts
     "SLF001", # Private member accessed
     "TRY003", # Avoid specifying long messages outside the exception class

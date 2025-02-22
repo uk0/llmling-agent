@@ -73,13 +73,19 @@ class DatabaseQueryTool:
                 lines = []
                 # Header
                 lines.append(
-                    "| " + " | ".join(f"{h:<{w}}" for h, w in zip(headers, widths)) + " |"
+                    "| "
+                    + " | ".join(
+                        f"{h:<{w}}" for h, w in zip(headers, widths, strict=True)
+                    )
+                    + " |"
                 )
                 # Separator
                 lines.append("|" + "|".join("-" * (w + 2) for w in widths) + "|")
                 # Data rows
                 lines.extend([
-                    "| " + " | ".join(f"{v!s:<{w}}" for v, w in zip(row, widths)) + " |"
+                    "| "
+                    + " | ".join(f"{v!s:<{w}}" for v, w in zip(row, widths, strict=True))
+                    + " |"
                     for row in rows[1:]
                 ])
 

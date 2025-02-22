@@ -55,7 +55,7 @@ def set_handler_level(
             logger.setLevel(level)
         yield
     finally:
-        for logger, old_level in zip(loggers, old_levels):
+        for logger, old_level in zip(loggers, old_levels, strict=True):
             logger.setLevel(old_level)
             if handler:
                 logger.removeHandler(handler)

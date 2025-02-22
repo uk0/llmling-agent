@@ -29,7 +29,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
         self.capabilities = capabilities
         self.runtime = runtime
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> list[Tool]:  # noqa: PLR0915
         """Get all tools enabled by current capabilities."""
         tools: list[Tool] = []
 
