@@ -1,3 +1,5 @@
+"""LLMling-models package."""
+
 from typing import Annotated
 
 from pydantic import Field
