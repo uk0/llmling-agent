@@ -8,17 +8,24 @@ jobs:
     continue-on-error: ${{ matrix.python_version == '3.14' }}
     strategy:
       matrix:
-        python_version: ["3.12", "3.13", "3.14"]
+        python_version: ["3.12", "3.13", "3.13t", "3.14"]
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python_version }}
+      - name: Setup Python
+        if: matrix.python-version != '3.13t'
         uses: actions/setup-python@v5
+        id: setup-python
         with:
-          python-version: ${{ matrix.python_version }}
-          allow-prereleases: true
+          python-version: ${{ matrix.python-version }}
+      - name: Setup Python
+        if: matrix.python-version == '3.13t'
+        # TODO: switch to `actions/setup-python`, see: <https://github.com/actions/setup-python/pull/973>
+        uses: Quansight-Labs/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
