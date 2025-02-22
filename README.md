@@ -36,15 +36,15 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 
 ## ✨ Unique Features
 - 🔄 Modern python written from ground up with Python 3.12
-- ⚡ True async framework. Easy set-up of complex async agent flows. Faster initializations of "heavy" agents (and first experimentations with async UI supervision f Agents in real-time)
 - 📝 Easy consistent APIs
+- 💻 Pyodide-"compatible"
 - 🛡️ Complete agent defintion via YAML files including extensive JSON schema to help with creating configurations.
 - 🔒 Leveraging the complete pydantic-based type-safe stack and bringing it to the multi-agent world
-- 🎮 Complete integrated command sytem to control agents from prompt-based interfaces
 - 🔌 Agent MCP server support, initialized when entering the async context.
 - 👁️ Multi-modal support for both LiteLLM and Pydantic-AI (currently Images and PDFs if model support is given)
 - 💾 Storage providers to allow writing to local files, databases, etc. with many customizable backends. Log to SQL databases and pretty-print to a file according to your own wishes.
 - 🧩 Support for creating "description prompts" for many common python type(s / instances). Your agent understands common datatypes.
+- 🎮 Complete integrated command sytem to control agents from prompt-based interfaces
 - 🔗 Unique powerful connection-based messaging approach for object-oriented routing and observation.
 - 🎯 Integration of Meta-Model system based on [LLMling-models](https://github.com/phil65/llmling-models), also configurable via YAML.
 - 🔐 Deep integration of structured responses into workflows and (generic) typing system.
