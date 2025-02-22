@@ -64,6 +64,7 @@ class ComposioToolSetConfig(BaseToolsetConfig):
     """Composio Toolsets."""
 
     api_key: SecretStr | None = None
+    """Composio API Key."""
 
     entitiy_id: str = "default"
     """Toolset entity id."""
@@ -78,6 +79,28 @@ class ComposioToolSetConfig(BaseToolsetConfig):
             else os.getenv("COMPOSIO_API_KEY")
         )
         return ComposioTools(entity_id=self.entitiy_id, api_key=key)
+
+
+class UpsonicToolSetConfig(BaseToolsetConfig):
+    """Configuration for entry point toolsets."""
+
+    type: Literal["upsonic"] = Field("upsonic", init=False)
+    """Upsonic Toolsets."""
+
+    base_url: str | None = None
+    """Upsonic API URL."""
+
+    api_key: SecretStr | None = None
+    """Upsonic API Key."""
+
+    entitiy_id: str = "default"
+    """Toolset entity id."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create entry point tools provider from this config."""
+        from llmling_agent_toolsets.upsonic_toolset import UpsonicTools
+
+        return UpsonicTools(base_url=self.base_url, api_key=self.api_key)
 
 
 class CustomToolsetConfig(BaseToolsetConfig):
@@ -121,6 +144,12 @@ ToolsetConfig = Annotated[
     OpenAPIToolsetConfig
     | EntryPointToolsetConfig
     | ComposioToolSetConfig
+    | UpsonicToolSetConfig
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]
+
+if __name__ == "__main__":
+    import upsonic
+
+    tools = upsonic.Tiger().crewai

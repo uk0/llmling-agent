@@ -96,6 +96,7 @@ tiktoken = ["tiktoken; python_version < '3.14'"]
 markitdown = ["markitdown; python_version < '3.14'"]
 kreuzberg = ["kreuzberg"]
 composio = ["composio_core", "composio_openai"]
+upsonic = ["upsonic"]
 supabase = ["supabase"]
 # docling = ["docling; python_version < '3.13'"]
 events = [
