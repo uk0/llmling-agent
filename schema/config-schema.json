@@ -24,7 +24,9 @@
           "type": "object"
         }
       },
-      "required": ["model"],
+      "required": [
+        "model"
+      ],
       "title": "AISuiteModelConfig",
       "type": "object"
     },
@@ -188,7 +190,11 @@
               ]
             },
             {
-              "enum": ["pydantic_ai", "human", "litellm"],
+              "enum": [
+                "pydantic_ai",
+                "human",
+                "litellm"
+              ],
               "type": "string"
             }
           ],
@@ -325,21 +331,29 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "custom": "#/$defs/CustomToolsetConfig",
-                "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "openapi": "#/$defs/OpenAPIToolsetConfig"
+                "composio": "#/$defs/ComposioToolSetConfig",
+                "custom": "#/$defs/llmling_agent_config__toolsets__CustomToolsetConfig",
+                "entry_points": "#/$defs/llmling_agent_config__toolsets__EntryPointToolsetConfig",
+                "openapi": "#/$defs/llmling_agent_config__toolsets__OpenAPIToolsetConfig",
+                "upsonic": "#/$defs/UpsonicToolSetConfig"
               },
               "propertyName": "type"
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/OpenAPIToolsetConfig"
+                "$ref": "#/$defs/llmling_agent_config__toolsets__OpenAPIToolsetConfig"
               },
               {
-                "$ref": "#/$defs/EntryPointToolsetConfig"
+                "$ref": "#/$defs/llmling_agent_config__toolsets__EntryPointToolsetConfig"
               },
               {
-                "$ref": "#/$defs/CustomToolsetConfig"
+                "$ref": "#/$defs/ComposioToolSetConfig"
+              },
+              {
+                "$ref": "#/$defs/UpsonicToolSetConfig"
+              },
+              {
+                "$ref": "#/$defs/llmling_agent_config__toolsets__CustomToolsetConfig"
               }
             ]
           },
@@ -470,7 +484,10 @@
         "end_strategy": {
           "default": "early",
           "description": "The strategy for handling multiple tool calls when a final result is found",
-          "enum": ["early", "exhaustive"],
+          "enum": [
+            "early",
+            "exhaustive"
+          ],
           "title": "End Strategy",
           "type": "string"
         },
@@ -539,7 +556,21 @@
         "workers": {
           "description": "Worker agents which will be available as tools.",
           "items": {
-            "$ref": "#/$defs/WorkerConfig"
+            "discriminator": {
+              "mapping": {
+                "agent": "#/$defs/AgentWorkerConfig",
+                "team": "#/$defs/TeamWorkerConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TeamWorkerConfig"
+              },
+              {
+                "$ref": "#/$defs/AgentWorkerConfig"
+              }
+            ]
           },
           "title": "Workers",
           "type": "array"
@@ -547,7 +578,11 @@
         "requires_tool_confirmation": {
           "default": "per_tool",
           "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
-          "enum": ["always", "never", "per_tool"],
+          "enum": [
+            "always",
+            "never",
+            "per_tool"
+          ],
           "title": "Requires Tool Confirmation",
           "type": "string"
         },
@@ -710,6 +745,47 @@
       "title": "AgentOpsProviderConfig",
       "type": "object"
     },
+    "AgentWorkerConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for agent workers.\n\nAgent workers provide advanced features like history management and\ncontext sharing between agents.",
+      "properties": {
+        "name": {
+          "description": "Name of the node to use as a worker.",
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "const": "agent",
+          "default": "agent",
+          "description": "Agent worker configuration.",
+          "title": "Type",
+          "type": "string"
+        },
+        "reset_history_on_run": {
+          "default": true,
+          "description": "Whether to clear worker's conversation history before each run.\nTrue (default): Fresh conversation each time\nFalse: Maintain conversation context between runs",
+          "title": "Reset History On Run",
+          "type": "boolean"
+        },
+        "pass_message_history": {
+          "default": false,
+          "description": "Whether to pass parent agent's message history to worker.\nTrue: Worker sees parent's conversation context\nFalse (default): Worker only sees current request",
+          "title": "Pass Message History",
+          "type": "boolean"
+        },
+        "share_context": {
+          "default": false,
+          "description": "Whether to share parent agent's context/dependencies with worker.\nTrue: Worker has access to parent's context data\nFalse (default): Worker uses own isolated context",
+          "title": "Share Context",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "AgentWorkerConfig",
+      "type": "object"
+    },
     "AndCondition": {
       "additionalProperties": false,
       "description": "Require all conditions to be met.",
@@ -743,7 +819,9 @@
           "type": "array"
         }
       },
-      "required": ["conditions"],
+      "required": [
+        "conditions"
+      ],
       "title": "AndCondition",
       "type": "object"
     },
@@ -851,7 +929,9 @@
           "default": null
         }
       },
-      "required": ["main_model"],
+      "required": [
+        "main_model"
+      ],
       "title": "AugmentedModelConfig",
       "type": "object"
     },
@@ -863,7 +943,9 @@
           "type": "string"
         }
       },
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "title": "BaseModelConfig",
       "type": "object"
     },
@@ -898,12 +980,15 @@
           "type": "array"
         },
         "metadata": {
+          "additionalProperties": true,
           "description": "Additional metadata for storing custom prompt information.",
           "title": "Metadata",
           "type": "object"
         }
       },
-      "required": ["description"],
+      "required": [
+        "description"
+      ],
       "title": "BasePrompt",
       "type": "object"
     },
@@ -1089,7 +1174,9 @@
           "title": "Timeout"
         }
       },
-      "required": ["command"],
+      "required": [
+        "command"
+      ],
       "title": "CLIResource",
       "type": "object"
     },
@@ -1123,7 +1210,9 @@
           "type": "string"
         }
       },
-      "required": ["predicate"],
+      "required": [
+        "predicate"
+      ],
       "title": "CallableCondition",
       "type": "object"
     },
@@ -1153,7 +1242,11 @@
         "queue_strategy": {
           "default": "latest",
           "description": "How to process queued messages.",
-          "enum": ["concat", "latest", "buffer"],
+          "enum": [
+            "concat",
+            "latest",
+            "buffer"
+          ],
           "title": "Queue Strategy",
           "type": "string"
         },
@@ -1368,12 +1461,15 @@
           "type": "string"
         },
         "kw_args": {
+          "additionalProperties": true,
           "description": "Additional kwargs to pass to the callable.",
           "title": "Kw Args",
           "type": "object"
         }
       },
-      "required": ["callable"],
+      "required": [
+        "callable"
+      ],
       "title": "CallableConnectionConfig",
       "type": "object"
     },
@@ -1445,12 +1541,15 @@
           "type": "string"
         },
         "keyword_args": {
+          "additionalProperties": true,
           "description": "Keyword arguments to pass to the callable.",
           "title": "Keyword Args",
           "type": "object"
         }
       },
-      "required": ["import_path"],
+      "required": [
+        "import_path"
+      ],
       "title": "CallableResource",
       "type": "object"
     },
@@ -1495,7 +1594,9 @@
           "type": "string"
         }
       },
-      "required": ["callback"],
+      "required": [
+        "callback"
+      ],
       "title": "CallbackProviderConfig",
       "type": "object"
     },
@@ -1530,14 +1631,22 @@
         "history_access": {
           "default": "none",
           "description": "Level of access to conversation history.",
-          "enum": ["none", "own", "all"],
+          "enum": [
+            "none",
+            "own",
+            "all"
+          ],
           "title": "History Access",
           "type": "string"
         },
         "stats_access": {
           "default": "none",
           "description": "Level of access to usage statistics.",
-          "enum": ["none", "own", "all"],
+          "enum": [
+            "none",
+            "own",
+            "all"
+          ],
           "title": "Stats Access",
           "type": "string"
         },
@@ -1551,6 +1660,18 @@
           "default": false,
           "description": "Whether the agent can discover available resources.",
           "title": "Can List Resources",
+          "type": "boolean"
+        },
+        "can_read_files": {
+          "default": false,
+          "description": "Whether the agent can read local and remote files.",
+          "title": "Can Read Files",
+          "type": "boolean"
+        },
+        "can_list_directories": {
+          "default": false,
+          "description": "Whether the agent can list directories and their contents.",
+          "title": "Can List Directories",
           "type": "boolean"
         },
         "can_register_tools": {
@@ -1629,6 +1750,55 @@
       "title": "Capabilities",
       "type": "object"
     },
+    "ComposioToolSetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for entry point toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "composio",
+          "default": "composio",
+          "description": "Composio Toolsets.",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Composio API Key.",
+          "title": "Api Key"
+        },
+        "entitiy_id": {
+          "default": "default",
+          "description": "Toolset entity id.",
+          "title": "Entitiy Id",
+          "type": "string"
+        }
+      },
+      "title": "ComposioToolSetConfig",
+      "type": "object"
+    },
     "ConnectionCondition": {
       "additionalProperties": false,
       "description": "Base class for connection control conditions.",
@@ -1652,7 +1822,9 @@
           "title": "Name"
         }
       },
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "title": "ConnectionCondition",
       "type": "object"
     },
@@ -1674,12 +1846,17 @@
         },
         "mode": {
           "default": "any",
-          "enum": ["any", "all"],
+          "enum": [
+            "any",
+            "all"
+          ],
           "title": "Mode",
           "type": "string"
         }
       },
-      "required": ["words"],
+      "required": [
+        "words"
+      ],
       "title": "ConnectionContentCondition",
       "type": "object"
     },
@@ -1697,7 +1874,9 @@
           "type": "string"
         }
       },
-      "required": ["template"],
+      "required": [
+        "template"
+      ],
       "title": "ConnectionJinja2Condition",
       "type": "object"
     },
@@ -1807,7 +1986,10 @@
           "title": "Condition"
         }
       },
-      "required": ["name", "event"],
+      "required": [
+        "name",
+        "event"
+      ],
       "title": "ConnectionTriggerConfig",
       "type": "object"
     },
@@ -1823,6 +2005,7 @@
                   "mapping": {
                     "docling": "#/$defs/DoclingConverterConfig",
                     "google_speech": "#/$defs/GoogleSpeechConfig",
+                    "kreuzberg": "#/$defs/KreuzbergConfig",
                     "local_whisper": "#/$defs/LocalWhisperConfig",
                     "markitdown": "#/$defs/MarkItDownConfig",
                     "plain": "#/$defs/PlainConverterConfig",
@@ -1849,6 +2032,9 @@
                   },
                   {
                     "$ref": "#/$defs/LocalWhisperConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/KreuzbergConfig"
                   },
                   {
                     "$ref": "#/$defs/GoogleSpeechConfig"
@@ -1925,7 +2111,9 @@
           "type": "number"
         }
       },
-      "required": ["max_cost"],
+      "required": [
+        "max_cost"
+      ],
       "title": "CostLimitCondition",
       "type": "object"
     },
@@ -1953,18 +2141,24 @@
           "type": "array"
         },
         "max_input_cost": {
-          "exclusiveMinimum": 0.0,
+          "exclusiveMinimum": 0,
           "title": "Max Input Cost",
           "type": "number"
         },
         "strategy": {
           "default": "best_within_budget",
-          "enum": ["cheapest_possible", "best_within_budget"],
+          "enum": [
+            "cheapest_possible",
+            "best_within_budget"
+          ],
           "title": "Strategy",
           "type": "string"
         }
       },
-      "required": ["models", "max_input_cost"],
+      "required": [
+        "models",
+        "max_input_cost"
+      ],
       "title": "CostOptimizedModelConfig",
       "type": "object"
     },
@@ -2055,47 +2249,16 @@
           "type": "string"
         },
         "params": {
+          "additionalProperties": true,
           "description": "Tool-specific parameters.",
           "title": "Params",
           "type": "object"
         }
       },
-      "required": ["import_path"],
+      "required": [
+        "import_path"
+      ],
       "title": "CrewAIToolConfig",
-      "type": "object"
-    },
-    "CustomToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for custom toolsets.",
-      "properties": {
-        "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
-        },
-        "type": {
-          "const": "custom",
-          "default": "custom",
-          "description": "Discriminator field identifying this as a custom toolset.",
-          "title": "Type",
-          "type": "string"
-        },
-        "import_path": {
-          "description": "Dotted import path to the custom toolset implementation class.",
-          "title": "Import Path",
-          "type": "string"
-        }
-      },
-      "required": ["import_path"],
-      "title": "CustomToolsetConfig",
       "type": "object"
     },
     "DelegationModelConfig": {
@@ -2152,7 +2315,11 @@
           "title": "Model Descriptions"
         }
       },
-      "required": ["selector_model", "models", "selection_prompt"],
+      "required": [
+        "selector_model",
+        "models",
+        "selection_prompt"
+      ],
       "title": "DelegationModelConfig",
       "type": "object"
     },
@@ -2221,6 +2388,7 @@
           "type": "array"
         },
         "metadata": {
+          "additionalProperties": true,
           "description": "Additional metadata for storing custom prompt information.",
           "title": "Metadata",
           "type": "object"
@@ -2267,7 +2435,10 @@
           "type": "string"
         }
       },
-      "required": ["description", "import_path"],
+      "required": [
+        "description",
+        "import_path"
+      ],
       "title": "DynamicPrompt",
       "type": "object"
     },
@@ -2381,42 +2552,13 @@
           "title": "Max Size"
         }
       },
-      "required": ["name", "host", "username", "password"],
+      "required": [
+        "name",
+        "host",
+        "username",
+        "password"
+      ],
       "title": "EmailConfig",
-      "type": "object"
-    },
-    "EntryPointToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for entry point toolsets.",
-      "properties": {
-        "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
-        },
-        "type": {
-          "const": "entry_points",
-          "default": "entry_points",
-          "description": "Discriminator field identifying this as an entry point toolset.",
-          "title": "Type",
-          "type": "string"
-        },
-        "module": {
-          "description": "Python module path",
-          "title": "Module",
-          "type": "string"
-        }
-      },
-      "required": ["module"],
-      "title": "EntryPointToolsetConfig",
       "type": "object"
     },
     "FallbackModelConfig": {
@@ -2443,7 +2585,9 @@
           "type": "array"
         }
       },
-      "required": ["models"],
+      "required": [
+        "models"
+      ],
       "title": "FallbackModelConfig",
       "type": "object"
     },
@@ -2473,7 +2617,11 @@
         "queue_strategy": {
           "default": "latest",
           "description": "How to process queued messages.",
-          "enum": ["concat", "latest", "buffer"],
+          "enum": [
+            "concat",
+            "latest",
+            "buffer"
+          ],
           "title": "Queue Strategy",
           "type": "string"
         },
@@ -2700,7 +2848,9 @@
           "type": "string"
         }
       },
-      "required": ["path"],
+      "required": [
+        "path"
+      ],
       "title": "FileConnectionConfig",
       "type": "object"
     },
@@ -2735,7 +2885,9 @@
           "title": "Config File Path"
         }
       },
-      "required": ["uri"],
+      "required": [
+        "uri"
+      ],
       "title": "FileEnvironment",
       "type": "object"
     },
@@ -2770,6 +2922,7 @@
           "type": "array"
         },
         "metadata": {
+          "additionalProperties": true,
           "description": "Additional metadata for storing custom prompt information.",
           "title": "Metadata",
           "type": "object"
@@ -2790,7 +2943,11 @@
         "format": {
           "default": "text",
           "description": "Format of the file content (text, markdown, or jinja2 template).",
-          "enum": ["text", "markdown", "jinja2"],
+          "enum": [
+            "text",
+            "markdown",
+            "jinja2"
+          ],
           "title": "Format",
           "type": "string"
         },
@@ -2808,7 +2965,10 @@
           "type": "boolean"
         }
       },
-      "required": ["description", "path"],
+      "required": [
+        "description",
+        "path"
+      ],
       "title": "FilePrompt",
       "type": "object"
     },
@@ -2819,6 +2979,7 @@
         "type": {
           "const": "file",
           "default": "file",
+          "description": "File storage configuration.",
           "title": "Type",
           "type": "string"
         },
@@ -2877,7 +3038,12 @@
         "format": {
           "anyOf": [
             {
-              "enum": ["yaml", "toml", "json", "ini"],
+              "enum": [
+                "yaml",
+                "toml",
+                "json",
+                "ini"
+              ],
               "type": "string"
             },
             {
@@ -2896,7 +3062,9 @@
           "type": "string"
         }
       },
-      "required": ["path"],
+      "required": [
+        "path"
+      ],
       "title": "FileStorageConfig",
       "type": "object"
     },
@@ -2993,7 +3161,10 @@
           "type": "integer"
         }
       },
-      "required": ["name", "paths"],
+      "required": [
+        "name",
+        "paths"
+      ],
       "title": "FileWatchConfig",
       "type": "object"
     },
@@ -3059,7 +3230,13 @@
         "log_level": {
           "default": "INFO",
           "description": "Log level for LLMling core.",
-          "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+          "enum": [
+            "DEBUG",
+            "INFO",
+            "WARNING",
+            "ERROR",
+            "CRITICAL"
+          ],
           "title": "Log Level",
           "type": "string"
         },
@@ -3107,7 +3284,11 @@
         "encoding": {
           "default": "LINEAR16",
           "description": "Audio encoding format.",
-          "enum": ["LINEAR16", "FLAC", "MP3"],
+          "enum": [
+            "LINEAR16",
+            "FLAC",
+            "MP3"
+          ],
           "title": "Encoding",
           "type": "string"
         }
@@ -3166,7 +3347,12 @@
         "theme": {
           "default": "soft",
           "description": "UI theme.",
-          "enum": ["soft", "base", "monochrome", "glass"],
+          "enum": [
+            "soft",
+            "base",
+            "monochrome",
+            "glass"
+          ],
           "title": "Theme",
           "type": "string"
         }
@@ -3254,7 +3440,9 @@
           "type": "object"
         }
       },
-      "required": ["model"],
+      "required": [
+        "model"
+      ],
       "title": "ImportModelConfig",
       "type": "object"
     },
@@ -3345,7 +3533,9 @@
           "type": "string"
         }
       },
-      "required": ["import_path"],
+      "required": [
+        "import_path"
+      ],
       "title": "ImportToolConfig",
       "type": "object"
     },
@@ -3411,7 +3601,9 @@
           "type": "string"
         }
       },
-      "required": ["import_path"],
+      "required": [
+        "import_path"
+      ],
       "title": "ImportedResponseDefinition",
       "type": "object"
     },
@@ -3493,21 +3685,21 @@
           "additionalProperties": {
             "discriminator": {
               "mapping": {
-                "custom": "#/$defs/CustomToolsetConfig",
-                "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "openapi": "#/$defs/OpenAPIToolsetConfig"
+                "custom": "#/$defs/llmling__config__models__CustomToolsetConfig",
+                "entry_points": "#/$defs/llmling__config__models__EntryPointToolsetConfig",
+                "openapi": "#/$defs/llmling__config__models__OpenAPIToolsetConfig"
               },
               "propertyName": "type"
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/OpenAPIToolsetConfig"
+                "$ref": "#/$defs/llmling__config__models__OpenAPIToolsetConfig"
               },
               {
-                "$ref": "#/$defs/EntryPointToolsetConfig"
+                "$ref": "#/$defs/llmling__config__models__EntryPointToolsetConfig"
               },
               {
-                "$ref": "#/$defs/CustomToolsetConfig"
+                "$ref": "#/$defs/llmling__config__models__CustomToolsetConfig"
               }
             ]
           },
@@ -3643,7 +3835,9 @@
           "type": "object"
         }
       },
-      "required": ["fields"],
+      "required": [
+        "fields"
+      ],
       "title": "InlineResponseDefinition",
       "type": "object"
     },
@@ -3710,7 +3904,9 @@
           "type": "string"
         }
       },
-      "required": ["template"],
+      "required": [
+        "template"
+      ],
       "title": "Jinja2Condition",
       "type": "object"
     },
@@ -3795,7 +3991,11 @@
         "newline_sequence": {
           "default": "\n",
           "description": "Sequence that starts a newline (default: '\n').",
-          "enum": ["\n", "\r\n", "\r"],
+          "enum": [
+            "\n",
+            "\r\n",
+            "\r"
+          ],
           "title": "Newline Sequence",
           "type": "string"
         },
@@ -3816,7 +4016,12 @@
         "undefined": {
           "default": "default",
           "description": "Behavior when accessing undefined variables (default, strict, debug, chainable).",
-          "enum": ["default", "strict", "debug", "chainable"],
+          "enum": [
+            "default",
+            "strict",
+            "debug",
+            "chainable"
+          ],
           "title": "Undefined",
           "type": "string"
         },
@@ -3837,6 +4042,7 @@
           "type": "object"
         },
         "globals": {
+          "additionalProperties": true,
           "description": "Global variables available to all templates.",
           "title": "Globals",
           "type": "object"
@@ -3953,7 +4159,9 @@
           "title": "Min Context Tokens"
         }
       },
-      "required": ["prompt"],
+      "required": [
+        "prompt"
+      ],
       "title": "Job",
       "type": "object"
     },
@@ -4039,6 +4247,46 @@
       "title": "Knowledge",
       "type": "object"
     },
+    "KreuzbergConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Kreuzberg document converter.\n\nReference:\nhttps://docs.kreuzberg.ai/configuration",
+      "properties": {
+        "type": {
+          "const": "kreuzberg",
+          "default": "kreuzberg",
+          "description": "Type identifier for this converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this converter is currently active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "force_ocr": {
+          "default": false,
+          "description": "Whether to force OCR for all documents.",
+          "title": "Force Ocr",
+          "type": "boolean"
+        },
+        "language": {
+          "default": "eng",
+          "description": "Language model for OCR (tesseract language tags).",
+          "title": "Language",
+          "type": "string"
+        },
+        "max_processes": {
+          "default": 1,
+          "description": "Maximum number of concurrent processes.",
+          "minimum": 1,
+          "title": "Max Processes",
+          "type": "integer"
+        }
+      },
+      "title": "KreuzbergConfig",
+      "type": "object"
+    },
     "LLMAdapterConfig": {
       "description": "Configuration for LLM library adapter.",
       "properties": {
@@ -4053,7 +4301,9 @@
           "type": "string"
         }
       },
-      "required": ["model_name"],
+      "required": [
+        "model_name"
+      ],
       "title": "LLMAdapterConfig",
       "type": "object"
     },
@@ -4188,12 +4438,15 @@
           "type": "string"
         },
         "params": {
+          "additionalProperties": true,
           "description": "Tool-specific parameters.",
           "title": "Params",
           "type": "object"
         }
       },
-      "required": ["tool_name"],
+      "required": [
+        "tool_name"
+      ],
       "title": "LangChainToolConfig",
       "type": "object"
     },
@@ -4247,7 +4500,10 @@
           "type": "integer"
         }
       },
-      "required": ["secret_key", "public_key"],
+      "required": [
+        "secret_key",
+        "public_key"
+      ],
       "title": "LangfuseConfig",
       "type": "object"
     },
@@ -4406,14 +4662,23 @@
         "model_size": {
           "default": "base",
           "description": "Size of the Whisper model to use.",
-          "enum": ["tiny", "base", "small", "medium", "large"],
+          "enum": [
+            "tiny",
+            "base",
+            "small",
+            "medium",
+            "large"
+          ],
           "title": "Model Size",
           "type": "string"
         },
         "device": {
           "anyOf": [
             {
-              "enum": ["cpu", "cuda"],
+              "enum": [
+                "cpu",
+                "cuda"
+              ],
               "type": "string"
             },
             {
@@ -4427,7 +4692,10 @@
         "compute_type": {
           "default": "float16",
           "description": "Compute precision to use.",
-          "enum": ["float32", "float16"],
+          "enum": [
+            "float32",
+            "float16"
+          ],
           "title": "Compute Type",
           "type": "string"
         }
@@ -4531,7 +4799,7 @@
         "type": {
           "const": "mem0",
           "default": "mem0",
-          "description": "Type discriminator for storage config.",
+          "description": "Mem0 storage config.",
           "title": "Type",
           "type": "string"
         },
@@ -4606,7 +4874,10 @@
         "output_format": {
           "default": "v1.1",
           "description": "API output format version. 1.1 is recommended and provides enhanced details.",
-          "enum": ["v1.0", "v1.1"],
+          "enum": [
+            "v1.0",
+            "v1.1"
+          ],
           "title": "Output Format",
           "type": "string"
         }
@@ -4686,6 +4957,7 @@
         "type": {
           "const": "memory",
           "default": "memory",
+          "description": "In-memory storage configuration for testing.",
           "title": "Type",
           "type": "string"
         },
@@ -4744,7 +5016,12 @@
       "description": "Content item in a message.",
       "properties": {
         "type": {
-          "enum": ["text", "resource", "image_url", "image_base64"],
+          "enum": [
+            "text",
+            "resource",
+            "image_url",
+            "image_base64"
+          ],
           "title": "Type",
           "type": "string"
         },
@@ -4765,7 +5042,10 @@
           "title": "Alt Text"
         }
       },
-      "required": ["type", "content"],
+      "required": [
+        "type",
+        "content"
+      ],
       "title": "MessageContent",
       "type": "object"
     },
@@ -4801,12 +5081,17 @@
         "count_mode": {
           "default": "total",
           "description": "How to count messages:\n- total: All messages in conversation\n- per_agent: Messages from each agent separately",
-          "enum": ["total", "per_agent"],
+          "enum": [
+            "total",
+            "per_agent"
+          ],
           "title": "Count Mode",
           "type": "string"
         }
       },
-      "required": ["max_messages"],
+      "required": [
+        "max_messages"
+      ],
       "title": "MessageCountCondition",
       "type": "object"
     },
@@ -4999,7 +5284,11 @@
         "queue_strategy": {
           "default": "latest",
           "description": "How to process queued messages.",
-          "enum": ["concat", "latest", "buffer"],
+          "enum": [
+            "concat",
+            "latest",
+            "buffer"
+          ],
           "title": "Queue Strategy",
           "type": "string"
         },
@@ -5209,12 +5498,18 @@
         "connection_type": {
           "default": "run",
           "description": "How messages should be handled by the target agent:\n- run: Execute message as a new run\n- context: Add message to agent's context\n- forward: Forward message to agent's outbox",
-          "enum": ["run", "context", "forward"],
+          "enum": [
+            "run",
+            "context",
+            "forward"
+          ],
           "title": "Connection Type",
           "type": "string"
         }
       },
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "title": "NodeConnectionConfig",
       "type": "object"
     },
@@ -5288,53 +5583,6 @@
         }
       },
       "title": "ObservabilityConfig",
-      "type": "object"
-    },
-    "OpenAPIToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for OpenAPI toolsets.",
-      "properties": {
-        "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
-        },
-        "type": {
-          "const": "openapi",
-          "default": "openapi",
-          "description": "Discriminator field identifying this as an OpenAPI toolset.",
-          "title": "Type",
-          "type": "string"
-        },
-        "spec": {
-          "description": "URL or path to the OpenAPI specification document.",
-          "title": "Spec",
-          "type": "string"
-        },
-        "base_url": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional base URL for API requests, overrides the one in spec.",
-          "title": "Base Url"
-        }
-      },
-      "required": ["spec"],
-      "title": "OpenAPIToolsetConfig",
       "type": "object"
     },
     "OpenLITConfig": {
@@ -5413,7 +5661,9 @@
           "type": "array"
         }
       },
-      "required": ["conditions"],
+      "required": [
+        "conditions"
+      ],
       "title": "OrCondition",
       "type": "object"
     },
@@ -5493,7 +5743,9 @@
           "title": "Path"
         }
       },
-      "required": ["path"],
+      "required": [
+        "path"
+      ],
       "title": "PathResource",
       "type": "object"
     },
@@ -5569,7 +5821,10 @@
         "transport": {
           "default": "stdio",
           "description": "Transport type to use.",
-          "enum": ["stdio", "sse"],
+          "enum": [
+            "stdio",
+            "sse"
+          ],
           "title": "Transport",
           "type": "string"
         },
@@ -5615,7 +5870,10 @@
           "type": "string"
         }
       },
-      "required": ["text", "model"],
+      "required": [
+        "text",
+        "model"
+      ],
       "title": "PrePostPromptConfig",
       "type": "object"
     },
@@ -5637,11 +5895,14 @@
           "type": "boolean"
         },
         "kwargs": {
+          "additionalProperties": true,
           "title": "Kwargs",
           "type": "object"
         }
       },
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "title": "ProcessingStep",
       "type": "object"
     },
@@ -5700,11 +5961,14 @@
           "type": "boolean"
         },
         "metadata": {
+          "additionalProperties": true,
           "title": "Metadata",
           "type": "object"
         }
       },
-      "required": ["import_path"],
+      "required": [
+        "import_path"
+      ],
       "title": "ProcessorConfig",
       "type": "object"
     },
@@ -5773,6 +6037,7 @@
     },
     "PromptLayerConfig": {
       "additionalProperties": false,
+      "description": "Configuration for PromptLayer prompt provider.",
       "properties": {
         "type": {
           "const": "promptlayer",
@@ -5789,7 +6054,9 @@
           "writeOnly": true
         }
       },
-      "required": ["api_key"],
+      "required": [
+        "api_key"
+      ],
       "title": "PromptLayerConfig",
       "type": "object"
     },
@@ -5797,7 +6064,12 @@
       "description": "A message in a prompt template.",
       "properties": {
         "role": {
-          "enum": ["system", "user", "assistant", "tool"],
+          "enum": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
           "title": "Role",
           "type": "string"
         },
@@ -5820,7 +6092,9 @@
           "title": "Content"
         }
       },
-      "required": ["role"],
+      "required": [
+        "role"
+      ],
       "title": "PromptMessage",
       "type": "object"
     },
@@ -5882,7 +6156,9 @@
           "title": "Completion Function"
         }
       },
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "title": "PromptParameter",
       "type": "object"
     },
@@ -5958,7 +6234,10 @@
         "end_strategy": {
           "default": "early",
           "description": "How to handle tool calls when final result found:\n- early: Stop when valid result found\n- complete: Run all requested tools\n- confirm: Ask user what to do",
-          "enum": ["early", "exhaustive"],
+          "enum": [
+            "early",
+            "exhaustive"
+          ],
           "title": "End Strategy",
           "type": "string"
         },
@@ -6162,12 +6441,15 @@
           "title": "Description"
         },
         "constraints": {
+          "additionalProperties": true,
           "description": "Optional validation constraints for the field",
           "title": "Constraints",
           "type": "object"
         }
       },
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "title": "ResponseField",
       "type": "object"
     },
@@ -6178,6 +6460,7 @@
         "type": {
           "const": "sql",
           "default": "sql",
+          "description": "SQLModel storage configuration.",
           "title": "Type",
           "type": "string"
         },
@@ -6295,13 +6578,21 @@
           "description": "Environment variables to pass to the server process.",
           "title": "Environment"
         },
+        "timeout": {
+          "default": 30.0,
+          "description": "Timeout for the server process.",
+          "title": "Timeout",
+          "type": "number"
+        },
         "url": {
           "description": "URL of the SSE server endpoint.",
           "title": "Url",
           "type": "string"
         }
       },
-      "required": ["url"],
+      "required": [
+        "url"
+      ],
       "title": "SSEMCPServerConfig",
       "type": "object"
     },
@@ -6382,7 +6673,11 @@
           "anyOf": [
             {
               "items": {
-                "enum": ["user", "assistant", "system"],
+                "enum": [
+                  "user",
+                  "assistant",
+                  "system"
+                ],
                 "type": "string"
               },
               "type": "array",
@@ -6499,7 +6794,9 @@
           "type": "boolean"
         }
       },
-      "required": ["import_path"],
+      "required": [
+        "import_path"
+      ],
       "title": "SourceResource",
       "type": "object"
     },
@@ -6534,6 +6831,7 @@
           "type": "array"
         },
         "metadata": {
+          "additionalProperties": true,
           "description": "Additional metadata for storing custom prompt information.",
           "title": "Metadata",
           "type": "object"
@@ -6554,7 +6852,10 @@
           "type": "string"
         }
       },
-      "required": ["description", "messages"],
+      "required": [
+        "description",
+        "messages"
+      ],
       "title": "StaticPrompt",
       "type": "object"
     },
@@ -6604,6 +6905,12 @@
           "description": "Environment variables to pass to the server process.",
           "title": "Environment"
         },
+        "timeout": {
+          "default": 30.0,
+          "description": "Timeout for the server process.",
+          "title": "Timeout",
+          "type": "number"
+        },
         "command": {
           "description": "Command to execute (e.g. \"pipx\", \"python\", \"node\").",
           "title": "Command",
@@ -6618,7 +6925,9 @@
           "type": "array"
         }
       },
-      "required": ["command"],
+      "required": [
+        "command"
+      ],
       "title": "StdioMCPServerConfig",
       "type": "object"
     },
@@ -6654,7 +6963,11 @@
         "detail_level": {
           "default": "simple",
           "description": "Output detail level.",
-          "enum": ["simple", "detailed", "markdown"],
+          "enum": [
+            "simple",
+            "detailed",
+            "markdown"
+          ],
           "title": "Detail Level",
           "type": "string"
         },
@@ -6688,6 +7001,7 @@
                     "mem0": "#/$defs/Mem0Config",
                     "memory": "#/$defs/MemoryStorageConfig",
                     "sql": "#/$defs/SQLStorageConfig",
+                    "supabase": "#/$defs/SupabaseConfig",
                     "text_file": "#/$defs/TextLogConfig"
                   },
                   "propertyName": "type"
@@ -6704,6 +7018,9 @@
                   },
                   {
                     "$ref": "#/$defs/MemoryStorageConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SupabaseConfig"
                   },
                   {
                     "$ref": "#/$defs/Mem0Config"
@@ -6753,7 +7070,10 @@
         "filter_mode": {
           "default": "and",
           "description": "How to combine global and provider agent filters:\n- \"and\": Both global and provider filters must allow the agent\n- \"override\": Provider filter overrides global filter if set",
-          "enum": ["and", "override"],
+          "enum": [
+            "and",
+            "override"
+          ],
           "title": "Filter Mode",
           "type": "string"
         },
@@ -6805,8 +7125,124 @@
           "type": "string"
         }
       },
-      "required": ["identifier"],
+      "required": [
+        "identifier"
+      ],
       "title": "StringModelConfig",
+      "type": "object"
+    },
+    "SupabaseConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Supabase storage.",
+      "properties": {
+        "type": {
+          "const": "supabase",
+          "default": "supabase",
+          "description": "Supabase storage configuration",
+          "title": "Type",
+          "type": "string"
+        },
+        "log_messages": {
+          "default": true,
+          "description": "Whether to log messages",
+          "title": "Log Messages",
+          "type": "boolean"
+        },
+        "agents": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional set of agent names to include. If None, logs all agents.",
+          "title": "Agents"
+        },
+        "log_conversations": {
+          "default": true,
+          "description": "Whether to log conversations",
+          "title": "Log Conversations",
+          "type": "boolean"
+        },
+        "log_tool_calls": {
+          "default": true,
+          "description": "Whether to log tool calls",
+          "title": "Log Tool Calls",
+          "type": "boolean"
+        },
+        "log_commands": {
+          "default": true,
+          "description": "Whether to log command executions",
+          "title": "Log Commands",
+          "type": "boolean"
+        },
+        "log_context": {
+          "default": true,
+          "description": "Whether to log context messages.",
+          "title": "Log Context",
+          "type": "boolean"
+        },
+        "key": {
+          "description": "Authentication key for Supabase service",
+          "format": "password",
+          "title": "Key",
+          "type": "string",
+          "writeOnly": true
+        },
+        "url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Custom Supabase instance URL. If None, uses project_id to construct URL",
+          "title": "Url"
+        },
+        "project_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Supabase project ID. Required if url is not provided",
+          "title": "Project Id"
+        },
+        "pool_size": {
+          "default": 20,
+          "description": "Maximum number of database connections in the pool",
+          "exclusiveMinimum": 0,
+          "title": "Pool Size",
+          "type": "integer"
+        },
+        "db_schema": {
+          "default": "public",
+          "description": "Database schema name for multi-tenant setups",
+          "title": "Db Schema",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "title": "SupabaseConfig",
       "type": "object"
     },
     "SystemPrompt": {
@@ -6821,12 +7257,19 @@
         "type": {
           "default": "role",
           "description": "Categorization for template organization.",
-          "enum": ["role", "methodology", "quality", "task"],
+          "enum": [
+            "role",
+            "methodology",
+            "quality",
+            "task"
+          ],
           "title": "Type",
           "type": "string"
         }
       },
-      "required": ["content"],
+      "required": [
+        "content"
+      ],
       "title": "SystemPrompt",
       "type": "object"
     },
@@ -6964,7 +7407,10 @@
         },
         "mode": {
           "description": "Execution mode for team members.",
-          "enum": ["parallel", "sequential"],
+          "enum": [
+            "parallel",
+            "sequential"
+          ],
           "title": "Mode",
           "type": "string"
         },
@@ -6990,8 +7436,34 @@
           "title": "Shared Prompt"
         }
       },
-      "required": ["mode", "members"],
+      "required": [
+        "mode",
+        "members"
+      ],
       "title": "TeamConfig",
+      "type": "object"
+    },
+    "TeamWorkerConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for team workers.\n\nTeam workers allow using entire teams as tools for other nodes.",
+      "properties": {
+        "name": {
+          "description": "Name of the node to use as a worker.",
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "const": "team",
+          "default": "team",
+          "description": "Team worker configuration.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "TeamWorkerConfig",
       "type": "object"
     },
     "TestModelConfig": {
@@ -7042,6 +7514,7 @@
         "type": {
           "const": "text_file",
           "default": "text_file",
+          "description": "Text log storage configuration.",
           "title": "Type",
           "type": "string"
         },
@@ -7100,14 +7573,20 @@
         "format": {
           "default": "chronological",
           "description": "Log format template to use",
-          "enum": ["chronological", "conversations"],
+          "enum": [
+            "chronological",
+            "conversations"
+          ],
           "title": "Format",
           "type": "string"
         },
         "template": {
           "anyOf": [
             {
-              "enum": ["chronological", "conversations"],
+              "enum": [
+                "chronological",
+                "conversations"
+              ],
               "type": "string"
             },
             {
@@ -7128,7 +7607,9 @@
           "type": "string"
         }
       },
-      "required": ["path"],
+      "required": [
+        "path"
+      ],
       "title": "TextLogConfig",
       "type": "object"
     },
@@ -7200,7 +7681,9 @@
           "type": "string"
         }
       },
-      "required": ["content"],
+      "required": [
+        "content"
+      ],
       "title": "TextResource",
       "type": "object"
     },
@@ -7262,7 +7745,9 @@
           "type": "string"
         }
       },
-      "required": ["duration"],
+      "required": [
+        "duration"
+      ],
       "title": "TimeCondition",
       "type": "object"
     },
@@ -7336,7 +7821,11 @@
           "type": "boolean"
         }
       },
-      "required": ["name", "schedule", "prompt"],
+      "required": [
+        "name",
+        "schedule",
+        "prompt"
+      ],
       "title": "TimeEventConfig",
       "type": "object"
     },
@@ -7365,12 +7854,17 @@
         },
         "strategy": {
           "default": "efficient",
-          "enum": ["efficient", "maximum_context"],
+          "enum": [
+            "efficient",
+            "maximum_context"
+          ],
           "title": "Strategy",
           "type": "string"
         }
       },
-      "required": ["models"],
+      "required": [
+        "models"
+      ],
       "title": "TokenOptimizedModelConfig",
       "type": "object"
     },
@@ -7406,12 +7900,18 @@
         "count_type": {
           "default": "total",
           "description": "What tokens to count:\n- total: All tokens used\n- prompt: Only prompt tokens\n- completion: Only completion tokens",
-          "enum": ["total", "prompt", "completion"],
+          "enum": [
+            "total",
+            "prompt",
+            "completion"
+          ],
           "title": "Count Type",
           "type": "string"
         }
       },
-      "required": ["max_tokens"],
+      "required": [
+        "max_tokens"
+      ],
       "title": "TokenThresholdCondition",
       "type": "object"
     },
@@ -7451,7 +7951,9 @@
           "title": "Description"
         }
       },
-      "required": ["import_path"],
+      "required": [
+        "import_path"
+      ],
       "title": "ToolConfig",
       "type": "object"
     },
@@ -7534,8 +8036,73 @@
           "type": "boolean"
         }
       },
-      "required": ["node_name", "prompts"],
+      "required": [
+        "node_name",
+        "prompts"
+      ],
       "title": "TriggerConfig",
+      "type": "object"
+    },
+    "UpsonicToolSetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for entry point toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "upsonic",
+          "default": "upsonic",
+          "description": "Upsonic Toolsets.",
+          "title": "Type",
+          "type": "string"
+        },
+        "base_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Upsonic API URL.",
+          "title": "Base Url"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Upsonic API Key.",
+          "title": "Api Key"
+        },
+        "entitiy_id": {
+          "default": "default",
+          "description": "Toolset entity id.",
+          "title": "Entitiy Id",
+          "type": "string"
+        }
+      },
+      "title": "UpsonicToolSetConfig",
       "type": "object"
     },
     "UserSelectModelConfig": {
@@ -7582,7 +8149,9 @@
           "type": "string"
         }
       },
-      "required": ["models"],
+      "required": [
+        "models"
+      ],
       "title": "UserSelectModelConfig",
       "type": "object"
     },
@@ -7693,7 +8262,11 @@
           "title": "Secret"
         }
       },
-      "required": ["name", "port", "path"],
+      "required": [
+        "name",
+        "port",
+        "path"
+      ],
       "title": "WebhookConfig",
       "type": "object"
     },
@@ -7800,45 +8373,18 @@
         "mode": {
           "default": "any",
           "description": "Match mode:\n- any: Trigger if any word matches\n- all: Require all words to match",
-          "enum": ["any", "all"],
+          "enum": [
+            "any",
+            "all"
+          ],
           "title": "Mode",
           "type": "string"
         }
       },
-      "required": ["words"],
+      "required": [
+        "words"
+      ],
       "title": "WordMatchCondition",
-      "type": "object"
-    },
-    "WorkerConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for a worker agent.\n\nWorker agents are agents that are registered as tools with a parent agent.\nThis allows building hierarchies and specializations of agents.",
-      "properties": {
-        "name": {
-          "description": "Name of the agent to use as a worker",
-          "title": "Name",
-          "type": "string"
-        },
-        "reset_history_on_run": {
-          "default": true,
-          "description": "Whether to clear worker's conversation history before each run.\nTrue (default): Fresh conversation each time\nFalse: Maintain conversation context between runs",
-          "title": "Reset History On Run",
-          "type": "boolean"
-        },
-        "pass_message_history": {
-          "default": false,
-          "description": "Whether to pass parent agent's message history to worker.\nTrue: Worker sees parent's conversation context\nFalse (default): Worker only sees current request",
-          "title": "Pass Message History",
-          "type": "boolean"
-        },
-        "share_context": {
-          "default": false,
-          "description": "Whether to share parent agent's context/dependencies with worker.\nTrue: Worker has access to parent's context data\nFalse (default): Worker uses own isolated context",
-          "title": "Share Context",
-          "type": "boolean"
-        }
-      },
-      "required": ["name"],
-      "title": "WorkerConfig",
       "type": "object"
     },
     "YouTubeConverterConfig": {
@@ -7869,7 +8415,12 @@
         "format": {
           "default": "text",
           "description": "Output format. One of: text, json, vtt, srt.",
-          "enum": ["text", "json", "vtt", "srt"],
+          "enum": [
+            "text",
+            "json",
+            "vtt",
+            "srt"
+          ],
           "title": "Format",
           "type": "string"
         },
@@ -7919,6 +8470,248 @@
         }
       },
       "title": "YouTubeConverterConfig",
+      "type": "object"
+    },
+    "llmling__config__models__CustomToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for custom toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "custom",
+          "default": "custom",
+          "description": "Discriminator field identifying this as a custom toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "import_path": {
+          "description": "Dotted import path to the custom toolset implementation class.",
+          "title": "Import Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "import_path"
+      ],
+      "title": "CustomToolsetConfig",
+      "type": "object"
+    },
+    "llmling__config__models__EntryPointToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for entry point toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "entry_points",
+          "default": "entry_points",
+          "description": "Discriminator field identifying this as an entry point toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "module": {
+          "description": "Python module path",
+          "title": "Module",
+          "type": "string"
+        }
+      },
+      "required": [
+        "module"
+      ],
+      "title": "EntryPointToolsetConfig",
+      "type": "object"
+    },
+    "llmling__config__models__OpenAPIToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for OpenAPI toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "openapi",
+          "default": "openapi",
+          "description": "Discriminator field identifying this as an OpenAPI toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "spec": {
+          "description": "URL or path to the OpenAPI specification document.",
+          "title": "Spec",
+          "type": "string"
+        },
+        "base_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional base URL for API requests, overrides the one in spec.",
+          "title": "Base Url"
+        }
+      },
+      "required": [
+        "spec"
+      ],
+      "title": "OpenAPIToolsetConfig",
+      "type": "object"
+    },
+    "llmling_agent_config__toolsets__CustomToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for custom toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "custom",
+          "default": "custom",
+          "description": "Custom toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "import_path": {
+          "description": "Dotted import path to the custom toolset implementation class.",
+          "title": "Import Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "import_path"
+      ],
+      "title": "CustomToolsetConfig",
+      "type": "object"
+    },
+    "llmling_agent_config__toolsets__EntryPointToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for entry point toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "entry_points",
+          "default": "entry_points",
+          "description": "Entry point toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "module": {
+          "description": "Python module path to load tools from via entry points.",
+          "title": "Module",
+          "type": "string"
+        }
+      },
+      "required": [
+        "module"
+      ],
+      "title": "EntryPointToolsetConfig",
+      "type": "object"
+    },
+    "llmling_agent_config__toolsets__OpenAPIToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for OpenAPI toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "openapi",
+          "default": "openapi",
+          "description": "OpenAPI toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "spec": {
+          "description": "URL or path to the OpenAPI specification document.",
+          "title": "Spec",
+          "type": "string"
+        },
+        "base_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional base URL for API requests, overrides the one in spec.",
+          "title": "Base Url"
+        }
+      },
+      "required": [
+        "spec"
+      ],
+      "title": "OpenAPIToolsetConfig",
       "type": "object"
     }
   },
