@@ -1,3 +1,5 @@
+"""Decorator auto-injection / run package."""
+
 from __future__ import annotations
 
 from llmling_agent_running.decorators import with_nodes
