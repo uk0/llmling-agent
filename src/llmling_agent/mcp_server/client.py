@@ -8,7 +8,6 @@ import sys
 from typing import TYPE_CHECKING, Any, Self, TextIO
 
 from llmling_agent.log import get_logger
-from llmling_agent_config.resources import ResourceInfo
 
 
 if TYPE_CHECKING:
@@ -17,7 +16,7 @@ if TYPE_CHECKING:
 
     import mcp
     from mcp import ClientSession
-    from mcp.types import Resource as MCPResource, Tool, Tool as MCPTool
+    from mcp.types import Tool, Tool as MCPTool
 
 logger = get_logger(__name__)
 
@@ -26,13 +25,6 @@ def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
     """Convert MCP tool to OpenAI function schema."""
     desc = tool.description or "No description provided"
     return {"name": tool.name, "description": desc, "parameters": tool.inputSchema}
-
-
-async def convert_mcp_resource(resource: MCPResource) -> ResourceInfo:
-    """Convert MCP resource to ResourceInfo."""
-    return ResourceInfo(
-        name=resource.name, uri=str(resource.uri), description=resource.description
-    )
 
 
 class MCPClient:
