@@ -3,8 +3,7 @@ from __future__ import annotations
 from fsspec.implementations.local import LocalFileSystem
 from fsspec.implementations.memory import MemoryFileSystem
 import pytest
-
-from llmling_agent.resources.union_fs import UnionFileSystem
+from upathtools.union_fs import UnionFileSystem
 
 
 @pytest.fixture
