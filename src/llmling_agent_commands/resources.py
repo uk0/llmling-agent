@@ -77,19 +77,19 @@ async def list_resources(
 ):
     """List available resources."""
     try:
-        resources = ctx.context.agent.runtime.get_resources()
+        fs = ctx.context.definition.resource_registry.get_fs()
+        root = await fs._ls("/", detail=True)
 
         sections = ["# Available Resources\n"]
-        for resource in resources:
-            desc = f": {resource.description}" if resource.description else ""
-            sections.append(f"- **{resource.name}**{desc}")
-            sections.append(f"  Type: {resource.type}")
-            if resource.uri:
-                sections.append(f"  URI: `{resource.uri}`")
+        for entry in root:
+            protocol = entry["name"].removesuffix("://")
+            info = await fs._info(f"{protocol}://")
 
-            # Show if resource is templated
-            if resource.is_templated():
-                sections.append("  *Supports parameters*")
+            desc = f": {info.get('description', '')}" if "description" in info else ""
+            sections.append(f"- **{protocol}**{desc}")
+            sections.append(f"  Type: {info.get('type', 'unknown')}")
+            if uri := info.get("uri"):
+                sections.append(f"  URI: `{uri}`")
 
         await ctx.output.print("\n".join(sections))
     except Exception as e:  # noqa: BLE001
@@ -109,27 +109,32 @@ async def show_resource(
 
     name = args[0]
     try:
-        # First get resource info
-        resources = ctx.context.agent.runtime.get_resources()
-        resource_info = next((r for r in resources if r.name == name), None)
-        if not resource_info:
-            await ctx.output.print(f"Resource '{name}' not found")
-            return
-        sections = [f"# Resource: {name}\n", f"Type: {resource_info.type}"]
-        if resource_info.uri:
-            sections.append(f"URI: `{resource_info.uri}`")
-        if resource_info.description:
-            sections.append(f"Description: {resource_info.description}")
-        if resource_info.is_templated():
-            sections.append("\nParameters supported")
-        sections.append(f"MIME Type: {resource_info.mime_type}")
+        fs = ctx.context.definition.resource_registry.get_fs()
 
-        # Try to load content with provided parameters
+        # Get resource info
         try:
-            content = await ctx.context.agent.runtime.load_resource(name, **kwargs)
-            sections.extend(["\n# Content:", "```", str(content), "```"])
+            info = await fs._info(f"{name}://")
         except Exception as e:  # noqa: BLE001
-            sections.append(f"\nFailed to load content: {e}")
+            await ctx.output.print(f"Resource '{name}' not found: {e}")
+            return
+
+        sections = [f"# Resource: {name}\n"]
+        if typ := info.get("type"):
+            sections.append(f"Type: {typ}")
+        if uri := info.get("uri"):
+            sections.append(f"URI: `{uri}`")
+        if desc := info.get("description"):
+            sections.append(f"Description: {desc}")
+        if mime := info.get("mime_type"):
+            sections.append(f"MIME Type: {mime}")
+
+        # Try to list contents
+        try:
+            listing = await fs._ls(f"{name}://", detail=False)
+            if listing:
+                sections.extend(["\n# Contents:", "```", *listing, "```"])
+        except Exception as e:  # noqa: BLE001
+            sections.append(f"\nFailed to list contents: {e}")
 
         await ctx.output.print("\n".join(sections))
     except Exception as e:  # noqa: BLE001
@@ -143,18 +148,53 @@ async def add_resource_command(
 ):
     """Add resource content as context for the next message.
 
-    The first argument is the resource name, remaining kwargs are passed
-    to the resource loader.
+    Examples:
+        /add-resource docs              # Add all docs
+        /add-resource docs/guide.md     # Add specific file
+        /add-resource docs/*.md         # Add all markdown files
     """
     if not args:
-        msg = "Usage: /add-resource <name> [param1=value1] [param2=value2]"
+        msg = "Usage: /add-resource <resource>[/path] [--pattern pattern]"
         await ctx.output.print(msg)
         return
 
-    name = args[0]
     try:
-        await ctx.context.agent.conversation.add_context_from_resource(name, **kwargs)
-        await ctx.output.print(f"Added resource '{name}' to next message as context.")
+        # Parse resource name and path
+        parts = args[0].split("/", 1)
+        resource_name = parts[0]
+        path = parts[1] if len(parts) > 1 else ""
+
+        registry = ctx.context.definition.resource_registry
+
+        if path:
+            if "*" in path:
+                # It's a pattern - use query
+                files = await registry.query(resource_name, pattern=path)
+                for file in files:
+                    content = await registry.get_content(resource_name, file)
+                    ctx.context.agent.conversation.add_context_message(
+                        content, source=f"{resource_name}/{file}", **kwargs
+                    )
+                msg = f"Added {len(files)} files from '{resource_name}' matching '{path}'"
+            else:
+                # Specific file
+                content = await registry.get_content(resource_name, path)
+                ctx.context.agent.conversation.add_context_message(
+                    content, source=f"{resource_name}/{path}", **kwargs
+                )
+                msg = f"Added '{resource_name}/{path}' to context"
+        else:
+            # Add all content from resource root
+            files = await registry.query(resource_name)
+            for file in files:
+                content = await registry.get_content(resource_name, file)
+                ctx.context.agent.conversation.add_context_message(
+                    content, source=f"{resource_name}/{file}", **kwargs
+                )
+            msg = f"Added {len(files)} files from '{resource_name}'"
+
+        await ctx.output.print(msg)
+
     except Exception as e:
         msg = f"Error loading resource: {e}"
         logger.exception(msg)

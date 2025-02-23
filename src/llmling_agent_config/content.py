@@ -274,12 +274,38 @@ class AudioBase64Content(AudioContent):
         return cls(data=base64.b64encode(path_obj.read_bytes()).decode(), format=fmt)
 
 
+class VideoContent(BaseContent):
+    """Base for video content."""
+
+    format: str | None = None
+    """Video format."""
+
+    description: str | None = None
+    """Human-readable description of the content."""
+
+
+class VideoURLContent(VideoContent):
+    """Video from URL."""
+
+    type: Literal["video_url"] = Field("video_url", init=False)
+    """URL-based video."""
+
+    url: str
+    """URL to the video."""
+
+    def to_openai_format(self) -> dict[str, Any]:
+        """Convert to OpenAI API format for video models."""
+        content = {"url": self.url, "format": self.format or "auto"}
+        return {"type": "video", "video": content}
+
+
 Content = Annotated[
     ImageURLContent
     | ImageBase64Content
     | PDFURLContent
     | PDFBase64Content
     | AudioURLContent
-    | AudioBase64Content,
+    | AudioBase64Content
+    | VideoURLContent,
     Field(discriminator="type"),
 ]
