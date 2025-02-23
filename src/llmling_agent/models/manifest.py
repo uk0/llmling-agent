@@ -10,6 +10,7 @@ from llmling import ConfigModel
 from pydantic import ConfigDict, Field, model_validator
 
 from llmling_agent.models.agents import AgentConfig
+from llmling_agent.resource_registry import ResourceRegistry
 from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.mcp_server import (
     BaseMCPServerConfig,
@@ -20,6 +21,7 @@ from llmling_agent_config.mcp_server import (
 from llmling_agent_config.observability import ObservabilityConfig
 from llmling_agent_config.prompts import PromptConfig
 from llmling_agent_config.providers import BaseProviderConfig
+from llmling_agent_config.resources import ResourceConfig, SourceResourceConfig
 from llmling_agent_config.result_types import ResponseDefinition  # noqa: TC001
 from llmling_agent_config.storage import StorageConfig
 from llmling_agent_config.task import Job  # noqa: TC001
@@ -58,7 +60,20 @@ class AgentsManifest(ConfigModel):
     INHERIT: str | list[str] | None = None
     """Inheritance references."""
 
+    resources: dict[str, ResourceConfig | str] = Field(default_factory=dict)
+    """Resource configurations defining available filesystems.
+
+    Supports both full config and URI shorthand:
+        resources:
+          docs: "file://./docs"  # shorthand
+          data:  # full config
+            type: "source"
+            uri: "s3://bucket/data"
+            cached: true
+    """
+
     ui: UIConfig = Field(default_factory=StdlibUIConfig)
+    """UI configuration."""
 
     agents: dict[str, AgentConfig] = Field(default_factory=dict)
     """Mapping of agent IDs to their configurations"""
@@ -164,6 +179,17 @@ class AgentsManifest(ConfigModel):
                     agents[agent_name] = agent_dict
 
         return data
+
+    @cached_property
+    def resource_registry(self) -> ResourceRegistry:
+        """Get registry with all configured resources."""
+        registry = ResourceRegistry()
+        for name, config in self.resources.items():
+            if isinstance(config, str):
+                # Convert URI shorthand to SourceResourceConfig
+                config = SourceResourceConfig(uri=config)
+            registry.register_from_config(name, config)
+        return registry
 
     def clone_agent_config(
         self,

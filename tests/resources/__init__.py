@@ -1,0 +1,1 @@
+"""Resource-related tests."""
