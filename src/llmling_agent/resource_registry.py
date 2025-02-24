@@ -24,12 +24,11 @@ class ResourceRegistry(BaseRegistry[str, AbstractFileSystem]):
     def _error_class(self) -> type[LLMLingError]:
         return LLMLingError
 
-    def register(self, name: str, item: AbstractFileSystem) -> AbstractFileSystem:
+    def register(self, name: str, item: Any, replace: bool = False):
         """Register a new resource."""
         logger.debug("registering %r (%r)", name, item.__class__.__name__)
         fsspec.register_implementation(name, item.__class__, clobber=True)
-        super().register(name, item)
-        return item
+        super().register(name, item, replace=replace)
 
     def _validate_item(self, item: Any) -> AbstractFileSystem:
         if not isinstance(item, AbstractFileSystem):
