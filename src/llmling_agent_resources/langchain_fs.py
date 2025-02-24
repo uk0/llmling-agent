@@ -73,7 +73,7 @@ class LangChainFileSystem(AsyncFileSystem):
         assert self.loop
         docs = await self.loop.run_in_executor(None, self.loader.load)
         for i, doc in enumerate(docs):
-            path = doc.metadata.get("source", f"doc_{i}.txt")
+            path = doc.metadata.get("title", f"doc_{i}.txt")
             self._documents[path] = doc
         self._loaded = True
 
