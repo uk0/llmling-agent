@@ -179,3 +179,12 @@ class ChatScreen(ModalScreen[None]):
 
         # Run in background to keep UI responsive
         self.app.run_worker(process_response(), name=f"agent_response_{self.node.name}")
+
+
+if __name__ == "__main__":
+    from textualicious import show
+
+    from llmling_agent import Agent
+
+    agent = Agent[None]()
+    show(ChatScreen(agent))

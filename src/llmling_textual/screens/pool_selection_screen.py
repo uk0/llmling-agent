@@ -60,3 +60,9 @@ class PoolSelectionScreen(ModalScreen[None]):
         """Handle keyboard input."""
         if event.key == "escape":
             self.app.pop_screen()
+
+
+if __name__ == "__main__":
+    from textualicious import show
+
+    show(PoolSelectionScreen())

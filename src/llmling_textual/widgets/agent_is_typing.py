@@ -24,3 +24,9 @@ class ResponseStatus(Vertical):
         self.message = "Agent is responding"
         self.add_class("-agent-responding")
         self.remove_class("-awaiting-response")
+
+
+if __name__ == "__main__":
+    from textualicious import show
+
+    show(ResponseStatus())

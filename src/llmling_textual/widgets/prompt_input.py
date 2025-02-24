@@ -94,3 +94,9 @@ class PromptInput(TextArea):
         else:
             self.app.bell()
             self.notify("Please wait for response to complete.")
+
+
+if __name__ == "__main__":
+    from textualicious import show
+
+    show(PromptInput())

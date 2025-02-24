@@ -137,3 +137,9 @@ class PoolPreview(Static):
         except Exception:
             logger.exception("Failed to load config: %s", path)
             self.update(f"Error loading {path}")
+
+
+if __name__ == "__main__":
+    from textualicious import show
+
+    show(PoolList())

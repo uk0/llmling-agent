@@ -73,3 +73,9 @@ class ChatView(ScrollableContainer):
         await self.mount(widget)
         widget.scroll_visible()
         self.refresh(layout=True)
+
+
+if __name__ == "__main__":
+    from textualicious import show
+
+    show(ChatView())

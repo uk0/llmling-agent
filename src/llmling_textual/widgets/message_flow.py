@@ -65,3 +65,15 @@ class MessageFlowWidget(Static):
         content = Text(str(self.event.message.content))
 
         return Text.assemble(header, "\n", content, end="")
+
+
+if __name__ == "__main__":
+    from textualicious import show
+
+    from llmling_agent import Agent, ChatMessage
+    from llmling_agent.talk.talk import Talk
+
+    agent = Agent[None]()
+    message = ChatMessage("Hello, world!", "user")
+    event = Talk.ConnectionProcessed(message, agent, [], False, "run")
+    show(MessageFlowWidget(event))

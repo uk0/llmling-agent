@@ -77,3 +77,12 @@ class MainScreen(Screen):
     async def on_node_entry_clicked(self, event: NodeEntry.Clicked):
         """Show chat screen for clicked agent."""
         await self.app.push_screen(ChatScreen(event.node))
+
+
+if __name__ == "__main__":
+    from textualicious import show
+
+    from llmling_agent import AgentPool
+
+    pool = AgentPool[None]()
+    show(MainScreen(pool))

@@ -27,3 +27,9 @@ class NodeListView(DataTable):
             self.add_row(
                 name, status, agent.model_name or "default", ", ".join(connections) or "-"
             )
+
+
+if __name__ == "__main__":
+    from textualicious import show
+
+    show(NodeListView())

@@ -89,3 +89,12 @@ class MessageStream(ScrollableContainer):
         # Keep reasonable buffer size
         if len(self.children) > 1000:  # noqa: PLR2004
             self.children[0].remove()
+
+
+if __name__ == "__main__":
+    from textualicious import show
+
+    from llmling_agent import AgentPool
+
+    pool = AgentPool[None]()
+    show(MessageStream(pool))

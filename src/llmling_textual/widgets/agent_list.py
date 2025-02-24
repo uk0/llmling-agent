@@ -190,3 +190,9 @@ class NodeList(ScrollableContainer):
         """Select focused node."""
         if (focused := self.screen.focused) and isinstance(focused, NodeEntry):
             self.post_message(focused.Clicked(focused.node))
+
+
+if __name__ == "__main__":
+    from textualicious import show
+
+    show(NodeList())
