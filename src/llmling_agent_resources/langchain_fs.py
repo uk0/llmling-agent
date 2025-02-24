@@ -7,11 +7,28 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import fsspec
 from fsspec.asyn import AsyncFileSystem, sync_wrapper
+from upath import UPath, registry
 
 
 if TYPE_CHECKING:
     from langchain.document_loaders import BaseLoader
     from langchain.schema import Document
+
+
+class LangchainPath(UPath):
+    """UPath implementation for browsing Langchain document loaders."""
+
+    __slots__ = ()
+
+    def iterdir(self):
+        if not self.is_dir():
+            raise NotADirectoryError(str(self))
+        yield from super().iterdir()
+
+    @property
+    def path(self) -> str:
+        path = super().path
+        return "/" if path == "." else path
 
 
 class LangChainFileSystem(AsyncFileSystem):
@@ -42,6 +59,10 @@ class LangChainFileSystem(AsyncFileSystem):
         self.target_options = target_options or {}
         self._documents: dict[str, Document] = {}
         self._loaded = False
+
+    def _make_path(self, path: str) -> UPath:
+        """Create a path object from string."""
+        return LangchainPath(path)
 
     async def _load_documents(self) -> None:
         """Load documents if not already loaded."""
@@ -144,7 +165,8 @@ class LangChainFileSystem(AsyncFileSystem):
 
 
 # Register the filesystem implementation
-fsspec.register_implementation("langchain", LangChainFileSystem)
+fsspec.register_implementation("langchain", LangChainFileSystem, clobber=True)
+registry.register_implementation("langchain", LangchainPath, clobber=True)
 
 
 if __name__ == "__main__":
