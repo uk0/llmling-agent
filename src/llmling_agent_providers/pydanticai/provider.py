@@ -12,7 +12,7 @@ from pydantic_ai import Agent as PydanticAgent
 import pydantic_ai._pydantic
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import KnownModelName, Model
-from pydantic_ai.result import RunResult, StreamedRunResult
+from pydantic_ai.result import StreamedRunResult
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import UsageLimits as PydanticAiUsageLimits
 
@@ -39,6 +39,8 @@ from llmling_agent_providers.pydanticai.utils import (
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable
+
+    from pydantic_ai.agent import AgentRunResult
 
     from llmling_agent.common_types import ModelType
     from llmling_agent.tools.base import Tool
@@ -267,7 +269,7 @@ class PydanticAIProvider(AgentLLMProvider):
             to_use = model or self.model
             to_use = infer_model(to_use) if isinstance(to_use, str) else to_use
             limits = asdict(usage_limits) if usage_limits else {}
-            result: RunResult = await agent.run(
+            result: AgentRunResult = await agent.run(
                 prompt,
                 deps=self._context,  # type: ignore
                 message_history=[to_model_message(m) for m in message_history],

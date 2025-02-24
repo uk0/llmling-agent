@@ -230,7 +230,7 @@ class ChatMessage[TContent]:
 
     @property
     def data(self) -> TContent:
-        """Get content as typed data. Provides compat to RunResult."""
+        """Get content as typed data. Provides compat to AgentRunResult."""
         return self.content
 
     def format(
