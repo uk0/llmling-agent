@@ -161,6 +161,10 @@ class SystemPrompts:
             msg = f"Failed to add prompt {ref!r}"
             raise RuntimeError(msg) from e
 
+    def clear(self):
+        """Clear all system prompts."""
+        self.prompts = []
+
     async def refresh_cache(self):
         """Force re-evaluation of prompts."""
         from toprompt import to_prompt
