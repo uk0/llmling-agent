@@ -57,7 +57,7 @@ class ConversionManager:
             converters.append(converter)
         # Always add PlainConverter as fallback
         # if it gets configured by user, that one gets preference.
-        converters.append(PlainConverter(PlainConverterConfig()))
+        converters.append(PlainConverter())
         return converters
 
     async def convert_file(self, path: StrPath) -> str:
@@ -75,11 +75,12 @@ class ConversionManager:
             # Run conversion in thread pool
             import mimetypes
 
+            typ = mimetypes.guess_type(str(path))[0]
             return await loop.run_in_executor(
                 self._executor,
                 converter.convert_content,
                 content,
-                mimetypes.guess_type(str(path))[0],
+                typ,
             )
         return str(content)
 
