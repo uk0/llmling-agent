@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Literal
 
 from llmling_agent.log import get_logger
 
@@ -12,6 +13,17 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+Metric = Literal["cosine", "euclidean", "dot"]
+
+
+@dataclass(frozen=True)
+class SearchResult:
+    """A single vector search result."""
+
+    doc_id: str
+    score: float  # similarity score between 0-1
+    metadata: dict[str, str | int | float | bool | list[str]]
 
 
 class VectorStore:
@@ -40,16 +52,14 @@ class VectorStore:
         query_vector: np.ndarray,
         limit: int = 5,
         filters: dict[str, Any] | None = None,
-    ) -> list[tuple[str, float, dict[str, Any]]]:
+        metric: Metric = "cosine",
+        search_params: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
         """Search for similar vectors.
 
-        Args:
-            query_vector: Query embedding
-            limit: Maximum number of results
-            filters: Optional metadata filters
-
-        Returns:
-            List of (doc_id, similarity_score, metadata) tuples
+        Added:
+        - metric: Distance metric to use
+        - search_params: Provider-specific search parameters (e.g. ef_search for HNSW)
         """
         raise NotImplementedError
 
@@ -63,3 +73,33 @@ class VectorStore:
             True if deleted, False if not found
         """
         raise NotImplementedError
+
+    def add_batch(
+        self,
+        embeddings: list[np.ndarray],
+        metadatas: list[dict[str, Any]] | None = None,
+        doc_ids: list[str] | None = None,
+    ) -> list[str]:
+        """Add multiple vectors to the store.
+
+        Default implementation falls back to single adds.
+        """
+        meta = [None] * len(embeddings) if metadatas is None else metadatas
+        doc_ids_ = [None] * len(embeddings) if doc_ids is None else doc_ids
+
+        return [
+            self.add(emb, meta, id_)
+            for emb, meta, id_ in zip(embeddings, meta, doc_ids_, strict=False)
+        ]
+
+    def search_batch(
+        self,
+        query_vectors: list[np.ndarray],
+        limit: int = 5,
+        filters: dict[str, Any] | None = None,
+    ) -> list[list[SearchResult]]:
+        """Search for multiple query vectors.
+
+        Default implementation falls back to single searches.
+        """
+        return [self.search(qv, limit, filters) for qv in query_vectors]

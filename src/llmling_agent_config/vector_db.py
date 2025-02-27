@@ -61,7 +61,40 @@ class QdrantConfig(BaseVectorStoreConfig):
         return self
 
 
+class KdbAiConfig(BaseVectorStoreConfig):
+    """Configuration for KDB.AI vector store."""
+
+    type: Literal["kdbai"] = Field(default="kdbai", init=False)
+
+    endpoint: str | None = None
+    """Server endpoint to connect to."""
+
+    api_key: SecretStr | None = None
+    """API Key for authentication."""
+
+    mode: Literal["rest", "qipc"] | None = None
+    """Implementation method used for the session."""
+
+    database_name: str = "vector_store"
+    """Name of the database to use."""
+
+    table_name: str = "vectors"
+    """Name of the table to store vectors."""
+
+    index_type: Literal["flat", "hnsw"] = "hnsw"
+    """Type of index to use."""
+
+    @model_validator(mode="after")
+    def validate_config(self) -> KdbAiConfig:
+        """Validate configuration."""
+        if not self.endpoint and not self.api_key:
+            msg = "Must specify either endpoint or api_key"
+            raise ValueError(msg)
+        return self
+
+
+# Update VectorStoreConfig to include KdbAiConfig
 VectorStoreConfig = Annotated[
-    ChromaConfig | QdrantConfig,  # etc
+    ChromaConfig | QdrantConfig | KdbAiConfig,
     Field(discriminator="type"),
 ]

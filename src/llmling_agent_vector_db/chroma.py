@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 import uuid
 
 from llmling_agent.log import get_logger
-from llmling_agent.vector_db import VectorStore
+from llmling_agent.vector_db import Metric, SearchResult, VectorStore
 
 
 if TYPE_CHECKING:
@@ -81,7 +81,9 @@ class ChromaVectorStore(VectorStore):
         query_vector: np.ndarray,
         limit: int = 5,
         filters: dict[str, Any] | None = None,
-    ) -> list[tuple[str, float, dict[str, Any]]]:
+        metric: Metric = "cosine",
+        search_params: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
         """Search ChromaDB for similar vectors."""
         # Execute search
         results = self._collection.query(
@@ -92,13 +94,14 @@ class ChromaVectorStore(VectorStore):
         )
 
         # Format results
-        formatted_results = []
+        formatted_results: list[SearchResult] = []
         if results["ids"] and results["ids"][0]:
             for i, doc_id in enumerate(results["ids"][0]):
                 distance = results["distances"][0][i] if "distances" in results else 0.0
                 similarity = 1.0 - distance  # Convert distance to similarity
                 metadata = results["metadatas"][0][i] if "metadatas" in results else {}
-                formatted_results.append((doc_id, similarity, metadata))
+                result = SearchResult(doc_id, similarity, metadata)
+                formatted_results.append(result)
 
         return formatted_results
 

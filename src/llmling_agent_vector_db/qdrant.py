@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 import uuid
 
 from llmling_agent.log import get_logger
-from llmling_agent.vector_db import VectorStore
+from llmling_agent.vector_db import Metric, SearchResult, VectorStore
 
 
 if TYPE_CHECKING:
@@ -99,7 +99,9 @@ class QdrantVectorStore(VectorStore):
         query_vector: np.ndarray,
         limit: int = 5,
         filters: dict[str, Any] | None = None,
-    ) -> list[tuple[str, float, dict[str, Any]]]:
+        metric: Metric = "cosine",
+        search_params: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
         """Search Qdrant for similar vectors."""
         from qdrant_client import models
 
@@ -139,7 +141,10 @@ class QdrantVectorStore(VectorStore):
         )
 
         # Format results with proper type conversion
-        return [(str(hit.id), hit.score, dict(hit.payload or {})) for hit in results]
+        return [
+            SearchResult(str(hit.id), hit.score, dict(hit.payload or {}))
+            for hit in results
+        ]
 
     def delete(self, doc_id: str) -> bool:
         """Delete vector by ID."""
