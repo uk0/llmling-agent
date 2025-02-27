@@ -16,11 +16,6 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.context import NodeContext
 
 
-async def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:
-    """Get available tool names."""
-    return list(await ctx.command_context.context.agent.tools.get_tool_names())
-
-
 def get_available_agents(ctx: CompletionContext[AgentContext]) -> list[str]:
     """Get available agent names."""
     if not ctx.command_context.context.pool:

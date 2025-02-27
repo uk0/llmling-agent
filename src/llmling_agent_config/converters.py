@@ -8,6 +8,7 @@ from llmling_agent_converters.base import DocumentConverter
 
 
 FormatterType = Literal["text", "json", "vtt", "srt"]
+GoogleSpeechEncoding = Literal["LINEAR16", "FLAC", "MP3"]
 
 
 class BaseConverterConfig(BaseModel):
@@ -151,7 +152,7 @@ class GoogleSpeechConfig(BaseConverterConfig):
     model: str = "default"
     """Speech model to use."""
 
-    encoding: Literal["LINEAR16", "FLAC", "MP3"] = "LINEAR16"
+    encoding: GoogleSpeechEncoding = "LINEAR16"
     """Audio encoding format."""
 
     def get_converter(self) -> DocumentConverter:
