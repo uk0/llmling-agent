@@ -23,6 +23,8 @@ packages = [
     "src/llmling_agent_input",
     "src/llmling_agent_observability",
     "src/llmling_agent_running",
+    "src/llmling_agent_splitters",
+    "src/llmling_agent_vector_db",
     "src/llmling_textual",
 ]
 
@@ -61,7 +63,7 @@ requires-python = ">=3.12"
 license = { file = "LICENSE" }
 dependencies = [
     "llmling>=1.0.0",
-    "pydantic >= 2.11.0a2",
+    "pydantic",
     # these 4 could be optional
     "prompt-toolkit>=3.0.48",
     "promptantic>=0.4.5",
@@ -83,6 +85,7 @@ dependencies = [
     "bigtree>=0.23.1",
     "typing_extensions",
     "upathtools>=0.1.0",
+    "qdrant-client>=1.13.2",
 ]
 
 [project.scripts]
