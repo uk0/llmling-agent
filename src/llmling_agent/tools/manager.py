@@ -196,13 +196,18 @@ class ToolManager(BaseRegistry[str, Tool]):
         """Get a mapping of all tools and their enabled status."""
         return {tool.name: tool.enabled for tool in await self.get_tools()}
 
-    async def get_tools(self, state: ToolState = "all") -> list[Tool]:
+    async def get_tools(
+        self,
+        state: ToolState = "all",
+        names: str | list[str] | None = None,
+    ) -> list[Tool]:
         """Get tool objects based on filters."""
-        tools: list[Tool] = []
-
-        # Get tools from registry
-        tools.extend(t for t in self.values() if t.matches_filter(state))
-
+        tools = [t for t in self.values() if t.matches_filter(state)]
+        match names:
+            case str():
+                tools = [t for t in tools if t.name == names]
+            case list():
+                tools = [t for t in tools if t.name in names]
         # Get tools from providers
         for provider in self.providers:
             try:
