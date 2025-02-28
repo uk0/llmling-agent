@@ -869,7 +869,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                     name=self.name,
                     model=model_name,
                     message_id=message_id,
-                    conversation_id=conversation_id,
+                    conversation_id=user_msg.conversation_id,
                     cost_info=cost_info,
                     response_time=time.perf_counter() - start_time,
                     # provider_extra=stream.provider_extra or {},
