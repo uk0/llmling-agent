@@ -9,7 +9,7 @@ from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.tools import Tool, ToolCallInfo
 from llmling_agent.messaging.messagenode import MessageNode
 
-__version__ = "0.99.17"
+__version__ = "0.99.18"
 
 load_dotenv()
 
