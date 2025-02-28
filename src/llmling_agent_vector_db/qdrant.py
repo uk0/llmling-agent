@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 import uuid
 
 from llmling_agent.log import get_logger
@@ -78,7 +78,8 @@ class QdrantVectorStore(VectorStore):
             doc_id = str(uuid.uuid4())
 
         # Convert numpy to list of floats (not string)
-        vector_list: list[float] = embedding.astype(float).tolist()
+        vector_data = embedding.astype(float).tolist()
+        vector_list = cast(list[float], vector_data)
 
         # Upsert vector
         self._client.upsert(
@@ -106,7 +107,8 @@ class QdrantVectorStore(VectorStore):
         from qdrant_client import models
 
         # Convert numpy to list of floats
-        vector_list: list[float] = query_vector.astype(float).tolist()
+        vector_data = query_vector.astype(float).tolist()
+        vector_list = cast(list[float], vector_data)
 
         # Build filter if needed
         filter_query = None
