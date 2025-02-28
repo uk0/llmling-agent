@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import UTC
-from typing import TYPE_CHECKING, Any
+from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
@@ -13,13 +13,8 @@ from sqlalchemy.types import TypeDecorator
 from sqlmodel import JSON, Field, SQLModel
 from sqlmodel.main import SQLModelConfig
 
+from llmling_agent.common_types import JsonValue  # noqa: TC001
 from llmling_agent.utils.now import get_now
-
-
-if TYPE_CHECKING:
-    from datetime import datetime
-
-    from llmling_agent.common_types import JsonValue
 
 
 class UTCDateTime(TypeDecorator):
