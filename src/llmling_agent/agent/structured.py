@@ -143,7 +143,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
         *prompt: AnyPromptType | TResult,
         result_type: type[TResult] | None = None,
         model: ModelType = None,
-        tool_choice: bool | str | list[str] = True,
+        tool_choice: str | list[str] | None = None,
         store_history: bool = True,
         message_id: str | None = None,
         conversation_id: str | None = None,
@@ -158,11 +158,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
                 - Name of response definition in manifest
                 - Complete response definition instance
             model: Optional model override
-            tool_choice: Control tool usage:
-                - True: Allow all tools
-                - False: No tools
-                - str: Use specific tool
-                - list[str]: Allow specific tools
+            tool_choice: Filter available tools by name
             store_history: Whether the message exchange should be added to the
                            context window
             message_id: Optional message id for the returned message.

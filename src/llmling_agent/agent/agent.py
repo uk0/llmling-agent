@@ -704,7 +704,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         result_type: type[TResult] | None = None,
         model: ModelType = None,
         store_history: bool = True,
-        tool_choice: bool | str | list[str] = True,
+        tool_choice: str | list[str] | None = None,
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
@@ -718,11 +718,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             model: Optional model override
             store_history: Whether the message exchange should be added to the
                             context window
-            tool_choice: Control tool usage:
-                - True: Allow all tools
-                - False: No tools
-                - str: Use specific tool
-                - list[str]: Allow specific tools
+            tool_choice: Filter tool choice by name
             usage_limits: Optional usage limits for the model
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
@@ -737,17 +733,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         """
         """Run agent with prompt and get response."""
         message_id = message_id or str(uuid4())
-
-        tools = await self.tools.get_tools(state="enabled")
-        match tool_choice:
-            case str():
-                tools = [t for t in tools if t.name == tool_choice]
-            case list():
-                tools = [t for t in tools if t.name in tool_choice]
-            case False:
-                tools = []
-            case True | None:
-                pass  # Keep all tools
+        tools = await self.tools.get_tools(state="enabled", names=tool_choice)
         self.set_result_type(result_type)
         start_time = time.perf_counter()
         sys_prompt = await self.sys_prompts.format_system_prompt(self)
@@ -792,7 +778,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
         result_type: type[TResult] | None = None,
         model: ModelType = None,
-        tool_choice: bool | str | list[str] = True,
+        tool_choice: str | list[str] | None = None,
         store_history: bool = True,
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
@@ -805,11 +791,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             prompt: User query or instruction
             result_type: Optional type for structured responses
             model: Optional model override
-            tool_choice: Control tool usage:
-                - True: Allow all tools
-                - False: No tools
-                - str: Use specific tool
-                - list[str]: Allow specific tools
+            tool_choice: Filter tool choice by name
             store_history: Whether the message exchange should be added to the
                            context window
             usage_limits: Optional usage limits for the model
@@ -829,16 +811,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self.set_result_type(result_type)
         start_time = time.perf_counter()
         sys_prompt = await self.sys_prompts.format_system_prompt(self)
-        tools = await self.tools.get_tools(state="enabled")
-        match tool_choice:
-            case str():
-                tools = [t for t in tools if t.name == tool_choice]
-            case list():
-                tools = [t for t in tools if t.name in tool_choice]
-            case False:
-                tools = []
-            case True | None:
-                pass  # Keep all tools
+        tools = await self.tools.get_tools(state="enabled", names=tool_choice)
         try:
             message_history = self.conversation.get_history()
             async with self._provider.stream_response(
@@ -1287,13 +1260,14 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 if __name__ == "__main__":
     # import logging
 
-    sys_prompt = "Open browser with google, please"
+    sys_prompt = "Open browser with google,"
     _model = "openai:gpt-4o-mini"
 
     async def main():
         async with Agent[None](model=_model, tools=["webbrowser.open"]) as agent:
-            print(agent.tools.list_items())
-            result = await agent.run(sys_prompt)
-            print(result.data)
+            agent.tool_used.connect(print)
+            async with agent.run_stream(sys_prompt) as stream:
+                async for chunk in stream.stream():
+                    print(chunk)
 
     asyncio.run(main())
