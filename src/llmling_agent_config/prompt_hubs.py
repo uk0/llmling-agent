@@ -85,11 +85,19 @@ class BraintrustConfig(BasePromptHubConfig):
     """Braintrust Project name."""
 
 
+class FabricConfig(BasePromptHubConfig):
+    """Configuration for Fabric GitHub prompt provider."""
+
+    type: Literal["fabric"] = Field("fabric", init=False)
+    """Configuration for Fabric GitHub prompt provider."""
+
+
 PromptHubConfig = Annotated[
     PromptLayerConfig
     | OpenLITConfig
     | LangfuseConfig
     | TraceloopConfig
+    | FabricConfig
     | BraintrustConfig,
     Field(discriminator="type"),
 ]
