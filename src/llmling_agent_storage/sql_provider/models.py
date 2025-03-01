@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import importlib.util
 from typing import Any
 from uuid import uuid4
 
@@ -15,6 +16,9 @@ from sqlmodel.main import SQLModelConfig
 
 from llmling_agent.common_types import JsonValue  # noqa: TC001
 from llmling_agent.utils.now import get_now
+
+
+REFLEX_INSTALLED = importlib.util.find_spec("reflex") is not None
 
 
 class UTCDateTime(TypeDecorator):
@@ -65,7 +69,8 @@ class CommandHistory(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg
     )
     """When the command was executed"""
 
-    model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
+    if not REFLEX_INSTALLED:
+        model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
 
 class MessageLog(BaseModel):
@@ -163,7 +168,8 @@ class Message(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     checkpoint_data: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
     """A dictionary of checkpoints (name -> metadata)."""
 
-    model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
+    if not REFLEX_INSTALLED:
+        model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
 
 class ToolCall(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
@@ -195,7 +201,8 @@ class ToolCall(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     result: str = Field(...)
     """Result returned by the tool"""
 
-    model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
+    if not REFLEX_INSTALLED:
+        model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
 
 class Conversation(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
@@ -218,4 +225,5 @@ class Conversation(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     total_cost: float = 0.0
     """Total cost of this conversation in USD"""
 
-    model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
+    if not REFLEX_INSTALLED:
+        model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
