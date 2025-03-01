@@ -25,6 +25,7 @@ packages = [
     "src/llmling_agent_running",
     "src/llmling_agent_splitters",
     "src/llmling_agent_vector_db",
+    "src/llmling_agent_embeddings",
     "src/llmling_textual",
 ]
 
@@ -199,6 +200,9 @@ exclude_lines = [
     "except ImportError",
     'if __name__ == "__main__":',
 ]
+
+[tool.logfire]
+ignore_no_config = true
 
 [tool.mypy]
 python_version = "3.12"
