@@ -14,7 +14,6 @@ from sqlalchemy.types import TypeDecorator
 from sqlmodel import JSON, Field, SQLModel
 from sqlmodel.main import SQLModelConfig
 
-from llmling_agent.common_types import JsonValue  # noqa: TC001
 from llmling_agent.utils.now import get_now
 
 
@@ -59,7 +58,7 @@ class CommandHistory(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg
     context_type: str | None = Field(default=None, index=True)
     """Type of the command context (e.g. 'AgentContext', 'PoolSupervisor', etc.)"""
 
-    context_metadata: dict[str, JsonValue] = Field(
+    context_metadata: dict[str, int | str | bool | float] = Field(
         default_factory=dict, sa_column=Column(JSON)
     )
     """Additional context information about command execution"""
