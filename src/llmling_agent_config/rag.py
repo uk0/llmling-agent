@@ -1,15 +1,17 @@
-"""Unified configuration for the complete vectorization pipeline."""
+"""Unified configuration for the complete RAG pipeline."""
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
-from llmling_agent_config.embeddings import EmbeddingConfig, SentenceTransformersConfig
-from llmling_agent_config.splitters import ChunkerConfig, MarkoChunkerConfig
-from llmling_agent_config.vector_db import ChromaConfig, VectorStoreConfig
 
+if TYPE_CHECKING:
+    from llmling_agent_config.converters import ConverterConfig
+    from llmling_agent_config.embeddings import EmbeddingConfig
+    from llmling_agent_config.splitters import ChunkerConfig
+    from llmling_agent_config.vector_db import VectorStoreConfig
 
 # Shorthand literals for common configurations
 ChunkerShorthand = Literal[
@@ -32,9 +34,21 @@ VectorDBShorthand = Literal[
     "qdrant-memory",  # In-memory Qdrant
 ]
 
+ConverterShorthand = Literal[
+    "docling",  # Docling with defaults
+    "markitdown",  # MarkItDown with defaults
+    "plain",  # Plain text with defaults
+]
 
-class VectorizationConfig(BaseModel):
+
+class RAGPipelineConfig(BaseModel):
     """Complete configuration for text vectorization pipeline."""
+
+    paths: list[str]
+    """Input paths to process (files/folders/URLs)"""
+
+    converter: ConverterConfig | ConverterShorthand = "docling"
+    """How to convert documents to text."""
 
     chunker: ChunkerConfig | ChunkerShorthand = "markdown"
     """How to split text into chunks."""
@@ -45,15 +59,35 @@ class VectorizationConfig(BaseModel):
     store: VectorStoreConfig | VectorDBShorthand = "chroma-memory"
     """Where to store vectors."""
 
-    model_config = ConfigDict(
-        frozen=True,
-        use_attribute_docstrings=True,
-    )
+    batch_size: int = Field(default=8, gt=0)
+    """Batch size for embeddings."""
+
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+
+    def resolve_converter(self) -> ConverterConfig:
+        """Get full converter config from shorthand or pass through existing."""
+        match self.converter:
+            case "docling":
+                from llmling_agent_config.converters import DoclingConverterConfig
+
+                return DoclingConverterConfig()
+            case "markitdown":
+                from llmling_agent_config.converters import MarkItDownConfig
+
+                return MarkItDownConfig()
+            case "plain":
+                from llmling_agent_config.converters import PlainConverterConfig
+
+                return PlainConverterConfig()
+            case _:
+                return self.converter
 
     def resolve_chunker(self) -> ChunkerConfig:
         """Get full chunker config from shorthand or pass through existing."""
         match self.chunker:
             case "markdown":
+                from llmling_agent_config.splitters import MarkoChunkerConfig
+
                 return MarkoChunkerConfig()
             case "langchain":
                 from llmling_agent_config.splitters import LangChainChunkerConfig
@@ -82,6 +116,8 @@ class VectorizationConfig(BaseModel):
 
                 return BGEConfig(model_name="BAAI/bge-large-en")
             case "minilm":
+                from llmling_agent_config.embeddings import SentenceTransformersConfig
+
                 return SentenceTransformersConfig()
             case _:
                 return self.embedding
@@ -90,8 +126,12 @@ class VectorizationConfig(BaseModel):
         """Get full store config from shorthand or pass through existing."""
         match self.store:
             case "chroma":
+                from llmling_agent_config.vector_db import ChromaConfig
+
                 return ChromaConfig(persist_directory="./chroma_db")
             case "chroma-memory":
+                from llmling_agent_config.vector_db import ChromaConfig
+
                 return ChromaConfig()
             case "qdrant":
                 from llmling_agent_config.vector_db import QdrantConfig
