@@ -61,8 +61,35 @@ class BGEConfig(BaseEmbeddingConfig):
     """Batch size for inference."""
 
 
+class LiteLLMEmbeddingConfig(BaseEmbeddingConfig):
+    """Configuration for LiteLLM embeddings."""
+
+    type: Literal["litellm"] = Field(default="litellm", init=False)
+
+    model: str
+    """Model identifier (e.g., 'text-embedding-ada-002',
+    'mistral/mistral-embed', 'gemini/text-embedding-004')."""
+
+    api_key: SecretStr | None = None
+    """API key for the provider."""
+
+    dimensions: int | None = None
+    """Optional number of dimensions for the embeddings."""
+
+    batch_size: int = 32
+    """Batch size for inference."""
+
+    additional_params: dict[str, str | int | float | bool] = Field(default_factory=dict)
+    """Additional parameters to pass to litellm.embedding()."""
+
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+
+
 # Union type for embedding configs
 EmbeddingConfig = Annotated[
-    SentenceTransformersConfig | OpenAIEmbeddingConfig | BGEConfig,
+    SentenceTransformersConfig
+    | OpenAIEmbeddingConfig
+    | BGEConfig
+    | LiteLLMEmbeddingConfig,
     Field(discriminator="type"),
 ]
