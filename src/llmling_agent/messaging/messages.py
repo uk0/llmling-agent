@@ -10,7 +10,7 @@ from uuid import uuid4
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
-from llmling_agent.common_types import JsonObject, MessageRole  # noqa: TC001
+from llmling_agent.common_types import MessageRole, SimpleJsonType  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.tools import ToolCallInfo  # noqa: TC001
 from llmling_agent.utils.now import get_now
@@ -168,7 +168,7 @@ class ChatMessage[TContent]:
     model: str | None = None
     """Name of the model that generated this message."""
 
-    metadata: JsonObject = field(default_factory=dict)
+    metadata: SimpleJsonType = field(default_factory=dict)
     """Additional metadata about the message."""
 
     timestamp: datetime = field(default_factory=get_now)

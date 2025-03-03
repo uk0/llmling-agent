@@ -24,6 +24,10 @@ type JsonValue = JsonPrimitive | JsonArray | JsonObject
 type JsonObject = dict[str, JsonValue]
 type JsonArray = list[JsonValue]
 
+# In reflex for example, the complex ones create issues..
+SimpleJsonType = dict[
+    str, bool | int | float | str | list[str] | dict[str, bool | int | float | str]
+]
 type StrPath = str | os.PathLike[str]
 type SessionIdType = str | UUID | None
 
