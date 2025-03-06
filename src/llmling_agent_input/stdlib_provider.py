@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any
 
@@ -79,6 +78,8 @@ class StdlibInputProvider(InputProvider):
         args: dict[str, Any],
         message_history: list[ChatMessage] | None = None,
     ) -> ConfirmationResult:
+        import anyenv
+
         agent_name = context.node_name
         prompt = dedent(f"""
             Tool Execution Confirmation
@@ -88,7 +89,7 @@ class StdlibInputProvider(InputProvider):
             Agent: {agent_name}
 
             Arguments:
-            {json.dumps(args, indent=2)}
+            {anyenv.dump_json(args, indent=True)}
 
             Options:
             - y: allow execution

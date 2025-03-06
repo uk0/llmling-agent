@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 
 from fastapi import WebSocketDisconnect
 import websockets
@@ -17,12 +16,14 @@ logger = get_logger(__name__)
 # Simple echo server for testing
 async def handler(websocket):
     """Process WebSocket connection."""
+    import anyenv
+
     await websocket.accept()
     try:
         while True:
             # Get raw message
             raw_message = await websocket.receive_text()
-            message = json.loads(raw_message)
+            message = anyenv.load_json(raw_message)
 
             match message["type"]:
                 case "init":

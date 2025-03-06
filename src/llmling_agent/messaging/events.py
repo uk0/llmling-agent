@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from datetime import datetime  # noqa: TC003
-import json
 from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -170,4 +169,6 @@ class WebhookEventData(EventData):
 
     def to_prompt(self) -> str:
         """Format webhook payload."""
-        return f"Webhook received:\n{json.dumps(self.payload, indent=2)}"
+        import anyenv
+
+        return f"Webhook received:\n{anyenv.dump_json(self.payload, indent=True)}"

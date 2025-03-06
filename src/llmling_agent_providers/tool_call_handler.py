@@ -79,9 +79,9 @@ class ToolCallHandler:
         Raises:
             Various exceptions from tool execution
         """
-        import json
+        import anyenv
 
-        function_args = json.loads(tool_call["function"]["arguments"])
+        function_args = anyenv.load_json(tool_call["function"]["arguments"])
         original_tool = tool.callable.callable
         start_time = perf_counter()
 

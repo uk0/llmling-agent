@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any
 
@@ -45,6 +44,8 @@ class CLISessionInputProvider(InputProvider):
         args: dict[str, Any],
         message_history: list[ChatMessage] | None = None,
     ) -> ConfirmationResult:
+        import anyenv
+
         prompt = dedent(f"""
             Tool Execution Confirmation
             -------------------------
@@ -53,7 +54,7 @@ class CLISessionInputProvider(InputProvider):
             Agent: {context.node_name}
 
             Arguments:
-            {json.dumps(args, indent=2)}
+            {anyenv.dump_json(args, indent=True)}
 
             Options:
             - y: allow execution

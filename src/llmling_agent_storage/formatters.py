@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Any, Literal, TypeGuard
 
 from rich.console import Console
@@ -34,9 +33,11 @@ def format_output(
         data: Data to format
         output_format: Format to use (text/json/yaml)
     """
+    import anyenv
+
     match output_format:
         case "json":
-            return json.dumps(data, indent=2)
+            return anyenv.dump_json(data, indent=True)
         case "yaml":
             import yamling
 

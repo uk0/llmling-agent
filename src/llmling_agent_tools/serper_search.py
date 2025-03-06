@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime
-import json
 import logging
 import os
 from typing import Any, Literal
@@ -278,12 +277,15 @@ class SerperTool:
         Args:
             results: Processed results to save
         """
+        import anyenv
+
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = upath.UPath(f"search_results_{timestamp}.json")
 
         try:
             with filename.open("w", encoding="utf-8") as file:
-                json.dump(results, file, indent=2, ensure_ascii=False)
+                text = anyenv.dump_json(results, indent=True)
+                file.write(text)
             logger.info("Results saved to %r", filename)
         except OSError as e:
             error_msg = f"Failed to save results to file: {e}"

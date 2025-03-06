@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -102,8 +101,12 @@ def parts_to_tool_call_info(
     context_data: Any | None = None,
 ) -> ToolCallInfo:
     """Convert matching tool call and return parts into a ToolCallInfo."""
+    import anyenv
+
     args = (
-        call_part.args if isinstance(call_part.args, dict) else json.loads(call_part.args)
+        call_part.args
+        if isinstance(call_part.args, dict)
+        else anyenv.load_json(call_part.args)
     )
 
     return ToolCallInfo(
@@ -141,6 +144,8 @@ def convert_model_message(  # noqa: PLR0911
     Raises:
         ValueError: If message type is not supported
     """
+    import anyenv
+
     match message:
         case ModelRequest():
             # Collect content from all parts
@@ -175,7 +180,7 @@ def convert_model_message(  # noqa: PLR0911
             args = (
                 message.args
                 if isinstance(message.args, dict)
-                else json.loads(message.args)
+                else anyenv.load_json(message.args)
             )
             info = ToolCallInfo(
                 tool_name=message.tool_name,
@@ -214,10 +219,12 @@ def convert_model_message(  # noqa: PLR0911
 
 def to_model_message(message: ChatMessage[str | Content]) -> ModelMessage:
     """Convert ChatMessage to pydantic-ai ModelMessage."""
+    import anyenv
+
     match message.content:
         case BaseContent():
             content = [message.content.to_openai_format()]
-            part = UserPromptPart(content=json.dumps({"content": content}))
+            part = UserPromptPart(content=anyenv.dump_json({"content": content}))
             return ModelRequest(parts=[part])
         case str():
             part_cls = {

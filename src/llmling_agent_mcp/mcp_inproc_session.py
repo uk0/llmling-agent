@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import json
 import os
 import subprocess
 from typing import Any
+
+import anyenv
 
 from llmling_agent_mcp import constants
 from llmling_agent_mcp.log import get_logger
@@ -78,6 +79,8 @@ class MCPInProcSession:
 
     async def _read_response(self) -> dict[str, Any]:
         """Read JSON-RPC response from server."""
+        import anyenv
+
         if not self.process or not self.process.stdout:
             msg = "Server process not available"
             raise RuntimeError(msg)
@@ -91,9 +94,9 @@ class MCPInProcSession:
                 raise RuntimeError(msg)
 
             try:
-                response = json.loads(line.decode())
+                response = anyenv.load_json(line.decode())
                 logger.debug("Received: %s", response)
-            except json.JSONDecodeError:
+            except anyenv.JsonLoadError:
                 # Skip non-JSON lines
                 logger.debug("Server output: %s", line.decode().strip())
                 continue
@@ -104,13 +107,15 @@ class MCPInProcSession:
         self, method: str, params: dict[str, Any] | None = None, timeout: float = 10.0
     ) -> Any:
         """Send JSON-RPC request and get response."""
+        import anyenv
+
         if not self.process or not self.process.stdin:
             msg = "Server not started"
             raise RuntimeError(msg)
 
         request = {"jsonrpc": "2.0", "method": method, "params": params or {}, "id": 1}
 
-        request_str = json.dumps(request) + "\n"
+        request_str = anyenv.dump_json(request) + "\n"
         logger.debug("Sending request: %s", request_str.strip())
         self.process.stdin.write(request_str.encode())
         self.process.stdin.flush()
@@ -138,7 +143,7 @@ class MCPInProcSession:
 
         notification = {"jsonrpc": "2.0", "method": method, "params": params or {}}
 
-        notification_str = json.dumps(notification) + "\n"
+        notification_str = anyenv.dump_json(notification) + "\n"
         logger.debug("Sending notification: %s", notification_str.strip())
         self.process.stdin.write(notification_str.encode())
         self.process.stdin.flush()
