@@ -67,3 +67,7 @@ async def test_pick_multiple():
     )
 
     assert decision.selections == ["A", "B"]
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
