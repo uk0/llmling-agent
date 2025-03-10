@@ -16,10 +16,7 @@ class BaseChunkerConfig(BaseModel):
     chunk_overlap: int = 200
     """Number of characters to overlap between chunks."""
 
-    model_config = ConfigDict(
-        frozen=True,
-        use_attribute_docstrings=True,
-    )
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
 
 class LangChainChunkerConfig(BaseChunkerConfig):
@@ -27,11 +24,7 @@ class LangChainChunkerConfig(BaseChunkerConfig):
 
     type: Literal["langchain"] = Field(default="langchain", init=False)
 
-    chunker_type: Literal[
-        "recursive",
-        "markdown",
-        "character",
-    ] = "recursive"
+    chunker_type: Literal["recursive", "markdown", "character"] = "recursive"
     """Which LangChain chunker to use."""
 
     chunk_size: int = 1000
@@ -43,11 +36,7 @@ class MarkoChunkerConfig(BaseChunkerConfig):
 
     type: Literal["marko"] = Field(default="marko", init=False)
 
-    split_on: Literal[
-        "headers",
-        "paragraphs",
-        "blocks",
-    ] = "headers"
+    split_on: Literal["headers", "paragraphs", "blocks"] = "headers"
     """How to split the markdown."""
 
     min_header_level: int = Field(default=2, ge=1, le=6)
