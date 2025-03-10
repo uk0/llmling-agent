@@ -73,7 +73,7 @@ async def test_agent_streaming_pydanticai_history(test_agent: Agent[None]):
         # Check prompt message
         assert isinstance(new_messages[0], ModelRequest)
         assert isinstance(new_messages[0].parts[0], UserPromptPart)
-        assert new_messages[0].parts[0].content == SIMPLE_PROMPT
+        assert new_messages[0].parts[0].content == [SIMPLE_PROMPT]
 
         # Check response message
         assert isinstance(new_messages[1], ModelResponse)

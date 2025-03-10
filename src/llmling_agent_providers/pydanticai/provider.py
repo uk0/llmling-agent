@@ -20,9 +20,7 @@ from llmling_agent.agent.context import AgentContext
 from llmling_agent.common_types import EndStrategy, ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.models.content import BaseContent
 from llmling_agent.observability import track_action
-from llmling_agent.prompts.convert import format_prompts
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
     RunAbortedError,
@@ -31,6 +29,7 @@ from llmling_agent.tasks.exceptions import (
 from llmling_agent.utils.inspection import execute, has_argument_type
 from llmling_agent_providers.base import AgentLLMProvider, ProviderResponse, UsageLimits
 from llmling_agent_providers.pydanticai.utils import (
+    convert_prompts_to_user_content,
     format_part,
     get_tool_calls,
     to_model_message,
@@ -252,25 +251,15 @@ class PydanticAIProvider(AgentLLMProvider):
             use_model = infer_model(use_model)
             self.model_changed.emit(use_model)
         try:
-            text_prompts = [p for p in prompts if isinstance(p, str)]
-            content_prompts = [p for p in prompts if isinstance(p, BaseContent)]
-
-            # Get normal text prompt
-            prompt = await format_prompts(text_prompts)
-
-            # Convert Content objects to ModelMessages
-            if content_prompts:
-                prompts_msgs = [
-                    ChatMessage(role="user", content=p) for p in content_prompts
-                ]
-                message_history = [*message_history, *prompts_msgs]
+            # Convert prompts to pydantic-ai format
+            converted_prompts = await convert_prompts_to_user_content(prompts)
 
             # Run with complete history
             to_use = model or self.model
             to_use = infer_model(to_use) if isinstance(to_use, str) else to_use
             limits = asdict(usage_limits) if usage_limits else {}
             result: AgentRunResult = await agent.run(
-                prompt,
+                converted_prompts,  # Pass converted prompts
                 deps=self._context,  # type: ignore
                 message_history=[to_model_message(m) for m in message_history],
                 model=to_use,  # type: ignore
@@ -292,10 +281,11 @@ class PydanticAIProvider(AgentLLMProvider):
                 use_model.model_name if isinstance(use_model, Model) else str(use_model)
             )
             usage = result.usage()
-            cost_str = prompt + str(content_prompts)  # dirty
+            # Create input content representation for cost calculations
+            cost_input = "\n".join(str(p) for p in prompts)
             cost_info = (
                 await TokenCost.from_usage(
-                    usage, resolved_model, cost_str, str(result.data)
+                    usage, resolved_model, cost_input, str(result.data)
                 )
                 if resolved_model and usage
                 else None
@@ -376,22 +366,14 @@ class PydanticAIProvider(AgentLLMProvider):
         if model:
             self.model_changed.emit(use_model)
 
-        text_prompts = [p for p in prompts if isinstance(p, str)]
-        content_prompts = [p for p in prompts if isinstance(p, BaseContent)]
-
-        # Get normal text prompt
-        prompt = await format_prompts(text_prompts)
-
-        # Convert Content objects to ChatMessages
-        if content_prompts:
-            prompts_msgs = [ChatMessage(role="user", content=p) for p in content_prompts]
-            message_history = [*message_history, *prompts_msgs]
+        # Convert prompts to pydantic-ai format
+        converted_prompts = await convert_prompts_to_user_content(prompts)
 
         # Convert all messages to pydantic-ai format
         model_messages = [to_model_message(m) for m in message_history]
 
         async with agent.run_stream(
-            prompt,
+            converted_prompts,
             deps=self._context,
             message_history=model_messages,
             model=model or self.model,  # type: ignore

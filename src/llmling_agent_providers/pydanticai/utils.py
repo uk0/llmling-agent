@@ -241,7 +241,7 @@ def to_model_message(message: ChatMessage[str | Content]) -> ModelMessage:
             return ModelRequest(parts=[part_cls(content=message.content)])
 
 
-def convert_prompts_to_user_content(
+async def convert_prompts_to_user_content(
     prompts: Sequence[str | Content],
 ) -> list[str | PydanticUserContent]:
     """Convert our prompts to pydantic-ai compatible format.
@@ -252,13 +252,20 @@ def convert_prompts_to_user_content(
     Returns:
         List of strings and pydantic-ai UserContent objects
     """
+    from llmling_agent.prompts.convert import format_prompts
     from llmling_agent_providers.pydanticai.convert_content import content_to_pydantic_ai
 
+    # Special case: if we only have string prompts, format them together
+    # if all(isinstance(p, str) for p in prompts):
+    #     formatted = await format_prompts(prompts)
+    #     return [formatted]
+
+    # Otherwise, process each item individually in order
     result = []
     for p in prompts:
         if isinstance(p, str):
-            # Simply pass through string prompts directly
-            result.append(p)
+            formatted = await format_prompts([p])
+            result.append(formatted)
         elif p_content := content_to_pydantic_ai(p):
             result.append(p_content)
 
