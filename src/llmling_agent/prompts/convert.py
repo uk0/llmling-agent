@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from toprompt import AnyPromptType, to_prompt
 from upathtools import read_path
 
-from llmling_agent_config.content import (
+from llmling_agent.models.content import (
     BaseContent,
     BaseImageContent,
     BasePDFContent,

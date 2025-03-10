@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Unpack, overload
 from typing_extensions import TypeVar
 
 from llmling_agent import Agent
-from llmling_agent_config.content import ImageURLContent
+from llmling_agent.models.content import ImageURLContent
 
 
 if TYPE_CHECKING:

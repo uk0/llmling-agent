@@ -1,7 +1,7 @@
 import pytest
 
 from llmling_agent import Agent
-from llmling_agent_config.content import ImageURLContent
+from llmling_agent.models.content import ImageURLContent
 
 
 @pytest.mark.asyncio

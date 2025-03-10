@@ -8,6 +8,15 @@ from dotenv import load_dotenv
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.tools import Tool, ToolCallInfo
 from llmling_agent.messaging.messagenode import MessageNode
+from llmling_agent.models.content import (
+    PDFURLContent,
+    PDFBase64Content,
+    ImageBase64Content,
+    ImageURLContent,
+    AudioURLContent,
+    AudioBase64Content,
+    VideoURLContent,
+)
 
 __version__ = "0.99.25"
 
@@ -20,12 +29,19 @@ __all__ = [
     "AgentPool",
     "AgentsManifest",
     "AnyAgent",
+    "AudioBase64Content",
+    "AudioURLContent",
     "BaseTeam",
     "ChatMessage",
+    "ImageBase64Content",
+    "ImageURLContent",
     "MessageNode",
+    "PDFBase64Content",
+    "PDFURLContent",
     "StructuredAgent",
     "Team",
     "TeamRun",
     "Tool",
     "ToolCallInfo",
+    "VideoURLContent",
 ]

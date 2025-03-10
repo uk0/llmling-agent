@@ -28,8 +28,8 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.context import AgentContext
     from llmling_agent.common_types import ModelType
+    from llmling_agent.models.content import Content
     from llmling_agent.tools.base import Tool
-    from llmling_agent_config.content import Content
 
 
 logger = get_logger(__name__)

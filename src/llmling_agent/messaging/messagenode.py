@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     import PIL.Image
     from toprompt import AnyPromptType
 
-    from llmling_agent_config.content import Content
+    from llmling_agent.models.content import Content
 
 
 class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):

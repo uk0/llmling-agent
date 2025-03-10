@@ -33,8 +33,8 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn, QueueStrategy
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent.models.content import Content
     from llmling_agent.talk import Talk, TeamTalk
-    from llmling_agent_config.content import Content
     from llmling_agent_config.forward_targets import ConnectionType
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.providers import ProcessorCallback

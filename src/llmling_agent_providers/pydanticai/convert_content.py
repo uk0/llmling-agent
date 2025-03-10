@@ -7,11 +7,11 @@ import warnings
 
 from pydantic_ai.messages import BinaryContent, ImageUrl, UserContent
 
-from llmling_agent_config import content as own_content
+from llmling_agent.models import content as own_content
 
 
 if TYPE_CHECKING:
-    from llmling_agent_config.content import Content
+    from llmling_agent.models.content import Content
 
 
 def content_to_pydantic_ai(content: Content) -> UserContent | None:  # noqa: PLR0911
