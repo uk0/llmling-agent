@@ -79,7 +79,6 @@ class MockResponse:
 
 
 @pytest.fixture
-@skip_py314
 def mock_openapi_spec(tmp_path):
     """Set up OpenAPI spec mocking and local file."""
     from openapi_spec_validator import validate
@@ -94,6 +93,7 @@ def mock_openapi_spec(tmp_path):
 
 
 @pytest.mark.asyncio
+@skip_py314
 async def test_openapi_toolset_local(mock_openapi_spec):
     """Test OpenAPI toolset with local file."""
     from openapi_spec_validator import validate
@@ -111,6 +111,7 @@ async def test_openapi_toolset_local(mock_openapi_spec):
 
 
 @pytest.mark.asyncio
+@skip_py314
 async def test_openapi_toolset_remote(mock_openapi_spec, caplog, monkeypatch):
     """Test OpenAPI toolset with remote spec."""
     from openapi_spec_validator import validate
