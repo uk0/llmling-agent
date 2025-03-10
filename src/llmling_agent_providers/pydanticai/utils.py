@@ -17,6 +17,7 @@ from pydantic_ai.messages import (
     TextPart,
     ToolCallPart,
     ToolReturnPart,
+    UserContent as PydanticUserContent,
     UserPromptPart,
 )
 
@@ -26,6 +27,8 @@ from llmling_agent.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from llmling_agent.common_types import MessageRole
     from llmling_agent.tools.base import Tool
 
@@ -236,3 +239,27 @@ def to_model_message(message: ChatMessage[str | Content]) -> ModelMessage:
                 msg = f"Unknown message role: {message.role}"
                 raise ValueError(msg)
             return ModelRequest(parts=[part_cls(content=message.content)])
+
+
+def convert_prompts_to_user_content(
+    prompts: Sequence[str | Content],
+) -> list[str | PydanticUserContent]:
+    """Convert our prompts to pydantic-ai compatible format.
+
+    Args:
+        prompts: Sequence of string prompts or Content objects
+
+    Returns:
+        List of strings and pydantic-ai UserContent objects
+    """
+    from llmling_agent_providers.pydanticai.convert_content import content_to_pydantic_ai
+
+    result = []
+    for p in prompts:
+        if isinstance(p, str):
+            # Simply pass through string prompts directly
+            result.append(p)
+        elif p_content := content_to_pydantic_ai(p):
+            result.append(p_content)
+
+    return result
