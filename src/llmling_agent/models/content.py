@@ -103,9 +103,12 @@ class ImageBase64Content(BaseImageContent):
     data: str
     """Base64-encoded image data."""
 
+    mime_type: str = "image/jpeg"
+    """MIME type of the image."""
+
     def to_openai_format(self) -> dict[str, Any]:
         """Convert to OpenAI API format for vision models."""
-        data_url = f"data:image/jpeg;base64,{self.data}"
+        data_url = f"data:{self.mime_type};base64,{self.data}"
         content = {"url": data_url, "detail": self.detail or "auto"}
         return {"type": "image_url", "image_url": content}
 
