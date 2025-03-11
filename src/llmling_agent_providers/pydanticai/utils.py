@@ -261,7 +261,7 @@ async def convert_prompts_to_user_content(
     #     return [formatted]
 
     # Otherwise, process each item individually in order
-    result = []
+    result: list[str | PydanticUserContent] = []
     for p in prompts:
         if isinstance(p, str):
             formatted = await format_prompts([p])
