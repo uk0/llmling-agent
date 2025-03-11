@@ -185,6 +185,11 @@ class PDFURLContent(BasePDFContent):
     url: str
     """URL to the PDF document."""
 
+    def to_openai_format(self) -> dict[str, Any]:
+        """Convert to OpenAI API format for PDF handling."""
+        content = {"url": self.url, "detail": self.detail or "auto"}
+        return {"type": "file", "file": content}
+
 
 class PDFBase64Content(BasePDFContent):
     """PDF from base64 data."""
@@ -194,6 +199,12 @@ class PDFBase64Content(BasePDFContent):
 
     data: str
     """Base64-encoded PDF data."""
+
+    def to_openai_format(self) -> dict[str, Any]:
+        """Convert to OpenAI API format for PDF handling."""
+        data_url = f"data:application/pdf;base64,{self.data}"
+        content = {"url": data_url, "detail": self.detail or "auto"}
+        return {"type": "file", "file": content}
 
     @classmethod
     def from_bytes(
