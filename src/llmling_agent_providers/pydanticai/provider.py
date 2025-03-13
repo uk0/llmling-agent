@@ -148,7 +148,7 @@ class PydanticAIProvider(AgentLLMProvider):
             if has_argument_type(wrapped, RunContext):
                 agent.tool(wrapped)
             elif has_argument_type(wrapped, AgentContext):
-                agent._register_function(wrapped, True, 1, None, "auto", False)
+                agent._register_function(wrapped, True, None, 1, None, "auto", False)
             else:
                 agent.tool_plain(wrapped)
         return agent
