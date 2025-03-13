@@ -5,7 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import warnings
 
-from pydantic_ai.messages import BinaryContent, ImageUrl, UserContent
+from pydantic_ai.messages import (
+    AudioUrl,
+    BinaryContent,
+    DocumentUrl,
+    ImageUrl,
+    UserContent,
+)
 
 from llmling_agent.models import content as own_content
 
@@ -32,32 +38,22 @@ def content_to_pydantic_ai(content: Content) -> UserContent | None:  # noqa: PLR
             return ImageUrl(url=content.url)
 
         case own_content.ImageBase64Content():
-            return BinaryContent(
-                data=content.data.encode(),
-                media_type="image/jpeg",
-            )
-
-        case own_content.PDFURLContent() | own_content.PDFBase64Content():
-            msg = "PDF content not supported by pydantic-ai"
-            warnings.warn(msg, UserWarning, stacklevel=2)
-            return None
-
+            typ = content.mime_type or "image/jpeg"
+            return BinaryContent(data=content.data.encode(), media_type=typ)
+        case own_content.PDFURLContent():
+            return DocumentUrl(url=content.url)
+        case own_content.PDFBase64Content():
+            # Now supported by pydantic-ai as BinaryContent with PDF media type
+            return BinaryContent(content.data.encode(), media_type="application/pdf")
         case own_content.AudioURLContent():
-            msg = "Audio URL content not yet implemented"
-            warnings.warn(msg, UserWarning, stacklevel=2)
-            return None
-
+            return AudioUrl(url=content.url)
         case own_content.AudioBase64Content():
-            return BinaryContent(
-                data=content.data.encode(),
-                media_type=f"audio/{content.format or 'mp3'}",
-            )
-
+            typ = f"audio/{content.format or 'mp3'}"
+            return BinaryContent(data=content.data.encode(), media_type=typ)
         case own_content.VideoURLContent():
             msg = "Video content not supported by pydantic-ai"
             warnings.warn(msg, UserWarning, stacklevel=2)
             return None
-
         case _:
             msg = f"Unknown content type: {type(content)}"
             warnings.warn(msg, UserWarning, stacklevel=2)
