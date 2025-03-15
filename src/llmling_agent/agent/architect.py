@@ -70,3 +70,11 @@ async def create_architect_agent(
     ).to_structured(YAMLCode)
     agent.conversation.add_context_message(context)
     return agent
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    agent = asyncio.run(create_architect_agent())
+    result = agent.run_sync("write a config")
+    print(result.content.code)

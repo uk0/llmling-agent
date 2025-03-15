@@ -391,3 +391,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
     def is_busy(self) -> bool:
         """Check if agent is currently processing tasks."""
         return bool(self._pending_tasks or self._background_task)
+
+    def run_sync(self, *args, **kwargs):
+        """Run agent synchronously."""
+        return self._agent.run_sync(*args, result_type=self._result_type, **kwargs)
