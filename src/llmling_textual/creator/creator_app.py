@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pathlib
 from typing import ClassVar, Literal
 
 from pydantic import ValidationError
@@ -7,12 +8,14 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Header, Input, Static
 from upath import UPath
-from upathtools import read_path
+from upathtools import read_folder_as_text, read_path
 from yaml import YAMLError
 
-from llmling_agent import Agent, AgentsManifest
+from llmling_agent import Agent, AgentsManifest, models
+from llmling_agent.common_types import YAMLCode
 from llmling_agent.utils.count_tokens import count_tokens
 from llmling_agent_cli import agent_store
+import llmling_agent_config
 
 
 EXAMPLE = """
@@ -45,7 +48,9 @@ ONLY RETURN THE ACTUAL YAML. Your Output should ALWAYS be parseable by a YAML pa
 Nver answer with anything else. Dont prepend any sentences. Just return plain YAML.
 """
 
-SCHEMA_URL = "https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json"
+
+CONFIG_PATH = pathlib.Path(llmling_agent_config.__file__).parent
+CORE_CONFIG_PATH = pathlib.Path(models.__file__).parent
 README_URL = (
     "https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/README.md"
 )
@@ -112,7 +117,13 @@ class ConfigGeneratorApp(App):
         add_to_store: bool = False,
     ):
         super().__init__()
-        self.agent = self.setup_agent(model, provider)
+        agent = Agent[None](
+            "config_generator",
+            model=model,
+            provider=provider,
+            system_prompt=SYS_PROMPT,
+        ).to_structured(YAMLCode)
+        self.agent = agent
         self.current_config: str | None = None
         self.output_path = UPath(output_path) if output_path else None
         self.add_to_store = add_to_store
@@ -124,26 +135,19 @@ class ConfigGeneratorApp(App):
         yield YamlDisplay("")
         yield StatsDisplay("Context tokens: calculating...")
 
-    def setup_agent(
-        self, model: str, provider: Literal["pydantic_ai", "litellm"]
-    ) -> Agent:
-        return Agent(
-            "config_generator",
-            model=model,
-            provider=provider,
-            system_prompt=SYS_PROMPT,
-        )
-
     async def on_mount(self):
         """Load schema and calculate token count."""
-        schema = await read_path(SCHEMA_URL)
+        code = await read_folder_as_text(CONFIG_PATH, pattern="**/*.py")
+        core_code = await read_folder_as_text(CORE_CONFIG_PATH, pattern="**/*.py")
         readme = await read_path(README_URL)
 
-        context = f"Schema:\n{schema}\n\nExample:\n{EXAMPLE}\n\\Readme:\n{readme}"
+        context = (
+            f"Code:\n{core_code}\n{code}\n\nExample:\n{EXAMPLE}\n\\Readme:\n{readme}"
+        )
         self.agent.conversation.add_context_message(context)
 
         # Calculate token count
-        model_name = self.agent.model_name or "gpt-4o-mini"
+        model_name = self.agent.model_name or "copilot:claude-3.5-sonnet"
         model_name = model_name.split(":")[-1]
         self._token_count = count_tokens(context, model_name)
 
@@ -153,18 +157,18 @@ class ConfigGeneratorApp(App):
     async def on_input_submitted(self, message: Input.Submitted):
         """Generate config when user hits enter."""
         yaml = await self.agent.run(message.value)
-        self.current_config = yaml.content
+        self.current_config = yaml.content.code
 
         # Validate
         try:
-            AgentsManifest.from_yaml(yaml.content)
+            AgentsManifest.from_yaml(yaml.content.code)
             status = "✓ Valid configuration"
         except (ValidationError, YAMLError) as e:
             status = f"✗ Invalid: {e}"
 
         # Update displays
         content = self.query_one(YamlDisplay)
-        content.update_yaml(yaml.content)
+        content.update_yaml(yaml.content.code)
 
         stats = self.query_one(StatsDisplay)
         stats.update_stats(self._token_count, status)
