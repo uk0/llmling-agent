@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
     from llmling_agent.agent.context import AgentContext
+    from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.common_types import ModelType
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.delegation.team import Team
@@ -218,6 +219,10 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
     @property
     def tools(self) -> ToolManager:
         return self._agent.tools
+
+    @property
+    def conversation(self) -> ConversationManager:
+        return self._agent.conversation
 
     @overload
     def to_structured(

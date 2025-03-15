@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pathlib
 from typing import ClassVar, Literal
 
 from pydantic import ValidationError
@@ -9,52 +8,13 @@ from textual.binding import Binding
 from textual.containers import ScrollableContainer
 from textual.widgets import Header, Input, Static
 from upath import UPath
-from upathtools import read_folder_as_text, read_path
 from yaml import YAMLError
 
-from llmling_agent import Agent, AgentsManifest, models
+from llmling_agent import Agent, AgentsManifest
+from llmling_agent.agent.architect import create_architect_agent
 from llmling_agent.common_types import YAMLCode
 from llmling_agent.utils.count_tokens import count_tokens
 from llmling_agent_cli import agent_store
-import llmling_agent_config
-
-
-EXAMPLE = """
-# Example agent with team
-agents:
-  analyzer:
-    name: "Analyzer"
-    model: "gpt-4"
-    capabilities:
-      can_load_resources: true
-
-teams:
-  analysis_team:
-    mode: "sequential"
-    members: ["analyzer"]
-    connections:
-      - target: "output_handler"
-        type: "forward"
-"""
-
-SYS_PROMPT = """
-You are an expert at creating LLMling-agent configurations.
-Generate complete, valid YAML that can include:
-- Agent configurations with appropriate tools and capabilities
-- Team definitions with proper member relationships
-- Connection setups for message routing
-Follow the provided JSON schema exactly.
-Only add stuff asked for by the user.
-ONLY RETURN THE ACTUAL YAML. Your Output should ALWAYS be parseable by a YAML parser.
-Nver answer with anything else. Dont prepend any sentences. Just return plain YAML.
-"""
-
-
-CONFIG_PATH = pathlib.Path(llmling_agent_config.__file__).parent
-CORE_CONFIG_PATH = pathlib.Path(models.__file__).parent
-README_URL = (
-    "https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/README.md"
-)
 
 
 class StatsDisplay(Static):
@@ -130,12 +90,7 @@ class ConfigGeneratorApp(App):
         add_to_store: bool = False,
     ):
         super().__init__()
-        agent = Agent[None](
-            "config_generator",
-            model=model,
-            provider=provider,
-            system_prompt=SYS_PROMPT,
-        ).to_structured(YAMLCode)
+        agent = Agent[None]().to_structured(YAMLCode)
         self.agent = agent
         self.current_config: str | None = None
         self.output_path = UPath(output_path) if output_path else None
@@ -150,18 +105,9 @@ class ConfigGeneratorApp(App):
 
     async def on_mount(self):
         """Load schema and calculate token count."""
-        code = await read_folder_as_text(CONFIG_PATH, pattern="**/*.py")
-        core_code = await read_folder_as_text(CORE_CONFIG_PATH, pattern="**/*.py")
-        readme = await read_path(README_URL)
-
-        context = (
-            f"Code:\n{core_code}\n{code}\n\nExample:\n{EXAMPLE}\n\\Readme:\n{readme}"
-        )
-        self.agent.conversation.add_context_message(context)
-
-        # Calculate token count
-        model_name = self.agent.model_name or "copilot:claude-3.5-sonnet"
-        model_name = model_name.split(":")[-1]
+        self.agent = await create_architect_agent(model="copilot:claude-3.5-sonnet")
+        model_name = self.agent.model_name.split(":")[-1]
+        context = await self.agent.conversation.format_history()
         self._token_count = count_tokens(context, model_name)
 
         stats = self.query_one(StatsDisplay)
@@ -171,8 +117,6 @@ class ConfigGeneratorApp(App):
         """Generate config when user hits enter."""
         yaml = await self.agent.run(message.value)
         self.current_config = yaml.content.code
-
-        # Validate
         try:
             AgentsManifest.from_yaml(yaml.content.code)
             status = "✓ Valid configuration"
