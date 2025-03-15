@@ -6,6 +6,7 @@ from typing import ClassVar, Literal
 from pydantic import ValidationError
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.containers import ScrollableContainer
 from textual.widgets import Header, Input, Static
 from upath import UPath
 from upathtools import read_folder_as_text, read_path
@@ -59,6 +60,9 @@ README_URL = (
 class StatsDisplay(Static):
     """Display for token count and validation status."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, markup=kwargs.pop("markup", False), **kwargs)
+
     def update_stats(self, token_count: int, status: str | None = None):
         """Update the stats display."""
         text = f"Context tokens: {token_count:,}"
@@ -67,14 +71,23 @@ class StatsDisplay(Static):
         self.update(text)
 
 
-class YamlDisplay(Static):
+class YamlDisplay(ScrollableContainer):
     """Display for YAML content with syntax highlighting."""
+
+    def __init__(self):
+        super().__init__()
+        self._content = Static("")
+
+    def compose(self) -> ComposeResult:
+        """Initial empty content."""
+        yield self._content
 
     def update_yaml(self, content: str):
         """Update the YAML content with syntax highlighting."""
         from rich.syntax import Syntax
 
-        self.update(Syntax(content, "yaml", theme="monokai"))
+        syntax = Syntax(content, "yaml", theme="monokai")
+        self._content.update(syntax)
 
 
 class ConfigGeneratorApp(App):
@@ -132,7 +145,7 @@ class ConfigGeneratorApp(App):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Input(placeholder="Describe your configuration needs...")
-        yield YamlDisplay("")
+        yield YamlDisplay()
         yield StatsDisplay("Context tokens: calculating...")
 
     async def on_mount(self):
