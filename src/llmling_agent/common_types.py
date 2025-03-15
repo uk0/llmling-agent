@@ -9,7 +9,7 @@ from typing import Any, Literal, Protocol, runtime_checkable
 from uuid import UUID
 
 from llmling import LLMCallableTool
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 @runtime_checkable
@@ -69,12 +69,15 @@ class BaseCode(BaseModel):
     """Base class for syntax-validated code."""
 
     code: str
+    """The source code."""
 
     @field_validator("code")
     @classmethod
     def validate_syntax(cls, code: str) -> str:
         """Override in subclasses."""
         return code
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
 
 
 class YAMLCode(BaseCode):
