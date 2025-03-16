@@ -13,13 +13,13 @@ This example shows:
 
 from __future__ import annotations
 
-import asyncio
 import os
 from pathlib import Path
 
 from mypy import api
 
 from llmling_agent import AgentPool, AgentsManifest
+from llmling_agent_examples.utils import run
 
 
 # set your OpenAI API key here
@@ -64,4 +64,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    run(main())

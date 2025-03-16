@@ -6,9 +6,8 @@
 
 from __future__ import annotations
 
-import asyncio
-
 from llmling_agent import Agent, Team
+from llmling_agent_examples.utils import run
 
 
 async def main():
@@ -47,4 +46,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    run(main())

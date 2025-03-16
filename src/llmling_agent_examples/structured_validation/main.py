@@ -9,6 +9,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from llmling_agent import Agent
+from llmling_agent_examples.utils import run
 
 
 class MovieReview(BaseModel):
@@ -78,9 +79,7 @@ async def main():
 
 
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
+    run(main())
 
 
 """
