@@ -12,7 +12,7 @@ from typing_extensions import TypeVar
 
 from llmling_agent.common_types import MessageRole, SimpleJsonType  # noqa: TC001
 from llmling_agent.log import get_logger
-from llmling_agent.tools import ToolCallInfo  # noqa: TC001
+from llmling_agent.tools import ToolCallInfo
 from llmling_agent.utils.now import get_now
 
 
@@ -200,6 +200,59 @@ class ChatMessage[TContent]:
 
     provider_extra: dict[str, Any] = field(default_factory=dict)
     """Provider specific metadata / extra information."""
+
+    @classmethod
+    def from_openai_format(
+        cls,
+        message: dict[str, Any],
+        conversation_id: str | None = None,
+    ) -> ChatMessage[str]:
+        """Create ChatMessage from OpenAI message format.
+
+        Args:
+            message: OpenAI format message dict with role, content etc.
+            conversation_id: Optional conversation ID to assign
+
+        Returns:
+            Converted ChatMessage
+
+        Example:
+            >>> msg = ChatMessage.from_openai_format({
+            ...     "role": "user",
+            ...     "content": "Hello!",
+            ...     "name": "john"
+            ... })
+        """
+        # Handle multimodal content lists (OpenAI vision format)
+        if isinstance(message["content"], list):
+            # Combine text parts
+            content = "\n".join(
+                part["text"] for part in message["content"] if part["type"] == "text"
+            )
+        else:
+            content = message["content"] or ""
+
+        return ChatMessage[str](
+            content=str(content),
+            role=message["role"],
+            name=message.get("name"),
+            conversation_id=conversation_id,
+            tool_calls=[
+                ToolCallInfo(
+                    agent_name=message.get("name") or "",
+                    tool_call_id=tc["id"],
+                    tool_name=tc["function"]["name"],
+                    args=tc["function"]["arguments"],
+                    result=None,  # OpenAI format doesn't include results
+                )
+                for tc in message.get("tool_calls", [])
+            ]
+            if message.get("tool_calls")
+            else [],
+            metadata={"function_call": message["function_call"]}
+            if "function_call" in message
+            else {},
+        )
 
     def forwarded(self, previous_message: ChatMessage[Any]) -> Self:
         """Create new message showing it was forwarded from another message.
