@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+import json
+import time
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
     from llmling_agent.delegation.pool import AgentPool
 
 logger = get_logger(__name__)
@@ -83,12 +88,22 @@ class ChatCompletionResponse(BaseModel):
     usage: dict[str, int] | None = None
 
 
+class ChatCompletionChunk(BaseModel):
+    """Chunk of a streaming chat completion."""
+
+    id: str
+    object: str = "chat.completion.chunk"
+    created: int
+    model: str
+    choices: list[dict[str, Any]]
+
+
 class OpenAIServer:
     """OpenAI-compatible API server backed by LLMling agents."""
 
     def __init__(self, pool: AgentPool):
         self.pool = pool
-        self.app = FastAPI()  # (lifespan=self.lifespan)
+        self.app = FastAPI()
         self.setup_routes()
 
     def verify_api_key(
@@ -100,57 +115,128 @@ class OpenAIServer:
         if not authorization.startswith("Bearer "):
             raise HTTPException(401, "Invalid authorization format")
 
-    # @asynccontextmanager
-    # async def lifespan(self, app: FastAPI):
-    #     """Initialize agent pool."""
-    #     async with self.pool:
-    #         yield
-
     def setup_routes(self):
         """Configure API routes."""
         self.app.get("/v1/models")(self.list_models)
         self.app.post(
-            "/v1/chat/completions", dependencies=[Depends(self.verify_api_key)]
+            "/v1/chat/completions",
+            dependencies=[Depends(self.verify_api_key)],
+            response_model=None,  # This is the key change
         )(self.create_chat_completion)
 
     async def list_models(self) -> dict[str, Any]:
         """List available agents as models."""
         models = []
         for name, agent in self.pool.agents.items():
-            models.append(
-                OpenAIModelInfo(
-                    id=name,
-                    created=0,
-                    description=agent.description,
-                )
-            )
+            info = OpenAIModelInfo(id=name, created=0, description=agent.description)
+            models.append(info)
         return {"object": "list", "data": models}
 
-    async def create_chat_completion(
-        self, request: ChatCompletionRequest
-    ) -> ChatCompletionResponse:
+    async def create_chat_completion(self, request: ChatCompletionRequest) -> Response:
         """Handle chat completion requests."""
         # Get agent by model name
-        agent = self.pool.agents[request.model]
+        try:
+            agent = self.pool.agents[request.model]
+        except KeyError:
+            raise HTTPException(404, f"Model {request.model} not found") from None
 
         # Just take the last message content - let agent handle history
         content = request.messages[-1].content or ""
 
-        # Run agent with the content
-        response = await agent.run(content)
+        # Check if streaming is requested
+        if request.stream:
+            return StreamingResponse(
+                self._stream_response(agent, content, request),
+                media_type="text/event-stream",
+            )
+        # Non-streaming response
+        try:
+            response = await agent.run(content)
+            message = OpenAIMessage(role="assistant", content=str(response.content))
+            completion_response = ChatCompletionResponse(
+                id=response.message_id,
+                created=int(response.timestamp.timestamp()),
+                model=request.model,
+                choices=[Choice(message=message)],
+                usage=response.cost_info.token_usage if response.cost_info else None,  # pyright: ignore
+            )
+            return Response(
+                content=completion_response.model_dump_json(),
+                media_type="application/json",
+            )
+        except Exception as e:
+            logger.exception("Error processing chat completion")
+            raise HTTPException(500, f"Error: {e!s}") from e
 
-        # Convert response to OpenAI format
-        return ChatCompletionResponse(
-            id=response.message_id,
-            created=int(response.timestamp.timestamp()),
-            model=request.model,
-            choices=[
-                Choice(
-                    message=OpenAIMessage(role="assistant", content=str(response.content))
-                )
-            ],
-            usage=response.cost_info.token_usage if response.cost_info else None,
-        )
+    async def _stream_response(
+        self, agent, content: str, request: ChatCompletionRequest
+    ) -> AsyncGenerator[str, None]:
+        """Generate streaming response chunks."""
+        response_id = f"chatcmpl-{int(time.time() * 1000)}"
+        created = int(time.time())
+
+        try:
+            # First chunk with role
+            choice = {"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}
+            first_chunk = {
+                "id": response_id,
+                "object": "chat.completion.chunk",
+                "created": created,
+                "model": request.model,
+                "choices": [choice],
+            }
+            yield f"data: {json.dumps(first_chunk)}\n\n"
+
+            # Stream the actual content
+            async with agent.run_stream(content) as stream:
+                async for chunk in stream.stream():
+                    # Skip empty chunks
+                    if not chunk:
+                        continue
+                    choice = {
+                        "index": 0,
+                        "delta": {"content": chunk},
+                        "finish_reason": None,
+                    }
+                    chunk_data = {
+                        "id": response_id,
+                        "object": "chat.completion.chunk",
+                        "created": created,
+                        "model": request.model,
+                        "choices": [choice],
+                    }
+                    yield f"data: {json.dumps(chunk_data)}\n\n"
+
+            # Final chunk with finish_reason
+            final_chunk = {
+                "id": response_id,
+                "object": "chat.completion.chunk",
+                "created": created,
+                "model": request.model,
+                "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
+            }
+            yield f"data: {json.dumps(final_chunk)}\n\n"
+
+            # End of stream marker
+            yield "data: [DONE]\n\n"
+
+        except Exception as e:
+            logger.exception("Error during streaming response")
+            error_chunk = {
+                "id": response_id,
+                "object": "chat.completion.chunk",
+                "created": created,
+                "model": request.model,
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {"content": f"Error: {e!s}"},
+                        "finish_reason": "error",
+                    }
+                ],
+            }
+            yield f"data: {json.dumps(error_chunk)}\n\n"
+            yield "data: [DONE]\n\n"
 
 
 if __name__ == "__main__":
@@ -169,15 +255,27 @@ if __name__ == "__main__":
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "http://localhost:8000/v1/chat/completions",
-                headers={"Authorization": "Bearer dummy"},  # This matches OpenAI's format
+                headers={"Authorization": "Bearer dummy"},
                 json={
                     "model": "gpt-4o-mini",
                     "messages": [{"role": "user", "content": "Tell me a joke"}],
+                    "stream": True,
                 },
+                timeout=30.0,  # Longer timeout for streaming
             )
-            logger.debug("Raw response: %s", response.text)
-            logger.debug("Status code: %s", response.status_code)
-            if not response.is_success:
+
+            if response.is_success:
+                for line in response.iter_lines():
+                    if line.startswith("data: "):
+                        data = line[6:]  # Remove "data: " prefix
+                        if data == "[DONE]":
+                            break
+                        chunk = json.loads(data)
+                        delta = chunk["choices"][0]["delta"]
+                        if "content" in delta:
+                            print(delta["content"], end="", flush=True)
+                print("\n")
+            else:
                 logger.error("Response error: %s", response.text)
 
     async def main():
