@@ -85,18 +85,18 @@ class LLMLingServer(TaskManagerMixin):
                 msg = f"Unknown transport type: {config.transport}"
                 raise ValueError(msg)
 
-    def _setup_handlers(self) -> None:
+    def _setup_handlers(self):
         """Register MCP protocol handlers."""
         register_handlers(self)
 
-    async def start(self, *, raise_exceptions: bool = False) -> None:
+    async def start(self, *, raise_exceptions: bool = False):
         """Start the server."""
         try:
             await self.transport.serve(raise_exceptions=raise_exceptions)
         finally:
             await self.shutdown()
 
-    async def shutdown(self) -> None:
+    async def shutdown(self):
         """Shutdown the server."""
         try:
             await self.transport.shutdown()
@@ -121,7 +121,7 @@ class LLMLingServer(TaskManagerMixin):
         else:
             return self
 
-    async def __aexit__(self, *exc: object) -> None:
+    async def __aexit__(self, *exc: object):
         """Shutdown the server."""
         await self.shutdown()
 
@@ -134,7 +134,7 @@ class LLMLingServer(TaskManagerMixin):
             msg = "No active request context"
             raise RuntimeError(msg) from exc
 
-    async def report_progress(self, progress: float, total: float | None = None) -> None:
+    async def report_progress(self, progress: float, total: float | None = None):
         """Report progress for the current operation."""
         progress_token = (
             self.server.request_context.meta.progressToken
@@ -157,7 +157,7 @@ class LLMLingServer(TaskManagerMixin):
             return None
         return session.client_params.clientInfo
 
-    async def notify_tool_list_changed(self) -> None:
+    async def notify_tool_list_changed(self):
         """Notify clients about tool list changes."""
         try:
             self.create_task(self.current_session.send_tool_list_changed())
@@ -166,7 +166,7 @@ class LLMLingServer(TaskManagerMixin):
         except Exception:
             logger.exception("Failed to send tool list change notification")
 
-    async def notify_prompt_list_changed(self) -> None:
+    async def notify_prompt_list_changed(self):
         """Notify clients about prompt list changes."""
         try:
             self.create_task(self.current_session.send_prompt_list_changed())

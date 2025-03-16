@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 class StdioServer(TransportBase):
     """Stdio transport implementation."""
 
-    async def serve(self, *, raise_exceptions: bool = False) -> None:
+    async def serve(self, *, raise_exceptions: bool = False):
         """Start the stdio server."""
         handler = configure_server_logging(self.server)
 
@@ -40,6 +40,6 @@ class StdioServer(TransportBase):
                     if raise_exceptions:
                         raise
 
-    async def shutdown(self) -> None:
+    async def shutdown(self):
         """Cleanup stdio transport."""
         logger.info("Stdio transport shutdown")

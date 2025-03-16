@@ -17,7 +17,7 @@ class TextChunk:
         self,
         text: str,
         metadata: dict[str, Any] | None = None,
-    ) -> None:
+    ):
         self.text = text
         self.metadata = metadata or {}
 

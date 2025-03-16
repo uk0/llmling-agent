@@ -62,7 +62,7 @@ def has_argument_type(
         include_return: Whether to also check return type annotation
 
     Examples:
-        >>> def func(x: int | str, y: list[int]) -> None: ...
+        >>> def func(x: int | str, y: list[int]): ...
         >>> has_argument_type(func, int | str)  # True
         >>> has_argument_type(func, int)        # True
         >>> has_argument_type(func, list)       # True

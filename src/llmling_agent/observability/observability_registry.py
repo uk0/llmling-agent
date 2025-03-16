@@ -49,7 +49,7 @@ class TrackedDecoration:
 class ObservabilityRegistry:
     """Registry for pending decorations and provider configuration."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         self._registered_agents: dict[str, TrackedDecoration] = {}
         self._registered_tools: dict[str, TrackedDecoration] = {}
         self._registered_actions: dict[str, TrackedDecoration] = {}
@@ -62,7 +62,7 @@ class ObservabilityRegistry:
         name: str,
         target: type[Any],
         **kwargs: Any,
-    ) -> None:
+    ):
         """Register a class for agent tracking."""
         self._registered_agents[name] = TrackedDecoration(target, name, kwargs=kwargs)
         logger.debug("Registered agent %r for observability tracking", name)
@@ -72,7 +72,7 @@ class ObservabilityRegistry:
         name: str,
         target: Callable,
         **kwargs: Any,
-    ) -> None:
+    ):
         """Register a function for tool tracking."""
         self._registered_tools[name] = TrackedDecoration(target, name, kwargs=kwargs)
         logger.debug("Registered tool %r for observability tracking", name)
@@ -82,13 +82,13 @@ class ObservabilityRegistry:
         name: str,
         target: Callable,
         **kwargs: Any,
-    ) -> None:
+    ):
         """Register a function for action tracking."""
         self._registered_actions[name] = TrackedDecoration(target, name, kwargs=kwargs)
         msg = "Registered action %r for observability tracking with args %r"
         logger.debug(msg, name, kwargs)
 
-    def configure_provider(self, provider: ObservabilityProvider) -> None:
+    def configure_provider(self, provider: ObservabilityProvider):
         """Configure a new provider and apply tracking to all registered items.
 
         When a new provider is configured, it will:
@@ -143,7 +143,7 @@ class ObservabilityRegistry:
                 msg = "Failed to apply action tracking to %r"
                 logger.exception(msg, pending.name)
 
-    def register_providers(self, observability_config: ObservabilityConfig) -> None:
+    def register_providers(self, observability_config: ObservabilityConfig):
         """Register and configure all observability providers.
 
         Args:

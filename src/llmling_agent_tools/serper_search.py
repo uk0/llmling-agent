@@ -271,7 +271,7 @@ class SerperTool:
 
         return "\n".join(md_parts)
 
-    def _save_results_to_file(self, results: dict) -> None:
+    def _save_results_to_file(self, results: dict):
         """Save results to a file with timestamp in filename.
 
         Args:

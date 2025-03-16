@@ -31,7 +31,7 @@ class MCPInProcSession:
         self,
         server_command: list[str] | None = None,
         config_path: str | os.PathLike[str] | None = None,
-    ) -> None:
+    ):
         """Initialize server-client session.
 
         Args:
@@ -46,7 +46,7 @@ class MCPInProcSession:
         self.process: subprocess.Popen[bytes] | None = None
         self._stderr_task: asyncio.Task[None] | None = None
 
-    async def start(self) -> None:
+    async def start(self):
         """Start the server process."""
         env = {**os.environ, "PYTHONUNBUFFERED": "1"}
         logger.debug("Starting server with command: %s", self.server_command)
@@ -133,9 +133,7 @@ class MCPInProcSession:
             logger.exception("Timeout waiting for response to: %s", method)
             raise
 
-    async def send_notification(
-        self, method: str, params: dict[str, Any] | None = None
-    ) -> None:
+    async def send_notification(self, method: str, params: dict[str, Any] | None = None):
         """Send JSON-RPC notification."""
         if not self.process or not self.process.stdin:
             msg = "Server not started"
@@ -188,7 +186,7 @@ class MCPInProcSession:
         params = {"name": name, "arguments": arguments}
         return await self.send_request("tools/call", params)
 
-    async def close(self) -> None:
+    async def close(self):
         """Stop the server."""
         assert self._stderr_task
         self._stderr_task.cancel()

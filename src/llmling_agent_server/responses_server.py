@@ -115,7 +115,7 @@ class ResponsesServer:
 
     def verify_api_key(
         self, authorization: Annotated[str | None, Header(alias="Authorization")] = None
-    ) -> None:
+    ):
         """Verify API key if configured."""
         if not authorization:
             raise HTTPException(401, "Missing API key")

@@ -26,7 +26,7 @@ class ArizePhoenixProvider(ObservabilityProvider):
         self._tracer_provider = None
         self._configure()
 
-    def _configure(self) -> None:
+    def _configure(self):
         """Initialize Arize Phoenix with OpenTelemetry."""
         key = self.config.api_key.get_secret_value() if self.config.api_key else None
         key = key or os.getenv("ARIZE_API_KEY")

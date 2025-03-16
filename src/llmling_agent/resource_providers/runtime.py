@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 class RuntimeResourceProvider(ResourceProvider):
     """Provider that exposes RuntimeConfig tools through ResourceProvider interface."""
 
-    def __init__(self, runtime: RuntimeConfig, name: str = "runtime") -> None:
+    def __init__(self, runtime: RuntimeConfig, name: str = "runtime"):
         """Initialize provider with RuntimeConfig.
 
         Args:

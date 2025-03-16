@@ -63,7 +63,7 @@ class StorageManager(TaskManagerMixin):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Clean up all providers."""
         errors = []
         for provider in self.providers:

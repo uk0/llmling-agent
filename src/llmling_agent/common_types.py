@@ -154,7 +154,7 @@ class PythonCode(BaseCode):
             return code
 
 
-def _validate_type_args(data: Any, args: tuple[Any, ...]) -> None:
+def _validate_type_args(data: Any, args: tuple[Any, ...]):
     """Validate data against type arguments."""
     match data:
         case dict() if len(args) == 2:  # noqa: PLR2004

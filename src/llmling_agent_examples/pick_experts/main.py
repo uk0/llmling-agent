@@ -16,7 +16,7 @@ from llmling_agent_examples.utils import get_config_path, is_pyodide, run
 os.environ["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY", "your_api_key_here")
 
 
-async def run_example() -> None:
+async def run_example():
     """Run the expert selection example."""
     config_path = get_config_path(None if is_pyodide() else __file__)
     async with AgentPool[None](config_path) as pool:

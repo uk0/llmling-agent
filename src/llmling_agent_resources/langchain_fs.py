@@ -43,7 +43,7 @@ class LangChainFileSystem(AsyncFileSystem):
         target_options: dict[str, Any] | None = None,
         *args: Any,
         **kwargs: Any,
-    ) -> None:
+    ):
         """Initialize the filesystem.
 
         Args:
@@ -64,7 +64,7 @@ class LangChainFileSystem(AsyncFileSystem):
         """Create a path object from string."""
         return LangchainPath(path)
 
-    async def _load_documents(self) -> None:
+    async def _load_documents(self):
         """Load documents if not already loaded."""
         if self._loaded:
             return
@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
     from langchain_community.document_loaders import TextLoader
 
-    async def main() -> None:
+    async def main():
         # Create a sample text file for testing
         test_file = Path("test_doc.txt")
         test_content = "This is a test document.\nIt has multiple lines.\n"

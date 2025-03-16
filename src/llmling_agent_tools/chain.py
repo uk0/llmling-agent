@@ -238,7 +238,7 @@ class ChainTool(BaseTool):
         """Execute independent steps in parallel."""
         semaphore = asyncio.Semaphore(pipeline.max_parallel)
 
-        async def run_step(step: PipelineStep) -> None:
+        async def run_step(step: PipelineStep):
             async with semaphore:
                 # Wait for dependencies
                 for dep in step.depends_on:

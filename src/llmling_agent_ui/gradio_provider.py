@@ -20,7 +20,7 @@ class GradioUIProvider(UIProvider):
     def __init__(self, config: GradioUIConfig):
         self.config = config
 
-    def run(self, config_store: ConfigStore | None = None) -> None:
+    def run(self, config_store: ConfigStore | None = None):
         """Run web interface."""
         from llmling_agent_web.app import launch_app
 
@@ -32,10 +32,10 @@ class GradioUIProvider(UIProvider):
             block=True,
         )
 
-    def run_node(self, node: MessageNode) -> None:
+    def run_node(self, node: MessageNode):
         msg = "GradioUI only supports config store mode"
         raise NotImplementedError(msg)
 
-    def run_pool(self, pool: AgentPool) -> None:
+    def run_pool(self, pool: AgentPool):
         msg = "GradioUI only supports config store mode"
         raise NotImplementedError(msg)

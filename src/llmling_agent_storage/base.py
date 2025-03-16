@@ -75,7 +75,7 @@ class StorageProvider[T](TaskManagerMixin):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Clean up provider resources."""
         self.cleanup()
 

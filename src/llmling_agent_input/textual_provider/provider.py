@@ -33,7 +33,7 @@ class BaseInputApp(App[str]):
         self._input_screen = input_screen
         self._result: str | None = None
 
-    async def on_mount(self) -> None:
+    async def on_mount(self):
         self._result = await self.push_screen_wait(self._input_screen)  # type: ignore
         self.exit()
 
@@ -124,15 +124,15 @@ class TextualInputProvider(InputProvider):
     #                 yield Label(self.prompt)
     #                 yield TextArea(id="input")
 
-    #         def on_text_area_changed(self, event: TextArea.Changed) -> None:
+    #         def on_text_area_changed(self, event: TextArea.Changed):
     #             """Handle live updates."""
     #             self._chunk_callback(event.value)
 
-    #         def action_submit(self) -> None:
+    #         def action_submit(self):
     #             text = self.query_one(TextArea).text
     #             self.dismiss(text)
 
-    #         def action_cancel(self) -> None:
+    #         def action_cancel(self):
     #             self.dismiss(None)
 
     #     chunk_queue: asyncio.Queue[str] = asyncio.Queue()
@@ -152,7 +152,7 @@ class TextualInputProvider(InputProvider):
     #                 self._modal = StreamingInputModal(prompt, callback)
     #                 self._result: str | None = None
 
-    #             async def on_mount(self) -> None:
+    #             async def on_mount(self):
     #                 self._result = await self.push_screen_wait(self._modal)
     #                 self.exit()
 

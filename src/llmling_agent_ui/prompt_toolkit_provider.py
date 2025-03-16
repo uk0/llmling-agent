@@ -21,11 +21,11 @@ class PromptToolkitUIProvider(UIProvider):
     def __init__(self, config: PromptToolkitUIConfig):
         self.config = config
 
-    def run_pool(self, pool: AgentPool) -> None:
+    def run_pool(self, pool: AgentPool):
         msg = "PromptToolkitUI only supports node mode"
         raise NotImplementedError(msg)
 
-    def run_node(self, node: MessageNode) -> None:
+    def run_node(self, node: MessageNode):
         """Run prompt-toolkit interface for single node."""
         import asyncio
 
@@ -34,6 +34,6 @@ class PromptToolkitUIProvider(UIProvider):
         assert isinstance(node, Agent), "PromptToolkitUI only supports agents"
         asyncio.run(start_interactive_session(node, stream=self.config.stream))
 
-    def run(self, store: ConfigStore | None = None) -> None:
+    def run(self, store: ConfigStore | None = None):
         msg = "PromptToolkitUI only supports node mode"
         raise NotImplementedError(msg)

@@ -13,12 +13,12 @@ if TYPE_CHECKING:
 class TransportBase(ABC):
     """Base class for transport implementations."""
 
-    def __init__(self, server: Server) -> None:
+    def __init__(self, server: Server):
         """Initialize transport with server instance."""
         self.server = server
 
     @abstractmethod
-    async def serve(self, *, raise_exceptions: bool = False) -> None:
+    async def serve(self, *, raise_exceptions: bool = False):
         """Start serving the transport.
 
         Args:
@@ -26,13 +26,13 @@ class TransportBase(ABC):
         """
 
     @abstractmethod
-    async def shutdown(self) -> None:
+    async def shutdown(self):
         """Gracefully shutdown the transport."""
 
     async def __aenter__(self) -> Self:
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, *exc: object) -> None:
+    async def __aexit__(self, *exc: object):
         """Async context manager exit."""
         await self.shutdown()

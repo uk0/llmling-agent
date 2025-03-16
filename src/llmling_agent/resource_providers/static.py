@@ -30,7 +30,7 @@ class StaticResourceProvider(ResourceProvider):
         tools: Sequence[Tool] | None = None,
         prompts: Sequence[BasePrompt] | None = None,
         resources: Sequence[ResourceInfo] | None = None,
-    ) -> None:
+    ):
         """Initialize provider with static resources.
 
         Args:

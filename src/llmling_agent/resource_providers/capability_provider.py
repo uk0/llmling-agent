@@ -24,7 +24,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
         capabilities: Capabilities,
         runtime: RuntimeConfig | None = None,
         name: str = "capability_tools",
-    ) -> None:
+    ):
         super().__init__(name)
         self.capabilities = capabilities
         self.runtime = runtime

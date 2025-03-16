@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def register_handlers(llm_server: LLMLingServer) -> None:  # noqa: PLR0915
+def register_handlers(llm_server: LLMLingServer):  # noqa: PLR0915
     """Register all MCP protocol handlers.
 
     Args:
@@ -28,7 +28,7 @@ def register_handlers(llm_server: LLMLingServer) -> None:  # noqa: PLR0915
     """
 
     @llm_server.server.set_logging_level()
-    async def handle_set_level(level: mcp.LoggingLevel) -> None:
+    async def handle_set_level(level: mcp.LoggingLevel):
         """Handle logging level changes."""
         try:
             python_level = constants.MCP_TO_LOGGING[level]
@@ -207,20 +207,20 @@ def register_handlers(llm_server: LLMLingServer) -> None:  # noqa: PLR0915
         token: str | int,
         progress: float,
         total: float | None,
-    ) -> None:
+    ):
         """Handle progress notifications from client."""
         msg = "Progress notification: %s %.1f/%.1f"
         logger.debug(msg, token, progress, total or 0.0)
 
     @llm_server.server.subscribe_resource()
-    async def handle_subscribe(uri: AnyUrl) -> None:
+    async def handle_subscribe(uri: AnyUrl):
         """Subscribe to resource updates."""
         uri_str = str(uri)
         llm_server._subscriptions[uri_str].add(llm_server.current_session)
         logger.debug("Added subscription for %s", uri)
 
     @llm_server.server.unsubscribe_resource()
-    async def handle_unsubscribe(uri: AnyUrl) -> None:
+    async def handle_unsubscribe(uri: AnyUrl):
         """Unsubscribe from resource updates."""
         if (uri_str := str(uri)) in llm_server._subscriptions:
             llm_server._subscriptions[uri_str].discard(llm_server.current_session)

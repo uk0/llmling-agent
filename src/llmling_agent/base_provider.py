@@ -14,7 +14,7 @@ ConfigT = TypeVar("ConfigT", bound=BaseModel)
 class BaseProvider[ConfigT]:
     """Base class for all providers."""
 
-    def __init__(self, config: ConfigT) -> None:
+    def __init__(self, config: ConfigT):
         """Initialize provider with configuration."""
         self.config = config
 

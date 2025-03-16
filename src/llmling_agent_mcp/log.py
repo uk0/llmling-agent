@@ -31,13 +31,13 @@ def get_logger(name: str) -> logging.Logger:
 class MCPHandler(logging.Handler):
     """Handler that sends logs via MCP protocol."""
 
-    def __init__(self, mcp_server: Server) -> None:
+    def __init__(self, mcp_server: Server):
         """Initialize handler with MCP server instance."""
         super().__init__()
         self.server = mcp_server
         self.queue: queue.Queue[tuple[mcp.LoggingLevel, Any, str | None]] = queue.Queue()
 
-    def emit(self, record: logging.LogRecord) -> None:
+    def emit(self, record: logging.LogRecord):
         """Queue log message for async sending."""
         try:
             # Try to get current session from server's request context
@@ -60,7 +60,7 @@ class MCPHandler(logging.Handler):
         except Exception:  # noqa: BLE001
             self.handleError(record)
 
-    async def process_queue(self) -> None:
+    async def process_queue(self):
         """Process queued log messages."""
         while True:
             try:
@@ -84,7 +84,7 @@ class MCPHandler(logging.Handler):
             await asyncio.sleep(0.1)
 
 
-async def run_logging_processor(handler: MCPHandler) -> None:
+async def run_logging_processor(handler: MCPHandler):
     """Run the logging processor."""
     await handler.process_queue()
 

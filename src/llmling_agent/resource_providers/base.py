@@ -20,7 +20,7 @@ class ResourceProvider:
     Default implementations return empty lists - override as needed.
     """
 
-    def __init__(self, name: str, owner: str | None = None) -> None:
+    def __init__(self, name: str, owner: str | None = None):
         """Initialize the resource provider."""
         self.name = name
         self.owner = owner
@@ -29,7 +29,7 @@ class ResourceProvider:
         """Async context entry if required."""
         return self
 
-    async def __aexit__(self, *exc: object) -> None:
+    async def __aexit__(self, *exc: object):
         """Async context cleanup if required."""
 
     def __repr__(self) -> str:

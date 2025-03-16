@@ -47,7 +47,7 @@ class ToolError(MCPClientError):
 class SSEMCPClient:
     """High-level MCP protocol client for connecting to external servers."""
 
-    def __init__(self, config: SSEClientConfig) -> None:
+    def __init__(self, config: SSEClientConfig):
         """Initialize client with configuration.
 
         Args:
@@ -56,7 +56,7 @@ class SSEMCPClient:
         self.config = config
         self._session: ClientSession | None = None
 
-    async def start(self) -> None:
+    async def start(self):
         """Connect to server and perform handshake."""
         try:
             # Connect via SSE and get streams
@@ -76,7 +76,7 @@ class SSEMCPClient:
             msg = "Failed to connect to server"
             raise McpConnectionError(msg) from exc
 
-    async def close(self) -> None:
+    async def close(self):
         """Close connection to server."""
         if self._session:
             await self._session.__aexit__(None, None, None)
@@ -140,7 +140,7 @@ class SSEMCPClient:
         else:
             return result.prompts
 
-    async def subscribe_resource(self, uri: str | AnyUrl) -> None:
+    async def subscribe_resource(self, uri: str | AnyUrl):
         """Subscribe to resource updates."""
         try:
             if isinstance(uri, str):
@@ -150,7 +150,7 @@ class SSEMCPClient:
             msg = "Failed to subscribe to resource"
             raise MCPClientError(msg) from exc
 
-    async def unsubscribe_resource(self, uri: str | AnyUrl) -> None:
+    async def unsubscribe_resource(self, uri: str | AnyUrl):
         """Unsubscribe from resource updates."""
         try:
             if isinstance(uri, str):
@@ -165,14 +165,14 @@ class SSEMCPClient:
         await self.start()
         return self
 
-    async def __aexit__(self, *exc: object) -> None:
+    async def __aexit__(self, *exc: object):
         """Async context manager exit."""
         await self.close()
 
 
 if __name__ == "__main__":
 
-    async def main() -> None:
+    async def main():
         """Example usage of SSEMCPClient."""
         config = SSEClientConfig(server_url="http://localhost:8000")
 

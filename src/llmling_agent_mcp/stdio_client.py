@@ -47,7 +47,7 @@ class ToolError(MCPClientError):
 class StdioMCPClient:
     """High-level MCP protocol client using stdio transport."""
 
-    def __init__(self, config: StdioClientConfig) -> None:
+    def __init__(self, config: StdioClientConfig):
         """Initialize client."""
         self.config = config
         self._server_params = StdioServerParameters(
@@ -70,7 +70,7 @@ class StdioMCPClient:
         else:
             return client
 
-    async def start(self) -> None:
+    async def start(self):
         """Start client and perform handshake."""
         try:
             # Get streams via stdio_client context manager
@@ -90,7 +90,7 @@ class StdioMCPClient:
             msg = "Failed to start MCP client"
             raise McpConnectionError(msg) from exc
 
-    async def close(self) -> None:
+    async def close(self):
         """Close client connection."""
         if self._session:
             await self._session.__aexit__(None, None, None)
@@ -170,7 +170,7 @@ class StdioMCPClient:
         else:
             return result.prompts
 
-    async def subscribe_resource(self, uri: str | AnyUrl) -> None:
+    async def subscribe_resource(self, uri: str | AnyUrl):
         """Subscribe to resource updates."""
         try:
             if isinstance(uri, str):
@@ -180,7 +180,7 @@ class StdioMCPClient:
             msg = "Failed to subscribe to resource"
             raise MCPClientError(msg) from exc
 
-    async def unsubscribe_resource(self, uri: str | AnyUrl) -> None:
+    async def unsubscribe_resource(self, uri: str | AnyUrl):
         """Unsubscribe from resource updates."""
         try:
             if isinstance(uri, str):
@@ -196,14 +196,14 @@ class StdioMCPClient:
             await self.start()
         return self
 
-    async def __aexit__(self, *exc: object) -> None:
+    async def __aexit__(self, *exc: object):
         """Async context manager exit."""
         await self.close()
 
 
 if __name__ == "__main__":
 
-    async def main() -> None:
+    async def main():
         """Example usage of StdioMCPClient."""
         config = StdioClientConfig(server_command=["python", "-m", "your_server"])
 

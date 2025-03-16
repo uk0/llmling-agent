@@ -38,7 +38,7 @@ class Event[TEventData]:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Clean up event resources."""
         self._stop_event.set()
 
@@ -78,7 +78,7 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
         context: NodeContext | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         description: str | None = None,
-    ) -> None:
+    ):
         """Initialize event node.
 
         Args:
@@ -105,7 +105,7 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> None:
+    ):
         """Stop monitoring and clean up resources."""
         # First stop monitoring
         await self.stop()
@@ -113,7 +113,7 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
         await self.event.__aexit__(exc_type, exc_val, exc_tb)
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
-    async def start(self) -> None:
+    async def start(self):
         """Start monitoring for events."""
         self._running = True
         try:
@@ -124,7 +124,7 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
         finally:
             self._running = False
 
-    async def stop(self) -> None:
+    async def stop(self):
         """Stop monitoring for events."""
         self._running = False
 

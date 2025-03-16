@@ -80,7 +80,7 @@ class AgentOpsProvider(ObservabilityProvider):
         event_wrapper = agentops.record_action(name)
 
         # Create a dummy function for the event
-        def span_func() -> None:
+        def span_func():
             pass
 
         wrapped = event_wrapper(span_func)

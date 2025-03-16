@@ -20,7 +20,7 @@ class TextualUIProvider(UIProvider):
     def __init__(self, config: TextualUIConfig):
         self.config = config
 
-    def run_pool(self, pool: AgentPool) -> None:
+    def run_pool(self, pool: AgentPool):
         """Run Textual interface.
 
         Textual manages its own event loop internally, so we just
@@ -32,10 +32,10 @@ class TextualUIProvider(UIProvider):
         app = PoolApp(pool)
         app.run()  # This blocks and handles its own event loop
 
-    def run_node(self, node: MessageNode) -> None:
+    def run_node(self, node: MessageNode):
         msg = "TextualUI only supports pool mode"
         raise NotImplementedError(msg)
 
-    def run(self, store: ConfigStore | None = None) -> None:
+    def run(self, store: ConfigStore | None = None):
         msg = "TextualUI only supports pool mode"
         raise NotImplementedError(msg)

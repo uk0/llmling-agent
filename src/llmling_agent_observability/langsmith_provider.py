@@ -29,7 +29,7 @@ class LangsmithProvider(ObservabilityProvider):
         self._client: Client | None = None
         self._configure()
 
-    def _configure(self) -> None:
+    def _configure(self):
         """Set up Langsmith client and environment."""
         if self.config.project_name:
             os.environ["LANGCHAIN_PROJECT"] = self.config.project_name

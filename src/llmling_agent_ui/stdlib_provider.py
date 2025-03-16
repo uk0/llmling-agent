@@ -20,7 +20,7 @@ class StdlibUIProvider(UIProvider):
     def __init__(self, config: StdlibUIConfig):
         self.config = config
 
-    def run_pool(self, pool: AgentPool) -> None:
+    def run_pool(self, pool: AgentPool):
         """Run basic CLI interface."""
         import asyncio
 
@@ -42,10 +42,10 @@ class StdlibUIProvider(UIProvider):
 
         asyncio.run(run_loop())
 
-    def run_node(self, node: MessageNode) -> None:
+    def run_node(self, node: MessageNode):
         msg = "StdLibUI only supports pool mode"
         raise NotImplementedError(msg)
 
-    def run(self, store: ConfigStore | None = None) -> None:
+    def run(self, store: ConfigStore | None = None):
         msg = "StdLibUI only supports pool mode"
         raise NotImplementedError(msg)
