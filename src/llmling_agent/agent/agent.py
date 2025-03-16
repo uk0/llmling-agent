@@ -708,6 +708,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
+        messages: list[ChatMessage[Any]] | None = None,
         wait_for_connections: bool | None = None,
     ) -> ChatMessage[TResult]:
         """Run agent with prompt and get response.
@@ -723,6 +724,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
+            messages: Optional list of messages to replace the conversation history
             wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
@@ -737,7 +739,10 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self.set_result_type(result_type)
         start_time = time.perf_counter()
         sys_prompt = await self.sys_prompts.format_system_prompt(self)
-        message_history = self.conversation.get_history()
+
+        message_history = (
+            messages if messages is not None else self.conversation.get_history()
+        )
         try:
             result = await self._provider.generate_response(
                 *await convert_prompts(prompts),
@@ -783,6 +788,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
+        messages: list[ChatMessage[Any]] | None = None,
         wait_for_connections: bool | None = None,
     ) -> AsyncIterator[StreamingResponseProtocol[TResult]]:
         """Run agent with prompt and get a streaming response.
@@ -798,6 +804,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
+            messages: Optional list of messages to replace the conversation history
             wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
@@ -812,8 +819,10 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         start_time = time.perf_counter()
         sys_prompt = await self.sys_prompts.format_system_prompt(self)
         tools = await self.tools.get_tools(state="enabled", names=tool_choice)
+        message_history = (
+            messages if messages is not None else self.conversation.get_history()
+        )
         try:
-            message_history = self.conversation.get_history()
             async with self._provider.stream_response(
                 *prompts,
                 message_id=message_id,
