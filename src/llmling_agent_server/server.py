@@ -16,7 +16,7 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
-    from llmling_agent.delegation.pool import AgentPool
+    from llmling_agent import AgentPool, AnyAgent
 
 logger = get_logger(__name__)
 
@@ -98,6 +98,71 @@ class ChatCompletionChunk(BaseModel):
     choices: list[dict[str, Any]]
 
 
+async def stream_response(
+    agent: AnyAgent[Any, Any], content: str, request: ChatCompletionRequest
+) -> AsyncGenerator[str, None]:
+    """Generate streaming response chunks."""
+    response_id = f"chatcmpl-{int(time.time() * 1000)}"
+    created = int(time.time())
+
+    try:
+        # First chunk with role
+        choice = {"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}
+        first_chunk = {
+            "id": response_id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": request.model,
+            "choices": [choice],
+        }
+        yield f"data: {json.dumps(first_chunk)}\n\n"
+        async with agent.run_stream(content) as stream:
+            async for chunk in stream.stream():
+                # Skip empty chunks
+                if not chunk:
+                    continue
+                choice = {
+                    "index": 0,
+                    "delta": {"content": chunk},
+                    "finish_reason": None,
+                }
+                chunk_data = {
+                    "id": response_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": request.model,
+                    "choices": [choice],
+                }
+                yield f"data: {json.dumps(chunk_data)}\n\n"
+        final_chunk = {
+            "id": response_id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": request.model,
+            "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
+        }
+        yield f"data: {json.dumps(final_chunk)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    except Exception as e:
+        logger.exception("Error during streaming response")
+        error_chunk = {
+            "id": response_id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": request.model,
+            "choices": [
+                {
+                    "index": 0,
+                    "delta": {"content": f"Error: {e!s}"},
+                    "finish_reason": "error",
+                }
+            ],
+        }
+        yield f"data: {json.dumps(error_chunk)}\n\n"
+        yield "data: [DONE]\n\n"
+
+
 class OpenAIServer:
     """OpenAI-compatible API server backed by LLMling agents."""
 
@@ -146,7 +211,7 @@ class OpenAIServer:
         # Check if streaming is requested
         if request.stream:
             return StreamingResponse(
-                self._stream_response(agent, content, request),
+                stream_response(agent, content, request),
                 media_type="text/event-stream",
             )
         # Non-streaming response
@@ -167,76 +232,6 @@ class OpenAIServer:
         except Exception as e:
             logger.exception("Error processing chat completion")
             raise HTTPException(500, f"Error: {e!s}") from e
-
-    async def _stream_response(
-        self, agent, content: str, request: ChatCompletionRequest
-    ) -> AsyncGenerator[str, None]:
-        """Generate streaming response chunks."""
-        response_id = f"chatcmpl-{int(time.time() * 1000)}"
-        created = int(time.time())
-
-        try:
-            # First chunk with role
-            choice = {"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}
-            first_chunk = {
-                "id": response_id,
-                "object": "chat.completion.chunk",
-                "created": created,
-                "model": request.model,
-                "choices": [choice],
-            }
-            yield f"data: {json.dumps(first_chunk)}\n\n"
-
-            # Stream the actual content
-            async with agent.run_stream(content) as stream:
-                async for chunk in stream.stream():
-                    # Skip empty chunks
-                    if not chunk:
-                        continue
-                    choice = {
-                        "index": 0,
-                        "delta": {"content": chunk},
-                        "finish_reason": None,
-                    }
-                    chunk_data = {
-                        "id": response_id,
-                        "object": "chat.completion.chunk",
-                        "created": created,
-                        "model": request.model,
-                        "choices": [choice],
-                    }
-                    yield f"data: {json.dumps(chunk_data)}\n\n"
-
-            # Final chunk with finish_reason
-            final_chunk = {
-                "id": response_id,
-                "object": "chat.completion.chunk",
-                "created": created,
-                "model": request.model,
-                "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
-            }
-            yield f"data: {json.dumps(final_chunk)}\n\n"
-
-            # End of stream marker
-            yield "data: [DONE]\n\n"
-
-        except Exception as e:
-            logger.exception("Error during streaming response")
-            error_chunk = {
-                "id": response_id,
-                "object": "chat.completion.chunk",
-                "created": created,
-                "model": request.model,
-                "choices": [
-                    {
-                        "index": 0,
-                        "delta": {"content": f"Error: {e!s}"},
-                        "finish_reason": "error",
-                    }
-                ],
-            }
-            yield f"data: {json.dumps(error_chunk)}\n\n"
-            yield "data: [DONE]\n\n"
 
 
 if __name__ == "__main__":
