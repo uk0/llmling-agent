@@ -5,8 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from tokonomics.toko_types import TokenUsage
-
 from llmling_agent.log import get_logger
 from llmling_agent_providers.litellm_provider.utils import Usage
 
@@ -46,7 +44,7 @@ class LiteLLMStream[TResult]:
 
             # Store usage from final chunk if available
             if final_chunk and hasattr(final_chunk, "usage"):
-                self._final_usage = TokenUsage(
+                self._final_usage = Usage(
                     total_tokens=final_chunk.usage.total_tokens,  # type: ignore
                     request_tokens=final_chunk.usage.prompt_tokens,  # type: ignore
                     response_tokens=final_chunk.usage.completion_tokens,  # type: ignore
