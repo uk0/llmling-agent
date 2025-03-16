@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["llmling-agent"]
+# dependencies = ["llmling-agent", "mypy"]
 # ///
 
 
