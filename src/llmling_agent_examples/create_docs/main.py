@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 
 from mypy import api
+import rich
 
 from llmling_agent import AgentPool, AgentsManifest
 from llmling_agent_examples.utils import run
@@ -44,8 +45,8 @@ async def main():
 
         # Set up message logging
         for agent in (scanner, writer, checker):
-            agent.message_sent.connect(lambda msg: print(msg.format()))
-            agent.tool_used.connect(lambda call: print(call.format()))
+            agent.message_sent.connect(lambda msg: rich.print(msg.format()))
+            agent.tool_used.connect(lambda call: rich.print(call.format()))
 
         # Setup chain: scanner -> writer -> console output
         scanner.connect_to(writer)
@@ -57,7 +58,7 @@ async def main():
         scanner.register_worker(checker)
         prompt = 'Check types for all Python files in "src/llmling_agent/agent"'
         result = await scanner.run(prompt)
-        print(f"Type checking result:\n{result.data}")
+        rich.print(f"Type checking result:\n{result.data}")
 
         # Wait for documentation to finish
         await writer.complete_tasks()
