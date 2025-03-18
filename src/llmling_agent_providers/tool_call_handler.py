@@ -81,7 +81,10 @@ class ToolCallHandler:
         """
         import anyenv
 
-        function_args = anyenv.load_json(tool_call["function"]["arguments"])
+        function_args = anyenv.load_json(
+            tool_call["function"]["arguments"],
+            return_type=dict,
+        )
         original_tool = tool.callable.callable
         start_time = perf_counter()
 

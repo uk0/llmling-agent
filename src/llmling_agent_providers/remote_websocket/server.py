@@ -23,7 +23,7 @@ async def handler(websocket):
         while True:
             # Get raw message
             raw_message = await websocket.receive_text()
-            message = anyenv.load_json(raw_message)
+            message = anyenv.load_json(raw_message, return_type=dict)
 
             match message["type"]:
                 case "init":
