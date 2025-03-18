@@ -383,38 +383,44 @@ class PydanticAIProvider(AgentLLMProvider):
         ) as stream_result:
             stream_result = cast(StreamedRunResult[AgentContext[Any], Any], stream_result)
             original_stream = stream_result.stream
+            original_text_stream = stream_result.stream_text
+            resolved_model = (
+                use_model.model_name if isinstance(use_model, Model) else str(use_model)
+            )
+            stream_result.model_name = resolved_model  # type: ignore
 
-            async def wrapped_stream(*args, **kwargs):
-                last_content = None
-                async for chunk in original_stream(*args, **kwargs):
-                    # Only emit if content has changed
-                    if chunk != last_content:
-                        self.chunk_streamed.emit(str(chunk), message_id)
-                        last_content = chunk
-                        yield chunk
+            def get_wrapped_stream(fn):
+                async def wrapped_stream(*args, **kwargs):
+                    last_content = None
+                    async for chunk in fn(*args, **kwargs):
+                        # Only emit if content has changed
+                        if chunk != last_content:
+                            self.chunk_streamed.emit(str(chunk), message_id)
+                            last_content = chunk
+                            yield chunk
 
-                if stream_result.is_complete:
-                    self.chunk_streamed.emit("", message_id)
-                    messages = stream_result.new_messages()
-                    tool_dict = {i.name: i for i in tools or []}
-                    # Extract and update tool calls
-                    tool_calls = get_tool_calls(messages, tool_dict, agent_name=self.name)
-                    for call in tool_calls:
-                        call.message_id = message_id
-                        call.context_data = self._context.data if self._context else None
-                        self.tool_used.emit(call)
-                    # Format final content
-                    responses = [m for m in messages if isinstance(m, ModelResponse)]
-                    parts = [p for msg in responses for p in msg.parts]
-                    content = "\n".join(format_part(p) for p in parts)
-                    resolved_model = (
-                        use_model.model_name
-                        if isinstance(use_model, Model)
-                        else str(use_model)
-                    )
-                    # Update stream result with formatted content
-                    stream_result.formatted_content = content  # type: ignore
-                    stream_result.model_name = resolved_model  # type: ignore
+                    if stream_result.is_complete:
+                        self.chunk_streamed.emit("", message_id)
+                        messages = stream_result.new_messages()
+                        tool_dict = {i.name: i for i in tools or []}
+                        # Extract and update tool calls
+                        tool_calls = get_tool_calls(
+                            messages, tool_dict, agent_name=self.name
+                        )
+                        for call in tool_calls:
+                            call.message_id = message_id
+                            call.context_data = (
+                                self._context.data if self._context else None
+                            )
+                            self.tool_used.emit(call)
+                        # Format final content
+                        responses = [m for m in messages if isinstance(m, ModelResponse)]
+                        parts = [p for msg in responses for p in msg.parts]
+                        content = "\n".join(format_part(p) for p in parts)
+                        # Update stream result with formatted content
+                        stream_result.formatted_content = content  # type: ignore
+
+                return wrapped_stream
 
             if model:
                 original = self.model
@@ -422,5 +428,6 @@ class PydanticAIProvider(AgentLLMProvider):
                     original = infer_model(original)
                 self.model_changed.emit(original)
 
-            stream_result.stream = wrapped_stream  # type: ignore
+            stream_result.stream = get_wrapped_stream(original_stream)  # type: ignore
+            stream_result.stream_text = get_wrapped_stream(original_text_stream)  # type: ignore
             yield stream_result  # type: ignore
