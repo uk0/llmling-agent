@@ -55,6 +55,10 @@ class StreamingResponseProtocol[TResult](Protocol):
         """Stream individual chunks as they arrive."""
         ...
 
+    def stream_text(self, delta: bool = False) -> AsyncGenerator[str, None]:
+        """Stream individual chunks as they arrive."""
+        ...
+
     def usage(self) -> Usage:
         """Get token usage statistics if available."""
         ...

@@ -284,6 +284,17 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                             if idx == len(self.streams) - 1 and stream.is_complete:
                                 self.is_complete = True
 
+                async def stream_text(
+                    self,
+                    delta: bool = False,
+                ) -> AsyncGenerator[str, None]:
+                    for idx, stream in enumerate(self.streams):
+                        self.current_stream_idx = idx
+                        async for chunk in stream.stream_text(delta=delta):
+                            yield chunk
+                            if idx == len(self.streams) - 1 and stream.is_complete:
+                                self.is_complete = True
+
             yield ChainStream()
 
     @asynccontextmanager

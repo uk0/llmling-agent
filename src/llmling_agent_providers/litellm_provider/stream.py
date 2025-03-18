@@ -36,7 +36,37 @@ class LiteLLMStream[TResult]:
                 if content := chunk.choices[0].delta.content:
                     self._accumulated_content += content
                     # Cast to expected type (usually str)
-                    yield content  # type: ignore
+                    yield self._accumulated_content  # type: ignore
+                final_chunk = chunk
+
+            self.is_complete = True
+            self.formatted_content = self._accumulated_content  # type: ignore
+
+            # Store usage from final chunk if available
+            if final_chunk and hasattr(final_chunk, "usage"):
+                self._final_usage = Usage(
+                    total_tokens=final_chunk.usage.total_tokens,  # type: ignore
+                    request_tokens=final_chunk.usage.prompt_tokens,  # type: ignore
+                    response_tokens=final_chunk.usage.completion_tokens,  # type: ignore
+                )
+
+        except Exception as e:
+            logger.exception("Error during streaming")
+            self.is_complete = True
+            msg = "Streaming failed"
+            raise RuntimeError(msg) from e
+
+    async def stream_text(self, delta: bool = False) -> AsyncGenerator[str, None]:
+        """Stream chunks as they arrive."""
+        try:
+            final_chunk = None
+            async for chunk in self._stream:
+                if content := chunk.choices[0].delta.content:
+                    self._accumulated_content += content
+                    if delta:
+                        yield str(content)
+                    else:
+                        yield self._accumulated_content
                 final_chunk = chunk
 
             self.is_complete = True

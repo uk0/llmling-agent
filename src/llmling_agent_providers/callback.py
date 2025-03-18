@@ -121,6 +121,12 @@ class CallbackProvider(AgentProvider[None]):
                     yield self.content
                 self.is_complete = True
 
+            async def stream_text(self, delta: bool = False):
+                if not self._streamed:
+                    self._streamed = True
+                    yield self.content
+                self.is_complete = True
+
         try:
             # Get result using normal response generation
             result = await self.generate_response(
