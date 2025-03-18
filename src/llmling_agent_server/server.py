@@ -117,7 +117,7 @@ async def stream_response(
         }
         yield f"data: {json.dumps(first_chunk)}\n\n"
         async with agent.run_stream(content) as stream:
-            async for chunk in stream.stream():
+            async for chunk in stream.stream_text(delta=True):
                 # Skip empty chunks
                 if not chunk:
                     continue
