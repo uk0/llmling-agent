@@ -178,31 +178,6 @@ class PlainConverterConfig(BaseConverterConfig):
         return PlainConverter(self)
 
 
-class KreuzbergConfig(BaseConverterConfig):
-    """Configuration for Kreuzberg document converter.
-
-    Reference:
-    https://docs.kreuzberg.ai/configuration
-    """
-
-    type: Literal["kreuzberg"] = Field("kreuzberg", init=False)
-    """Type identifier for this converter."""
-
-    force_ocr: bool = False
-    """Whether to force OCR for all documents."""
-
-    language: str = "eng"
-    """Language model for OCR (tesseract language tags)."""
-
-    # psm_mode: PSMMode = PSMMode.AUTO
-    # """Page segmentation mode for OCR."""
-
-    max_processes: int = Field(default=1, ge=1)
-    """Maximum number of concurrent processes."""
-
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
-
-
 ConverterConfig = Annotated[
     DoclingConverterConfig
     | MarkItDownConfig
@@ -210,7 +185,6 @@ ConverterConfig = Annotated[
     | YouTubeConverterConfig
     | WhisperAPIConfig
     | LocalWhisperConfig
-    | KreuzbergConfig
     | GoogleSpeechConfig,
     Field(discriminator="type"),
 ]
