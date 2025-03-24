@@ -13,7 +13,7 @@ import pydantic_ai._pydantic
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.result import StreamedRunResult
-from pydantic_ai.tools import RunContext
+from pydantic_ai.tools import GenerateToolJsonSchema, RunContext
 from pydantic_ai.usage import UsageLimits as PydanticAiUsageLimits
 
 from llmling_agent.agent.context import AgentContext
@@ -148,7 +148,9 @@ class PydanticAIProvider(AgentLLMProvider):
             if has_argument_type(wrapped, RunContext):
                 agent.tool(wrapped)
             elif has_argument_type(wrapped, AgentContext):
-                agent._register_function(wrapped, True, None, 1, None, "auto", False)
+                agent._register_function(
+                    wrapped, True, None, 1, None, "auto", False, GenerateToolJsonSchema
+                )
             else:
                 agent.tool_plain(wrapped)
         return agent
