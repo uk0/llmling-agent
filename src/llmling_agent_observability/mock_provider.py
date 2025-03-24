@@ -16,7 +16,7 @@ R = TypeVar("R")
 class MockCall:
     """Record of a provider call."""
 
-    call_type: Literal["span", "wrap_agent", "wrap_tool", "wrap_action"]
+    call_type: Literal["span", "wrap_tool", "wrap_action"]
     name: str
     kwargs: dict[str, Any] = field(default_factory=dict)
 
@@ -33,11 +33,6 @@ class MockProvider(ObservabilityProvider):
         kwargs = {"attributes": attributes}
         self.calls.append(MockCall(call_type="span", name=name, kwargs=kwargs))
         yield
-
-    def wrap_agent[T](self, kls: type[T], name: str) -> type[T]:
-        """Record agent wrapper creation."""
-        self.calls.append(MockCall(call_type="wrap_agent", name=name))
-        return kls
 
     def wrap_tool(self, func: Callable, name: str, **kwargs: Any) -> Callable:
         """Record tool wrapper creation."""

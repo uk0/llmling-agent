@@ -19,7 +19,7 @@ from typing_extensions import TypeVar
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.observability import track_action, track_agent
+from llmling_agent.observability import track_action
 from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
@@ -116,7 +116,6 @@ class AgentKwargs(TypedDict, total=False):
     debug: bool
 
 
-@track_agent("Agent")
 class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     """Agent for AI-powered interaction with LLMling resources and tools.
 

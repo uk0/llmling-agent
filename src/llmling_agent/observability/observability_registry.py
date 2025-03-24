@@ -50,22 +50,11 @@ class ObservabilityRegistry:
     """Registry for pending decorations and provider configuration."""
 
     def __init__(self):
-        self._registered_agents: dict[str, TrackedDecoration] = {}
         self._registered_tools: dict[str, TrackedDecoration] = {}
         self._registered_actions: dict[str, TrackedDecoration] = {}
         self.providers: list[ObservabilityProvider] = []
         # to prevent double registration
         self._registered_provider_classes: set[type[ObservabilityProvider]] = set()
-
-    def register_agent(
-        self,
-        name: str,
-        target: type[Any],
-        **kwargs: Any,
-    ):
-        """Register a class for agent tracking."""
-        self._registered_agents[name] = TrackedDecoration(target, name, kwargs=kwargs)
-        logger.debug("Registered agent %r for observability tracking", name)
 
     def register_tool(
         self,
@@ -104,19 +93,6 @@ class ObservabilityRegistry:
         actions = list(self._registered_actions.keys())
         logger.info(msg, provider.__class__.__name__, actions)
         self.providers.append(provider)
-
-        # Apply decorations for each type
-        for pending in self._registered_agents.values():
-            try:
-                pending.target = provider.wrap_agent(
-                    pending.target,
-                    pending.name,
-                    **pending.kwargs,
-                )
-                logger.debug("Applied agent tracking to %r", pending.name)
-            except Exception:
-                msg = "Failed to apply agent tracking to %r"
-                logger.exception(msg, pending.name)
 
         for pending in self._registered_tools.values():
             try:

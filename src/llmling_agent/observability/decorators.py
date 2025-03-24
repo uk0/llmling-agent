@@ -14,20 +14,6 @@ F = TypeVar("F", bound=Callable[..., Any])
 T = TypeVar("T", bound=type)
 
 
-def track_agent(name: str | None = None, **kwargs: Any) -> Callable[[T], T]:
-    """Register a class for agent tracking."""
-
-    def decorator(cls: T) -> T:
-        from llmling_agent.observability import registry
-
-        agent_name = name or cls.__name__
-        logger.debug("Registering agent class %r as %r", cls.__name__, agent_name)
-        registry.register_agent(agent_name, cls, **kwargs)
-        return cls
-
-    return decorator
-
-
 def track_tool(name: str | None = None, **kwargs: Any) -> Callable[[F], F]:
     """Register a function for tool tracking."""
 
