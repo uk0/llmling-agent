@@ -4,7 +4,6 @@ from typing import Annotated
 
 from pydantic import Field
 from llmling_agent_models.configs import (
-    AISuiteModelConfig,
     AugmentedModelConfig,
     CostOptimizedModelConfig,
     DelegationModelConfig,
@@ -23,8 +22,7 @@ from llmling_agent_models.configs import (
 from llmling_agent_models.base import BaseModelConfig
 
 AnyModelConfig = Annotated[
-    AISuiteModelConfig
-    | AugmentedModelConfig
+    AugmentedModelConfig
     | CostOptimizedModelConfig
     | DelegationModelConfig
     | FallbackModelConfig

@@ -9,24 +9,6 @@ from pydantic import BaseModel, Field, ImportString, SecretStr
 from llmling_agent_models.base import BaseModelConfig
 
 
-class AISuiteModelConfig(BaseModelConfig):
-    """Configuration for AISuite adapter."""
-
-    type: Literal["aisuite"] = Field(default="aisuite", init=False)
-    """Type identifier for AISuite model."""
-
-    model: str
-    """Name of the AISuite model to use."""
-
-    config: dict[str, dict[str, str]] = Field(default_factory=dict)
-    """Additional configuration parameters for the model."""
-
-    def get_model(self) -> Any:
-        from llmling_models.aisuite_adapter import AISuiteAdapter
-
-        return AISuiteAdapter(model=self.model, config=self.config)
-
-
 class PrePostPromptConfig(BaseModel):
     """Configuration for pre/post prompts."""
 
