@@ -109,7 +109,6 @@ class ConfigGeneratorApp(App):
         model_name = self.agent.model_name.split(":")[-1]
         context = await self.agent.conversation.format_history()
         self._token_count = count_tokens(context, model_name)
-
         stats = self.query_one(StatsDisplay)
         stats.update_stats(self._token_count)
 
@@ -123,10 +122,8 @@ class ConfigGeneratorApp(App):
         except (ValidationError, YAMLError) as e:
             status = f"✗ Invalid: {e}"
 
-        # Update displays
         content = self.query_one(YamlDisplay)
         content.update_yaml(yaml.content.code)
-
         stats = self.query_one(StatsDisplay)
         stats.update_stats(self._token_count, status)
 
@@ -140,16 +137,9 @@ class ConfigGeneratorApp(App):
             self.notify("No output path specified!")
             return
 
-        # Save file
         self.output_path.write_text(self.current_config)
-
-        # Optionally add to store
         if self.add_to_store:
-            agent_store.add_config(
-                self.output_path.stem,
-                str(self.output_path),
-            )
-
+            agent_store.add_config(self.output_path.stem, str(self.output_path))
         self.notify(f"Saved to {self.output_path}")
 
 

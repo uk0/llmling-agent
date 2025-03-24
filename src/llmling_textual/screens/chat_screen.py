@@ -124,9 +124,7 @@ class ChatScreen(ModalScreen[None]):
         writer = TextualOutputWriter(chat_view)
 
         try:
-            # Create context with our node's context
             ctx = self.commands.create_context(self.node.context, output_writer=writer)
-            # Execute command
             await self.commands.execute_command(command_str, ctx)
             return ChatMessage(content="", role="system")
 
@@ -148,22 +146,15 @@ class ChatScreen(ModalScreen[None]):
             return
 
         chat_view = self.query_one(ChatView)
-
-        # Show user message immediately
         user_msg = ChatMessage(content=message, role="user", name="You")
         await chat_view.append_chat_message(user_msg)
 
-        # Create background task for agent interaction
         async def process_response():
             try:
-                # Show typing indicator
                 self._typing_status.display = True
                 self._typing_status.set_node_responding()
-
-                # Get response
                 response = await self.node.run(message)
                 await chat_view.append_chat_message(response)
-
             except Exception as e:  # noqa: BLE001
                 # Show error in chat
                 error_msg = ChatMessage(
