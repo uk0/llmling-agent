@@ -196,6 +196,8 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                 msg = "No model specified"
                 raise ValueError(msg)
         name = name.replace(":", "/")
+        if name.endswith("/free"):
+            name = name.replace("/free", ":free")
         if "/" in name:
             return name
         if name.startswith("gpt"):
