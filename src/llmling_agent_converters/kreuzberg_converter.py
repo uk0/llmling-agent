@@ -77,12 +77,7 @@ class KreuzbergConverter(DocumentConverter, TaskManagerMixin):
 
     async def _convert_file_async(self, path: StrPath) -> str:
         """Async implementation of file conversion."""
-        result = await extract_file(
-            path,
-            force_ocr=self.config.force_ocr,
-            language=self.config.language,
-            max_processes=self.config.max_processes,
-        )
+        result = await extract_file(path, force_ocr=self.config.force_ocr)
         return result.content
 
     def convert_file(self, path: StrPath) -> str:
@@ -106,8 +101,6 @@ class KreuzbergConverter(DocumentConverter, TaskManagerMixin):
             content,
             mime_type=mime_type or "text/plain",
             force_ocr=self.config.force_ocr,
-            language=self.config.language,
-            max_processes=self.config.max_processes,
         )
         return result.content
 

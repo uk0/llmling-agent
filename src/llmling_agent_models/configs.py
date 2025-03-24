@@ -210,7 +210,7 @@ class LLMAdapterConfig(BaseModelConfig):
     def get_model(self) -> Any:
         from llmling_models.llm_adapter import LLMAdapter
 
-        return LLMAdapter(model_name=self.model_name)
+        return LLMAdapter(model=self.model_name)
 
 
 class RemoteInputConfig(BaseModelConfig):
