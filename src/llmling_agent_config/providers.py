@@ -121,7 +121,7 @@ class LiteLLMProviderConfig(BaseProviderConfig):
         settings = {}
         if self.model_settings:
             settings = {
-                "max_tokens": self.model_settings.max_tokens,
+                "max_completion_tokens": self.model_settings.max_completion_tokens,
                 "temperature": self.model_settings.temperature,
                 "top_p": self.model_settings.top_p,
                 "request_timeout": self.model_settings.timeout,  # different name!
@@ -203,7 +203,7 @@ ProviderConfig = Annotated[
 class ModelSettings(BaseModel):
     """Settings to configure an LLM."""
 
-    max_tokens: int | None = None
+    max_completion_tokens: int | None = None
     """The maximum number of tokens to generate."""
 
     temperature: float | None = Field(None, ge=0.0, le=2.0)
