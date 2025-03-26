@@ -21,6 +21,9 @@ from llmling_agent_providers.base import (
     UsageLimits,
 )
 from llmling_agent_providers.litellm_provider.call_wrapper import FakeAgent
+from llmling_agent_providers.litellm_provider.convert_content import (
+    content_to_litellm_format,
+)
 from llmling_agent_providers.litellm_provider.stream import LiteLLMStream
 from llmling_agent_providers.tool_call_handler import ToolCallHandler
 from llmling_agent_providers.utils import convert_message_to_chat
@@ -116,7 +119,15 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                     case str():
                         content_parts.append({"type": "text", "text": p})
                     case BaseContent():
-                        content_parts.append(p.to_openai_format())
+                        if converted := content_to_litellm_format(p):
+                            content_parts.append(converted)
+                        else:
+                            # Fall back to string representation if conversion fails
+                            content_parts.append({
+                                "type": "text",
+                                "text": f"[Content of type {p.type}]",
+                            })
+
             # Add the multi-modal content as user message
             messages.append({"role": "user", "content": content_parts})
             # Get completion
@@ -238,7 +249,16 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                 case str():
                     content_parts.append({"type": "text", "text": p})
                 case BaseContent():
-                    content_parts.append(p.to_openai_format())
+                    if converted := content_to_litellm_format(p):
+                        content_parts.append(converted)
+                    else:
+                        # Fall back to string representation if conversion fails
+                        content_parts.append({
+                            "type": "text",
+                            "text": f"[Content of type {p.type}]",
+                        })
+
+        # Add the multi-modal content as user message
         messages.append({"role": "user", "content": content_parts})
 
         try:
