@@ -209,6 +209,8 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
         name = name.replace(":", "/")
         if name.endswith("/free"):
             name = name.replace("/free", ":free")
+        if name.startswith("google-gla/"):
+            name = name.replace("google-gla/", "gemini/")
         if "/" in name:
             return name
         if name.startswith("gpt"):
