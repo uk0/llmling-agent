@@ -6,6 +6,7 @@ import json
 import time
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
+import anyenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -115,7 +116,7 @@ async def stream_response(
             "model": request.model,
             "choices": [choice],
         }
-        yield f"data: {json.dumps(first_chunk)}\n\n"
+        yield f"data: {anyenv.dump_json(first_chunk)}\n\n"
         async with agent.run_stream(content) as stream:
             async for chunk in stream.stream_text(delta=True):
                 # Skip empty chunks
@@ -133,7 +134,7 @@ async def stream_response(
                     "model": request.model,
                     "choices": [choice],
                 }
-                yield f"data: {json.dumps(chunk_data)}\n\n"
+                yield f"data: {anyenv.dump_json(chunk_data)}\n\n"
         final_chunk = {
             "id": response_id,
             "object": "chat.completion.chunk",
@@ -141,7 +142,7 @@ async def stream_response(
             "model": request.model,
             "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
         }
-        yield f"data: {json.dumps(final_chunk)}\n\n"
+        yield f"data: {anyenv.dump_json(final_chunk)}\n\n"
         yield "data: [DONE]\n\n"
 
     except Exception as e:
@@ -159,7 +160,7 @@ async def stream_response(
                 }
             ],
         }
-        yield f"data: {json.dumps(error_chunk)}\n\n"
+        yield f"data: {anyenv.dump_json(error_chunk)}\n\n"
         yield "data: [DONE]\n\n"
 
 
