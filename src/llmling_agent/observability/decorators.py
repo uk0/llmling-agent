@@ -35,7 +35,7 @@ def track_action(msg_template: str | None = None, **kwargs: Any) -> Callable[[F]
         from llmling_agent.observability import registry
 
         # If we have an active provider, decorate immediately
-        logger.info(
+        logger.debug(
             "Decorating function %s.%s with template %s. Current providers: %s",
             func.__module__,
             func.__qualname__,
