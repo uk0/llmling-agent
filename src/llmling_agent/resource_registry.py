@@ -6,7 +6,7 @@ import fsspec
 from fsspec import AbstractFileSystem
 from llmling import BaseRegistry, LLMLingError
 from upath import UPath
-from upathtools.union_fs import UnionFileSystem
+from upathtools import UnionFileSystem
 
 from llmling_agent.log import get_logger
 

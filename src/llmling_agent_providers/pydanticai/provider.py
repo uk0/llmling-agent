@@ -149,7 +149,15 @@ class PydanticAIProvider(AgentLLMProvider):
                 agent.tool(wrapped)
             elif has_argument_type(wrapped, AgentContext):
                 agent._register_function(
-                    wrapped, True, None, 1, None, "auto", False, GenerateToolJsonSchema
+                    wrapped,
+                    True,
+                    None,
+                    1,
+                    None,
+                    "auto",
+                    False,
+                    GenerateToolJsonSchema,
+                    None,
                 )
             else:
                 agent.tool_plain(wrapped)
