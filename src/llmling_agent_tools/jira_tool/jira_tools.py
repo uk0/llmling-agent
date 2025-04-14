@@ -11,7 +11,6 @@ JIRA_EMAIL = "philipptemminghoff@gmail.com"
 JIRA_TOKEN = os.getenv("JIRA_API_KEY")
 SERVER = "https://philipptemminghoff.atlassian.net"
 PROJECT = "SCRUM"
-assert JIRA_TOKEN
 
 
 @functools.cache
