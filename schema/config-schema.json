@@ -1,35 +1,5 @@
 {
   "$defs": {
-    "AISuiteModelConfig": {
-      "description": "Configuration for AISuite adapter.",
-      "properties": {
-        "type": {
-          "const": "aisuite",
-          "default": "aisuite",
-          "title": "Type",
-          "type": "string"
-        },
-        "model": {
-          "title": "Model",
-          "type": "string"
-        },
-        "config": {
-          "additionalProperties": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object"
-          },
-          "title": "Config",
-          "type": "object"
-        }
-      },
-      "required": [
-        "model"
-      ],
-      "title": "AISuiteModelConfig",
-      "type": "object"
-    },
     "AgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\ncapabilities, and behavior settings. Each agent can have its own:\n- Language model configuration\n- Environment setup (tools and resources)\n- Response type definitions\n- System prompts and default user prompts\n- Role-based capabilities\n\nThe configuration can be loaded from YAML or created programmatically.",
@@ -223,7 +193,6 @@
             {
               "discriminator": {
                 "mapping": {
-                  "aisuite": "#/$defs/AISuiteModelConfig",
                   "augmented": "#/$defs/AugmentedModelConfig",
                   "cost-optimized": "#/$defs/CostOptimizedModelConfig",
                   "delegation": "#/$defs/DelegationModelConfig",
@@ -241,9 +210,6 @@
                 "propertyName": "type"
               },
               "oneOf": [
-                {
-                  "$ref": "#/$defs/AISuiteModelConfig"
-                },
                 {
                   "$ref": "#/$defs/AugmentedModelConfig"
                 },
@@ -2005,7 +1971,6 @@
                   "mapping": {
                     "docling": "#/$defs/DoclingConverterConfig",
                     "google_speech": "#/$defs/GoogleSpeechConfig",
-                    "kreuzberg": "#/$defs/KreuzbergConfig",
                     "local_whisper": "#/$defs/LocalWhisperConfig",
                     "markitdown": "#/$defs/MarkItDownConfig",
                     "plain": "#/$defs/PlainConverterConfig",
@@ -2032,9 +1997,6 @@
                   },
                   {
                     "$ref": "#/$defs/LocalWhisperConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/KreuzbergConfig"
                   },
                   {
                     "$ref": "#/$defs/GoogleSpeechConfig"
@@ -2137,6 +2099,7 @@
               }
             ]
           },
+          "minItems": 1,
           "title": "Models",
           "type": "array"
         },
@@ -2292,6 +2255,7 @@
               }
             ]
           },
+          "minItems": 1,
           "title": "Models",
           "type": "array"
         },
@@ -2561,6 +2525,21 @@
       "title": "EmailConfig",
       "type": "object"
     },
+    "FabricConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Fabric GitHub prompt provider.",
+      "properties": {
+        "type": {
+          "const": "fabric",
+          "default": "fabric",
+          "description": "Configuration for Fabric GitHub prompt provider.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "FabricConfig",
+      "type": "object"
+    },
     "FallbackModelConfig": {
       "description": "Configuration for fallback strategy.",
       "properties": {
@@ -2581,6 +2560,7 @@
               }
             ]
           },
+          "minItems": 1,
           "title": "Models",
           "type": "array"
         }
@@ -4247,46 +4227,6 @@
       "title": "Knowledge",
       "type": "object"
     },
-    "KreuzbergConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for Kreuzberg document converter.\n\nReference:\nhttps://docs.kreuzberg.ai/configuration",
-      "properties": {
-        "type": {
-          "const": "kreuzberg",
-          "default": "kreuzberg",
-          "description": "Type identifier for this converter.",
-          "title": "Type",
-          "type": "string"
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this converter is currently active.",
-          "title": "Enabled",
-          "type": "boolean"
-        },
-        "force_ocr": {
-          "default": false,
-          "description": "Whether to force OCR for all documents.",
-          "title": "Force Ocr",
-          "type": "boolean"
-        },
-        "language": {
-          "default": "eng",
-          "description": "Language model for OCR (tesseract language tags).",
-          "title": "Language",
-          "type": "string"
-        },
-        "max_processes": {
-          "default": 1,
-          "description": "Maximum number of concurrent processes.",
-          "minimum": 1,
-          "title": "Max Processes",
-          "type": "integer"
-        }
-      },
-      "title": "KreuzbergConfig",
-      "type": "object"
-    },
     "LLMAdapterConfig": {
       "description": "Configuration for LLM library adapter.",
       "properties": {
@@ -5126,7 +5066,7 @@
       "additionalProperties": false,
       "description": "Settings to configure an LLM.",
       "properties": {
-        "max_tokens": {
+        "max_completion_tokens": {
           "anyOf": [
             {
               "type": "integer"
@@ -5137,7 +5077,7 @@
           ],
           "default": null,
           "description": "The maximum number of tokens to generate.",
-          "title": "Max Tokens"
+          "title": "Max Completion Tokens"
         },
         "temperature": {
           "anyOf": [
@@ -6003,6 +5943,7 @@
             "discriminator": {
               "mapping": {
                 "braintrust": "#/$defs/BraintrustConfig",
+                "fabric": "#/$defs/FabricConfig",
                 "langfuse": "#/$defs/LangfuseConfig",
                 "openlit": "#/$defs/OpenLITConfig",
                 "promptlayer": "#/$defs/PromptLayerConfig",
@@ -6022,6 +5963,9 @@
               },
               {
                 "$ref": "#/$defs/TraceloopConfig"
+              },
+              {
+                "$ref": "#/$defs/FabricConfig"
               },
               {
                 "$ref": "#/$defs/BraintrustConfig"
@@ -6249,7 +6193,6 @@
             {
               "discriminator": {
                 "mapping": {
-                  "aisuite": "#/$defs/AISuiteModelConfig",
                   "augmented": "#/$defs/AugmentedModelConfig",
                   "cost-optimized": "#/$defs/CostOptimizedModelConfig",
                   "delegation": "#/$defs/DelegationModelConfig",
@@ -6267,9 +6210,6 @@
                 "propertyName": "type"
               },
               "oneOf": [
-                {
-                  "$ref": "#/$defs/AISuiteModelConfig"
-                },
                 {
                   "$ref": "#/$defs/AugmentedModelConfig"
                 },
@@ -6798,6 +6738,53 @@
         "import_path"
       ],
       "title": "SourceResource",
+      "type": "object"
+    },
+    "SourceResourceConfig": {
+      "description": "Configuration for a single filesystem source.",
+      "properties": {
+        "type": {
+          "const": "source",
+          "default": "source",
+          "description": "Direct filesystem source.",
+          "title": "Type",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional path prefix within the filesystem.",
+          "title": "Path"
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in caching filesystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "storage_options": {
+          "additionalProperties": true,
+          "description": "Protocol-specific storage options.",
+          "title": "Storage Options",
+          "type": "object"
+        },
+        "uri": {
+          "description": "URI defining the resource location and protocol.",
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "uri"
+      ],
+      "title": "SourceResourceConfig",
       "type": "object"
     },
     "StaticPrompt": {
@@ -7475,7 +7462,7 @@
           "title": "Type",
           "type": "string"
         },
-        "custom_result_text": {
+        "custom_output_text": {
           "anyOf": [
             {
               "type": "string"
@@ -7485,7 +7472,7 @@
             }
           ],
           "default": null,
-          "title": "Custom Result Text"
+          "title": "Custom Output Text"
         },
         "call_tools": {
           "anyOf": [
@@ -7849,6 +7836,7 @@
               }
             ]
           },
+          "minItems": 1,
           "title": "Models",
           "type": "array"
         },
@@ -8043,6 +8031,70 @@
       "title": "TriggerConfig",
       "type": "object"
     },
+    "UnionResourceConfig": {
+      "description": "Configuration for combining multiple resources.",
+      "properties": {
+        "type": {
+          "const": "union",
+          "default": "union",
+          "description": "Union of multiple resources.",
+          "title": "Type",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional path prefix within the filesystem.",
+          "title": "Path"
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in caching filesystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "storage_options": {
+          "additionalProperties": true,
+          "description": "Protocol-specific storage options.",
+          "title": "Storage Options",
+          "type": "object"
+        },
+        "sources": {
+          "description": "List of resources to combine.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "source": "#/$defs/SourceResourceConfig",
+                "union": "#/$defs/UnionResourceConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/SourceResourceConfig"
+              },
+              {
+                "$ref": "#/$defs/UnionResourceConfig"
+              }
+            ]
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sources"
+      ],
+      "title": "UnionResourceConfig",
+      "type": "object"
+    },
     "UpsonicToolSetConfig": {
       "additionalProperties": false,
       "description": "Configuration for entry point toolsets.",
@@ -8125,6 +8177,7 @@
               }
             ]
           },
+          "minItems": 1,
           "title": "Models",
           "type": "array"
         },
@@ -8737,7 +8790,37 @@
       "description": "Inheritance references.",
       "title": "Inherit"
     },
+    "resources": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "discriminator": {
+              "mapping": {
+                "source": "#/$defs/SourceResourceConfig",
+                "union": "#/$defs/UnionResourceConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/SourceResourceConfig"
+              },
+              {
+                "$ref": "#/$defs/UnionResourceConfig"
+              }
+            ]
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "description": "Resource configurations defining available filesystems.\n\nSupports both full config and URI shorthand:\n    resources:\n      docs: \"file://./docs\"  # shorthand\n      data:  # full config\n        type: \"source\"\n        uri: \"s3://bucket/data\"\n        cached: true",
+      "title": "Resources",
+      "type": "object"
+    },
     "ui": {
+      "description": "UI configuration.",
       "discriminator": {
         "mapping": {
           "cli": "#/$defs/StdlibUIConfig",
