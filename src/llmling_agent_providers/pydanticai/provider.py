@@ -295,13 +295,13 @@ class PydanticAIProvider(AgentLLMProvider):
             cost_input = "\n".join(str(p) for p in prompts)
             cost_info = (
                 await TokenCost.from_usage(
-                    usage, resolved_model, cost_input, str(result.data)
+                    usage, resolved_model, cost_input, str(result.output)
                 )
                 if resolved_model and usage
                 else None
             )
             return ProviderResponse(
-                content=result.data,
+                content=result.output,
                 tool_calls=tool_calls,
                 cost_and_usage=cost_info,
                 model_name=resolved_model,
