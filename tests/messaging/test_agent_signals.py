@@ -35,7 +35,7 @@ async def test_message_chain():
 async def test_run_result_not_modified_by_connections():
     """Test that the message returned by run() isn't modified by connections."""
     # Create two agents
-    model = TestModel(custom_result_text="Response from B")
+    model = TestModel(custom_output_text="Response from B")
     async with Agent[None](name="agent-a", model=model) as agent_a:  # noqa: SIM117
         async with Agent[None](name="agent-b", model=model) as agent_b:
             # Connect A to B
@@ -62,8 +62,8 @@ async def test_run_result_not_modified_by_connections():
 @pytest.mark.asyncio
 async def test_message_chain_through_routing():
     """Test that message chain tracks correctly through the routing system."""
-    model_b = TestModel(custom_result_text="Response from B")
-    model_c = TestModel(custom_result_text="Response from C")
+    model_b = TestModel(custom_output_text="Response from B")
+    model_c = TestModel(custom_output_text="Response from C")
 
     async with Agent[None](name="agent-a", model="test") as agent_a:  # noqa: SIM117
         async with Agent[None](name="agent-b", model=model_b) as agent_b:

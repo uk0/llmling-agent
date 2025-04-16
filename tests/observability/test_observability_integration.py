@@ -30,7 +30,7 @@ agents:
       type: pydantic_ai
       model:
         type: test
-        custom_result_text: "Test response"
+        custom_output_text: "Test response"
     system_prompts:
       - You are a helpful assistant.
 """

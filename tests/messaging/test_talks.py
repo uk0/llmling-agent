@@ -65,7 +65,7 @@ async def test_connection_filtering():
         await source.run("first message")
 
         # Second message with custom response
-        model = TestModel(custom_result_text="important response from model")
+        model = TestModel(custom_output_text="important response from model")
         source.set_model(model)
         await source.run("second message")
 

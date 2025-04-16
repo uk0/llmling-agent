@@ -273,7 +273,7 @@ class PydanticAIProvider(AgentLLMProvider):
                 deps=self._context,  # type: ignore
                 message_history=[to_model_message(m) for m in message_history],
                 model=to_use,  # type: ignore
-                result_type=result_type or str,
+                output_type=result_type or str,
                 model_settings=self.model_settings,  # type: ignore
                 usage_limits=PydanticAiUsageLimits(**limits),
             )
@@ -387,7 +387,7 @@ class PydanticAIProvider(AgentLLMProvider):
             deps=self._context,
             message_history=model_messages,
             model=model or self.model,  # type: ignore
-            result_type=result_type or str,
+            output_type=result_type or str,
             model_settings=self.model_settings,  # type: ignore
             usage_limits=PydanticAiUsageLimits(**limits),
         ) as stream_result:

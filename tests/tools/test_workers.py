@@ -107,7 +107,7 @@ async def test_history_sharing(tmp_path: Path):
             call_tools=["ask_worker"],  # Only call worker
         )
         worker_model = TestModel(
-            custom_result_text="The value is 42"  # Simple string response
+            custom_output_text="The value is 42"  # Simple string response
         )
 
         # Override the models
@@ -132,7 +132,7 @@ async def test_context_sharing(tmp_path: Path):
 
         # Configure test models
         main_model = TestModel(call_tools=["ask_specialist"])
-        specialist_model = TestModel(custom_result_text="I can see context value: 123")
+        specialist_model = TestModel(custom_output_text="I can see context value: 123")
 
         main_agent.set_model(main_model)
         specialist.set_model(specialist_model)
@@ -179,8 +179,8 @@ async def test_multiple_workers_same_prompt(tmp_path: Path):
         main_model = TestModel(
             call_tools=["ask_worker", "ask_specialist"],  # Call both workers
         )
-        worker_model = TestModel(custom_result_text="I am a helpful worker assistant")
-        specialist_model = TestModel(custom_result_text="I am a domain specialist")
+        worker_model = TestModel(custom_output_text="I am a helpful worker assistant")
+        specialist_model = TestModel(custom_output_text="I am a domain specialist")
 
         main_agent.set_model(main_model)
         worker.set_model(worker_model)

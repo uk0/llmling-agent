@@ -44,7 +44,7 @@ def test_span_tracking(mock_provider: MockProvider):
 
 def test_agent_run_action_tracking(mock_provider: MockProvider):
     # Create agent with test model
-    model = TestModel(custom_result_text="Test response")
+    model = TestModel(custom_output_text="Test response")
     agent = Agent[None](name="test-agent", model=model)
     _result = agent.run_sync("Test prompt")
     # Verify that _run method was tracked as an action

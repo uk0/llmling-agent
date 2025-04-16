@@ -317,7 +317,7 @@ class TestModelConfig(BaseModelConfig):
     type: Literal["test"] = Field(default="test", init=False)
     """Type identifier for test model."""
 
-    custom_result_text: str | None = None
+    custom_output_text: str | None = None
     """Optional custom text to return from the test model."""
 
     call_tools: list[str] | Literal["all"] = "all"
@@ -327,6 +327,6 @@ class TestModelConfig(BaseModelConfig):
         from pydantic_ai.models.test import TestModel
 
         return TestModel(
-            custom_result_text=self.custom_result_text,
+            custom_output_text=self.custom_output_text,
             call_tools=self.call_tools,
         )

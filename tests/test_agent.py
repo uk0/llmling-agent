@@ -95,14 +95,14 @@ async def test_agent_model_override():
     """Test overriding model for specific runs."""
     default_response = "default response"
     override_response = "override response"
-    model = TestModel(custom_result_text=default_response)
+    model = TestModel(custom_output_text=default_response)
     async with Agent[None](model=model, name="test-agent") as agent:
         # Run with default model
         result1 = await agent.run(SIMPLE_PROMPT)
         assert result1.data == default_response
 
         # Run with overridden model
-        model2 = TestModel(custom_result_text=override_response)
+        model2 = TestModel(custom_output_text=override_response)
         result2 = await agent.run(SIMPLE_PROMPT, model=model2)
         assert result2.data == override_response
 
@@ -117,9 +117,9 @@ def test_sync_wrapper(test_agent: Agent[None]):
 async def test_agent_forwarding():
     """Test message forwarding between agents."""
     async with AgentPool[None]() as pool:
-        model = TestModel(custom_result_text="Main response")
+        model = TestModel(custom_output_text="Main response")
         main_agent = await pool.add_agent("main-agent", model=model)
-        model = TestModel(custom_result_text="Helper response")
+        model = TestModel(custom_output_text="Helper response")
         helper_agent = await pool.add_agent("helper-agent", model=model)
 
         # Set up forwarding

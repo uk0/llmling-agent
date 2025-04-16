@@ -60,7 +60,7 @@ def valid_config() -> dict[str, Any]:
 @pytest.fixture
 def test_agent() -> Agent[None]:
     """Create an agent with TestModel for testing."""
-    model = TestModel(custom_result_text=TEST_RESPONSE)
+    model = TestModel(custom_output_text=TEST_RESPONSE)
     return Agent(name="test-agent", model=model)
 
 
