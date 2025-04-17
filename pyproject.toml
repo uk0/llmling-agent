@@ -23,6 +23,7 @@ packages = [
     "src/llmling_agent_input",
     "src/llmling_agent_observability",
     "src/llmling_agent_running",
+    "src/llmling_agent_server",
     "src/llmling_textual",
 ]
 
