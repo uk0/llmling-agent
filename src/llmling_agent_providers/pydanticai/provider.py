@@ -138,7 +138,7 @@ class PydanticAIProvider(AgentLLMProvider):
         kwargs = self._kwargs.copy()
         model = kwargs.pop("model", None)
         model = infer_model(model) if isinstance(model, str) else model
-        agent = PydanticAgent(model=model, system_prompt=system_prompt, **kwargs)  # type: ignore
+        agent = PydanticAgent(model=model, instructions=system_prompt, **kwargs)  # type: ignore
         for tool in tools:
             wrapped = (
                 self.wrap_tool(tool, self._context)
