@@ -69,6 +69,7 @@ if TYPE_CHECKING:
     from llmling_agent_input.base import InputProvider
     from llmling_agent_providers.base import (
         AgentProvider,
+        AgentRunProtocol,
         StreamingResponseProtocol,
         UsageLimits,
     )
@@ -987,6 +988,94 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             msg = f"Task execution failed: {e}"
             logger.exception(msg)
             raise JobError(msg) from e
+
+    @asynccontextmanager
+    @track_action("Calling Agent.iterate_run: {prompts}")
+    async def iterate_run(
+        self,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        message_id: str | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
+        tools: list[Tool] | None = None,
+        result_type: type[TResult] | None = None,
+        usage_limits: UsageLimits | None = None,
+        model: ModelType = None,
+        system_prompt: str | None = None,
+        tool_choice: str | list[str] | None = None,
+        conversation_id: str | None = None,
+    ) -> AsyncIterator[AgentRunProtocol[TResult]]:
+        """Run the agent step-by-step, yielding an object to observe the execution graph.
+
+        Args:
+            *prompts: User query/instructions (text, images, paths, BasePrompts).
+            message_id: Optional unique ID for this run attempt. Generated if None.
+            message_history: Optional list of messages to replace current history.
+            tools: Optional sequence of tools to use instead of agent's default tools.
+            result_type: Optional type for structured responses.
+            usage_limits: Optional usage limits (provider support may vary).
+            model: Optional model override for this run.
+            system_prompt: Optional system prompt override for this run.
+            tool_choice: Filter agent's tools by name (ignored if `tools` is provided).
+            conversation_id: Optional ID to associate with the conversation context.
+
+        Yields:
+            An object conforming to AgentRunProtocol for iterating over execution nodes.
+
+        Example: (Same as before)
+            async with agent.iterate_run("Capital of France?") as agent_run:
+                async for node in agent_run:
+                    print(f"Processing: {type(node).__name__}")
+                print(f"Final result: {agent_run.result.output}")
+
+        Note: (Same as before regarding history management)
+        """
+        run_message_id = message_id or str(uuid4())
+        logger.info("Starting agent iteration run_id=%s", run_message_id)
+        converted_prompts = await convert_prompts(prompts)
+        if not converted_prompts:
+            msg = "No prompts provided for iteration."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        if tools is None:
+            effective_tools = await self.tools.get_tools(
+                state="enabled", names=tool_choice
+            )
+        else:
+            effective_tools = tools  # Use the direct override
+
+        self.set_result_type(result_type)
+        effective_system_prompt = (
+            system_prompt
+            if system_prompt is not None
+            else await self.sys_prompts.format_system_prompt(self)
+        )
+        effective_message_history = (
+            message_history
+            if message_history is not None
+            else self.conversation.get_history()
+        )
+        try:
+            async with self._provider.iterate_run(
+                *converted_prompts,
+                # Pass consistent arguments to the provider
+                message_id=run_message_id,
+                message_history=effective_message_history,
+                tools=effective_tools,
+                result_type=result_type,
+                usage_limits=usage_limits,
+                model=model,
+                system_prompt=effective_system_prompt,
+            ) as agent_run_protocol_object:
+                yield agent_run_protocol_object
+
+            logger.info("Agent iteration run_id=%s completed.", run_message_id)
+            # History update logic could go here if desired
+
+        except Exception as e:
+            logger.exception("Agent iteration run_id=%s failed.", run_message_id)
+            self.run_failed.emit(f"Agent iteration failed: {e}", e)
+            raise
 
     async def run_in_background(
         self,

@@ -3,18 +3,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar, runtime_checkable
 
 from psygnal import Signal
+from pydantic_ai.result import FinalResult
+from pydantic_graph import BaseNode, End
 
 from llmling_agent.log import get_logger
 from llmling_agent.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, AsyncIterator
     from contextlib import AbstractAsyncContextManager
 
+    from pydantic_ai.agent import AgentRunResult
     import tokonomics
     from tokonomics.pydanticai_cost import Usage
 
@@ -26,6 +29,8 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+TResult_co = TypeVar("TResult_co", covariant=True)
+type TNode = BaseNode | End[FinalResult[TResult_co]]
 
 
 @dataclass
@@ -37,6 +42,49 @@ class ProviderResponse:
     model_name: str = ""
     cost_and_usage: TokenCost | None = None
     provider_extra: dict[str, Any] | None = None
+
+
+class AgentRunProtocol(Protocol[TResult_co]):
+    """Protocol representing an ongoing, iterable agent execution run.
+
+    Matches the interface provided by pydantic_ai.models.AgentRun.
+    Allows iterating through execution graph nodes and accessing results/usage.
+    """
+
+    def __aiter__(self) -> AsyncIterator[TNode]:
+        """Allows `async for node in agent_run:`."""
+        ...
+
+    async def __anext__(self) -> TNode:
+        """Gets the next node in the iteration."""
+        ...
+
+    # --- Manual Iteration Interface ---
+    @property
+    def next_node(self) -> TNode:
+        """The next node that will be run in the agent graph."""
+        ...
+
+    async def next(self, node: BaseNode) -> TNode:
+        """Manually advances the iteration by running the specified `node`.
+
+        Returns the node *after* the processed one, or an End node.
+        """
+        ...
+
+    # --- Results and Usage ---
+    @property
+    def result(self) -> AgentRunResult[TResult_co] | None:
+        """The final result (AgentRunResult) of the agent run.
+
+        Available after iteration completes (i.e., an End node is reached).
+        Returns None if the run is not finished or failed.
+        """
+        ...
+
+    def usage(self) -> Usage:
+        """Retrieves usage statistics (Usage) for the run so far."""
+        ...
 
 
 @runtime_checkable
@@ -107,6 +155,20 @@ class AgentProvider[TDeps]:
 
     def set_model(self, model: ModelType):
         """Default no-op implementation for setting model."""
+
+    def iterate_run(
+        self,
+        *prompts: str | Content,
+        message_id: str,
+        message_history: list[ChatMessage],
+        result_type: type[Any] | None = None,
+        model: ModelType = None,
+        tools: list[Tool] | None = None,
+        usage_limits: UsageLimits | None = None,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[AgentRunProtocol]:
+        """Stream a response. Must be implemented by providers."""
+        raise NotImplementedError
 
     @property
     def context(self) -> AgentContext[TDeps]:
