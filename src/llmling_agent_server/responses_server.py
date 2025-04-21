@@ -131,10 +131,7 @@ class ResponsesServer:
     async def create_response(self, request: ResponseRequest) -> Response:
         """Handle response creation requests."""
         try:
-            # Get agent for requested model
             agent = self.pool.agents[request.model]
-
-            # Convert input to our format
             match request.input:
                 case str():
                     content = request.input
@@ -149,32 +146,17 @@ class ResponsesServer:
                 case _:
                     raise HTTPException(400, "Invalid input format")  # noqa: TRY301
 
-            # Run agent
             message = await agent.run(content)
-
-            # Convert to OpenAI format
-            output = [
-                Message(
-                    id=f"msg_{uuid4().hex}",
-                    role="assistant",
-                    content=[OutputText(text=str(message.content))],
-                )
-            ]
-
-            # Add tool calls if any
+            text = OutputText(text=str(message.content))
+            output = [Message(id=f"msg_{uuid4().hex}", role="assistant", content=[text])]
             calls = (
                 [
-                    ToolCall(
-                        type=f"{tc.tool_name}_call",
-                        id=tc.tool_call_id,
-                    )
+                    ToolCall(type=f"{tc.tool_name}_call", id=tc.tool_call_id)
                     for tc in message.tool_calls
                 ]
                 if message.tool_calls
                 else []
             )
-
-            # Create response
             return Response(
                 model=request.model,
                 output=calls + output,

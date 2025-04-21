@@ -4,14 +4,20 @@ from __future__ import annotations
 
 import json
 import time
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any
 
 import anyenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Response
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
 
 from llmling_agent.log import get_logger
+from llmling_agent_server.models import (
+    ChatCompletionRequest,
+    ChatCompletionResponse,
+    Choice,
+    OpenAIMessage,
+    OpenAIModelInfo,
+)
 
 
 if TYPE_CHECKING:
@@ -20,83 +26,6 @@ if TYPE_CHECKING:
     from llmling_agent import AgentPool, AnyAgent
 
 logger = get_logger(__name__)
-
-
-class OpenAIModelInfo(BaseModel):
-    """OpenAI model info format."""
-
-    id: str
-    object: str = "model"
-    owned_by: str = "llmling"
-    created: int
-    description: str | None = None
-    permissions: list[str] = []
-
-
-class FunctionCall(BaseModel):
-    """Function call information."""
-
-    name: str
-    arguments: str
-
-
-class ToolCall(BaseModel):
-    """Tool call information."""
-
-    id: str
-    type: str = "function"
-    function: FunctionCall
-
-
-class OpenAIMessage(BaseModel):
-    """OpenAI chat message format."""
-
-    role: Literal["system", "user", "assistant", "tool", "function"]
-    content: str | None  # Content can be null in function calls
-    name: str | None = None
-    function_call: FunctionCall | None = None
-    tool_calls: list[ToolCall] | None = None
-
-
-class ChatCompletionRequest(BaseModel):
-    """OpenAI chat completion request."""
-
-    model: str
-    messages: list[OpenAIMessage]
-    stream: bool = False
-    temperature: float | None = None
-    max_tokens: int | None = None
-    tools: list[dict[str, Any]] | None = None
-    tool_choice: str | None = Field(default="auto")
-
-
-class Choice(BaseModel):
-    """Choice in a completion response."""
-
-    index: int = 0
-    message: OpenAIMessage
-    finish_reason: str = "stop"
-
-
-class ChatCompletionResponse(BaseModel):
-    """OpenAI chat completion response."""
-
-    id: str
-    object: str = "chat.completion"
-    created: int
-    model: str
-    choices: list[Choice]
-    usage: dict[str, int] | None = None
-
-
-class ChatCompletionChunk(BaseModel):
-    """Chunk of a streaming chat completion."""
-
-    id: str
-    object: str = "chat.completion.chunk"
-    created: int
-    model: str
-    choices: list[dict[str, Any]]
 
 
 async def stream_response(
@@ -147,18 +76,17 @@ async def stream_response(
 
     except Exception as e:
         logger.exception("Error during streaming response")
+        choice = {
+            "index": 0,
+            "delta": {"content": f"Error: {e!s}"},
+            "finish_reason": "error",
+        }
         error_chunk = {
             "id": response_id,
             "object": "chat.completion.chunk",
             "created": created,
             "model": request.model,
-            "choices": [
-                {
-                    "index": 0,
-                    "delta": {"content": f"Error: {e!s}"},
-                    "finish_reason": "error",
-                }
-            ],
+            "choices": [choice],
         }
         yield f"data: {anyenv.dump_json(error_chunk)}\n\n"
         yield "data: [DONE]\n\n"
@@ -200,7 +128,6 @@ class OpenAIServer:
 
     async def create_chat_completion(self, request: ChatCompletionRequest) -> Response:
         """Handle chat completion requests."""
-        # Get agent by model name
         try:
             agent = self.pool.agents[request.model]
         except KeyError:
@@ -208,14 +135,11 @@ class OpenAIServer:
 
         # Just take the last message content - let agent handle history
         content = request.messages[-1].content or ""
-
-        # Check if streaming is requested
         if request.stream:
             return StreamingResponse(
                 stream_response(agent, content, request),
                 media_type="text/event-stream",
             )
-        # Non-streaming response
         try:
             response = await agent.run(content)
             message = OpenAIMessage(role="assistant", content=str(response.content))
