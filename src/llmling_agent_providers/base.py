@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
 
 from psygnal import Signal
 from pydantic_ai.result import FinalResult
 from pydantic_graph import BaseNode, End
+from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.tools import ToolCallInfo
@@ -29,8 +30,8 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-TResult_co = TypeVar("TResult_co", covariant=True)
-type TNode = BaseNode | End[FinalResult[TResult_co]]
+TResult_co = TypeVar("TResult_co", default=str, covariant=True)
+type TNode[TResult_co] = BaseNode | End[FinalResult[TResult_co]]
 
 
 @dataclass
