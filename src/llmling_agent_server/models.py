@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -10,6 +10,14 @@ from llmling_agent.log import get_logger
 
 
 logger = get_logger(__name__)
+
+
+class CompletionUsage(TypedDict):
+    """Token usage information."""
+
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
 
 
 class OpenAIModelInfo(BaseModel):
@@ -76,7 +84,7 @@ class ChatCompletionResponse(BaseModel):
     created: int
     model: str
     choices: list[Choice]
-    usage: dict[str, int] | None = None
+    usage: CompletionUsage | None = None
 
 
 class ChatCompletionChunk(BaseModel):

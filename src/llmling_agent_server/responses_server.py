@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, TypedDict
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+from schemez import Schema
 
 
 if TYPE_CHECKING:
@@ -16,21 +17,21 @@ if TYPE_CHECKING:
     from llmling_agent import AgentPool
 
 
-class InputText(BaseModel):
+class InputText(Schema):
     """Text input part."""
 
     type: Literal["input_text"] = "input_text"
     text: str
 
 
-class InputImage(BaseModel):
+class InputImage(Schema):
     """Image input part."""
 
     type: Literal["input_image"] = "input_image"
     image_url: str
 
 
-class OutputText(BaseModel):
+class OutputText(Schema):
     """Text output part."""
 
     type: Literal["output_text"] = "output_text"
@@ -38,7 +39,7 @@ class OutputText(BaseModel):
     annotations: list[dict[str, Any]] = Field(default_factory=list)
 
 
-class ToolCall(BaseModel):
+class ToolCall(Schema):
     """Tool call in response."""
 
     type: str  # web_search_call etc
@@ -46,7 +47,7 @@ class ToolCall(BaseModel):
     status: Literal["completed", "error"] = "completed"
 
 
-class Message(BaseModel):
+class Message(Schema):
     """Message in response."""
 
     type: Literal["message"] = "message"
@@ -66,7 +67,7 @@ class Usage(TypedDict):
     total_tokens: int
 
 
-class ResponseRequest(BaseModel):
+class ResponseRequest(Schema):
     """Request for /v1/responses endpoint."""
 
     model: str
@@ -82,7 +83,7 @@ class ResponseRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class Response(BaseModel):
+class Response(Schema):
     """Response from /v1/responses endpoint."""
 
     id: str = Field(default_factory=lambda: f"resp_{uuid4().hex}")
