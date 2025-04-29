@@ -42,3 +42,5 @@ serve.toml
 
 # composio
 .composio.lock
+
+agentops.log
