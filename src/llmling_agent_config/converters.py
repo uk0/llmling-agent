@@ -2,7 +2,8 @@
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import ConfigDict, Field, SecretStr
+from schemez import Schema
 
 from llmling_agent_converters.base import DocumentConverter
 
@@ -11,7 +12,7 @@ FormatterType = Literal["text", "json", "vtt", "srt"]
 GoogleSpeechEncoding = Literal["LINEAR16", "FLAC", "MP3"]
 
 
-class BaseConverterConfig(BaseModel):
+class BaseConverterConfig(Schema):
     """Base configuration for document converters."""
 
     type: str = Field(init=False)
@@ -20,27 +21,11 @@ class BaseConverterConfig(BaseModel):
     enabled: bool = True
     """Whether this converter is currently active."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     def get_converter(self) -> DocumentConverter:
         """Get the converter instance."""
         raise NotImplementedError
-
-
-class DoclingConverterConfig(BaseConverterConfig):
-    """Configuration for docling-based converter."""
-
-    type: Literal["docling"] = Field("docling", init=False)
-    """Type discriminator for docling converter."""
-
-    max_size: int | None = None
-    """Optional size limit in bytes."""
-
-    def get_converter(self) -> DocumentConverter:
-        """Get the converter instance."""
-        from llmling_agent_converters.docling import DoclingConverter
-
-        return DoclingConverter(self)
 
 
 class MarkItDownConfig(BaseConverterConfig):
@@ -179,8 +164,7 @@ class PlainConverterConfig(BaseConverterConfig):
 
 
 ConverterConfig = Annotated[
-    DoclingConverterConfig
-    | MarkItDownConfig
+    MarkItDownConfig
     | PlainConverterConfig
     | YouTubeConverterConfig
     | WhisperAPIConfig
@@ -190,7 +174,7 @@ ConverterConfig = Annotated[
 ]
 
 
-class ConversionConfig(BaseModel):
+class ConversionConfig(Schema):
     """Global conversion configuration."""
 
     providers: list[ConverterConfig] | None = None
@@ -202,4 +186,4 @@ class ConversionConfig(BaseModel):
     max_size: int | None = None
     """Global size limit for all converters."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)

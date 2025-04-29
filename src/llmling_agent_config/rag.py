@@ -34,11 +34,7 @@ VectorDBShorthand = Literal[
     "qdrant-memory",  # In-memory Qdrant
 ]
 
-ConverterShorthand = Literal[
-    "docling",  # Docling with defaults
-    "markitdown",  # MarkItDown with defaults
-    "plain",  # Plain text with defaults
-]
+ConverterShorthand = Literal["markitdown", "plain"]
 
 
 class RAGPipelineConfig(BaseModel):
@@ -47,7 +43,7 @@ class RAGPipelineConfig(BaseModel):
     paths: list[str]
     """Input paths to process (files/folders/URLs)"""
 
-    converter: ConverterConfig | ConverterShorthand = "docling"
+    converter: ConverterConfig | ConverterShorthand = "markitdown"
     """How to convert documents to text."""
 
     chunker: ChunkerConfig | ChunkerShorthand = "markdown"
@@ -67,10 +63,6 @@ class RAGPipelineConfig(BaseModel):
     def resolve_converter(self) -> ConverterConfig:
         """Get full converter config from shorthand or pass through existing."""
         match self.converter:
-            case "docling":
-                from llmling_agent_config.converters import DoclingConverterConfig
-
-                return DoclingConverterConfig()
             case "markitdown":
                 from llmling_agent_config.converters import MarkItDownConfig
 

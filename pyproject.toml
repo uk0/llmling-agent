@@ -85,6 +85,7 @@ dependencies = [
     "typing_extensions",
     "upathtools>=0.1.0",
     "anyenv>=0.3.0",
+    "schemez>=0.0.1",
 ]
 
 [project.scripts]
@@ -101,7 +102,6 @@ composio = ["composio_core", "composio_openai"]
 mcp_run = ["mcpx-py"]
 upsonic = ["upsonic"]
 supabase = ["supabase"]
-# docling = ["docling; python_version < '3.13'"]
 events = [
     "watchfiles; python_version < '3.14'",
     "aioimaplib>=2.0.1",
