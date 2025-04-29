@@ -138,11 +138,8 @@ class ResponsesServer:
                     content = request.input
                 case list():
                     # Get last text content from structured input
-                    text_parts = [
-                        p["text"]
-                        for p in request.input[-1]["content"]
-                        if p["type"] == "input_text"
-                    ]
+                    last = request.input[-1]["content"]
+                    text_parts = [p["text"] for p in last if p["type"] == "input_text"]
                     content = "\n".join(text_parts)
                 case _:
                     raise HTTPException(400, "Invalid input format")  # noqa: TRY301
@@ -150,14 +147,11 @@ class ResponsesServer:
             message = await agent.run(content)
             text = OutputText(text=str(message.content))
             output = [Message(id=f"msg_{uuid4().hex}", role="assistant", content=[text])]
-            calls = (
-                [
-                    ToolCall(type=f"{tc.tool_name}_call", id=tc.tool_call_id)
-                    for tc in message.tool_calls
-                ]
-                if message.tool_calls
-                else []
-            )
+            calls = [
+                ToolCall(type=f"{tc.tool_name}_call", id=tc.tool_call_id)
+                for tc in message.tool_calls
+            ]
+
             return Response(
                 model=request.model,
                 output=calls + output,
