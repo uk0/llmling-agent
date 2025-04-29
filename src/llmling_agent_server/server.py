@@ -29,7 +29,9 @@ logger = get_logger(__name__)
 
 
 async def stream_response(
-    agent: AnyAgent[Any, Any], content: str, request: ChatCompletionRequest
+    agent: AnyAgent[Any, Any],
+    content: str,
+    request: ChatCompletionRequest,
 ) -> AsyncGenerator[str, None]:
     """Generate streaming response chunks."""
     response_id = f"chatcmpl-{int(time.time() * 1000)}"
@@ -112,11 +114,10 @@ class OpenAIServer:
     def setup_routes(self):
         """Configure API routes."""
         self.app.get("/v1/models")(self.list_models)
-        self.app.post(
-            "/v1/chat/completions",
-            dependencies=[Depends(self.verify_api_key)],
-            response_model=None,  # This is the key change
-        )(self.create_chat_completion)
+        dep = Depends(self.verify_api_key)
+        self.app.post("/v1/chat/completions", dependencies=[dep], response_model=None)(
+            self.create_chat_completion
+        )
 
     async def list_models(self) -> dict[str, Any]:
         """List available agents as models."""
@@ -150,10 +151,8 @@ class OpenAIServer:
                 choices=[Choice(message=message)],
                 usage=response.cost_info.token_usage if response.cost_info else None,  # pyright: ignore
             )
-            return Response(
-                content=completion_response.model_dump_json(),
-                media_type="application/json",
-            )
+            json = completion_response.model_dump_json()
+            return Response(content=json, media_type="application/json")
         except Exception as e:
             logger.exception("Error processing chat completion")
             raise HTTPException(500, f"Error: {e!s}") from e
