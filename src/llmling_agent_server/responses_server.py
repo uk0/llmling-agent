@@ -31,7 +31,7 @@ class InputImage(Schema):
     image_url: str
 
 
-class OutputText(Schema):
+class ResponseOutputText(Schema):
     """Text output part."""
 
     type: Literal["output_text"] = "output_text"
@@ -39,7 +39,7 @@ class OutputText(Schema):
     annotations: list[dict[str, Any]] = Field(default_factory=list)
 
 
-class ToolCall(Schema):
+class ResponseToolCall(Schema):
     """Tool call in response."""
 
     type: str  # web_search_call etc
@@ -47,17 +47,17 @@ class ToolCall(Schema):
     status: Literal["completed", "error"] = "completed"
 
 
-class Message(Schema):
-    """Message in response."""
+class ResponseMessage(Schema):
+    """ResponseMessage in response."""
 
     type: Literal["message"] = "message"
     id: str
     status: Literal["completed", "error"] = "completed"
     role: Literal["user", "assistant", "system"]
-    content: list[OutputText]
+    content: list[ResponseOutputText]
 
 
-class Usage(TypedDict):
+class ResponseUsage(TypedDict):
     """Token usage information."""
 
     input_tokens: int
@@ -92,7 +92,7 @@ class Response(Schema):
     status: Literal["completed", "error"] = "completed"
     error: str | None = None
     model: str
-    output: Sequence[Message | ToolCall]
+    output: Sequence[ResponseMessage | ResponseToolCall]
 
     # Include all the request parameters
     instructions: str | None = None
@@ -100,7 +100,7 @@ class Response(Schema):
     temperature: float = 1.0
     tools: list[dict[str, Any]] = Field(default_factory=list)
     tool_choice: str = "auto"
-    usage: Usage | None = None
+    usage: ResponseUsage | None = None
     metadata: dict[str, str] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="allow")
@@ -145,10 +145,12 @@ class ResponsesServer:
                     raise HTTPException(400, "Invalid input format")  # noqa: TRY301
 
             message = await agent.run(content)
-            text = OutputText(text=str(message.content))
-            output = [Message(id=f"msg_{uuid4().hex}", role="assistant", content=[text])]
+            text = ResponseOutputText(text=str(message.content))
+            output = [
+                ResponseMessage(id=f"msg_{uuid4().hex}", role="assistant", content=[text])
+            ]
             calls = [
-                ToolCall(type=f"{tc.tool_name}_call", id=tc.tool_call_id)
+                ResponseToolCall(type=f"{tc.tool_name}_call", id=tc.tool_call_id)
                 for tc in message.tool_calls
             ]
 
