@@ -2,108 +2,16 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Literal, TypedDict
-from uuid import uuid4
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends, FastAPI, Header, HTTPException
-from pydantic import ConfigDict, Field
-from schemez import Schema
+
+from llmling_agent_server.responses_helpers import handle_request
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from llmling_agent import AgentPool
-
-
-class InputText(Schema):
-    """Text input part."""
-
-    type: Literal["input_text"] = "input_text"
-    text: str
-
-
-class InputImage(Schema):
-    """Image input part."""
-
-    type: Literal["input_image"] = "input_image"
-    image_url: str
-
-
-class ResponseOutputText(Schema):
-    """Text output part."""
-
-    type: Literal["output_text"] = "output_text"
-    text: str
-    annotations: list[dict[str, Any]] = Field(default_factory=list)
-
-
-class ResponseToolCall(Schema):
-    """Tool call in response."""
-
-    type: str  # web_search_call etc
-    id: str
-    status: Literal["completed", "error"] = "completed"
-
-
-class ResponseMessage(Schema):
-    """ResponseMessage in response."""
-
-    type: Literal["message"] = "message"
-    id: str
-    status: Literal["completed", "error"] = "completed"
-    role: Literal["user", "assistant", "system"]
-    content: list[ResponseOutputText]
-
-
-class ResponseUsage(TypedDict):
-    """Token usage information."""
-
-    input_tokens: int
-    input_tokens_details: dict[str, int]
-    output_tokens: int
-    output_tokens_details: dict[str, int]
-    total_tokens: int
-
-
-class ResponseRequest(Schema):
-    """Request for /v1/responses endpoint."""
-
-    model: str
-    input: str | list[dict[str, Any]]
-    instructions: str | None = None
-    stream: bool = False
-    temperature: float = 1.0
-    tools: list[dict[str, Any]] = Field(default_factory=list)
-    tool_choice: str = "auto"
-    max_output_tokens: int | None = None
-    metadata: dict[str, str] = Field(default_factory=dict)
-
-    model_config = ConfigDict(extra="allow")
-
-
-class Response(Schema):
-    """Response from /v1/responses endpoint."""
-
-    id: str = Field(default_factory=lambda: f"resp_{uuid4().hex}")
-    object: Literal["response"] = "response"
-    created_at: int = Field(default_factory=lambda: int(datetime.now().timestamp()))
-    status: Literal["completed", "error"] = "completed"
-    error: str | None = None
-    model: str
-    output: Sequence[ResponseMessage | ResponseToolCall]
-
-    # Include all the request parameters
-    instructions: str | None = None
-    max_output_tokens: int | None = None
-    temperature: float = 1.0
-    tools: list[dict[str, Any]] = Field(default_factory=list)
-    tool_choice: str = "auto"
-    usage: ResponseUsage | None = None
-    metadata: dict[str, str] = Field(default_factory=dict)
-
-    model_config = ConfigDict(extra="allow")
+    from llmling_agent_server.responses_models import Response, ResponseRequest
 
 
 class ResponsesServer:
@@ -133,39 +41,7 @@ class ResponsesServer:
         """Handle response creation requests."""
         try:
             agent = self.pool.agents[request.model]
-            match request.input:
-                case str():
-                    content = request.input
-                case list():
-                    # Get last text content from structured input
-                    last = request.input[-1]["content"]
-                    text_parts = [p["text"] for p in last if p["type"] == "input_text"]
-                    content = "\n".join(text_parts)
-                case _:
-                    raise HTTPException(400, "Invalid input format")  # noqa: TRY301
-
-            message = await agent.run(content)
-            text = ResponseOutputText(text=str(message.content))
-            output = [
-                ResponseMessage(id=f"msg_{uuid4().hex}", role="assistant", content=[text])
-            ]
-            calls = [
-                ResponseToolCall(type=f"{tc.tool_name}_call", id=tc.tool_call_id)
-                for tc in message.tool_calls
-            ]
-
-            return Response(
-                model=request.model,
-                output=calls + output,
-                instructions=request.instructions,
-                max_output_tokens=request.max_output_tokens,
-                temperature=request.temperature,
-                tools=request.tools,
-                tool_choice=request.tool_choice,
-                usage=message.cost_info.token_usage if message.cost_info else None,  # pyright: ignore
-                metadata=request.metadata,
-            )
-
+            return await handle_request(request, agent)
         except Exception as e:
             raise HTTPException(500, str(e)) from e
 
