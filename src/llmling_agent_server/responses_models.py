@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence  # noqa: TC003
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict
 from uuid import uuid4
 
 from pydantic import Field
 from schemez import Schema
-
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 
 class InputText(Schema):
