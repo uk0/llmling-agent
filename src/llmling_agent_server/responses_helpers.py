@@ -44,7 +44,7 @@ async def handle_request(request: ResponseRequest, agent: AnyAgent[Any, Any]):
             ResponseToolCall(type=f"{tc.tool_name}_call", id=tc.tool_call_id)
             for tc in message.tool_calls
         ]
-        output = calls + output  # type: ignore[operator]
+        output = calls + output  # type: ignore
 
     usage_info: ResponseUsage | None = None
     if message.cost_info and (token_usage := message.cost_info.token_usage):
