@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import ClassVar, Literal
 
 from pydantic import ValidationError
+from schemez import YAMLCode
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import ScrollableContainer
@@ -12,7 +13,6 @@ from yaml import YAMLError
 
 from llmling_agent import Agent, AgentsManifest
 from llmling_agent.agent.architect import create_architect_agent
-from llmling_agent.common_types import YAMLCode
 from llmling_agent.utils.count_tokens import count_tokens
 from llmling_agent_cli import agent_store
 

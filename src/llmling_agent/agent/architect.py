@@ -3,10 +3,10 @@ from __future__ import annotations
 import pathlib
 from typing import TYPE_CHECKING
 
+from schemez import YAMLCode
 from upathtools import read_folder_as_text, read_path
 
 from llmling_agent import Agent, models
-from llmling_agent.common_types import YAMLCode
 import llmling_agent_config
 
 
