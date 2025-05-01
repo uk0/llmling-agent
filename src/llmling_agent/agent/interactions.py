@@ -5,13 +5,12 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Callable, Mapping
 from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
-from pydantic import BaseModel
+from schemez import Schema
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.tools.base import Tool
-from llmling_agent.utils.basemodel_convert import get_ctor_basemodel
 
 
 if TYPE_CHECKING:
@@ -32,28 +31,28 @@ type EndCondition = Callable[[list[ChatMessage[Any]], ChatMessage[Any]], bool]
 logger = get_logger(__name__)
 
 
-class LLMPick(BaseModel):
+class LLMPick(Schema):
     """Decision format for LLM response."""
 
     selection: str  # The label/name of the selected option
     reason: str
 
 
-class Pick[T](BaseModel):
+class Pick[T](Schema):
     """Type-safe decision with original object."""
 
     selection: T
     reason: str
 
 
-class LLMMultiPick(BaseModel):
+class LLMMultiPick(Schema):
     """Multiple selection format for LLM response."""
 
     selections: list[str]  # Labels of selected options
     reason: str
 
 
-class MultiPick[T](BaseModel):
+class MultiPick[T](Schema):
     """Type-safe multiple selection with original objects."""
 
     selections: list[T]
@@ -407,7 +406,7 @@ List your selections, one per line, followed by your reasoning."""
         from py2openai import create_constructor_schema
 
         # Create model for single instance
-        item_model = get_ctor_basemodel(as_type)
+        item_model = Schema.for_class_ctor(as_type)
 
         # Create extraction prompt
         final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
@@ -416,7 +415,7 @@ List your selections, one per line, followed by your reasoning."""
 
         if mode == "structured":
 
-            class Extraction(BaseModel):
+            class Extraction(Schema):
                 instance: item_model  # type: ignore
                 # explanation: str | None = None
 
@@ -468,7 +467,7 @@ List your selections, one per line, followed by your reasoning."""
         """
         from py2openai import create_constructor_schema
 
-        item_model = get_ctor_basemodel(as_type)
+        item_model = Schema.for_class_ctor(as_type)
 
         instances: list[T] = []
         schema_obj = create_constructor_schema(as_type)
@@ -483,7 +482,7 @@ List your selections, one per line, followed by your reasoning."""
         if mode == "structured":
             # Create model for individual instance
 
-            class Extraction(BaseModel):
+            class Extraction(Schema):
                 instances: list[item_model]  # type: ignore
                 # explanation: str | None = None
 
