@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, ImportString, SecretStr
+from pydantic import Field, ImportString, SecretStr
+from schemez import Schema
 
 from llmling_agent_models.base import BaseModelConfig
 
 
-class PrePostPromptConfig(BaseModel):
+class PrePostPromptConfig(Schema):
     """Configuration for pre/post prompts."""
 
     text: str

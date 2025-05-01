@@ -3,14 +3,15 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from schemez import Schema
 
 
 if TYPE_CHECKING:
     import jira
 
 
-class JiraUser(BaseModel):
+class JiraUser(Schema):
     """Represents a Jira user."""
 
     display_name: str
@@ -18,7 +19,7 @@ class JiraUser(BaseModel):
     email_address: str | None = None
 
 
-class JiraStatus(BaseModel):
+class JiraStatus(Schema):
     """Represents a Jira status."""
 
     name: str
@@ -26,27 +27,27 @@ class JiraStatus(BaseModel):
     category_name: str | None = None
 
 
-class JiraIssueType(BaseModel):
+class JiraIssueType(Schema):
     """Represents a Jira issue type."""
 
     name: str
     description: str | None = None
 
 
-class JiraPriority(BaseModel):
+class JiraPriority(Schema):
     """Represents a Jira priority."""
 
     name: str
 
 
-class JiraProject(BaseModel):
+class JiraProject(Schema):
     """Represents a Jira project."""
 
     key: str
     name: str
 
 
-class JiraComment(BaseModel):
+class JiraComment(Schema):
     """Represents a Jira comment."""
 
     body: str
@@ -55,7 +56,7 @@ class JiraComment(BaseModel):
     updated: datetime | None = None
 
 
-class JiraIssueLink(BaseModel):
+class JiraIssueLink(Schema):
     """Represents a Jira issue link."""
 
     link_type: str
@@ -63,7 +64,7 @@ class JiraIssueLink(BaseModel):
     direction: Literal["inward", "outward"]
 
 
-class JiraTicket(BaseModel):
+class JiraTicket(Schema):
     """Represents a Jira ticket with all its fields."""
 
     key: str

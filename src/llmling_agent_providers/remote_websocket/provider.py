@@ -7,7 +7,8 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from schemez import Schema
 import websockets
 import websockets.client
 
@@ -47,7 +48,7 @@ MessageType = Literal[
 ]
 
 
-class WebSocketMessage(BaseModel):
+class WebSocketMessage(Schema):
     """Base message format for WebSocket communication."""
 
     type: MessageType
@@ -57,7 +58,7 @@ class WebSocketMessage(BaseModel):
     ref_id: str | None = None  # For linking responses to requests
 
 
-class ToolContext(BaseModel):
+class ToolContext(Schema):
     """Context for tool execution."""
 
     name: str

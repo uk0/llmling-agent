@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from schemez import Schema
 
 
-class BaseModelConfig(BaseModel):
+class BaseModelConfig(Schema):
     """Base for model configurations."""
 
     type: str = Field(init=False)
