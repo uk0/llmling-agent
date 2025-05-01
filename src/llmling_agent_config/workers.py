@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+from schemez import Schema
 
 
-class BaseWorkerConfig(BaseModel):
+class BaseWorkerConfig(Schema):
     """Base configuration for workers.
 
     Workers are nodes that can be registered as tools with a parent node.
@@ -17,7 +18,7 @@ class BaseWorkerConfig(BaseModel):
     name: str
     """Name of the node to use as a worker."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
 
 class TeamWorkerConfig(BaseWorkerConfig):

@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
+from schemez import Schema
 
 from llmling_agent.common_types import MessageRole  # noqa: TC001
 from llmling_agent.utils.now import get_now
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
 
-class MemoryConfig(BaseModel):
+class MemoryConfig(Schema):
     """Configuration for agent memory and history handling."""
 
     enable: bool = True
@@ -34,7 +35,7 @@ class MemoryConfig(BaseModel):
     """Override default storage provider for this agent.
     If None, uses manifest's default provider or first available."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     @classmethod
     def from_value(cls, value: bool | int | str | SessionQuery | UUID | None) -> Self:
@@ -55,7 +56,7 @@ class MemoryConfig(BaseModel):
                 raise ValueError(msg)
 
 
-class SessionQuery(BaseModel):
+class SessionQuery(Schema):
     """Query configuration for session recovery."""
 
     name: str | None = None
@@ -82,7 +83,7 @@ class SessionQuery(BaseModel):
     include_forwarded: bool = True
     """Whether to include messages forwarded through agents."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     def get_time_cutoff(self) -> datetime | None:
         """Get datetime from time period string."""

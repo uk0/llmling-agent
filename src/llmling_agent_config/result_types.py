@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Annotated, Any, Literal
 
 from llmling.utils import importing
-from pydantic import BaseModel, ConfigDict, Field, create_model
+from pydantic import BaseModel, Field, create_model
+from schemez import Schema
 
 
 TYPE_MAP = {
@@ -17,7 +18,7 @@ TYPE_MAP = {
 }
 
 
-class ResponseField(BaseModel):
+class ResponseField(Schema):
     """Field definition for inline response types.
 
     Defines a single field in an inline response definition, including:
@@ -37,10 +38,8 @@ class ResponseField(BaseModel):
     constraints: dict[str, Any] = Field(default_factory=dict)
     """Optional validation constraints for the field"""
 
-    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
-
-class BaseResponseDefinition(BaseModel):
+class BaseResponseDefinition(Schema):
     """Base class for response definitions."""
 
     type: str = Field(init=False)
@@ -56,8 +55,6 @@ class BaseResponseDefinition(BaseModel):
 
     result_retries: int | None = None
     """Retry override. How often the Agent should try to validate the response."""
-
-    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
 
 class InlineResponseDefinition(BaseResponseDefinition):

@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from llmling.config.models import Resource  # noqa: TC002
 from llmling.prompts import PromptType  # noqa: TC002
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+from schemez import Schema
 
 
-class Knowledge(BaseModel):
+class Knowledge(Schema):
     """Collection of context sources for an agent.
 
     Supports both simple paths and rich resource types for content loading,
@@ -37,7 +38,7 @@ class Knowledge(BaseModel):
     convert_to_markdown: bool = False
     """Whether to convert content to markdown when possible."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     def get_resources(self) -> list[Resource | PromptType | str]:
         """Get all resources."""

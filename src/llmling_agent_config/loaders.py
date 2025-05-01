@@ -12,13 +12,8 @@ from llmling.config.base import ConfigModel
 from llmling.core.log import get_logger
 from llmling.utils.importing import import_callable
 from llmling.utils.paths import guess_mime_type
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    SecretStr,
-    model_validator,
-)
+from pydantic import ConfigDict, Field, SecretStr, model_validator
+from schemez import Schema
 
 from llmling_agent.common_types import JsonObject  # noqa: TC001
 
@@ -26,7 +21,7 @@ from llmling_agent.common_types import JsonObject  # noqa: TC001
 logger = get_logger(__name__)
 
 
-class BaseResourceLoaderConfig(BaseModel):
+class BaseResourceLoaderConfig(Schema):
     """Base class for all resource types."""
 
     type: str = Field(init=False)
@@ -44,7 +39,7 @@ class BaseResourceLoaderConfig(BaseModel):
     name: str | None = Field(None, exclude=True)
     """Technical identifier (automatically set from config key during registration)."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     # @property
     # def supports_watching(self) -> bool:

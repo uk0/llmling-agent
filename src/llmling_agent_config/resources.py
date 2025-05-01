@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+from schemez import Schema
 
 
 @dataclass
@@ -26,7 +27,7 @@ class ResourceInfo:
     """Optional description of the resource's content or purpose"""
 
 
-class BaseResourceConfig(BaseModel):
+class BaseResourceConfig(Schema):
     """Base configuration for resources."""
 
     type: str = Field(init=False)
@@ -41,7 +42,7 @@ class BaseResourceConfig(BaseModel):
     storage_options: dict[str, Any] = Field(default_factory=dict)
     """Protocol-specific storage options."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True)
 
 
 class SourceResourceConfig(BaseResourceConfig):
