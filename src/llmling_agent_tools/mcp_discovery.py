@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import anyenv
-from pydantic import BaseModel, Field
+from pydantic import Field
+from schemez import Schema
 
 
-class ServerInfo(BaseModel):
+class ServerInfo(Schema):
     """Information about an MCP server."""
 
     name: str
@@ -23,7 +24,7 @@ class ServerInfo(BaseModel):
     )
 
 
-class ServerListResponse(BaseModel):
+class ServerListResponse(Schema):
     """Response from the MCP server list endpoint."""
 
     servers: list[ServerInfo]

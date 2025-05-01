@@ -5,7 +5,8 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, ConfigDict, Field, ImportString
+from pydantic import ConfigDict, Field, ImportString
+from schemez import Schema
 
 from llmling_agent_config.events import DEFAULT_TEMPLATE, EventConfig
 from llmling_agent_config.forward_targets import ForwardingTarget  # noqa: TC001
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.eventnode import Event, EventNode
 
 
-class NodeConfig(BaseModel):
+class NodeConfig(Schema):
     """Configuration for a Node of the messaging system."""
 
     name: str | None = None
@@ -52,12 +53,7 @@ class NodeConfig(BaseModel):
     # knowledge: Knowledge | None = None
     # """Knowledge sources shared by all team members."""
 
-    model_config = ConfigDict(
-        frozen=True,
-        arbitrary_types_allowed=True,
-        extra="forbid",
-        use_attribute_docstrings=True,
-    )
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.

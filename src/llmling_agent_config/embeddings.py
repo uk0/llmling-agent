@@ -4,16 +4,17 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import ConfigDict, Field, SecretStr
+from schemez import Schema
 
 
-class BaseEmbeddingConfig(BaseModel):
+class BaseEmbeddingConfig(Schema):
     """Base configuration for embedding models."""
 
     type: str = Field(init=False)
     """Type identifier for the embedding model."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True)
 
 
 class SentenceTransformersConfig(BaseEmbeddingConfig):

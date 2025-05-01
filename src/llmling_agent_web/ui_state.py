@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Any
 
 import gradio as gr
 from llmling import ConfigStore
-from pydantic import BaseModel, Field
+from pydantic import Field
+from schemez import Schema
 from slashed import CommandStore
 from upath import UPath
 import yamling
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class UIUpdate(BaseModel):
+class UIUpdate(Schema):
     """State updates for the UI components."""
 
     message_box: str | None = None

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Literal, TypedDict
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from schemez import Schema
 
 from llmling_agent.log import get_logger
 
@@ -20,7 +21,7 @@ class CompletionUsage(TypedDict):
     total_tokens: int
 
 
-class OpenAIModelInfo(BaseModel):
+class OpenAIModelInfo(Schema):
     """OpenAI model info format."""
 
     id: str
@@ -28,17 +29,17 @@ class OpenAIModelInfo(BaseModel):
     owned_by: str = "llmling"
     created: int
     description: str | None = None
-    permissions: list[str] = []
+    permissions: list[str] = Field(default_factory=list)
 
 
-class FunctionCall(BaseModel):
+class FunctionCall(Schema):
     """Function call information."""
 
     name: str
     arguments: str
 
 
-class ToolCall(BaseModel):
+class ToolCall(Schema):
     """Tool call information."""
 
     id: str
@@ -46,7 +47,7 @@ class ToolCall(BaseModel):
     function: FunctionCall
 
 
-class OpenAIMessage(BaseModel):
+class OpenAIMessage(Schema):
     """OpenAI chat message format."""
 
     role: Literal["system", "user", "assistant", "tool", "function"]
@@ -56,7 +57,7 @@ class OpenAIMessage(BaseModel):
     tool_calls: list[ToolCall] | None = None
 
 
-class ChatCompletionRequest(BaseModel):
+class ChatCompletionRequest(Schema):
     """OpenAI chat completion request."""
 
     model: str
@@ -68,7 +69,7 @@ class ChatCompletionRequest(BaseModel):
     tool_choice: str | None = Field(default="auto")
 
 
-class Choice(BaseModel):
+class Choice(Schema):
     """Choice in a completion response."""
 
     index: int = 0
@@ -76,7 +77,7 @@ class Choice(BaseModel):
     finish_reason: str = "stop"
 
 
-class ChatCompletionResponse(BaseModel):
+class ChatCompletionResponse(Schema):
     """OpenAI chat completion response."""
 
     id: str
@@ -87,7 +88,7 @@ class ChatCompletionResponse(BaseModel):
     usage: CompletionUsage | None = None
 
 
-class ChatCompletionChunk(BaseModel):
+class ChatCompletionChunk(Schema):
     """Chunk of a streaming chat completion."""
 
     id: str

@@ -6,7 +6,8 @@ import base64
 import io
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+from schemez import Schema
 from upathtools import read_path
 
 
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
 DetailLevel = Literal["high", "low", "auto"]
 
 
-class BaseContent(BaseModel):
+class BaseContent(Schema):
     """Base class for special content types (non-text)."""
 
     type: str = Field(init=False)
@@ -28,7 +29,7 @@ class BaseContent(BaseModel):
     description: str | None = None
     """Human-readable description of the content."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     def to_openai_format(self) -> dict[str, Any]:
         """Convert to OpenAI API format."""

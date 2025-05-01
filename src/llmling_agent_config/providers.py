@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ImportString
+from pydantic import ConfigDict, Field, ImportString
+from schemez import Schema
 
 from llmling_agent.common_types import EndStrategy, ModelProtocol  # noqa: TC001
 from llmling_agent_models import AnyModelConfig  # noqa: TC001
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
 type ProcessorCallback[TResult] = Callable[..., TResult | Awaitable[TResult]]
 
 
-class BaseProviderConfig(BaseModel):
+class BaseProviderConfig(Schema):
     """Base configuration for agent providers.
 
     Common settings that apply to all provider types, regardless of their
@@ -35,7 +36,7 @@ class BaseProviderConfig(BaseModel):
     model_settings: ModelSettings | None = None
     """Optional settings to configure the LLM behavior."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
 
 class PydanticAIProviderConfig(BaseProviderConfig):
@@ -200,7 +201,7 @@ ProviderConfig = Annotated[
 ]
 
 
-class ModelSettings(BaseModel):
+class ModelSettings(Schema):
     """Settings to configure an LLM."""
 
     max_completion_tokens: int | None = None
@@ -230,7 +231,7 @@ class ModelSettings(BaseModel):
     logit_bias: dict[str, int] | None = None
     """Modify the likelihood of specified tokens appearing in the completion."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid", use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to TypedDict format for pydantic-ai."""

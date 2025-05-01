@@ -4,20 +4,21 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import ConfigDict, Field, SecretStr
+from schemez import Schema
 
 
 if TYPE_CHECKING:
     from llmling_agent_observability.base_provider import ObservabilityProvider
 
 
-class BaseObservabilityProviderConfig(BaseModel):
+class BaseObservabilityProviderConfig(Schema):
     """Base configuration for observability providers."""
 
     type: str = Field(init=True)
     """Observability provider."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     def get_provider(self) -> ObservabilityProvider:
         """Get the provider instance."""
@@ -207,7 +208,7 @@ ObservabilityProviderConfig = Annotated[
 ]
 
 
-class ObservabilityConfig(BaseModel):
+class ObservabilityConfig(Schema):
     """Global observability configuration."""
 
     enabled: bool = True
@@ -221,5 +222,3 @@ class ObservabilityConfig(BaseModel):
 
     By default, all libraries used in the AgentsManifest are instrumented.
     """
-
-    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")

@@ -7,7 +7,8 @@ import importlib.util
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
+from schemez import Schema
 from sqlalchemy import Column, DateTime
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.types import TypeDecorator
@@ -72,7 +73,7 @@ class CommandHistory(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg
         model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
 
-class MessageLog(BaseModel):
+class MessageLog(Schema):
     """Raw message log entry."""
 
     timestamp: datetime
@@ -93,10 +94,10 @@ class MessageLog(BaseModel):
     model: str | None = None
     """Name of the model that generated this message"""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
 
-class ConversationLog(BaseModel):
+class ConversationLog(Schema):
     """Collection of messages forming a conversation."""
 
     id: str
@@ -111,7 +112,7 @@ class ConversationLog(BaseModel):
     messages: list[MessageLog]
     """List of messages in the conversation"""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
 
 class Message(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]

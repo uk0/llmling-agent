@@ -6,7 +6,8 @@ from datetime import datetime  # noqa: TC003
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
+from schemez import Schema
 
 from llmling_agent.utils.now import get_now
 
@@ -67,7 +68,7 @@ TEMPLATES = {
 }
 
 
-class ToolCallInfo(BaseModel):
+class ToolCallInfo(Schema):
     """Information about an executed tool call."""
 
     tool_name: str
@@ -102,8 +103,6 @@ class ToolCallInfo(BaseModel):
 
     agent_tool_name: str | None = None
     """If this tool is agent-based, the name of that agent."""
-
-    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
     def format(
         self,

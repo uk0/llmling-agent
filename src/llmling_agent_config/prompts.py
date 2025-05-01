@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+from schemez import Schema
 
 from llmling_agent_config.prompt_hubs import PromptHubConfig  # noqa: TC001
 
@@ -30,7 +31,7 @@ Task: {{ prompt.content }}
 """
 
 
-class SystemPrompt(BaseModel):
+class SystemPrompt(Schema):
     """Individual system prompt definition."""
 
     content: str
@@ -39,10 +40,10 @@ class SystemPrompt(BaseModel):
     type: SystemPromptCategory = "role"
     """Categorization for template organization."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
 
-class PromptConfig(BaseModel):
+class PromptConfig(Schema):
     """Complete prompt configuration."""
 
     system_prompts: dict[str, SystemPrompt] = Field(default_factory=dict)
@@ -55,7 +56,7 @@ class PromptConfig(BaseModel):
     providers: list[PromptHubConfig] = Field(default_factory=list)
     """List of external prompt providers to use."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     def format_prompts(self, identifiers: list[str] | None = None) -> str:
         """Format selected prompts using template.

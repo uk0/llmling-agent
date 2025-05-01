@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+from schemez import Schema
 
 
 if TYPE_CHECKING:
@@ -37,7 +38,7 @@ VectorDBShorthand = Literal[
 ConverterShorthand = Literal["markitdown", "plain"]
 
 
-class RAGPipelineConfig(BaseModel):
+class RAGPipelineConfig(Schema):
     """Complete configuration for text vectorization pipeline."""
 
     paths: list[str]

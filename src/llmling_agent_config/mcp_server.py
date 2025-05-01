@@ -5,10 +5,11 @@ from __future__ import annotations
 import os
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+from schemez import Schema
 
 
-class BaseMCPServerConfig(BaseModel):
+class BaseMCPServerConfig(Schema):
     """Base model for MCP server configuration."""
 
     type: str
@@ -25,8 +26,6 @@ class BaseMCPServerConfig(BaseModel):
 
     timeout: float = 30.0
     """Timeout for the server process."""
-
-    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
     def get_env_vars(self) -> dict[str, str]:
         """Get environment variables for the server process."""
@@ -77,7 +76,7 @@ MCPServerConfig = Annotated[
 ]
 
 
-class PoolServerConfig(BaseModel):
+class PoolServerConfig(Schema):
     """Configuration for pool-based MCP server."""
 
     enabled: bool = False
@@ -114,7 +113,7 @@ class PoolServerConfig(BaseModel):
     zed_mode: bool = False
     """Enable Zed editor compatibility mode."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     def should_serve_node(self, name: str) -> bool:
         """Check if a node should be exposed."""
