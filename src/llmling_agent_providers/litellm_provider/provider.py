@@ -198,6 +198,7 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
     def _get_model_name(self, override: ModelProtocol | str | None = None) -> str:
         """Get effective model name."""
         final_model = override or self._model
+
         match final_model:
             case ModelProtocol():
                 name = final_model.model_name
@@ -206,6 +207,23 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             case _:
                 msg = "No model specified"
                 raise ValueError(msg)
+
+        # Handle multiple models (keep commas)
+        if "," in name:
+            # Process each model separately
+            models = [name.strip() for name in name.split(",")]
+            processed_models = []
+
+            for model in models:
+                processed = self._process_single_model_name(model)
+                processed_models.append(processed)
+
+            return ",".join(processed_models)
+        # Single model case
+        return self._process_single_model_name(name)
+
+    def _process_single_model_name(self, name: str) -> str:
+        """Process a single model name to standardize it."""
         name = name.replace(":", "/")
         if name.endswith("/free"):
             name = name.replace("/free", ":free")

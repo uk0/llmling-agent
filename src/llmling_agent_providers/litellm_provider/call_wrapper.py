@@ -21,9 +21,16 @@ class FakeAgent:
 
     def __init__(self, model: str, model_settings: dict[str, Any] | None = None):
         self.model = model
+        self.fallbacks: list[str] = []
         self.model_settings = model_settings or {}
         self.extra_headers = None
         self.base_url: str | None = None
+        # Parse model and fallbacks from comma-separated string
+        if "," in model:
+            models = [m.strip() for m in model.split(",")]
+            self.model = models[0]  # Primary model
+            self.fallbacks = models[1:]  # Fallback models
+
         if self.model.startswith("copilot:"):
             self.model = self.model.removeprefix("copilot:")
             token = os.getenv("GITHUB_COPILOT_API_KEY")
@@ -49,6 +56,7 @@ class FakeAgent:
         return await acompletion(  # type: ignore
             stream=False,
             model=self.model,
+            fallbacks=self.fallbacks if self.fallbacks else None,
             messages=messages,
             max_tokens=usage_limits.response_tokens_limit if usage_limits else None,
             response_format=result_type
@@ -76,6 +84,7 @@ class FakeAgent:
         return await acompletion(  # type: ignore
             stream=True,
             model=self.model,
+            fallbacks=self.fallbacks if self.fallbacks else None,
             messages=messages,
             max_tokens=usage_limits.response_tokens_limit if usage_limits else None,
             response_format=result_type
