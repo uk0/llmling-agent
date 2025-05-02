@@ -5,14 +5,15 @@ from __future__ import annotations
 from collections.abc import Callable  # noqa: TC003
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ImportString
+from pydantic import ConfigDict, Field, ImportString
+from schemez import Schema
 
 
 if TYPE_CHECKING:
     from llmling_agent.tools.base import Tool
 
 
-class BaseToolConfig(BaseModel):
+class BaseToolConfig(Schema):
     """Base configuration for agent tools."""
 
     type: str = Field(init=False)
@@ -42,7 +43,7 @@ class BaseToolConfig(BaseModel):
     metadata: dict[str, str] = Field(default_factory=dict)
     """Additional tool metadata."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True)
 
     def get_tool(self) -> Tool:
         """Convert config to Tool instance."""

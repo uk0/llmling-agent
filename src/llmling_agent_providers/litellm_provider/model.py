@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
-from pydantic import BaseModel
+from pydantic import BaseModel  # noqa: TC002
+from schemez import Schema
 
 
 if TYPE_CHECKING:
     from litellm import ModelResponse
     from litellm.utils import CustomStreamWrapper
-    from pydantic import BaseModel as PydanticModel
 
 
 class LiteLLMKwargs(TypedDict):
@@ -18,13 +18,13 @@ class LiteLLMKwargs(TypedDict):
 
     max_tokens: NotRequired[int | None]
     temperature: NotRequired[float | None]
-    response_format: NotRequired[type[PydanticModel] | None]
+    response_format: NotRequired[type[BaseModel] | None]
     tools: NotRequired[list[dict[str, Any]] | None]
     tool_choice: NotRequired[str | None]
     num_retries: NotRequired[int]
 
 
-class LiteLLMModel(BaseModel):
+class LiteLLMModel(Schema):
     """LiteLLM model wrapper for consistent model behavior."""
 
     def __init__(self, identifier: str):
@@ -40,7 +40,7 @@ class LiteLLMModel(BaseModel):
         *,
         max_completion_tokens: int | None = None,
         temperature: float | None = None,
-        response_format: type[PydanticModel] | None = None,
+        response_format: type[BaseModel] | None = None,
         tools: list[dict[str, Any]] | None = None,
         tool_choice: str | None = None,
         num_retries: int = 1,
@@ -79,7 +79,7 @@ class LiteLLMModel(BaseModel):
         *,
         max_completion_tokens: int | None = None,
         temperature: float | None = None,
-        response_format: type[PydanticModel] | None = None,
+        response_format: type[BaseModel] | None = None,
         tools: list[dict[str, Any]] | None = None,
         tool_choice: str | None = None,
         num_retries: int = 1,

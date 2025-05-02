@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+from schemez import Schema
 
 
 OpenAIParam = Literal[
@@ -69,7 +70,7 @@ Provider = Literal[
 ]
 
 
-class ModelCapabilities(BaseModel):
+class ModelCapabilities(Schema):
     """Complete model capabilities from litellm.get_model_info()."""
 
     model_config = ConfigDict(extra="allow", frozen=True, populate_by_name=True)

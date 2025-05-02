@@ -6,13 +6,14 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from schemez import Schema
 
 from llmling_agent import Agent
 from llmling_agent_examples.utils import run
 
 
-class MovieReview(BaseModel):
+class MovieReview(Schema):
     """Basic movie review."""
 
     score: float  # Any score from 1-10

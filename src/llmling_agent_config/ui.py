@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+from schemez import Schema
 
 
-class TriggerConfig(BaseModel):
+class TriggerConfig(Schema):
     """Configuration for initial trigger on UI startup."""
 
     node_name: str
@@ -20,7 +21,7 @@ class TriggerConfig(BaseModel):
     """Whether to exit after trigger completes."""
 
 
-class BaseUIConfig(BaseModel):
+class BaseUIConfig(Schema):
     """Base configuration for UI providers."""
 
     type: str = Field(init=False)
@@ -29,7 +30,7 @@ class BaseUIConfig(BaseModel):
     trigger: TriggerConfig | None = None
     """Optional trigger configuration to run on startup."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
 
 class StdlibUIConfig(BaseUIConfig):

@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Annotated, Final, Literal
 
 from platformdirs import user_data_dir
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, SecretStr
+from pydantic import ConfigDict, Field, HttpUrl, SecretStr
+from schemez import Schema
 
 
 LogFormat = Literal["chronological", "conversations"]
@@ -25,7 +26,7 @@ def get_database_path() -> str:
     return f"sqlite:///{db_path}"
 
 
-class BaseStorageProviderConfig(BaseModel):
+class BaseStorageProviderConfig(Schema):
     """Base storage provider configuration."""
 
     type: str = Field(init=False)
@@ -49,7 +50,7 @@ class BaseStorageProviderConfig(BaseModel):
     log_context: bool = True
     """Whether to log context messages."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
 
 class SQLStorageConfig(BaseStorageProviderConfig):
@@ -169,7 +170,7 @@ StorageProviderConfig = Annotated[
 ]
 
 
-class StorageConfig(BaseModel):
+class StorageConfig(Schema):
     """Global storage configuration."""
 
     providers: list[StorageProviderConfig] | None = None
@@ -203,7 +204,7 @@ class StorageConfig(BaseModel):
     log_context: bool = True
     """Whether to log additions to the context."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     @property
     def effective_providers(self) -> list[StorageProviderConfig]:

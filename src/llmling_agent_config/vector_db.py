@@ -4,17 +4,18 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import ConfigDict, Field, SecretStr
 from pydantic.functional_validators import model_validator
+from schemez import Schema
 
 
-class BaseVectorStoreConfig(BaseModel):
+class BaseVectorStoreConfig(Schema):
     """Base configuration for vector stores."""
 
     type: str = Field(init=False)
     """Type identifier for the vector store."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True)
 
 
 class ChromaConfig(BaseVectorStoreConfig):

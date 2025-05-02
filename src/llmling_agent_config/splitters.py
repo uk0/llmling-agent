@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
+from schemez import Schema
 
 
-class BaseChunkerConfig(BaseModel):
+class BaseChunkerConfig(Schema):
     """Base configuration for text chunkers."""
 
     type: str = Field(init=False)
@@ -16,7 +17,7 @@ class BaseChunkerConfig(BaseModel):
     chunk_overlap: int = 200
     """Number of characters to overlap between chunks."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(frozen=True)
 
 
 class LangChainChunkerConfig(BaseChunkerConfig):

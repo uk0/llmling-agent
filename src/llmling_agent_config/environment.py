@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import Annotated, Literal
 
 from llmling import Config
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+from schemez import Schema
 
 
-class FileEnvironment(BaseModel):
+class FileEnvironment(Schema):
     """File-based environment configuration.
 
     Loads environment settings from external YAML files, supporting:
@@ -27,7 +28,7 @@ class FileEnvironment(BaseModel):
     config_file_path: str | None = None
     """Path to agent config file for resolving relative paths"""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     def get_display_name(self) -> str:
         return f"File: {self.uri}"

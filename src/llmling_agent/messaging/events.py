@@ -6,7 +6,8 @@ from abc import abstractmethod
 from datetime import datetime  # noqa: TC003
 from typing import Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+from schemez import Schema
 
 from llmling_agent.messaging.messages import ChatMessage  # noqa: TC001
 from llmling_agent.talk.talk import Talk  # noqa: TC001
@@ -20,19 +21,14 @@ from llmling_agent_config.events import (  # noqa: TC001
 ChangeType = Literal["added", "modified", "deleted"]
 
 
-class EventData(BaseModel):
+class EventData(Schema):
     """Base class for event data."""
 
     source: str
     timestamp: datetime = Field(default_factory=get_now)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
-    model_config = ConfigDict(
-        frozen=True,
-        use_attribute_docstrings=True,
-        extra="forbid",
-        arbitrary_types_allowed=True,
-    )
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
     @classmethod
     def create(cls, source: str, **kwargs: Any) -> Self:

@@ -6,7 +6,7 @@
 
 import os
 
-from pydantic import BaseModel
+from schemez.schema import Schema
 
 from llmling_agent import Agent, AgentPool, AgentsManifest
 from llmling_agent_examples.utils import get_config_path, is_pyodide, run
@@ -16,7 +16,7 @@ from llmling_agent_examples.utils import get_config_path, is_pyodide, run
 os.environ["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY", "your_api_key_here")
 
 
-class PythonResult(BaseModel):
+class PythonResult(Schema):
     """Structured response defined in Python."""
 
     main_point: str

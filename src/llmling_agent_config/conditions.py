@@ -6,7 +6,8 @@ from collections.abc import Awaitable, Callable  # noqa: TC003
 from datetime import timedelta  # noqa: TC003
 from typing import TYPE_CHECKING, Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ImportString
+from pydantic import ConfigDict, Field, ImportString
+from schemez import Schema
 
 from llmling_agent.utils.inspection import execute
 from llmling_agent.utils.now import get_now
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
     from llmling_agent.talk.registry import EventContext
 
 
-class ConnectionCondition(BaseModel):
+class ConnectionCondition(Schema):
     """Base class for connection control conditions."""
 
     type: str = Field(init=False)
@@ -25,7 +26,7 @@ class ConnectionCondition(BaseModel):
     name: str | None = None
     """Optional name for the condition for referencing."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     async def check(self, context: EventContext) -> bool:
         """Check if condition is met."""

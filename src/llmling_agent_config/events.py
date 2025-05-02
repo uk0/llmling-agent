@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import ConfigDict, Field, SecretStr
+from schemez import Schema
 
 
 if TYPE_CHECKING:
@@ -32,7 +33,7 @@ Metadata:
 """
 
 
-class EventSourceConfig(BaseModel):
+class EventSourceConfig(Schema):
     """Base configuration for event sources."""
 
     type: str = Field(init=False)
@@ -53,7 +54,7 @@ class EventSourceConfig(BaseModel):
     include_timestamp: bool = True
     """Control timestamp visibility in template."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
 
 class FileWatchConfig(EventSourceConfig):
@@ -206,7 +207,7 @@ EventConfig = Annotated[
 ]
 
 
-class ConnectionEventCondition(BaseModel):
+class ConnectionEventCondition(Schema):
     """Base conditions specifically for connection events."""
 
     type: str = Field(init=False)

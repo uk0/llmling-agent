@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Any
 
 from llmling import BasePrompt
 from llmling.config.models import ToolConfig
-from pydantic import BaseModel, ConfigDict, Field, ImportString
+from pydantic import ConfigDict, Field, ImportString
+from schemez import Schema
 from typing_extensions import TypeVar
 
 from llmling_agent.tools.base import Tool
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 TResult = TypeVar("TResult", default=str)
 
 
-class Job[TDeps, TResult](BaseModel):
+class Job[TDeps, TResult](Schema):
     """A task is a piece of work that can be executed by an agent.
 
     Requirements:
@@ -67,7 +68,7 @@ class Job[TDeps, TResult](BaseModel):
     min_context_tokens: int | None = None
     """Minimum amount of required context size."""
 
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(frozen=True)
 
     async def can_be_executed_by(self, agent: AnyAgent[Any, Any]) -> bool:
         """Check if agent meets all requirements for this task."""
