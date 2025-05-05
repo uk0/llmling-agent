@@ -9,6 +9,7 @@ from contextlib import (
     asynccontextmanager,
     suppress,
 )
+import os
 import signal
 from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 
@@ -103,7 +104,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
         match manifest:
             case None:
                 self.manifest = AgentsManifest()
-            case str():
+            case str() | os.PathLike():
                 self.manifest = AgentsManifest.from_file(manifest)
             case AgentsManifest():
                 self.manifest = manifest
