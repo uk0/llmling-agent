@@ -385,21 +385,7 @@
               "type": "string"
             },
             {
-              "discriminator": {
-                "mapping": {
-                  "import": "#/$defs/ImportedResponseDefinition",
-                  "inline": "#/$defs/InlineResponseDefinition"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/InlineResponseDefinition"
-                },
-                {
-                  "$ref": "#/$defs/ImportedResponseDefinition"
-                }
-              ]
+              "$ref": "#/$defs/StructuredResponseConfig"
             },
             {
               "type": "null"
@@ -860,15 +846,18 @@
       "type": "object"
     },
     "AugmentedModelConfig": {
+      "additionalProperties": false,
       "description": "Configuration for model with pre/post prompt processing.",
       "properties": {
         "type": {
           "const": "augmented",
           "default": "augmented",
+          "description": "Type identifier for augmented model.",
           "title": "Type",
           "type": "string"
         },
         "main_model": {
+          "description": "The primary model identifier.",
           "title": "Main Model",
           "type": "string"
         },
@@ -881,7 +870,8 @@
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "description": "Optional configuration for prompt preprocessing."
         },
         "post_prompt": {
           "anyOf": [
@@ -892,7 +882,8 @@
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "description": "Optional configuration for prompt postprocessing."
         }
       },
       "required": [
@@ -902,9 +893,11 @@
       "type": "object"
     },
     "BaseModelConfig": {
+      "additionalProperties": false,
       "description": "Base for model configurations.",
       "properties": {
         "type": {
+          "description": "Type discriminator for model configs.",
           "title": "Type",
           "type": "string"
         }
@@ -1031,6 +1024,7 @@
       "type": "object"
     },
     "CLIResource": {
+      "additionalProperties": false,
       "description": "Resource from CLI command execution.",
       "properties": {
         "type": {
@@ -1440,6 +1434,7 @@
       "type": "object"
     },
     "CallableResource": {
+      "additionalProperties": false,
       "description": "Resource from executing a Python callable.",
       "properties": {
         "type": {
@@ -1795,15 +1790,18 @@
       "type": "object"
     },
     "ConnectionContentCondition": {
+      "additionalProperties": false,
       "description": "Simple content matching for connection events.",
       "properties": {
         "type": {
           "const": "content",
           "default": "content",
+          "description": "Content-based trigger.",
           "title": "Type",
           "type": "string"
         },
         "words": {
+          "description": "List of words to match.",
           "items": {
             "type": "string"
           },
@@ -1812,6 +1810,7 @@
         },
         "mode": {
           "default": "any",
+          "description": "Matching mode.",
           "enum": [
             "any",
             "all"
@@ -1827,15 +1826,18 @@
       "type": "object"
     },
     "ConnectionJinja2Condition": {
+      "additionalProperties": false,
       "description": "Flexible Jinja2 condition for connection events.",
       "properties": {
         "type": {
           "const": "jinja2",
           "default": "jinja2",
+          "description": "Jinja2-based trigger configuration.",
           "title": "Type",
           "type": "string"
         },
         "template": {
+          "description": "Jinja2-Template (needs to return a \"boolean\" string).",
           "title": "Template",
           "type": "string"
         }
@@ -1969,7 +1971,6 @@
               "items": {
                 "discriminator": {
                   "mapping": {
-                    "docling": "#/$defs/DoclingConverterConfig",
                     "google_speech": "#/$defs/GoogleSpeechConfig",
                     "local_whisper": "#/$defs/LocalWhisperConfig",
                     "markitdown": "#/$defs/MarkItDownConfig",
@@ -1980,9 +1981,6 @@
                   "propertyName": "type"
                 },
                 "oneOf": [
-                  {
-                    "$ref": "#/$defs/DoclingConverterConfig"
-                  },
                   {
                     "$ref": "#/$defs/MarkItDownConfig"
                   },
@@ -2080,15 +2078,18 @@
       "type": "object"
     },
     "CostOptimizedModelConfig": {
+      "additionalProperties": false,
       "description": "Configuration for cost-optimized model selection.",
       "properties": {
         "type": {
           "const": "cost-optimized",
           "default": "cost-optimized",
+          "description": "Type identifier for cost-optimized model.",
           "title": "Type",
           "type": "string"
         },
         "models": {
+          "description": "List of available models to choose from.",
           "items": {
             "anyOf": [
               {
@@ -2104,12 +2105,14 @@
           "type": "array"
         },
         "max_input_cost": {
+          "description": "Maximum cost threshold for input processing.",
           "exclusiveMinimum": 0,
           "title": "Max Input Cost",
           "type": "number"
         },
         "strategy": {
           "default": "best_within_budget",
+          "description": "Strategy for model selection based on cost.",
           "enum": [
             "cheapest_possible",
             "best_within_budget"
@@ -2126,6 +2129,7 @@
       "type": "object"
     },
     "CrewAIToolConfig": {
+      "additionalProperties": false,
       "description": "Configuration for CrewAI-based tools.",
       "properties": {
         "type": {
@@ -2225,11 +2229,13 @@
       "type": "object"
     },
     "DelegationModelConfig": {
+      "additionalProperties": false,
       "description": "Configuration for delegation-based model selection.",
       "properties": {
         "type": {
           "const": "delegation",
           "default": "delegation",
+          "description": "Type identifier for delegation model.",
           "title": "Type",
           "type": "string"
         },
@@ -2242,9 +2248,11 @@
               "$ref": "#/$defs/BaseModelConfig"
             }
           ],
+          "description": "Model responsible for selecting which model to use.",
           "title": "Selector Model"
         },
         "models": {
+          "description": "List of available models to choose from.",
           "items": {
             "anyOf": [
               {
@@ -2260,6 +2268,7 @@
           "type": "array"
         },
         "selection_prompt": {
+          "description": "Prompt used to guide the selector model's decision.",
           "title": "Selection Prompt",
           "type": "string"
         },
@@ -2276,6 +2285,7 @@
             }
           ],
           "default": null,
+          "description": "Optional descriptions of each model for selection purposes.",
           "title": "Model Descriptions"
         }
       },
@@ -2285,40 +2295,6 @@
         "selection_prompt"
       ],
       "title": "DelegationModelConfig",
-      "type": "object"
-    },
-    "DoclingConverterConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for docling-based converter.",
-      "properties": {
-        "type": {
-          "const": "docling",
-          "default": "docling",
-          "description": "Type discriminator for docling converter.",
-          "title": "Type",
-          "type": "string"
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this converter is currently active.",
-          "title": "Enabled",
-          "type": "boolean"
-        },
-        "max_size": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional size limit in bytes.",
-          "title": "Max Size"
-        }
-      },
-      "title": "DoclingConverterConfig",
       "type": "object"
     },
     "DynamicPrompt": {
@@ -2541,15 +2517,18 @@
       "type": "object"
     },
     "FallbackModelConfig": {
+      "additionalProperties": false,
       "description": "Configuration for fallback strategy.",
       "properties": {
         "type": {
           "const": "fallback",
           "default": "fallback",
+          "description": "Type identifier for fallback model.",
           "title": "Type",
           "type": "string"
         },
         "models": {
+          "description": "Ordered list of models to try in sequence.",
           "items": {
             "anyOf": [
               {
@@ -3400,15 +3379,18 @@
       "type": "object"
     },
     "ImportModelConfig": {
+      "additionalProperties": false,
       "description": "Configuration for importing external models.",
       "properties": {
         "type": {
           "const": "import",
           "default": "import",
+          "description": "Type identifier for import model.",
           "title": "Type",
           "type": "string"
         },
         "model": {
+          "description": "Import path to the model class or function.",
           "title": "Model",
           "type": "string"
         },
@@ -3416,6 +3398,7 @@
           "additionalProperties": {
             "type": "string"
           },
+          "description": "Keyword arguments to pass to the imported model.",
           "title": "Kw Args",
           "type": "object"
         }
@@ -3427,6 +3410,7 @@
       "type": "object"
     },
     "ImportToolConfig": {
+      "additionalProperties": false,
       "description": "Configuration for importing tools from Python modules.",
       "properties": {
         "type": {
@@ -3519,7 +3503,7 @@
       "title": "ImportToolConfig",
       "type": "object"
     },
-    "ImportedResponseDefinition": {
+    "ImportedSchemaDef": {
       "additionalProperties": false,
       "description": "Response definition that imports an existing Pydantic model.\n\nAllows using externally defined Pydantic models as response types.\nBenefits:\n- Reuse existing model definitions\n- Full Python type support\n- Complex validation logic\n- IDE support for imported types\n\nExample:\n    responses:\n      AnalysisResult:\n        type: import\n        import_path: myapp.models.AnalysisResult",
       "properties": {
@@ -3543,38 +3527,6 @@
           "description": "A description for this response definition.",
           "title": "Description"
         },
-        "result_tool_name": {
-          "default": "final_result",
-          "description": "The tool name for the Agent tool to create the structured response.",
-          "title": "Result Tool Name",
-          "type": "string"
-        },
-        "result_tool_description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The tool description for the Agent tool to create the structured response.",
-          "title": "Result Tool Description"
-        },
-        "result_retries": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Retry override. How often the Agent should try to validate the response.",
-          "title": "Result Retries"
-        },
         "import_path": {
           "description": "The path to the pydantic model to use as the response type.",
           "title": "Import Path",
@@ -3584,7 +3536,7 @@
       "required": [
         "import_path"
       ],
-      "title": "ImportedResponseDefinition",
+      "title": "ImportedSchemaDef",
       "type": "object"
     },
     "InlineEnvironment": {
@@ -3750,9 +3702,9 @@
       "title": "InlineEnvironment",
       "type": "object"
     },
-    "InlineResponseDefinition": {
+    "InlineSchemaDef": {
       "additionalProperties": false,
-      "description": "Inline definition of an agent's response structure.\n\nAllows defining response types directly in the configuration using:\n- Field definitions with types and descriptions\n- Optional validation constraints\n- Custom field descriptions\n\nExample:\n    responses:\n      BasicResult:\n        type: inline\n        fields:\n          success: {type: bool, description: \"Operation success\"}\n          message: {type: str, description: \"Result details\"}",
+      "description": "Inline definition of schema.\n\nAllows defining response types directly in the configuration using:\n- Field definitions with types and descriptions\n- Optional validation constraints\n- Custom field descriptions\n\nExample:\n    schemas:\n      BasicResult:\n        type: inline\n        fields:\n          success: {type: bool, description: \"Operation success\"}\n          message: {type: str, description: \"Result details\"}",
       "properties": {
         "type": {
           "const": "inline",
@@ -3774,41 +3726,9 @@
           "description": "A description for this response definition.",
           "title": "Description"
         },
-        "result_tool_name": {
-          "default": "final_result",
-          "description": "The tool name for the Agent tool to create the structured response.",
-          "title": "Result Tool Name",
-          "type": "string"
-        },
-        "result_tool_description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The tool description for the Agent tool to create the structured response.",
-          "title": "Result Tool Description"
-        },
-        "result_retries": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Retry override. How often the Agent should try to validate the response.",
-          "title": "Result Retries"
-        },
         "fields": {
           "additionalProperties": {
-            "$ref": "#/$defs/ResponseField"
+            "$ref": "#/$defs/SchemaField"
           },
           "description": "A dictionary containing all fields.",
           "title": "Fields",
@@ -3818,35 +3738,41 @@
       "required": [
         "fields"
       ],
-      "title": "InlineResponseDefinition",
+      "title": "InlineSchemaDef",
       "type": "object"
     },
     "InputModelConfig": {
+      "additionalProperties": false,
       "description": "Configuration for human input model.",
       "properties": {
         "type": {
           "const": "input",
           "default": "input",
+          "description": "Type identifier for input model.",
           "title": "Type",
           "type": "string"
         },
         "prompt_template": {
           "default": "\ud83d\udc64 Please respond to: {prompt}",
+          "description": "Template for displaying the prompt to the user.",
           "title": "Prompt Template",
           "type": "string"
         },
         "show_system": {
           "default": true,
+          "description": "Whether to show system messages.",
           "title": "Show System",
           "type": "boolean"
         },
         "input_prompt": {
           "default": "Your response: ",
+          "description": "Text displayed when requesting input.",
           "title": "Input Prompt",
           "type": "string"
         },
         "handler": {
           "default": "llmling_models:DefaultInputHandler",
+          "description": "Handler for processing user input.",
           "title": "Handler",
           "type": "string"
         }
@@ -4228,15 +4154,18 @@
       "type": "object"
     },
     "LLMAdapterConfig": {
+      "additionalProperties": false,
       "description": "Configuration for LLM library adapter.",
       "properties": {
         "type": {
           "const": "llm",
           "default": "llm",
+          "description": "Type identifier for LLM adapter.",
           "title": "Type",
           "type": "string"
         },
         "model_name": {
+          "description": "Name of the model in the LLM library.",
           "title": "Model Name",
           "type": "string"
         }
@@ -4292,6 +4221,7 @@
       "type": "object"
     },
     "LangChainToolConfig": {
+      "additionalProperties": false,
       "description": "Configuration for LangChain tools.",
       "properties": {
         "type": {
@@ -4953,6 +4883,7 @@
       "type": "object"
     },
     "MessageContent": {
+      "additionalProperties": false,
       "description": "Content item in a message.",
       "properties": {
         "type": {
@@ -5608,6 +5539,7 @@
       "type": "object"
     },
     "PathResource": {
+      "additionalProperties": false,
       "description": "Resource loaded from a file or URL.",
       "properties": {
         "type": {
@@ -5799,13 +5731,16 @@
       "type": "object"
     },
     "PrePostPromptConfig": {
+      "additionalProperties": false,
       "description": "Configuration for pre/post prompts.",
       "properties": {
         "text": {
+          "description": "The prompt text to be applied.",
           "title": "Text",
           "type": "string"
         },
         "model": {
+          "description": "The model to use for processing the prompt.",
           "title": "Model",
           "type": "string"
         }
@@ -5818,6 +5753,7 @@
       "type": "object"
     },
     "ProcessingStep": {
+      "additionalProperties": false,
       "description": "Configuration for a processing step.",
       "properties": {
         "name": {
@@ -6295,16 +6231,19 @@
       "type": "object"
     },
     "RemoteInputConfig": {
+      "additionalProperties": false,
       "description": "Configuration for remote human input.",
       "properties": {
         "type": {
           "const": "remote-input",
           "default": "remote-input",
+          "description": "Type identifier for remote input model.",
           "title": "Type",
           "type": "string"
         },
         "url": {
           "default": "ws://localhost:8000/v1/chat/stream",
+          "description": "WebSocket URL for connecting to the remote input service.",
           "title": "Url",
           "type": "string"
         },
@@ -6320,6 +6259,7 @@
             }
           ],
           "default": null,
+          "description": "Optional API key for authentication.",
           "title": "Api Key"
         }
       },
@@ -6327,16 +6267,19 @@
       "type": "object"
     },
     "RemoteProxyConfig": {
+      "additionalProperties": false,
       "description": "Configuration for remote model proxy.",
       "properties": {
         "type": {
           "const": "remote-proxy",
           "default": "remote-proxy",
+          "description": "Type identifier for remote proxy model.",
           "title": "Type",
           "type": "string"
         },
         "url": {
           "default": "ws://localhost:8000/v1/completion/stream",
+          "description": "WebSocket URL for connecting to the remote model service.",
           "title": "Url",
           "type": "string"
         },
@@ -6352,45 +6295,11 @@
             }
           ],
           "default": null,
+          "description": "Optional API key for authentication.",
           "title": "Api Key"
         }
       },
       "title": "RemoteProxyConfig",
-      "type": "object"
-    },
-    "ResponseField": {
-      "additionalProperties": false,
-      "description": "Field definition for inline response types.\n\nDefines a single field in an inline response definition, including:\n- Data type specification\n- Optional description\n- Validation constraints\n\nUsed by InlineResponseDefinition to structure response fields.",
-      "properties": {
-        "type": {
-          "description": "Data type of the response field",
-          "title": "Type",
-          "type": "string"
-        },
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional description of what this field represents",
-          "title": "Description"
-        },
-        "constraints": {
-          "additionalProperties": true,
-          "description": "Optional validation constraints for the field",
-          "title": "Constraints",
-          "type": "object"
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "title": "ResponseField",
       "type": "object"
     },
     "SQLStorageConfig": {
@@ -6536,6 +6445,242 @@
       "title": "SSEMCPServerConfig",
       "type": "object"
     },
+    "SchemaField": {
+      "additionalProperties": false,
+      "description": "Field definition for inline response types.\n\nDefines a single field in an inline response definition, including:\n- Data type specification\n- Optional description\n- Validation constraints\n- Enum values (when type is 'enum')\n\nUsed by InlineSchemaDef to structure response fields.",
+      "properties": {
+        "type": {
+          "description": "Data type of the response field",
+          "title": "Type",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional description of what this field represents",
+          "title": "Description"
+        },
+        "values": {
+          "anyOf": [
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Values for enum type fields",
+          "title": "Values"
+        },
+        "default": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Default value for the field",
+          "title": "Default"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Title for the field in generated JSON Schema",
+          "title": "Title"
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Regex pattern for string validation",
+          "title": "Pattern"
+        },
+        "min_length": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Minimum length for collections",
+          "title": "Min Length"
+        },
+        "max_length": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum length for collections",
+          "title": "Max Length"
+        },
+        "gt": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Greater than (exclusive) validation for numbers",
+          "title": "Gt"
+        },
+        "ge": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Greater than or equal (inclusive) validation for numbers",
+          "title": "Ge"
+        },
+        "lt": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Less than (exclusive) validation for numbers",
+          "title": "Lt"
+        },
+        "le": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Less than or equal (inclusive) validation for numbers",
+          "title": "Le"
+        },
+        "multiple_of": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Number must be a multiple of this value",
+          "title": "Multiple Of"
+        },
+        "literal_value": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Value for Literal type constraint, makes field accept only this specific value",
+          "title": "Literal Value"
+        },
+        "examples": {
+          "anyOf": [
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Examples for this field in JSON Schema",
+          "title": "Examples"
+        },
+        "optional": {
+          "default": false,
+          "description": "Whether this field is optional (None value allowed)",
+          "title": "Optional",
+          "type": "boolean"
+        },
+        "json_schema_extra": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Additional JSON Schema information",
+          "title": "Json Schema Extra"
+        },
+        "field_config": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Configuration for Pydantic model fields",
+          "title": "Field Config"
+        },
+        "constraints": {
+          "additionalProperties": true,
+          "description": "Additional constraints not covered by explicit fields",
+          "title": "Constraints",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "SchemaField",
+      "type": "object"
+    },
     "SessionQuery": {
       "additionalProperties": false,
       "description": "Query configuration for session recovery.",
@@ -6655,6 +6800,7 @@
       "type": "object"
     },
     "SourceResource": {
+      "additionalProperties": false,
       "description": "Resource from Python source code.",
       "properties": {
         "type": {
@@ -6741,6 +6887,7 @@
       "type": "object"
     },
     "SourceResourceConfig": {
+      "additionalProperties": false,
       "description": "Configuration for a single filesystem source.",
       "properties": {
         "type": {
@@ -7099,15 +7246,18 @@
       "type": "object"
     },
     "StringModelConfig": {
+      "additionalProperties": false,
       "description": "Configuration for string-based model references.",
       "properties": {
         "type": {
           "const": "string",
           "default": "string",
+          "description": "Type identifier for string model.",
           "title": "Type",
           "type": "string"
         },
         "identifier": {
+          "description": "String identifier for the model.",
           "title": "Identifier",
           "type": "string"
         }
@@ -7116,6 +7266,81 @@
         "identifier"
       ],
       "title": "StringModelConfig",
+      "type": "object"
+    },
+    "StructuredResponseConfig": {
+      "additionalProperties": false,
+      "description": "Base class for response definitions.",
+      "properties": {
+        "response_schema": {
+          "description": "A model describing the response schema. ",
+          "discriminator": {
+            "mapping": {
+              "import": "#/$defs/ImportedSchemaDef",
+              "inline": "#/$defs/InlineSchemaDef"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/InlineSchemaDef"
+            },
+            {
+              "$ref": "#/$defs/ImportedSchemaDef"
+            }
+          ],
+          "title": "Response Schema"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A description for this response definition.",
+          "title": "Description"
+        },
+        "result_tool_name": {
+          "default": "final_result",
+          "description": "The tool name for the Agent tool to create the structured response.",
+          "title": "Result Tool Name",
+          "type": "string"
+        },
+        "result_tool_description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The tool description for the Agent tool to create the structured response.",
+          "title": "Result Tool Description"
+        },
+        "result_retries": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Retry override. How often the Agent should try to validate the response.",
+          "title": "Result Retries"
+        }
+      },
+      "required": [
+        "response_schema"
+      ],
+      "title": "StructuredResponseConfig",
       "type": "object"
     },
     "SupabaseConfig": {
@@ -7454,11 +7679,13 @@
       "type": "object"
     },
     "TestModelConfig": {
+      "additionalProperties": false,
       "description": "Configuration for test models.",
       "properties": {
         "type": {
           "const": "test",
           "default": "test",
+          "description": "Type identifier for test model.",
           "title": "Type",
           "type": "string"
         },
@@ -7472,6 +7699,7 @@
             }
           ],
           "default": null,
+          "description": "Optional custom text to return from the test model.",
           "title": "Custom Output Text"
         },
         "call_tools": {
@@ -7488,6 +7716,7 @@
             }
           ],
           "default": "all",
+          "description": "Tools that can be called by the test model.",
           "title": "Call Tools"
         }
       },
@@ -7601,6 +7830,7 @@
       "type": "object"
     },
     "TextResource": {
+      "additionalProperties": false,
       "description": "Raw text resource.",
       "properties": {
         "type": {
@@ -7817,15 +8047,18 @@
       "type": "object"
     },
     "TokenOptimizedModelConfig": {
+      "additionalProperties": false,
       "description": "Configuration for token-optimized model selection.",
       "properties": {
         "type": {
           "const": "token-optimized",
           "default": "token-optimized",
+          "description": "Type identifier for token-optimized model.",
           "title": "Type",
           "type": "string"
         },
         "models": {
+          "description": "List of available models to choose from based on token optimization.",
           "items": {
             "anyOf": [
               {
@@ -7842,6 +8075,7 @@
         },
         "strategy": {
           "default": "efficient",
+          "description": "Strategy for selecting models based on token usage.",
           "enum": [
             "efficient",
             "maximum_context"
@@ -7937,12 +8171,82 @@
           "default": null,
           "description": "Optional override for the tool's description",
           "title": "Description"
+        },
+        "hints": {
+          "$ref": "#/$defs/ToolHints",
+          "default": {
+            "read_only": null,
+            "destructive": null,
+            "idempotent": null,
+            "open_world": null
+          },
+          "description": "Hints about the tool's behavior and execution characteristics"
         }
       },
       "required": [
         "import_path"
       ],
       "title": "ToolConfig",
+      "type": "object"
+    },
+    "ToolHints": {
+      "additionalProperties": false,
+      "description": "Configuration for tool execution hints.",
+      "properties": {
+        "read_only": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints that this tool only reads data without modifying anything",
+          "title": "Read Only"
+        },
+        "destructive": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints that this tool performs destructive operations that cannot be undone",
+          "title": "Destructive"
+        },
+        "idempotent": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints that this tool has idempotent behaviour",
+          "title": "Idempotent"
+        },
+        "open_world": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints that this tool can access / interact with external resources beyond the\ncurrent system",
+          "title": "Open World"
+        }
+      },
+      "title": "ToolHints",
       "type": "object"
     },
     "TraceloopConfig": {
@@ -8005,13 +8309,16 @@
       "type": "object"
     },
     "TriggerConfig": {
+      "additionalProperties": false,
       "description": "Configuration for initial trigger on UI startup.",
       "properties": {
         "node_name": {
+          "description": "Name of the node (agent/team) to trigger.",
           "title": "Node Name",
           "type": "string"
         },
         "prompts": {
+          "description": "Prompts to send.",
           "items": {
             "type": "string"
           },
@@ -8020,6 +8327,7 @@
         },
         "exit_after": {
           "default": false,
+          "description": "Whether to exit after trigger completes.",
           "title": "Exit After",
           "type": "boolean"
         }
@@ -8032,6 +8340,7 @@
       "type": "object"
     },
     "UnionResourceConfig": {
+      "additionalProperties": false,
       "description": "Configuration for combining multiple resources.",
       "properties": {
         "type": {
@@ -8158,15 +8467,18 @@
       "type": "object"
     },
     "UserSelectModelConfig": {
+      "additionalProperties": false,
       "description": "Configuration for interactive model selection.",
       "properties": {
         "type": {
           "const": "user-select",
           "default": "user-select",
+          "description": "Type identifier for user-select model.",
           "title": "Type",
           "type": "string"
         },
         "models": {
+          "description": "List of models the user can choose from.",
           "items": {
             "anyOf": [
               {
@@ -8183,21 +8495,25 @@
         },
         "prompt_template": {
           "default": "\ud83e\udd16 Choose a model for: {prompt}",
+          "description": "Template for displaying the choice prompt to the user.",
           "title": "Prompt Template",
           "type": "string"
         },
         "show_system": {
           "default": true,
+          "description": "Whether to show system messages during selection.",
           "title": "Show System",
           "type": "boolean"
         },
         "input_prompt": {
           "default": "Enter model number (0-{max}): ",
+          "description": "Text displayed when requesting model selection.",
           "title": "Input Prompt",
           "type": "string"
         },
         "handler": {
           "default": "llmling_models:DefaultInputHandler",
+          "description": "Handler for processing user selection input.",
           "title": "Handler",
           "type": "string"
         }
@@ -8529,19 +8845,6 @@
       "additionalProperties": false,
       "description": "Configuration for custom toolsets.",
       "properties": {
-        "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
-        },
         "type": {
           "const": "custom",
           "default": "custom",
@@ -8565,19 +8868,6 @@
       "additionalProperties": false,
       "description": "Configuration for entry point toolsets.",
       "properties": {
-        "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
-        },
         "type": {
           "const": "entry_points",
           "default": "entry_points",
@@ -8601,19 +8891,6 @@
       "additionalProperties": false,
       "description": "Configuration for OpenAPI toolsets.",
       "properties": {
-        "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
-        },
         "type": {
           "const": "openapi",
           "default": "openapi",
@@ -8876,21 +9153,7 @@
     },
     "responses": {
       "additionalProperties": {
-        "discriminator": {
-          "mapping": {
-            "import": "#/$defs/ImportedResponseDefinition",
-            "inline": "#/$defs/InlineResponseDefinition"
-          },
-          "propertyName": "type"
-        },
-        "oneOf": [
-          {
-            "$ref": "#/$defs/InlineResponseDefinition"
-          },
-          {
-            "$ref": "#/$defs/ImportedResponseDefinition"
-          }
-        ]
+        "$ref": "#/$defs/StructuredResponseConfig"
       },
       "description": "Mapping of response names to their definitions",
       "title": "Responses",
