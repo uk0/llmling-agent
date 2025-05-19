@@ -64,7 +64,7 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.providers import ProcessorCallback
-    from llmling_agent_config.result_types import ResponseDefinition
+    from llmling_agent_config.result_types import StructuredResponseConfig
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
     from llmling_agent_providers.base import (
@@ -516,7 +516,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
     def set_result_type(
         self,
-        result_type: type[TResult] | str | ResponseDefinition | None,
+        result_type: type[TResult] | str | StructuredResponseConfig | None,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
@@ -593,7 +593,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
     @overload
     def to_structured[TResult](
         self,
-        result_type: type[TResult] | str | ResponseDefinition,
+        result_type: type[TResult] | str | StructuredResponseConfig,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
@@ -601,7 +601,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
     def to_structured[TResult](
         self,
-        result_type: type[TResult] | str | ResponseDefinition | None,
+        result_type: type[TResult] | str | StructuredResponseConfig | None,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,

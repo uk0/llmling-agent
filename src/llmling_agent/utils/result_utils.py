@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
-
-from llmling_agent_config.result_types import InlineResponseDefinition
+from schemez import InlineSchemaDef
 
 
 if TYPE_CHECKING:
@@ -14,9 +13,9 @@ if TYPE_CHECKING:
 
 
 def resolve_response_type(
-    type_name: str | InlineResponseDefinition,
+    type_name: str | InlineSchemaDef,
     context: AgentContext | None,
-) -> type[BaseModel]:
+) -> type[BaseModel]:  # type: ignore
     """Resolve response type from string name to actual type.
 
     Args:
@@ -29,33 +28,22 @@ def resolve_response_type(
     Raises:
         ValueError: If type cannot be resolved
     """
-    from llmling_agent_config.result_types import (
-        ImportedResponseDefinition,
-        InlineResponseDefinition,
-    )
-
     match type_name:
         case str() if context and type_name in context.definition.responses:
-            # Get from shared responses
-            response_def = context.definition.responses[type_name]
-            match response_def:
-                case ImportedResponseDefinition():
-                    return response_def.resolve_model()
-                case InlineResponseDefinition():
-                    return response_def.create_model()
-        case InlineResponseDefinition():
-            # Handle inline definition
-            return type_name.create_model()
+            defn = context.definition.responses[type_name]  # from defined responses
+            return defn.response_schema.get_schema()
+        case InlineSchemaDef():  # Handle inline definition
+            return type_name.get_schema()
         case _:
             msg = f"Invalid result type: {type_name}"
             raise ValueError(msg)
 
 
-def to_type(result_type, context: AgentContext | None = None) -> type:
+def to_type(result_type, context: AgentContext | None = None) -> type[BaseModel | str]:
     match result_type:
         case str():
             return resolve_response_type(result_type, context)
-        case InlineResponseDefinition():
+        case InlineSchemaDef():
             return resolve_response_type(result_type, None)
         case None:
             return str

@@ -119,14 +119,15 @@ teams:
 # Shared response definitions
 responses:
   AnalysisResult:
-    type: "inline"
-    fields:
-      severity:
-        type: "str"
-        description: "Issue severity"
-  CodeMetrics:
-    type: "import"
-    import_path: "myapp.types.CodeMetrics"
+    response_schema:
+      type: "inline"
+      fields:
+        severity:
+          type: "str"
+          description: "Issue severity"
+    CodeMetrics:
+      type: "import"
+      import_path: "myapp.types.CodeMetrics"
 
 # Storage configuration
 storage:

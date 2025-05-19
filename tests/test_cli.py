@@ -16,13 +16,14 @@ if TYPE_CHECKING:
 TEST_CONFIG = """\
 responses:
   BasicResult:
-    description: Simple test result
-    type: inline
-    fields:
-      success:
-        type: bool
-      message:
-        type: str
+    response_schema:
+        description: Simple test result
+        type: inline
+        fields:
+            success:
+                type: bool
+            message:
+                type: str
 
 agents:
   test_agent:

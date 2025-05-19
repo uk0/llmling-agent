@@ -22,7 +22,7 @@ from llmling_agent_config.observability import ObservabilityConfig
 from llmling_agent_config.prompts import PromptConfig
 from llmling_agent_config.providers import BaseProviderConfig
 from llmling_agent_config.resources import ResourceConfig, SourceResourceConfig
-from llmling_agent_config.result_types import ResponseDefinition  # noqa: TC001
+from llmling_agent_config.result_types import StructuredResponseConfig  # noqa: TC001
 from llmling_agent_config.storage import StorageConfig
 from llmling_agent_config.task import Job  # noqa: TC001
 from llmling_agent_config.teams import TeamConfig  # noqa: TC001
@@ -90,7 +90,7 @@ class AgentsManifest(ConfigModel):
     conversion: ConversionConfig = Field(default_factory=ConversionConfig)
     """Document conversion configuration."""
 
-    responses: dict[str, ResponseDefinition] = Field(default_factory=dict)
+    responses: dict[str, StructuredResponseConfig] = Field(default_factory=dict)
     """Mapping of response names to their definitions"""
 
     jobs: dict[str, Job] = Field(default_factory=dict)
@@ -481,8 +481,8 @@ class AgentsManifest(ConfigModel):
         logger.debug("Building response model for %r", agent_config.result_type)
         if isinstance(agent_config.result_type, str):
             response_def = self.responses[agent_config.result_type]
-            return response_def.create_model()  # type: ignore
-        return agent_config.result_type.create_model()  # type: ignore
+            return response_def.response_schema.get_schema()  # type: ignore
+        return agent_config.result_type.response_schema.get_schema()  # type: ignore
 
 
 if __name__ == "__main__":

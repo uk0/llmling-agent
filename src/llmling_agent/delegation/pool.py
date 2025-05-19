@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.eventnode import EventNode
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.manifest import AgentsManifest
-    from llmling_agent_config.result_types import ResponseDefinition
+    from llmling_agent_config.result_types import StructuredResponseConfig
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
@@ -854,7 +854,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
         self,
         name: AgentName,
         *,
-        result_type: type[TResult] | str | ResponseDefinition,
+        result_type: type[TResult] | str | StructuredResponseConfig,
         **kwargs: Unpack[AgentKwargs],
     ) -> StructuredAgent[Any, TResult]: ...
 
@@ -862,7 +862,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
         self,
         name: AgentName,
         *,
-        result_type: type[Any] | str | ResponseDefinition | None = None,
+        result_type: type[Any] | str | StructuredResponseConfig | None = None,
         **kwargs: Unpack[AgentKwargs],
     ) -> Agent[Any] | StructuredAgent[Any, Any]:
         """Add a new permanent agent to the pool.
@@ -873,7 +873,7 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
                 - None: Regular unstructured agent
                 - type: Python type for validation
                 - str: Name of response definition
-                - ResponseDefinition: Complete response definition
+                - StructuredResponseConfig: Complete response definition
             **kwargs: Additional agent configuration
 
         Returns:

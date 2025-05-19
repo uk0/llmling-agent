@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import typer as t
 
 from llmling_agent import AgentPool
 from llmling_agent_cli import resolve_agent_config
+
+
+if TYPE_CHECKING:
+    from llmling_agent_ui.base import UIProvider
 
 
 def ui_command(
@@ -31,7 +37,7 @@ def ui_command(
             case StdlibUIConfig():
                 from llmling_agent_ui.stdlib_provider import StdlibUIProvider
 
-                provider = StdlibUIProvider(ui_config)
+                provider: UIProvider = StdlibUIProvider(ui_config)
             case GradioUIConfig():
                 from llmling_agent_ui.gradio_provider import GradioUIProvider
 

@@ -28,15 +28,16 @@ def make_response(prompt: str) -> ConversationOutput:
 TEST_CONFIG = f"""\
 responses:
   ConversationOutput:
-    type: inline
-    description: Output with conversation tracking
-    fields:
-      message:
-        type: str
-        description: Response message
-      conversation_index:
-        type: int
-        description: Position in conversation
+    response_schema:
+        type: inline
+        description: Output with conversation tracking
+        fields:
+            message:
+                type: str
+                description: Response message
+            conversation_index:
+                type: int
+                description: Position in conversation
 
 agents:
   test_agent:

@@ -17,6 +17,7 @@ from llmling import (
 )
 from llmling.utils.importing import import_callable, import_class
 from pydantic import Field, model_validator
+from schemez import InlineSchemaDef
 from toprompt import render_prompt
 
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
@@ -30,7 +31,7 @@ from llmling_agent_config.environment import (
 from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
 from llmling_agent_config.nodes import NodeConfig
 from llmling_agent_config.providers import ProviderConfig  # noqa: TC001
-from llmling_agent_config.result_types import InlineResponseDefinition, ResponseDefinition
+from llmling_agent_config.result_types import StructuredResponseConfig  # noqa: TC001
 from llmling_agent_config.session import MemoryConfig, SessionQuery
 from llmling_agent_config.tools import BaseToolConfig, ToolConfig
 from llmling_agent_config.toolsets import ToolsetConfig  # noqa: TC001
@@ -89,7 +90,7 @@ class AgentConfig(NodeConfig):
     session: str | SessionQuery | MemoryConfig | None = None
     """Session configuration for conversation recovery."""
 
-    result_type: str | ResponseDefinition | None = None
+    result_type: str | StructuredResponseConfig | None = None
     """Name of the response definition to use"""
 
     retries: int = 1
@@ -157,9 +158,9 @@ class AgentConfig(NodeConfig):
             retries = result_type.pop("result_retries", None)
 
             # Convert remaining dict to ResponseDefinition
-            if "type" not in result_type:
-                result_type["type"] = "inline"
-            data["result_type"] = InlineResponseDefinition(**result_type)
+            if "type" not in result_type["response_schema"]:
+                result_type["response_schema"]["type"] = "inline"
+            data["result_type"]["response_schema"] = InlineSchemaDef(**result_type)
 
             # Apply extracted settings to agent config
             if tool_name:

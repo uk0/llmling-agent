@@ -331,11 +331,12 @@ teams:
 # Response type definitions
 responses:
   AnalysisResult:
-    type: "inline"
-    description: "Code analysis result format"
-    fields:
-      severity: {type: "str"}
-      issues: {type: "list[str]"}
+    response_schema:
+      type: "inline"
+      description: "Code analysis result format"
+      fields:
+        severity: {type: "str"}
+        issues: {type: "list[str]"}
 
   ComplexResult:
     type: "import"

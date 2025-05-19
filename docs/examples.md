@@ -73,15 +73,16 @@ Define structured outputs for consistent response formats:
 # agents.yml
 responses:
   CodeReview:
-    type: inline
-    description: "Code review result"
-    fields:
-      issues:
-        type: list[str]
-        description: "Found issues"
-      score:
-        type: int
-        description: "Quality score (0-100)"
+    response_schema:
+      type: inline
+      description: "Code review result"
+      fields:
+        issues:
+          type: list[str]
+          description: "Found issues"
+        score:
+          type: int
+          description: "Quality score (0-100)"
 
 agents:
   code_reviewer:

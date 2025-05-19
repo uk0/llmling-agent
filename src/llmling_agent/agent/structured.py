@@ -11,7 +11,7 @@ from typing_extensions import TypeVar
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.utils.result_utils import to_type
-from llmling_agent_config.result_types import BaseResponseDefinition, ResponseDefinition
+from llmling_agent_config.result_types import StructuredResponseConfig
 
 
 if TYPE_CHECKING:
@@ -56,7 +56,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
     def __init__(
         self,
         agent: Agent[TDeps] | StructuredAgent[TDeps, TResult] | Callable[..., TResult],
-        result_type: type[TResult] | str | ResponseDefinition,
+        result_type: type[TResult] | str | StructuredResponseConfig,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
@@ -102,7 +102,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
                     tool_name=tool_name,
                     tool_description=tool_description,
                 )
-            case BaseResponseDefinition():
+            case StructuredResponseConfig():
                 # For response definitions, use as-is
                 # (overrides don't apply to complete definitions)
                 self._agent.set_result_type(result_type)
@@ -164,7 +164,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
         typ = result_type or self._result_type
         return await self._agent._run(
             *prompt,
-            result_type=typ,
+            result_type=typ,  # type: ignore
             model=model,
             store_history=store_history,
             tool_choice=tool_choice,
@@ -236,7 +236,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
     @overload
     def to_structured[TNewResult](
         self,
-        result_type: type[TNewResult] | str | ResponseDefinition,
+        result_type: type[TNewResult] | str | StructuredResponseConfig,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
@@ -244,7 +244,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def to_structured[TNewResult](
         self,
-        result_type: type[TNewResult] | str | ResponseDefinition | None,
+        result_type: type[TNewResult] | str | StructuredResponseConfig | None,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,

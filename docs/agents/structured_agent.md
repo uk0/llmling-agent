@@ -68,15 +68,16 @@ agents:
 
 responses:
   AnalysisResult:
-    type: inline
-    description: "Text analysis result"
-    fields:
-      sentiment:
-        type: float
-        description: "Sentiment score between -1 and 1"
-      topics:
-        type: list[str]
-        description: "Main topics discussed"
+    response_schema:
+      type: inline
+      description: "Text analysis result"
+      fields:
+        sentiment:
+          type: float
+          description: "Sentiment score between -1 and 1"
+        topics:
+          type: list[str]
+          description: "Main topics discussed"
 ```
 
 ## Important Note on Usage Patterns

@@ -18,17 +18,17 @@ if TYPE_CHECKING:
 VALID_AGENT_CONFIG = """\
 responses:
   TestResponse:
-    description: Test response
-    type: inline
-    fields:
-      message:
-        type: str
-        description: A message
-      score:
-        type: int
-        constraints:
-          ge: 0
-          le: 100
+    response_schema:
+        description: Test response
+        type: inline
+        fields:
+            message:
+                type: str
+                description: A message
+            score:
+                type: int
+                ge: 0
+                le: 100
 
 agents:
   test_agent:  # Key is the agent ID
@@ -60,12 +60,13 @@ global_settings:
 ENV_AGENT = """\
 responses:
     BasicResult:
-        description: Test result
-        type: inline
-        fields:
-            message:
-                type: str
-                description: Test message
+       response_schema:
+            description: Test result
+            type: inline
+            fields:
+                message:
+                    type: str
+                    description: Test message
 
 agents:
     test_agent:
@@ -79,8 +80,9 @@ agents:
 def test_valid_agent_definition():
     """Test valid complete agent configuration."""
     agent_def = AgentsManifest.model_validate(yamling.load_yaml(VALID_AGENT_CONFIG))
-    score = agent_def.responses["TestResponse"].fields["score"]  # pyright: ignore
-    assert score.constraints == {"ge": 0, "le": 100}
+    score = agent_def.responses["TestResponse"].response_schema.fields["score"]  # pyright: ignore
+    assert score.ge == 0
+    assert score.le == 100  # noqa: PLR2004
 
 
 def test_missing_referenced_response():

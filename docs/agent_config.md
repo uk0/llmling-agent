@@ -65,15 +65,16 @@ Complete example of response definitions:
 ```yaml
 responses:
   WebResult:                     # Name of the response type
-    type: inline                # Can be 'inline' or 'import'
-    description: "Web operation result"
-    fields:                     # Field definitions
-      success:
-        type: bool
-        description: "Whether operation succeeded"
-      url:
-        type: str
-        description: "URL that was processed"
+    response_schema:
+      type: inline                # Can be 'inline' or 'import'
+      description: "Web operation result"
+      fields:                     # Field definitions
+        success:
+          type: bool
+          description: "Whether operation succeeded"
+        url:
+          type: str
+          description: "URL that was processed"
 
   AnalysisResult:
     type: import                # Use existing Pydantic model
@@ -117,23 +118,24 @@ Define sophisticated structured outputs:
 ```yaml
 responses:
   WebResult:
-    type: inline
-    fields:
-      success:
-        type: bool
-        description: "Whether operation succeeded"
-      url:
-        type: str
-        description: "URL that was processed"
-      error:
-        type: str | None
-        description: "Error message if failed"
-      attempts:
-        type: int
-        description: "Number of attempts made"
-        constraints:
-          ge: 1
-          le: 5
+    response_schema:
+      type: inline
+      fields:
+        success:
+          type: bool
+          description: "Whether operation succeeded"
+        url:
+          type: str
+          description: "URL that was processed"
+        error:
+          type: str | None
+          description: "Error message if failed"
+        attempts:
+          type: int
+          description: "Number of attempts made"
+          constraints:
+            ge: 1
+            le: 5
 ```
 
 ### Inline Environment Configuration

@@ -24,12 +24,13 @@ def make_test_response(prompt: str) -> _TestOutput:
 TEST_CONFIG = f"""\
 responses:
   _TestOutput:
-    type: inline
-    description: Simple test output
-    fields:
-      message:
-        type: str
-        description: Message from agent
+    response_schema:
+        type: inline
+        description: Simple test output
+        fields:
+            message:
+                type: str
+                description: Message from agent
 
 agents:
   agent_1:

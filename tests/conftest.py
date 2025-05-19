@@ -15,24 +15,25 @@ TEST_RESPONSE = "I am a test response"
 VALID_CONFIG = """\
 responses:
   SupportResult:
-    type: inline
-    description: Support agent response
-    fields:
-      advice:
-        type: str
-        description: Support advice
-      risk:
-        type: int
-        constraints:
-          ge: 0
-          le: 100
+    response_schema:
+        type: inline
+        description: Support agent response
+        fields:
+            advice:
+                type: str
+                description: Support advice
+            risk:
+                type: int
+                ge: 0
+                le: 100
   ResearchResult:
-    type: inline
-    description: Research agent response
-    fields:
-      findings:
-        type: str
-        description: Research findings
+    response_schema:
+        type: inline
+        description: Research agent response
+        fields:
+            findings:
+                type: str
+                description: Research findings
 
 agents:
   support:

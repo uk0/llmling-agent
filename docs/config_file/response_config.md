@@ -20,54 +20,57 @@ Define response structure directly in YAML:
 ```yaml
 responses:
   StatusResponse:
-    type: "inline"
-    description: "Simple operation result with status"
-    fields:
-      success:
-        type: "bool"
-        description: "Whether operation succeeded"
-      message:
-        type: "str"
-        description: "Status message or error details"
+    response_schema:
+      type: "inline"
+      description: "Simple operation result with status"
+      fields:
+        success:
+          type: "bool"
+          description: "Whether operation succeeded"
+        message:
+          type: "str"
+          description: "Status message or error details"
 ```
 
 ### Analysis Result
 ```yaml
 responses:
   CodeAnalysis:
-    type: "inline"
-    description: "Code analysis results with issues"
-    fields:
-      issues:
-        type: "list[str]"
-        description: "List of found issues"
-      severity:
-        type: "str"
-        description: "Overall severity level"
-      locations:
-        type: "list[str]"
-        description: "Source code locations"
+    response_schema:
+      type: "inline"
+      description: "Code analysis results with issues"
+      fields:
+        issues:
+          type: "list[str]"
+          description: "List of found issues"
+        severity:
+          type: "str"
+          description: "Overall severity level"
+        locations:
+          type: "list[str]"
+          description: "Source code locations"
 ```
 
 ### Complex Response
 ```yaml
 responses:
   DataProcessingResult:
-    type: "inline"
-    description: "Complex data processing result"
-    fields:
-      success:
-        type: "bool"
-        description: "Operation success"
-      records_processed:
-        type: "int"
-        description: "Number of processed records"
-      errors:
-        type: "list[str]"
-        description: "List of errors if any"
-      metrics:
-        type: "dict[str, float]"
-        description: "Processing metrics"
+    response_schema:
+      type: "inline"
+      description: "Complex data processing result"
+      fields:
+        success:
+          type: "bool"
+          description: "Operation success"
+        records_processed:
+          type: "int"
+          description: "Number of processed records"
+        errors:
+          type: "list[str]"
+          description: "List of errors if any"
+        metrics:
+          type: "dict[str, float]"
+          description: "Processing metrics"
 ```
 
 ## Imported Responses
@@ -77,16 +80,18 @@ Import response types from Python code:
 ```yaml
 responses:
   AdvancedAnalysis:
-    type: "import"
-    import_path: "myapp.types:AnalysisResult"
+    response_schema:
+      type: "import"
+      import_path: "myapp.types:AnalysisResult"
 ```
 
 ### Package Response Type
 ```yaml
 responses:
   MetricsResult:
-    type: "import"
-    import_path: "myapp.analysis:MetricsResponse"
+    response_schema:
+      type: "import"
+      import_path: "myapp.analysis:MetricsResponse"
 ```
 
 ## Using Response Types
