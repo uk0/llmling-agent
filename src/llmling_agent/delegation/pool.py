@@ -10,7 +10,6 @@ from contextlib import (
     suppress,
 )
 import os
-import signal
 from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 
 from llmling import BaseRegistry, LLMLingError
@@ -384,26 +383,13 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
 
     async def run_event_loop(self):
         """Run pool in event-watching mode until interrupted."""
-        import sys
-
         print("Starting event watch mode...")
         print("Active nodes: ", ", ".join(self.list_nodes()))
         print("Press Ctrl+C to stop")
 
-        stop_event = asyncio.Event()
-
-        if sys.platform != "win32":
-            # Unix: Use signal handlers
-            loop = asyncio.get_running_loop()
-            for sig in (signal.SIGINT, signal.SIGTERM):
-                loop.add_signal_handler(sig, stop_event.set)
+        with suppress(KeyboardInterrupt):
             while True:
                 await asyncio.sleep(1)
-        else:
-            # Windows: Use keyboard interrupt
-            with suppress(KeyboardInterrupt):
-                while True:
-                    await asyncio.sleep(1)
 
     @property
     def agents(self) -> dict[str, AnyAgent[Any, Any]]:
