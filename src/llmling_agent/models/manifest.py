@@ -6,8 +6,8 @@ from functools import cached_property
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
-from llmling import ConfigModel
 from pydantic import ConfigDict, Field, model_validator
+from schemez.schema import Schema
 
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent.resource_registry import ResourceRegistry
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: python 3.13: set defaults here
-class AgentsManifest(ConfigModel):
+class AgentsManifest(Schema):
     """Complete agent configuration manifest defining all available agents.
 
     This is the root configuration that:
