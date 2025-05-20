@@ -41,7 +41,7 @@ agents:
 
       # SSE-based server
       - type: "sse"
-        url: "http://localhost:8000"
+        url: "http://localhost:3001"
         enabled: true
 ```
 
@@ -55,7 +55,7 @@ mcp_servers:
     args: ["-m", "shared_mcp_server"]
 
   - type: "sse"
-    url: "http://shared-server:8000"
+    url: "http://shared-server:3001"
 
 agents:
   assistant:
@@ -82,7 +82,7 @@ Uses Server-Sent Events over HTTP:
 ```yaml
 mcp_servers:
   - type: "sse"
-    url: "http://localhost:8000"
+    url: "http://localhost:3001"
 ```
 
 ## Shorthand Syntax

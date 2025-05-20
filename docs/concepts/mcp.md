@@ -27,7 +27,7 @@ agents:
 
       # SSE server (coming soon)
       - type: sse
-        url: "http://localhost:8000/events"
+        url: "http://localhost:3001/events"
 ```
 
 ### In Agent Constructor

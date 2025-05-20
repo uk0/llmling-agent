@@ -20,7 +20,7 @@ def serve_command(
     config: str = t.Argument(..., help="Path to agent configuration"),
     transport: str = t.Option("stdio", help="Transport type (stdio/sse/streamable-http)"),
     host: str = t.Option("localhost", help="Host to bind server to (sse only)"),
-    port: int = t.Option(8000, help="Port to listen on (sse only)"),
+    port: int = t.Option(3001, help="Port to listen on (sse only)"),
     zed_mode: bool = t.Option(False, help="Enable Zed editor compatibility"),
     show_messages: bool = t.Option(
         False, "--show-messages", help="Show message activity"

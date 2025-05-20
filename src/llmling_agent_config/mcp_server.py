@@ -119,13 +119,13 @@ class PoolServerConfig(Schema):
     """Transport type to use."""
 
     host: str = "localhost"
-    """Host to bind server to (SSE only)."""
+    """Host to bind server to (SSE / Streamable-HTTP only)."""
 
-    port: int = 8000
-    """Port to listen on (SSE only)."""
+    port: int = 3001
+    """Port to listen on (SSE / Streamable-HTTP only)."""
 
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])
-    """Allowed CORS origins (SSE only)."""
+    """Allowed CORS origins (SSE / Streamable-HTTP only)."""
 
     zed_mode: bool = False
     """Enable Zed editor compatibility mode."""

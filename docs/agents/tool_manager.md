@@ -95,7 +95,7 @@ tool_info = manager.register_worker(
 # Setup MCP server tools
 await agent.tools.setup_mcp_servers([
     StdioMCPServerConfig(command="python", args=["-m", "my_server"]),
-    SSEMCPServerConfig(url="http://localhost:8000/events")
+    SSEMCPServerConfig(url="http://localhost:3001/events")
 ])
 ```
 Note: By default the tool manager is already initialzed with MCP server tools from the config when the agent itself enters the async context
