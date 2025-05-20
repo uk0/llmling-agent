@@ -19,7 +19,6 @@ def ui_command(
 ):
     """Start the UI configured in the manifest."""
     from llmling_agent_config.ui import (
-        GradioUIConfig,
         PromptToolkitUIConfig,
         StdlibUIConfig,
         TextualUIConfig,
@@ -38,10 +37,6 @@ def ui_command(
                 from llmling_agent_ui.stdlib_provider import StdlibUIProvider
 
                 provider: UIProvider = StdlibUIProvider(ui_config)
-            case GradioUIConfig():
-                from llmling_agent_ui.gradio_provider import GradioUIProvider
-
-                provider = GradioUIProvider(ui_config)
             case PromptToolkitUIConfig():
                 from llmling_agent_ui.prompt_toolkit_provider import (
                     PromptToolkitUIProvider,

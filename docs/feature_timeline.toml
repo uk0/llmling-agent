@@ -179,7 +179,6 @@ content = """
 Multiple ways to interact:
 
 - Rich CLI interface using prompt-toolkit with expansive command system
-- Web UI with Gradio
 - Terminal UI with Textual (WIP)
 - Python API
 - Consistent experience

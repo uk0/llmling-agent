@@ -52,25 +52,6 @@ class StdlibUIConfig(BaseUIConfig):
     """Show token usage and costs."""
 
 
-class GradioUIConfig(BaseUIConfig):
-    """Configuration for web interface."""
-
-    type: Literal["web"] = Field("web", init=False)
-    """Web interface."""
-
-    host: str = "127.0.0.1"
-    """Host to bind to."""
-
-    port: int | None = None
-    """Port to bind to."""
-
-    share: bool = False
-    """Create public URL."""
-
-    theme: Literal["soft", "base", "monochrome", "glass"] = "soft"
-    """UI theme."""
-
-
 class PromptToolkitUIConfig(BaseUIConfig):
     """Configuration for prompt-toolkit interface."""
 
@@ -89,6 +70,6 @@ class TextualUIConfig(BaseUIConfig):
 
 
 UIConfig = Annotated[
-    StdlibUIConfig | GradioUIConfig | PromptToolkitUIConfig | TextualUIConfig,
+    StdlibUIConfig | PromptToolkitUIConfig | TextualUIConfig,
     Field(discriminator="type"),
 ]

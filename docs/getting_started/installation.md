@@ -16,10 +16,6 @@ uv tool install llmling-agent
 
 LLMling-agent provides several optional features that can be installed with extras:
 
-- **Web interface** (Gradio interface):
-  ```bash
-  pip install llmling-agent[ui]
-  ```
 
 - **Clipboard Support**:
   ```bash

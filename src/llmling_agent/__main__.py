@@ -18,10 +18,7 @@ from llmling_agent_cli.watch import watch_command
 
 
 MAIN_HELP = "🤖 LLMling Agent CLI - Run and manage LLM agents"
-MISSING_WEB = """
-Web interface commands require gradio.
-Install with: pip install llmling-agent[ui]
-"""
+
 # Create CLI app
 help_text = get_command_help(MAIN_HELP)
 cli = t.Typer(name="LLMling Agent", help=help_text, no_args_is_help=True)
@@ -39,19 +36,3 @@ cli.command(name="task")(task_command)
 cli.command(name="ui")(ui_command)
 
 cli.add_typer(history_cli, name="history")
-
-try:
-    from llmling_agent_cli import web
-
-    cli.command(name="launch")(web.launch_gui)
-
-except ImportError:
-    web_cli = t.Typer(help="Web interface commands (not installed)")
-
-    @web_cli.callback()
-    def web_not_installed():
-        """Web interface functionality (not installed)."""
-        print(MISSING_WEB)
-        raise t.Exit(1)
-
-    cli.add_typer(web_cli, name="web")

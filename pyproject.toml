@@ -93,7 +93,6 @@ dependencies = [
 llmling-agent = "llmling_agent.__main__:cli"
 
 [project.optional-dependencies]
-ui = ["gradio>=5.8.0; python_version < '3.14'"]
 # chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]
 server = ["fastapi", "uvicorn", "websockets"]
 clipboard = ["clipman"]
