@@ -11,12 +11,14 @@ import weakref
 from mcp import ClientSession
 from mcp.client.sse import sse_client
 from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.client.streamable_http import streamablehttp_client
 
 from llmling_agent.log import get_logger
 from llmling_agent_config.mcp_server import (
     MCPServerConfig,
     SSEMCPServerConfig,
     StdioMCPServerConfig,
+    StreamableHTTPMCPServerConfig,
 )
 
 
@@ -68,6 +70,24 @@ class MCPServer:
                         raise ValueError(msg)  # noqa: TRY301
 
                     async with sse_client(self.config.url) as (read_stream, write_stream):
+                        self.session = ClientSession(
+                            read_stream,
+                            write_stream,
+                            read_timeout_seconds=timedelta(seconds=self.config.timeout)
+                            if self.config.timeout
+                            else None,
+                        )
+                        await self.session.initialize()
+
+                case StreamableHTTPMCPServerConfig():
+                    if not self.config.url:
+                        msg = f"URL required for SSE transport: {self.name}"
+                        raise ValueError(msg)  # noqa: TRY301
+
+                    async with streamablehttp_client(self.config.url) as (
+                        read_stream,
+                        write_stream,
+                    ):
                         self.session = ClientSession(
                             read_stream,
                             write_stream,

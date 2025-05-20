@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     from mcp import ClientSession
     from mcp.types import Tool, Tool as MCPTool
 
+    from llmling_agent_config.mcp_server import TransportType
+
 logger = get_logger(__name__)
 
 
@@ -30,17 +32,17 @@ def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
 class MCPClient:
     """MCP client for communicating with MCP servers."""
 
-    def __init__(self, stdio_mode: bool = False):
+    def __init__(self, transport_mode: TransportType = "stdio"):
         self.exit_stack = AsyncExitStack()
         self.session: ClientSession | None = None
         self._available_tools: list[Tool] = []
         self._old_stdout: TextIO | None = None
-        self._stdio_mode = stdio_mode
+        self._transport_mode = transport_mode
 
     async def __aenter__(self) -> Self:
         """Enter context and redirect stdout if in stdio mode."""
         try:
-            if self._stdio_mode:
+            if self._transport_mode == "stdio":
                 self._old_stdout = sys.stdout
                 sys.stdout = sys.stderr
                 logger.info("Redirecting stdout for stdio MCP server")

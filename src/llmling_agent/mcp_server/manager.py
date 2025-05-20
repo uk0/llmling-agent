@@ -15,6 +15,7 @@ from llmling_agent_config.mcp_server import (
     MCPServerConfig,
     SSEMCPServerConfig,
     StdioMCPServerConfig,
+    StreamableHTTPMCPServerConfig,
 )
 from llmling_agent_config.resources import ResourceInfo
 
@@ -115,16 +116,20 @@ class MCPManager(ResourceProvider):
         env = config.get_env_vars()
         match config:
             case StdioMCPServerConfig():
-                client = MCPClient(stdio_mode=True)
+                client = MCPClient(transport_mode="stdio")
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect(config.command, args=config.args, env=env)
                 client_id = f"{config.command}_{' '.join(config.args)}"
             case SSEMCPServerConfig():
-                client = MCPClient(stdio_mode=False)
+                client = MCPClient(transport_mode="sse")
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect("", [], url=config.url, env=env)
                 client_id = f"sse_{config.url}"
-
+            case StreamableHTTPMCPServerConfig():
+                client = MCPClient(transport_mode="streamable-http")
+                client = await self.exit_stack.enter_async_context(client)
+                await client.connect("", [], url=config.url, env=env)
+                client_id = f"streamable_http_{config.url}"
         self.clients[client_id] = client
 
     async def get_tools(self) -> list[Tool]:

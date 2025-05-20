@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from fastmcp import FastMCP
 from mcp.server.lowlevel.server import LifespanResultT, NotificationOptions
@@ -26,8 +26,6 @@ if TYPE_CHECKING:
     from llmling_agent_config.mcp_server import PoolServerConfig
 
 logger = get_logger(__name__)
-
-TransportType = Literal["stdio", "sse", "streamable-http"]
 
 
 class LLMLingServer(TaskManagerMixin):

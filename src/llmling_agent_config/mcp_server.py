@@ -9,6 +9,9 @@ from pydantic import ConfigDict, Field
 from schemez import Schema
 
 
+TransportType = Literal["stdio", "sse", "streamable-http"]
+
+
 class BaseMCPServerConfig(Schema):
     """Base model for MCP server configuration."""
 
@@ -71,8 +74,22 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
     """URL of the SSE server endpoint."""
 
 
+class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
+    """MCP server using StreamableHttp.
+
+    Connects to a server over HTTP with streamable HTTP.
+    """
+
+    type: Literal["streamable-http"] = Field("streamable-http", init=False)
+    """SSE server configuration."""
+
+    url: str
+    """URL of the SSE server endpoint."""
+
+
 MCPServerConfig = Annotated[
-    StdioMCPServerConfig | SSEMCPServerConfig, Field(discriminator="type")
+    StdioMCPServerConfig | SSEMCPServerConfig | StreamableHTTPMCPServerConfig,
+    Field(discriminator="type"),
 ]
 
 
@@ -98,7 +115,7 @@ class PoolServerConfig(Schema):
     """
 
     # Transport configuration
-    transport: Literal["stdio", "sse", "streamable-http"] = "stdio"
+    transport: TransportType = "stdio"
     """Transport type to use."""
 
     host: str = "localhost"

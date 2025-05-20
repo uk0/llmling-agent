@@ -10,6 +10,7 @@ from llmling_agent.tools import ToolCallInfo
 from llmling_agent_config.mcp_server import (
     BaseMCPServerConfig,
     StdioMCPServerConfig,
+    StreamableHTTPMCPServerConfig,
     MCPServerConfig,
     SSEMCPServerConfig,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "SSEMCPServerConfig",
     "SessionQuery",
     "StdioMCPServerConfig",
+    "StreamableHTTPMCPServerConfig",
     "TeamConfig",
     "ToolCallInfo",
 ]
