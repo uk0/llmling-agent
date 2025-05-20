@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-TransportType = Literal["stdio", "sse"]
+TransportType = Literal["stdio", "sse", "streamable-http"]
 
 
 class LLMLingServer(TaskManagerMixin):
