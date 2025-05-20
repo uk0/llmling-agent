@@ -4,16 +4,17 @@ Events (or "triggers") define automated activations of agents based on various s
 - File system changes
 - Webhook calls
 - Email notifications
-- Manual triggers
-- (Future: Message queues, time schedules, etc.)
-
+- Time-based schedules
+- Connection events between agents
 
 ## Common Properties
+
 All event sources share these base properties:
 
 ```yaml
 triggers:
   - name: "my_trigger"                   # Unique identifier
+    type: "file"                         # Event type (required)
     enabled: true                        # Whether trigger is active
     template: <a_jinja_template_string>  # Optional event formatting
     include_metadata: true               # Include event metadata
@@ -21,77 +22,111 @@ triggers:
 ```
 
 ## File Watch Events
+
 Monitor file system changes:
 
 ```yaml
 triggers:
   - type: "file"
     name: "python_watcher"
-    paths: ["src/**/*.py"]           # Paths to watch
+    paths: ["src/**/*.py"]           # Paths to watch (required)
     extensions: [".py"]              # Optional file type filter
     ignore_paths: ["**/__pycache__"] # Optional ignore patterns
     recursive: true                  # Watch subdirectories
-    debounce: 1600                  # Minimum ms between triggers
+    debounce: 1600                   # Minimum ms between triggers
 ```
 
 ## Webhook Events
+
 Listen for HTTP requests:
 
 ```yaml
 triggers:
   - type: "webhook"
     name: "github_webhook"
-    port: 8000
-    path: "/github"
+    port: 8000                       # Port to listen on (required)
+    path: "/github"                  # URL path to handle requests (required)
     secret: "${WEBHOOK_SECRET}"      # Optional validation secret
 ```
 
-## Email Events
-Monitor email inbox:
-
-```yaml
-triggers:
-  - type: "email"
-    name: "support_inbox"
-    host: "imap.gmail.com"          # IMAP server hostname
-    port: 993                       # Server port (993 for SSL)
-    username: "support@domain.com"
-    password: "${EMAIL_PASSWORD}"
-    folder: "INBOX"                 # Mailbox to monitor
-    ssl: true                       # Use SSL connection
-    check_interval: 60              # Seconds between checks
-    mark_seen: true                # Mark processed emails as seen
-    filters:                       # Optional email filters
-      from: "important@client.com"
-      subject: "urgent"
-    max_size: 1048576             # Max email size in bytes
-```
-
 ## Time Events
+
 Schedule regular agent actions:
 
 ```yaml
 triggers:
   - type: "time"
     name: "daily_report"
-    schedule: "0 9 * * 1-5"      # Cron expression: 9am on weekdays
-    timezone: "UTC"              # Optional timezone (defaults to system)
+    schedule: "0 9 * * 1-5"          # Cron expression (required)
+    prompt: "Generate daily report"  # Prompt to send (required)
+    timezone: "UTC"                  # Optional timezone (defaults to system)
+    skip_missed: false               # Whether to skip missed executions
+```
 
-  - type: "time"
-    name: "quick_check"
-    interval: "5m"               # Simple interval: 5m, 1h, 2d etc.
-    jitter: "30s"               # Optional random delay
+## Email Events
 
-  - type: "time"
-    name: "monitoring"
-    schedule:
-      - "0 9 * * 1-5"           # Multiple schedules
-      - "0 18 * * 1-5"
-    skip_missed: true           # Don't run missed executions
+Monitor email inbox:
+
+```yaml
+triggers:
+  - type: "email"
+    name: "support_inbox"
+    host: "imap.gmail.com"          # IMAP server hostname (required)
+    port: 993                       # Server port (993 for SSL)
+    username: "support@domain.com"  # Email account username (required)
+    password: "${EMAIL_PASSWORD}"   # Account password (required)
+    folder: "INBOX"                 # Mailbox to monitor
+    ssl: true                       # Use SSL connection
+    check_interval: 60              # Seconds between checks
+    mark_seen: true                 # Mark processed emails as seen
+    filters:                        # Optional email filters
+      from: "important@client.com"
+      subject: "urgent"
+    max_size: 1048576              # Max email size in bytes
+```
+
+## Connection Trigger Events
+
+Monitor events between connections:
+
+```yaml
+triggers:
+  - type: "connection"
+    name: "process_completed"
+    source: "analyzer"              # Optional: source agent name
+    target: "summarizer"            # Optional: target agent name
+    event: "message_processed"      # Required: event type to trigger on
+    condition:                      # Optional: condition to filter events
+      type: "content"
+      words: ["complete", "finished"]
+      mode: "any"                   # "any" or "all"
+```
+
+### Connection Event Types
+
+Available connection event types:
+- `message_received`: Triggered when a message is received
+- `message_processed`: Triggered when a message is processed
+- `message_forwarded`: Triggered when a message is forwarded
+- `queue_filled`: Triggered when a message queue is filled
+- `queue_triggered`: Triggered when a queued message is processed
+
+### Connection Event Conditions
+
+You can filter connection events with conditions:
+
+#### Content Condition
+
+```yaml
+condition:
+  type: "content"
+  words: ["important", "urgent"]
+  mode: "any"  # Match any word (or "all" to require all words)
 ```
 
 
 ## Multiple Events
+
 Agents can have multiple events of different types:
 
 ```yaml
@@ -102,6 +137,12 @@ agents:
       - type: "file"
         name: "code_watcher"
         paths: ["src/**/*.py"]
+
+      # Daily schedule
+      - type: "time"
+        name: "daily_summary"
+        schedule: "0 9 * * 1-5"
+        prompt: "Summarize yesterday's changes"
 
       # Monitor support inbox
       - type: "email"
@@ -115,10 +156,18 @@ agents:
         name: "github_events"
         port: 8000
         path: "/github"
+        
+      # Monitor connections
+      - type: "connection"
+        name: "process_completed" 
+        event: "message_processed"
+        source: "analyzer"
 ```
 
 ## Event Processing
+
 1. Event source detects change and creates event
-2. Event's `to_prompt()` generates core message
-3. Template wraps message with optional metadata/timestamp
+2. Event's core content is extracted
+3. Template wraps content with optional metadata/timestamp
 4. Formatted event is sent to agent for processing
+5. Agent processes event as a new request or chat message

@@ -17,6 +17,7 @@ agents:
         enabled: true  # whether tool is initially available
         requires_confirmation: false  # whether to ask before executing
         requires_capability: null  # optional required capability
+        priority: 100  # execution priority (lower = higher priority)
         cache_enabled: false  # whether to cache results
         metadata:  # additional tool metadata
           category: "browser"
@@ -81,5 +82,6 @@ tools:
   - Never required (`requires_confirmation: false`)
   - Always required (`requires_confirmation: true`)
   - Based on agent settings (`requires_confirmation` not set)
+- Priority affects execution order (lower values = higher priority)
 - Environment variables are supported in configuration values
 - Metadata can be used for custom tool categorization and filtering

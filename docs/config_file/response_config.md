@@ -13,6 +13,22 @@ Response types define structured output formats for agents. They can be defined 
         severity: str
     ```
 
+## Response Configuration
+
+Each response definition includes:
+
+```yaml
+responses:
+  MyResponse:
+    response_schema:  # Schema definition (required)
+      type: "inline"  # or "import"
+      # schema details...
+    description: "Optional description of the response"
+    result_tool_name: "final_result"  # Tool name for result creation
+    result_tool_description: "Create the final result"  # Tool description
+    result_retries: 3  # Number of validation retries
+```
+
 ## Inline Responses
 Define response structure directly in YAML:
 
@@ -49,6 +65,8 @@ responses:
         locations:
           type: "list[str]"
           description: "Source code locations"
+    result_tool_name: "create_analysis"
+    result_tool_description: "Create code analysis result"
 ```
 
 ### Complex Response
@@ -94,7 +112,7 @@ responses:
       import_path: "myapp.analysis:MetricsResponse"
 ```
 
-## Using Response Types
+### Using Response Types
 
 ### Assign to Agent
 ```yaml
@@ -109,14 +127,16 @@ agents:
 agents:
   processor:
     result_type:
-      type: "inline"  # Direct inline definition
+      response_schema:
+        type: "inline"  # Direct inline definition
+        fields:
+          success:
+            type: "bool"
+          details:
+            type: "str"
       result_tool_name: "create_result"  # Custom tool name
       result_tool_description: "Create the final analysis result"
-      fields:
-        success:
-          type: "bool"
-        details:
-          type: "str"
+      result_retries: 2  # Number of validation attempts
 ```
 
 ## Available Field Types
@@ -128,3 +148,21 @@ agents:
 - `dict[key_type, value_type]`: Dictionaries
 - `datetime`: Date and time values
 - Custom types through imports
+
+## Schema Definition
+
+The response schema defines the structure of the return value:
+
+```yaml
+response_schema:
+  type: "inline"  # Define structure inline
+  description: "Result description"
+  fields:
+    # Field definitions
+    
+# OR
+
+response_schema:
+  type: "import"  # Import from Python
+  import_path: "myapp.types:MyResponseType"
+```

@@ -188,6 +188,32 @@ storage:
       log_context: true
 ```
 
+### Supabase Storage
+Stores data in a Supabase database.
+
+```yaml
+storage:
+  providers:
+    - type: "supabase"
+      key: "${SUPABASE_KEY}"      # Authentication key (required)
+      url: "https://your-project.supabase.co"  # Custom URL (optional)
+      project_id: "your-project"  # Project ID (optional if URL provided)
+      pool_size: 20              # Connection pool size
+      db_schema: "public"        # Database schema name
+```
+
+### Mem0 Storage
+Stores data in mem0 service.
+
+```yaml
+storage:
+  providers:
+    - type: "mem0"
+      api_key: "${MEM0_API_KEY}"   # API key (optional)
+      page_size: 100               # Number of results per page
+      output_format: "v1.1"        # API output format version
+```
+
 ### Memory Storage
 In-memory storage for testing.
 
@@ -232,6 +258,13 @@ storage:
     - type: "file"  # Complete history
       path: "data/history.json"
       agents: null  # Log everything
+      
+    - type: "supabase"  # Cloud storage
+      key: "${SUPABASE_KEY}"
+      project_id: "your-project"
+      
+    - type: "mem0"  # Memory storage service
+      api_key: "${MEM0_API_KEY}"
 ```
 
 ## Provider Selection

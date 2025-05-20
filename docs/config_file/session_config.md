@@ -10,6 +10,19 @@ agents:
     session: "previous_chat"  # Simple session ID
 ```
 
+You can also configure memory settings:
+```yaml
+agents:
+  assistant:
+    session:
+      enable: true            # Enable history tracking
+      max_tokens: 4000        # Maximum tokens to keep in context
+      max_messages: 50        # Maximum messages to keep in context
+      provider: "sql"         # Override default storage provider
+      session:                # Previous session query
+        name: "previous_chat"
+```
+
 ## Detailed Query Configuration
 Complex filtering of previous conversations:
 ```yaml

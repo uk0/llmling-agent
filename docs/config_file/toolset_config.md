@@ -27,6 +27,33 @@ agents:
         module: "my_package"  # Python module containing entry points
 ```
 
+## Composio Toolset
+Loads tools from Composio.
+
+```yaml
+agents:
+  composio-agent:
+    toolsets:
+      - type: "composio"
+        namespace: "composio"  # optional namespace prefix
+        api_key: "${COMPOSIO_API_KEY}"  # API key (optional, can use env var)
+        entitiy_id: "default"  # Entity ID to use
+```
+
+## Upsonic Toolset
+Loads tools from Upsonic.
+
+```yaml
+agents:
+  upsonic-agent:
+    toolsets:
+      - type: "upsonic"
+        namespace: "upsonic"  # optional namespace prefix
+        base_url: "https://api.upsonic.co"  # API URL (optional)
+        api_key: "${UPSONIC_API_KEY}"  # API key
+        entitiy_id: "default"  # Entity ID to use
+```
+
 ## Custom Toolset
 Creates tools from a custom Python class implementation.
 
@@ -72,4 +99,5 @@ class MyToolSet(ToolSet):
   tool_name = path.to:function
   ```
 - Tools from toolsets can be filtered through agent capabilities
-- Environment variables can be referenced in configuration
+- API keys can be provided directly or via environment variables
+- Custom toolsets provide the most flexibility for implementing complex tool logic

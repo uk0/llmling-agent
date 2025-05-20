@@ -12,7 +12,8 @@ agents:
       can_list_agents: true        # Discover other available agents
       can_delegate_tasks: true     # Delegate tasks to other agents
       can_observe_agents: false    # Monitor other agents' activities
-      can_ask_agents: true    # Can ask other agents in the pool
+      can_list_teams: false        # Discover available teams
+      can_ask_agents: true         # Can ask other agents in the pool
 
       # History & Statistics Access
       history_access: "own"        # "none" | "own" | "all"
@@ -21,6 +22,8 @@ agents:
       # Resource Management
       can_load_resources: true     # Load and access resource content
       can_list_resources: true     # Discover available resources
+      can_read_files: false        # Read local and remote files
+      can_list_directories: false  # List directories and their contents
 
       # Tool Management
       can_register_tools: false    # Register importable functions as tools
@@ -35,7 +38,9 @@ agents:
       # Agent Creation
       can_create_workers: true    # Create worker agents as tools
       can_create_delegates: true  # Spawn temporary delegate agents
-      can_add_agents: true  # Create new persistent agents in the pool
+      can_add_agents: true        # Create new persistent agents in the pool
+      can_add_teams: false        # Create new teams in the pool
+      can_connect_nodes: false    # Connect nodes in the system
 ```
 
 ## Capability Details
@@ -44,7 +49,8 @@ agents:
 - `can_list_agents`: Allows discovering other agents in the pool
 - `can_delegate_tasks`: Enables sending tasks to other agents
 - `can_observe_agents`: Permits monitoring of other agents' activities
-- `can_ask_agents`: Can ask other agents in the pool
+- `can_list_teams`: Allows discovering available teams
+- `can_ask_agents`: Can ask other agents in the pool questions
 
 ### History & Statistics Access
 - `history_access`: Controls access to conversation history
@@ -60,6 +66,8 @@ agents:
 ### Resource Management
 - `can_load_resources`: Allows loading content from resources
 - `can_list_resources`: Permits discovery of available resources
+- `can_read_files`: Enables reading files from local or remote sources
+- `can_list_directories`: Allows listing directories and their contents
 
 ### Tool Management
 - `can_register_tools`: Allows registering Python functions as tools
@@ -77,6 +85,8 @@ agents:
 - `can_create_workers`: Allows creating worker agents as tools
 - `can_create_delegates`: Enables spawning temporary delegate agents
 - `can_add_agents`: Allows creating new persistent agents in the pool
+- `can_add_teams`: Enables creating new teams in the agent pool
+- `can_connect_nodes`: Allows connecting messaging nodes in the system
 
 ## Default Configuration
 By default, all capabilities are set to `false` or `"none"` for security. Enable only the capabilities that your agent needs.
@@ -89,6 +99,8 @@ agents:
   reader:
     capabilities:
       can_load_resources: true
+      can_read_files: true
+      can_list_resources: true
       history_access: "own"
       # All other capabilities: false
 ```
@@ -99,6 +111,7 @@ agents:
   coordinator:
     capabilities:
       can_list_agents: true
+      can_list_teams: true
       can_delegate_tasks: true
       can_observe_agents: true
       history_access: "all"
@@ -114,4 +127,5 @@ agents:
       can_chain_tools: true
       can_load_resources: true
       can_list_resources: true
+      can_read_files: true
 ```

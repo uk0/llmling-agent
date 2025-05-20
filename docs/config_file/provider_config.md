@@ -1,6 +1,6 @@
 # Provider Configuration
 
-Providers determine how an agent processes messages and generates responses. The provider configuration is set in the agent's `type` field.
+Providers determine how an agent processes messages and generates responses. The provider configuration is set in the agent's `provider` field.
 
 ## AI Provider (PydanticAI)
 The default provider, using pydantic-ai for language model integration.
@@ -14,9 +14,10 @@ agents:
       end_strategy: "early"  # "early" | "complete" | "confirm"
       result_retries: 3  # max retries for result validation
       defer_model_check: false  # whether to defer model check until first run
+      model: "openai:gpt-4"  # optional model override
       model_settings:  # additional settings passed to pydantic-ai
         temperature: 0.7
-        max_tokens: 1000
+        max_completion_tokens: 1000
       validation_enabled: true  # whether to validate outputs against schemas
       allow_text_fallback: true  # accept plain text when structure fails
 ```
@@ -40,14 +41,17 @@ Provider using LiteLLM for unified model access.
 ```yaml
 agents:
   my-agent:
-    provider:
-      type: "litellm"
-      name: "litellm-agent"  # optional instance name
-      retries: 3  # max retries for failed calls
-      model: "openai:gpt-4"  # optional model override
-      model_settings:  # additional settings passed to LiteLLM
-        temperature: 0.5
-        api_key: "${OPENAI_API_KEY}"  # environment variable
+    litellm-agent:
+      provider:
+        type: "litellm"
+        name: "litellm-agent"  # optional instance name
+        retries: 3  # max retries for failed calls
+        model: "openai:gpt-4"  # optional model override
+        model_settings:  # additional settings passed to LiteLLM
+          temperature: 0.5
+          presence_penalty: 0
+          frequency_penalty: 0
+          seed: 42
 ```
 
 ## Callback Provider
@@ -59,7 +63,7 @@ agents:
     provider:
       type: "callback"
       name: "custom-processor"  # optional name
-      callback: "myapp.processors.analyze_text"  # import path to function
+      callback: "myapp.processors:analyze_text"  # import path to function
 ```
 
 ## Shorthand Syntax
@@ -81,3 +85,20 @@ provider: "path.to.callable"  # Create a CallableProvider
 - Each provider type has its own validation requirements
 - Settings can be overridden at runtime through the Python API
 - Environment variables can be used in configuration values
+
+## Model Settings
+
+Available model settings that can be configured:
+
+```yaml
+model_settings:
+  max_completion_tokens: 1000  # Maximum tokens to generate
+  temperature: 0.7             # Randomness (0.0-2.0)
+  top_p: 0.9                   # Nucleus sampling (0.0-1.0)
+  timeout: 60                  # Request timeout in seconds
+  parallel_tool_calls: true    # Allow parallel tool calls
+  seed: 42                     # Random seed for reproducible outputs
+  presence_penalty: 0.0        # Penalty for token presence (-2.0-2.0)
+  frequency_penalty: 0.0       # Penalty for token frequency (-2.0-2.0)
+  logit_bias: {464: 100}       # Token biases
+```

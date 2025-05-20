@@ -1,6 +1,6 @@
 # Task Configuration
 
-Tasks define reusable operations that agents can execute. They can be defined in YAML and include:
+Tasks (called "jobs" in YAML) define reusable operations that agents can execute. They can be defined in YAML and include:
 - Prompt templates
 - Required tools
 - Knowledge sources
@@ -13,7 +13,7 @@ Simple task with prompt and result type:
 jobs:
   analyze_code:
     prompt: "Analyze the code in src directory for potential improvements"
-    result_type: "myapp.types.AnalysisResult"
+    required_return_type: "myapp.types:AnalysisResult"
     description: "Analyze code quality and suggest improvements"
 ```
 
@@ -67,20 +67,29 @@ Tasks can require specific data:
 jobs:
   review_pr:
     prompt: "Review the pull request changes"
-    result_type: "myapp.types.ReviewResult"
-    deps: "myapp.types.PRContext"  # Type hint for required context
+    required_return_type: "myapp.types:ReviewResult"
+    required_dependency: "myapp.types:PRContext"  # Type hint for required context
     min_context_tokens: 1000       # Minimum context window size
+    requires_vision: false         # Whether vision capability is needed
 ```
 
 ## Using Tasks
-Execute tasks through the API or CLI:
+Execute tasks through the API:
 
 ```python
 # Python API
 result = await agent.run_job("analyze_code")
+```
 
-# CLI
-llmling-agent task run analyze_code --agent my-agent
+You can also use the Job directly:
+```python
+from llmling_agent import AgentPool
+
+# Get job definition
+job = pool.get_job("analyze_code")
+
+# Execute job with specific agent
+result = await pool.run_job("analyze_code", agent="my-agent")
 ```
 
 ## Complete Example
@@ -91,8 +100,9 @@ jobs:
   deep_code_review:
     description: "Perform comprehensive code review"
     prompt: "Review the code changes focusing on:"
-    result_type: "myapp.types.ReviewResult"
-    deps: "myapp.types.CodeContext"
+    required_return_type: "myapp.types:ReviewResult"
+    required_dependency: "myapp.types:CodeContext"
+    requires_vision: false
 
     # Required knowledge
     knowledge:
@@ -110,8 +120,7 @@ jobs:
     tools:
       - "analyze_complexity"
       - "check_style"
-      - name: "custom_metrics"
-        import_path: "myapp.tools.metrics"
+      - import_path: "myapp.tools:metrics"
 
     # Context requirements
     min_context_tokens: 2000
@@ -124,9 +133,16 @@ All tasks are available through the agent pool:
 # Get job definition
 job = pool.get_job("analyze_code")
 
-# Register new task
-pool.register_task("new_task", task_definition)
+# Register new task 
+from llmling_agent_config.task import Job
+job = Job(
+    name="new_task",
+    description="A new task",
+    prompt="Do something interesting",
+    required_return_type="myapp.types:Result"
+)
+pool.register_job("new_task", job)
 
 # List available tasks
-tasks = pool.list_tasks()
+jobs = pool.list_jobs()
 ```
