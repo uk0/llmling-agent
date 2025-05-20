@@ -86,6 +86,7 @@ dependencies = [
     "upathtools>=0.1.0",
     "anyenv>=0.3.0",
     "schemez>=0.0.1",
+    "fastmcp>=2.3.4",
 ]
 
 [project.scripts]

@@ -98,7 +98,7 @@ class PoolServerConfig(Schema):
     """
 
     # Transport configuration
-    transport: Literal["stdio", "sse"] = "stdio"
+    transport: Literal["stdio", "sse", "streamable-http"] = "stdio"
     """Transport type to use."""
 
     host: str = "localhost"

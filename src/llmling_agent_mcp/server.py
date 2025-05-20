@@ -6,21 +6,24 @@ import asyncio
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Literal, Self
 
-from mcp.server import NotificationOptions, Server
+from fastmcp import FastMCP
+from mcp.server.lowlevel.server import LifespanResultT, NotificationOptions
 
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_mcp.handlers import register_handlers
 from llmling_agent_mcp.log import get_logger
-from llmling_agent_mcp.transports.sse import SSEServer
-from llmling_agent_mcp.transports.stdio import StdioServer
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from contextlib import AbstractAsyncContextManager
+
     import mcp
+    from mcp.server.auth.provider import OAuthAuthorizationServerProvider
+    from mcp.server.streamable_http import EventStore
 
     from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent_config.mcp_server import PoolServerConfig
-    from llmling_agent_mcp.transports.base import TransportBase
 
 logger = get_logger(__name__)
 
@@ -34,6 +37,17 @@ class LLMLingServer(TaskManagerMixin):
         self,
         provider: ResourceProvider,
         config: PoolServerConfig,
+        lifespan: (
+            Callable[
+                [FastMCP[LifespanResultT]],
+                AbstractAsyncContextManager[LifespanResultT],
+            ]
+            | None
+        ) = None,
+        instructions: str | None = None,
+        oauth_server_provider: OAuthAuthorizationServerProvider[Any, Any, Any]
+        | None = None,
+        event_store: EventStore | None = None,
         name: str = "llmling-server",
     ):
         """Initialize server with resource provider.
@@ -42,6 +56,10 @@ class LLMLingServer(TaskManagerMixin):
             provider: Resource provider to expose through MCP
             config: Server configuration
             name: Server name for MCP protocol
+            lifespan: Lifespan context manager
+            instructions: Instructions for Server usage
+            oauth_server_provider: Authorization server provider
+            event_store: Event store
         """
         super().__init__()
         self.name = name
@@ -57,33 +75,20 @@ class LLMLingServer(TaskManagerMixin):
         self._subscriptions: defaultdict[str, set[mcp.ServerSession]] = defaultdict(set)
         self._tasks: set[asyncio.Task[Any]] = set()
 
-        # Create MCP server
-        self.server = Server[Any](name)
+        self.fastmcp = FastMCP(
+            instructions=instructions,
+            auth_server_provider=oauth_server_provider,
+            event_store=event_store,
+            lifespan=lifespan,
+        )
+        self.server = self.fastmcp._mcp_server
         self.server.notification_options = NotificationOptions(
             prompts_changed=True,
             resources_changed=True,
             tools_changed=True,
         )
 
-        # Create transport
-        self.transport = self._create_transport(config)
         self._setup_handlers()
-
-    def _create_transport(self, config: PoolServerConfig) -> TransportBase:
-        """Create transport instance based on configuration."""
-        match config.transport:
-            case "stdio":
-                return StdioServer(self.server)
-            case "sse":
-                return SSEServer(
-                    self.server,
-                    host=config.host,
-                    port=config.port,
-                    cors_origins=config.cors_origins,
-                )
-            case _:
-                msg = f"Unknown transport type: {config.transport}"
-                raise ValueError(msg)
 
     def _setup_handlers(self):
         """Register MCP protocol handlers."""
@@ -92,15 +97,13 @@ class LLMLingServer(TaskManagerMixin):
     async def start(self, *, raise_exceptions: bool = False):
         """Start the server."""
         try:
-            await self.transport.serve(raise_exceptions=raise_exceptions)
+            await self.fastmcp.run_async(transport=self.config.transport)
         finally:
             await self.shutdown()
 
     async def shutdown(self):
         """Shutdown the server."""
         try:
-            await self.transport.shutdown()
-            # Cancel all pending tasks
             if self._tasks:
                 for task in self._tasks:
                     task.cancel()
@@ -111,8 +114,7 @@ class LLMLingServer(TaskManagerMixin):
     async def __aenter__(self) -> Self:
         """Enter async context and start server."""
         try:
-            # Start server in background task
-            self.create_task(self.transport.serve())
+            self.create_task(self.fastmcp.run_async(transport=self.config.transport))
         except Exception as e:
             await self.shutdown()
             msg = "Failed to start server"
