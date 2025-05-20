@@ -101,7 +101,8 @@
                 "discriminator": {
                   "mapping": {
                     "sse": "#/$defs/SSEMCPServerConfig",
-                    "stdio": "#/$defs/StdioMCPServerConfig"
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
                   },
                   "propertyName": "type"
                 },
@@ -111,6 +112,9 @@
                   },
                   {
                     "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
                   }
                 ]
               }
@@ -5695,25 +5699,26 @@
           "description": "Transport type to use.",
           "enum": [
             "stdio",
-            "sse"
+            "sse",
+            "streamable-http"
           ],
           "title": "Transport",
           "type": "string"
         },
         "host": {
           "default": "localhost",
-          "description": "Host to bind server to (SSE only).",
+          "description": "Host to bind server to (SSE / Streamable-HTTP only).",
           "title": "Host",
           "type": "string"
         },
         "port": {
-          "default": 8000,
-          "description": "Port to listen on (SSE only).",
+          "default": 3001,
+          "description": "Port to listen on (SSE / Streamable-HTTP only).",
           "title": "Port",
           "type": "integer"
         },
         "cors_origins": {
-          "description": "Allowed CORS origins (SSE only).",
+          "description": "Allowed CORS origins (SSE / Streamable-HTTP only).",
           "items": {
             "type": "string"
           },
@@ -7245,6 +7250,70 @@
       "title": "StorageConfig",
       "type": "object"
     },
+    "StreamableHTTPMCPServerConfig": {
+      "additionalProperties": false,
+      "description": "MCP server using StreamableHttp.\n\nConnects to a server over HTTP with streamable HTTP.",
+      "properties": {
+        "type": {
+          "const": "streamable-http",
+          "default": "streamable-http",
+          "description": "SSE server configuration.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional name for referencing the server.",
+          "title": "Name"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this server is currently enabled.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Environment variables to pass to the server process.",
+          "title": "Environment"
+        },
+        "timeout": {
+          "default": 30.0,
+          "description": "Timeout for the server process.",
+          "title": "Timeout",
+          "type": "number"
+        },
+        "url": {
+          "description": "URL of the SSE server endpoint.",
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "StreamableHTTPMCPServerConfig",
+      "type": "object"
+    },
     "StringModelConfig": {
       "additionalProperties": false,
       "description": "Configuration for string-based model references.",
@@ -7586,7 +7655,8 @@
                 "discriminator": {
                   "mapping": {
                     "sse": "#/$defs/SSEMCPServerConfig",
-                    "stdio": "#/$defs/StdioMCPServerConfig"
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
                   },
                   "propertyName": "type"
                 },
@@ -7596,6 +7666,9 @@
                   },
                   {
                     "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
                   }
                 ]
               }
@@ -9178,7 +9251,8 @@
             "discriminator": {
               "mapping": {
                 "sse": "#/$defs/SSEMCPServerConfig",
-                "stdio": "#/$defs/StdioMCPServerConfig"
+                "stdio": "#/$defs/StdioMCPServerConfig",
+                "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
               },
               "propertyName": "type"
             },
@@ -9188,6 +9262,9 @@
               },
               {
                 "$ref": "#/$defs/SSEMCPServerConfig"
+              },
+              {
+                "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
               }
             ]
           }
