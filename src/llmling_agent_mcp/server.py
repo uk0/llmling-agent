@@ -97,7 +97,14 @@ class LLMLingServer(TaskManagerMixin):
     async def start(self, *, raise_exceptions: bool = False):
         """Start the server."""
         try:
-            await self.fastmcp.run_async(transport=self.config.transport)
+            if self.config.transport == "stdio":
+                await self.fastmcp.run_async(transport=self.config.transport)
+            else:
+                await self.fastmcp.run_async(
+                    transport=self.config.transport,
+                    host=self.config.host,
+                    port=self.config.port,
+                )
         finally:
             await self.shutdown()
 
@@ -114,7 +121,15 @@ class LLMLingServer(TaskManagerMixin):
     async def __aenter__(self) -> Self:
         """Enter async context and start server."""
         try:
-            self.create_task(self.fastmcp.run_async(transport=self.config.transport))
+            if self.config.transport == "stdio":
+                coro = self.fastmcp.run_async(transport=self.config.transport)
+            else:
+                coro = self.fastmcp.run_async(
+                    transport=self.config.transport,
+                    host=self.config.host,
+                    port=self.config.port,
+                )
+            self.create_task(coro)
         except Exception as e:
             await self.shutdown()
             msg = "Failed to start server"
