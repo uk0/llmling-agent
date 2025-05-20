@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from contextlib import AsyncExitStack, suppress
 import shutil
-import sys
 from typing import TYPE_CHECKING, Any, Self, TextIO
 
 from llmling_agent.log import get_logger
@@ -41,15 +40,6 @@ class MCPClient:
 
     async def __aenter__(self) -> Self:
         """Enter context and redirect stdout if in stdio mode."""
-        try:
-            if self._transport_mode == "stdio":
-                self._old_stdout = sys.stdout
-                sys.stdout = sys.stderr
-                logger.info("Redirecting stdout for stdio MCP server")
-        except Exception as e:
-            msg = "Failed to enter MCP client context"
-            logger.exception(msg, exc_info=e)
-            raise RuntimeError(msg) from e
         return self
 
     async def __aexit__(
@@ -60,8 +50,6 @@ class MCPClient:
     ):
         """Restore stdout if redirected and cleanup."""
         try:
-            if self._old_stdout:
-                sys.stdout = self._old_stdout
             await self.cleanup()
         except RuntimeError as e:
             if "exit cancel scope in a different task" in str(e):
