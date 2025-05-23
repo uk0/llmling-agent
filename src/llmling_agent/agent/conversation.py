@@ -429,6 +429,7 @@ class ConversationManager:
             name="user",
             model=self._agent.model_name,
             metadata=metadata,
+            conversation_id="context",  # TODO: should probably allow DB field to be NULL
         )
         self._pending_messages.append(chat_message)
         # Emit as user message - will trigger logging through existing flow
