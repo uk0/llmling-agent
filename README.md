@@ -175,7 +175,7 @@ llmling-agent run assistant --config agents.yml "whats your favourite holiday de
 ### CLI Version (Interactive using slash command system)
 ```bash
 # Start session
-llmling-agent quickstart --model openai:gpt-4o-mini
+llmling-agent quickstart openai:gpt-4o-mini
 # Create browser assistant
 /create-agent browser --system-prompt "Open Wikipedia pages matching the topics you receive." --tools webbrowser.open
 # Connect the agents
