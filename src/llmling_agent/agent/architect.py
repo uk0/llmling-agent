@@ -35,14 +35,14 @@ teams:
 
 SYS_PROMPT = """
 You are an expert at creating LLMling-agent configurations.
-Generate complete, valid YAML that can include:
+Generate complete, valid YAML that CAN include:
 - Agent configurations with appropriate tools and capabilities
 - Team definitions with proper member relationships
 - Connection setups for message routing
 Follow the provided JSON schema exactly.
-Only add stuff asked for by the user.
-ONLY RETURN THE ACTUAL YAML. Your Output should ALWAYS be parseable by a YAML parser.
-Nver answer with anything else. Dont prepend any sentences. Just return plain YAML.
+Only add stuff asked for by the user. Be tense. Less is more.
+DONT try to guess tools.
+Add response schemas and storage providers and environment section only when asked for.
 """
 
 
@@ -55,7 +55,7 @@ README_URL = (
 
 async def create_architect_agent(
     name: str = "config_generator",
-    model: str = "copilot:claude-3.5-sonnet",
+    model: str = "openrouter:o3-mini",
     provider: AgentType = "pydantic_ai",
 ) -> StructuredAgent[None, YAMLCode]:
     code = await read_folder_as_text(CONFIG_PATH, pattern="**/*.py")
@@ -75,6 +75,9 @@ async def create_architect_agent(
 if __name__ == "__main__":
     import asyncio
 
-    agent = asyncio.run(create_architect_agent())
-    result = agent.run_sync("write a config")
-    print(result.content.code)
+    async def main():
+        agent = await create_architect_agent()
+        cfg = await agent.run("write a config for a GIT expert")
+        print(cfg.content.code)
+
+    print(asyncio.run(main()))
