@@ -106,11 +106,13 @@ def parts_to_tool_call_info(
     """Convert matching tool call and return parts into a ToolCallInfo."""
     import anyenv
 
-    args = (
-        call_part.args
-        if isinstance(call_part.args, dict)
-        else anyenv.load_json(call_part.args)
-    )
+    match call_part.args:
+        case None:
+            args = {}
+        case dict():
+            args = call_part.args
+        case _:
+            args = anyenv.load_json(call_part.args)
 
     return ToolCallInfo(
         tool_name=call_part.tool_name,
@@ -180,11 +182,14 @@ def convert_model_message(  # noqa: PLR0911
             return ChatMessage(content=format_part(part), role="system")
 
         case ToolCallPart():
-            args = (
-                message.args
-                if isinstance(message.args, dict)
-                else anyenv.load_json(message.args)
-            )
+            match message.args:
+                case None:
+                    args = {}
+                case dict():
+                    args = message.args
+                case _:
+                    args = anyenv.load_json(message.args)
+
             info = ToolCallInfo(
                 tool_name=message.tool_name,
                 args=args,
