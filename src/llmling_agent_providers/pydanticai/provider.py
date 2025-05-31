@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, cast, get_args
 
 from llmling_models import AllModels, infer_model
 from pydantic_ai import Agent as PydanticAgent
-import pydantic_ai._pydantic
+import pydantic_ai._function_schema
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.result import StreamedRunResult
@@ -81,7 +81,7 @@ def _is_call_ctx(annotation: Any) -> bool:
     )
 
 
-pydantic_ai._pydantic._is_call_ctx = _is_call_ctx
+pydantic_ai._function_schema._is_call_ctx = _is_call_ctx
 
 
 class PydanticAIProvider(AgentLLMProvider):
