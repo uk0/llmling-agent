@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Self
 from fastmcp import FastMCP
 from mcp.server.lowlevel.server import LifespanResultT, NotificationOptions
 
+import llmling_agent
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_mcp.handlers import register_handlers
 from llmling_agent_mcp.log import get_logger
@@ -19,8 +20,6 @@ if TYPE_CHECKING:
     from contextlib import AbstractAsyncContextManager
 
     import mcp
-    from mcp.server.auth.provider import OAuthAuthorizationServerProvider
-    from mcp.server.streamable_http import EventStore
 
     from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent_config.mcp_server import PoolServerConfig
@@ -43,9 +42,6 @@ class LLMLingServer(TaskManagerMixin):
             | None
         ) = None,
         instructions: str | None = None,
-        oauth_server_provider: OAuthAuthorizationServerProvider[Any, Any, Any]
-        | None = None,
-        event_store: EventStore | None = None,
         name: str = "llmling-server",
     ):
         """Initialize server with resource provider.
@@ -56,8 +52,6 @@ class LLMLingServer(TaskManagerMixin):
             name: Server name for MCP protocol
             lifespan: Lifespan context manager
             instructions: Instructions for Server usage
-            oauth_server_provider: Authorization server provider
-            event_store: Event store
         """
         super().__init__()
         self.name = name
@@ -75,9 +69,8 @@ class LLMLingServer(TaskManagerMixin):
 
         self.fastmcp = FastMCP(
             instructions=instructions,
-            auth_server_provider=oauth_server_provider,
-            event_store=event_store,
             lifespan=lifespan,
+            version=llmling_agent.__version__,
         )
         self.server = self.fastmcp._mcp_server
         self.server.notification_options = NotificationOptions(
