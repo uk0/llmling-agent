@@ -10,7 +10,6 @@ from typing import (
     Any,
     TypeAliasType,
     TypeGuard,
-    TypeVar,
     Union,
     get_args,
     get_origin,
@@ -23,8 +22,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AgentContext
 
-
-T = TypeVar("T")
 
 PACKAGE_NAME = "llmling-agent"
 
@@ -187,7 +184,7 @@ def has_return_type[T](  # noqa: PLR0911
     return False
 
 
-def call_with_context(
+def call_with_context[T](
     func: Callable[..., T],
     context: AgentContext[Any],
     **kwargs: Any,

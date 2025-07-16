@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import wraps
 import inspect
-from typing import TYPE_CHECKING, ParamSpec, TypeVar, overload
+from typing import TYPE_CHECKING, overload
 
 from llmling_agent_running.injection import inject_nodes
 
@@ -14,24 +14,21 @@ if TYPE_CHECKING:
 
     from llmling_agent import AgentPool
 
-P = ParamSpec("P")
-T = TypeVar("T")
-
 
 @overload
-def with_nodes(
+def with_nodes[T, **P](
     pool: AgentPool,
 ) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]: ...
 
 
 @overload
-def with_nodes(
+def with_nodes[T, **P](
     pool: AgentPool,
     func: Callable[P, Awaitable[T]],
 ) -> Callable[P, Awaitable[T]]: ...
 
 
-def with_nodes(
+def with_nodes[T, **P](
     pool: AgentPool,
     func: Callable[P, Awaitable[T]] | None = None,
 ) -> (
