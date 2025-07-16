@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import inspect
 import typing
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
 
@@ -14,8 +14,6 @@ if TYPE_CHECKING:
 
     from llmling_agent import AgentPool, MessageNode
 
-P = ParamSpec("P")
-T = TypeVar("T")
 
 logger = get_logger(__name__)
 
@@ -44,7 +42,7 @@ class NodeInjectionError(Exception):
     """Raised when agent injection fails."""
 
 
-def inject_nodes(
+def inject_nodes[T, **P](
     func: Callable[P, T],
     pool: AgentPool,
     provided_kwargs: dict[str, Any],
