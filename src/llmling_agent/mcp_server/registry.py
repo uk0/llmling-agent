@@ -87,6 +87,7 @@ class MCPServer:
                     async with streamablehttp_client(self.config.url) as (
                         read_stream,
                         write_stream,
+                        _callback,
                     ):
                         self.session = ClientSession(
                             read_stream,

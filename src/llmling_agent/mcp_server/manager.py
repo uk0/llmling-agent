@@ -7,6 +7,7 @@ from contextlib import AsyncExitStack
 from typing import TYPE_CHECKING, Self
 
 from llmling.prompts import PromptMessage, StaticPrompt
+from mcp.types import TextResourceContents
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.client import MCPClient
@@ -34,13 +35,13 @@ logger = get_logger(__name__)
 
 async def convert_mcp_prompt(client: MCPClient, prompt: MCPPrompt) -> StaticPrompt:
     """Convert MCP prompt to StaticPrompt."""
-    from mcp.types import EmbeddedResource, ImageContent
+    from mcp.types import TextContent
 
     result = await client.get_prompt(prompt.name)
     messages = [
         PromptMessage(role="system", content=message.content.text)
         for message in result.messages
-        if not isinstance(message.content, EmbeddedResource | ImageContent)
+        if isinstance(message.content, TextContent | TextResourceContents)
     ]
     desc = prompt.description or "No description provided"
     return StaticPrompt(name=prompt.name, description=desc, messages=messages)

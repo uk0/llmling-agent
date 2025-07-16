@@ -158,7 +158,7 @@ class MCPClient:
 
     async def call_tool(self, name: str, arguments: dict | None = None) -> str:
         """Call an MCP tool."""
-        from mcp.types import EmbeddedResource, ImageContent
+        from mcp.types import TextContent, TextResourceContents
 
         if not self.session:
             msg = "Not connected to MCP server"
@@ -166,8 +166,8 @@ class MCPClient:
 
         try:
             result = await self.session.call_tool(name, arguments or {})
-            if isinstance(result.content[0], EmbeddedResource | ImageContent):
-                msg = "Tool returned an embedded resource"
+            if not isinstance(result.content[0], TextResourceContents | TextContent):
+                msg = "Tool returned a non-text response"
                 raise TypeError(msg)  # noqa: TRY301
             return result.content[0].text
         except Exception as e:
