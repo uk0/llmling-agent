@@ -67,7 +67,7 @@ dependencies = [
     # these 4 could be optional
     "prompt-toolkit>=3.0.48",
     "promptantic>=0.4.5",
-    "pydantic_ai_slim",
+    "pydantic_ai_slim>=1.0.0",
     "llmling-models",
     # Only add below (Copier)
     "python-dotenv>=1.0.1",
