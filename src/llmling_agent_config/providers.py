@@ -60,7 +60,7 @@ class PydanticAIProviderConfig(BaseProviderConfig):
     model: str | AnyModelConfig | None = None
     """Optional model name to use. If not specified, uses default model."""
 
-    result_retries: int | None = None
+    output_retries: int | None = None
     """Maximum retries for result validation.
     None means use the global retry setting.
     """
@@ -97,7 +97,7 @@ class PydanticAIProviderConfig(BaseProviderConfig):
             model=model,
             name=self.name or "ai-agent",
             end_strategy=self.end_strategy,
-            result_retries=self.result_retries,
+            output_retries=self.output_retries,
             defer_model_check=self.defer_model_check,
             model_settings=settings,
         )

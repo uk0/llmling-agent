@@ -104,7 +104,7 @@ class AgentKwargs(TypedDict, total=False):
 
     # Execution Settings
     retries: int
-    result_retries: int | None
+    output_retries: int | None
     end_strategy: EndStrategy
     defer_model_check: bool
 
@@ -166,7 +166,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         resources: Sequence[Resource | PromptType | str] = (),
         retries: int = 1,
-        result_retries: int | None = None,
+        output_retries: int | None = None,
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         input_provider: InputProvider | None = None,
@@ -195,7 +195,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             mcp_servers: MCP servers to connect to
             resources: Additional resources to load
             retries: Default number of retries for failed operations
-            result_retries: Max retries for result validation (defaults to retries)
+            output_retries: Max retries for result validation (defaults to retries)
             end_strategy: Strategy for handling tool calls that are requested alongside
                           a final result
             defer_model_check: Whether to defer model evaluation until first run
@@ -271,7 +271,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                     model=model,
                     retries=retries,
                     end_strategy=end_strategy,
-                    result_retries=result_retries,
+                    output_retries=output_retries,
                     defer_model_check=defer_model_check,
                     debug=debug,
                     context=ctx,

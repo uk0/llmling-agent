@@ -20,5 +20,5 @@ class StructuredResponseConfig(Schema):
     result_tool_description: str | None = None
     """The tool description for the Agent tool to create the structured response."""
 
-    result_retries: int | None = None
+    output_retries: int | None = None
     """Retry override. How often the Agent should try to validate the response."""

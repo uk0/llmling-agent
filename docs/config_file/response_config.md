@@ -26,7 +26,7 @@ responses:
     description: "Optional description of the response"
     result_tool_name: "final_result"  # Tool name for result creation
     result_tool_description: "Create the final result"  # Tool description
-    result_retries: 3  # Number of validation retries
+    output_retries: 3  # Number of validation retries
 ```
 
 ## Inline Responses
@@ -136,7 +136,7 @@ agents:
             type: "str"
       result_tool_name: "create_result"  # Custom tool name
       result_tool_description: "Create the final analysis result"
-      result_retries: 2  # Number of validation attempts
+      output_retries: 2  # Number of validation attempts
 ```
 
 ## Available Field Types
@@ -159,7 +159,7 @@ response_schema:
   description: "Result description"
   fields:
     # Field definitions
-    
+
 # OR
 
 response_schema:

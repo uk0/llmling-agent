@@ -31,7 +31,7 @@ agents:
           description: "Whether analysis succeeded"
     result_tool_name: "final_result"  # Name for result validation tool
     result_tool_description: "Create final response"  # Optional description
-    result_retries: 3  # Validation retry count
+    output_retries: 3  # Validation retry count
 
     # Agent behavior
     system_prompts: ["You are a code analyzer..."]

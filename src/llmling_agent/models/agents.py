@@ -102,7 +102,7 @@ class AgentConfig(NodeConfig):
     result_tool_description: str | None = None
     """Custom description for the result tool"""
 
-    result_retries: int | None = None
+    output_retries: int | None = None
     """Max retries for result validation"""
 
     end_strategy: EndStrategy = "early"
@@ -155,7 +155,7 @@ class AgentConfig(NodeConfig):
             # Extract response-specific settings
             tool_name = result_type.pop("result_tool_name", None)
             tool_description = result_type.pop("result_tool_description", None)
-            retries = result_type.pop("result_retries", None)
+            retries = result_type.pop("output_retries", None)
 
             # Convert remaining dict to ResponseDefinition
             if "type" not in result_type["response_schema"]:
@@ -168,7 +168,7 @@ class AgentConfig(NodeConfig):
             if tool_description:
                 data["result_tool_description"] = tool_description
             if retries is not None:
-                data["result_retries"] = retries
+                data["output_retries"] = retries
 
         return data
 

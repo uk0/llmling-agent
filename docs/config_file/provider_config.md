@@ -12,7 +12,7 @@ agents:
       type: "pydantic_ai"  # provider discriminator
       name: "gpt4-agent"  # optional provider instance name
       end_strategy: "early"  # "early" | "complete" | "confirm"
-      result_retries: 3  # max retries for result validation
+      output_retries: 3  # max retries for result validation
       defer_model_check: false  # whether to defer model check until first run
       model: "openai:gpt-4"  # optional model override
       model_settings:  # additional settings passed to pydantic-ai

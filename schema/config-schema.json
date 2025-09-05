@@ -424,7 +424,7 @@
           "description": "Custom description for the result tool",
           "title": "Result Tool Description"
         },
-        "result_retries": {
+        "output_retries": {
           "anyOf": [
             {
               "type": "integer"
@@ -6200,7 +6200,7 @@
           "description": "Optional model name to use. If not specified, uses default model.",
           "title": "Model"
         },
-        "result_retries": {
+        "output_retries": {
           "anyOf": [
             {
               "type": "integer"
@@ -7392,7 +7392,7 @@
           "description": "The tool description for the Agent tool to create the structured response.",
           "title": "Result Tool Description"
         },
-        "result_retries": {
+        "output_retries": {
           "anyOf": [
             {
               "type": "integer"

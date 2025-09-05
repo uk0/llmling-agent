@@ -407,7 +407,7 @@ class AgentsManifest(Schema):
             description=config.description,
             retries=config.retries,
             session=config.get_session_config(),
-            result_retries=config.result_retries,
+            output_retries=config.output_retries,
             end_strategy=config.end_strategy,
             capabilities=config.capabilities,
             debug=config.debug,

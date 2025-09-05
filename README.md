@@ -197,7 +197,7 @@ agents:
           - "openai:gpt-4"
           - "openai:gpt-3.5-turbo"
           - "anthropic:claude-2"
-      result_retries: 3  # Max retries for result validation
+      output_retries: 3  # Max retries for result validation
       defer_model_check: false  # Whether to defer model evaluation
       validation_enabled: true  # Whether to validate outputs
       allow_text_fallback: true  # Accept plain text when validation fails

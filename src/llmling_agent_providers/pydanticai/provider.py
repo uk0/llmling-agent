@@ -96,7 +96,7 @@ class PydanticAIProvider(AgentLLMProvider):
         context: AgentContext | None = None,
         name: str = "agent",
         retries: int = 1,
-        result_retries: int | None = None,
+        output_retries: int | None = None,
         end_strategy: EndStrategy = "early",
         defer_model_check: bool = False,
         debug: bool = False,
@@ -109,7 +109,7 @@ class PydanticAIProvider(AgentLLMProvider):
             context: Agent context
             name: Agent name
             retries: Number of retries for failed operations
-            result_retries: Max retries for result validation
+            output_retries: Max retries for result validation
             end_strategy: How to handle tool calls with final result
             defer_model_check: Whether to defer model validation
             debug: Whether to enable debug mode
@@ -127,7 +127,7 @@ class PydanticAIProvider(AgentLLMProvider):
             tools=[],
             retries=retries,
             end_strategy=end_strategy,
-            result_retries=result_retries,
+            output_retries=output_retries,
             defer_model_check=defer_model_check,
         )
 
