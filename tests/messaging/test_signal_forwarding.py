@@ -135,7 +135,7 @@ async def test_invalid_forward_target(invalid_config: Path):
     """Test error when forwarding to non-existent agent."""
     manifest = AgentsManifest.from_file(invalid_config)
 
-    with pytest.raises(ValueError, match="Forward target.*not found"):
+    with pytest.raises(ValueError, match=r"Forward target.*not found"):
         async with AgentPool[None](manifest):
             pass
 

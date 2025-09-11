@@ -125,7 +125,7 @@ def test_circular_inheritance(circular_config: Path):
 
 def test_invalid_parent(invalid_parent_config: Path):
     """Test error on invalid parent reference."""
-    with pytest.raises(ValueError, match="Parent agent.*not found"):
+    with pytest.raises(ValueError, match=r"Parent agent.*not found"):
         AgentsManifest.from_yaml(INVALID_PARENT)
 
 

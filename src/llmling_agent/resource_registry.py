@@ -106,7 +106,7 @@ class ResourceRegistry(BaseRegistry[str, AbstractFileSystem]):
 
         if "/" not in path:
             path = f"{path}://"
-        resource, _ = path.split("://", 1)
+        _resource, _ = path.split("://", 1)
         fs = self.get_fs()
         is_dir = await fs._isdir(path)
 

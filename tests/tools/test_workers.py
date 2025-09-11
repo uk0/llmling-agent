@@ -146,7 +146,7 @@ async def test_invalid_worker(tmp_path: Path):
     config_path = write_config(INVALID_WORKERS, tmp_path)
     manifest = AgentsManifest.from_file(config_path)
 
-    with pytest.raises(ValueError, match="Worker agent.*not found"):
+    with pytest.raises(ValueError, match=r"Worker agent.*not found"):
         async with AgentPool[None](manifest):
             pass
 
