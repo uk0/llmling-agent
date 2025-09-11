@@ -12,7 +12,11 @@ from llmling_agent.utils.now import get_now
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_storage.base import StorageProvider
 from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
-from llmling_agent_storage.sql_provider.models import Conversation, Message
+from llmling_agent_storage.sql_provider.models import (
+    CommandHistory,
+    Conversation,
+    Message,
+)
 from llmling_agent_storage.sql_provider.utils import (
     build_message_query,
     format_conversation,
@@ -203,8 +207,6 @@ class SQLModelProvider(StorageProvider[Message]):
         metadata: dict[str, JsonValue] | None = None,
     ):
         """Log command to database."""
-        from llmling_agent_storage.sql_provider.models import CommandHistory
-
         with Session(self.engine) as session:
             history = CommandHistory(
                 session_id=session_id,
@@ -260,8 +262,6 @@ class SQLModelProvider(StorageProvider[Message]):
         current_session_only: bool = False,
     ) -> list[str]:
         """Get command history from database."""
-        from llmling_agent_storage.sql_provider.models import CommandHistory
-
         with Session(self.engine) as session:
             query = select(CommandHistory)
             if current_session_only:
