@@ -19,14 +19,15 @@ class ComposioTools(ResourceProvider):
 
     def __init__(self, user_id: str, api_key: str | None = None):
         from composio import Composio
+        from composio.core.provider._openai import OpenAIProvider
 
         super().__init__(name=f"composio_{user_id}")
         self.user_id = user_id
         key = api_key or os.environ.get("COMPOSIO_API_KEY")
         if key:
-            self.composio = Composio(api_key=key)
+            self.composio = Composio[OpenAIProvider](api_key=key)
         else:
-            self.composio = Composio()
+            self.composio = Composio[OpenAIProvider]()
         self._tools: list[Tool] | None = None
 
     def _create_tool_handler(self, tool_slug: str):
