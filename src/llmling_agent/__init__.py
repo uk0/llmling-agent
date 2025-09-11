@@ -18,7 +18,7 @@ from llmling_agent.models.content import (
     VideoURLContent,
 )
 
-__version__ = "0.99.53"
+__version__ = "0.99.54"
 
 load_dotenv()
 
