@@ -25,8 +25,8 @@ class SessionState:
     current_model: str | None = None
     message_count: int = 0
     total_tokens: int = 0
-    prompt_tokens: int = 0
-    completion_tokens: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
     total_cost: float = 0.0
     start_time: datetime = field(default_factory=get_now)
     last_command: str | None = None
@@ -38,8 +38,8 @@ class SessionState:
             # Update token counts from cost_info
             token_usage = cost_info.token_usage
             self.total_tokens = token_usage["total"]
-            self.prompt_tokens = token_usage["prompt"]
-            self.completion_tokens = token_usage["completion"]
+            self.input_tokens = token_usage["prompt"]
+            self.output_tokens = token_usage["completion"]
             # Update cost
             self.total_cost = float(cost_info.total_cost)
             logger.debug("Updated session cost to: $%.6f", self.total_cost)

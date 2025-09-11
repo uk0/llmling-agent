@@ -169,8 +169,8 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             except Exception:  # noqa: BLE001
                 cost = await tokonomics.calculate_token_cost(
                     model_name,
-                    completion_tokens=response.usage.completion_tokens,  # type: ignore
-                    prompt_tokens=response.usage.prompt_tokens,  # type: ignore
+                    output_tokens=response.usage.completion_tokens,  # type: ignore
+                    input_tokens=response.usage.prompt_tokens,  # type: ignore
                 )
                 if cost:
                     cost_and_usage = TokenCost(

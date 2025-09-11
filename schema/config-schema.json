@@ -5001,7 +5001,7 @@
       "additionalProperties": false,
       "description": "Settings to configure an LLM.",
       "properties": {
-        "max_completion_tokens": {
+        "max_output_tokens": {
           "anyOf": [
             {
               "type": "integer"

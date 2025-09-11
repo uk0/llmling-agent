@@ -44,8 +44,8 @@ def to_chat_message(row: dict[str, Any]) -> ChatMessage[str]:
         cost_info = TokenCost(
             token_usage={
                 "total": row["total_tokens"] or 0,
-                "prompt": row["prompt_tokens"] or 0,
-                "completion": row["completion_tokens"] or 0,
+                "prompt": row["input_tokens"] or 0,
+                "completion": row["output_tokens"] or 0,
             },
             total_cost=row["cost"] or 0.0,
         )

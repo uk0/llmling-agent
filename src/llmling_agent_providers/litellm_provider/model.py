@@ -38,7 +38,7 @@ class LiteLLMModel(Schema):
         self,
         messages: list[dict[str, Any]],
         *,
-        max_completion_tokens: int | None = None,
+        max_output_tokens: int | None = None,
         temperature: float | None = None,
         response_format: type[BaseModel] | None = None,
         tools: list[dict[str, Any]] | None = None,
@@ -50,7 +50,7 @@ class LiteLLMModel(Schema):
 
         Args:
             messages: List of message dicts (role, content)
-            max_completion_tokens: Maximum tokens to generate
+            max_output_tokens: Maximum tokens to generate
             temperature: Sampling temperature (0-2)
             response_format: Optional Pydantic model for response
             tools: List of tool definitions
@@ -64,7 +64,7 @@ class LiteLLMModel(Schema):
             model=self.model_name,
             messages=messages,
             stream=False,
-            max_completion_tokens=max_completion_tokens,
+            max_output_tokens=max_output_tokens,
             temperature=temperature,
             response_format=response_format,
             tools=tools,
@@ -77,7 +77,7 @@ class LiteLLMModel(Schema):
         self,
         messages: list[dict[str, Any]],
         *,
-        max_completion_tokens: int | None = None,
+        max_output_tokens: int | None = None,
         temperature: float | None = None,
         response_format: type[BaseModel] | None = None,
         tools: list[dict[str, Any]] | None = None,
@@ -89,7 +89,7 @@ class LiteLLMModel(Schema):
 
         Args:
             messages: List of message dicts (role, content)
-            max_completion_tokens: Maximum tokens to generate
+            max_output_tokens: Maximum tokens to generate
             temperature: Sampling temperature (0-2)
             response_format: Optional Pydantic model for response
             tools: List of tool definitions
@@ -103,7 +103,7 @@ class LiteLLMModel(Schema):
             model=self.model_name,
             messages=messages,
             stream=True,
-            max_completion_tokens=max_completion_tokens,
+            max_output_tokens=max_output_tokens,
             temperature=temperature,
             response_format=response_format,
             tools=tools,

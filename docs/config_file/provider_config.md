@@ -17,7 +17,7 @@ agents:
       model: "openai:gpt-4"  # optional model override
       model_settings:  # additional settings passed to pydantic-ai
         temperature: 0.7
-        max_completion_tokens: 1000
+        max_output_tokens: 1000
       validation_enabled: true  # whether to validate outputs against schemas
       allow_text_fallback: true  # accept plain text when structure fails
 ```
@@ -92,7 +92,7 @@ Available model settings that can be configured:
 
 ```yaml
 model_settings:
-  max_completion_tokens: 1000  # Maximum tokens to generate
+  max_output_tokens: 1000  # Maximum tokens to generate
   temperature: 0.7             # Randomness (0.0-2.0)
   top_p: 0.9                   # Nucleus sampling (0.0-1.0)
   timeout: 60                  # Request timeout in seconds

@@ -34,8 +34,8 @@ def aggregate_token_usage(
     for msg in messages:
         if isinstance(msg, Message):
             total += msg.total_tokens or 0
-            prompt += msg.prompt_tokens or 0
-            completion += msg.completion_tokens or 0
+            prompt += msg.input_tokens or 0
+            completion += msg.output_tokens or 0
         elif msg.cost_info:
             total += msg.cost_info.token_usage.get("total", 0)
             prompt += msg.cost_info.token_usage.get("prompt", 0)
@@ -50,8 +50,8 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
         cost_info = TokenCost(
             token_usage={
                 "total": db_message.total_tokens or 0,
-                "prompt": db_message.prompt_tokens or 0,
-                "completion": db_message.completion_tokens or 0,
+                "prompt": db_message.input_tokens or 0,
+                "completion": db_message.output_tokens or 0,
             },
             total_cost=db_message.cost or 0.0,
         )

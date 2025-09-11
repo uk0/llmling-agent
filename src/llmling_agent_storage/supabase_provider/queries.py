@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS messages (
     model_name text,
     forwarded_from text[],
     total_tokens integer,
-    prompt_tokens integer,
-    completion_tokens integer,
+    input_tokens integer,
+    output_tokens integer,
     cost decimal,
     response_time decimal,
     metadata jsonb

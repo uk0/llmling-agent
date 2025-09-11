@@ -153,10 +153,10 @@ class Message(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     total_tokens: int | None = Field(default=None, index=True)
     """Total number of tokens used"""
 
-    prompt_tokens: int | None = None
+    input_tokens: int | None = None
     """Number of tokens in the prompt"""
 
-    completion_tokens: int | None = None
+    output_tokens: int | None = None
     """Number of tokens in the completion"""
 
     cost: float | None = Field(default=None, index=True)

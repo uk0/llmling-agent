@@ -118,8 +118,8 @@ class SupabaseProvider(StorageProvider):
             "response_time": response_time,
             "forwarded_from": forwarded_from,
             "total_tokens": cost_info.token_usage.get("total") if cost_info else None,
-            "prompt_tokens": cost_info.token_usage.get("prompt") if cost_info else None,
-            "completion_tokens": cost_info.token_usage.get("completion")
+            "input_tokens": cost_info.token_usage.get("prompt") if cost_info else None,
+            "output_tokens": cost_info.token_usage.get("completion")
             if cost_info
             else None,
             "cost": float(cost_info.total_cost) if cost_info else None,
@@ -292,7 +292,7 @@ class SupabaseProvider(StorageProvider):
         q = (
             self.client.from_("messages")
             .select(
-                "model,model_name,name,timestamp,total_tokens,prompt_tokens,completion_tokens"
+                "model,model_name,name,timestamp,total_tokens,input_tokens,output_tokens"
             )
             .gte("timestamp", filters.cutoff)
         )
@@ -311,8 +311,8 @@ class SupabaseProvider(StorageProvider):
                 TokenCost(
                     token_usage={
                         "total": row["total_tokens"] or 0,
-                        "prompt": row["prompt_tokens"] or 0,
-                        "completion": row["completion_tokens"] or 0,
+                        "prompt": row["input_tokens"] or 0,
+                        "completion": row["output_tokens"] or 0,
                     },
                     total_cost=0.0,
                 )

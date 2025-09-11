@@ -88,10 +88,12 @@ dependencies = [
     "anyenv>=0.3.0",
     "schemez>=0.0.1",
     "fastmcp>=2.3.4",
+    "alembic>=1.16.5",
 ]
 
 [project.scripts]
 llmling-agent = "llmling_agent.__main__:cli"
+llmling-agent-db = "llmling_agent_storage.sql_provider.cli:main"
 
 [project.optional-dependencies]
 # chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]

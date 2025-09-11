@@ -46,8 +46,8 @@ class LiteLLMStream[TResult]:
             if final_chunk and hasattr(final_chunk, "usage"):
                 self._final_usage = Usage(
                     total_tokens=final_chunk.usage.total_tokens,  # type: ignore
-                    input_tokens=final_chunk.usage.prompt_tokens,  # type: ignore
-                    output_tokens=final_chunk.usage.completion_tokens,  # type: ignore
+                    input_tokens=final_chunk.usage.input_tokens,  # type: ignore
+                    output_tokens=final_chunk.usage.output_tokens,  # type: ignore
                 )
 
         except Exception as e:
@@ -76,8 +76,8 @@ class LiteLLMStream[TResult]:
             if final_chunk and hasattr(final_chunk, "usage"):
                 self._final_usage = Usage(
                     total_tokens=final_chunk.usage.total_tokens,  # type: ignore
-                    input_tokens=final_chunk.usage.prompt_tokens,  # type: ignore
-                    output_tokens=final_chunk.usage.completion_tokens,  # type: ignore
+                    input_tokens=final_chunk.usage.input_tokens,  # type: ignore
+                    output_tokens=final_chunk.usage.output_tokens,  # type: ignore
                 )
 
         except Exception as e:

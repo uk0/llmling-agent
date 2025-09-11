@@ -16,8 +16,8 @@ logger = get_logger(__name__)
 class CompletionUsage(TypedDict):
     """Token usage information."""
 
-    prompt_tokens: int
-    completion_tokens: int
+    input_tokens: int
+    output_tokens: int
     total_tokens: int
 
 
