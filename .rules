@@ -1,0 +1,203 @@
+# Technology Stack & Build System
+
+## Core Technologies
+
+- **Python 3.12+**: Modern Python with full type hints and async support
+- **Pydantic v2**: Type validation and serialization throughout the stack
+- **UV**: Fast Python package manager and project management
+- **Async/Await**: Fully async architecture using asyncio
+
+## Key Dependencies
+
+### Core Framework
+- `llmling`: Base resource and configuration system
+- `pydantic_ai_slim`: PydanticAI provider support
+- `llmling-models`: Meta-model system for provider abstraction
+- `sqlmodel`: Type-safe SQL database interactions
+- `psygnal`: Signal-based messaging system
+
+### CLI & UI
+- `typer`: CLI framework with rich help and completion
+- `prompt-toolkit`: Interactive command-line interfaces
+- `textual`: Terminal-based UI framework
+- `slashed`: Slash command system for interactive sessions
+
+### Optional Integrations
+- `litellm`: Multi-provider LLM support
+- `fastapi` + `uvicorn`: Web server capabilities
+- `mcp`: Model Context Protocol support
+
+## Build System
+
+### Package Management
+```bash
+# Install dependencies
+uv sync --all-extras
+
+# Update dependencies
+uv lock --upgrade
+
+# Add new dependency
+uv add package-name
+```
+
+### Development Commands
+```bash
+# Run tests (parallel execution)
+uv run pytest -n auto
+
+# Lint and format code
+uv run ruff check --fix --unsafe-fixes .
+uv run ruff format .
+uv run mypy src/llmling_agent/
+
+# Build documentation
+uv run mknodes build
+
+```
+
+### Quality Assurance
+- **Ruff**: Fast Python linter and formatter
+- **MyPy**: Static type checking
+- **Pytest**: Testing framework with async support
+- **Pre-commit**: Git hooks for code quality
+- **Tach**: Module dependency enforcement
+
+## Architecture Patterns
+
+### Modular Design
+- Separate packages for each major component (`llmling_agent_*`)
+- Clear dependency hierarchy enforced by `tach.toml`
+- Plugin-based architecture for providers and tools
+
+### Type Safety
+- Pydantic models for all data structures
+- Generic types for agent specialization (`Agent[T]`, `StructuredAgent[T]`)
+- Discriminated unions for configuration variants
+
+### Async Patterns
+- Context managers for resource lifecycle (`async with Agent()`)
+- Async iterators for streaming responses
+- Signal-based event handling with `psygnal`
+
+
+# Project Structure & Organization
+
+## Source Code Layout
+
+The project follows a modular architecture with separate packages for each major component:
+
+```
+src/
+├── llmling_agent/              # Core agent framework
+│   ├── agent/                  # Agent implementation
+│   ├── config/                 # Configuration management
+│   ├── delegation/             # Multi-agent coordination (AgentPool, Teams)
+│   ├── messaging/              # Message system and routing
+│   ├── models/                 # Pydantic data models
+│   ├── observability/          # Monitoring and logging
+│   ├── prompts/                # Prompt management
+│   ├── tasks/                  # Task execution
+│   ├── tools/                  # Tool system
+│   └── utils/                  # Shared utilities
+├── llmling_agent_cli/          # Command-line interface
+├── llmling_agent_commands/     # Slash command system
+├── llmling_agent_config/       # Configuration schemas and loaders
+├── llmling_agent_converters/   # Content conversion (audio, video, etc.)
+├── llmling_agent_docs/         # Documentation generation
+├── llmling_agent_events/       # Event system (file watching, webhooks)
+├── llmling_agent_examples/     # Usage examples and demos
+├── llmling_agent_functional/   # Functional programming utilities
+├── llmling_agent_input/        # Input providers (human, textual, etc.)
+├── llmling_agent_mcp/          # Model Context Protocol integration
+├── llmling_agent_models/       # Model abstractions
+├── llmling_agent_observability/ # Observability providers (Logfire, etc.)
+├── llmling_agent_prompts/      # Prompt hub integrations
+├── llmling_agent_providers/    # LLM providers (PydanticAI, LiteLLM, Human)
+├── llmling_agent_resources/    # Resource management
+├── llmling_agent_running/      # Execution and runtime
+├── llmling_agent_server/       # Web server and API
+├── llmling_agent_storage/      # Storage providers (SQL, file, memory)
+├── llmling_agent_tools/        # Built-in tools
+├── llmling_agent_toolsets/     # Tool collections (Composio, MCP, etc.)
+├── llmling_agent_ui/           # UI providers
+└── llmling_textual/           # Textual-based monitoring UI
+```
+
+## Key Architectural Patterns
+
+### Module Dependencies
+Dependencies are strictly enforced by `tach.toml`:
+- Core `llmling_agent` depends on most other modules
+- Provider modules (`llmling_agent_providers`) depend on core
+- CLI modules depend on core + commands + UI modules
+- No circular dependencies allowed
+
+### Configuration System
+- **YAML-first**: All configuration via YAML files with JSON schema validation
+- **Pydantic models**: Type-safe configuration with discriminated unions
+- **Inheritance**: Agent configs can inherit from base configurations
+- **Environment variants**: File-based vs inline environment definitions
+
+### Messaging Architecture
+- **MessageNode**: Base interface for all message-processing entities
+- **Agents**: Individual LLM-powered actors
+- **Teams**: Parallel execution groups (`agent1 & agent2`)
+- **TeamRuns**: Sequential execution chains (`agent1 | agent2`)
+- **Connections**: Configurable message routing between nodes
+
+### Provider System
+- **Base classes**: Abstract providers in `llmling_agent_providers/base.py`
+- **Implementations**: Separate modules for each provider type
+- **Tool integration**: Unified tool calling across all providers
+- **Streaming support**: Async streaming for real-time responses
+
+## File Naming Conventions
+
+### Python Files
+- **Snake case**: `agent_config.py`, `message_node.py`
+- **Descriptive names**: Reflect the primary class or functionality
+- **Module organization**: Group related functionality in packages
+
+### Configuration Files
+- **YAML extension**: `.yml` preferred over `.yaml`
+- **Descriptive names**: `agents.yml`, `config.yml`, `manifest.yml`
+- **Schema validation**: All YAML configs have corresponding Pydantic models
+
+### Test Files
+- **Test prefix**: `test_*.py` for pytest discovery
+- **Mirror structure**: Test files mirror source structure
+- **Async tests**: Use `pytest-asyncio` for async test functions
+
+## Import Patterns
+
+### Internal Imports
+```python
+# Relative imports within packages
+from .models import AgentConfig
+from ..messaging import ChatMessage
+
+# Absolute imports for cross-package
+from llmling_agent import Agent
+from llmling_agent_config import AgentsManifest
+```
+
+### External Dependencies
+```python
+# Standard library first
+import asyncio
+from pathlib import Path
+
+# Third-party libraries
+import pydantic
+from typing_extensions import TypedDict
+
+# Local imports last
+from llmling_agent import Agent
+```
+
+### Type Annotations
+- **Full typing**: All functions and methods have type annotations
+- **Generic types**: Use `TypeVar` for generic agent types
+- **Union types**: Use `|` syntax for Python 3.12+ union types
+- **Optional imports**: Use `TYPE_CHECKING` for type-only imports
