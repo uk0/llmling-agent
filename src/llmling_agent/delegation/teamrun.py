@@ -270,11 +270,15 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                 def usage(self) -> Usage:
                     @dataclass
                     class Usage:
-                        total_tokens: int | None
-                        input_tokens: int | None
-                        output_tokens: int | None
+                        input_tokens: int
+                        output_tokens: int
 
-                    return Usage(0, 0, 0)
+                        @property
+                        def total_tokens(self) -> int:
+                            """Total number of tokens used."""
+                            return self.input_tokens + self.output_tokens
+
+                    return Usage(0, 0)
 
                 async def stream(self) -> AsyncGenerator[str, None]:  # type: ignore
                     for idx, stream in enumerate(self.streams):
