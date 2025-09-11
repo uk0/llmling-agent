@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
 from llmling.core.log import get_logger
 
@@ -16,38 +17,66 @@ logger = get_logger(__name__)
 class ComposioTools(ResourceProvider):
     """Provider for composio tools."""
 
-    def __init__(self, entity_id: str, api_key: str | None = None):
-        from composio_openai import ComposioToolSet
+    def __init__(self, user_id: str, api_key: str | None = None):
+        from composio import Composio
 
-        super().__init__(name=entity_id)
-        self.entity_id = entity_id
+        super().__init__(name=f"composio_{user_id}")
+        self.user_id = user_id
         key = api_key or os.environ.get("COMPOSIO_API_KEY")
-        self.toolset = ComposioToolSet(entity_id=entity_id, api_key=key)
+        if key:
+            self.composio = Composio(api_key=key)
+        else:
+            self.composio = Composio()
         self._tools: list[Tool] | None = None
 
-    def _create_tool_handler(self, function_name: str):
+    def _create_tool_handler(self, tool_slug: str):
         """Create a handler function for a specific tool."""
 
-        def handle_tool_call(**kwargs):
-            self.toolset.execute_action(function_name, kwargs)
+        def handle_tool_call(**kwargs) -> Any:
+            try:
+                return self.composio.tools.execute(
+                    slug=tool_slug,
+                    arguments=kwargs,
+                    user_id=self.user_id,
+                )
+            except Exception:
+                logger.exception("Error executing tool %s", tool_slug)
+                return {"error": f"Failed to execute tool {tool_slug}"}
 
-        handle_tool_call.__name__ = function_name
+        handle_tool_call.__name__ = tool_slug
         return handle_tool_call
 
     async def get_tools(self) -> list[Tool]:
-        """Get tools from entry points."""
-        from composio_openai import App
-
+        """Get tools from composio."""
         # Return cached tools if available
         if self._tools is not None:
             return self._tools
 
         self._tools = []
-        for tool_schema in self.toolset.get_tools(apps=[App.GITHUB]):
-            function_name = tool_schema["function"]["name"]
-            fn = self._create_tool_handler(function_name)
-            tool = Tool.from_callable(fn, schema_override=tool_schema["function"])  # type: ignore
-            self._tools.append(tool)
+
+        try:
+            # Get tools for GitHub toolkit using v3 API
+            tools = self.composio.tools.get(
+                user_id=self.user_id,
+                toolkits=["github"],
+                limit=10,  # Limit to prevent too many tools
+            )
+
+            for tool_def in tools:
+                # In v3 SDK, tools are OpenAI formatted by default
+                if isinstance(tool_def, dict) and "function" in tool_def:
+                    tool_slug = tool_def["function"].get("name", "")
+                    if tool_slug:
+                        fn = self._create_tool_handler(tool_slug)
+                        tool = Tool.from_callable(
+                            fn, schema_override=tool_def["function"]
+                        )
+                        self._tools.append(tool)
+
+        except Exception:
+            logger.exception("Error getting Composio tools")
+            # Return empty list if there's an error
+            self._tools = []
 
         return self._tools
 
@@ -58,7 +87,7 @@ if __name__ == "__main__":
     async def main():
         from llmling_agent import Agent
 
-        tools = ComposioTools("default")
+        tools = ComposioTools("user@example.com")
         agent = Agent[None](model="gpt-4o-mini")
         agent.tools.add_provider(tools)
         result = await agent.run("tell me the tools at your disposal")
