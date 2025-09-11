@@ -133,7 +133,7 @@ arize = [
 ]
 mlflow = ["mlflow>=2.20.1; python_version < '3.14'"]
 langsmith = ["langsmith; python_version < '3.14'"]
-default = ["pydantic_ai[logfire]; python_version < '3.14'"]
+default = ["pydantic-ai; python_version < '3.14'"]
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
