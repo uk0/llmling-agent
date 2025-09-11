@@ -89,7 +89,7 @@ dependencies = [
     "schemez>=0.0.1",
     "fastmcp>=2.3.4",
     "alembic>=1.16.5",
-    "composio>=1.0.0rc10",
+    "composio",
 ]
 
 [project.scripts]
