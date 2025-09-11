@@ -128,23 +128,23 @@ class TokenCost:
         if not (
             usage
             and usage.total_tokens is not None
-            and usage.request_tokens is not None
-            and usage.response_tokens is not None
+            and usage.input_tokens is not None
+            and usage.output_tokens is not None
         ):
             logger.debug("Missing token counts in Usage object")
             return None
 
         token_usage = TokenUsage(
             total=usage.total_tokens,
-            prompt=usage.request_tokens,
-            completion=usage.response_tokens,
+            prompt=usage.input_tokens,
+            completion=usage.output_tokens,
         )
         logger.debug("Token usage: %s", token_usage)
 
         cost = await tokonomics.calculate_token_cost(
             model,
-            usage.request_tokens,
-            usage.response_tokens,
+            usage.input_tokens,
+            usage.output_tokens,
         )
         total_cost = cost.total_cost if cost else 0.0
 

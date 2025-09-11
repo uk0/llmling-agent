@@ -120,10 +120,10 @@ class UsageLimits:
     request_limit: int | None = 50
     """The maximum number of requests allowed to the model."""
 
-    request_tokens_limit: int | None = None
+    input_tokens_limit: int | None = None
     """The maximum number of tokens allowed in requests to the model."""
 
-    response_tokens_limit: int | None = None
+    output_tokens_limit: int | None = None
     """The maximum number of tokens allowed in responses from the model."""
 
     total_tokens_limit: int | None = None

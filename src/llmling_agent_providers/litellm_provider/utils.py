@@ -16,8 +16,8 @@ class Usage:
     """Usage information for a model."""
 
     total_tokens: int | None
-    request_tokens: int | None
-    response_tokens: int | None
+    input_tokens: int | None
+    output_tokens: int | None
 
 
 class LiteLLMModel(ModelProtocol):

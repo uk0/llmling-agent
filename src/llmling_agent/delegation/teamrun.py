@@ -271,8 +271,8 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                     @dataclass
                     class Usage:
                         total_tokens: int | None
-                        request_tokens: int | None
-                        response_tokens: int | None
+                        input_tokens: int | None
+                        output_tokens: int | None
 
                     return Usage(0, 0, 0)
 

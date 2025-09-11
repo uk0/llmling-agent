@@ -158,8 +158,8 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
             # Create tokonomics usage
             usage = TokenUsage(
                 total_tokens=response.usage.prompt_tokens,  # type: ignore
-                request_tokens=response.usage.prompt_tokens,  # type: ignore
-                response_tokens=response.usage.completion_tokens,  # type: ignore
+                input_tokens=response.usage.prompt_tokens,  # type: ignore
+                output_tokens=response.usage.completion_tokens,  # type: ignore
             )
             try:
                 cost_and_usage = TokenCost(

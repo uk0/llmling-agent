@@ -46,8 +46,8 @@ class LiteLLMStream[TResult]:
             if final_chunk and hasattr(final_chunk, "usage"):
                 self._final_usage = Usage(
                     total_tokens=final_chunk.usage.total_tokens,  # type: ignore
-                    request_tokens=final_chunk.usage.prompt_tokens,  # type: ignore
-                    response_tokens=final_chunk.usage.completion_tokens,  # type: ignore
+                    input_tokens=final_chunk.usage.prompt_tokens,  # type: ignore
+                    output_tokens=final_chunk.usage.completion_tokens,  # type: ignore
                 )
 
         except Exception as e:
@@ -76,8 +76,8 @@ class LiteLLMStream[TResult]:
             if final_chunk and hasattr(final_chunk, "usage"):
                 self._final_usage = Usage(
                     total_tokens=final_chunk.usage.total_tokens,  # type: ignore
-                    request_tokens=final_chunk.usage.prompt_tokens,  # type: ignore
-                    response_tokens=final_chunk.usage.completion_tokens,  # type: ignore
+                    input_tokens=final_chunk.usage.prompt_tokens,  # type: ignore
+                    output_tokens=final_chunk.usage.completion_tokens,  # type: ignore
                 )
 
         except Exception as e:
@@ -89,5 +89,5 @@ class LiteLLMStream[TResult]:
     def usage(self) -> Usage:
         """Get token usage statistics."""
         if not self._final_usage:
-            return Usage(total_tokens=0, request_tokens=0, response_tokens=0)
+            return Usage(total_tokens=0, input_tokens=0, output_tokens=0)
         return self._final_usage

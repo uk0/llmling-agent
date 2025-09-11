@@ -58,7 +58,7 @@ class FakeAgent:
             model=self.model,
             fallbacks=self.fallbacks if self.fallbacks else None,
             messages=messages,
-            max_tokens=usage_limits.response_tokens_limit if usage_limits else None,
+            max_tokens=usage_limits.output_tokens_limit if usage_limits else None,
             response_format=result_type
             if result_type and issubclass(result_type, BaseModel)
             else None,
@@ -86,7 +86,7 @@ class FakeAgent:
             model=self.model,
             fallbacks=self.fallbacks if self.fallbacks else None,
             messages=messages,
-            max_tokens=usage_limits.response_tokens_limit if usage_limits else None,
+            max_tokens=usage_limits.output_tokens_limit if usage_limits else None,
             response_format=result_type
             if result_type and issubclass(result_type, BaseModel)
             else None,
