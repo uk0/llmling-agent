@@ -66,8 +66,8 @@ class ComposioToolSetConfig(BaseToolsetConfig):
     api_key: SecretStr | None = None
     """Composio API Key."""
 
-    entitiy_id: str = "default"
-    """Toolset entity id."""
+    user_id: str = "user@example.com"
+    """User ID for composio tools."""
 
     def get_provider(self) -> ResourceProvider:
         """Create entry point tools provider from this config."""
@@ -78,7 +78,7 @@ class ComposioToolSetConfig(BaseToolsetConfig):
             if self.api_key
             else os.getenv("COMPOSIO_API_KEY")
         )
-        return ComposioTools(entity_id=self.entitiy_id, api_key=key)
+        return ComposioTools(user_id=self.user_id, api_key=key)
 
 
 class UpsonicToolSetConfig(BaseToolsetConfig):
@@ -93,7 +93,7 @@ class UpsonicToolSetConfig(BaseToolsetConfig):
     api_key: SecretStr | None = None
     """Upsonic API Key."""
 
-    entitiy_id: str = "default"
+    entity_id: str = "default"
     """Toolset entity id."""
 
     def get_provider(self) -> ResourceProvider:

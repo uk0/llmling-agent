@@ -300,7 +300,10 @@ class PydanticAIProvider(AgentLLMProvider):
             cost_input = "\n".join(str(p) for p in prompts)
             cost_info = (
                 await TokenCost.from_usage(
-                    usage, resolved_model, cost_input, str(result.output)
+                    usage,  # pyright: ignore[reportArgumentType]
+                    resolved_model,
+                    cost_input,
+                    str(result.output),
                 )
                 if resolved_model and usage
                 else None

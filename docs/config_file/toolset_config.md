@@ -37,7 +37,7 @@ agents:
       - type: "composio"
         namespace: "composio"  # optional namespace prefix
         api_key: "${COMPOSIO_API_KEY}"  # API key (optional, can use env var)
-        entitiy_id: "default"  # Entity ID to use
+        entity_id: "default"  # Entity ID to use
 ```
 
 ## Upsonic Toolset
@@ -51,7 +51,7 @@ agents:
         namespace: "upsonic"  # optional namespace prefix
         base_url: "https://api.upsonic.co"  # API URL (optional)
         api_key: "${UPSONIC_API_KEY}"  # API key
-        entitiy_id: "default"  # Entity ID to use
+        entity_id: "default"  # Entity ID to use
 ```
 
 ## Custom Toolset

@@ -1754,7 +1754,7 @@
           "description": "Composio API Key.",
           "title": "Api Key"
         },
-        "entitiy_id": {
+        "entity_id": {
           "default": "default",
           "description": "Toolset entity id.",
           "title": "Entitiy Id",
@@ -8529,7 +8529,7 @@
           "description": "Upsonic API Key.",
           "title": "Api Key"
         },
-        "entitiy_id": {
+        "entity_id": {
           "default": "default",
           "description": "Toolset entity id.",
           "title": "Entitiy Id",
