@@ -579,7 +579,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         self._provider.model_changed.connect(self.model_changed)
         self._provider.tool_used.connect(self.tool_used)
         self._provider.model_changed.connect(self.model_changed)
-        self._provider.context = self._context
+        self._provider.context = self._context  # pyright: ignore[reportAttributeAccessIssue]
 
     @overload
     def to_structured(

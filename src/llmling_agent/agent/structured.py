@@ -130,7 +130,7 @@ class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
     ) -> Team[TDeps]:
         return self._agent.__and__(other)
 
-    def __or__(self, other: Agent | ProcessorCallback | BaseTeam) -> TeamRun:
+    def __or__(self, other: AnyAgent[Any, Any] | ProcessorCallback | BaseTeam) -> TeamRun:
         return self._agent.__or__(other)
 
     async def _run(
