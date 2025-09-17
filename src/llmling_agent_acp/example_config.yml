@@ -1,0 +1,113 @@
+# Example llmling-agent configuration for ACP (Agent Client Protocol) server
+# Usage: llmling-agent acp example_config.yml
+# ACP settings (file_access, terminal_access, etc.) are passed via CLI
+
+agents:
+  chat_agent:
+    name: "ChatAssistant"
+    model: "openrouter:openai/gpt-4o-mini"
+    system_prompt: |
+      You are a helpful AI assistant. Be conversational and friendly.
+      You can help with general questions, writing tasks, and analysis.
+      If you need to access files or perform system operations, I'll request
+      the necessary permissions through the ACP protocol.
+    description: "A friendly AI assistant for general conversation"
+
+  file_agent:
+    name: "FileProcessor"
+    model: "openrouter:openai/gpt-4o-mini"
+    system_prompt: |
+      You are a file processing expert. You can read, analyze, and process files
+      through the ACP client's file system interface. Always request permission
+      before accessing files and explain what you're doing.
+    description: "Specialized agent for file operations and analysis"
+    tools: ["file_tools"]
+
+  code_assistant:
+    name: "CodeAssistant"
+    model: "openrouter:anthropic/claude-3-5-sonnet"
+    system_prompt: |
+      You are a coding assistant that can help with programming tasks.
+      You can read and analyze code files, suggest improvements, and help debug issues.
+      When working with files, you'll use the ACP protocol to request file access.
+    description: "AI-powered coding assistant with file access"
+    tools: ["code_tools", "file_tools"]
+
+  terminal_agent:
+    name: "TerminalHelper"
+    model: "openrouter:openai/gpt-4o-mini"
+    system_prompt: |
+      You are a terminal and system administration assistant.
+      You can help with command-line tasks, system administration, and automation.
+      You have access to terminal operations through the ACP protocol.
+      Always explain commands before executing them and request confirmation for
+      potentially dangerous operations.
+    description: "Terminal and system administration assistant"
+    tools: ["terminal_tools", "system_tools"]
+
+  research_agent:
+    name: "ResearchAssistant"
+    model: "openrouter:openai/gpt-4o-mini"
+    system_prompt: |
+      You are a research assistant that can help gather information, analyze documents,
+      and compile research findings. You work with various file formats and can
+      organize information systematically.
+    description: "Research and document analysis assistant"
+    tools: ["research_tools", "file_tools", "web_tools"]
+
+# Teams demonstrate agent collaboration patterns
+teams:
+  file_processing:
+    mode: "sequential"
+    members: ["file_agent", "code_assistant"]
+    description: "Sequential file processing: analysis followed by code review"
+
+  research_pipeline:
+    mode: "sequential"
+    members: ["research_agent", "file_agent", "chat_agent"]
+    description: "Research pipeline: gather info, process files, present results"
+
+  development_team:
+    mode: "parallel"
+    members: ["code_assistant", "terminal_agent"]
+    description: "Parallel development: code analysis and system operations"
+
+# ACP server settings are controlled via CLI:
+#
+# Basic usage:
+#   llmling-agent acp example_config.yml
+#
+# With file system access:
+#   llmling-agent acp example_config.yml --file-access
+#
+# With full capabilities:
+#   llmling-agent acp example_config.yml --file-access --terminal-access
+#
+# With debugging:
+#   llmling-agent acp example_config.yml --file-access --show-messages --log-level DEBUG
+
+# ACP Protocol Features:
+# - JSON-RPC 2.0 communication over stdio streams
+# - Session management with conversation history
+# - Content blocks: text, image, audio, resource links
+# - File system operations with permission requests
+# - Terminal integration (when enabled)
+# - Tool execution with progress tracking
+# - Error handling and recovery
+#
+# Client Integration:
+# The ACP server communicates over stdin/stdout using JSON-RPC 2.0.
+# Desktop applications can integrate by:
+# 1. Starting the server as a subprocess
+# 2. Sending initialize request to negotiate capabilities
+# 3. Creating sessions for conversation management
+# 4. Sending prompt requests with content blocks
+# 5. Receiving streaming responses via session updates
+#
+# Example ACP message flow:
+# → {"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":1},"id":1}
+# ← {"jsonrpc":"2.0","result":{"protocolVersion":1,"agentCapabilities":{...}},"id":1}
+# → {"jsonrpc":"2.0","method":"session/new","params":{"cwd":"/tmp"},"id":2}
+# ← {"jsonrpc":"2.0","result":{"sessionId":"sess_abc123"},"id":2}
+# → {"jsonrpc":"2.0","method":"session/prompt","params":{"sessionId":"sess_abc123","prompt":[{"type":"text","text":"Hello!"}]},"id":3}
+# ← {"jsonrpc":"2.0","result":{"stopReason":"completed"},"id":3}
