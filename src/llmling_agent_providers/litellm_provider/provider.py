@@ -157,8 +157,9 @@ class LiteLLMProvider(AgentLLMProvider[Any]):
                 content = result_type.model_validate_json(content)
             # Create tokonomics usage
             usage = TokenUsage(
-                input_tokens=response.usage.prompt_tokens,  # type: ignore
-                output_tokens=response.usage.completion_tokens,  # type: ignore
+                total=response.usage.prompt_tokens,  # type: ignore
+                prompt=response.usage.prompt_tokens,  # type: ignore
+                completion=response.usage.completion_tokens,  # type: ignore
             )
             try:
                 cost_and_usage = TokenCost(
