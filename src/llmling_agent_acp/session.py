@@ -156,7 +156,7 @@ class ACPSession:
             response_parts = []
 
             async with self.agent.run_stream(prompt) as stream:
-                async for chunk in stream.stream():
+                async for chunk in stream.stream_text(delta=True):
                     if chunk and str(chunk).strip():
                         chunk_text = str(chunk)
                         response_parts.append(chunk_text)
