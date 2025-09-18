@@ -134,14 +134,17 @@ class LLMlingACPAgent(ACPAgent):
 
         try:
             logger.info("Creating new session")
+            logger.info("Available agents: %s", list(self.agents.keys()))
 
             # Use the first available agent for now
             # In the future, we might want to support agent selection
             if not self.agents:
+                logger.error("No agents available for session creation")
                 msg = "No agents available"
                 raise RuntimeError(msg)  # noqa: TRY301
 
             agent = next(iter(self.agents.values()))
+            logger.info("Using agent %s for new session", agent.name)
 
             # Create session through session manager
             session_id = await self.session_manager.create_session(
@@ -402,6 +405,7 @@ class ACPServer:
                 file_access = any("file" in str(tool).lower() for tool in agent.tools)
 
                 # Register with ACP server
+                logger.info("Registering agent: %s", agent_name)
                 server.agent(
                     agent,
                     name=agent_name,
@@ -409,6 +413,7 @@ class ACPServer:
                     file_access=file_access,
                     terminal_access=False,  # Conservative default
                 )
+                logger.info("Successfully registered agent: %s", agent_name)
 
         return server
 
@@ -429,10 +434,15 @@ class ACPServer:
             self._running = True
 
             if not self._agents:
+                logger.error("No agents registered - cannot start server")
                 msg = "No agents registered"
                 raise RuntimeError(msg)  # noqa: TRY301
 
-            logger.info("Starting ACP server with %d agents on stdio", len(self._agents))
+            logger.info(
+                "Starting ACP server with %d agents on stdio: %s",
+                len(self._agents),
+                list(self._agents.keys()),
+            )
 
             # Create stdio streams
             reader, writer = await stdio_streams()
