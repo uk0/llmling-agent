@@ -194,11 +194,8 @@ class ACPSession:
                                 "role": "assistant",
                                 "content": final_content,
                             })
-
-                            logger.debug(
-                                "Agent iteration completed for session %s",
-                                self.session_id,
-                            )
+                            msg = "Agent iteration completed for session %s"
+                            logger.debug(msg, self.session_id)
 
         except Exception as e:
             logger.exception("Error in agent iteration for session %s", self.session_id)
@@ -387,9 +384,8 @@ class ACPSession:
             try:
                 tool = self.agent.tools[tool_name]
             except KeyError:
-                logger.warning(
-                    "Tool %s not found in agent %s", tool_name, self.agent.name
-                )
+                msg = "Tool %s not found in agent %s"
+                logger.warning(msg, tool_name, self.agent.name)
                 return
 
             # Execute the tool using Tool.execute() method
@@ -407,9 +403,8 @@ class ACPSession:
             yield notification
 
         except Exception as e:
-            logger.exception(
-                "Error executing tool %s in session %s", tool_name, self.session_id
-            )
+            msg = "Error executing tool %s in session %s"
+            logger.exception(msg, tool_name, self.session_id)
 
             # Send error notification
             error_notification = format_tool_call_for_acp(
@@ -448,17 +443,12 @@ class ACPSession:
                 self.agent.conversation, "set_history"
             ):
                 self.agent.conversation.set_history(chat_messages)
-
-            logger.info(
-                "Loaded %d messages into session %s history",
-                len(history),
-                self.session_id,
-            )
+            msg = "Loaded %d messages into session %s history"
+            logger.info(msg, len(history), self.session_id)
 
         except Exception:
-            logger.exception(
-                "Error loading conversation history for session %s", self.session_id
-            )
+            msg = "Error loading conversation history for session %s"
+            logger.exception(msg, self.session_id)
 
     async def get_conversation_history(self) -> list[dict[str, Any]]:
         """Get the conversation history for this session.
