@@ -7,7 +7,7 @@ prompts:
 
 agents:
   player1:
-    model: openai:gpt-4o-mini
+    model: openai:o4-mini
     library_system_prompts:
       - word_chain
     connections:
@@ -16,7 +16,7 @@ agents:
         connection_type: run
 
   player2:
-    model: openai:gpt-4o-mini
+    model: openai:o4-mini
     library_system_prompts:
       - word_chain
     connections:
@@ -28,7 +28,7 @@ agents:
           max_cost: 0.01 # stop circle when this agent reaches 0.01 cost
 
   player3:
-    model: openai:gpt-4o-mini
+    model: openai:o4-mini
     library_system_prompts:
       - word_chain
     connections:

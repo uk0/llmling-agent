@@ -84,7 +84,7 @@ class ConfigGeneratorApp(App):
 
     def __init__(
         self,
-        model: str = "openai:gpt-4o-mini",
+        model: str = "openai:o4-mini",
         provider: Literal["pydantic_ai", "litellm"] = "pydantic_ai",
         output_path: str | None = None,
         add_to_store: bool = False,

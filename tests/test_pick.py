@@ -8,7 +8,7 @@ async def test_pick_from_options():
     """Test picking from a list of options."""
     # Create agent for making decisions
     decider = Agent[None](
-        model="openai:gpt-4o-mini",
+        model="openai:o4-mini",
         system_prompt="You are an expert at making clear decisions.",
     )
 
@@ -27,19 +27,19 @@ async def test_pick_from_agents():
     # Create a team of specialized agents
     analyzer = Agent[None](
         name="code_analyzer",
-        model="openai:gpt-4o-mini",
+        model="openai:o4-mini",
         description="Specializes in code analysis and best practices",
     )
     reviewer = Agent[None](
         name="security_expert",
-        model="openai:gpt-4o-mini",
+        model="openai:o4-mini",
         description="Focuses on security vulnerabilities",
     )
     team = [analyzer, reviewer]
 
     # Create decision maker
     decider = Agent[None](
-        model="openai:gpt-4o-mini",
+        model="openai:o4-mini",
         system_prompt="You are an expert at delegating tasks.",
     )
 
@@ -57,7 +57,7 @@ async def test_pick_from_agents():
 @pytest.mark.asyncio
 async def test_pick_multiple():
     """Test picking multiple options with constraints."""
-    decider = Agent[None](model="openai:gpt-4o-mini")
+    decider = Agent[None](model="openai:o4-mini")
 
     decision = await decider.talk.pick_multiple(
         ["A", "B", "C"],

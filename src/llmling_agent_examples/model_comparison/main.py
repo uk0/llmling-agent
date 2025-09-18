@@ -28,7 +28,7 @@ PROMPT = """Please perform the following steps:
 
 1. Create two agents:
    - Name: "gpt35_agent" using model "openai:gpt-3.5-turbo"
-   - Name: "gpt4_agent" using model "openai:gpt-4o-mini"
+   - Name: "gpt4_agent" using model "openai:o4-mini"
 
 2. Create a parallel team with the name "comparison_team".
    It should contain both agents just created.

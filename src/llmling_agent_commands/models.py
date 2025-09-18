@@ -22,7 +22,7 @@ Previous messages and their context are preserved.
 
 Examples:
   /set-model gpt-4
-  /set-model openai:gpt-4o-mini
+  /set-model openai:o4-mini
   /set-model claude-2
 
 Note: Available models depend on your configuration and API access.

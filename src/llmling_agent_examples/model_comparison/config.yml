@@ -1,7 +1,7 @@
 agents:
   overseer:
     name: "Model Comparison Coordinator"
-    model: openai:gpt-4o-mini
+    model: openai:o4-mini
     capabilities:
       can_add_teams: true
       can_list_teams: true

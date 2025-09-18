@@ -88,7 +88,7 @@ the framework makes it natural to build systems that combine AI capabilities wit
 The fastest way to start chatting with an AI:
 ```bash
 # Start an ephemeral chat session (requires uv)
-uvx llmling-agent[default] quickstart openai:gpt-4o-mini
+uvx llmling-agent[default] quickstart openai:o4-mini
 ```
 
 This creates a temporary agent ready for chat - no configuration needed!
@@ -123,11 +123,11 @@ async def main():
         browser = await pool.add_agent(
             "browser",
             system_prompt="Open Wikipedia pages matching the topics you receive.",
-            model="openai:gpt-4o-mini",
+            model="openai:o4-mini",
             tools=["webbrowser.open"],
         )
         # Create main agent and connect
-        agent = await pool.add_agent("assistant", model="openai:gpt-4o-mini")
+        agent = await pool.add_agent("assistant", model="openai:o4-mini")
         connection = agent >> browser  # this sets up a permanent connection.
         await agent.run("Tell us a random major city! Just one word!")
         print(connection.stats.total_cost)  # Check cost of this connection
@@ -144,7 +144,7 @@ This flow will:
 # agents.yml
 agents:
   browser:
-    model: openai:gpt-4o-mini
+    model: openai:o4-mini
     system_prompts:
       - "Open Wikipedia pages matching the topics you receive."
     tools:
@@ -153,7 +153,7 @@ agents:
         import_path: webbrowser.open
 
   assistant:
-    model: openai:gpt-4o-mini
+    model: openai:o4-mini
     connections:  # this forwards any output to the 2nd agent
       - type: node
         name: browser
@@ -168,7 +168,7 @@ llmling-agent run assistant --config agents.yml "whats your favourite holiday de
 ### CLI Version (Interactive using slash command system)
 ```bash
 # Start session
-llmling-agent quickstart openai:gpt-4o-mini
+llmling-agent quickstart openai:o4-mini
 # Create browser assistant
 /create-agent browser --system-prompt "Open Wikipedia pages matching the topics you receive." --tools webbrowser.open
 # Connect the agents
@@ -401,7 +401,7 @@ The `AgentPool` allows multiple agents to work together on tasks. Here's a pract
 # agents.yml
 agents:
   file_getter:
-    model: openai:gpt-4o-mini
+    model: openai:o4-mini
     tools:
       - type: import
         import_path: llmling_agent_tools.download_file  # a simple httpx based async callable
@@ -414,7 +414,7 @@ agents:
     capabilities:
       can_delegate_tasks: true  # these capabilities are available as tools for the agent
       can_list_agents: true
-    model: openai:gpt-4o-mini
+    model: openai:o4-mini
     system_prompts:
       - |
         You coordinate downloads using available agents.
@@ -759,7 +759,7 @@ you can easily generate static documentation for websites with a few lines of co
 @nav.route.page("Feature XYZ", icon="oui:documentation", hide="toc")
 def gen_docs(page: mk.MkPage):
     """Generate docs using agents."""
-    agent = Agent[None](model="openai:gpt-4o-mini")
+    agent = Agent[None](model="openai:o4-mini")
     page += mk.MkAdmonition("MkNodes includes all kinds of Markdown objects to generate docs!")
     source_code = load_source_code_from_folder(...)
     page += mk.MkCode() # if you want to display source code

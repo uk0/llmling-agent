@@ -26,7 +26,7 @@ responses:
 agents:
   yaml_analyzer:
     name: "YAML-defined Analyzer"
-    model: openai:gpt-4o-mini
+    model: openai:o4-mini
     system_prompts:
       - |
         Analyze text for sentiment and mood.
@@ -38,7 +38,7 @@ agents:
 
   python_analyzer:
     name: "Python-defined Analyzer"
-    model: openai:gpt-4o-mini
+    model: openai:o4-mini
     system_prompts:
       - |
         Analyze text and extract key points.

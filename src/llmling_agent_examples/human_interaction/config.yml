@@ -1,6 +1,6 @@
 agents:
   assistant:
-    model: openai:gpt-4o-mini
+    model: openai:o4-mini
     capabilities:
       can_ask_agents: true
     system_prompts:

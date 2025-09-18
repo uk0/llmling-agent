@@ -42,7 +42,7 @@ llmling-agent launch
 # agents.yml
 agents:
   assistant:
-    model: openai:gpt-4o-mini
+    model: openai:o4-mini
     environment: env_basic.yml
     system_prompts:
       - "You are a helpful assistant."
