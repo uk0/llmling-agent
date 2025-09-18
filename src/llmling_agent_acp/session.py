@@ -25,11 +25,14 @@ from llmling_agent_acp.converters import (
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
-    from acp import Client, SessionNotification
+    from acp import Client
     from acp.schema import McpServer
 
     from llmling_agent import Agent
     from llmling_agent_acp.types import ContentBlock
+
+from acp import SessionNotification
+
 
 logger = get_logger(__name__)
 
@@ -158,9 +161,8 @@ class ACPSession:
 
                     if PydanticAIAgent.is_user_prompt_node(node):
                         # User prompt node - log but don't stream (already processed)
-                        logger.debug(
-                            "Processing user prompt node for session %s", self.session_id
-                        )
+                        msg = "Processing user prompt node for session %s"
+                        logger.debug(msg, self.session_id)
 
                     elif PydanticAIAgent.is_model_request_node(node):
                         # Model request node - stream the model's response
@@ -244,11 +246,25 @@ class ACPSession:
                         case PartDeltaEvent(
                             delta=TextPartDelta(content_delta=content)
                         ) if content:
-                            # Stream text deltas as agent message chunks
+                            # Stream text deltas directly as single agent message chunks
                             text_content.append(content)
-                            chunk_updates = to_session_updates(content, self.session_id)
-                            for update in chunk_updates:
-                                yield update
+
+                            # Create single chunk update directly
+                            # (don't call to_session_updates)
+                            from acp.schema import (
+                                ContentBlock1,
+                                SessionUpdate2 as AgentMessageChunk,
+                            )
+
+                            content_block = ContentBlock1(text=content, type="text")
+                            update = AgentMessageChunk(
+                                content=content_block,
+                                sessionUpdate="agent_message_chunk",
+                            )
+                            notification = SessionNotification(
+                                sessionId=self.session_id, update=update
+                            )
+                            yield notification
 
                         case PartDeltaEvent(
                             delta=ThinkingPartDelta(content_delta=content)
@@ -265,9 +281,8 @@ class ACPSession:
 
                         case FinalResultEvent():
                             # Final result started - prepare for output streaming
-                            logger.debug(
-                                "Final result event for session %s", self.session_id
-                            )
+                            msg = "Final result event for session %s"
+                            logger.debug(msg, self.session_id)
                             break
 
                 # After events, stream any remaining text output
@@ -276,11 +291,23 @@ class ACPSession:
                         async for text_chunk in request_stream.stream_text():
                             if text_chunk and text_chunk.strip():
                                 text_content.append(text_chunk)
-                                chunk_updates = to_session_updates(
-                                    text_chunk, self.session_id
+                                # Create single chunk update directly
+                                from acp.schema import (
+                                    ContentBlock1,
+                                    SessionUpdate2 as AgentMessageChunk,
                                 )
-                                for update in chunk_updates:
-                                    yield update
+
+                                content_block = ContentBlock1(
+                                    text=text_chunk, type="text"
+                                )
+                                update = AgentMessageChunk(
+                                    content=content_block,
+                                    sessionUpdate="agent_message_chunk",
+                                )
+                                notification = SessionNotification(
+                                    sessionId=self.session_id, update=update
+                                )
+                                yield notification
                 except Exception as stream_error:  # noqa: BLE001
                     logger.debug("Could not stream text from request: %s", stream_error)
 
