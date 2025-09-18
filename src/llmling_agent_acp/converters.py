@@ -177,10 +177,7 @@ def extract_file_references(text: str) -> list[dict[str, Any]]:
     for pattern in file_patterns:
         matches = re.findall(pattern, text, re.IGNORECASE)
         files.extend(
-            {
-                "path": match,
-                "type": "file_reference",
-            }
+            {"path": match, "type": "file_reference"}
             for match in matches
             if match and not match.startswith("http")  # Exclude URLs
         )

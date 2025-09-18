@@ -10,9 +10,12 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Self
 import uuid
 
+from pydantic_ai import Agent as PydanticAIAgent
+
 from llmling_agent.log import get_logger
 from llmling_agent_acp.converters import (
     FileSystemBridge,
+    create_thought_chunk,
     format_tool_call_for_acp,
     from_content_blocks,
     to_session_updates,
@@ -121,15 +124,9 @@ class ACPSession:
                     "content_blocks": content_blocks,
                 })
 
-                # Check if agent supports streaming
-                if hasattr(self.agent, "run_stream"):
-                    async for notification in self._process_streaming_response(
-                        prompt_text
-                    ):
-                        yield notification
-                else:
-                    async for notification in self._process_sync_response(prompt_text):
-                        yield notification
+                # Use iterate_run for comprehensive streaming
+                async for notification in self._process_iter_response(prompt_text):
+                    yield notification
 
             except Exception as e:
                 logger.exception("Error processing prompt in session %s", self.session_id)
@@ -141,82 +138,210 @@ class ACPSession:
                 for update in error_updates:
                     yield update
 
-    async def _process_streaming_response(
+    async def _process_iter_response(
         self, prompt: str
     ) -> AsyncGenerator[SessionNotification, None]:
-        """Process prompt with streaming response.
+        """Process prompt using agent iteration for comprehensive streaming.
 
         Args:
             prompt: Prompt text to process
 
         Yields:
-            SessionNotification objects
+            SessionNotification objects for all agent execution events
         """
         try:
             response_parts = []
 
-            async with self.agent.run_stream(prompt) as stream:
-                async for chunk in stream.stream_text(delta=True):
-                    if chunk and str(chunk).strip():
-                        chunk_text = str(chunk)
-                        response_parts.append(chunk_text)
+            async with self.agent.iterate_run(prompt) as agent_run:
+                async for node in agent_run:
+                    # Import here to avoid circular imports
 
-                        # Stream individual chunks
-                        chunk_updates = to_session_updates(chunk_text, self.session_id)
-                        for update in chunk_updates:
-                            yield update
+                    if PydanticAIAgent.is_user_prompt_node(node):
+                        # User prompt node - log but don't stream (already processed)
+                        logger.debug(
+                            "Processing user prompt node for session %s", self.session_id
+                        )
 
-            # Process complete response after streaming
-            if response_parts:
-                complete_response = "".join(response_parts)
+                    elif PydanticAIAgent.is_model_request_node(node):
+                        # Model request node - stream the model's response
+                        async for notification in self._stream_model_request(
+                            node, agent_run
+                        ):
+                            if notification:
+                                yield notification
 
-                # Store complete response in history
-                self._conversation_history.append({
-                    "role": "assistant",
-                    "content": complete_response,
-                })
+                    elif PydanticAIAgent.is_call_tools_node(node):
+                        # Tool execution node - stream tool calls and results
+                        async for notification in self._stream_tool_execution(
+                            node, agent_run
+                        ):
+                            if notification:
+                                yield notification
+
+                    elif (
+                        PydanticAIAgent.is_end_node(node)
+                        and agent_run.result
+                        and agent_run.result.output
+                    ):
+                        final_content = str(agent_run.result.output)
+                        if final_content.strip():
+                            response_parts.append(final_content)
+
+                            # Store complete response in history
+                            self._conversation_history.append({
+                                "role": "assistant",
+                                "content": final_content,
+                            })
+
+                            logger.debug(
+                                "Agent iteration completed for session %s",
+                                self.session_id,
+                            )
 
         except Exception as e:
-            logger.exception(
-                "Error in streaming response for session %s", self.session_id
-            )
-            error_updates = to_session_updates(f"Streaming error: {e}", self.session_id)
+            logger.exception("Error in agent iteration for session %s", self.session_id)
+            error_updates = to_session_updates(f"Agent error: {e}", self.session_id)
             for update in error_updates:
                 yield update
 
-    async def _process_sync_response(
-        self, prompt: str
+    async def _stream_model_request(
+        self, node, agent_run
     ) -> AsyncGenerator[SessionNotification, None]:
-        """Process prompt with synchronous response.
+        """Stream model request events.
 
         Args:
-            prompt: Prompt text to process
+            node: Model request node
+            agent_run: Agent run context
 
         Yields:
-            SessionNotification objects
+            SessionNotification objects for model streaming
         """
         try:
-            # Execute agent synchronously
-            result = await self.agent.run(prompt)
-            response_text = str(result.content) if result.content is not None else ""
+            # Check if node supports streaming
+            if not hasattr(node, "stream"):
+                logger.warning("Model request node does not support streaming")
+                return
 
-            if response_text.strip():
-                # Store response in history
-                self._conversation_history.append({
-                    "role": "assistant",
-                    "content": response_text,
-                })
+            async with node.stream(agent_run.ctx) as request_stream:
+                text_content = []
 
-                # Convert to session updates for streaming
-                updates = to_session_updates(response_text, self.session_id)
-                for update in updates:
-                    yield update
+                async for event in request_stream:
+                    # Import event types
+                    from pydantic_ai.messages import (
+                        FinalResultEvent,
+                        PartDeltaEvent,
+                        PartStartEvent,
+                        TextPartDelta,
+                        ThinkingPartDelta,
+                        ToolCallPartDelta,
+                    )
 
-        except Exception as e:
-            logger.exception("Error in sync response for session %s", self.session_id)
-            error_updates = to_session_updates(f"Processing error: {e}", self.session_id)
-            for update in error_updates:
-                yield update
+                    match event:
+                        case PartStartEvent():
+                            # Part started - could log but don't stream yet
+                            pass
+
+                        case PartDeltaEvent(
+                            delta=TextPartDelta(content_delta=content)
+                        ) if content:
+                            # Stream text deltas as agent message chunks
+                            text_content.append(content)
+                            chunk_updates = to_session_updates(content, self.session_id)
+                            for update in chunk_updates:
+                                yield update
+
+                        case PartDeltaEvent(
+                            delta=ThinkingPartDelta(content_delta=content)
+                        ) if content:
+                            # Stream thinking as agent thought chunks
+                            thought_notification = create_thought_chunk(
+                                content, self.session_id
+                            )
+                            yield thought_notification
+
+                        case PartDeltaEvent(delta=ToolCallPartDelta()):
+                            # Tool call argument streaming - could be logged
+                            pass
+
+                        case FinalResultEvent():
+                            # Final result started - prepare for output streaming
+                            logger.debug(
+                                "Final result event for session %s", self.session_id
+                            )
+                            break
+
+                # After events, stream any remaining text output
+                try:
+                    if hasattr(request_stream, "stream_text"):
+                        async for text_chunk in request_stream.stream_text():
+                            if text_chunk and text_chunk.strip():
+                                text_content.append(text_chunk)
+                                chunk_updates = to_session_updates(
+                                    text_chunk, self.session_id
+                                )
+                                for update in chunk_updates:
+                                    yield update
+                except Exception as stream_error:  # noqa: BLE001
+                    logger.debug("Could not stream text from request: %s", stream_error)
+
+        except Exception:
+            logger.exception(
+                "Error streaming model request for session %s", self.session_id
+            )
+
+    async def _stream_tool_execution(
+        self, node, agent_run
+    ) -> AsyncGenerator[SessionNotification, None]:
+        """Stream tool execution events.
+
+        Args:
+            node: Tool execution node
+            agent_run: Agent run context
+
+        Yields:
+            SessionNotification objects for tool execution
+        """
+        try:
+            # Check if node supports streaming
+            if not hasattr(node, "stream"):
+                logger.warning("Tool execution node does not support streaming")
+                return
+
+            async with node.stream(agent_run.ctx) as tool_stream:
+                async for event in tool_stream:
+                    # Import event types
+                    from pydantic_ai.messages import (
+                        FunctionToolCallEvent,
+                        FunctionToolResultEvent,
+                    )
+
+                    match event:
+                        case FunctionToolCallEvent() as tool_event:
+                            # Tool call started
+                            tool_notification = format_tool_call_for_acp(
+                                tool_name=tool_event.part.tool_name,
+                                tool_input=tool_event.part.args_as_dict(),
+                                tool_output=None,  # Not available yet
+                                session_id=self.session_id,
+                                status="running",
+                            )
+                            yield tool_notification
+
+                        case FunctionToolResultEvent() as result_event:
+                            # Tool call completed
+                            tool_notification = format_tool_call_for_acp(
+                                tool_name=getattr(result_event, "tool_name", "unknown"),
+                                tool_input=getattr(result_event, "tool_input", {}),
+                                tool_output=result_event.result.content,
+                                session_id=self.session_id,
+                                status="completed",
+                            )
+                            yield tool_notification
+
+        except Exception:
+            logger.exception(
+                "Error streaming tool execution for session %s", self.session_id
+            )
 
     async def execute_tool(
         self, tool_name: str, tool_params: dict[str, Any]
