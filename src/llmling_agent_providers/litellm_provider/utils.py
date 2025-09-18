@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from tokonomics.pydanticai_cost import Usage as TokonomicsUsage
+
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 
@@ -12,12 +14,16 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class Usage:
+class Usage(TokonomicsUsage):
     """Usage information for a model."""
 
-    total_tokens: int | None
     input_tokens: int | None
     output_tokens: int | None
+
+    @property
+    def total_tokens(self) -> int | None:
+        """Total tokens used."""
+        return (self.input_tokens or 0) + (self.output_tokens or 0)
 
 
 class LiteLLMModel(ModelProtocol):

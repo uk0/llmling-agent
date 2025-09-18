@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
 
 from psygnal import Signal
+from pydantic_ai import _agent_graph
 from pydantic_ai.result import FinalResult
 from pydantic_graph import BaseNode, End
 from typing_extensions import TypeVar
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 TResult_co = TypeVar("TResult_co", default=str, covariant=True)
-type TNode[TResult_co] = BaseNode | End[FinalResult[TResult_co]]
+type TNode[TResult_co] = _agent_graph.AgentNode | End[FinalResult[TResult_co]]
 
 
 @dataclass
