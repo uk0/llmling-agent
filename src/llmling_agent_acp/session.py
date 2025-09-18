@@ -10,7 +10,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Self
 import uuid
 
-from pydantic_ai import Agent as PydanticAIAgent
+from pydantic_ai import Agent as PydanticAIAgent, ModelRequestNode
 
 from llmling_agent.log import get_logger
 from llmling_agent_acp.converters import (
@@ -30,8 +30,9 @@ if TYPE_CHECKING:
 
     from llmling_agent import Agent
     from llmling_agent_acp.types import ContentBlock
+    from llmling_agent_providers.base import AgentRunProtocol
 
-from acp import SessionNotification
+from acp.schema import SessionNotification
 
 
 logger = get_logger(__name__)
@@ -204,7 +205,9 @@ class ACPSession:
                 yield update
 
     async def _stream_model_request(
-        self, node, agent_run
+        self,
+        node: ModelRequestNode,
+        agent_run: AgentRunProtocol,
     ) -> AsyncGenerator[SessionNotification, None]:
         """Stream model request events.
 
@@ -215,6 +218,19 @@ class ACPSession:
         Yields:
             SessionNotification objects for model streaming
         """
+        from acp.schema import (
+            ContentBlock1,
+            SessionUpdate2 as AgentMessageChunk,
+        )
+        from pydantic_ai.messages import (
+            FinalResultEvent,
+            PartDeltaEvent,
+            PartStartEvent,
+            TextPartDelta,
+            ThinkingPartDelta,
+            ToolCallPartDelta,
+        )
+
         try:
             # Check if node supports streaming
             if not hasattr(node, "stream"):
@@ -226,14 +242,6 @@ class ACPSession:
 
                 async for event in request_stream:
                     # Import event types
-                    from pydantic_ai.messages import (
-                        FinalResultEvent,
-                        PartDeltaEvent,
-                        PartStartEvent,
-                        TextPartDelta,
-                        ThinkingPartDelta,
-                        ToolCallPartDelta,
-                    )
 
                     match event:
                         case PartStartEvent():
@@ -247,12 +255,6 @@ class ACPSession:
                             text_content.append(content)
 
                             # Create single chunk update directly
-                            # (don't call to_session_updates)
-                            from acp.schema import (
-                                ContentBlock1,
-                                SessionUpdate2 as AgentMessageChunk,
-                            )
-
                             content_block = ContentBlock1(text=content, type="text")
                             update = AgentMessageChunk(
                                 content=content_block,
@@ -282,36 +284,9 @@ class ACPSession:
                             logger.debug(msg, self.session_id)
                             break
 
-                # After events, stream any remaining text output
-                try:
-                    if hasattr(request_stream, "stream_text"):
-                        async for text_chunk in request_stream.stream_text():
-                            if text_chunk and text_chunk.strip():
-                                text_content.append(text_chunk)
-                                # Create single chunk update directly
-                                from acp.schema import (
-                                    ContentBlock1,
-                                    SessionUpdate2 as AgentMessageChunk,
-                                )
-
-                                content_block = ContentBlock1(
-                                    text=text_chunk, type="text"
-                                )
-                                update = AgentMessageChunk(
-                                    content=content_block,
-                                    sessionUpdate="agent_message_chunk",
-                                )
-                                notification = SessionNotification(
-                                    sessionId=self.session_id, update=update
-                                )
-                                yield notification
-                except Exception as stream_error:  # noqa: BLE001
-                    logger.debug("Could not stream text from request: %s", stream_error)
-
         except Exception:
-            logger.exception(
-                "Error streaming model request for session %s", self.session_id
-            )
+            msg = "Error streaming model request for session %s"
+            logger.exception(msg, self.session_id)
 
     async def _stream_tool_execution(
         self, node, agent_run

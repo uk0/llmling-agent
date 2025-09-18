@@ -9,8 +9,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from acp import RequestPermissionRequest, SessionNotification
-from acp.schema import PermissionOption, ToolCallLocation, ToolCallUpdate
+from acp import RequestPermissionRequest
+from acp.schema import (
+    PermissionOption,
+    SessionNotification,
+    ToolCallLocation,
+    ToolCallUpdate,
+)
 
 from llmling_agent.log import get_logger
 from llmling_agent_acp.converters import format_tool_call_for_acp

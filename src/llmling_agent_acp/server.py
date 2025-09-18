@@ -215,12 +215,7 @@ class LLMlingACPAgent(ACPAgent):
             # Process prompt and stream responses
             response_sent = False
             async for notification in session.process_prompt(params.prompt):
-                from acp.schema import SessionNotification as ACPSessionNotification
-
-                acp_notification = ACPSessionNotification.model_validate(
-                    notification.model_dump()
-                )
-                await self.connection.sessionUpdate(acp_notification)
+                await self.connection.sessionUpdate(notification)
                 response_sent = True
 
             # Return completion status
@@ -238,10 +233,7 @@ class LLMlingACPAgent(ACPAgent):
                 f"Error processing prompt: {e}", params.sessionId
             )
             for update in error_updates:
-                from acp.schema import SessionNotification as ACPSessionNotification
-
-                acp_update = ACPSessionNotification.model_validate(update.model_dump())
-                await self.connection.sessionUpdate(acp_update)
+                await self.connection.sessionUpdate(update)
 
             return PromptResponse(stopReason="error")
 

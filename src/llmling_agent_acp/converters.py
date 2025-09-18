@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any
 from acp import (
     ReadTextFileRequest,
     RequestPermissionRequest,
-    SessionNotification,
     WriteTextFileRequest,
 )
 from acp.schema import (
@@ -22,6 +21,7 @@ from acp.schema import (
     ContentBlock4,
     ContentBlock5,
     PermissionOption,
+    SessionNotification,
     SessionUpdate2 as AgentMessageChunk,
     SessionUpdate3 as AgentThoughtChunk,
     SessionUpdate4 as ToolCall,
