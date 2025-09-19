@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
     from acp import Client
     from acp.schema import McpServer
+    from pydantic_ai.agent import CallToolsNode
 
     from llmling_agent import Agent
     from llmling_agent_acp.types import ContentBlock
@@ -108,30 +109,18 @@ class ACPSession:
             try:
                 # Convert content blocks to prompt text
                 prompt_text = from_content_blocks(content_blocks)
-
-                logger.info(
-                    "Content blocks received: %s",
-                    [
-                        {
-                            "type": getattr(block, "type", "unknown"),
-                            "content": str(block)[:50],
-                        }
-                        for block in content_blocks
-                    ],
-                )
+                blocks = [
+                    {"type": b.type, "content": str(b)[:50]} for b in content_blocks
+                ]
+                logger.info("Content blocks received: %s", blocks)
                 logger.info("Converted prompt text: %r", prompt_text)
 
                 if not prompt_text.strip():
-                    logger.warning(
-                        "Empty prompt received for session %s", self.session_id
-                    )
+                    msg = "Empty prompt received for session %s"
+                    logger.warning(msg, self.session_id)
                     return
-
-                logger.debug(
-                    "Processing prompt for session %s: %s",
-                    self.session_id,
-                    prompt_text[:100],
-                )
+                msg = "Processing prompt for session %s: %s"
+                logger.debug(msg, self.session_id, prompt_text[:100])
 
                 # Store user message in conversation history
                 self._conversation_history.append({
@@ -141,35 +130,26 @@ class ACPSession:
                 })
 
                 # Use iterate_run for comprehensive streaming
-                logger.info(
-                    "Starting _process_iter_response for session %s", self.session_id
-                )
+                msg = "Starting _process_iter_response for session %s"
+                logger.info(msg, self.session_id)
                 notification_count = 0
                 async for notification in self._process_iter_response(prompt_text):
                     notification_count += 1
-                    logger.info(
-                        "Yielding notification %d for session %s",
-                        notification_count,
-                        self.session_id,
-                    )
+                    msg = "Yielding notification %d for session %s"
+                    logger.info(msg, notification_count, self.session_id)
                     yield notification
-                logger.info(
-                    "Finished streaming, sent %d notifications for session %s",
-                    notification_count,
-                    self.session_id,
-                )
+                msg = "Finished streaming, sent %d notifications for session %s"
+                logger.info(msg, notification_count, self.session_id)
 
             except Exception as e:
                 logger.exception("Error processing prompt in session %s", self.session_id)
                 # Send error as agent message
-                error_updates = to_session_updates(
-                    f"I encountered an error while processing your request: {e}",
-                    self.session_id,
-                )
+                msg = f"I encountered an error while processing your request: {e}"
+                error_updates = to_session_updates(msg, self.session_id)
                 for update in error_updates:
                     yield update
 
-    async def _process_iter_response(
+    async def _process_iter_response(  # noqa: PLR0915
         self, prompt: str
     ) -> AsyncGenerator[SessionNotification, None]:
         """Process prompt using agent iteration for comprehensive streaming.
@@ -180,13 +160,12 @@ class ACPSession:
         Yields:
             SessionNotification objects for all agent execution events
         """
+        from acp.schema import ContentBlock1, SessionUpdate2
+
         try:
             response_parts = []
-            logger.info(
-                "Starting agent.iterate_run for session %s with prompt: %r",
-                self.session_id,
-                prompt[:100],
-            )
+            msg = "Starting agent.iterate_run for session %s with prompt: %r"
+            logger.info(msg, self.session_id, prompt[:100])
             logger.info("Agent model: %s", getattr(self.agent, "model_name", "unknown"))
 
             async with self.agent.iterate_run(prompt) as agent_run:
@@ -195,14 +174,8 @@ class ACPSession:
                 has_yielded_anything = False
                 async for node in agent_run:
                     node_count += 1
-                    logger.info(
-                        "Processing node %d (%s) for session %s",
-                        node_count,
-                        type(node).__name__,
-                        self.session_id,
-                    )
-                    # Import here to avoid circular imports
-
+                    msg = "Processing node %d (%s) for session %s"
+                    logger.info(msg, node_count, type(node).__name__, self.session_id)
                     if PydanticAIAgent.is_user_prompt_node(node):
                         # User prompt node - log but don't stream (already processed)
                         msg = "Processing user prompt node for session %s"
@@ -210,10 +183,8 @@ class ACPSession:
 
                     elif PydanticAIAgent.is_model_request_node(node):
                         # Model request node - stream the model's response
-                        logger.info(
-                            "Starting model request streaming for session %s",
-                            self.session_id,
-                        )
+                        msg = "Starting model request streaming for session %s"
+                        logger.info(msg, self.session_id)
                         notification_count = 0
                         async for notification in self._stream_model_request(
                             node, agent_run
@@ -221,23 +192,16 @@ class ACPSession:
                             if notification:
                                 notification_count += 1
                                 has_yielded_anything = True
-                                logger.info(
-                                    "Yielding model notification %d for session %s",
-                                    notification_count,
-                                    self.session_id,
-                                )
+                                msg = "Yielding model notification %d for session %s"
+                                logger.info(msg, notification_count, self.session_id)
                                 yield notification
-                        logger.info(
-                            "Model request streaming finished, yielded %d notifications",
-                            notification_count,
-                        )
+                        msg = "Model request streaming finished, yielded %d notifications"
+                        logger.info(msg, notification_count)
 
                     elif PydanticAIAgent.is_call_tools_node(node):
                         # Tool execution node - stream tool calls and results
-                        logger.info(
-                            "Starting tool execution streaming for session %s",
-                            self.session_id,
-                        )
+                        msg = "Starting tool execution streaming for session %s"
+                        logger.info(msg, self.session_id)
                         async for notification in self._stream_tool_execution(
                             node, agent_run
                         ):
@@ -251,9 +215,8 @@ class ACPSession:
                         and agent_run.result.output
                     ):
                         final_content = str(agent_run.result.output)
-                        logger.info(
-                            "End node reached with output: %r", final_content[:100]
-                        )
+                        msg = "End node reached with output: %r"
+                        logger.info(msg, final_content[:100])
                         if final_content.strip():
                             response_parts.append(final_content)
 
@@ -263,21 +226,17 @@ class ACPSession:
                                 "content": final_content,
                             })
 
-                            # Send final response as session update if nothing was streamed
+                            # Send final response as session update if nothing streamed
                             if not has_yielded_anything:
-                                logger.info(
-                                    "No streaming occurred, sending final response for session %s",
-                                    self.session_id,
+                                msg = (
+                                    "No streaming occurred,"
+                                    "sending final response for session %s"
                                 )
-                                from acp.schema import (
-                                    ContentBlock1,
-                                    SessionUpdate2 as AgentMessageChunk,
-                                )
-
+                                logger.info(msg, self.session_id)
                                 content_block = ContentBlock1(
                                     text=final_content, type="text"
                                 )
-                                update = AgentMessageChunk(
+                                update = SessionUpdate2(
                                     content=content_block,
                                     sessionUpdate="agent_message_chunk",
                                 )
@@ -286,23 +245,13 @@ class ACPSession:
                                 )
                                 has_yielded_anything = True
                                 yield notification
-
-                            logger.debug(
-                                "Agent iteration completed for session %s",
-                                self.session_id,
-                            )
+                            msg = "Agent iteration completed for session %s"
+                            logger.debug(msg, self.session_id)
                     else:
-                        logger.info(
-                            "Unknown node type for session %s: %s",
-                            self.session_id,
-                            type(node).__name__,
-                        )
-
-                logger.info(
-                    "Agent iteration finished. Processed %d nodes, yielded anything: %s",
-                    node_count,
-                    has_yielded_anything,
-                )
+                        msg = "Unknown node type for session %s: %s"
+                        logger.info(msg, self.session_id, type(node).__name__)
+                msg = "Agent iteration finished. Processed %d nodes, yielded anything: %s"
+                logger.info(msg, node_count, has_yielded_anything)
 
         except Exception as e:
             logger.exception("Error in agent iteration for session %s", self.session_id)
@@ -325,10 +274,7 @@ class ACPSession:
         Yields:
             SessionNotification objects for model streaming
         """
-        from acp.schema import (
-            ContentBlock1,
-            SessionUpdate2 as AgentMessageChunk,
-        )
+        from acp.schema import ContentBlock1, SessionUpdate2
         from pydantic_ai.messages import (
             FinalResultEvent,
             PartDeltaEvent,
@@ -339,30 +285,15 @@ class ACPSession:
         )
 
         try:
-            # Check if node supports streaming
-            if not hasattr(node, "stream"):
-                logger.warning("Model request node does not support streaming")
-                return
-
             async with node.stream(agent_run.ctx) as request_stream:
                 text_content = []
                 event_count = 0
-
-                logger.info(
-                    "Starting to iterate over request_stream events for session %s",
-                    self.session_id,
-                )
+                msg = "Starting to iterate over request_stream events for session %s"
+                logger.info(msg, self.session_id)
                 async for event in request_stream:
                     event_count += 1
-                    logger.info(
-                        "Received event %d: %s for session %s",
-                        event_count,
-                        type(event).__name__,
-                        self.session_id,
-                    )
-
-                    # Import event types
-
+                    msg = "Received event %d: %s for session %s"
+                    logger.info(msg, event_count, type(event).__name__, self.session_id)
                     match event:
                         case PartStartEvent():
                             # Part started - could log but don't stream yet
@@ -371,44 +302,43 @@ class ACPSession:
                         case PartDeltaEvent(
                             delta=TextPartDelta(content_delta=content)
                         ) if content:
-                            logger.info(
-                                "Processing TextPartDelta with content: %r for session %s",
-                                content,
-                                self.session_id,
+                            msg = (
+                                "Processing TextPartDelta with content: %r for session %s"
                             )
+                            logger.info(msg, content, self.session_id)
                             # Stream text deltas directly as single agent message chunks
                             text_content.append(content)
 
                             # Create single chunk update directly
-                            content_block = ContentBlock1(text=content, type="text")
-                            update = AgentMessageChunk(
+                            content_block = ContentBlock1(
+                                text=content, type="text", annotations=None
+                            )
+                            update = SessionUpdate2(
                                 content=content_block,
                                 sessionUpdate="agent_message_chunk",
                             )
                             notification = SessionNotification(
                                 sessionId=self.session_id, update=update
                             )
-                            logger.info(
-                                "Yielding TextPartDelta notification for session %s",
-                                self.session_id,
-                            )
+                            msg = "Yielding TextPartDelta notification for session %s"
+                            logger.info(msg, self.session_id)
                             yield notification
 
                         case PartDeltaEvent(delta=TextPartDelta(content_delta=content)):
-                            logger.info(
-                                "Received TextPartDelta with empty/falsy content: %r for session %s",
-                                content,
-                                self.session_id,
+                            msg = (
+                                "Received TextPartDelta with empty/falsy content:"
+                                " %r for session %s"
                             )
+                            logger.info(msg, content, self.session_id)
 
                         case PartDeltaEvent(
                             delta=ThinkingPartDelta(content_delta=content)
                         ) if content:
-                            logger.info(
-                                "Processing ThinkingPartDelta with content: %r for session %s",
-                                content,
-                                self.session_id,
+                            msg = (
+                                "Processing ThinkingPartDelta with content:"
+                                " %r for session %s"
                             )
+                            logger.info(msg, content, self.session_id)
                             # Stream thinking as agent thought chunks
                             thought_notification = create_thought_chunk(
                                 content, self.session_id
@@ -416,33 +346,26 @@ class ACPSession:
                             yield thought_notification
 
                         case PartDeltaEvent(delta=ToolCallPartDelta()):
-                            logger.info(
-                                "Received ToolCallPartDelta for session %s",
-                                self.session_id,
-                            )
-                            # Tool call argument streaming - could be logged
-
+                            msg = "Received ToolCallPartDelta for session %s"
+                            logger.info(msg, self.session_id)
                         case FinalResultEvent():
                             # Final result started - prepare for output streaming
-                            logger.info(
-                                "Received FinalResultEvent for session %s",
-                                self.session_id,
-                            )
+                            msg = "Received FinalResultEvent for session %s"
+                            logger.info(msg, self.session_id)
                             break
 
                         case _:
-                            logger.info(
-                                "Received unhandled event type: %s for session %s",
-                                type(event).__name__,
-                                self.session_id,
-                            )
+                            msg = "Received unhandled event type: %s for session %s"
+                            logger.info(msg, type(event).__name__, self.session_id)
 
         except Exception:
             msg = "Error streaming model request for session %s"
             logger.exception(msg, self.session_id)
 
     async def _stream_tool_execution(
-        self, node, agent_run
+        self,
+        node: CallToolsNode,
+        agent_run: AgentRunProtocol,
     ) -> AsyncGenerator[SessionNotification, None]:
         """Stream tool execution events.
 
@@ -453,20 +376,11 @@ class ACPSession:
         Yields:
             SessionNotification objects for tool execution
         """
-        try:
-            # Check if node supports streaming
-            if not hasattr(node, "stream"):
-                logger.warning("Tool execution node does not support streaming")
-                return
+        from pydantic_ai.messages import FunctionToolCallEvent, FunctionToolResultEvent
 
+        try:
             async with node.stream(agent_run.ctx) as tool_stream:
                 async for event in tool_stream:
-                    # Import event types
-                    from pydantic_ai.messages import (
-                        FunctionToolCallEvent,
-                        FunctionToolResultEvent,
-                    )
-
                     match event:
                         case FunctionToolCallEvent() as tool_event:
                             # Tool call started
@@ -491,9 +405,8 @@ class ACPSession:
                             yield tool_notification
 
         except Exception:
-            logger.exception(
-                "Error streaming tool execution for session %s", self.session_id
-            )
+            msg = "Error streaming tool execution for session %s"
+            logger.exception(msg, self.session_id)
 
     async def execute_tool(
         self, tool_name: str, tool_params: dict[str, Any]
@@ -551,12 +464,10 @@ class ACPSession:
         Args:
             history: List of conversation messages
         """
+        from llmling_agent.messaging.messages import ChatMessage
+
         try:
             self._conversation_history = history.copy()
-
-            # Convert to ChatMessage format for agent
-            from llmling_agent.messaging.messages import ChatMessage
-
             chat_messages = []
             for msg in history:
                 chat_msg = ChatMessage[str](
@@ -594,10 +505,7 @@ class ACPSession:
         self._active = False
 
         try:
-            # Cleanup agent resources
-            if hasattr(self.agent, "__aexit__"):
-                await self.agent.__aexit__(None, None, None)
-
+            await self.agent.__aexit__(None, None, None)
             logger.info("Closed ACP session %s", self.session_id)
 
         except Exception:

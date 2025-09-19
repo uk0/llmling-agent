@@ -218,14 +218,19 @@ class LLMlingACPAgent(ACPAgent):
             # Process prompt and stream responses
             response_sent = False
             async for notification in session.process_prompt(params.prompt):
+                # Debug: log the notification being sent
+                logger.info(
+                    "Sending sessionUpdate notification: %s",
+                    notification.model_dump_json(),
+                )
                 await self.connection.sessionUpdate(notification)
                 response_sent = True
 
             # Return completion status
-            return PromptResponse(
+            response = PromptResponse(
                 stopReason="completed" if response_sent else "no_output"
             )
-
+            logger.info("Returning PromptResponse: %s", response.model_dump_json())
         except Exception as e:
             logger.exception("Failed to process prompt for session %s", params.sessionId)
 
@@ -239,6 +244,8 @@ class LLMlingACPAgent(ACPAgent):
                 await self.connection.sessionUpdate(update)
 
             return PromptResponse(stopReason="error")
+        else:
+            return response
 
     async def cancel(self, params: CancelNotification) -> None:
         """Cancel operations for a session."""
