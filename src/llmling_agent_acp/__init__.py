@@ -33,6 +33,7 @@ from llmling_agent_acp.converters import (
     to_session_updates,
 )
 from llmling_agent_acp.tools import ACPToolBridge
+from llmling_agent_acp.types import StopReason
 
 # Re-export important types from external library
 from acp import Agent as ACPAgent
@@ -104,4 +105,6 @@ __all__ = [
     "from_content_blocks",
     "to_content_blocks",
     "to_session_updates",
+    # Stop reason type
+    "StopReason",
 ]

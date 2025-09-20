@@ -1,13 +1,14 @@
-"""ACP (Agent Client Protocol) server implementation using external acp library.
+"""ACP (Agent Client Protocol) server implementation for llmling-agent.
 
-This module provides the core ACP server that exposes llmling agents through the
-standard Agent Client Protocol using the external acp library for robust
+This module provides the main server class for exposing llmling agents via
+the Agent Client Protocol, using the external acp library for robust
 JSON-RPC 2.0 communication over stdio streams.
 """
 
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, overload
 
@@ -63,6 +64,8 @@ class LLMlingACPAgent(ACPAgent):
         file_access: bool = False,
         terminal_access: bool = False,
         client: ACPClientInterface | None = None,
+        max_turn_requests: int = 50,
+        max_tokens: int | None = None,
     ) -> None:
         """Initialize ACP agent implementation.
 
@@ -73,6 +76,8 @@ class LLMlingACPAgent(ACPAgent):
             file_access: Whether agent can access filesystem
             terminal_access: Whether agent can use terminal
             client: Optional client interface for operations
+            max_turn_requests: Maximum model requests per turn
+            max_tokens: Maximum tokens per turn (if None, no limit)
         """
         self.connection = connection
         self.agents = agents
@@ -80,6 +85,8 @@ class LLMlingACPAgent(ACPAgent):
         self.file_access = file_access
         self.terminal_access = terminal_access
         self.client = client or DefaultACPClient(allow_file_operations=file_access)
+        self.max_turn_requests = max_turn_requests
+        self.max_tokens = max_tokens
 
         # Session management
         self.session_manager = ACPSessionManager()
@@ -152,6 +159,8 @@ class LLMlingACPAgent(ACPAgent):
                 cwd=params.cwd,
                 client=self.client,
                 mcp_servers=params.mcpServers,
+                max_turn_requests=self.max_turn_requests,
+                max_tokens=self.max_tokens,
             )
 
             response = NewSessionResponse(sessionId=session_id)
@@ -216,20 +225,21 @@ class LLMlingACPAgent(ACPAgent):
                 raise ValueError(msg)  # noqa: TRY301
 
             # Process prompt and stream responses
-            response_sent = False
-            async for notification in session.process_prompt(params.prompt):
-                # Debug: log the notification being sent
+            stop_reason = "end_turn"  # Default stop reason
+            async for result in session.process_prompt(params.prompt):
+                if isinstance(result, str):
+                    # Stop reason received
+                    stop_reason = result
+                    break
+                # Session notification
                 logger.info(
                     "Sending sessionUpdate notification: %s",
-                    notification.model_dump_json(),
+                    result.model_dump_json(),
                 )
-                await self.connection.sessionUpdate(notification)
-                response_sent = True
+                await self.connection.sessionUpdate(result)
 
-            # Return completion status
-            response = PromptResponse(
-                stopReason="completed" if response_sent else "no_output"
-            )
+            # Return the actual stop reason from the session
+            response = PromptResponse(stopReason=stop_reason)
             logger.info("Returning PromptResponse: %s", response.model_dump_json())
         except Exception as e:
             logger.exception("Failed to process prompt for session %s", params.sessionId)
@@ -241,22 +251,24 @@ class LLMlingACPAgent(ACPAgent):
                 f"Error processing prompt: {e}", params.sessionId
             )
             for update in error_updates:
-                await self.connection.sessionUpdate(update)
+                try:
+                    await self.connection.sessionUpdate(update)
+                except Exception:
+                    logger.exception("Failed to send error update")
 
-            return PromptResponse(stopReason="error")
+            return PromptResponse(stopReason="refusal")
         else:
             return response
 
     async def cancel(self, params: CancelNotification) -> None:
         """Cancel operations for a session."""
         try:
-            logger.info("Cancelling operations for session %s", params.sessionId)
+            logger.info("Cancelling session %s", params.sessionId)
 
-            # Get session
+            # Get session and cancel it
             session = await self.session_manager.get_session(params.sessionId)
             if session:
-                # In a real implementation, you might stop ongoing operations
-                # For now, we'll just log the cancellation
+                session.cancel()
                 logger.info("Cancelled operations for session %s", params.sessionId)
             else:
                 logger.warning("Session %s not found for cancellation", params.sessionId)
@@ -276,11 +288,15 @@ class ACPServer:
         self,
         *,
         client: ACPClientInterface | None = None,
+        max_turn_requests: int = 50,
+        max_tokens: int | None = None,
     ) -> None:
         """Initialize ACP server.
 
         Args:
             client: ACP client interface for operations (DefaultACPClient if None)
+            max_turn_requests: Maximum model requests per turn
+            max_tokens: Maximum tokens per turn (if None, no limit)
         """
         self._client = client or DefaultACPClient(allow_file_operations=True)
 
@@ -292,6 +308,8 @@ class ACPServer:
         self._session_support = True
         self._file_access = False
         self._terminal_access = False
+        self._max_turn_requests = max_turn_requests
+        self._max_tokens = max_tokens
 
     @overload
     def agent(
@@ -463,6 +481,8 @@ class ACPServer:
                     file_access=self._file_access,
                     terminal_access=self._terminal_access,
                     client=self._client,
+                    max_turn_requests=self._max_turn_requests,
+                    max_tokens=self._max_tokens,
                 )
 
             # Create ACP connection using external library

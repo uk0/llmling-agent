@@ -96,3 +96,12 @@ def to_json_rpc_notification(method: str, params: dict | None = None) -> dict:
     if params is not None:
         notification["params"] = params
     return notification
+
+
+# ACP Protocol Stop Reasons
+from typing import Literal
+
+
+StopReason = Literal[
+    "end_turn", "max_tokens", "max_turn_requests", "refusal", "cancelled"
+]

@@ -20,6 +20,7 @@ from llmling_agent_acp.converters import (
     from_content_blocks,
     to_session_updates,
 )
+from llmling_agent_acp.types import StopReason
 
 
 if TYPE_CHECKING:
@@ -57,6 +58,8 @@ class ACPSession:
         cwd: str,
         client: Client,
         mcp_servers: list[McpServer] | None = None,
+        max_turn_requests: int = 50,
+        max_tokens: int | None = None,
     ) -> None:
         """Initialize ACP session.
 
@@ -66,17 +69,24 @@ class ACPSession:
             cwd: Working directory for the session
             client: External library Client interface for operations
             mcp_servers: Optional MCP server configurations
+            max_turn_requests: Maximum model requests per turn
+            max_tokens: Maximum tokens per turn (if None, no limit)
         """
         self.session_id = session_id
         self.agent = agent
         self.cwd = cwd
         self.client = client
         self.mcp_servers = mcp_servers or []
+        self.max_turn_requests = max_turn_requests
+        self.max_tokens = max_tokens
 
         # Session state
         self._active = True
         self._conversation_history: list[dict[str, Any]] = []
         self._task_lock = asyncio.Lock()
+        self._cancelled = False
+        self._current_turn_requests = 0
+        self._current_turn_tokens = 0
 
         # File system bridge
         self.fs_bridge = FileSystemBridge()
@@ -88,25 +98,45 @@ class ACPSession:
         """Check if session is active."""
         return self._active
 
+    def cancel(self) -> None:
+        """Cancel the current prompt turn."""
+        self._cancelled = True
+        logger.info("Session %s cancelled", self.session_id)
+
+    def is_cancelled(self) -> bool:
+        """Check if the session is cancelled."""
+        return self._cancelled
+
     async def process_prompt(
         self, content_blocks: list[ContentBlock]
-    ) -> AsyncGenerator[SessionNotification, None]:
+    ) -> AsyncGenerator[SessionNotification | StopReason, None]:
         """Process a prompt request and stream responses.
 
         Args:
             content_blocks: List of content blocks from the prompt request
 
         Yields:
-            SessionNotification objects for streaming to client
+            SessionNotification objects for streaming to client, or StopReason literal
         """
         if not self._active:
             logger.warning(
                 "Attempted to process prompt on inactive session %s", self.session_id
             )
+            yield "refusal"
             return
+
+        # Reset turn counters
+        self._cancelled = False
+        self._current_turn_requests = 0
+        self._current_turn_tokens = 0
 
         async with self._task_lock:
             try:
+                # Check for cancellation
+                if self._cancelled:
+                    yield "cancelled"
+                    return
+
                 # Convert content blocks to prompt text
                 prompt_text = from_content_blocks(content_blocks)
                 blocks = [
@@ -118,6 +148,7 @@ class ACPSession:
                 if not prompt_text.strip():
                     msg = "Empty prompt received for session %s"
                     logger.warning(msg, self.session_id)
+                    yield "refusal"
                     return
                 msg = "Processing prompt for session %s: %s"
                 logger.debug(msg, self.session_id, prompt_text[:100])
@@ -133,13 +164,24 @@ class ACPSession:
                 msg = "Starting _process_iter_response for session %s"
                 logger.info(msg, self.session_id)
                 notification_count = 0
-                async for notification in self._process_iter_response(prompt_text):
-                    notification_count += 1
-                    msg = "Yielding notification %d for session %s"
-                    logger.info(msg, notification_count, self.session_id)
-                    yield notification
-                msg = "Finished streaming, sent %d notifications for session %s"
-                logger.info(msg, notification_count, self.session_id)
+                stop_reason = None
+                async for result in self._process_iter_response(prompt_text):
+                    if isinstance(result, str):
+                        # Stop reason received
+                        stop_reason = result
+                        break
+                    else:
+                        # Session notification
+                        notification_count += 1
+                        msg = "Yielding notification %d for session %s"
+                        logger.info(msg, notification_count, self.session_id)
+                        yield result
+
+                # Yield the final stop reason
+                final_stop_reason = stop_reason or "end_turn"
+                msg = "Finished streaming, sent %d notifications, stop reason: %s"
+                logger.info(msg, notification_count, final_stop_reason)
+                yield final_stop_reason
 
             except Exception as e:
                 logger.exception("Error processing prompt in session %s", self.session_id)
@@ -148,17 +190,19 @@ class ACPSession:
                 error_updates = to_session_updates(msg, self.session_id)
                 for update in error_updates:
                     yield update
+                # Return refusal for errors
+                yield "refusal"
 
     async def _process_iter_response(  # noqa: PLR0915
         self, prompt: str
-    ) -> AsyncGenerator[SessionNotification, None]:
+    ) -> AsyncGenerator[SessionNotification | StopReason, None]:
         """Process prompt using agent iteration for comprehensive streaming.
 
         Args:
             prompt: Prompt text to process
 
         Yields:
-            SessionNotification objects for all agent execution events
+            SessionNotification objects for all agent execution events, or StopReason literal
         """
         from acp.schema import ContentBlock1, SessionUpdate2
 
@@ -173,6 +217,16 @@ class ACPSession:
                 node_count = 0
                 has_yielded_anything = False
                 async for node in agent_run:
+                    # Check for cancellation
+                    if self._cancelled:
+                        yield "cancelled"
+                        return
+
+                    # Check turn limits
+                    if self._current_turn_requests >= self.max_turn_requests:
+                        yield "max_turn_requests"
+                        return
+
                     node_count += 1
                     msg = "Processing node %d (%s) for session %s"
                     logger.info(msg, node_count, type(node).__name__, self.session_id)
@@ -182,19 +236,24 @@ class ACPSession:
                         logger.debug(msg, self.session_id)
 
                     elif PydanticAIAgent.is_model_request_node(node):
+                        # Increment request counter
+                        self._current_turn_requests += 1
+
                         # Model request node - stream the model's response
                         msg = "Starting model request streaming for session %s"
                         logger.info(msg, self.session_id)
                         notification_count = 0
-                        async for notification in self._stream_model_request(
-                            node, agent_run
-                        ):
-                            if notification:
+                        async for result in self._stream_model_request(node, agent_run):
+                            if isinstance(result, str):
+                                # Stop reason from model request
+                                yield result
+                                return
+                            elif result:
                                 notification_count += 1
                                 has_yielded_anything = True
                                 msg = "Yielding model notification %d for session %s"
                                 logger.info(msg, notification_count, self.session_id)
-                                yield notification
+                                yield result
                         msg = "Model request streaming finished, yielded %d notifications"
                         logger.info(msg, notification_count)
 
@@ -264,7 +323,7 @@ class ACPSession:
         self,
         node: ModelRequestNode,
         agent_run: AgentRunProtocol,
-    ) -> AsyncGenerator[SessionNotification, None]:
+    ) -> AsyncGenerator[SessionNotification | StopReason, None]:
         """Stream model request events.
 
         Args:
@@ -272,7 +331,7 @@ class ACPSession:
             agent_run: Agent run context
 
         Yields:
-            SessionNotification objects for model streaming
+            SessionNotification objects for model streaming, or StopReason literal
         """
         from acp.schema import ContentBlock1, SessionUpdate2
         from pydantic_ai.messages import (
@@ -291,6 +350,11 @@ class ACPSession:
                 msg = "Starting to iterate over request_stream events for session %s"
                 logger.info(msg, self.session_id)
                 async for event in request_stream:
+                    # Check for cancellation
+                    if self._cancelled:
+                        yield "cancelled"
+                        return
+
                     event_count += 1
                     msg = "Received event %d: %s for session %s"
                     logger.info(msg, event_count, type(event).__name__, self.session_id)
@@ -306,6 +370,15 @@ class ACPSession:
                                 "Processing TextPartDelta with content: %r for session %s"
                             )
                             logger.info(msg, content, self.session_id)
+                            # Track tokens if limits are set
+                            if self.max_tokens is not None:
+                                # Rough token estimation (1 token ≈ 4 characters)
+                                estimated_tokens = len(content) // 4
+                                self._current_turn_tokens += estimated_tokens
+                                if self._current_turn_tokens >= self.max_tokens:
+                                    yield "max_tokens"
+                                    return
+
                             # Stream text deltas directly as single agent message chunks
                             text_content.append(content)
 
@@ -361,6 +434,7 @@ class ACPSession:
         except Exception:
             msg = "Error streaming model request for session %s"
             logger.exception(msg, self.session_id)
+            yield "refusal"
 
     async def _stream_tool_execution(
         self,
@@ -536,6 +610,8 @@ class ACPSessionManager:
         client: Client,
         mcp_servers: list[McpServer] | None = None,
         session_id: str | None = None,
+        max_turn_requests: int = 50,
+        max_tokens: int | None = None,
     ) -> str:
         """Create a new ACP session.
 
@@ -545,6 +621,8 @@ class ACPSessionManager:
             client: External library Client interface
             mcp_servers: Optional MCP server configurations
             session_id: Optional specific session ID (generated if None)
+            max_turn_requests: Maximum model requests per turn
+            max_tokens: Maximum tokens per turn (if None, no limit)
 
         Returns:
             Session ID for the created session
@@ -567,6 +645,8 @@ class ACPSessionManager:
                 cwd=cwd,
                 client=client,
                 mcp_servers=mcp_servers,
+                max_turn_requests=max_turn_requests,
+                max_tokens=max_tokens,
             )
 
             # Store session
