@@ -1003,6 +1003,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         system_prompt: str | None = None,
         tool_choice: str | list[str] | None = None,
         conversation_id: str | None = None,
+        store_history: bool = True,
     ) -> AsyncIterator[AgentRunProtocol[TResult]]:
         """Run the agent step-by-step, yielding an object to observe the execution graph.
 
@@ -1017,6 +1018,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             system_prompt: Optional system prompt override for this run.
             tool_choice: Filter agent's tools by name (ignored if `tools` is provided).
             conversation_id: Optional ID to associate with the conversation context.
+            store_history: Whether to store the conversation in agent's history.
 
         Yields:
             An object conforming to AgentRunProtocol for iterating over execution nodes.
@@ -1036,6 +1038,11 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             msg = "No prompts provided for iteration."
             logger.error(msg)
             raise ValueError(msg)
+
+        # Prepare user message for conversation history (following MessageNode.run pattern)
+        user_msg = None
+        if store_history:
+            user_msg, _ = await self.pre_run(*prompts)
 
         if tools is None:
             effective_tools = await self.tools.get_tools(
@@ -1069,8 +1076,28 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             ) as agent_run_protocol_object:
                 yield agent_run_protocol_object
 
+                # Store conversation history if requested (following MessageNode.run pattern)
+                if store_history and user_msg and agent_run_protocol_object.result:
+                    import time
+
+                    response_msg = ChatMessage[TResult](
+                        content=agent_run_protocol_object.result.output,
+                        role="assistant",
+                        name=self.name,
+                        model=getattr(
+                            agent_run_protocol_object.result, "model_name", None
+                        ),
+                        message_id=run_message_id,
+                        conversation_id=conversation_id or user_msg.conversation_id,
+                        response_time=time.perf_counter()
+                        - time.perf_counter(),  # Placeholder
+                    )
+                    self.conversation.add_chat_messages([user_msg, response_msg])
+                    logger.debug(
+                        "Stored conversation history for run_id=%s", run_message_id
+                    )
+
             logger.info("Agent iteration run_id=%s completed.", run_message_id)
-            # History update logic could go here if desired
 
         except Exception as e:
             logger.exception("Agent iteration run_id=%s failed.", run_message_id)
