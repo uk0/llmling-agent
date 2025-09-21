@@ -27,6 +27,7 @@ from acp.schema import (
     PromptResponse,
 )
 from acp.stdio import stdio_streams
+from slashed import CommandStore
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.manifest import AgentsManifest
@@ -34,6 +35,7 @@ from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import to_session_updates
 from llmling_agent_acp.session import ACPSessionManager
 from llmling_agent_acp.wrappers import DefaultACPClient
+from llmling_agent_commands import get_commands
 
 
 if TYPE_CHECKING:
@@ -57,6 +59,8 @@ class LLMlingACPAgent(ACPAgent):
     - Implements all required methods: initialize, newSession, loadSession,
       authenticate, prompt, cancel
     """
+
+    PROTOCOL_VERSION = 1
 
     def __init__(
         self,
@@ -90,25 +94,14 @@ class LLMlingACPAgent(ACPAgent):
         self.client = client or DefaultACPClient(allow_file_operations=file_access)
         self.max_turn_requests = max_turn_requests
         self.max_tokens = max_tokens
-
-        # Initialize command bridge
-        from slashed import CommandStore
-
-        from llmling_agent_commands import get_commands
-
         command_store = CommandStore()
         for command in get_commands():
             command_store.register_command(command)
 
         self.command_bridge = ACPCommandBridge(command_store)
-
-        # Session management
         self.session_manager = ACPSessionManager(command_bridge=self.command_bridge)
 
-        # Track initialization state
         self._initialized = False
-        self._protocol_version = 1
-
         logger.info("Created ACP agent implementation with %d agents", len(agents))
 
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
@@ -117,7 +110,7 @@ class LLMlingACPAgent(ACPAgent):
             logger.info("Initializing ACP agent implementation")
 
             # Store protocol version
-            self._protocol_version = min(params.protocolVersion, 1)
+            self.PRO = min(params.protocolVersion, 1)
 
             # Build agent capabilities
             prompt_caps = PromptCapabilities(
@@ -135,7 +128,7 @@ class LLMlingACPAgent(ACPAgent):
             self._initialized = True
 
             response = InitializeResponse(
-                protocolVersion=self._protocol_version,
+                protocolVersion=self.PROTOCOL_VERSION,
                 agentCapabilities=agent_caps,
                 authMethods=[],  # No authentication methods by default
             )
