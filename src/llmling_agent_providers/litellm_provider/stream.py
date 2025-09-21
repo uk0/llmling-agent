@@ -89,5 +89,5 @@ class LiteLLMStream[TResult]:
     def usage(self) -> Usage:
         """Get token usage statistics."""
         if not self._final_usage:
-            return Usage(total_tokens=0, input_tokens=0, output_tokens=0)
+            return Usage(input_tokens=0, output_tokens=0)
         return self._final_usage
