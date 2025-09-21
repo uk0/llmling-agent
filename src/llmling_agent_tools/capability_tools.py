@@ -288,7 +288,7 @@ async def execute_python(ctx: AgentContext, code: str) -> str:
         return f"Error executing code: {e}"
 
 
-async def execute_command(
+async def execute_command(  # noqa: D417
     ctx: AgentContext,
     command: str,
     env: dict[str, str] | None = None,
@@ -327,10 +327,10 @@ async def execute_command(
             # Truncate from the end to keep most recent output
             truncated_output = output.encode()[-output_limit:].decode(errors="ignore")
             output = f"...[truncated]\n{truncated_output}"
-
-        return output
     except Exception as e:  # noqa: BLE001
         return f"Error executing command: {e}"
+    else:
+        return output
 
 
 async def add_agent(  # noqa: D417
