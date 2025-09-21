@@ -175,8 +175,8 @@ class LLMlingACPAgent(ACPAgent):
 
             # Send initial available commands
             session = await self.session_manager.get_session(session_id)
-            if session:
-                await session.send_available_commands_update()
+            assert session
+            await session.send_available_commands_update()
 
         except Exception:
             logger.exception("Failed to create new session")

@@ -610,7 +610,7 @@ class ACPSessionManager:
     - Agent instance management
     """
 
-    def __init__(self, command_bridge: ACPCommandBridge | None = None) -> None:
+    def __init__(self, command_bridge: ACPCommandBridge) -> None:
         """Initialize session manager.
 
         Args:
