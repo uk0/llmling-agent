@@ -288,17 +288,47 @@ async def execute_python(ctx: AgentContext, code: str) -> str:
         return f"Error executing code: {e}"
 
 
-async def execute_command(ctx: AgentContext, command: str) -> str:
-    """Execute a shell command."""
+async def execute_command(
+    ctx: AgentContext,
+    command: str,
+    env: dict[str, str] | None = None,
+    output_limit: int | None = None,
+) -> str:
+    """Execute a shell command.
+
+    Args:
+        command: Shell command to execute
+        env: Environment variables to add to current environment
+        output_limit: Maximum bytes of output to return
+    """
+    import os
+
     from pydantic_ai.tools import RunContext
 
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
     try:
+        # Prepare environment
+        proc_env = dict(os.environ)
+        if env:
+            proc_env.update(env)
+
         pipe = asyncio.subprocess.PIPE
-        proc = await asyncio.create_subprocess_shell(command, stdout=pipe, stderr=pipe)
+        proc = await asyncio.create_subprocess_shell(
+            command, stdout=pipe, stderr=pipe, env=proc_env
+        )
         stdout, stderr = await proc.communicate()
-        return stdout.decode() or stderr.decode() or "Command completed"
+
+        # Combine and decode output
+        output = stdout.decode() or stderr.decode() or "Command completed"
+
+        # Apply output limit if specified
+        if output_limit and len(output.encode()) > output_limit:
+            # Truncate from the end to keep most recent output
+            truncated_output = output.encode()[-output_limit:].decode(errors="ignore")
+            output = f"...[truncated]\n{truncated_output}"
+
+        return output
     except Exception as e:  # noqa: BLE001
         return f"Error executing command: {e}"
 
