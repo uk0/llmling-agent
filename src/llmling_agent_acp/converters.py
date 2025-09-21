@@ -35,7 +35,7 @@ from llmling_agent.log import get_logger
 
 
 # Define ContentBlock union type
-ContentBlock = (
+type ContentBlock = (
     ContentBlock1 | ContentBlock2 | ContentBlock3 | ContentBlock4 | ContentBlock5
 )
 
@@ -127,7 +127,8 @@ def to_session_updates(response: str, session_id: str) -> list[SessionNotificati
 
 
 def to_chat_message(
-    blocks: list[ContentBlock], agent_name: str = "user"
+    blocks: list[ContentBlock],
+    agent_name: str = "user",
 ) -> ChatMessage[str]:
     """Convert ACP content blocks to llmling ChatMessage.
 
@@ -173,7 +174,7 @@ def extract_file_references(text: str) -> list[dict[str, Any]]:
         r'"([^"]+\.[a-zA-Z0-9]+)"',  # Files in quotes with extensions
     ]
 
-    files = []
+    files: list[dict[str, Any]] = []
     for pattern in file_patterns:
         matches = re.findall(pattern, text, re.IGNORECASE)
         files.extend(
@@ -200,7 +201,7 @@ def _split_response_into_chunks(response: str, chunk_size: int = 100) -> list[st
 
     chunks = []
     words = response.split()
-    current_chunk = []
+    current_chunk: list[str] = []
     current_length = 0
 
     for word in words:

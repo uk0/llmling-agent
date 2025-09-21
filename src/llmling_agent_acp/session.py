@@ -13,6 +13,7 @@ import uuid
 from pydantic_ai import Agent as PydanticAIAgent, ModelRequestNode
 
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent_acp.converters import (
     FileSystemBridge,
     create_thought_chunk,
@@ -31,9 +32,14 @@ if TYPE_CHECKING:
 
     from llmling_agent import Agent
     from llmling_agent_acp.acp_types import ContentBlock, StopReason
+    from llmling_agent_acp.command_bridge import ACPCommandBridge
     from llmling_agent_providers.base import AgentRunProtocol
 
-from acp.schema import SessionNotification
+from acp.schema import (
+    AvailableCommand,
+    SessionNotification,
+    SessionUpdate7 as AvailableCommandsUpdate,
+)
 
 
 logger = get_logger(__name__)
@@ -59,6 +65,7 @@ class ACPSession:
         mcp_servers: list[McpServer] | None = None,
         max_turn_requests: int = 50,
         max_tokens: int | None = None,
+        command_bridge: ACPCommandBridge | None = None,
     ) -> None:
         """Initialize ACP session.
 
@@ -70,6 +77,7 @@ class ACPSession:
             mcp_servers: Optional MCP server configurations
             max_turn_requests: Maximum model requests per turn
             max_tokens: Maximum tokens per turn (if None, no limit)
+            command_bridge: Optional command bridge for slash commands
         """
         self.session_id = session_id
         self.agent = agent
@@ -87,8 +95,8 @@ class ACPSession:
         self._current_turn_requests = 0
         self._current_turn_tokens = 0
 
-        # File system bridge
         self.fs_bridge = FileSystemBridge()
+        self.command_bridge = command_bridge
 
         logger.info("Created ACP session %s with agent %s", session_id, agent.name)
 
@@ -147,6 +155,18 @@ class ACPSession:
                     msg = "Empty prompt received for session %s"
                     logger.warning(msg, self.session_id)
                     yield "refusal"
+                    return
+
+                # Check for slash commands
+                if self.command_bridge and self.command_bridge.is_slash_command(
+                    prompt_text
+                ):
+                    logger.info("Processing slash command: %s", prompt_text)
+                    async for notification in self.command_bridge.execute_slash_command(
+                        prompt_text, self
+                    ):
+                        yield notification
+                    yield "end_turn"
                     return
                 msg = "Processing prompt for session %s: %s"
                 logger.debug(msg, self.session_id, prompt_text[:100])
@@ -531,24 +551,19 @@ class ACPSession:
         Args:
             history: List of conversation messages
         """
-        from llmling_agent.messaging.messages import ChatMessage
-
         try:
             self._conversation_history = history.copy()
             chat_messages = []
-            for msg in history:
+            for msg_dict in history:
                 chat_msg = ChatMessage[str](
-                    content=msg.get("content", ""),
-                    role=msg.get("role", "user"),
-                    name=self.agent.name if msg.get("role") == "assistant" else "user",
+                    content=msg_dict.get("content", ""),
+                    role=msg_dict.get("role", "user"),
+                    name=self.agent.name
+                    if msg_dict.get("role") == "assistant"
+                    else "user",
                 )
                 chat_messages.append(chat_msg)
-
-            # Set conversation history in agent
-            if hasattr(self.agent, "conversation") and hasattr(
-                self.agent.conversation, "set_history"
-            ):
-                self.agent.conversation.set_history(chat_messages)
+            self.agent.conversation.set_history(chat_messages)
             msg = "Loaded %d messages into session %s history"
             logger.info(msg, len(history), self.session_id)
 
@@ -574,9 +589,63 @@ class ACPSession:
         try:
             await self.agent.__aexit__(None, None, None)
             logger.info("Closed ACP session %s", self.session_id)
-
         except Exception:
             logger.exception("Error closing session %s", self.session_id)
+
+    async def send_available_commands_update(self) -> None:
+        """Send current available commands to client."""
+        if not self.command_bridge:
+            return
+
+        try:
+            # Get available commands for this session
+            commands = self.command_bridge.to_available_commands(self.agent.context)
+
+            # Create update notification
+            update = AvailableCommandsUpdate(
+                sessionUpdate="available_commands_update",
+                availableCommands=commands,
+            )
+
+            # Send to client
+            notification = SessionNotification(sessionId=self.session_id, update=update)
+            await self.client.sessionUpdate(notification)
+
+            logger.debug(
+                "Sent %s available commands for session %s",
+                len(commands),
+                self.session_id,
+            )
+
+        except Exception:
+            logger.exception(
+                "Failed to send available commands update for session %s",
+                self.session_id,
+            )
+
+    async def update_available_commands(self, commands: list[AvailableCommand]) -> None:
+        """Update and broadcast new command list.
+
+        Args:
+            commands: New list of available commands
+        """
+        try:
+            # Create update notification
+            update = AvailableCommandsUpdate(
+                sessionUpdate="available_commands_update",
+                availableCommands=commands,
+            )
+
+            # Send to client
+            notification = SessionNotification(sessionId=self.session_id, update=update)
+            await self.client.sessionUpdate(notification)
+
+            logger.debug("Updated available commands for session %s", self.session_id)
+
+        except Exception:
+            logger.exception(
+                "Failed to update available commands for session %s", self.session_id
+            )
 
 
 class ACPSessionManager:
@@ -589,10 +658,15 @@ class ACPSessionManager:
     - Agent instance management
     """
 
-    def __init__(self) -> None:
-        """Initialize session manager."""
+    def __init__(self, command_bridge: ACPCommandBridge | None = None) -> None:
+        """Initialize session manager.
+
+        Args:
+            command_bridge: Optional command bridge for slash commands
+        """
         self._sessions: dict[str, ACPSession] = {}
         self._lock = asyncio.Lock()
+        self.command_bridge = command_bridge
 
         logger.info("Initialized ACP session manager")
 
@@ -640,6 +714,7 @@ class ACPSessionManager:
                 mcp_servers=mcp_servers,
                 max_turn_requests=max_turn_requests,
                 max_tokens=max_tokens,
+                command_bridge=self.command_bridge,
             )
 
             # Store session

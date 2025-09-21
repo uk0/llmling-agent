@@ -30,6 +30,7 @@ from acp.stdio import stdio_streams
 
 from llmling_agent.log import get_logger
 from llmling_agent.models.manifest import AgentsManifest
+from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import to_session_updates
 from llmling_agent_acp.session import ACPSessionManager
 from llmling_agent_acp.wrappers import DefaultACPClient
@@ -90,8 +91,19 @@ class LLMlingACPAgent(ACPAgent):
         self.max_turn_requests = max_turn_requests
         self.max_tokens = max_tokens
 
+        # Initialize command bridge
+        from slashed import CommandStore
+
+        from llmling_agent_commands import get_commands
+
+        command_store = CommandStore()
+        for command in get_commands():
+            command_store.register_command(command)
+
+        self.command_bridge = ACPCommandBridge(command_store)
+
         # Session management
-        self.session_manager = ACPSessionManager()
+        self.session_manager = ACPSessionManager(command_bridge=self.command_bridge)
 
         # Track initialization state
         self._initialized = False
@@ -167,6 +179,11 @@ class LLMlingACPAgent(ACPAgent):
 
             response = NewSessionResponse(sessionId=session_id)
             logger.info("Created session %s", session_id)
+
+            # Send initial available commands
+            session = await self.session_manager.get_session(session_id)
+            if session:
+                await session.send_available_commands_update()
 
         except Exception:
             logger.exception("Failed to create new session")

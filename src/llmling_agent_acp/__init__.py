@@ -26,6 +26,7 @@ from __future__ import annotations
 from llmling_agent_acp.server import ACPServer, LLMlingACPAgent
 from llmling_agent_acp.wrappers import ACPClientInterface, DefaultACPClient
 from llmling_agent_acp.session import ACPSession, ACPSessionManager
+from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import (
     FileSystemBridge,
     from_content_blocks,
@@ -73,23 +74,19 @@ __all__ = [
     # Protocol interfaces
     "ACPAgent",
     "ACPClientInterface",
-    # Core server and client
+    # Command bridge
+    "ACPCommandBridge",
     "ACPServer",
-    # Session management
     "ACPSession",
     "ACPSessionManager",
-    # Tool integration
     "ACPToolBridge",
-    # Capability types
     "AgentCapabilities",
     "AudioContent",
     "ClientCapabilities",
     "DefaultACPClient",
     "EmbeddedResource",
-    # Content conversion
     "FileSystemBridge",
     "ImageContent",
-    # Protocol types
     "InitializeRequest",
     "InitializeResponse",
     "LLMlingACPAgent",
