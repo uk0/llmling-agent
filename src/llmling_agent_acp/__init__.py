@@ -33,7 +33,7 @@ from llmling_agent_acp.converters import (
     to_session_updates,
 )
 from llmling_agent_acp.tools import ACPToolBridge
-from llmling_agent_acp.types import StopReason
+from llmling_agent_acp.acp_types import StopReason
 
 # Re-export important types from external library
 from acp import Agent as ACPAgent

@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from pydantic_ai.agent import CallToolsNode
 
     from llmling_agent import Agent
-    from llmling_agent_acp.types import ContentBlock, StopReason
+    from llmling_agent_acp.acp_types import ContentBlock, StopReason
     from llmling_agent_providers.base import AgentRunProtocol
 
 from acp.schema import SessionNotification

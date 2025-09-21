@@ -20,7 +20,7 @@ from acp.schema import (
 from llmling_agent.log import get_logger
 from llmling_agent.tools.base import Tool
 from llmling_agent_acp.converters import format_tool_call_for_acp
-from llmling_agent_acp.types import (
+from llmling_agent_acp.acp_types import (
     TextContent,
     ToolCall,
     ToolCallContent,
