@@ -99,7 +99,7 @@ class Capabilities(EventedModel):
             required in agent.capabilities  # Can agent fulfill requirements?
         """
         # Check all boolean capabilities
-        for field in self.__fields__:
+        for field in type(self).model_fields:
             if isinstance(getattr(required, field), bool):  # noqa: SIM102
                 if getattr(required, field) and not getattr(self, field):
                     return False
