@@ -200,7 +200,8 @@ class ACPSession:
             prompt: Prompt text to process
 
         Yields:
-            SessionNotification objects for all agent execution events, or StopReason literal
+            SessionNotification objects for all agent execution events,
+            or StopReason literal
         """
         from acp.schema import ContentBlock1, SessionUpdate2
 

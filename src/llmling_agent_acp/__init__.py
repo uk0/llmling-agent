@@ -100,11 +100,11 @@ __all__ = [
     "PromptResponse",
     "ResourceLink",
     "SessionNotification",
+    # Stop reason type
+    "StopReason",
     # Content types
     "TextContent",
     "from_content_blocks",
     "to_content_blocks",
     "to_session_updates",
-    # Stop reason type
-    "StopReason",
 ]

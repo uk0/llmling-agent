@@ -9,6 +9,8 @@ from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from llmling import RuntimeConfig
 
     from llmling_agent.config.capabilities import Capabilities
@@ -190,7 +192,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
 
         # Process management tools
         if self.capabilities.can_manage_processes:
-            process_tools = [
+            process_tools: list[Callable] = [
                 capability_tools.start_process,
                 capability_tools.get_process_output,
                 capability_tools.wait_for_process,
