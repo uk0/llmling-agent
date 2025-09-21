@@ -343,7 +343,7 @@ class ACPSession:
         )
 
         try:
-            async with node.stream(agent_run.ctx) as request_stream:
+            async with node.stream(agent_run.ctx) as request_stream:  # pyright: ignore[reportArgumentType]
                 text_content = []
                 event_count = 0
                 msg = "Starting to iterate over request_stream events for session %s"
@@ -446,7 +446,7 @@ class ACPSession:
         from pydantic_ai.messages import FunctionToolCallEvent, FunctionToolResultEvent
 
         try:
-            async with node.stream(agent_run.ctx) as tool_stream:
+            async with node.stream(agent_run.ctx) as tool_stream:  # pyright: ignore[reportArgumentType]
                 async for event in tool_stream:
                     match event:
                         case FunctionToolCallEvent() as tool_event:
