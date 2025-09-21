@@ -178,6 +178,9 @@ class ACPSession:
                     "content_blocks": content_blocks,
                 })
 
+                # Update agent's conversation history with session history
+                await self._sync_agent_conversation_history()
+
                 # Use iterate_run for comprehensive streaming
                 msg = "Starting _process_iter_response for session %s"
                 logger.info(msg, self.session_id)
@@ -444,6 +447,16 @@ class ACPSession:
                             msg = "Received unhandled event type: %s for session %s"
                             logger.info(msg, type(event).__name__, self.session_id)
 
+                # Store accumulated text content in conversation history if any
+                if text_content:
+                    accumulated_text = "".join(text_content)
+                    self._conversation_history.append({
+                        "role": "assistant",
+                        "content": accumulated_text,
+                    })
+                    msg = "Stored streaming response in history for session %s: %r"
+                    logger.debug(msg, self.session_id, accumulated_text[:100])
+
         except Exception:
             msg = "Error streaming model request for session %s"
             logger.exception(msg, self.session_id)
@@ -578,6 +591,30 @@ class ACPSession:
             List of conversation messages
         """
         return self._conversation_history.copy()
+
+    async def _sync_agent_conversation_history(self) -> None:
+        """Sync session conversation history with the agent's conversation manager."""
+        try:
+            # Convert session history to ChatMessage objects
+            chat_messages = []
+            for msg_dict in self._conversation_history:
+                chat_msg = ChatMessage[str](
+                    content=msg_dict.get("content", ""),
+                    role=msg_dict.get("role", "user"),
+                    name=self.agent.name
+                    if msg_dict.get("role") == "assistant"
+                    else "user",
+                )
+                chat_messages.append(chat_msg)
+
+            # Update agent's conversation history
+            self.agent.conversation.set_history(chat_messages)
+            msg = "Synced %d messages to agent conversation for session %s"
+            logger.debug(msg, len(chat_messages), self.session_id)
+
+        except Exception:
+            msg = "Error syncing conversation history for session %s"
+            logger.exception(msg, self.session_id)
 
     async def close(self) -> None:
         """Close the session and cleanup resources."""
