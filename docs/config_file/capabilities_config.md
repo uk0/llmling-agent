@@ -34,6 +34,7 @@ agents:
       # Code Execution (Use with caution)
       can_execute_code: false     # Execute Python code (no sandbox)
       can_execute_commands: false # Execute CLI commands
+      can_manage_processes: false # Start and manage background processes
 
       # Agent Creation
       can_create_workers: true    # Create worker agents as tools
@@ -80,6 +81,10 @@ agents:
     These capabilities provide direct code execution and should be used with caution:
     - `can_execute_code`: Enables Python code execution (no sandbox)
     - `can_execute_commands`: Allows CLI command execution
+    - `can_manage_processes`: Enables starting and managing background processes
+      - Provides tools for process lifecycle management
+      - Allows monitoring multiple concurrent processes
+      - Supports output capture and process control
 
 ### Agent Creation
 - `can_create_workers`: Allows creating worker agents as tools
@@ -128,4 +133,40 @@ agents:
       can_load_resources: true
       can_list_resources: true
       can_read_files: true
+      can_manage_processes: true
+
+### Process Management Agent
+```yaml
+agents:
+  process_manager:
+    capabilities:
+      can_manage_processes: true    # Core process management
+      can_execute_commands: true    # Often used together
+      can_read_files: true         # Check process outputs/logs
+      can_list_directories: true   # Navigate filesystem
+      history_access: "own"        # Track process history
+```
+
+## Process Management Tools
+
+When `can_manage_processes` is enabled, the following tools become available:
+
+- **`start_process`**: Start commands in background and receive a process ID
+- **`get_process_output`**: Check current output from running processes
+- **`wait_for_process`**: Block until a process completes and get final output
+- **`kill_process`**: Terminate running processes
+- **`release_process`**: Clean up process resources when done
+- **`list_processes`**: Show all active background processes
+
+### Example Usage
+
+```yaml
+agents:
+  build_agent:
+    capabilities:
+      can_manage_processes: true
+    system_prompts:
+      - You can start long-running build processes in the background
+      - Use start_process to begin compilation, then monitor with get_process_output
+      - Use wait_for_process when you need to wait for completion
 ```

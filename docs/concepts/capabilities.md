@@ -41,6 +41,7 @@ agents:
       # Code Execution
       can_execute_code: false      # Whether agent can execute Python code (WARNING: No sandbox)
       can_execute_commands: false  # Whether agent can execute CLI commands
+      can_manage_processes: false  # Whether agent can start and manage background processes
 
       # Agent / Team Creation
       can_create_workers: false    # Whether agent can create worker agents (as tools)
@@ -141,6 +142,30 @@ can_execute_code: bool = False
 
 can_execute_commands: bool = False
 """Whether the agent can execute CLI commands (use at own risk)."""
+
+can_manage_processes: bool = False
+"""Whether the agent can start and manage background processes."""
+```
+
+### Process Management
+
+Control ability to manage background processes:
+```python
+can_manage_processes: bool = False
+"""Whether the agent can start and manage background processes.
+
+When enabled, provides access to:
+- start_process: Start commands in background and get process ID
+- get_process_output: Check current output from running processes  
+- wait_for_process: Block until process completes
+- kill_process: Terminate running processes
+- release_process: Clean up process resources
+- list_processes: Show all active processes
+
+This capability allows agents to run long-running commands, monitor their
+progress, and manage multiple concurrent processes. Use with caution as
+processes consume system resources.
+"""
 ```
 
 ### Agent Creation
@@ -223,6 +248,21 @@ agents:
       can_chain_tools: true
       can_execute_code: true
       can_execute_commands: true
+      can_manage_processes: true
       can_create_workers: true
       can_create_delegates: true
+```
+
+### Process Manager Agent
+
+```yaml
+agents:
+  process_manager:
+    capabilities:
+      # Can manage background processes and monitor them
+      can_manage_processes: true
+      can_execute_commands: true    # Often used together
+      can_read_files: true         # To check process outputs/logs
+      can_list_directories: true   # To navigate filesystem
+      history_access: own          # Track process history
 ```
