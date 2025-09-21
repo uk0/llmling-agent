@@ -17,7 +17,6 @@ agents:
 
       # History & Statistics Access
       history_access: "own"        # "none" | "own" | "all"
-      stats_access: "none"         # "none" | "own" | "all"
 
       # Resource Management
       can_load_resources: true     # Load and access resource content
@@ -58,11 +57,6 @@ agents:
   - `"none"`: No access to history
   - `"own"`: Can access own conversation history
   - `"all"`: Can access all agents' history
-
-- `stats_access`: Controls access to usage statistics
-  - `"none"`: No access to statistics
-  - `"own"`: Can view own usage statistics
-  - `"all"`: Can view all agents' statistics
 
 ### Resource Management
 - `can_load_resources`: Allows loading content from resources
@@ -120,7 +114,6 @@ agents:
       can_delegate_tasks: true
       can_observe_agents: true
       history_access: "all"
-      stats_access: "all"
 ```
 
 ### Tool Power User

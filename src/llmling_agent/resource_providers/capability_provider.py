@@ -120,11 +120,10 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 requires_capability="history_access",
             )
             tools.append(tool)
-        if self.capabilities.stats_access != "none":
             tool = Tool.from_callable(
                 capability_tools.show_statistics,
                 source="builtin",
-                requires_capability="stats_access",
+                requires_capability="history_access",
             )
             tools.append(tool)
 

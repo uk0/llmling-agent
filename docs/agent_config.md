@@ -102,7 +102,6 @@ roles:
   analyst:                      # Name of the role
     can_list_agents: false     # Agent discovery permission
     history_access: "own"      # History access level
-    stats_access: "own"        # Statistics access level
 ```
 
 > **Note**: The roles system is currently in development. The built-in roles

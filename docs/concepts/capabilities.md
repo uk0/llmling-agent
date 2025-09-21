@@ -26,7 +26,6 @@ agents:
 
       # History & Statistics Access
       history_access: none          # Access to conversation history (none|own|all)
-      stats_access: none           # Access to usage statistics (none|own|all)
 
       # Resource Management
       can_load_resources: false    # Whether agent can load resource content
@@ -91,7 +90,7 @@ can_ask_agents: bool = False
 """Whether the agent can ask other agents of the pool."""
 ```
 
-### History & Statistics Access
+### History Access
 
 Control access to conversation history and usage data:
 ```python
@@ -100,13 +99,6 @@ history_access: AccessLevel = "none"
 - "none": No access
 - "own": Only own history
 - "all": All agents' history
-"""
-
-stats_access: AccessLevel = "none"
-"""Level of access to usage statistics:
-- "none": No access
-- "own": Only own stats
-- "all": All agents' stats
 """
 ```
 
@@ -156,7 +148,7 @@ can_manage_processes: bool = False
 
 When enabled, provides access to:
 - start_process: Start commands in background and get process ID
-- get_process_output: Check current output from running processes  
+- get_process_output: Check current output from running processes
 - wait_for_process: Block until process completes
 - kill_process: Terminate running processes
 - release_process: Clean up process resources
@@ -209,7 +201,6 @@ agents:
       can_list_resources: true
       can_register_tools: true
       history_access: own         # Can access own history
-      stats_access: own          # Can access own stats
 ```
 
 ### Team Lead Agent
@@ -223,7 +214,6 @@ agents:
       can_delegate_tasks: true
       can_observe_agents: true
       history_access: all
-      stats_access: all
       can_create_workers: true
       can_create_delegates: true
 ```
@@ -239,7 +229,6 @@ agents:
       can_delegate_tasks: true
       can_observe_agents: true
       history_access: all
-      stats_access: all
       can_load_resources: true
       can_list_resources: true
       can_register_tools: true

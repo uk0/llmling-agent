@@ -31,9 +31,6 @@ class Capabilities(EventedModel):
     history_access: AccessLevel = "none"
     """Level of access to conversation history."""
 
-    stats_access: AccessLevel = "none"
-    """Level of access to usage statistics."""
-
     # Resource capabilities
     can_load_resources: bool = False
     """Whether the agent can load and access resource content."""
@@ -106,13 +103,9 @@ class Capabilities(EventedModel):
 
         # Check access levels (none < own < all)
         access_order = {"none": 0, "own": 1, "all": 2}
-        for field in ("history_access", "stats_access"):
-            required_level = access_order[getattr(required, field)]
-            self_level = access_order[getattr(self, field)]
-            if required_level > self_level:
-                return False
-
-        return True
+        required_level = access_order[required.history_access]
+        self_level = access_order[self.history_access]
+        return not required_level > self_level
 
     def has_capability(self, capability: str) -> bool:
         """Check if a specific capability is enabled.

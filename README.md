@@ -235,7 +235,6 @@ agents:
       can_load_resources: true
       can_register_tools: true
       history_access: "own"  # "none" | "own" | "all"
-      stats_access: "all"
 
     # Environment configuration
     environment:
