@@ -17,11 +17,11 @@ logger = get_logger(__name__)
 class Usage(TokonomicsUsage):
     """Usage information for a model."""
 
-    input_tokens: int | None
-    output_tokens: int | None
+    input_tokens: int
+    output_tokens: int
 
     @property
-    def total_tokens(self) -> int | None:
+    def total_tokens(self) -> int:
         """Total tokens used."""
         return (self.input_tokens or 0) + (self.output_tokens or 0)
 
