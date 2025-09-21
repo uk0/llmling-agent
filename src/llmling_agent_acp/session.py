@@ -13,7 +13,6 @@ import uuid
 from pydantic_ai import Agent as PydanticAIAgent, ModelRequestNode
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent_acp.converters import (
     FileSystemBridge,
     create_thought_chunk,
@@ -89,7 +88,6 @@ class ACPSession:
 
         # Session state
         self._active = True
-        self._conversation_history: list[dict[str, Any]] = []
         self._task_lock = asyncio.Lock()
         self._cancelled = False
         self._current_turn_requests = 0
@@ -170,16 +168,6 @@ class ACPSession:
                     return
                 msg = "Processing prompt for session %s: %s"
                 logger.debug(msg, self.session_id, prompt_text[:100])
-
-                # Store user message in conversation history
-                self._conversation_history.append({
-                    "role": "user",
-                    "content": prompt_text,
-                    "content_blocks": content_blocks,
-                })
-
-                # Update agent's conversation history with session history
-                await self._sync_agent_conversation_history()
 
                 # Use iterate_run for comprehensive streaming
                 msg = "Starting _process_iter_response for session %s"
@@ -300,12 +288,6 @@ class ACPSession:
                         logger.info(msg, final_content[:100])
                         if final_content.strip():
                             response_parts.append(final_content)
-
-                            # Store complete response in history
-                            self._conversation_history.append({
-                                "role": "assistant",
-                                "content": final_content,
-                            })
 
                             # Send final response as session update if nothing streamed
                             if not has_yielded_anything:
@@ -447,14 +429,10 @@ class ACPSession:
                             msg = "Received unhandled event type: %s for session %s"
                             logger.info(msg, type(event).__name__, self.session_id)
 
-                # Store accumulated text content in conversation history if any
+                # Log accumulated text content if any
                 if text_content:
                     accumulated_text = "".join(text_content)
-                    self._conversation_history.append({
-                        "role": "assistant",
-                        "content": accumulated_text,
-                    })
-                    msg = "Stored streaming response in history for session %s: %r"
+                    msg = "Received streaming response for session %s: %r"
                     logger.debug(msg, self.session_id, accumulated_text[:100])
 
         except Exception:
@@ -521,15 +499,12 @@ class ACPSession:
             SessionNotification objects for tool execution updates
         """
         try:
-            # Get the tool using ToolManager's dict-like access
             try:
                 tool = self.agent.tools[tool_name]
             except KeyError:
                 msg = "Tool %s not found in agent %s"
                 logger.warning(msg, tool_name, self.agent.name)
                 return
-
-            # Execute the tool using Tool.execute() method
             result = await tool.execute(**tool_params)
 
             # Format as ACP tool call notification
@@ -546,8 +521,6 @@ class ACPSession:
         except Exception as e:
             msg = "Error executing tool %s in session %s"
             logger.exception(msg, tool_name, self.session_id)
-
-            # Send error notification
             error_notification = format_tool_call_for_acp(
                 tool_name=tool_name,
                 tool_input=tool_params,
@@ -557,64 +530,6 @@ class ACPSession:
             )
 
             yield error_notification
-
-    async def load_conversation_history(self, history: list[dict[str, Any]]) -> None:
-        """Load conversation history into the session.
-
-        Args:
-            history: List of conversation messages
-        """
-        try:
-            self._conversation_history = history.copy()
-            chat_messages = []
-            for msg_dict in history:
-                chat_msg = ChatMessage[str](
-                    content=msg_dict.get("content", ""),
-                    role=msg_dict.get("role", "user"),
-                    name=self.agent.name
-                    if msg_dict.get("role") == "assistant"
-                    else "user",
-                )
-                chat_messages.append(chat_msg)
-            self.agent.conversation.set_history(chat_messages)
-            msg = "Loaded %d messages into session %s history"
-            logger.info(msg, len(history), self.session_id)
-
-        except Exception:
-            msg = "Error loading conversation history for session %s"
-            logger.exception(msg, self.session_id)
-
-    async def get_conversation_history(self) -> list[dict[str, Any]]:
-        """Get the conversation history for this session.
-
-        Returns:
-            List of conversation messages
-        """
-        return self._conversation_history.copy()
-
-    async def _sync_agent_conversation_history(self) -> None:
-        """Sync session conversation history with the agent's conversation manager."""
-        try:
-            # Convert session history to ChatMessage objects
-            chat_messages = []
-            for msg_dict in self._conversation_history:
-                chat_msg = ChatMessage[str](
-                    content=msg_dict.get("content", ""),
-                    role=msg_dict.get("role", "user"),
-                    name=self.agent.name
-                    if msg_dict.get("role") == "assistant"
-                    else "user",
-                )
-                chat_messages.append(chat_msg)
-
-            # Update agent's conversation history
-            self.agent.conversation.set_history(chat_messages)
-            msg = "Synced %d messages to agent conversation for session %s"
-            logger.debug(msg, len(chat_messages), self.session_id)
-
-        except Exception:
-            msg = "Error syncing conversation history for session %s"
-            logger.exception(msg, self.session_id)
 
     async def close(self) -> None:
         """Close the session and cleanup resources."""
