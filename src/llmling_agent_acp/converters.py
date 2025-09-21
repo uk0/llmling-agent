@@ -366,36 +366,3 @@ def create_thought_chunk(thought: str, session_id: str) -> SessionNotification:
     content = ContentBlock1(text=thought, type="text")
     update = AgentThoughtChunk(content=content, sessionUpdate="agent_thought_chunk")
     return SessionNotification(sessionId=session_id, update=update)
-
-
-def detect_content_type(text: str) -> str:
-    """Detect the likely content type of text.
-
-    Args:
-        text: Text to analyze
-
-    Returns:
-        Detected content type string
-    """
-    text_lower = text.lower().strip()
-
-    # Check for code patterns
-    if any(
-        keyword in text_lower
-        for keyword in ["def ", "function ", "class ", "import ", "from "]
-    ):
-        return "code"
-
-    # Check for markup
-    if text_lower.startswith("<") and ">" in text_lower:
-        return "html"
-
-    # Check for markdown
-    if any(marker in text for marker in ["#", "**", "*", "`", "```"]):
-        return "markdown"
-
-    # Check for JSON
-    if text.strip().startswith(("{", "[")) and text.strip().endswith(("}", "]")):
-        return "json"
-
-    return "text"

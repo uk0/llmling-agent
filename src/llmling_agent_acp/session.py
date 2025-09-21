@@ -20,7 +20,6 @@ from llmling_agent_acp.converters import (
     from_content_blocks,
     to_session_updates,
 )
-from llmling_agent_acp.types import StopReason
 
 
 if TYPE_CHECKING:
@@ -31,7 +30,7 @@ if TYPE_CHECKING:
     from pydantic_ai.agent import CallToolsNode
 
     from llmling_agent import Agent
-    from llmling_agent_acp.types import ContentBlock
+    from llmling_agent_acp.types import ContentBlock, StopReason
     from llmling_agent_providers.base import AgentRunProtocol
 
 from acp.schema import SessionNotification
@@ -119,9 +118,8 @@ class ACPSession:
             SessionNotification objects for streaming to client, or StopReason literal
         """
         if not self._active:
-            logger.warning(
-                "Attempted to process prompt on inactive session %s", self.session_id
-            )
+            msg = "Attempted to process prompt on inactive session %s"
+            logger.warning(msg, self.session_id)
             yield "refusal"
             return
 
@@ -319,7 +317,7 @@ class ACPSession:
             for update in error_updates:
                 yield update
 
-    async def _stream_model_request(
+    async def _stream_model_request(  # noqa: PLR0915
         self,
         node: ModelRequestNode,
         agent_run: AgentRunProtocol,
@@ -366,9 +364,7 @@ class ACPSession:
                         case PartDeltaEvent(
                             delta=TextPartDelta(content_delta=content)
                         ) if content:
-                            msg = (
-                                "Processing TextPartDelta with content: %r for session %s"
-                            )
+                            msg = "Processing TextPartDelta %r for session %s"
                             logger.info(msg, content, self.session_id)
                             # Track tokens if limits are set
                             if self.max_tokens is not None:
@@ -407,10 +403,7 @@ class ACPSession:
                         case PartDeltaEvent(
                             delta=ThinkingPartDelta(content_delta=content)
                         ) if content:
-                            msg = (
-                                "Processing ThinkingPartDelta with content:"
-                                " %r for session %s"
-                            )
+                            msg = "Processing ThinkingPartDelta %r for session %s"
                             logger.info(msg, content, self.session_id)
                             # Stream thinking as agent thought chunks
                             thought_notification = create_thought_chunk(
@@ -422,7 +415,6 @@ class ACPSession:
                             msg = "Received ToolCallPartDelta for session %s"
                             logger.info(msg, self.session_id)
                         case FinalResultEvent():
-                            # Final result started - prepare for output streaming
                             msg = "Received FinalResultEvent for session %s"
                             logger.info(msg, self.session_id)
                             break

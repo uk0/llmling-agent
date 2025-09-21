@@ -18,8 +18,14 @@ from acp.schema import (
 )
 
 from llmling_agent.log import get_logger
+from llmling_agent.tools.base import Tool
 from llmling_agent_acp.converters import format_tool_call_for_acp
-from llmling_agent_acp.types import ToolCallContent
+from llmling_agent_acp.types import (
+    TextContent,
+    ToolCall,
+    ToolCallContent,
+    ToolCallUpdateMessage,
+)
 
 
 if TYPE_CHECKING:
@@ -27,7 +33,6 @@ if TYPE_CHECKING:
 
     from acp import Client
 
-    from llmling_agent.tools.base import Tool
 
 logger = get_logger(__name__)
 
@@ -83,18 +88,13 @@ class ACPToolBridge:
                 "status": "running",
             }
 
-            # Execute the tool using Tool.execute() method
             result = await tool.execute(**params)
-
-            # Send completion notification
             yield await self._create_tool_completion_notification(
                 tool, params, result, session_id, tool_call_id
             )
 
         except Exception as e:
             logger.exception("Tool execution failed: %s", tool.name)
-
-            # Send error notification
             yield await self._create_tool_error_notification(
                 tool, params, str(e), session_id, tool_call_id
             )
@@ -121,12 +121,7 @@ class ACPToolBridge:
         Returns:
             SessionNotification for tool start
         """
-        from llmling_agent_acp.types import ToolCall
-
-        # Extract file locations from parameters
         locations = self._extract_file_locations(params)
-
-        # Determine tool kind
         tool_kind = self._determine_tool_kind(tool, params)
 
         tool_call = ToolCall(
@@ -302,9 +297,6 @@ class ACPToolBridge:
                 # In practice, you'd need more sophisticated file handling
                 return params
 
-        # Create a Tool wrapper from the ACPFileSystemTool
-        from llmling_agent.tools.base import Tool
-
         wrapper = ACPFileSystemTool(tool, self)
         return Tool.from_callable(wrapper)
 
@@ -419,8 +411,6 @@ class ACPToolBridge:
         Returns:
             SessionNotification with progress update
         """
-        from llmling_agent_acp.types import TextContent, ToolCallUpdateMessage
-
         content = TextContent(text=progress_message, type="text")
         update = ToolCallUpdateMessage(
             toolCallId=tool_call_id,

@@ -7,9 +7,15 @@ permissions, and session updates.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from acp import Client
+from acp import (
+    Client,
+    ReadTextFileResponse,
+    RequestPermissionResponse,
+)
+from acp.schema import RequestPermissionOutcome1, RequestPermissionOutcome2
 
 from llmling_agent.log import get_logger
 
@@ -17,9 +23,7 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from acp import (
         ReadTextFileRequest,
-        ReadTextFileResponse,
         RequestPermissionRequest,
-        RequestPermissionResponse,
         SessionNotification,
         WriteTextFileRequest,
     )
@@ -58,16 +62,11 @@ class DefaultACPClient:
 
         # Default: grant permission for the first option
         if params.options:
-            from acp.schema import RequestPermissionOutcome2, RequestPermissionResponse
-
-            outcome = RequestPermissionOutcome2(
-                outcome="selected", optionId=params.options[0].optionId
-            )
+            id_ = params.options[0].optionId
+            outcome = RequestPermissionOutcome2(outcome="selected", optionId=id_)
             return RequestPermissionResponse(outcome=outcome)
 
         # No options - deny
-        from acp.schema import RequestPermissionOutcome1, RequestPermissionResponse
-
         outcome = RequestPermissionOutcome1(outcome="cancelled")
         return RequestPermissionResponse(outcome=outcome)
 
@@ -77,11 +76,8 @@ class DefaultACPClient:
         Args:
             params: Session update notification
         """
-        logger.debug(
-            "Session update for %s: %s",
-            params.sessionId,
-            getattr(params.update, "sessionUpdate", "unknown"),
-        )
+        msg = "Session update for %s: %s"
+        logger.debug(msg, params.sessionId, params.update.sessionUpdate)
         self._session_updates.append(params)
 
     async def writeTextFile(self, params: WriteTextFileRequest) -> None:
@@ -95,8 +91,6 @@ class DefaultACPClient:
             raise RuntimeError(msg)
 
         try:
-            from pathlib import Path
-
             path = Path(params.path)
             path.write_text(params.content, encoding="utf-8")
             logger.info("Wrote file %s", params.path)
@@ -118,8 +112,6 @@ class DefaultACPClient:
             raise RuntimeError(msg)
 
         try:
-            from pathlib import Path
-
             path = Path(params.path)
 
             if not path.exists():
@@ -136,8 +128,6 @@ class DefaultACPClient:
                 content = "\n".join(lines[start_line:end_line])
 
             logger.info("Read file %s", params.path)
-            from acp.schema import ReadTextFileResponse
-
             return ReadTextFileResponse(content=content)
 
         except Exception:
@@ -245,8 +235,6 @@ class FileSystemACPClient(DefaultACPClient):
         """
         if not self.allowed_paths:
             return True  # No restrictions if no allowed paths specified
-
-        from pathlib import Path
 
         path_obj = Path(path).resolve()
 

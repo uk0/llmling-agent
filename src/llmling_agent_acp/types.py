@@ -6,7 +6,7 @@ compatibility with existing code while using the standard ACP implementation.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from acp.schema import (
     # Capability types
@@ -96,10 +96,6 @@ def to_json_rpc_notification(method: str, params: dict | None = None) -> dict:
     if params is not None:
         notification["params"] = params
     return notification
-
-
-# ACP Protocol Stop Reasons
-from typing import Literal
 
 
 StopReason = Literal[

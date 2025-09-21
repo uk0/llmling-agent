@@ -29,6 +29,8 @@ from acp.schema import (
 from acp.stdio import stdio_streams
 
 from llmling_agent.log import get_logger
+from llmling_agent.models.manifest import AgentsManifest
+from llmling_agent_acp.converters import to_session_updates
 from llmling_agent_acp.session import ACPSessionManager
 from llmling_agent_acp.wrappers import DefaultACPClient
 
@@ -232,10 +234,8 @@ class LLMlingACPAgent(ACPAgent):
                     stop_reason = result
                     break
                 # Session notification
-                logger.info(
-                    "Sending sessionUpdate notification: %s",
-                    result.model_dump_json(),
-                )
+                msg = "Sending sessionUpdate notification: %s"
+                logger.info(msg, result.model_dump_json())
                 await self.connection.sessionUpdate(result)
 
             # Return the actual stop reason from the session
@@ -243,10 +243,6 @@ class LLMlingACPAgent(ACPAgent):
             logger.info("Returning PromptResponse: %s", response.model_dump_json())
         except Exception as e:
             logger.exception("Failed to process prompt for session %s", params.sessionId)
-
-            # Send error as session update if possible
-            from llmling_agent_acp.converters import to_session_updates
-
             error_updates = to_session_updates(
                 f"Error processing prompt: {e}", params.sessionId
             )
@@ -412,8 +408,6 @@ class ACPServer:
         Returns:
             Configured ACP server instance with agents from config
         """
-        from llmling_agent.models.manifest import AgentsManifest
-
         config_str = Path(config_path).read_text()
         manifest = AgentsManifest.from_yaml(config_str)
 
