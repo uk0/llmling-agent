@@ -95,11 +95,13 @@ class Capabilities(EventedModel):
         Example:
             required in agent.capabilities  # Can agent fulfill requirements?
         """
-        # Check all boolean capabilities
-        for field in type(self).model_fields:
-            if isinstance(getattr(required, field), bool):  # noqa: SIM102
-                if getattr(required, field) and not getattr(self, field):
-                    return False
+        # Check all boolean capabilities using any() to find any missing required flag
+        if any(
+            getattr(required, field) and not getattr(self, field)
+            for field in type(self).model_fields
+            if isinstance(getattr(required, field), bool)
+        ):
+            return False
 
         # Check access levels (none < own < all)
         access_order = {"none": 0, "own": 1, "all": 2}
