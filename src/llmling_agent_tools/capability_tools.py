@@ -490,6 +490,8 @@ async def read_file(  # noqa: D417
     *,
     convert_to_markdown: bool = True,
     encoding: str = "utf-8",
+    line: int | None = None,
+    limit: int | None = None,
 ) -> str:
     """Read file content from local or remote path.
 
@@ -497,6 +499,8 @@ async def read_file(  # noqa: D417
         path: Path or URL to read
         convert_to_markdown: Whether to convert content to markdown
         encoding: Text encoding to use (default: utf-8)
+        line: Optional line number to start reading from (1-based)
+        limit: Optional maximum number of lines to read
 
     Returns:
         File content, optionally converted to markdown
@@ -519,6 +523,13 @@ async def read_file(  # noqa: D417
                 msg = f"Failed to convert to markdown: {e}"
                 logger.warning(msg)
                 # Continue with raw content
+
+        # Apply line filtering if requested
+        if line is not None or limit is not None:
+            lines = content.splitlines(keepends=True)
+            start_idx = (line - 1) if line is not None else 0
+            end_idx = start_idx + limit if limit is not None else len(lines)
+            content = "".join(lines[start_idx:end_idx])
 
     except Exception as e:
         msg = f"Failed to read file {path}: {e}"
