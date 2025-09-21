@@ -123,6 +123,11 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
         # Register tasks from manifest
         for name, task in self.manifest.jobs.items():
             self._tasks.register(name, task)
+
+        # Initialize process manager for background processes
+        from llmling_agent.agent.process_manager import ProcessManager
+
+        self.process_manager = ProcessManager()
         self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
         if self.manifest.pool_server and self.manifest.pool_server.enabled:
             from llmling_agent.resource_providers.pool import PoolResourceProvider
@@ -201,6 +206,8 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
 
     async def cleanup(self):
         """Clean up all agents."""
+        # Clean up background processes first
+        await self.process_manager.cleanup()
         await self.exit_stack.aclose()
         self.clear()
 

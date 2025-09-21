@@ -68,6 +68,9 @@ class Capabilities(EventedModel):
     can_execute_commands: bool = False
     """Whether the agent can execute CLI commands (use at your own risk)."""
 
+    can_manage_processes: bool = False
+    """Whether the agent can start and manage background processes."""
+
     # Agent creation
     can_create_workers: bool = False
     """Whether the agent can create worker agents (as tools)."""

@@ -172,4 +172,38 @@ class CapabilitiesResourceProvider(ResourceProvider):
             )
             tools.append(tool)
 
+        # Execution tools
+        if self.capabilities.can_execute_code:
+            tool = Tool.from_callable(
+                capability_tools.execute_python,
+                source="builtin",
+                requires_capability="can_execute_code",
+            )
+            tools.append(tool)
+        if self.capabilities.can_execute_commands:
+            tool = Tool.from_callable(
+                capability_tools.execute_command,
+                source="builtin",
+                requires_capability="can_execute_commands",
+            )
+            tools.append(tool)
+
+        # Process management tools
+        if self.capabilities.can_manage_processes:
+            process_tools = [
+                capability_tools.start_process,
+                capability_tools.get_process_output,
+                capability_tools.wait_for_process,
+                capability_tools.kill_process,
+                capability_tools.release_process,
+                capability_tools.list_processes,
+            ]
+            for tool_func in process_tools:
+                tool = Tool.from_callable(
+                    tool_func,
+                    source="builtin",
+                    requires_capability="can_manage_processes",
+                )
+                tools.append(tool)
+
         return tools

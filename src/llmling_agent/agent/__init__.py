@@ -6,6 +6,11 @@ from typing_extensions import TypeVar
 from llmling_agent.agent.agent import Agent
 from llmling_agent.agent.structured import StructuredAgent
 from llmling_agent.agent.context import AgentContext
+from llmling_agent.agent.process_manager import (
+    ProcessManager,
+    ProcessOutput,
+    RunningProcess,
+)
 
 
 TDeps = TypeVar("TDeps", default=None)
@@ -24,6 +29,9 @@ __all__ = [
     "AnyAgent",
     "ConversationManager",
     "Interactions",
+    "ProcessManager",
+    "ProcessOutput",
+    "RunningProcess",
     "StructuredAgent",
     "SystemPrompts",
 ]
