@@ -6,7 +6,7 @@ import io
 import os
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from openai import NOT_GIVEN
+from openai import omit
 
 from llmling_agent.log import get_logger
 from llmling_agent_converters.base import DocumentConverter
@@ -67,6 +67,6 @@ class WhisperAPIConverter(DocumentConverter):
         response = client.audio.transcriptions.create(
             model=self.config.model or "whisper-1",
             file=file,
-            language=self.config.language or NOT_GIVEN,
+            language=self.config.language or omit,
         )
         return response.text
