@@ -13,6 +13,7 @@ This package provides a bridge between llmling-agent's powerful agent system and
 - Handle file system operations with permission management
 - Support terminal integration for command execution
 - Stream responses with content blocks (text, image, audio, resources)
+- Seamless MCP (Model Context Protocol) server integration
 
 ## Installation
 
@@ -265,6 +266,89 @@ async for notification in bridge.execute_tool(tool, params, session_id):
 allowed = await bridge.request_tool_permission(tool, params, session_id)
 ```
 
+### MCP Server Integration
+
+ACP provides seamless integration with MCP (Model Context Protocol) servers, allowing agents to access external tools and data sources. MCP servers are automatically connected when creating sessions.
+
+#### How MCP Integration Works
+
+1. **Session Creation**: Client provides MCP server configurations in `session/new`
+2. **Automatic Connection**: ACP server connects to all specified MCP servers
+3. **Tool Integration**: MCP tools become available to the agent automatically
+4. **Transparent Usage**: Agent can use MCP tools just like built-in tools
+
+#### MCP Server Configuration
+
+MCP servers are specified in the `session/new` request:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/new",
+  "params": {
+    "cwd": "/home/user/project",
+    "mcpServers": [
+      {
+        "name": "filesystem",
+        "command": "mcp-server-filesystem",
+        "args": ["--stdio"],
+        "env": []
+      },
+      {
+        "name": "web_search",
+        "command": "node",
+        "args": ["/path/to/search-server.js"],
+        "env": [
+          {
+            "name": "API_KEY",
+            "value": "your-api-key"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+#### Supported MCP Transports
+
+Currently supports:
+- **stdio**: Standard input/output (all agents must support)
+- **SSE**: Server-Sent Events (optional)
+- **HTTP**: HTTP transport (optional)
+
+#### Example: Agent with MCP Tools
+
+```python
+# Agent automatically gets access to MCP tools
+async def demo_mcp_integration():
+    # MCP servers are connected during session creation
+    # Tools become available immediately
+    
+    response = await agent.run(
+        "Search for Python tutorials and save the results to a file"
+    )
+    
+    # Agent can now use:
+    # - web_search tool (from MCP server)
+    # - file_write tool (from MCP server)
+    # - Built-in reasoning capabilities
+```
+
+#### MCP Tool Execution Flow
+
+1. **Agent decides to use tool** → Regular llmling-agent tool selection
+2. **Tool execution** → Routed to appropriate MCP server
+3. **Results** → Returned to agent for processing
+4. **Streaming** → Tool progress streamed to ACP client
+
+#### Benefits
+
+- **Zero Configuration**: MCP servers work out of the box
+- **Tool Ecosystem**: Access to the growing MCP tool ecosystem
+- **Transparent Integration**: No changes needed to agent logic
+- **Automatic Discovery**: All MCP tools become available instantly
+
 ### Desktop Application Integration
 
 ACP is designed for desktop applications:
@@ -409,6 +493,7 @@ except Exception as e:
 | Streaming | JSON-RPC notifications | Server-sent events | Polling |
 | Sessions | Built-in | Manual | Manual |
 | Permissions | User prompts | Server policy | Server policy |
+| MCP Integration | Native, automatic | Not supported | Not supported |
 
 ## License
 

@@ -29,6 +29,7 @@ from llmling_agent_acp.session import ACPSession, ACPSessionManager
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import (
     FileSystemBridge,
+    convert_acp_mcp_server_to_config,
     from_content_blocks,
     to_content_blocks,
     to_session_updates,
@@ -101,6 +102,7 @@ __all__ = [
     "StopReason",
     # Content types
     "TextContent",
+    "convert_acp_mcp_server_to_config",
     "from_content_blocks",
     "to_content_blocks",
     "to_session_updates",

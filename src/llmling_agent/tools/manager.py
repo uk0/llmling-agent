@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-MAX_LEN_DESCRIPTION = 1000
+MAX_LEN_DESCRIPTION = 2000
 ToolState = Literal["all", "enabled", "disabled"]
 ProviderName = str
 OwnerType = Literal["pool", "team", "node"]

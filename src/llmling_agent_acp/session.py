@@ -13,8 +13,10 @@ import uuid
 from pydantic_ai import Agent as PydanticAIAgent, ModelRequestNode
 
 from llmling_agent.log import get_logger
+from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent_acp.converters import (
     FileSystemBridge,
+    convert_acp_mcp_server_to_config,
     create_thought_chunk,
     format_tool_call_for_acp,
     from_content_blocks,
@@ -96,7 +98,57 @@ class ACPSession:
         self.fs_bridge = FileSystemBridge()
         self.command_bridge = command_bridge
 
+        # MCP integration
+        self.mcp_manager: MCPManager | None = None
+
         logger.info("Created ACP session %s with agent %s", session_id, agent.name)
+
+    async def initialize_mcp_servers(self) -> None:
+        """Initialize MCP servers if any are configured."""
+        if not self.mcp_servers:
+            return
+
+        logger.info(
+            "Initializing %d MCP servers for session %s",
+            len(self.mcp_servers),
+            self.session_id,
+        )
+
+        try:
+            # Convert ACP McpServer configs to our format
+            server_configs = [
+                convert_acp_mcp_server_to_config(server) for server in self.mcp_servers
+            ]
+
+            # Initialize MCP manager with converted configs
+            self.mcp_manager = MCPManager(
+                name=f"session_{self.session_id}",
+                servers=server_configs,
+                context=self.agent.context,
+            )
+
+            # Start MCP manager and get tools
+            await self.mcp_manager.__aenter__()
+
+            # Add MCP tools to the agent's tool system
+            mcp_tools = await self.mcp_manager.get_tools()
+
+            # Register MCP tools with the agent
+            for tool in mcp_tools:
+                self.agent.tools.register_tool(tool)
+
+            logger.info(
+                "Added %d MCP tools to agent for session %s",
+                len(mcp_tools),
+                self.session_id,
+            )
+
+        except Exception:
+            logger.exception(
+                "Failed to initialize MCP servers for session %s", self.session_id
+            )
+            # Don't fail session creation, just log the error
+            self.mcp_manager = None
 
     @property
     def active(self) -> bool:
@@ -539,6 +591,11 @@ class ACPSession:
         self._active = False
 
         try:
+            # Clean up MCP manager if present
+            if self.mcp_manager:
+                await self.mcp_manager.cleanup()
+                self.mcp_manager = None
+
             await self.agent.__aexit__(None, None, None)
             logger.info("Closed ACP session %s", self.session_id)
         except Exception:
@@ -669,10 +726,13 @@ class ACPSessionManager:
                 command_bridge=self.command_bridge,
             )
 
+            # Initialize MCP servers if any are provided
+            await session.initialize_mcp_servers()
+
             # Store session
             self._sessions[session_id] = session
 
-            logger.info("Created session %s with agent %s", session_id, agent.name)
+            logger.info("Created ACP session %s for agent %s", session_id, agent.name)
             return session_id
 
     async def get_session(self, session_id: str) -> ACPSession | None:
