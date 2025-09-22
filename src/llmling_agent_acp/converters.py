@@ -58,25 +58,27 @@ def from_content_blocks(blocks: list[ContentBlock]) -> str:
     parts = []
 
     for block in blocks:
-        if isinstance(block, ContentBlock1):  # Text content
-            parts.append(block.text)
-        elif isinstance(block, ContentBlock2):  # Image content
-            parts.append(f"[Image: {block.mimeType}]")
-            if block.uri:
-                parts.append(f"Image URI: {block.uri}")
-        elif isinstance(block, ContentBlock3):  # Audio content
-            parts.append(f"[Audio: {block.mimeType}]")
-        elif isinstance(block, ContentBlock4):  # Resource link
-            parts.append(f"[Resource: {block.name}]")
-            if block.description:
-                parts.append(f"Description: {block.description}")
-            parts.append(f"URI: {block.uri}")
-        elif isinstance(block, ContentBlock5):  # Embedded resource
-            parts.append(f"[Resource: {block.resource.uri}]")
-            if isinstance(block.resource, TextResourceContents):
-                parts.append(block.resource.text)
-            else:
-                parts.append("[Binary Resource]")
+        match block:
+            case ContentBlock1():  # Text content
+                parts.append(block.text)
+            case ContentBlock2():  # Image content
+                parts.append(f"[Image: {block.mimeType}]")
+                if block.uri:
+                    parts.append(f"Image URI: {block.uri}")
+            case ContentBlock3():  # Audio content
+                parts.append(f"[Audio: {block.mimeType}]")
+            case ContentBlock4():  # Resource link
+                parts.append(f"[Resource: {block.name}]")
+                if block.description:
+                    parts.append(f"Description: {block.description}")
+                parts.append(f"URI: {block.uri}")
+            case ContentBlock5():  # Embedded resource
+                parts.append(f"[Resource: {block.resource.uri}]")
+                match block.resource:
+                    case TextResourceContents():
+                        parts.append(block.resource.text)
+                    case _:
+                        parts.append("[Binary Resource]")
 
     return "\n".join(parts) if parts else ""
 
