@@ -108,7 +108,7 @@ class LLMlingACPAgent(ACPAgent):
         """Initialize the agent and negotiate capabilities."""
         try:
             logger.info("Initializing ACP agent implementation")
-            self.PRO = min(params.protocolVersion, 1)
+            version = min(params.protocolVersion, self.PROTOCOL_VERSION)
             prompt_caps = PromptCapabilities(audio=True, embeddedContext=True, image=True)
             agent_caps = AgentCapabilities(
                 loadSession=self.session_support,
@@ -117,7 +117,7 @@ class LLMlingACPAgent(ACPAgent):
 
             self._initialized = True
             response = InitializeResponse(
-                protocolVersion=self.PROTOCOL_VERSION,
+                protocolVersion=version,
                 agentCapabilities=agent_caps,
                 authMethods=[],  # No authentication methods by default
             )
