@@ -8,6 +8,7 @@ import os
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
 
 import agentops
+from agentops.sdk.decorators import operation
 
 from llmling_agent_observability.base_provider import ObservabilityProvider
 
@@ -55,20 +56,20 @@ class AgentOpsProvider(ObservabilityProvider):
         span_name: str | None = None,
     ) -> Callable[P, R]:
         """Wrap a function with AgentOps tracking."""
-        name = span_name or msg_template or func.__name__
-        wrapped = agentops.record_action(name)(func)
+        name = span_name or msg_template or getattr(func, "__name__", "Unknown")
+        wrapped = operation(name)(func)
         return cast(Callable[P, R], wrapped)
 
     def wrap_tool[T](self, func: Callable[..., T], name: str) -> Callable[..., T]:
         """Wrap a tool function with AgentOps tracking."""
-        wrapped = agentops.record_tool(name)(func)
+        wrapped = operation(name)(func)
         return cast(Callable[..., T], wrapped)
 
     @contextmanager
     def span(self, name: str, **attributes: Any) -> Iterator[Any]:
         """Create an AgentOps span."""
         # Since record_action isn't a context manager, we create our own
-        event_wrapper = agentops.record_action(name)
+        event_wrapper = operation(name)
 
         # Create a dummy function for the event
         def span_func():

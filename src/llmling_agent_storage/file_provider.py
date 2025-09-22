@@ -204,7 +204,7 @@ class FileProvider(StorageProvider):
             "name": name,
             "model": model,
             "cost": cost_info.total_cost if cost_info else None,
-            "token_usage": TokenUsage(cost_info.token_usage) if cost_info else None,
+            "token_usage": cost_info.token_usage.copy() if cost_info else None,
             "response_time": response_time,
             "forwarded_from": forwarded_from,
         })

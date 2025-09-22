@@ -34,8 +34,8 @@ def cleanup_database():
     SQLModel.metadata.create_all(engine)  # Ensure tables exist
     with Session(engine) as session:
         # Delete all messages first (due to foreign key)
-        session.execute(delete(Message))
-        session.execute(delete(Conversation))
+        session.exec(delete(Message))
+        session.exec(delete(Conversation))
         session.commit()
 
 

@@ -287,7 +287,7 @@ class AgentConfig(NodeConfig):
                 case _:
                     try:
                         fn = import_callable(provider_config)
-                        provider_config = CallbackProviderConfig(fn=fn)
+                        provider_config = CallbackProviderConfig(callback=fn)
                     except Exception:  # noqa: BLE001
                         msg = f"Invalid provider type: {provider_config}"
                         raise ValueError(msg)  # noqa: B904

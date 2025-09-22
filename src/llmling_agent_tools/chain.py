@@ -261,9 +261,7 @@ class ChainTool(BaseTool):
         await asyncio.gather(*tasks)
 
         # Return last result
-        return (
-            results[pipeline.steps[-1].name].result if pipeline.steps[-1].name else None
-        )
+        return results[name].result if (name := pipeline.steps[-1].name) else None
 
     async def execute(self, **params: Any) -> Any:
         """Execute the pipeline."""
