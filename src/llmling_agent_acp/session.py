@@ -514,8 +514,9 @@ class ACPSession:
                     match event:
                         case FunctionToolCallEvent() as tool_event:
                             # Tool call started
+                            tool_name = tool_event.part.tool_name
                             tool_notification = format_tool_call_for_acp(
-                                tool_name=tool_event.part.tool_name,
+                                tool_name=tool_name,
                                 tool_input=tool_event.part.args_as_dict(),
                                 tool_output=None,  # Not available yet
                                 session_id=self.session_id,
@@ -525,9 +526,10 @@ class ACPSession:
 
                         case FunctionToolResultEvent() as result_event:
                             # Tool call completed
+                            tool_name = result_event.part.tool_name
                             tool_notification = format_tool_call_for_acp(
-                                tool_name=getattr(result_event, "tool_name", "unknown"),
-                                tool_input=getattr(result_event, "tool_input", {}),
+                                tool_name=tool_name,
+                                tool_input=result_event.part.args_as_dict(),
                                 tool_output=result_event.result.content,
                                 session_id=self.session_id,
                                 status="completed",
