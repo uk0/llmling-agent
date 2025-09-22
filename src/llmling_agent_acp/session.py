@@ -143,6 +143,9 @@ class ACPSession:
                 self.session_id,
             )
 
+            # Update available commands since new tools may affect command context
+            await self.send_available_commands_update()
+
         except Exception:
             logger.exception(
                 "Failed to initialize MCP servers for session %s", self.session_id
@@ -709,6 +712,11 @@ class ACPSessionManager:
         self._sessions: dict[str, ACPSession] = {}
         self._lock = asyncio.Lock()
         self.command_bridge = command_bridge
+        self._command_update_task = None
+
+        # Register for command update notifications
+        if command_bridge:
+            command_bridge.register_update_callback(self._on_commands_updated)
 
         logger.info("Initialized ACP session manager")
 
@@ -764,6 +772,9 @@ class ACPSessionManager:
 
             # Store session
             self._sessions[session_id] = session
+
+            # Announce available slash commands to client
+            await session.send_available_commands_update()
 
             logger.info("Created ACP session %s for agent %s", session_id, agent.name)
             return session_id
@@ -851,3 +862,21 @@ class ACPSessionManager:
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Async context manager exit."""
         await self.close_all_sessions()
+
+    def _on_commands_updated(self) -> None:
+        """Handle command updates by notifying all active sessions."""
+        # Schedule async task to update all sessions
+        task = asyncio.create_task(self._update_all_sessions_commands())
+        # Store reference to prevent garbage collection
+        self._command_update_task = task
+
+    async def _update_all_sessions_commands(self) -> None:
+        """Update available commands for all active sessions."""
+        async with self._lock:
+            for session in self._sessions.values():
+                try:
+                    await session.send_available_commands_update()
+                except Exception:
+                    logger.exception(
+                        "Failed to update commands for session %s", session.session_id
+                    )

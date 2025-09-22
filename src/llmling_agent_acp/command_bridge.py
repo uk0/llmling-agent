@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Callable
 
     from acp.schema import SessionNotification
     from slashed import BaseCommand, CommandContext, CommandStore
@@ -69,6 +69,7 @@ class ACPCommandBridge:
         """
         self.command_store = command_store
         self._slash_pattern = re.compile(r"^/(\w+)(?:\s+(.*))?$")
+        self._update_callbacks: list[Callable[[], None]] = []
 
     def to_available_commands(
         self, context: AgentContext | None = None
@@ -250,9 +251,8 @@ class ACPCommandBridge:
             cmd_context = self._create_command_context(session, output_writer)
 
             # Execute command
-            await self.command_store.execute_command(
-                f"/{command_name} {args}".strip(), cmd_context
-            )
+            command_str = f"{command_name} {args}".strip()
+            await self.command_store.execute_command(command_str, cmd_context)
 
             # Stream output as session updates
             updates = output_writer.get_session_updates()
@@ -321,3 +321,22 @@ class ACPCommandBridge:
         """
         for command in new_commands:
             self.command_store.register_command(command)
+
+        # Notify sessions about command changes
+        self._notify_command_update()
+
+    def register_update_callback(self, callback: Callable[[], None]) -> None:
+        """Register callback for command updates.
+
+        Args:
+            callback: Function to call when commands are updated
+        """
+        self._update_callbacks.append(callback)
+
+    def _notify_command_update(self) -> None:
+        """Notify all registered callbacks about command updates."""
+        for callback in self._update_callbacks:
+            try:
+                callback()
+            except Exception:
+                logger.exception("Command update callback failed")
