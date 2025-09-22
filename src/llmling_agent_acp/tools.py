@@ -25,7 +25,7 @@ from llmling_agent_acp.acp_types import (
     ToolCallContent,
     ToolCallUpdateMessage,
 )
-from llmling_agent_acp.converters import format_tool_call_for_acp
+from llmling_agent_acp.converters import _determine_tool_kind, format_tool_call_for_acp
 
 
 if TYPE_CHECKING:
@@ -122,11 +122,11 @@ class ACPToolBridge:
             SessionNotification for tool start
         """
         locations = self._extract_file_locations(params)
-        tool_kind = self._determine_tool_kind(tool, params)
+        tool_kind = _determine_tool_kind(tool.name)
 
         tool_call = ToolCall(
             toolCallId=tool_call_id,
-            title=f"Executing {tool.name}",
+            title=f"Execute {tool.name}",
             status="running",
             kind=tool_kind,
             locations=locations,
@@ -222,48 +222,6 @@ class ACPToolBridge:
             and ("/" in param_value or "\\" in param_value or "." in param_value)
         ]
 
-    def _determine_tool_kind(self, tool: Tool, params: dict[str, Any]) -> str:
-        """Determine the kind/category of tool for UI display.
-
-        Args:
-            tool: Tool instance
-            params: Tool parameters
-
-        Returns:
-            Tool kind string
-        """
-        tool_name_lower = str(tool).lower()
-
-        # File operations
-        if any(
-            keyword in tool_name_lower for keyword in ["file", "read", "write", "save"]
-        ):
-            return "file"
-
-        # Web/network operations
-        if any(
-            keyword in tool_name_lower
-            for keyword in ["web", "http", "url", "fetch", "download"]
-        ):
-            return "web"
-
-        # Code operations
-        if any(
-            keyword in tool_name_lower for keyword in ["code", "python", "execute", "run"]
-        ):
-            return "code"
-
-        # Search operations
-        if any(keyword in tool_name_lower for keyword in ["search", "find", "lookup"]):
-            return "search"
-
-        # Analysis operations
-        if any(keyword in tool_name_lower for keyword in ["analyze", "parse", "extract"]):
-            return "analysis"
-
-        # Default
-        return "tool"
-
     def wrap_tool_for_filesystem(self, tool: Tool) -> Tool:
         """Wrap tool to use ACP filesystem operations.
 
@@ -322,9 +280,9 @@ class ACPToolBridge:
             # Create tool call update for permission request
             tool_call = ToolCallUpdate(
                 toolCallId=f"{tool!s}_permission_{hash(str(params))}",
-                title=f"Execute {tool!s}",
+                title=f"Execute {tool.name}",
                 status="pending_permission",
-                kind=self._determine_tool_kind(tool, params),
+                kind=_determine_tool_kind(tool.name),
                 rawInput=params,
                 rawOutput=None,
             )

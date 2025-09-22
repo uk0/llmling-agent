@@ -330,6 +330,54 @@ class FileSystemBridge:
         )
 
 
+def _determine_tool_kind(tool_name: str) -> str:  # noqa: PLR0911
+    """Determine the appropriate tool kind based on name.
+
+    Args:
+        tool_name: Name of the tool
+
+    Returns:
+        Tool kind string for ACP protocol
+    """
+    name_lower = tool_name.lower()
+
+    # File operations
+    if any(keyword in name_lower for keyword in ["read", "load", "get"]) and any(
+        keyword in name_lower for keyword in ["file", "path", "content"]
+    ):
+        return "read"
+
+    if any(
+        keyword in name_lower for keyword in ["write", "save", "edit", "modify", "update"]
+    ) and any(keyword in name_lower for keyword in ["file", "path", "content"]):
+        return "edit"
+
+    if any(keyword in name_lower for keyword in ["delete", "remove", "rm"]):
+        return "delete"
+
+    if any(keyword in name_lower for keyword in ["move", "rename", "mv"]):
+        return "move"
+
+    # Operations
+    if any(keyword in name_lower for keyword in ["search", "find", "query", "lookup"]):
+        return "search"
+
+    if any(
+        keyword in name_lower
+        for keyword in ["execute", "run", "exec", "command", "shell"]
+    ):
+        return "execute"
+
+    if any(keyword in name_lower for keyword in ["think", "plan", "reason", "analyze"]):
+        return "think"
+
+    if any(keyword in name_lower for keyword in ["fetch", "download", "request"]):
+        return "fetch"
+
+    # Default to other
+    return "other"
+
+
 def format_tool_call_for_acp(
     tool_name: str,
     tool_input: dict[str, Any],
@@ -358,16 +406,19 @@ def format_tool_call_for_acp(
 
     # Extract file locations if present
     locations = []
-    if isinstance(tool_input, dict):
-        for key, value in tool_input.items():
-            if key in ("path", "file_path", "filepath") and isinstance(value, str):
-                locations.append(ToolCallLocation(path=value))
+    for key, value in tool_input.items():
+        if key in ("path", "file_path", "filepath") and isinstance(value, str):
+            locations.append(ToolCallLocation(path=value))
+
+    # Use simple execute title but infer kind for UI hints
+    title = f"Execute {tool_name}"
+    kind = _determine_tool_kind(tool_name)
 
     tool_call = ToolCall(
         toolCallId=f"{tool_name}_{hash(str(tool_input))}",
-        title=f"Execute {tool_name}",
+        title=title,
         status=status,
-        kind="tool",
+        kind=kind,
         locations=locations or None,
         content=content or None,
         rawInput=tool_input,

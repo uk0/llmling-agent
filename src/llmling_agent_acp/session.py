@@ -506,17 +506,27 @@ class ACPSession:
         Yields:
             SessionNotification objects for tool execution
         """
-        from pydantic_ai.messages import FunctionToolCallEvent, FunctionToolResultEvent
+        from pydantic_ai.messages import (
+            FunctionToolCallEvent,
+            FunctionToolResultEvent,
+            RetryPromptPart,
+            ToolReturnPart,
+        )
+
+        # Track tool call inputs by tool_call_id
+        inputs: dict[str, dict] = {}
 
         try:
             async with node.stream(agent_run.ctx) as tool_stream:
                 async for event in tool_stream:
                     match event:
                         case FunctionToolCallEvent() as tool_event:
-                            # Tool call started
-                            tool_name = tool_event.part.tool_name
+                            # Tool call started - save input for later use
+                            tool_call_id = tool_event.part.tool_call_id
+                            inputs[tool_call_id] = tool_event.part.args_as_dict()
+
                             tool_notification = format_tool_call_for_acp(
-                                tool_name=tool_name,
+                                tool_name=tool_event.part.tool_name,
                                 tool_input=tool_event.part.args_as_dict(),
                                 tool_output=None,  # Not available yet
                                 session_id=self.session_id,
@@ -524,17 +534,45 @@ class ACPSession:
                             )
                             yield tool_notification
 
-                        case FunctionToolResultEvent() as result_event:
-                            # Tool call completed
-                            tool_name = result_event.part.tool_name
+                        case FunctionToolResultEvent() as result_event if isinstance(
+                            result_event.result, ToolReturnPart
+                        ):
+                            # Tool call completed successfully
+                            tool_call_id = result_event.tool_call_id
+                            tool_input = inputs.get(tool_call_id, {})
+
                             tool_notification = format_tool_call_for_acp(
-                                tool_name=tool_name,
-                                tool_input=result_event.part.args_as_dict(),
+                                tool_name=result_event.result.tool_name,
+                                tool_input=tool_input,
                                 tool_output=result_event.result.content,
                                 session_id=self.session_id,
                                 status="completed",
                             )
                             yield tool_notification
+
+                            # Clean up stored input
+                            inputs.pop(tool_call_id, None)
+
+                        case FunctionToolResultEvent() as result_event if isinstance(
+                            result_event.result, RetryPromptPart
+                        ):
+                            # Tool call failed and needs retry
+                            tool_call_id = result_event.tool_call_id
+                            tool_input = inputs.get(tool_call_id, {})
+                            tool_name = result_event.result.tool_name or "unknown"
+                            error_message = result_event.result.model_response()
+
+                            tool_notification = format_tool_call_for_acp(
+                                tool_name=tool_name,
+                                tool_input=tool_input,
+                                tool_output=f"Error: {error_message}",
+                                session_id=self.session_id,
+                                status="failed",
+                            )
+                            yield tool_notification
+
+                            # Clean up stored input
+                            inputs.pop(tool_call_id, None)
 
         except Exception:
             msg = "Error streaming tool execution for session %s"
@@ -621,18 +659,12 @@ class ACPSession:
             # Send to client
             notification = SessionNotification(sessionId=self.session_id, update=update)
             await self.client.sessionUpdate(notification)
-
-            logger.debug(
-                "Sent %s available commands for session %s",
-                len(commands),
-                self.session_id,
-            )
+            msg = "Sent %s available commands for session %s"
+            logger.debug(msg, len(commands), self.session_id)
 
         except Exception:
-            logger.exception(
-                "Failed to send available commands update for session %s",
-                self.session_id,
-            )
+            msg = "Failed to send available commands update for session %s"
+            logger.exception(msg, self.session_id)
 
     async def update_available_commands(self, commands: list[AvailableCommand]) -> None:
         """Update and broadcast new command list.
@@ -654,9 +686,8 @@ class ACPSession:
             logger.debug("Updated available commands for session %s", self.session_id)
 
         except Exception:
-            logger.exception(
-                "Failed to update available commands for session %s", self.session_id
-            )
+            msg = "Failed to update available commands for session %s"
+            logger.exception(msg, self.session_id)
 
 
 class ACPSessionManager:
