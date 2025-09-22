@@ -712,7 +712,7 @@ class ACPSessionManager:
         self._sessions: dict[str, ACPSession] = {}
         self._lock = asyncio.Lock()
         self.command_bridge = command_bridge
-        self._command_update_task = None
+        self._command_update_task: asyncio.Task | None = None
 
         # Register for command update notifications
         if command_bridge:
