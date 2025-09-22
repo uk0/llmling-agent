@@ -20,6 +20,7 @@ from acp.schema import (
     ContentBlock3,
     ContentBlock4,
     ContentBlock5,
+    McpServer,
     PermissionOption,
     SessionNotification,
     SessionUpdate2 as AgentMessageChunk,
@@ -32,6 +33,7 @@ from acp.schema import (
 )
 
 from llmling_agent.log import get_logger
+from llmling_agent_config.mcp_server import StdioMCPServerConfig
 
 
 # Define ContentBlock union type
@@ -44,6 +46,26 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.messages import ChatMessage
 
 logger = get_logger(__name__)
+
+
+def convert_acp_mcp_server_to_config(acp_server: McpServer) -> StdioMCPServerConfig:
+    """Convert ACP McpServer to llmling MCPServerConfig.
+
+    Args:
+        acp_server: ACP McpServer object from session/new request
+
+    Returns:
+        StdioMCPServerConfig instance
+    """
+    # Convert environment variables
+    env_dict = {var.name: var.value for var in acp_server.env}
+
+    return StdioMCPServerConfig(
+        name=acp_server.name,
+        command=acp_server.command,
+        args=acp_server.args,
+        environment=env_dict,
+    )
 
 
 def from_content_blocks(blocks: list[ContentBlock]) -> str:
