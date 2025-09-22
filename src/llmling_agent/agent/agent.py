@@ -1039,7 +1039,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             logger.error(msg)
             raise ValueError(msg)
 
-        # Prepare user message for conversation history (following MessageNode.run pattern)
+        # Prepare user message for conversation history
         user_msg = None
         if store_history:
             user_msg, _ = await self.pre_run(*prompts)
@@ -1076,10 +1076,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             ) as agent_run_protocol_object:
                 yield agent_run_protocol_object
 
-                # Store conversation history if requested (following MessageNode.run pattern)
+                # Store conversation history if requested
                 if store_history and user_msg and agent_run_protocol_object.result:
-                    import time
-
                     response_msg = ChatMessage[TResult](
                         content=agent_run_protocol_object.result.output,
                         role="assistant",
@@ -1093,9 +1091,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                         - time.perf_counter(),  # Placeholder
                     )
                     self.conversation.add_chat_messages([user_msg, response_msg])
-                    logger.debug(
-                        "Stored conversation history for run_id=%s", run_message_id
-                    )
+                    msg = "Stored conversation history for run_id=%s"
+                    logger.debug(msg, run_message_id)
 
             logger.info("Agent iteration run_id=%s completed.", run_message_id)
 

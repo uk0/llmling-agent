@@ -218,8 +218,6 @@ class LLMlingACPAgent(ACPAgent):
 
         try:
             logger.info("Processing prompt for session %s", params.sessionId)
-
-            # Get session
             session = await self.session_manager.get_session(params.sessionId)
             if not session:
                 msg = f"Session {params.sessionId} not found"
@@ -516,8 +514,7 @@ class ACPServer:
         # Cleanup agents
         for agent in self._agents.values():
             try:
-                if hasattr(agent, "__aexit__"):
-                    await agent.__aexit__(None, None, None)
+                await agent.__aexit__(None, None, None)
             except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to cleanup agent %s: %s", agent.name, e)
 
