@@ -161,17 +161,17 @@ class AgentProvider[TDeps]:
     def set_model(self, model: ModelType):
         """Default no-op implementation for setting model."""
 
-    def iterate_run(
+    def iterate_run[TResult](
         self,
         *prompts: str | Content,
         message_id: str,
         message_history: list[ChatMessage],
-        result_type: type[Any] | None = None,
+        result_type: type[TResult] | None = None,
         model: ModelType = None,
         tools: list[Tool] | None = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,
-    ) -> AbstractAsyncContextManager[AgentRunProtocol]:
+    ) -> AbstractAsyncContextManager[AgentRunProtocol[TResult]]:
         """Stream a response. Must be implemented by providers."""
         raise NotImplementedError
 
