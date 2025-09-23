@@ -435,7 +435,7 @@
           ],
           "default": null,
           "description": "Max retries for result validation",
-          "title": "Result Retries"
+          "title": "Output Retries"
         },
         "end_strategy": {
           "default": "early",
@@ -1604,17 +1604,6 @@
           "title": "History Access",
           "type": "string"
         },
-        "stats_access": {
-          "default": "none",
-          "description": "Level of access to usage statistics.",
-          "enum": [
-            "none",
-            "own",
-            "all"
-          ],
-          "title": "Stats Access",
-          "type": "string"
-        },
         "can_load_resources": {
           "default": false,
           "description": "Whether the agent can load and access resource content.",
@@ -1673,6 +1662,12 @@
           "default": false,
           "description": "Whether the agent can execute CLI commands (use at your own risk).",
           "title": "Can Execute Commands",
+          "type": "boolean"
+        },
+        "can_manage_processes": {
+          "default": false,
+          "description": "Whether the agent can start and manage background processes.",
+          "title": "Can Manage Processes",
           "type": "boolean"
         },
         "can_create_workers": {
@@ -1754,10 +1749,10 @@
           "description": "Composio API Key.",
           "title": "Api Key"
         },
-        "entity_id": {
-          "default": "default",
-          "description": "Toolset entity id.",
-          "title": "Entitiy Id",
+        "user_id": {
+          "default": "user@example.com",
+          "description": "User ID for composio tools.",
+          "title": "User Id",
           "type": "string"
         }
       },
@@ -3257,70 +3252,6 @@
         }
       },
       "title": "GoogleSpeechConfig",
-      "type": "object"
-    },
-    "GradioUIConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for web interface.",
-      "properties": {
-        "type": {
-          "const": "web",
-          "default": "web",
-          "description": "Web interface.",
-          "title": "Type",
-          "type": "string"
-        },
-        "trigger": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TriggerConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional trigger configuration to run on startup."
-        },
-        "host": {
-          "default": "127.0.0.1",
-          "description": "Host to bind to.",
-          "title": "Host",
-          "type": "string"
-        },
-        "port": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Port to bind to.",
-          "title": "Port"
-        },
-        "share": {
-          "default": false,
-          "description": "Create public URL.",
-          "title": "Share",
-          "type": "boolean"
-        },
-        "theme": {
-          "default": "soft",
-          "description": "UI theme.",
-          "enum": [
-            "soft",
-            "base",
-            "monochrome",
-            "glass"
-          ],
-          "title": "Theme",
-          "type": "string"
-        }
-      },
-      "title": "GradioUIConfig",
       "type": "object"
     },
     "HumanProviderConfig": {
@@ -5012,7 +4943,7 @@
           ],
           "default": null,
           "description": "The maximum number of tokens to generate.",
-          "title": "Max Completion Tokens"
+          "title": "Max Output Tokens"
         },
         "temperature": {
           "anyOf": [
@@ -6211,7 +6142,7 @@
           ],
           "default": null,
           "description": "Maximum retries for result validation.\nNone means use the global retry setting.",
-          "title": "Result Retries"
+          "title": "Output Retries"
         },
         "defer_model_check": {
           "default": false,
@@ -7403,7 +7334,7 @@
           ],
           "default": null,
           "description": "Retry override. How often the Agent should try to validate the response.",
-          "title": "Result Retries"
+          "title": "Output Retries"
         }
       },
       "required": [
@@ -8532,7 +8463,7 @@
         "entity_id": {
           "default": "default",
           "description": "Toolset entity id.",
-          "title": "Entitiy Id",
+          "title": "Entity Id",
           "type": "string"
         }
       },
@@ -9175,17 +9106,13 @@
         "mapping": {
           "cli": "#/$defs/StdlibUIConfig",
           "prompt": "#/$defs/PromptToolkitUIConfig",
-          "textual": "#/$defs/TextualUIConfig",
-          "web": "#/$defs/GradioUIConfig"
+          "textual": "#/$defs/TextualUIConfig"
         },
         "propertyName": "type"
       },
       "oneOf": [
         {
           "$ref": "#/$defs/StdlibUIConfig"
-        },
-        {
-          "$ref": "#/$defs/GradioUIConfig"
         },
         {
           "$ref": "#/$defs/PromptToolkitUIConfig"
