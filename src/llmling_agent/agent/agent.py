@@ -488,7 +488,8 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         """
         from llmling_agent_providers.callback import CallbackProvider
 
-        name = name or callback.__name__ or "processor"
+        name = name or getattr(callback, "__name__", "processor")
+        name = name or "processor"
         provider = CallbackProvider(callback, name=name)
         return Agent[None](provider=provider, name=name, debug=debug, **kwargs)
 
@@ -1075,7 +1076,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 system_prompt=effective_system_prompt,
             ) as agent_run_protocol_object:
                 yield agent_run_protocol_object
-
                 # Store conversation history if requested
                 if store_history and user_msg and agent_run_protocol_object.result:
                     response_msg = ChatMessage[TResult](

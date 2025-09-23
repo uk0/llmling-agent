@@ -104,19 +104,9 @@ def parts_to_tool_call_info(
     context_data: Any | None = None,
 ) -> ToolCallInfo:
     """Convert matching tool call and return parts into a ToolCallInfo."""
-    import anyenv
-
-    match call_part.args:
-        case None:
-            args = {}
-        case dict():
-            args = call_part.args
-        case _:
-            args = anyenv.load_json(call_part.args)
-
     return ToolCallInfo(
         tool_name=call_part.tool_name,
-        args=args,
+        args=call_part.args_as_dict(),
         agent_name=agent_name or "UNSET",
         result=return_part.content,
         tool_call_id=call_part.tool_call_id or str(uuid4()),

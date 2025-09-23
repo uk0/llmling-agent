@@ -240,6 +240,9 @@ class AgentConfig(NodeConfig):
                 return self.session
             case None:
                 return MemoryConfig()
+            case _:
+                msg = f"Invalid session configuration: {self.session}"
+                raise ValueError(msg)
 
     def get_system_prompts(self) -> list[BasePrompt]:
         """Get all system prompts as BasePrompts."""
