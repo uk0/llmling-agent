@@ -61,11 +61,7 @@ from acp.schema import (
 )
 
 # Re-export protocol constants
-from acp import (
-    PROTOCOL_VERSION,
-    AGENT_METHODS,
-    CLIENT_METHODS,
-)
+from acp import PROTOCOL_VERSION, AGENT_METHODS, CLIENT_METHODS
 
 __all__ = [
     "AGENT_METHODS",

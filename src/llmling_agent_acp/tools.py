@@ -16,7 +16,6 @@ from acp.schema import (
     ToolCallLocation,
     ToolCallUpdate,
 )
-
 from llmling_agent.log import get_logger
 from llmling_agent.tools.base import Tool
 from llmling_agent_acp.acp_types import (

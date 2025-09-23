@@ -7,7 +7,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Self
 
 from fastmcp import FastMCP
-from mcp.server.lowlevel.server import LifespanResultT, NotificationOptions
+from mcp.server.lowlevel.server import NotificationOptions
 
 import llmling_agent
 from llmling_agent.utils.tasks import TaskManagerMixin
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from contextlib import AbstractAsyncContextManager
 
     import mcp
+    from mcp.server.lowlevel.server import LifespanResultT
 
     from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent_config.mcp_server import PoolServerConfig
