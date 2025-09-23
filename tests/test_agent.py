@@ -62,7 +62,7 @@ async def test_agent_streaming_pydanticai_history(test_agent: Agent[None]):
     test_agent.conversation.set_history(history)
     stream_ctx = test_agent.run_stream(SIMPLE_PROMPT)
     async with stream_ctx as stream:
-        collected = [str(msg) async for msg in stream.stream()]
+        collected = [str(msg) async for msg in stream.stream_output()]
         result = "".join(collected)
         assert result == TEST_RESPONSE
 

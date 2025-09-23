@@ -1388,7 +1388,7 @@ if __name__ == "__main__":
         async with Agent[None](model=_model, tools=["webbrowser.open"]) as agent:
             agent.tool_used.connect(print)
             async with agent.run_stream(sys_prompt) as stream:
-                async for chunk in stream.stream():
+                async for chunk in stream.stream_output():
                     print(chunk)
 
     asyncio.run(main())

@@ -462,7 +462,7 @@ class PydanticAIProvider(AgentLLMProvider):
             usage_limits=PydanticAiUsageLimits(**limits),
         ) as stream_result:
             stream_result = cast(StreamedRunResult[AgentContext[Any], Any], stream_result)
-            original_stream = stream_result.stream
+            original_stream = stream_result.stream_output
             original_text_stream = stream_result.stream_text
             resolved_model = (
                 use_model.model_name if isinstance(use_model, Model) else str(use_model)
@@ -508,6 +508,6 @@ class PydanticAIProvider(AgentLLMProvider):
                     original = infer_model(original)
                 self.model_changed.emit(original)
 
-            stream_result.stream = get_wrapped_stream(original_stream)  # type: ignore
+            stream_result.stream_output = get_wrapped_stream(original_stream)  # type: ignore
             stream_result.stream_text = get_wrapped_stream(original_text_stream)  # type: ignore
             yield stream_result  # type: ignore

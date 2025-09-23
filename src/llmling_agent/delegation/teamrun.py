@@ -280,10 +280,10 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
                     return Usage(0, 0)
 
-                async def stream(self) -> AsyncGenerator[str, None]:  # type: ignore
+                async def stream_output(self) -> AsyncGenerator[str, None]:  # type: ignore
                     for idx, stream in enumerate(self.streams):
                         self.current_stream_idx = idx
-                        async for chunk in stream.stream():
+                        async for chunk in stream.stream_output():
                             yield chunk
                             if idx == len(self.streams) - 1 and stream.is_complete:
                                 self.is_complete = True

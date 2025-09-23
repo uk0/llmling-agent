@@ -104,7 +104,7 @@ class StreamingResponseProtocol[TResult](Protocol):
     is_complete: bool
     formatted_content: TResult = None  # type: ignore
 
-    def stream(self) -> AsyncGenerator[TResult, None]:
+    def stream_output(self) -> AsyncGenerator[TResult, None]:
         """Stream individual chunks as they arrive."""
         ...
 
