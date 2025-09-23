@@ -26,6 +26,7 @@ packages = [
     "src/llmling_agent_running",
     "src/llmling_agent_server",
     "src/llmling_textual",
+    "acp",
 ]
 
 [build-system]
@@ -134,7 +135,7 @@ arize = [
 mlflow = ["mlflow>=2.20.1; python_version < '3.14'"]
 langsmith = ["langsmith; python_version < '3.14'"]
 default = ["pydantic-ai>=1.0.0; python_version < '3.14'"]
-acp = ["agent-client-protocol>=0.0.1"]
+# acp = ["agent-client-protocol>=0.0.1"]
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
@@ -219,7 +220,7 @@ plugins = ["pydantic.mypy"]
 
 [tool.ruff]
 line-length = 90
-extend-exclude = ['docs']
+extend-exclude = ['docs', 'src/acp/schema.py']
 target-version = "py312"
 
 [tool.ruff.lint]
@@ -314,6 +315,9 @@ ignore = [
 [tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
 
+# [tool.ruff.lint.flake8-type-checking]
+# runtime-evaluated-base-classes = ["pydantic.BaseModel", "sqlalchemy.orm.DeclarativeBase", "schemez.Schema"]
+
 [tool.ruff.format]
 # Enable preview style formatting.
 preview = true
@@ -352,6 +356,7 @@ reportUnannotatedClassAttribute = false
 reportSelfClsParameterName = false
 reportPrivateImportUsage = false
 reportUnusedExpression = false
+ignore = ["src/acp/schema.py"]
 
 [tool.mknodes]
 allowed-commit-types = [
