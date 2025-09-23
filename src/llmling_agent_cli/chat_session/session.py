@@ -12,7 +12,7 @@ from rich.markdown import Markdown
 from slashed import DefaultOutputWriter, ExitCommandError
 from slashed.prompt_toolkit_completer import PromptToolkitCompleter
 
-from llmling_agent import Agent, AgentPool, AnyAgent, ChatMessage, Tool, ToolCallInfo
+from llmling_agent import ChatMessage
 from llmling_agent.observability import track_action
 from llmling_agent_cli.chat_session.base import AgentPoolView
 from llmling_agent_cli.chat_session.formatting import MessageFormatter
@@ -21,6 +21,7 @@ from llmling_agent_cli.chat_session.welcome import create_welcome_messages
 
 
 if TYPE_CHECKING:
+    from llmling_agent import Agent, AgentPool, AnyAgent, Tool, ToolCallInfo
     from llmling_agent.agent.conversation import ConversationManager
 
 

@@ -13,15 +13,10 @@ import websockets
 import websockets.client
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import ChatMessage, TokenCost
+from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.tools import ToolCallInfo
 from llmling_agent.utils.tasks import TaskManagerMixin
-from llmling_agent_providers.base import (
-    AgentProvider,
-    ProviderResponse,
-    StreamingResponseProtocol,
-    UsageLimits,
-)
+from llmling_agent_providers.base import AgentProvider, ProviderResponse
 
 
 if TYPE_CHECKING:
@@ -29,8 +24,10 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.context import AgentContext
     from llmling_agent.common_types import ModelType
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
     from llmling_agent.tools.base import Tool
+    from llmling_agent_providers.base import StreamingResponseProtocol, UsageLimits
 
 
 logger = get_logger(__name__)

@@ -1,9 +1,17 @@
 """Typing-widget. Credits to Elia (https://github.com/darrenburns/elia)."""
 
-from textual.app import ComposeResult
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from textual.containers import Vertical
-from textual.reactive import Reactive, reactive
+from textual.reactive import reactive
 from textual.widgets import Label, LoadingIndicator
+
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
+    from textual.reactive import Reactive
 
 
 class ResponseStatus(Vertical):

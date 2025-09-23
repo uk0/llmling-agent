@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.utils.inspection import execute
@@ -10,6 +10,8 @@ from llmling_agent_input.base import InputProvider
 
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable, Iterator
+
     from llmling_agent.agent.context import AgentContext, ConfirmationResult
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.tools.base import Tool

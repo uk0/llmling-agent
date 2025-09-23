@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent import Agent, ChatMessage
+from llmling_agent import Agent
+
+
+if TYPE_CHECKING:
+    from llmling_agent import ChatMessage
 
 
 @pytest.mark.asyncio

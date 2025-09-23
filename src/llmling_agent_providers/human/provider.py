@@ -15,8 +15,6 @@ from llmling_agent.prompts.convert import format_prompts
 from llmling_agent_providers.base import (
     AgentProvider,
     ProviderResponse,
-    StreamingResponseProtocol,
-    UsageLimits,
 )
 from llmling_agent_providers.human.utils import get_textual_streaming_app
 
@@ -28,6 +26,10 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import ModelType
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
+    from llmling_agent_providers.base import (
+        StreamingResponseProtocol,
+        UsageLimits,
+    )
 
 
 logger = get_logger(__name__)

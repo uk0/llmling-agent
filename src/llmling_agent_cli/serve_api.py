@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import typer as t
 
 from llmling_agent.log import get_logger
 from llmling_agent_cli import resolve_agent_config
 from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    from llmling_agent import ChatMessage
 
 
 logger = get_logger(__name__)
@@ -40,7 +44,7 @@ def api_command(
     """
     import uvicorn
 
-    from llmling_agent import AgentPool, AgentsManifest, ChatMessage
+    from llmling_agent import AgentPool, AgentsManifest
     from llmling_agent_server.server import OpenAIServer
 
     level = getattr(logging, log_level.upper())

@@ -12,12 +12,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.models.content import BaseContent
 from llmling_agent.prompts.convert import format_prompts
 from llmling_agent.utils.inspection import execute, has_argument_type
-from llmling_agent_providers.base import (
-    AgentProvider,
-    ProviderResponse,
-    StreamingResponseProtocol,
-    UsageLimits,
-)
+from llmling_agent_providers.base import AgentProvider, ProviderResponse
 
 
 if TYPE_CHECKING:
@@ -26,6 +21,7 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
     from llmling_agent_config.providers import ProcessorCallback
+    from llmling_agent_providers.base import StreamingResponseProtocol, UsageLimits
 
 
 logger = get_logger(__name__)

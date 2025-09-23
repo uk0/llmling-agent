@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING, Any
 from sqlmodel import Session, SQLModel, desc, select
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import ChatMessage, TokenCost
+from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_storage.base import StorageProvider
-from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
+from llmling_agent_storage.models import QueryFilters
 from llmling_agent_storage.sql_provider.models import (
     CommandHistory,
     Conversation,
@@ -33,9 +33,11 @@ if TYPE_CHECKING:
     from sqlalchemy import Engine
 
     from llmling_agent.common_types import JsonValue
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.tools import ToolCallInfo
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import SQLStorageConfig
+    from llmling_agent_storage.models import ConversationData, StatsFilters
 
 
 logger = get_logger(__name__)

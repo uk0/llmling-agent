@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, cast
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
-from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
+from llmling_agent_storage.models import ConversationData
 
 
 if TYPE_CHECKING:
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from llmling_agent.tools import ToolCallInfo
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import MemoryStorageConfig
+    from llmling_agent_storage.models import MessageData, QueryFilters, StatsFilters
 
 
 class MemoryStorageProvider(StorageProvider):
@@ -206,8 +207,6 @@ class MemoryStorageProvider(StorageProvider):
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
         """Get filtered conversations from memory."""
-        from llmling_agent_storage.models import MessageData
-
         results: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
 
         # First get matching conversations

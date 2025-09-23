@@ -1,13 +1,19 @@
 """PromptInput widget. Credits to Elia (https://github.com/darrenburns/elia)."""
 
-from dataclasses import dataclass
-from typing import ClassVar
+from __future__ import annotations
 
-from textual import events, on
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, ClassVar
+
+from textual import on
 from textual.binding import Binding
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import TextArea
+
+
+if TYPE_CHECKING:
+    from textual import events
 
 
 class PromptInput(TextArea):
@@ -18,7 +24,7 @@ class PromptInput(TextArea):
         """Message sent when a prompt is submitted."""
 
         text: str
-        prompt_input: "PromptInput"
+        prompt_input: PromptInput
 
     @dataclass
     class CursorEscapingTop(Message):

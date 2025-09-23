@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC
 import importlib.util
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from pydantic import ConfigDict
@@ -17,6 +17,10 @@ from sqlmodel.main import SQLModelConfig
 
 from llmling_agent.common_types import JsonValue  # noqa: TC001
 from llmling_agent.utils.now import get_now
+
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 REFLEX_INSTALLED = importlib.util.find_spec("reflex") is not None

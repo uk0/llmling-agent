@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import ClassVar, Literal
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 from pydantic import ValidationError
 from schemez import YAMLCode
-from textual.app import App, ComposeResult
+from textual.app import App
 from textual.binding import Binding
 from textual.containers import ScrollableContainer
 from textual.widgets import Header, Input, Static
@@ -15,6 +15,10 @@ from llmling_agent import Agent, AgentsManifest
 from llmling_agent.agent.architect import create_architect_agent
 from llmling_agent.utils.count_tokens import count_tokens
 from llmling_agent_cli import agent_store
+
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
 
 
 class StatsDisplay(Static):

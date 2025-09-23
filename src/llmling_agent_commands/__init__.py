@@ -1,6 +1,7 @@
 """Built-in commands for LLMling agent."""
 
-from slashed import BaseCommand, SlashedCommand
+from __future__ import annotations
+
 
 from llmling_agent_commands.agents import (
     create_agent_cmd,
@@ -38,6 +39,10 @@ from llmling_agent_commands.workers import (
     list_workers_cmd,
 )
 from llmling_agent_commands.utils import CopyClipboardCommand, EditAgentFileCommand
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from slashed import BaseCommand, SlashedCommand
 
 
 def get_agent_commands() -> list[BaseCommand | type[SlashedCommand]]:

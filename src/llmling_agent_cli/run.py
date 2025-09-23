@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import asyncio
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from llmling.cli.constants import verbose_opt
 import typer as t
 
-from llmling_agent import AgentPool, ChatMessage
+from llmling_agent import AgentPool
 from llmling_agent_cli import resolve_agent_config
 from llmling_agent_cli.cli_types import DetailLevel  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    from llmling_agent import ChatMessage
 
 
 def run_command(

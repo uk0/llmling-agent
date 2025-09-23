@@ -11,7 +11,6 @@ from llmling_agent_server.responses_models import (
     Response,
     ResponseMessage,
     ResponseOutputText,
-    ResponseRequest,
     ResponseToolCall,
     ResponseUsage,
 )
@@ -19,6 +18,7 @@ from llmling_agent_server.responses_models import (
 
 if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
+    from llmling_agent_server.responses_models import ResponseRequest
 
 
 async def handle_request(request: ResponseRequest, agent: AnyAgent[Any, Any]):

@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import typer as t
 
-from llmling_agent import AgentPool, ChatMessage
+from llmling_agent import AgentPool
 from llmling_agent.log import get_logger
 from llmling_agent_cli.cli_types import DetailLevel, LogLevel  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    from llmling_agent import ChatMessage
 
 
 logger = get_logger(__name__)

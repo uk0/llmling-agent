@@ -12,7 +12,7 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Footer, Header
 
-from llmling_agent import Agent, ChatMessage, MessageNode, StructuredAgent
+from llmling_agent import Agent, ChatMessage, StructuredAgent
 from llmling_agent_commands import get_commands
 from llmling_textual.widgets.agent_is_typing import ResponseStatus
 from llmling_textual.widgets.chat_view import ChatView
@@ -21,6 +21,8 @@ from llmling_textual.widgets.prompt_input import PromptInput
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
+
+    from llmling_agent import MessageNode
 
 
 class TextualOutputWriter(OutputWriter):

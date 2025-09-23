@@ -1,9 +1,10 @@
 """Observability provider using Arize Phoenix."""
 
-from collections.abc import Callable, Iterator
+from __future__ import annotations
+
 from contextlib import contextmanager
 import os
-from typing import Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 from arize.otel import Transport, register
 from openinference.instrumentation import using_attributes
@@ -12,6 +13,10 @@ from openinference.instrumentation.openai import OpenAIInstrumentor
 
 from llmling_agent_config.observability import ArizePhoenixProviderConfig
 from llmling_agent_observability.base_provider import ObservabilityProvider
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
 
 
 P = ParamSpec("P")

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, TypedDict, cast
 from tokonomics.toko_types import TokenUsage
 from upath import UPath
 
-from llmling_agent.common_types import JsonValue, MessageRole
+from llmling_agent.common_types import JsonValue, MessageRole  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.utils.now import get_now

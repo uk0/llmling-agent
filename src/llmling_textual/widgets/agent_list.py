@@ -9,12 +9,14 @@ from textual.containers import Horizontal, ScrollableContainer
 from textual.message import Message
 from textual.widgets import Static
 
-from llmling_agent import Agent, AgentPool, MessageNode, StructuredAgent
+from llmling_agent import Agent, StructuredAgent
 from llmling_agent.delegation.base_team import BaseTeam
 
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
+
+    from llmling_agent import AgentPool, MessageNode
 
 
 class NodeEntry(Static, can_focus=True):  # type: ignore

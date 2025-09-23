@@ -5,11 +5,13 @@ from typing import TYPE_CHECKING
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent import Agent, AgentPool, AgentsManifest
+from llmling_agent import AgentPool, AgentsManifest
 
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from llmling_agent import Agent
 
 
 BASIC_WORKERS = """\

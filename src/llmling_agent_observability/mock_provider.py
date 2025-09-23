@@ -1,11 +1,16 @@
 """Observability provider that collects calls for testing."""
 
-from collections.abc import Callable, Iterator
+from __future__ import annotations
+
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Literal, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar
 
 from llmling_agent_observability.base_provider import ObservabilityProvider
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
 
 
 P = ParamSpec("P")

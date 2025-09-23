@@ -8,7 +8,7 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header
 
 from llmling_textual.screens.chat_screen import ChatScreen
-from llmling_textual.widgets.agent_list import NodeEntry, NodeList
+from llmling_textual.widgets.agent_list import NodeList
 from llmling_textual.widgets.message_stream import MessageStream
 
 
@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from textual.app import ComposeResult
 
     from llmling_agent import AgentPool
+    from llmling_textual.widgets.agent_list import NodeEntry
 
 
 class MainScreen(Screen):

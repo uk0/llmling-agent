@@ -12,6 +12,8 @@ from llmling_agent_events.base import EventSource
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
+    from fastapi import Request
+
     from llmling_agent_config.events import WebhookConfig
 
 
@@ -19,7 +21,7 @@ class WebhookEventSource(EventSource):
     """Listens for webhook events on configured endpoint."""
 
     def __init__(self, config: WebhookConfig):
-        from fastapi import FastAPI, Request
+        from fastapi import FastAPI
 
         self.config = config
         self.app = FastAPI()

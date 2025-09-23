@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pydantic import BaseModel
 import pytest
 
-from llmling_agent import Agent, AgentPool, AgentsManifest
+from llmling_agent import AgentPool, AgentsManifest
+
+
+if TYPE_CHECKING:
+    from llmling_agent import Agent
 
 
 class ConversationOutput(BaseModel):

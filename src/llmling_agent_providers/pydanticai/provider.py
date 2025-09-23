@@ -17,9 +17,9 @@ from pydantic_ai.tools import GenerateToolJsonSchema, RunContext
 from pydantic_ai.usage import UsageLimits as PydanticAiUsageLimits
 
 from llmling_agent.agent.context import AgentContext
-from llmling_agent.common_types import EndStrategy, ModelProtocol
+from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import ChatMessage, TokenCost
+from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.observability import track_action
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
@@ -31,7 +31,6 @@ from llmling_agent_providers.base import (
     AgentLLMProvider,
     AgentRunProtocol,
     ProviderResponse,
-    UsageLimits,
 )
 from llmling_agent_providers.pydanticai.utils import (
     convert_prompts_to_user_content,
@@ -46,9 +45,11 @@ if TYPE_CHECKING:
 
     from pydantic_ai.agent import AgentRunResult
 
-    from llmling_agent.common_types import ModelType
+    from llmling_agent.common_types import EndStrategy, ModelType
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
     from llmling_agent.tools.base import Tool
+    from llmling_agent_providers.base import UsageLimits
 
 
 logger = get_logger(__name__)

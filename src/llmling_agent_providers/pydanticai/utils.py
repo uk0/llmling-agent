@@ -7,29 +7,33 @@ from uuid import uuid4
 
 from pydantic_ai import messages as _messages
 from pydantic_ai.messages import (
-    ModelMessage,
     ModelRequest,
-    ModelRequestPart,
     ModelResponse,
-    ModelResponsePart,
     RetryPromptPart,
     SystemPromptPart,
     TextPart,
     ToolCallPart,
     ToolReturnPart,
-    UserContent as PydanticUserContent,
     UserPromptPart,
 )
 
 from llmling_agent.messaging.messages import ChatMessage
-from llmling_agent.models.content import BaseContent, Content
+from llmling_agent.models.content import BaseContent
 from llmling_agent.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from pydantic_ai.messages import (
+        ModelMessage,
+        ModelRequestPart,
+        ModelResponsePart,
+        UserContent as PydanticUserContent,
+    )
+
     from llmling_agent.common_types import MessageRole
+    from llmling_agent.models.content import Content
     from llmling_agent.tools.base import Tool
 
 

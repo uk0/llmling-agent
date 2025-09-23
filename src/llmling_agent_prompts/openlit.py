@@ -1,11 +1,16 @@
 """OpenLIT prompt provider implementation."""
 
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 import openlit
 
 from llmling_agent.prompts.base import BasePromptProvider
-from llmling_agent_config.prompt_hubs import OpenLITConfig
+
+
+if TYPE_CHECKING:
+    from llmling_agent_config.prompt_hubs import OpenLITConfig
 
 
 class OpenLITProvider(BasePromptProvider):

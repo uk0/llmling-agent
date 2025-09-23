@@ -5,13 +5,11 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Any, Self
 
-from supabase import AsyncClient, create_async_client
-
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
-from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
+from llmling_agent_storage.models import ConversationData
 from llmling_agent_storage.supabase_provider.queries import (
     CREATE_COMMANDS_TABLE,
     CREATE_CONVERSATIONS_TABLE,
@@ -28,11 +26,14 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
 
+    from supabase import AsyncClient
+
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.tools import ToolCallInfo
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import SupabaseConfig
+    from llmling_agent_storage.models import QueryFilters, StatsFilters
 
 logger = get_logger(__name__)
 
@@ -50,6 +51,8 @@ class SupabaseProvider(StorageProvider):
 
     async def __aenter__(self) -> Self:
         """Initialize async client and tables."""
+        from supabase import create_async_client
+
         url = self.config.supabase_url or os.getenv("SUPABASE_PROJECT_URL")
         api_key = self.config.key.get_secret_value() or os.getenv("SUPABASE_API_KEY")
         assert url, "Supabase URL not provided"

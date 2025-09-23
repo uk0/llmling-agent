@@ -6,18 +6,14 @@ import base64
 from typing import TYPE_CHECKING
 import warnings
 
-from pydantic_ai.messages import (
-    AudioUrl,
-    BinaryContent,
-    DocumentUrl,
-    ImageUrl,
-    UserContent,
-)
+from pydantic_ai.messages import AudioUrl, BinaryContent, DocumentUrl, ImageUrl
 
 from llmling_agent.models import content as own_content
 
 
 if TYPE_CHECKING:
+    from pydantic_ai.messages import UserContent
+
     from llmling_agent.models.content import Content
 
 

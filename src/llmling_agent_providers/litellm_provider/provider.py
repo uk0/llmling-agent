@@ -12,13 +12,11 @@ from tokonomics.toko_types import TokenUsage
 
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.models.content import BaseContent, Content
+from llmling_agent.messaging.messages import TokenCost
+from llmling_agent.models.content import BaseContent
 from llmling_agent_providers.base import (
     AgentLLMProvider,
     ProviderResponse,
-    StreamingResponseProtocol,
-    UsageLimits,
 )
 from llmling_agent_providers.litellm_provider.call_wrapper import FakeAgent
 from llmling_agent_providers.litellm_provider.convert_content import (
@@ -35,8 +33,14 @@ if TYPE_CHECKING:
     from litellm import ChatCompletionMessageToolCall
 
     from llmling_agent.agent.context import AgentContext
+    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent.models.content import Content
     from llmling_agent.tools import ToolCallInfo
     from llmling_agent.tools.base import Tool
+    from llmling_agent_providers.base import (
+        StreamingResponseProtocol,
+        UsageLimits,
+    )
 
 
 logger = get_logger(__name__)
