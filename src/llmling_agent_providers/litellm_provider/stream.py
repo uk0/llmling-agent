@@ -28,7 +28,7 @@ class LiteLLMStream[TResult]:
     _accumulated_content: str = ""
     _final_usage: Usage | None = None
 
-    async def stream(self) -> AsyncGenerator[TResult, None]:
+    async def stream_output(self) -> AsyncGenerator[TResult, None]:
         """Stream chunks as they arrive."""
         try:
             final_chunk = None
