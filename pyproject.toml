@@ -215,7 +215,7 @@ python_version = "3.12"
 disable_error_code = ["misc", "import"]
 pretty = true
 check_untyped_defs = true
-exclude = ['venv/', '.venv/', 'tests/']
+exclude = ['venv/', '.venv/', 'tests/', 'src/acp/schema.py']
 plugins = ["pydantic.mypy"]
 
 [tool.ruff]
