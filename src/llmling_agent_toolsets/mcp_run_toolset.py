@@ -34,8 +34,9 @@ class McpRunTools(ResourceProvider):
         self._tools = []
         for name, tool in self.client.tools.items():
 
-            def run(tool_name=name, **input_dict):
-                return self.client.call_tool(tool_name, params=input_dict)
+            async def run(tool_name=name, **input_dict):
+                async with self.client.mcp_sse().connect() as session:
+                    return await session.call_tool(tool_name, arguments=input_dict)
 
             run.__name__ = name
 
