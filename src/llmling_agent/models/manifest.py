@@ -14,7 +14,7 @@ from llmling_agent.resource_registry import ResourceRegistry
 from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.mcp_server import (
     BaseMCPServerConfig,
-    MCPServerConfig,
+    MCPServerConfig,  # noqa: TC001
     PoolServerConfig,
     StdioMCPServerConfig,
 )
