@@ -10,7 +10,8 @@ import typer as t
 
 from llmling_agent import AgentPool, AgentsManifest, ChatMessage
 from llmling_agent.log import get_logger
-from llmling_agent_config.mcp_server import PoolServerConfig
+from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
+from llmling_agent_config.mcp_server import PoolServerConfig, TransportType
 
 
 logger = get_logger(__name__)
@@ -18,14 +19,14 @@ logger = get_logger(__name__)
 
 def serve_command(
     config: str = t.Argument(..., help="Path to agent configuration"),
-    transport: str = t.Option("stdio", help="Transport type (stdio/sse/streamable-http)"),
+    transport: TransportType = t.Option("stdio", help="Transport type"),  # noqa: B008
     host: str = t.Option("localhost", help="Host to bind server to (sse only)"),
     port: int = t.Option(3001, help="Port to listen on (sse only)"),
     zed_mode: bool = t.Option(False, help="Enable Zed editor compatibility"),
     show_messages: bool = t.Option(
         False, "--show-messages", help="Show message activity"
     ),
-    log_level: str = t.Option("INFO", help="Logging level"),
+    log_level: LogLevel = t.Option("info", help="Logging level"),  # noqa: B008
 ):
     """Run agents as an MCP server.
 

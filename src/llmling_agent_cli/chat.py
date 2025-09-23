@@ -11,6 +11,7 @@ import typer as t
 
 from llmling_agent.log import set_handler_level
 from llmling_agent_cli import resolve_agent_config
+from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -32,12 +33,11 @@ def chat_command(
     model: str | None = t.Option(None, "--model", "-m", help="Override agent's model"),
     stream: bool = t.Option(True, STREAM_CMD, help=STREAM_HELP),
     connections: list[str] = t.Option(None, "--forward-to", "-f", help=FORWARD_HELP),  # noqa: B008
-    log_level: str = t.Option(
-        "WARNING",
+    log_level: LogLevel = t.Option(  # noqa: B008
+        "warning",
         "--log-level",
         "-l",
-        help="Log level (DEBUG, INFO, WARNING, ERROR)",
-        case_sensitive=False,
+        help="Log level",
     ),
 ):
     """Start interactive chat session with an agent.

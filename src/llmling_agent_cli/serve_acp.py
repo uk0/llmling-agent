@@ -14,6 +14,7 @@ import typer as t
 
 from llmling_agent.log import get_logger
 from llmling_agent_cli import resolve_agent_config
+from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 
 
 logger = get_logger(__name__)
@@ -21,7 +22,7 @@ logger = get_logger(__name__)
 
 def acp_command(  # noqa: PLR0915
     config: str = t.Argument(None, help="Path to agent configuration"),
-    log_level: str = t.Option("INFO", help="Logging level"),
+    log_level: LogLevel = t.Option("info", help="Logging level"),  # noqa: B008
     file_access: bool = t.Option(
         False, "--file-access", help="Enable file system access for agents"
     ),

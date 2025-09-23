@@ -13,6 +13,7 @@ from llmling_agent import AgentsManifest
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_cli import resolve_agent_config
+from llmling_agent_cli.cli_types import GroupBy  # noqa: TC001
 
 
 logger = logging.getLogger(__name__)
@@ -112,9 +113,7 @@ def show_stats(
     period: str = t.Option(
         "1d", "--period", "-p", help="Time period (1h, 1d, 1w, 1m, 1y)"
     ),
-    group_by: str = t.Option(
-        "agent", "--group-by", "-g", help="Group by: agent, model, hour, day"
-    ),
+    group_by: GroupBy = t.Option("agent", "--group-by", "-g", help="Group by"),  # noqa: B008
     output_format: str = output_format_opt,
 ):
     """Show usage statistics.

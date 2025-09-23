@@ -11,6 +11,7 @@ import typer as t
 
 from llmling_agent import AgentPool, ChatMessage
 from llmling_agent_cli import resolve_agent_config
+from llmling_agent_cli.cli_types import DetailLevel  # noqa: TC001
 
 
 def run_command(
@@ -20,8 +21,8 @@ def run_command(
     show_messages: bool = t.Option(
         True, "--show-messages", help="Show all messages (not just final responses)"
     ),
-    detail_level: str = t.Option(
-        "simple", "-d", "--detail", help="Output detail level: simple/detailed/markdown"
+    detail_level: DetailLevel = t.Option(  # noqa: B008
+        "simple", "-d", "--detail", help="Output detail level"
     ),
     show_metadata: bool = t.Option(False, "--metadata", help="Show message metadata"),
     show_costs: bool = t.Option(False, "--costs", help="Show token usage and costs"),

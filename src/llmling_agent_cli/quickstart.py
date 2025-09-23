@@ -12,6 +12,7 @@ import typer as t
 
 from llmling_agent import AgentPool
 from llmling_agent.log import set_handler_level
+from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 
 
 THEME_HELP = "UI theme (soft/base/monochrome/glass/default)"
@@ -24,15 +25,13 @@ agents:
         model: {model}
 """
 
-LOG_HELP = "Log level (DEBUG, INFO, WARNING, ERROR)"
+LOG_HELP = "Log level"
 STREAM_HELP = "Enable streaming mode (default: off)"
 
 
 def quickstart_command(
     model: str = t.Argument("openai:gpt-5-mini", help=MODEL_HELP),
-    log_level: str = t.Option(
-        "WARNING", "--log-level", "-l", help=LOG_HELP, case_sensitive=False
-    ),
+    log_level: LogLevel = t.Option("warning", "--log-level", "-l", help=LOG_HELP),  # noqa: B008
     stream: bool = t.Option(True, "--stream/--no-stream", help=STREAM_HELP),
 ):
     """Start an ephemeral chat session with minimal setup."""

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import typer
 
+from llmling_agent_cli.cli_types import Provider  # noqa: TC001
+
 
 def create(
     output: str = typer.Option(
@@ -18,8 +20,8 @@ def create(
     model: str = typer.Option(
         "gpt-4", "-m", "--model", help="Model to use for generation"
     ),
-    provider: str = typer.Option(
-        "pydantic_ai", "-p", "--provider", help="Provider to use (pydantic_ai or litellm)"
+    provider: Provider = typer.Option(  # noqa: B008
+        "pydantic_ai", "-p", "--provider", help="Provider to use"
     ),
 ):
     """Interactive config generator for agents and teams."""

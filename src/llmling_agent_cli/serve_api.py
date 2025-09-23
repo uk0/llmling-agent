@@ -9,6 +9,7 @@ import typer as t
 
 from llmling_agent.log import get_logger
 from llmling_agent_cli import resolve_agent_config
+from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 
 
 logger = get_logger(__name__)
@@ -22,7 +23,7 @@ def api_command(
     show_messages: bool = t.Option(
         False, "--show-messages", help="Show message activity"
     ),
-    log_level: str = t.Option("INFO", help="Logging level"),
+    log_level: LogLevel = t.Option("info", help="Logging level"),  # noqa: B008
     docs: bool = t.Option(True, help="Enable API documentation"),
 ):
     """Run agents as a completions API server.

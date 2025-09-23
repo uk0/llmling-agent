@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import typer as t
 
 from llmling_agent_cli import resolve_agent_config
+from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -55,12 +56,11 @@ def task_command(
         None, "--config", "-c", help="Agent configuration file"
     ),
     prompt: str | None = t.Option(None, "--prompt", "-p", help="Additional prompt"),
-    log_level: str = t.Option(
-        "WARNING",
+    log_level: LogLevel = t.Option(  # noqa: B008
+        "warning",
         "--log-level",
         "-l",
-        help="Log level (DEBUG, INFO, WARNING, ERROR)",
-        case_sensitive=False,
+        help="Log level",
     ),
 ):
     """Execute a task with the specified agent."""
