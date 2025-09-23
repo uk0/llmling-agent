@@ -9,7 +9,7 @@ from llmling_agent import Agent, AgentContext, AgentPool
 from llmling_agent.config.capabilities import Capabilities
 
 
-MODEL = "openai:o4-mini"
+MODEL = "openai:gpt-5-mini"
 
 
 async def run_ctx_tool(ctx: RunContext[AgentContext], arg: str) -> str:

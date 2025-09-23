@@ -54,7 +54,7 @@ agents:
       - type: import
         import_path: "getpass.getuser"
         description: "Get current system username"
-    model: openai:o4-mini
+    model: openai:gpt-5-mini
     result_type: BasicResult
     system_prompts:
       - |
@@ -76,7 +76,7 @@ agents:
       - type: import
         import_path: "psutil.virtual_memory"
         description: "Get memory information"
-    model: openai:o4-mini
+    model: openai:gpt-5-mini
     result_type: SystemInfoResult
     system_prompts:
       - |
@@ -103,7 +103,7 @@ agents:
         import_path: "os.getcwd"
         name: current_dir
         description: "Get current working directory"
-    model: openai:o4-mini
+    model: openai:gpt-5-mini
     result_type: FileInfoResult
     system_prompts:
       - |

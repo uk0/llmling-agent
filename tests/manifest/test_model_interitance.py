@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 BASIC_INHERITANCE = """\
 agents:
     base:
-        model: openai:o4-mini
+        model: openai:gpt-5-mini
         name: Base Agent
         system_prompts:
             - "Base prompt"
@@ -30,7 +30,7 @@ agents:
 MULTI_LEVEL = """\
 agents:
     base:
-        model: openai:o4-mini
+        model: openai:gpt-5-mini
         name: Base
 
     middle:
@@ -49,11 +49,11 @@ CIRCULAR = """\
 agents:
     agent1:
         inherits: agent2
-        model: openai:o4-mini
+        model: openai:gpt-5-mini
 
     agent2:
         inherits: agent1
-        model: openai:o4-mini
+        model: openai:gpt-5-mini
 """
 
 
@@ -61,7 +61,7 @@ INVALID_PARENT = """\
 agents:
     child:
         inherits: nonexistent
-        model: openai:o4-mini
+        model: openai:gpt-5-mini
 """
 
 
@@ -103,7 +103,7 @@ def test_basic_inheritance(basic_config: Path):
 
     child = manifest.agents["child"]
     assert child.name == "Child Agent"
-    assert child.model.identifier == "openai:o4-mini"  # type: ignore
+    assert child.model.identifier == "openai:gpt-5-mini"  # type: ignore
     assert child.system_prompts == ["Child prompt"]
 
 

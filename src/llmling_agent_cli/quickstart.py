@@ -15,7 +15,7 @@ from llmling_agent.log import set_handler_level
 
 
 THEME_HELP = "UI theme (soft/base/monochrome/glass/default)"
-MODEL_HELP = "Model to use (e.g. openai:o4-mini, gpt-4)"
+MODEL_HELP = "Model to use (e.g. openai:gpt-5-mini, gpt-4)"
 
 QUICKSTART_CONFIG = """\
 agents:
@@ -29,7 +29,7 @@ STREAM_HELP = "Enable streaming mode (default: off)"
 
 
 def quickstart_command(
-    model: str = t.Argument("openai:o4-mini", help=MODEL_HELP),
+    model: str = t.Argument("openai:gpt-5-mini", help=MODEL_HELP),
     log_level: str = t.Option(
         "WARNING", "--log-level", "-l", help=LOG_HELP, case_sensitive=False
     ),

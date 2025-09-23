@@ -17,7 +17,7 @@ agents:
     model:
       type: fallback # all llmling-models work here!
       models:
-        - openai:o4-mini
+        - openai:gpt-5-mini
         - openai:gpt-3.5-turbo
     capabilities:
       can_list_agents: true # Need to know who to cheer for!
@@ -34,7 +34,7 @@ agents:
   file_getter_1:
     name: "Mr. File Downloader"
     description: "Downloads files from URLs"
-    model: openai:o4-mini
+    model: openai:gpt-5-mini
     system_prompts:
       - "You have ONE job: use the download_file tool to download files."
     tools:
@@ -43,7 +43,7 @@ agents:
   overseer:
     name: "Download Coordinator"
     description: "Coordinates parallel downloads"
-    model: openai:o4-mini
+    model: openai:gpt-5-mini
     capabilities:
       can_delegate_tasks: true
       can_list_agents: true

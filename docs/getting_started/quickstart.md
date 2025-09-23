@@ -5,10 +5,10 @@
 Start an interactive session:
 ```bash
 # Quick chat with GPT-4
-uvx llmling-agent[default] quickstart openai:o4-mini
+uvx llmling-agent[default] quickstart openai:gpt-5-mini
 
 # Enable streaming mode
-uvx llmling-agent[default] quickstart openai:o4-mini --stream
+uvx llmling-agent[default] quickstart openai:gpt-5-mini --stream
 ```
 
 Initialize and manage configurations:
@@ -47,7 +47,7 @@ Create an agent configuration:
 agents:
   assistant:
     name: "Technical Assistant"
-    model: openai:o4-mini
+    model: openai:gpt-5-mini
     system_prompts:
       - You are a helpful technical assistant.
     capabilities:
@@ -92,7 +92,7 @@ async def main():
     # Simple completion
     result = await run_with_model(
         "Analyze this text",
-        model="openai:o4-mini"
+        model="openai:gpt-5-mini"
     )
     print(result)
 
@@ -105,7 +105,7 @@ async def main():
 
     result = await run_with_model(
         "Analyze the sentiment",
-        model="openai:o4-mini",
+        model="openai:gpt-5-mini",
         result_type=Analysis
     )
     print(f"Summary: {result.summary}")
@@ -114,7 +114,7 @@ async def main():
 # Sync usage (convenience wrapper)
 result = run_with_model_sync(
     "Quick question",
-    model="openai:o4-mini"
+    model="openai:gpt-5-mini"
 )
 ```
 

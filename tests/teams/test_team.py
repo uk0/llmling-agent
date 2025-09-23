@@ -98,7 +98,7 @@ async def test_nested_team_run():
 
         # # Test streaming with nested Team
         # async with execution.run_stream("test message") as stream:
-        #     chunks = [chunk async for chunk in stream.stream()]
+        #     chunks = [chunk async for chunk in stream.stream_output()]
         #     assert chunks  # Should get chunks from all agents
 
         # Test iteration with nested TeamRun

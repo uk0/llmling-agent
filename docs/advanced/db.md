@@ -34,7 +34,7 @@ Agents can be configured with sophisticated memory management:
 ```yaml
 agents:
   assistant:
-    model: openai:o4-mini
+    model: openai:gpt-5-mini
     session:
       enable: true              # Enable/disable memory tracking
       max_tokens: 4000         # Rolling window token limit

@@ -358,7 +358,7 @@ class AgentConfig(NodeConfig):
 
 
 if __name__ == "__main__":
-    model = "openai:o4-mini"
+    model = "openai:gpt-5-mini"
     agent_cfg = AgentConfig(
         name="test_agent", model=model, tools=["crewai_tools.BraveSearchTool"]
     )  # type: ignore
