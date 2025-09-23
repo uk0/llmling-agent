@@ -13,7 +13,6 @@ from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.client import MCPClient
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent_config.mcp_server import (
-    MCPServerConfig,
     SSEMCPServerConfig,
     StdioMCPServerConfig,
     StreamableHTTPMCPServerConfig,
@@ -28,6 +27,9 @@ if TYPE_CHECKING:
 
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.tools.base import Tool
+    from llmling_agent_config.mcp_server import (
+        MCPServerConfig,
+    )
 
 
 logger = get_logger(__name__)

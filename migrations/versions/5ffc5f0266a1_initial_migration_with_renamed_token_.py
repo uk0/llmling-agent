@@ -6,13 +6,19 @@ Create Date: 2025-09-11 15:08:18.429080
 
 """
 
-from collections.abc import Sequence
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from alembic import op
 import sqlalchemy as sa
 import sqlmodel.sql.sqltypes
 
 from llmling_agent_storage.sql_provider.models import UTCDateTime
+
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 # revision identifiers, used by Alembic.

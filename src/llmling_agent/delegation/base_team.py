@@ -14,7 +14,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models.manifest import AgentsManifest
-from llmling_agent.talk.stats import AggregatedMessageStats, AggregatedTalkStats
+from llmling_agent.talk.stats import AggregatedMessageStats
 from llmling_agent.tools.base import Tool
 from llmling_agent.utils.inspection import has_return_type
 from llmling_agent_config.teams import TeamConfig
@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import ModelType, ToolType
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
     from llmling_agent.messaging.messages import ChatMessage, TeamResponse
+    from llmling_agent.talk.stats import AggregatedTalkStats
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.providers import ProcessorCallback
     from llmling_agent_config.session import SessionQuery

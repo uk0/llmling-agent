@@ -6,14 +6,13 @@ from importlib.util import find_spec
 import os
 from typing import TYPE_CHECKING, Any
 
-from toprompt import AnyPromptType, to_prompt
+from toprompt import to_prompt
 from upathtools import read_path
 
 from llmling_agent.models.content import (
     BaseContent,
     BaseImageContent,
     BasePDFContent,
-    Content,
     ImageBase64Content,
 )
 
@@ -22,6 +21,11 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     import PIL.Image
+    from toprompt import AnyPromptType
+
+    from llmling_agent.models.content import (
+        Content,
+    )
 
 
 def is_pil_image(obj: Any) -> bool:

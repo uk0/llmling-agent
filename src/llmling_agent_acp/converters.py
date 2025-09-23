@@ -20,7 +20,6 @@ from acp.schema import (
     ContentBlock3,
     ContentBlock4,
     ContentBlock5,
-    McpServer,
     PermissionOption,
     SessionNotification,
     SessionUpdate2 as AgentMessageChunk,
@@ -43,6 +42,10 @@ type ContentBlock = (
 
 
 if TYPE_CHECKING:
+    from acp.schema import (
+        McpServer,
+    )
+
     from llmling_agent.messaging.messages import ChatMessage
 
 logger = get_logger(__name__)

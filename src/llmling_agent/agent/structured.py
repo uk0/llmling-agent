@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Self, get_type_hints, overload
 
 from pydantic import ValidationError
@@ -15,6 +15,7 @@ from llmling_agent_config.result_types import StructuredResponseConfig
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Sequence
     import os
     from types import TracebackType
 

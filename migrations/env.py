@@ -1,14 +1,20 @@
+from __future__ import annotations
+
 import asyncio
 from logging.config import fileConfig
 import os
+from typing import TYPE_CHECKING
 
 from alembic import context
 from sqlalchemy import pool
-from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
 
 from llmling_agent_storage.sql_provider.models import *  # noqa: F403
+
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Connection
 
 
 # this is the Alembic Config object, which provides

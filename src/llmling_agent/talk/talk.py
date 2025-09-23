@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, Self, overload
@@ -18,7 +18,7 @@ from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable
+    from collections.abc import Awaitable, Iterator
     from datetime import datetime, timedelta
     import os
 

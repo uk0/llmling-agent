@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Coroutine, Sequence
+from collections.abc import Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
-import os
 from os import PathLike
 import time
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, cast, overload
@@ -34,12 +33,13 @@ from llmling_agent.utils.inspection import (
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.tasks import TaskManagerMixin
-from llmling_agent_config.session import MemoryConfig, SessionQuery
+from llmling_agent_config.session import MemoryConfig
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Coroutine, Sequence
     from datetime import datetime
+    import os
     from types import TracebackType
 
     from llmling.config.models import Resource
@@ -65,6 +65,7 @@ if TYPE_CHECKING:
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.providers import ProcessorCallback
     from llmling_agent_config.result_types import StructuredResponseConfig
+    from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
     from llmling_agent_providers.base import (

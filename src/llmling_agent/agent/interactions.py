@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Callable, Mapping
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 from schemez import Schema
@@ -14,7 +14,7 @@ from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import AsyncIterator, Sequence
 
     from toprompt import AnyPromptType
 

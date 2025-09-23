@@ -10,7 +10,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Self
 import uuid
 
-from pydantic_ai import Agent as PydanticAIAgent, ModelRequestNode
+from pydantic_ai import Agent as PydanticAIAgent
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
@@ -28,7 +28,11 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
     from acp import Client
-    from acp.schema import McpServer
+    from acp.schema import (
+        AvailableCommand,
+        McpServer,
+    )
+    from pydantic_ai import ModelRequestNode
     from pydantic_ai.agent import CallToolsNode
 
     from llmling_agent import Agent
@@ -37,7 +41,6 @@ if TYPE_CHECKING:
     from llmling_agent_providers.base import AgentRunProtocol
 
 from acp.schema import (
-    AvailableCommand,
     SessionNotification,
     SessionUpdate7 as AvailableCommandsUpdate,
 )

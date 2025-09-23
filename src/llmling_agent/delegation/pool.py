@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import (
-    AbstractAsyncContextManager,
     AsyncExitStack,
     asynccontextmanager,
     suppress,
@@ -15,8 +14,8 @@ from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 from llmling import BaseRegistry, LLMLingError
 from typing_extensions import TypeVar
 
-from llmling_agent.agent import Agent, AnyAgent, StructuredAgent
-from llmling_agent.common_types import AgentName, NodeName
+from llmling_agent.agent import Agent, StructuredAgent
+from llmling_agent.common_types import NodeName
 from llmling_agent.delegation.message_flow_tracker import MessageFlowTracker
 from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
@@ -35,12 +34,16 @@ from llmling_agent_config.workers import AgentWorkerConfig, TeamWorkerConfig
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
+    from contextlib import (
+        AbstractAsyncContextManager,
+    )
     from types import TracebackType
 
     from psygnal.containers._evented_dict import DictEvents
 
+    from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import AgentKwargs
-    from llmling_agent.common_types import SessionIdType, StrPath
+    from llmling_agent.common_types import AgentName, SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.messaging.eventnode import EventNode
     from llmling_agent.messaging.messagenode import MessageNode

@@ -10,13 +10,11 @@ from llmling_agent.log import get_logger
 from llmling_agent_config.observability import (
     AgentOpsProviderConfig,
     ArizePhoenixProviderConfig,
-    BaseObservabilityProviderConfig,
     BraintrustProviderConfig,
     LaminarProviderConfig,
     LangsmithProviderConfig,
     LogfireProviderConfig,
     MlFlowProviderConfig,
-    ObservabilityConfig,
     TraceloopProviderConfig,
 )
 
@@ -24,6 +22,10 @@ from llmling_agent_config.observability import (
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Iterator
 
+    from llmling_agent_config.observability import (
+        BaseObservabilityProviderConfig,
+        ObservabilityConfig,
+    )
     from llmling_agent_observability.base_provider import ObservabilityProvider
 
 logger = get_logger(__name__)

@@ -15,15 +15,9 @@ from typing import TYPE_CHECKING, Any, Self, overload
 from acp import Agent as ACPAgent, AgentSideConnection
 from acp.schema import (
     AgentCapabilities,
-    AuthenticateRequest,
-    CancelNotification,
-    InitializeRequest,
     InitializeResponse,
-    LoadSessionRequest,
-    NewSessionRequest,
     NewSessionResponse,
     PromptCapabilities,
-    PromptRequest,
     PromptResponse,
 )
 from acp.stdio import stdio_streams
@@ -40,6 +34,15 @@ from llmling_agent_commands import get_commands
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from acp.schema import (
+        AuthenticateRequest,
+        CancelNotification,
+        InitializeRequest,
+        LoadSessionRequest,
+        NewSessionRequest,
+        PromptRequest,
+    )
 
     from llmling_agent import Agent
     from llmling_agent_acp.wrappers import ACPClientInterface

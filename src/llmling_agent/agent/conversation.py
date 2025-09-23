@@ -18,7 +18,7 @@ from llmling_agent.messaging.message_container import ChatMessageContainer
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.utils.count_tokens import count_tokens
 from llmling_agent.utils.now import get_now
-from llmling_agent_config.session import MemoryConfig, SessionQuery
+from llmling_agent_config.session import SessionQuery
 
 
 if TYPE_CHECKING:
@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import MessageRole, SessionIdType, StrPath
+    from llmling_agent_config.session import MemoryConfig
 
 logger = get_logger(__name__)
 

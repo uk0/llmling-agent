@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable, Coroutine, Sequence
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from functools import wraps
 import inspect
@@ -18,7 +18,6 @@ from llmling_agent.utils.inspection import execute
 from llmling_agent.utils.now import get_now
 from llmling_agent_config.events import (
     EmailConfig,
-    EventConfig,
     FileWatchConfig,
     TimeEventConfig,
     WebhookConfig,
@@ -26,9 +25,13 @@ from llmling_agent_config.events import (
 
 
 if TYPE_CHECKING:
+    from collections.abc import Coroutine, Sequence
     from datetime import datetime, timedelta
 
     from llmling_agent.messaging.messageemitter import MessageEmitter
+    from llmling_agent_config.events import (
+        EventConfig,
+    )
     from llmling_agent_events.base import EventSource
     from llmling_agent_events.timed_watcher import TimeEventSource
 

@@ -14,7 +14,6 @@ from psygnal import Signal
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.callable_provider import (
     CallableResourceProvider,
-    ResourceCallable,
 )
 from llmling_agent.tools.base import Tool
 from llmling_agent.utils.now import get_now
@@ -27,6 +26,9 @@ if TYPE_CHECKING:
     from llmling_agent import AnyAgent, MessageNode
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
     from llmling_agent.resource_providers.base import ResourceProvider
+    from llmling_agent.resource_providers.callable_provider import (
+        ResourceCallable,
+    )
 
 
 logger = get_logger(__name__)
