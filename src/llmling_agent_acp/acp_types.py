@@ -15,6 +15,9 @@ from acp.schema import (
     ContentBlock3 as AudioContent,
     ContentBlock4 as ResourceLink,
     ContentBlock5 as EmbeddedResource,
+    McpServer1,
+    McpServer2,
+    McpServer3,
     # Terminal types
     RequestPermissionOutcome1,
     RequestPermissionOutcome2,
@@ -52,6 +55,7 @@ RequestPermissionOutcome = RequestPermissionOutcome1 | RequestPermissionOutcome2
 # Tool call content union type
 ToolCallContentUnion = ToolCallContent | ToolCallDiffContent | ToolCallTerminalContent
 
+MCPServer = McpServer1 | McpServer2 | McpServer3
 
 StopReason = Literal[
     "end_turn", "max_tokens", "max_turn_requests", "refusal", "cancelled"

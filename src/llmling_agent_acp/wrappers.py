@@ -16,7 +16,6 @@ from acp import (
     RequestPermissionResponse,
 )
 from acp.schema import RequestPermissionOutcome1, RequestPermissionOutcome2
-
 from llmling_agent.log import get_logger
 
 
@@ -58,12 +57,12 @@ class DefaultACPClient:
         Returns:
             Permission response granting access
         """
-        logger.info("Permission requested for %s", params.toolCall.title or "operation")
+        logger.info("Permission requested for %s", params.tool_call.title or "operation")
 
         # Default: grant permission for the first option
         if params.options:
-            id_ = params.options[0].optionId
-            outcome = RequestPermissionOutcome2(outcome="selected", optionId=id_)
+            id_ = params.options[0].option_id
+            outcome = RequestPermissionOutcome2(outcome="selected", option_id=id_)
             return RequestPermissionResponse(outcome=outcome)
 
         # No options - deny
@@ -77,7 +76,7 @@ class DefaultACPClient:
             params: Session update notification
         """
         msg = "Session update for %s: %s"
-        logger.debug(msg, params.sessionId, params.update.sessionUpdate)
+        logger.debug(msg, params.session_id, params.update.session_update)
         self._session_updates.append(params)
 
     async def writeTextFile(self, params: WriteTextFileRequest) -> None:
@@ -199,6 +198,12 @@ class DefaultACPClient:
     def clear_session_updates(self) -> None:
         """Clear all stored session updates."""
         self._session_updates.clear()
+
+    async def extMethod(self, method: str, params: dict) -> dict:
+        return {"example": "response"}
+
+    async def extNotification(self, method: str, params: dict) -> None:
+        return None
 
 
 class FileSystemACPClient(DefaultACPClient):

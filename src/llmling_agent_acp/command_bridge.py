@@ -7,7 +7,6 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from acp.schema import AvailableCommand, AvailableCommandInput, AvailableCommandInput1
-
 from llmling_agent.log import get_logger
 from llmling_agent_acp.converters import to_session_updates
 
@@ -19,9 +18,9 @@ if TYPE_CHECKING:
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable
 
-    from acp.schema import SessionNotification
     from slashed import BaseCommand, CommandContext, CommandStore
 
+    from acp.schema import SessionNotification
     from llmling_agent.agent.context import AgentContext
     from llmling_agent_acp.session import ACPSession
 

@@ -25,18 +25,15 @@ from llmling_agent_acp.converters import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, Sequence
 
-    from acp import Client
-    from acp.schema import (
-        AvailableCommand,
-        McpServer,
-    )
     from pydantic_ai import ModelRequestNode
     from pydantic_ai.agent import CallToolsNode
 
+    from acp import Client
+    from acp.schema import AvailableCommand
     from llmling_agent import Agent
-    from llmling_agent_acp.acp_types import ContentBlock, StopReason
+    from llmling_agent_acp.acp_types import ContentBlock, MCPServer, StopReason
     from llmling_agent_acp.command_bridge import ACPCommandBridge
     from llmling_agent_providers.base import AgentRunProtocol
 
@@ -66,7 +63,7 @@ class ACPSession:
         agent: Agent[Any],
         cwd: str,
         client: Client,
-        mcp_servers: list[McpServer] | None = None,
+        mcp_servers: Sequence[MCPServer] | None = None,
         max_turn_requests: int = 50,
         max_tokens: int | None = None,
         command_bridge: ACPCommandBridge | None = None,
@@ -357,12 +354,9 @@ class ACPSession:
                                 content_block = ContentBlock1(
                                     text=final_content, type="text"
                                 )
-                                update = SessionUpdate2(
-                                    content=content_block,
-                                    sessionUpdate="agent_message_chunk",
-                                )
+                                update = SessionUpdate2(content=content_block)
                                 notification = SessionNotification(
-                                    sessionId=self.session_id, update=update
+                                    session_id=self.session_id, update=update
                                 )
                                 has_yielded_anything = True
                                 yield notification
@@ -395,7 +389,6 @@ class ACPSession:
         Yields:
             SessionNotification objects for model streaming, or StopReason literal
         """
-        from acp.schema import ContentBlock1, SessionUpdate2
         from pydantic_ai.messages import (
             FinalResultEvent,
             PartDeltaEvent,
@@ -404,6 +397,8 @@ class ACPSession:
             ThinkingPartDelta,
             ToolCallPartDelta,
         )
+
+        from acp.schema import ContentBlock1, SessionUpdate2
 
         try:
             async with node.stream(agent_run.ctx) as request_stream:
@@ -446,12 +441,9 @@ class ACPSession:
                             content_block = ContentBlock1(
                                 text=content, type="text", annotations=None
                             )
-                            update = SessionUpdate2(
-                                content=content_block,
-                                sessionUpdate="agent_message_chunk",
-                            )
+                            update = SessionUpdate2(content=content_block)
                             notification = SessionNotification(
-                                sessionId=self.session_id, update=update
+                                session_id=self.session_id, update=update
                             )
                             msg = "Yielding TextPartDelta notification for session %s"
                             logger.info(msg, self.session_id)
@@ -657,13 +649,10 @@ class ACPSession:
             commands = self.command_bridge.to_available_commands(self.agent.context)
 
             # Create update notification
-            update = AvailableCommandsUpdate(
-                sessionUpdate="available_commands_update",
-                availableCommands=commands,
-            )
+            update = AvailableCommandsUpdate(available_commands=commands)
 
             # Send to client
-            notification = SessionNotification(sessionId=self.session_id, update=update)
+            notification = SessionNotification(session_id=self.session_id, update=update)
             await self.client.sessionUpdate(notification)
             msg = "Sent %s available commands for session %s"
             logger.debug(msg, len(commands), self.session_id)
@@ -680,13 +669,10 @@ class ACPSession:
         """
         try:
             # Create update notification
-            update = AvailableCommandsUpdate(
-                sessionUpdate="available_commands_update",
-                availableCommands=commands,
-            )
+            update = AvailableCommandsUpdate(available_commands=commands)
 
             # Send to client
-            notification = SessionNotification(sessionId=self.session_id, update=update)
+            notification = SessionNotification(session_id=self.session_id, update=update)
             await self.client.sessionUpdate(notification)
 
             logger.debug("Updated available commands for session %s", self.session_id)
@@ -728,7 +714,7 @@ class ACPSessionManager:
         agent: Agent[Any],
         cwd: str,
         client: Client,
-        mcp_servers: list[McpServer] | None = None,
+        mcp_servers: Sequence[MCPServer] | None = None,
         session_id: str | None = None,
         max_turn_requests: int = 50,
         max_tokens: int | None = None,

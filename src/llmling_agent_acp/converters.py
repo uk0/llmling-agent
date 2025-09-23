@@ -7,7 +7,7 @@ content blocks, session updates, and other data structures using the external ac
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, overload
 
 from acp import (
     ReadTextFileRequest,
@@ -30,9 +30,13 @@ from acp.schema import (
     ToolCallLocation,
     ToolCallUpdate,
 )
-
 from llmling_agent.log import get_logger
-from llmling_agent_config.mcp_server import StdioMCPServerConfig
+from llmling_agent_acp.acp_types import McpServer1, McpServer2, McpServer3
+from llmling_agent_config.mcp_server import (
+    SSEMCPServerConfig,
+    StdioMCPServerConfig,
+    StreamableHTTPMCPServerConfig,
+)
 
 
 # Define ContentBlock union type
@@ -42,33 +46,74 @@ type ContentBlock = (
 
 
 if TYPE_CHECKING:
-    from acp.schema import (
-        McpServer,
+    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent_acp.acp_types import MCPServer
+    from llmling_agent_config.mcp_server import (
+        MCPServerConfig,
     )
 
-    from llmling_agent.messaging.messages import ChatMessage
 
 logger = get_logger(__name__)
 
 
-def convert_acp_mcp_server_to_config(acp_server: McpServer) -> StdioMCPServerConfig:
+@overload
+def convert_acp_mcp_server_to_config(
+    acp_server: McpServer1,
+) -> StreamableHTTPMCPServerConfig: ...
+
+
+@overload
+def convert_acp_mcp_server_to_config(
+    acp_server: McpServer2,
+) -> SSEMCPServerConfig: ...
+
+
+@overload
+def convert_acp_mcp_server_to_config(
+    acp_server: McpServer3,
+) -> StdioMCPServerConfig: ...
+
+
+@overload
+def convert_acp_mcp_server_to_config(acp_server: MCPServer) -> MCPServerConfig: ...
+
+
+def convert_acp_mcp_server_to_config(acp_server: MCPServer) -> MCPServerConfig:
     """Convert ACP McpServer to llmling MCPServerConfig.
 
     Args:
         acp_server: ACP McpServer object from session/new request
 
     Returns:
-        StdioMCPServerConfig instance
+        MCPServerConfig instance
     """
-    # Convert environment variables
-    env_dict = {var.name: var.value for var in acp_server.env}
+    match acp_server:
+        case McpServer3():  # Stdio transport
+            # Convert environment variables
+            env_dict = {var.name: var.value for var in acp_server.env}
 
-    return StdioMCPServerConfig(
-        name=acp_server.name,
-        command=acp_server.command,
-        args=acp_server.args,
-        environment=env_dict,
-    )
+            return StdioMCPServerConfig(
+                name=acp_server.name,
+                command=acp_server.command,
+                args=acp_server.args,
+                environment=env_dict,
+            )
+
+        case McpServer2():  # SSE transport
+            return SSEMCPServerConfig(
+                name=acp_server.name,
+                url=acp_server.url,
+            )
+
+        case McpServer1():  # HTTP transport
+            return StreamableHTTPMCPServerConfig(
+                name=acp_server.name,
+                url=acp_server.url,
+            )
+
+        case _:
+            msg = f"Unsupported MCP server type: {type(acp_server)}"
+            raise ValueError(msg)
 
 
 def from_content_blocks(blocks: list[ContentBlock]) -> str:
@@ -87,11 +132,11 @@ def from_content_blocks(blocks: list[ContentBlock]) -> str:
             case ContentBlock1():  # Text content
                 parts.append(block.text)
             case ContentBlock2():  # Image content
-                parts.append(f"[Image: {block.mimeType}]")
+                parts.append(f"[Image: {block.mime_type}]")
                 if block.uri:
                     parts.append(f"Image URI: {block.uri}")
             case ContentBlock3():  # Audio content
-                parts.append(f"[Audio: {block.mimeType}]")
+                parts.append(f"[Audio: {block.mime_type}]")
             case ContentBlock4():  # Resource link
                 parts.append(f"[Resource: {block.name}]")
                 if block.description:
@@ -145,10 +190,8 @@ def to_session_updates(response: str, session_id: str) -> list[SessionNotificati
     for chunk in chunks:
         if chunk.strip():
             content = ContentBlock1(text=chunk, type="text")
-            update = AgentMessageChunk(
-                content=content, sessionUpdate="agent_message_chunk"
-            )
-            updates.append(SessionNotification(sessionId=session_id, update=update))
+            update = AgentMessageChunk(content=content)
+            updates.append(SessionNotification(session_id=session_id, update=update))
 
     return updates
 
@@ -277,7 +320,7 @@ class FileSystemBridge:
             ReadTextFileRequest object
         """
         return ReadTextFileRequest(
-            sessionId=session_id,
+            session_id=session_id,
             path=path,
             line=line,
             limit=limit,
@@ -297,7 +340,7 @@ class FileSystemBridge:
         Returns:
             WriteTextFileRequest object
         """
-        return WriteTextFileRequest(sessionId=session_id, path=path, content=content)
+        return WriteTextFileRequest(session_id=session_id, path=path, content=content)
 
     @staticmethod
     def create_permission_request(
@@ -315,20 +358,20 @@ class FileSystemBridge:
         """
         # Create permission request
         tool_call = ToolCallUpdate(
-            toolCallId=f"fs_{operation}_{hash(details.get('path', ''))}",
+            tool_call_id=f"fs_{operation}_{hash(details.get('path', ''))}",
             title=f"File {operation.title()}",
             status="pending_permission",
             kind="filesystem",
         )
 
         options = [
-            PermissionOption(optionId="allow", name="Allow", kind="permission"),
-            PermissionOption(optionId="deny", name="Deny", kind="permission"),
+            PermissionOption(option_id="allow", name="Allow", kind="permission"),
+            PermissionOption(option_id="deny", name="Deny", kind="permission"),
         ]
 
         return RequestPermissionRequest(
-            sessionId=session_id,
-            toolCall=tool_call,
+            session_id=session_id,
+            tool_call=tool_call,
             options=options,
         )
 
@@ -418,18 +461,17 @@ def format_tool_call_for_acp(
     kind = _determine_tool_kind(tool_name)
 
     tool_call = ToolCall(
-        toolCallId=f"{tool_name}_{hash(str(tool_input))}",
+        tool_call_id=f"{tool_name}_{hash(str(tool_input))}",
         title=title,
         status=status,
         kind=kind,
         locations=locations or None,
         content=content or None,
-        rawInput=tool_input,
-        rawOutput=tool_output,
-        sessionUpdate="tool_call",
+        raw_input=tool_input,
+        raw_output=tool_output,
     )
 
-    return SessionNotification(sessionId=session_id, update=tool_call)
+    return SessionNotification(session_id=session_id, update=tool_call)
 
 
 def create_thought_chunk(thought: str, session_id: str) -> SessionNotification:
@@ -443,5 +485,5 @@ def create_thought_chunk(thought: str, session_id: str) -> SessionNotification:
         SessionNotification with thought chunk
     """
     content = ContentBlock1(text=thought, type="text")
-    update = AgentThoughtChunk(content=content, sessionUpdate="agent_thought_chunk")
-    return SessionNotification(sessionId=session_id, update=update)
+    update = AgentThoughtChunk(content=content)
+    return SessionNotification(session_id=session_id, update=update)

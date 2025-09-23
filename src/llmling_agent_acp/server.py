@@ -12,6 +12,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, overload
 
+from slashed import CommandStore
+
 from acp import Agent as ACPAgent, AgentSideConnection
 from acp.schema import (
     AgentCapabilities,
@@ -21,8 +23,6 @@ from acp.schema import (
     PromptResponse,
 )
 from acp.stdio import stdio_streams
-from slashed import CommandStore
-
 from llmling_agent.log import get_logger
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent_acp.command_bridge import ACPCommandBridge
@@ -42,8 +42,9 @@ if TYPE_CHECKING:
         LoadSessionRequest,
         NewSessionRequest,
         PromptRequest,
+        SetSessionModeRequest,
+        SetSessionModeResponse,
     )
-
     from llmling_agent import Agent
     from llmling_agent_acp.wrappers import ACPClientInterface
 
@@ -111,18 +112,20 @@ class LLMlingACPAgent(ACPAgent):
         """Initialize the agent and negotiate capabilities."""
         try:
             logger.info("Initializing ACP agent implementation")
-            version = min(params.protocolVersion, self.PROTOCOL_VERSION)
-            prompt_caps = PromptCapabilities(audio=True, embeddedContext=True, image=True)
+            version = min(params.protocol_version, self.PROTOCOL_VERSION)
+            prompt_caps = PromptCapabilities(
+                audio=True, embedded_context=True, image=True
+            )
             agent_caps = AgentCapabilities(
-                loadSession=self.session_support,
-                promptCapabilities=prompt_caps,
+                load_session=self.session_support,
+                prompt_capabilities=prompt_caps,
             )
 
             self._initialized = True
             response = InitializeResponse(
-                protocolVersion=version,
-                agentCapabilities=agent_caps,
-                authMethods=[],  # No authentication methods by default
+                protocol_version=version,
+                agent_capabilities=agent_caps,
+                auth_methods=[],  # No authentication methods by default
             )
 
             logger.info("ACP agent implementation initialized successfully")
@@ -157,12 +160,12 @@ class LLMlingACPAgent(ACPAgent):
                 agent=agent,
                 cwd=params.cwd,
                 client=self.client,
-                mcp_servers=params.mcpServers,
+                mcp_servers=params.mcp_servers,
                 max_turn_requests=self.max_turn_requests,
                 max_tokens=self.max_tokens,
             )
 
-            response = NewSessionResponse(sessionId=session_id)
+            response = NewSessionResponse(session_id=session_id)
             logger.info("Created session %s", session_id)
 
             # Send initial available commands
@@ -187,28 +190,28 @@ class LLMlingACPAgent(ACPAgent):
             raise RuntimeError(msg)
 
         try:
-            logger.info("Loading session %s", params.sessionId)
+            logger.info("Loading session %s", params.session_id)
 
             # Get existing session
-            session = await self.session_manager.get_session(params.sessionId)
+            session = await self.session_manager.get_session(params.session_id)
             if not session:
-                msg = f"Session {params.sessionId} not found"
+                msg = f"Session {params.session_id} not found"
                 raise ValueError(msg)  # noqa: TRY301
 
             # Update session configuration if needed
             # This could involve updating the working directory, MCP servers, etc.
             # For now, we'll just log the load operation
 
-            logger.info("Loaded session %s successfully", params.sessionId)
+            logger.info("Loaded session %s successfully", params.session_id)
 
         except Exception:
-            logger.exception("Failed to load session %s", params.sessionId)
+            logger.exception("Failed to load session %s", params.session_id)
             raise
 
     async def authenticate(self, params: AuthenticateRequest) -> None:
         """Authenticate with the agent."""
         # Basic implementation - no authentication required by default
-        logger.info("Authentication requested with method %s", params.methodId)
+        logger.info("Authentication requested with method %s", params.method_id)
 
         # In a real implementation, you might validate credentials here
         # For now, we'll just accept all authentication attempts
@@ -220,10 +223,10 @@ class LLMlingACPAgent(ACPAgent):
             raise RuntimeError(msg)
 
         try:
-            logger.info("Processing prompt for session %s", params.sessionId)
-            session = await self.session_manager.get_session(params.sessionId)
+            logger.info("Processing prompt for session %s", params.session_id)
+            session = await self.session_manager.get_session(params.session_id)
             if not session:
-                msg = f"Session {params.sessionId} not found"
+                msg = f"Session {params.session_id} not found"
                 raise ValueError(msg)  # noqa: TRY301
 
             # Process prompt and stream responses
@@ -239,12 +242,12 @@ class LLMlingACPAgent(ACPAgent):
                 await self.connection.sessionUpdate(result)
 
             # Return the actual stop reason from the session
-            response = PromptResponse(stopReason=stop_reason)
+            response = PromptResponse(stop_reason=stop_reason)
             logger.info("Returning PromptResponse: %s", response.model_dump_json())
         except Exception as e:
-            logger.exception("Failed to process prompt for session %s", params.sessionId)
+            logger.exception("Failed to process prompt for session %s", params.session_id)
             error_updates = to_session_updates(
-                f"Error processing prompt: {e}", params.sessionId
+                f"Error processing prompt: {e}", params.session_id
             )
             for update in error_updates:
                 try:
@@ -252,25 +255,36 @@ class LLMlingACPAgent(ACPAgent):
                 except Exception:
                     logger.exception("Failed to send error update")
 
-            return PromptResponse(stopReason="refusal")
+            return PromptResponse(stop_reason="refusal")
         else:
             return response
 
     async def cancel(self, params: CancelNotification) -> None:
         """Cancel operations for a session."""
         try:
-            logger.info("Cancelling session %s", params.sessionId)
+            logger.info("Cancelling session %s", params.session_id)
 
             # Get session and cancel it
-            session = await self.session_manager.get_session(params.sessionId)
+            session = await self.session_manager.get_session(params.session_id)
             if session:
                 session.cancel()
-                logger.info("Cancelled operations for session %s", params.sessionId)
+                logger.info("Cancelled operations for session %s", params.session_id)
             else:
-                logger.warning("Session %s not found for cancellation", params.sessionId)
+                logger.warning("Session %s not found for cancellation", params.session_id)
 
         except Exception:
-            logger.exception("Failed to cancel session %s", params.sessionId)
+            logger.exception("Failed to cancel session %s", params.session_id)
+
+    async def extMethod(self, method: str, params: dict) -> dict:
+        return {"example": "response"}
+
+    async def extNotification(self, method: str, params: dict) -> None:
+        return None
+
+    async def setSessionMode(
+        self, params: SetSessionModeRequest
+    ) -> SetSessionModeResponse | None:
+        return None
 
 
 class ACPServer:

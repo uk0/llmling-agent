@@ -124,17 +124,16 @@ class ACPToolBridge:
         tool_kind = _determine_tool_kind(tool.name)
 
         tool_call = ToolCall(
-            toolCallId=tool_call_id,
+            tool_call_id=tool_call_id,
             title=f"Execute {tool.name}",
             status="running",
             kind=tool_kind,
             locations=locations,
-            rawInput=params,
-            rawOutput=None,
-            sessionUpdate="tool_call",
+            raw_input=params,
+            raw_output=None,
         )
 
-        return SessionNotification(sessionId=session_id, update=tool_call)
+        return SessionNotification(session_id=session_id, update=tool_call)
 
     async def _create_tool_completion_notification(
         self,
@@ -278,38 +277,38 @@ class ACPToolBridge:
         try:
             # Create tool call update for permission request
             tool_call = ToolCallUpdate(
-                toolCallId=f"{tool!s}_permission_{hash(str(params))}",
+                tool_call_id=f"{tool!s}_permission_{hash(str(params))}",
                 title=f"Execute {tool.name}",
                 status="pending_permission",
                 kind=_determine_tool_kind(tool.name),
-                rawInput=params,
-                rawOutput=None,
+                raw_input=params,
+                raw_output=None,
             )
 
             # Create permission options
             options = [
-                PermissionOption(optionId="allow", name="Allow", kind="permission"),
-                PermissionOption(optionId="deny", name="Deny", kind="permission"),
+                PermissionOption(option_id="allow", name="Allow", kind="permission"),
+                PermissionOption(option_id="deny", name="Deny", kind="permission"),
             ]
 
             # If it's a file operation, add more specific options
             if operation_type == "file_access":
                 options.extend([
                     PermissionOption(
-                        optionId="allow_once",
+                        option_id="allow_once",
                         name="Allow Once",
                         kind="permission",
                     ),
                     PermissionOption(
-                        optionId="allow_session",
+                        option_id="allow_session",
                         name="Allow for Session",
                         kind="permission",
                     ),
                 ])
 
             request = RequestPermissionRequest(
-                sessionId=session_id,
-                toolCall=tool_call,
+                session_id=session_id,
+                tool_call=tool_call,
                 options=options,
             )
 
@@ -370,15 +369,14 @@ class ACPToolBridge:
         """
         content = TextContent(text=progress_message, type="text")
         update = ToolCallUpdateMessage(
-            toolCallId=tool_call_id,
+            tool_call_id=tool_call_id,
             status="running",
             content=[ToolCallContent(type="content", content=content)],
-            sessionUpdate="tool_call_update",
-            rawInput=None,
-            rawOutput=None,
+            raw_input=None,
+            raw_output=None,
         )
 
-        return SessionNotification(sessionId=session_id, update=update)
+        return SessionNotification(session_id=session_id, update=update)
 
 
 class ACPToolRegistry:
