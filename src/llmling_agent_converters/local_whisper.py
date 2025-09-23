@@ -35,8 +35,8 @@ class LocalWhisperConverter(DocumentConverter):
         if self._model is not None:
             return
 
-        import torch
-        import whisper
+        import torch  # pyright: ignore
+        import whisper  # pyright: ignore
 
         device = self.config.device
         if not device:
@@ -65,7 +65,7 @@ class LocalWhisperConverter(DocumentConverter):
             raise ValueError(msg)
 
         self._ensure_model()
-        import whisper
+        import whisper  # pyright: ignore
 
         audio = whisper.load_audio(io.BytesIO(content))
         assert self._model

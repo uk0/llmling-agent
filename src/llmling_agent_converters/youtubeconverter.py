@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
-from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api.formatters import (
+from youtube_transcript_api import YouTubeTranscriptApi  # pyright: ignore
+from youtube_transcript_api.formatters import (  # pyright: ignore
     JSONFormatter,
     SRTFormatter,
     TextFormatter,

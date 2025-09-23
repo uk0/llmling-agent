@@ -40,7 +40,6 @@ AnyModelConfig = Annotated[
 
 
 __all__ = [
-    "AISuiteModelConfig",
     "AnyModelConfig",
     "AugmentedModelConfig",
     "BaseModelConfig",

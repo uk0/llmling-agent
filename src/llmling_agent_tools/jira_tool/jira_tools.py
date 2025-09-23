@@ -15,7 +15,7 @@ PROJECT = "SCRUM"
 
 @functools.cache
 def get_client():
-    import jira
+    import jira  # pyright: ignore
 
     return jira.JIRA(server=SERVER, basic_auth=(JIRA_EMAIL, JIRA_TOKEN))  # pyright: ignore
 

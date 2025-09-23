@@ -202,7 +202,7 @@ class Tool:
         """Allows importing crewai tools."""
         # vaidate_import("crewai_tools", "crewai")
         try:
-            from crewai.tools import BaseTool as CrewAiBaseTool
+            from crewai.tools import BaseTool as CrewAiBaseTool  # pyright: ignore
         except ImportError as e:
             msg = "crewai package not found. Please install it with 'pip install crewai'"
             raise ImportError(msg) from e
@@ -232,7 +232,9 @@ class Tool:
         """Create a tool from a LangChain tool."""
         # vaidate_import("langchain_core", "langchain")
         try:
-            from langchain_core.tools import BaseTool as LangChainBaseTool
+            from langchain_core.tools import (  # pyright: ignore
+                BaseTool as LangChainBaseTool,
+            )
         except ImportError as e:
             msg = "langchain-core package not found."
             raise ImportError(msg) from e
@@ -262,8 +264,8 @@ class Tool:
         """Create a tool from a AutoGen tool."""
         # vaidate_import("autogen_core", "autogen")
         try:
-            from autogen_core import CancellationToken
-            from autogen_core.tools import BaseTool
+            from autogen_core import CancellationToken  # pyright: ignore
+            from autogen_core.tools import BaseTool  # pyright: ignore
         except ImportError as e:
             msg = "autogent_core package not found."
             raise ImportError(msg) from e

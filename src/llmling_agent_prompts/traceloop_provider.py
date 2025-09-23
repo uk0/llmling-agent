@@ -5,8 +5,8 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Any
 
-from traceloop.sdk import Traceloop
-from traceloop.sdk.prompts import get_prompt
+from traceloop.sdk import Traceloop  # pyright: ignore
+from traceloop.sdk.prompts import get_prompt  # pyright: ignore
 
 from llmling_agent.prompts.base import BasePromptProvider
 
@@ -41,7 +41,7 @@ class TraceloopPromptHub(BasePromptProvider):
 if __name__ == "__main__":
     import asyncio
 
-    from traceloop.sdk.prompts.client import PromptRegistryClient
+    from traceloop.sdk.prompts.client import PromptRegistryClient  # pyright: ignore
 
     from llmling_agent_config.prompt_hubs import TraceloopConfig
 

@@ -11,8 +11,8 @@ from upath import UPath, registry
 
 
 if TYPE_CHECKING:
-    from langchain.document_loaders import BaseLoader
-    from langchain.schema import Document
+    from langchain.document_loaders import BaseLoader  # pyright: ignore
+    from langchain.schema import Document  # pyright: ignore
 
 
 class LangchainPath(UPath):
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     import asyncio
     from pathlib import Path
 
-    from langchain_community.document_loaders import TextLoader
+    from langchain_community.document_loaders import TextLoader  # pyright: ignore
 
     async def main():
         # Create a sample text file for testing

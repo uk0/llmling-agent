@@ -28,7 +28,7 @@ class MarkItDownConverter(DocumentConverter):
 
     @cached_property
     def converter(self):
-        from markitdown import MarkItDown
+        from markitdown import MarkItDown  # pyright: ignore
 
         return MarkItDown()
 

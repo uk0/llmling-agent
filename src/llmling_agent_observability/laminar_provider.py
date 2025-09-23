@@ -6,7 +6,7 @@ from contextlib import contextmanager
 import os
 from typing import TYPE_CHECKING, Any, LiteralString, ParamSpec, TypeVar
 
-from lmnr import Laminar, observe
+from lmnr import Laminar, observe  # pyright: ignore
 
 from llmling_agent_observability.base_provider import ObservabilityProvider
 

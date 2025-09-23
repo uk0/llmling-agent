@@ -7,9 +7,9 @@ from contextlib import contextmanager
 import os
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
 
-from traceloop.sdk import Traceloop
-from traceloop.sdk.decorators import task, tool
-from traceloop.sdk.instruments import Instruments
+from traceloop.sdk import Traceloop  # pyright: ignore
+from traceloop.sdk.decorators import task, tool  # pyright: ignore
+from traceloop.sdk.instruments import Instruments  # pyright: ignore
 
 from llmling_agent_observability.base_provider import ObservabilityProvider
 

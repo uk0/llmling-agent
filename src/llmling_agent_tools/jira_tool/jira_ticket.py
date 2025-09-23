@@ -8,7 +8,7 @@ from schemez import Schema
 
 
 if TYPE_CHECKING:
-    import jira
+    import jira  # pyright: ignore
 
 
 class JiraUser(Schema):

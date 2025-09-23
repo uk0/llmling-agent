@@ -26,7 +26,7 @@ def get_tools(
 
     match source:
         case "crewai":
-            import crewai_tools as module
+            import crewai_tools as module  # pyright: ignore
 
             # Look for all classes in single module
             for _, cls in getmembers(module, isclass):
@@ -40,7 +40,7 @@ def get_tools(
 
         case "langchain":
             # Need to import each tool module separately
-            from langchain_community.tools import _module_lookup
+            from langchain_community.tools import _module_lookup  # pyright: ignore
 
             for cls_name, module_path in _module_lookup.items():
                 try:

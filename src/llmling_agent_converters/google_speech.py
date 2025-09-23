@@ -31,7 +31,7 @@ class GoogleSpeechConverter(DocumentConverter):
         if self._client is not None:
             return
 
-        from google.cloud import speech
+        from google.cloud import speech  # pyright: ignore
 
         self._client = speech.SpeechClient()
 
@@ -51,7 +51,7 @@ class GoogleSpeechConverter(DocumentConverter):
             raise ValueError(msg)
 
         self._ensure_client()
-        from google.cloud import speech
+        from google.cloud import speech  # pyright: ignore
 
         audio = speech.RecognitionAudio(content=content)
         config = speech.RecognitionConfig(
