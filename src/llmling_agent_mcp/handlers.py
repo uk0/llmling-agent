@@ -207,10 +207,11 @@ def register_handlers(llm_server: LLMLingServer):  # noqa: PLR0915
         token: str | int,
         progress: float,
         total: float | None,
+        message: str | None = None,
     ):
         """Handle progress notifications from client."""
         msg = "Progress notification: %s %.1f/%.1f"
-        logger.debug(msg, token, progress, total or 0.0)
+        logger.debug(msg, token, progress, total or 0.0, message)
 
     @llm_server.server.subscribe_resource()
     async def handle_subscribe(uri: AnyUrl):
