@@ -62,12 +62,12 @@ class DefaultACPClient:
         # Default: grant permission for the first option
         if params.options:
             id_ = params.options[0].option_id
-            outcome = RequestPermissionOutcome2(outcome="selected", option_id=id_)
-            return RequestPermissionResponse(outcome=outcome)
+            selected_outcome = RequestPermissionOutcome2(option_id=id_)
+            return RequestPermissionResponse(outcome=selected_outcome)
 
         # No options - deny
-        outcome = RequestPermissionOutcome1(outcome="cancelled")
-        return RequestPermissionResponse(outcome=outcome)
+        cancelled_outcome = RequestPermissionOutcome1()
+        return RequestPermissionResponse(outcome=cancelled_outcome)
 
     async def sessionUpdate(self, params: SessionNotification) -> None:
         """Handle session update notifications.
