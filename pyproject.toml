@@ -333,6 +333,7 @@ combine-as-imports = true
 "__init__.py" = ["E402", "I001"]
 "scripts/*" = ["INP001"]
 "src/llmling_agent_acp/**/*.py" = ["N802"]  # ACP protocol requires camelCase method names
+"src/acp/**/*.py" = ["N802"]  # ACP protocol requires camelCase method names
 
 [tool.ty.environment]
 python-version = "3.12"
