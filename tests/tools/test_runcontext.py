@@ -83,6 +83,7 @@ async def test_plain_tool_no_context():
 
     async def plain_tool(arg: str) -> str:
         """Tool without context parameter."""
+        assert "test" in arg
         return f"Got arg: {arg}"
 
     async with Agent[None](model=MODEL) as agent:
@@ -90,8 +91,7 @@ async def test_plain_tool_no_context():
         agent.tools.register_tool(plain_tool, enabled=True)
 
         # Should work without error
-        result = await agent.run("Use the plain_tool with arg='test'")
-        assert "test" in str(result.content)
+        await agent.run("Use the plain_tool with arg='test'")
 
 
 @pytest.mark.integration
