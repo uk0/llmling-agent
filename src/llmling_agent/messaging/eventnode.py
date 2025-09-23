@@ -52,7 +52,7 @@ class Event[TEventData]:
         raise NotImplementedError
 
     @abstractmethod
-    def convert_data(self, raw_data: Any) -> TEventData:
+    async def convert_data(self, raw_data: Any) -> TEventData:
         """Convert raw event data to typed event data.
 
         Args:
