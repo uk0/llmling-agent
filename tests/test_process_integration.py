@@ -2,12 +2,42 @@
 
 from __future__ import annotations
 
+import platform
+
 import pytest
 
 from llmling_agent.config.capabilities import Capabilities
 from llmling_agent.delegation.pool import AgentPool
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent.models.manifest import AgentsManifest
+
+
+def get_echo_command(message: str) -> tuple[str, list[str]]:
+    """Get platform-appropriate echo command."""
+    if platform.system() == "Windows":
+        return "cmd", ["/c", "echo", message]
+    return "echo", [message]
+
+
+def get_sleep_command(seconds: str) -> tuple[str, list[str]]:
+    """Get platform-appropriate sleep command."""
+    if platform.system() == "Windows":
+        return "cmd", ["/c", "timeout", seconds]
+    return "sleep", [seconds]
+
+
+def get_python_command() -> str:
+    """Get platform-appropriate python command."""
+    if platform.system() == "Windows":
+        return "python"
+    return "python3"
+
+
+def get_temp_dir() -> str:
+    """Get platform-appropriate temporary directory."""
+    if platform.system() == "Windows":
+        return "C:\\Windows\\Temp"
+    return "/tmp"
 
 
 @pytest.fixture
@@ -67,8 +97,9 @@ async def test_basic_process_workflow(process_manifest):
     async with AgentPool[None](process_manifest) as pool:
         pm = pool.process_manager
 
-        # Start a simple process
-        process_id = await pm.start_process("echo", ["Hello, World!"])
+        # Start a simple process (platform-aware)
+        command, args = get_echo_command("Hello, World!")
+        process_id = await pm.start_process(command, args)
         assert process_id.startswith("proc_")
 
         # Wait for completion
@@ -93,8 +124,9 @@ async def test_pool_cleanup_kills_processes(process_manifest):
     async with AgentPool[None](process_manifest) as pool:
         pm = pool.process_manager
 
-        # Start a long-running process
-        process_id = await pm.start_process("sleep", ["60"])
+        # Start a long-running process (platform-aware)
+        command, args = get_sleep_command("60")
+        process_id = await pm.start_process(command, args)
 
         # Verify it's running
         processes = pm.list_processes()
@@ -144,10 +176,14 @@ async def test_multiple_processes_management(process_manifest):
     async with AgentPool[None](process_manifest) as pool:
         pm = pool.process_manager
 
-        # Start multiple processes
-        proc1 = await pm.start_process("echo", ["Process 1"])
-        proc2 = await pm.start_process("echo", ["Process 2"])
-        proc3 = await pm.start_process("echo", ["Process 3"])
+        # Start multiple processes (platform-aware)
+        cmd1, args1 = get_echo_command("Process 1")
+        cmd2, args2 = get_echo_command("Process 2")
+        cmd3, args3 = get_echo_command("Process 3")
+
+        proc1 = await pm.start_process(cmd1, args1)
+        proc2 = await pm.start_process(cmd2, args2)
+        proc3 = await pm.start_process(cmd3, args3)
 
         # Verify all are tracked
         processes = pm.list_processes()
@@ -176,9 +212,10 @@ async def test_process_output_limit(process_manifest):
         pm = pool.process_manager
 
         # Start process with small output limit
-        # Use a command that generates more output than the limit
+        # Use a command that generates more output than the limit (platform-aware)
+        python_cmd = get_python_command()
         process_id = await pm.start_process(
-            "python3", ["-c", "print('x' * 500)"], output_limit=50
+            python_cmd, ["-c", "print('x' * 500)"], output_limit=50
         )
 
         # Wait for completion
@@ -210,16 +247,20 @@ async def test_process_info_retrieval(process_manifest):
     async with AgentPool[None](process_manifest) as pool:
         pm = pool.process_manager
 
+        # Use platform-appropriate commands and working directory
+        cwd = get_temp_dir()
+        command, args = get_echo_command("test")
+
         process_id = await pm.start_process(
-            "echo", ["test"], cwd="/tmp", env={"TEST_VAR": "test_value"}
+            command, args, cwd=cwd, env={"TEST_VAR": "test_value"}
         )
 
         info = await pm.get_process_info(process_id)
 
         assert info["process_id"] == process_id
-        assert info["command"] == "echo"
-        assert info["args"] == ["test"]
-        assert info["cwd"] == "/tmp"
+        assert info["command"] == command
+        assert info["args"] == args
+        assert info["cwd"] == cwd
         assert "created_at" in info
         assert "is_running" in info
 
