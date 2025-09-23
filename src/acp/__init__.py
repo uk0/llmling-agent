@@ -1,3 +1,5 @@
+"""Agent Client protocol (ACP) implementation."""
+
 from .core import (
     Agent,
     AgentSideConnection,

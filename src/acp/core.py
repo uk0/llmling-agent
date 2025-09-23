@@ -280,6 +280,8 @@ class Client(Protocol):
 
 
 class Agent(Protocol):
+    """ACP Agent interface."""
+
     async def initialize(self, params: InitializeRequest) -> InitializeResponse: ...
 
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse: ...
@@ -471,7 +473,7 @@ class ClientSideConnection:
     Use when you implement the Client and need to talk to an Agent.
 
     Args:
-      to_client: factory that receives this connection and returns your Client implementation
+      to_client: factory that receives this connection and returns your Client
       input: asyncio.StreamWriter (local -> peer)
       output: asyncio.StreamReader (peer -> local)
     """
