@@ -128,7 +128,8 @@ async def test_capability_tools(provider: Literal["pydantic_ai", "litellm"]):
             provider=provider,
         )
         result = await agent_2.run("Delegate 'say hello' to agent with name `helper`")
-        assert "hello" in str(result.content).lower()
+        assert result.tool_calls
+        assert result.tool_calls[0].tool_name == "delegate_to"
 
 
 async def test_team_creation():
