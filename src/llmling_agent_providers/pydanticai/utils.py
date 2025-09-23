@@ -139,8 +139,6 @@ def convert_model_message(  # noqa: PLR0911
     Raises:
         ValueError: If message type is not supported
     """
-    import anyenv
-
     match message:
         case ModelRequest():
             # Collect content from all parts
@@ -172,14 +170,7 @@ def convert_model_message(  # noqa: PLR0911
             return ChatMessage(content=format_part(part), role="system")
 
         case ToolCallPart():
-            match message.args:
-                case None:
-                    args = {}
-                case dict():
-                    args = message.args
-                case _:
-                    args = anyenv.load_json(message.args)
-
+            args = message.args_as_dict()
             info = ToolCallInfo(
                 tool_name=message.tool_name,
                 args=args,
