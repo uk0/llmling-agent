@@ -191,7 +191,7 @@ class LLMAdapterConfig(BaseModelConfig):
     """Name of the model in the LLM library."""
 
     def get_model(self) -> Any:
-        from llmling_models.llm_adapter import LLMAdapter
+        from llmling_models.adapters.llm_adapter import LLMAdapter
 
         return LLMAdapter(model=self.model_name)
 
