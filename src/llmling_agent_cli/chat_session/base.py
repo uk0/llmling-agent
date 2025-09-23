@@ -221,7 +221,7 @@ class AgentPoolView:
         """Send message and stream responses."""
         async with self._agent.run_stream(content) as stream_result:
             # Stream intermediate chunks
-            async for response in stream_result.stream():
+            async for response in stream_result.stream_output():
                 yield ChatMessage[str](
                     content=str(response),
                     role="assistant",

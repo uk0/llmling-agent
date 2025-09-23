@@ -30,7 +30,7 @@ result = await agent.run(
 
 # Streaming responses
 async with agent.run_stream("Count to 10") as stream:
-    async for chunk in stream.stream():
+    async for chunk in stream.stream_output():
         print(chunk)
 
 # Synchronous wrapper (convenience)

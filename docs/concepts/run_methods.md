@@ -84,7 +84,7 @@ async with agent.run_stream(
     store_history=True,
     model="gpt-4",
 ) as stream:
-    async for chunk in stream.stream():
+    async for chunk in stream.stream_output():
         print(chunk)
 ```
 

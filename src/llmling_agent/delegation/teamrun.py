@@ -248,7 +248,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                     )
                     streams.append(stream)  # type: ignore
                     # Wait for complete response for next agent
-                    async for chunk in stream.stream():
+                    async for chunk in stream.stream_output():
                         current_message = chunk
                         if stream.is_complete:
                             current_message = (stream.formatted_content,)  # type: ignore

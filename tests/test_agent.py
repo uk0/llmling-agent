@@ -48,7 +48,7 @@ async def test_agent_streaming(test_agent: Agent[None]):
     """Test agent streaming response."""
     stream_ctx = test_agent.run_stream(SIMPLE_PROMPT)
     async with stream_ctx as stream:
-        collected = [str(message) async for message in stream.stream()]
+        collected = [str(message) async for message in stream.stream_output()]
         assert "".join(collected) == TEST_RESPONSE
 
 

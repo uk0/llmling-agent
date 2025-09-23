@@ -329,7 +329,7 @@ if __name__ == "__main__":
         print("\nStreaming completion:")
         async with agent.run_stream("Write a haiku about coding.") as stream:
             print("Streaming chunks:")
-            async for chunk in stream.stream():
+            async for chunk in stream.stream_output():
                 print(chunk, end="", flush=True)
             print("\n")
             print(f"Final content: {stream.formatted_content}")

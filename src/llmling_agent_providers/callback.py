@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
         # Streaming usage
         async with uppercase.run_stream("hello") as stream:
-            async for chunk in stream.stream():
+            async for chunk in stream.stream_output():
                 print(f"Chunk: {chunk}")  # Will print "HELLO" once
 
     asyncio.run(main())

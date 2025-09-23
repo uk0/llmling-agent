@@ -81,7 +81,7 @@ final_message = await team.chain(
 
 # Or stream the chain results
 async with team.chain_stream(initial_message) as stream:
-    async for chunk in stream.stream():
+    async for chunk in stream.stream_output():
         print(chunk)
 ```
 
