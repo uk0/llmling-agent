@@ -372,8 +372,8 @@ class ACPSession:
             logger.exception("Error in agent iteration for session %s", self.session_id)
             logger.info("Sending error updates for session %s", self.session_id)
             error_updates = to_session_updates(f"Agent error: {e}", self.session_id)
-            for update in error_updates:
-                yield update
+            for error_update in error_updates:
+                yield error_update
 
     async def _stream_model_request(  # noqa: PLR0915
         self,
