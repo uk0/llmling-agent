@@ -417,16 +417,13 @@ class ACPServer:
             for agent_name in manifest.agents:
                 agent = pool.get_agent(agent_name)
 
-                # Determine capabilities based on agent tools
-                file_access = any("file" in str(tool).lower() for tool in agent.tools)
-
                 # Register with ACP server
                 logger.info("Registering agent: %s", agent_name)
                 server.agent(
                     agent,
                     name=agent_name,
                     session_support=True,
-                    file_access=file_access,
+                    file_access=True,
                     terminal_access=False,  # Conservative default
                 )
                 logger.info("Successfully registered agent: %s", agent_name)
