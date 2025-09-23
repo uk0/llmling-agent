@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Annotated, Final, Literal
 
 from platformdirs import user_data_dir
-from pydantic import ConfigDict, Field, HttpUrl, SecretStr  # noqa: TC002
+from pydantic import ConfigDict, Field, HttpUrl, SecretStr
 from schemez import Schema
 
 

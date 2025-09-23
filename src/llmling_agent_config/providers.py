@@ -5,11 +5,11 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from pydantic import ConfigDict, Field, ImportString  # noqa: TC002
+from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
 from llmling_agent.common_types import EndStrategy, ModelProtocol  # noqa: TC001
-from llmling_agent_models import AnyModelConfig  # noqa: TC001
+from llmling_agent_models import AnyModelConfig
 
 
 if TYPE_CHECKING:

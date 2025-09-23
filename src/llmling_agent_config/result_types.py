@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from schemez import Schema, SchemaDef  # noqa: TC002
+from schemez import Schema, SchemaDef
 
 
 class StructuredResponseConfig(Schema):

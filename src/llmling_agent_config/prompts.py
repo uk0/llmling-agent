@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import ConfigDict, Field
 from schemez import Schema
 
-from llmling_agent_config.prompt_hubs import PromptHubConfig  # noqa: TC001
+from llmling_agent_config.prompt_hubs import PromptHubConfig
 
 
 SystemPromptCategory = Literal["role", "methodology", "quality", "task"]

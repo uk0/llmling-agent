@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from llmling.config.models import Resource  # noqa: TC002
-from llmling.prompts import PromptType  # noqa: TC002
+from llmling.config.models import Resource
+from llmling.prompts import PromptType
 from pydantic import ConfigDict, Field
 from schemez import Schema
 

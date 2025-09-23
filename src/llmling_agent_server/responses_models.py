@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence  # noqa: TC003
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Literal, TypedDict
 from uuid import uuid4

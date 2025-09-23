@@ -8,7 +8,7 @@ from uuid import UUID
 from pydantic import ConfigDict
 from schemez import Schema
 
-from llmling_agent.common_types import MessageRole  # noqa: TC001
+from llmling_agent.common_types import MessageRole
 from llmling_agent.utils.now import get_now
 
 
