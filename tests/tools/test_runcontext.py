@@ -80,10 +80,13 @@ async def test_tool_context_injection():
 @pytest.mark.asyncio
 async def test_plain_tool_no_context():
     """Test that plain tools work without context."""
+    count = 0
 
     async def plain_tool(arg: str) -> str:
         """Tool without context parameter."""
         assert "test" in arg
+        nonlocal count
+        count += 1
         return f"Got arg: {arg}"
 
     async with Agent[None](model=MODEL) as agent:
@@ -92,6 +95,7 @@ async def test_plain_tool_no_context():
 
         # Should work without error
         await agent.run("Use the plain_tool with arg='test'")
+        assert count == 1
 
 
 @pytest.mark.integration
