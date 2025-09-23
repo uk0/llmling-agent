@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
 from psygnal import Signal
 from pydantic_ai import _agent_graph
 from pydantic_ai.result import FinalResult
-from pydantic_graph import BaseNode, End, GraphRunContext
+from pydantic_graph import End
 from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from contextlib import AbstractAsyncContextManager
 
     from pydantic_ai.agent import AgentRunResult
+    from pydantic_graph import BaseNode, GraphRunContext
     import tokonomics
     from tokonomics.pydanticai_cost import Usage
 

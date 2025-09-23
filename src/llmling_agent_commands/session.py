@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from slashed import Command, CommandContext
+from slashed import Command, CommandContext  # noqa: TC002
 
 
 if TYPE_CHECKING:

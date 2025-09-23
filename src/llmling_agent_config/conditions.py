@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable  # noqa: TC003
 from datetime import timedelta  # noqa: TC003
 from typing import TYPE_CHECKING, Annotated, Literal
 
-from pydantic import ConfigDict, Field, ImportString
+from pydantic import ConfigDict, Field, ImportString  # noqa: TC002
 from schemez import Schema
 
 from llmling_agent.utils.inspection import execute

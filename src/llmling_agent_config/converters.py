@@ -1,11 +1,15 @@
 """Converter configuration."""
 
-from typing import Annotated, Literal
+from __future__ import annotations
 
-from pydantic import ConfigDict, Field, SecretStr
+from typing import TYPE_CHECKING, Annotated, Literal
+
+from pydantic import ConfigDict, Field, SecretStr  # noqa: TC002
 from schemez import Schema
 
-from llmling_agent_converters.base import DocumentConverter
+
+if TYPE_CHECKING:
+    from llmling_agent_converters.base import DocumentConverter
 
 
 FormatterType = Literal["text", "json", "vtt", "srt"]

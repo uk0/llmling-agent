@@ -12,7 +12,7 @@ from llmling.config.base import ConfigModel
 from llmling.core.log import get_logger
 from llmling.utils.importing import import_callable
 from llmling.utils.paths import guess_mime_type
-from pydantic import ConfigDict, Field, SecretStr, model_validator
+from pydantic import ConfigDict, Field, SecretStr, model_validator  # noqa: TC002
 from schemez import Schema
 
 from llmling_agent.common_types import JsonObject  # noqa: TC001

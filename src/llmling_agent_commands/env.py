@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import webbrowser
 
 from llmling import Config, RuntimeConfig
-from slashed import Command, CommandContext, CommandError, PathCompleter
+from slashed import Command, CommandContext, CommandError, PathCompleter  # noqa: TC002
 
 from llmling_agent_config.environment import FileEnvironment, InlineEnvironment
 

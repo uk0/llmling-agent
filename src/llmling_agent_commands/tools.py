@@ -5,7 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from llmling.utils.importing import import_callable
-from slashed import Command, CommandContext, CommandError, CompletionContext
+from slashed import (  # noqa: TC002
+    Command,
+    CommandContext,
+    CommandError,
+    CompletionContext,
+)
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001

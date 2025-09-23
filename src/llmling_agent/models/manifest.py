@@ -21,12 +21,15 @@ from llmling_agent_config.mcp_server import (
 from llmling_agent_config.observability import ObservabilityConfig
 from llmling_agent_config.prompts import PromptConfig
 from llmling_agent_config.providers import BaseProviderConfig
-from llmling_agent_config.resources import ResourceConfig, SourceResourceConfig
+from llmling_agent_config.resources import (  # noqa: TC001
+    ResourceConfig,
+    SourceResourceConfig,
+)
 from llmling_agent_config.result_types import StructuredResponseConfig  # noqa: TC001
 from llmling_agent_config.storage import StorageConfig
 from llmling_agent_config.task import Job  # noqa: TC001
 from llmling_agent_config.teams import TeamConfig  # noqa: TC001
-from llmling_agent_config.ui import StdlibUIConfig, UIConfig
+from llmling_agent_config.ui import StdlibUIConfig, UIConfig  # noqa: TC001
 from llmling_agent_config.workers import (
     AgentWorkerConfig,
     BaseWorkerConfig,

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from llmling import BasePrompt
 from llmling.config.models import ToolConfig
-from pydantic import ConfigDict, Field, ImportString
+from pydantic import ConfigDict, Field, ImportString  # noqa: TC002
 from schemez import Schema
 from typing_extensions import TypeVar
 

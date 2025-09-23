@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Annotated, Literal
 from llmling import ConfigModel
 from llmling.tools.toolsets import ToolSet
 from llmling.utils.importing import import_class
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator  # noqa: TC002
 
 
 if TYPE_CHECKING:

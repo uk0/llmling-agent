@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from slashed import Command, CommandContext, CommandError
+from slashed import Command, CommandContext, CommandError  # noqa: TC002
 from slashed.completers import PathCompleter
 
 from llmling_agent.log import get_logger

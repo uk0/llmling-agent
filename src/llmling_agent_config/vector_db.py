@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import ConfigDict, Field, SecretStr
+from pydantic import ConfigDict, Field, SecretStr  # noqa: TC002
 from pydantic.functional_validators import model_validator
 from schemez import Schema
 

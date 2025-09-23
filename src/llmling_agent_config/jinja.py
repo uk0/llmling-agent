@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling import ConfigModel
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field  # noqa: TC002
 
 from llmling_agent_config.tools import ToolConfig  # noqa: TC001
 

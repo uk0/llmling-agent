@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from rich.tree import Tree
-from slashed import Command, CommandContext, CommandError
+from slashed import Command, CommandContext, CommandError  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.log import get_logger

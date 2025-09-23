@@ -6,7 +6,7 @@ import importlib.util
 from typing import TYPE_CHECKING
 import webbrowser
 
-from slashed import CommandContext, CommandError, SlashedCommand
+from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
 
 
 if TYPE_CHECKING:

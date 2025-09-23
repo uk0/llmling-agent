@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from slashed import Command, CommandContext
+from slashed import Command, CommandContext  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
 from llmling_agent_commands.completers import get_model_names
