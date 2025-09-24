@@ -44,3 +44,5 @@ serve.toml
 .composio.lock
 
 agentops.log
+
+acp_protocol/
