@@ -212,9 +212,7 @@ class LLMlingACPAgent(ACPAgent):
 
     async def authenticate(self, params: AuthenticateRequest) -> None:
         """Authenticate with the agent."""
-        # Basic implementation - no authentication required by default
         logger.info("Authentication requested with method %s", params.method_id)
-
         # In a real implementation, you might validate credentials here
         # For now, we'll just accept all authentication attempts
 
@@ -235,10 +233,8 @@ class LLMlingACPAgent(ACPAgent):
             stop_reason = "end_turn"  # Default stop reason
             async for result in session.process_prompt(params.prompt):
                 if isinstance(result, str):
-                    # Stop reason received
                     stop_reason = result
                     break
-                # Session notification
                 msg = "Sending sessionUpdate notification: %s"
                 logger.info(msg, result.model_dump_json())
                 await self.connection.sessionUpdate(result)
@@ -248,9 +244,8 @@ class LLMlingACPAgent(ACPAgent):
             logger.info("Returning PromptResponse: %s", response.model_dump_json())
         except Exception as e:
             logger.exception("Failed to process prompt for session %s", params.session_id)
-            error_updates = to_session_updates(
-                f"Error processing prompt: {e}", params.session_id
-            )
+            msg = f"Error processing prompt: {e}"
+            error_updates = to_session_updates(msg, params.session_id)
             for update in error_updates:
                 try:
                     await self.connection.sessionUpdate(update)
@@ -470,12 +465,8 @@ class ACPServer:
                 msg = "No agents registered"
                 raise RuntimeError(msg)  # noqa: TRY301
 
-            logger.info(
-                "Starting ACP server with %d agents on stdio: %s",
-                len(self._agents),
-                list(self._agents.keys()),
-            )
-
+            msg = "Starting ACP server with %d agents on stdio: %s"
+            logger.info(msg, len(self._agents), list(self._agents.keys()))
             # Create stdio streams
             reader, writer = await stdio_streams()
 
@@ -492,7 +483,6 @@ class ACPServer:
                     max_tokens=self._max_tokens,
                 )
 
-            # Create ACP connection using external library
             # AgentSideConnection expects (factory, input_stream, output_stream)
             # where input_stream writes to peer and output_stream reads from peer
             AgentSideConnection(create_acp_agent, writer, reader)
@@ -524,7 +514,6 @@ class ACPServer:
             return
 
         self._running = False
-
         logger.info("Shutting down ACP server")
 
         # Cleanup agents
@@ -534,9 +523,7 @@ class ACPServer:
             except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to cleanup agent %s: %s", agent.name, e)
 
-        # Clear registrations
         self._agents.clear()
-
         logger.info("ACP server shutdown complete")
 
     async def __aenter__(self) -> Self:
