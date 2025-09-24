@@ -35,25 +35,6 @@ agents:
       show_context: true  # whether to show conversation context
 ```
 
-## LiteLLM Provider
-Provider using LiteLLM for unified model access.
-
-```yaml
-agents:
-  my-agent:
-    litellm-agent:
-      provider:
-        type: "litellm"
-        name: "litellm-agent"  # optional instance name
-        retries: 3  # max retries for failed calls
-        model: "openai:gpt-5"  # optional model override
-        model_settings:  # additional settings passed to LiteLLM
-          temperature: 0.5
-          presence_penalty: 0
-          frequency_penalty: 0
-          seed: 42
-```
-
 ## Callback Provider
 Provider that uses Python functions for responses.
 
@@ -73,8 +54,6 @@ For common providers, you can use string shortcuts instead of full configuration
 provider: "pydantic_ai"  # Use default AI provider (pydantic-ai
 # or
 provider: "human"  # Use default human provider
-# or
-provider: "litellm"  # Use default LiteLLM provider
 # or
 provider: "path.to.callable"  # Create a CallableProvider
 ```

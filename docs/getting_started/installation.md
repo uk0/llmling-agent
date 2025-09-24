@@ -32,11 +32,6 @@ LLMling-agent provides several optional features that can be installed with extr
   pip install llmling-agent[textual]
   ```
 
-- **LiteLLM Support**:
-  ```bash
-  pip install llmling-agent[litellm]
-  ```
-
 Multiple extras can be combined:
 ```bash
 pip install llmling-agent[ui,markdown,textual]

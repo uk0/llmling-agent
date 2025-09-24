@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 from arize.otel import Transport, register
 from openinference.instrumentation import using_attributes
-from openinference.instrumentation.litellm import LiteLLMInstrumentor
 from openinference.instrumentation.openai import OpenAIInstrumentor
 
 from llmling_agent_config.observability import ArizePhoenixProviderConfig
@@ -44,7 +43,6 @@ class ArizePhoenixProvider(ObservabilityProvider):
         )
 
         # Instrument underlying LLM libraries
-        LiteLLMInstrumentor().instrument(tracer_provider=self._tracer_provider)
         OpenAIInstrumentor().instrument(tracer_provider=self._tracer_provider)
 
     @contextmanager

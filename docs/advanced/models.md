@@ -1,7 +1,5 @@
 # Provider models
 
-While LLMling-agent supports both LiteLLM as well as pydantic-ai, choosing pydantic-ai
-as the provider will give you a lot more features and flexibility.
 
 In addition to the regular pydantic-ai models,
 LLMling-agent supports all model types from [llmling-models](https://github.com/phil65/llmling-models) through YAML configuration. Each model is identified by its `type` field.
@@ -174,7 +172,7 @@ agents:
 
 ## Model Settings
 
-Both providers (PydanticAI and LiteLLM) support common model settings to fine-tune the LLM behavior:
+You can set common model settings to fine-tune the LLM behavior:
 
 ```yaml
 agents:
@@ -213,7 +211,7 @@ agents:
 
   cautious_agent:
     provider:
-      type: litellm
+      type: pydantic_ai
       name: "Careful Claude"
       model: anthropic:claude-sonnet-4-0
       retries: 3
@@ -223,10 +221,6 @@ agents:
         timeout: 120.0    # Longer timeout
 ```
 
-### Provider-Specific Behavior
-
-- **PydanticAI**: Uses settings directly with the underlying model
-- **LiteLLM**: Maps settings to provider-specific parameters (e.g., 'timeout' becomes 'request_timeout')
 
 All settings are optional and providers will use their defaults if not specified.
 

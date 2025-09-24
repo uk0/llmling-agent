@@ -75,9 +75,7 @@ if TYPE_CHECKING:
         UsageLimits,
     )
 
-    AgentType = (
-        Literal["pydantic_ai", "human", "litellm"] | AgentProvider | Callable[..., Any]
-    )
+    AgentType = Literal["pydantic_ai", "human"] | AgentProvider | Callable[..., Any]
 
 logger = get_logger(__name__)
 
@@ -286,17 +284,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
 
                 self._provider = CallbackProvider(
                     provider, name=name, debug=debug, context=ctx
-                )
-            case "litellm":
-                validate_import("litellm", "litellm")
-                from llmling_agent_providers.litellm_provider import LiteLLMProvider
-
-                self._provider = LiteLLMProvider(
-                    name=name,
-                    debug=debug,
-                    retries=retries,
-                    context=ctx,
-                    model=model,
                 )
             case AgentProvider():
                 self._provider = provider
@@ -565,11 +552,6 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 from llmling_agent_providers.human import HumanProvider
 
                 self._provider = HumanProvider(name=name, debug=debug)
-            case "litellm":
-                validate_import("litellm", "litellm")
-                from llmling_agent_providers.litellm_provider import LiteLLMProvider
-
-                self._provider = LiteLLMProvider(model=model, name=name, debug=debug)
             case Callable():
                 from llmling_agent_providers.callback import CallbackProvider
 
@@ -1388,8 +1370,8 @@ if __name__ == "__main__":
     async def main():
         async with Agent[None](model=_model, tools=["webbrowser.open"]) as agent:
             agent.tool_used.connect(print)
-            async with agent.run_stream(sys_prompt) as stream:
-                async for chunk in stream.stream_output():
+            async with agent.iterate_run(sys_prompt) as stream:
+                async for chunk in stream:
                     print(chunk)
 
     asyncio.run(main())

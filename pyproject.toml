@@ -35,7 +35,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "llmling-agent"
-description = "A brand new AI framework.  Fully async. Excellently typed. Pydantic-Ai + LiteLLM support. Human in the loop. Unique messaging features."
+description = "A brand new AI framework.  Fully async. Excellently typed. MCP & ACP Integration. Human in the loop. Unique messaging features."
 authors = [
     { name = "Philipp Temminghoff", email = "philipptemminghoff@googlemail.com" },
 ]
@@ -129,7 +129,6 @@ arize = [
     "arize",
     "arize-otel",
     "arize-phoenix-otel",
-    "openinference-instrumentation-litellm",
     "openinference-instrumentation-openai",
 ]
 mlflow = ["mlflow>=2.20.1; python_version < '3.14'"]
@@ -193,8 +192,6 @@ markers = [
 ]
 filterwarnings = [
     "ignore::DeprecationWarning:pydantic.*:",
-    "ignore::UserWarning:pydantic.*:",        # caused by litellm
-    "ignore::DeprecationWarning:litellm.*:",
     "ignore::DeprecationWarning:typer.*",
 ]
 

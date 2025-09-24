@@ -66,8 +66,7 @@ Flexible provider system decoupling agent logic from AI implementation.
 Humans, LLM libraries and Callables can all be used as the "Agent" brain and be switched flawlessly, allowing unique AI-Human interactions.
 
 - Modular provider architecture
-- First-class Pydantic-AI support (recommended)
-- LiteLLM integration for model variety
+- Pydantic-AI backed
 - Human-in-the-loop provider
 - Custom provider support
 - Callable provider
@@ -169,7 +168,7 @@ Rich patterns for agent interaction and collaboration:
 [step_12]
 label = "Multi-modal support"
 content = """
-Both LiteLLM and Pydantic-AI (using a workaround) support Image input.
+Depending on model capabilities, Image input and Audio input are supported.
 Additional content types will be integrated soon!
 """
 

@@ -143,7 +143,6 @@
                 "mapping": {
                   "callback": "#/$defs/CallbackProviderConfig",
                   "human": "#/$defs/HumanProviderConfig",
-                  "litellm": "#/$defs/LiteLLMProviderConfig",
                   "pydantic_ai": "#/$defs/PydanticAIProviderConfig"
                 },
                 "propertyName": "type"
@@ -156,9 +155,6 @@
                   "$ref": "#/$defs/HumanProviderConfig"
                 },
                 {
-                  "$ref": "#/$defs/LiteLLMProviderConfig"
-                },
-                {
                   "$ref": "#/$defs/CallbackProviderConfig"
                 }
               ]
@@ -166,8 +162,7 @@
             {
               "enum": [
                 "pydantic_ai",
-                "human",
-                "litellm"
+                "human"
               ],
               "type": "string"
             }
@@ -4373,65 +4368,6 @@
         }
       },
       "title": "LangsmithProviderConfig",
-      "type": "object"
-    },
-    "LiteLLMProviderConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for LiteLLM-based provider.",
-      "properties": {
-        "type": {
-          "const": "litellm",
-          "default": "litellm",
-          "description": "LiteLLM provider.",
-          "title": "Type",
-          "type": "string"
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional name for the provider instance.",
-          "title": "Name"
-        },
-        "model_settings": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ModelSettings"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional settings to configure the LLM behavior."
-        },
-        "retries": {
-          "default": 1,
-          "description": "Maximum retries for model calls.",
-          "title": "Retries",
-          "type": "integer"
-        },
-        "model": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional model name to use. If not specified, uses default model.",
-          "title": "Model"
-        }
-      },
-      "title": "LiteLLMProviderConfig",
       "type": "object"
     },
     "LocalWhisperConfig": {

@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
 
 ToolConfirmationMode = Literal["always", "never", "per_tool"]
-ProviderName = Literal["pydantic_ai", "human", "litellm"]
+ProviderName = Literal["pydantic_ai", "human"]
 
 logger = logging.getLogger(__name__)
 
@@ -272,7 +272,6 @@ class AgentConfig(NodeConfig):
         from llmling_agent_config.providers import (
             CallbackProviderConfig,
             HumanProviderConfig,
-            LiteLLMProviderConfig,
             PydanticAIProviderConfig,
         )
 
@@ -283,10 +282,6 @@ class AgentConfig(NodeConfig):
                     provider_config = PydanticAIProviderConfig(model=self.model)
                 case "human":
                     provider_config = HumanProviderConfig()
-                case "litellm":
-                    provider_config = LiteLLMProviderConfig(
-                        model=self.model if isinstance(self.model, str) else None
-                    )
                 case _:
                     try:
                         fn = import_callable(provider_config)

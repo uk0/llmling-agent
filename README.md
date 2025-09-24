@@ -34,7 +34,7 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 - 🛡️ Complete agent defintion via YAML files including extensive JSON schema to help with creating configurations.
 - 🔒 Leveraging the complete pydantic-based type-safe stack and bringing it to the multi-agent world
 - 🔌 Agent MCP server support, initialized when entering the async context.
-- 👁️ Multi-modal support for both LiteLLM and Pydantic-AI (currently Images and PDFs if model support is given)
+- 👁️ Multi-modal support (currently Images and PDFs if model support is given)
 - 💾 Storage providers to allow writing to local files, databases, etc. with many customizable backends. Log to SQL databases and pretty-print to a file according to your own wishes.
 - 🧩 Support for creating "description prompts" for many common python type(s / instances). Your agent understands common datatypes.
 - 🎮 Complete integrated command sytem to control agents from prompt-based interfaces
@@ -95,17 +95,6 @@ This creates a temporary agent ready for chat - no configuration needed!
 The according API keys need to be set as environment variables.
 
 Use `help` to see what commands are at your disposal.
-
-## Provider support
-
-| Provider Type | Streaming Support | Multi-Modal Support | Structured Response Support | Dependency injection for tool usage |
-|--------------|------------------|---------------------|---------------------------| --------------------------------- |
-| PydanticAI | Yes | (Model dependent) | Yes | Yes |
-| LiteLLM | Yes | (Model dependent) | Yes | Yes |
-| Human-in-the-loop | Yes (but more a gimmick) | No | Yes | N/A |
-| Callable-based | (Depends on callback) | (Depends on callback) | Yes | N/A |
-
-(Multi-modal support (Images & PDF) in PydanticAI and LiteLLM depends on the underlying model's capabilities)
 
 
 ## 🚀 Quick Examples

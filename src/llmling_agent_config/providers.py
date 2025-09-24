@@ -103,45 +103,6 @@ class PydanticAIProviderConfig(BaseProviderConfig):
         )
 
 
-class LiteLLMProviderConfig(BaseProviderConfig):
-    """Configuration for LiteLLM-based provider."""
-
-    type: Literal["litellm"] = Field("litellm", init=False)
-    """LiteLLM provider."""
-
-    retries: int = 1
-    """Maximum retries for model calls."""
-
-    model: str | None = None
-    """Optional model name to use. If not specified, uses default model."""
-
-    def get_provider(self) -> AgentProvider:
-        """Create PydanticAI provider instance."""
-        from llmling_agent_providers.litellm_provider import LiteLLMProvider
-
-        settings = {}
-        if self.model_settings:
-            settings = {
-                "max_output_tokens": self.model_settings.max_output_tokens,
-                "temperature": self.model_settings.temperature,
-                "top_p": self.model_settings.top_p,
-                "request_timeout": self.model_settings.timeout,  # different name!
-                "presence_penalty": self.model_settings.presence_penalty,
-                "frequency_penalty": self.model_settings.frequency_penalty,
-                "seed": self.model_settings.seed,
-            }
-            # Remove None values
-            settings = {k: v for k, v in settings.items() if v is not None}
-
-        name = self.name or "ai-agent"
-        return LiteLLMProvider(
-            name=name,
-            model=self.model,
-            retries=self.retries,
-            model_settings=settings,
-        )
-
-
 class HumanProviderConfig(BaseProviderConfig):
     """Configuration for human-in-the-loop provider.
 
@@ -193,10 +154,7 @@ class CallbackProviderConfig[TResult](BaseProviderConfig):
 
 # The union type used in AgentConfig
 ProviderConfig = Annotated[
-    PydanticAIProviderConfig
-    | HumanProviderConfig
-    | LiteLLMProviderConfig
-    | CallbackProviderConfig,
+    PydanticAIProviderConfig | HumanProviderConfig | CallbackProviderConfig,
     Field(discriminator="type"),
 ]
 

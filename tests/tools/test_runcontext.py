@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
 
 from pydantic_ai import RunContext
 import pytest
@@ -56,7 +56,7 @@ async def test_tool_context_injection():
     # Create minimal config
     # Create agent with dependencies
     test_deps = {"key": "value"}
-    context = AgentContext[Any].create_default("test_agent")
+    context = AgentContext[Any].create_default("test")
     context.data = test_deps
     async with Agent[None](model=MODEL) as agent:
         agent.context = context
@@ -74,7 +74,7 @@ async def test_tool_context_injection():
         assert deps_received.data == test_deps, "Wrong dependencies received"
 
         # Verify agent context
-        assert deps_received.node_name == "test_agent"
+        assert deps_received.node_name == "test"
 
 
 @pytest.mark.asyncio
@@ -90,7 +90,7 @@ async def test_plain_tool_no_context():
         return f"Got arg: {arg}"
 
     async with Agent[None](model=MODEL) as agent:
-        agent.context = AgentContext.create_default("test_agent")
+        agent.context = AgentContext.create_default("test")
         agent.tools.register_tool(plain_tool, enabled=True)
 
         # Should work without error
@@ -99,13 +99,11 @@ async def test_plain_tool_no_context():
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("provider", ["pydantic_ai", "litellm"])
-async def test_capability_tools(provider: Literal["pydantic_ai", "litellm"]):
+async def test_capability_tools():
     """Test that capability tools work with AgentContext."""
     async with AgentPool[None]() as pool:
         agent = await pool.add_agent(
-            name="test_agent",
-            provider=provider,
+            name="test",
             model=MODEL,
             capabilities=Capabilities(can_list_agents=True),
         )
@@ -113,20 +111,10 @@ async def test_capability_tools(provider: Literal["pydantic_ai", "litellm"]):
             "Get available agents using the list_agents tool and return all names."
         )
         assert agent.name in str(result.content)
+        caps = Capabilities(can_delegate_tasks=True)
+        agent_2 = await pool.add_agent(name="test_2", model=MODEL, capabilities=caps)
 
-        agent_2 = await pool.add_agent(
-            name="test_agent_2",
-            provider=provider,
-            model=MODEL,
-            capabilities=Capabilities(can_delegate_tasks=True),
-        )
-
-        await pool.add_agent(
-            "helper",
-            system_prompt="You help with tasks",
-            model=MODEL,
-            provider=provider,
-        )
+        await pool.add_agent("helper", system_prompt="You help with tasks", model=MODEL)
         result = await agent_2.run("Delegate 'say hello' to agent with name `helper`")
         assert result.tool_calls
         assert result.tool_calls[0].tool_name == "delegate_to"

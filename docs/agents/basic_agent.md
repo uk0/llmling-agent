@@ -3,7 +3,7 @@
 The basic Agent class is our core implementation of an Agent.
 What sets this agent apart is that it has a concept of pluggable "providers". A provider can either be:
 
-- An LLM ( currently supported are Pydantic-AI (recommended) as well as LiteLLM)
+- An LLM ( currently backed by Pydantic-AI)
 - A simple Python Callable which gets the prompt as well as the context object as input
 - A Human! Right now, its simple, but providers will also be the "default" UI layer.
 - A FastAPI server as a provider is also planned

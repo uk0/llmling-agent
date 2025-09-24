@@ -428,8 +428,6 @@ class AgentsManifest(Schema):
             match agent_config.provider:
                 case "pydantic_ai":
                     providers.add("pydantic_ai")
-                case "litellm":
-                    providers.add("litellm")
                 case BaseProviderConfig():
                     providers.add(agent_config.provider.type)
         return providers

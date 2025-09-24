@@ -18,7 +18,7 @@ GroupBy = Literal["agent", "model", "hour", "day"]
 OutputFormat = Literal["json", "yaml", "table", "text"]
 
 # Provider types
-Provider = Literal["pydantic_ai", "litellm"]
+Provider = Literal["pydantic_ai"]
 
 # Merge methods for pull requests
 MergeMethod = Literal["merge", "squash", "rebase"]

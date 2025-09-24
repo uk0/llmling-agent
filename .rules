@@ -23,7 +23,6 @@
 - `slashed`: Slash command system for interactive sessions
 
 ### Optional Integrations
-- `litellm`: Multi-provider LLM support
 - `fastapi` + `uvicorn`: Web server capabilities
 - `mcp`: Model Context Protocol support
 
@@ -113,7 +112,7 @@ src/
 ├── llmling_agent_models/       # Model abstractions
 ├── llmling_agent_observability/ # Observability providers (Logfire, etc.)
 ├── llmling_agent_prompts/      # Prompt hub integrations
-├── llmling_agent_providers/    # LLM providers (PydanticAI, LiteLLM, Human)
+├── llmling_agent_providers/    # LLM providers (PydanticAI, Human, ...)
 ├── llmling_agent_resources/    # Resource management
 ├── llmling_agent_running/      # Execution and runtime
 ├── llmling_agent_server/       # Web server and API

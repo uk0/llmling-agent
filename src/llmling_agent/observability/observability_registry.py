@@ -133,8 +133,6 @@ class ObservabilityRegistry:
             match library:
                 case "pydantic_ai":
                     import pydantic_ai  # noqa
-                case "litellm":
-                    import litellm  # noqa
 
         # Configure each provider
         for provider_config in observability_config.providers:

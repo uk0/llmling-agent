@@ -54,7 +54,7 @@ agents:
 
   validator:
     provider:
-       type: litellm
+       type: pydantic_ai
        model: openai:gpt-5
     result_type:  # Inline definition
       type: inline

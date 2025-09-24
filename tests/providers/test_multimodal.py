@@ -5,7 +5,7 @@ from llmling_agent.models.content import ImageURLContent
 
 
 @pytest.mark.asyncio
-async def test_litellm_vision():
+async def test_vision():
     """Test basic vision capability with a small, public image."""
     agent = Agent[None](provider="pydantic_ai", name="test-vision", model="gpt-5")
 

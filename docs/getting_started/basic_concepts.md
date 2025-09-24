@@ -10,7 +10,6 @@ Currently LLMling-Agents are backed by 4 possible providers:
 - AI Provider: Uses pydantic-ai and language models
 - Human Provider: Gets responses through human input
 - Callback Provider: Uses Python functions to process prompts to output
-- LiteLLM Provider: Uses LiteLLM for model access
 
 Key aspects:
 
@@ -81,7 +80,6 @@ Providers implement the actual "agent behavior". The Agent class provides the fr
 - **AI Provider**: Uses pydantic-ai and language models
 - **Human Provider**: Gets responses through human input
 - **Callback Provider**: Uses Python functions
-- **LiteLLM Provider**: Uses LiteLLM for model access. (still prototype-ish)
 
 ### Pools
 A Pool is a collection of agents that can:
