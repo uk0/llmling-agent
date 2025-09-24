@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Annotated, Any
 
+import anyenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Response
 from fastapi.responses import StreamingResponse
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
                         data = line[6:]  # Remove "data: " prefix
                         if data == "[DONE]":
                             break
-                        chunk = json.loads(data)
+                        chunk = anyenv.load_json(data)
                         delta = chunk["choices"][0]["delta"]
                         if "content" in delta:
                             print(delta["content"], end="", flush=True)

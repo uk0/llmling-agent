@@ -8,6 +8,7 @@ import json
 import logging
 from typing import Any, Literal, Protocol
 
+import anyenv
 from pydantic import BaseModel, ValidationError
 
 from .exceptions import RequestError
@@ -112,7 +113,7 @@ class Connection:
                 if not line:
                     break
                 try:
-                    message = json.loads(line)
+                    message = anyenv.load_json(line)
                 except Exception:
                     # Align with Rust/TS: on parse error,
                     # do not send a response; just skip
@@ -150,7 +151,7 @@ class Connection:
             }).to_error_obj()
         except Exception as err:  # noqa: BLE001
             try:
-                data = json.loads(str(err))
+                data = anyenv.load_json(str(err))
             except Exception:  # noqa: BLE001
                 data = {"details": str(err)}
             payload["error"] = RequestError.internal_error(data).to_error_obj()
