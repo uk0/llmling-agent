@@ -42,7 +42,7 @@ from llmling_agent_config.mcp_server import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from acp.acp_types import ContentBlock, MCPServer
+    from acp.acp_types import ContentBlock, MCPServer, ToolCallStatus
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -312,7 +312,9 @@ class FileSystemBridge:
 
     @staticmethod
     def create_write_request(
-        path: str, content: str, session_id: str
+        path: str,
+        content: str,
+        session_id: str,
     ) -> WriteTextFileRequest:
         """Create a write file request.
 
@@ -328,7 +330,9 @@ class FileSystemBridge:
 
     @staticmethod
     def create_permission_request(
-        operation: str, details: dict[str, Any], session_id: str
+        operation: str,
+        details: dict[str, Any],
+        session_id: str,
     ) -> RequestPermissionRequest:
         """Create a permission request for filesystem operation.
 
@@ -413,7 +417,7 @@ def format_tool_call_for_acp(
     tool_input: dict[str, Any],
     tool_output: Any,
     session_id: str,
-    status: str = "completed",
+    status: ToolCallStatus = "completed",
 ) -> SessionNotification:
     """Format tool execution as ACP tool call update.
 

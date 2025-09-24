@@ -505,7 +505,7 @@ class ACPSession:
                                 tool_input=tool_event.part.args_as_dict(),
                                 tool_output=None,  # Not available yet
                                 session_id=self.session_id,
-                                status="running",
+                                status="pending",
                             )
                             yield tool_notification
 
@@ -593,7 +593,7 @@ class ACPSession:
                 tool_input=tool_params,
                 tool_output=f"Error: {e}",
                 session_id=self.session_id,
-                status="error",
+                status="failed",
             )
 
             yield error_notification

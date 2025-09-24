@@ -345,7 +345,7 @@ async def _create_tool_error_notification(
         tool_input=params,
         tool_output=f"Error: {error}",
         session_id=session_id,
-        status="error",
+        status="failed",
     )
 
 

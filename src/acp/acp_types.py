@@ -66,3 +66,5 @@ MCPServer = HttpMcpServer | SseMcpServer | StdioMcpServer
 StopReason = Literal[
     "end_turn", "max_tokens", "max_turn_requests", "refusal", "cancelled"
 ]
+
+ToolCallStatus = Literal["pending", "in_progress", "completed", "failed"]
