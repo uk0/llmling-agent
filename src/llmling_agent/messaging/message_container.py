@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+DEFAULT_TOKEN_MODEL = "gpt-3.5-turbo"
 
 
 class ChatMessageContainer(EventedList[ChatMessage[Any]]):
@@ -67,7 +68,7 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
             if fallback_model:
                 model_name = fallback_model
             else:
-                model_name = next((m.model for m in self if m.model), "gpt-3.5-turbo")
+                model_name = next((m.model for m in self if m.model), DEFAULT_TOKEN_MODEL)
             contents = [str(msg.content) for msg in msgs]
             total += sum(batch_count_tokens(contents, model_name))
 

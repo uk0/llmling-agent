@@ -228,7 +228,7 @@ agent.connect_to(
 ```yaml
 connections:
   - type: node
-    name: gpt4_agent
+    name: gpt5_mini_agent
     # Stop this connection if too expensive
     stop_condition:
       type: cost_limit

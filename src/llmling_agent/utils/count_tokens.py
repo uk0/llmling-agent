@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+DEFAULT_TOKEN_MODEL = "gpt-3.5-turbo"
+
 
 @lru_cache
 def has_tiktoken() -> bool:
@@ -30,7 +32,7 @@ def count_tokens(text: str, model: str | None = None) -> int:
     if has_tiktoken():
         import tiktoken
 
-        encoding = tiktoken.encoding_for_model(model or "gpt-3.5-turbo")
+        encoding = tiktoken.encoding_for_model(model or DEFAULT_TOKEN_MODEL)
         return len(encoding.encode(text))
 
     # Fallback: very rough approximation
@@ -54,7 +56,7 @@ def batch_count_tokens(texts: Sequence[str], model: str | None = None) -> list[i
     if has_tiktoken():
         import tiktoken
 
-        encoding = tiktoken.encoding_for_model(model or "gpt-3.5-turbo")
+        encoding = tiktoken.encoding_for_model(model or DEFAULT_TOKEN_MODEL)
         return [len(encoding.encode(text)) for text in texts]
 
     return [count_tokens(text) for text in texts]

@@ -27,8 +27,8 @@ os.environ["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY", "your_api_key_he
 PROMPT = """Please perform the following steps:
 
 1. Create two agents:
-   - Name: "gpt35_agent" using model "openai:gpt-3.5-turbo"
-   - Name: "gpt4_agent" using model "openai:gpt-5-mini"
+   - Name: "gpt5_agent" using model "openai:gpt-5"
+   - Name: "gpt5_mini_agent" using model "openai:gpt-5-mini"
 
 2. Create a parallel team with the name "comparison_team".
    It should contain both agents just created.

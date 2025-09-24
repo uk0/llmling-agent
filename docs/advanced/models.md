@@ -31,7 +31,7 @@ agents:
       type: fallback
       models:
         - openai:gpt-4          # First choice
-        - openai:gpt-3.5-turbo  # Fallback option
+        - openai:gpt-5-mini  # Fallback option
         - anthropic:claude-2    # Last resort
 ```
 
@@ -46,7 +46,7 @@ agents:
       type: cost-optimized
       models:
         - openai:gpt-4
-        - openai:gpt-3.5-turbo
+        - openai:gpt-5-mini
       max_input_cost: 0.1     # Maximum USD per request
       strategy: cheapest_possible  # Or best_within_budget
 ```
@@ -78,11 +78,11 @@ agents:
       type: delegation
       selector_model: openai:gpt-4-turbo
       models:
-        - openai:gpt-4
-        - openai:gpt-3.5-turbo
+        - openai:gpt-5
+        - openai:gpt-5-mini
       selection_prompt: |
-        Pick gpt-4 for complex tasks,
-        gpt-3.5-turbo for simple queries.
+        Pick gpt-5 for complex tasks,
+        gpt-5-mini for simple queries.
 ```
 
 ### Input Model
@@ -152,10 +152,10 @@ agents:
       main_model: openai:gpt-4
       pre_prompt:
         text: "Expand this question: {input}"
-        model: openai:gpt-3.5-turbo
+        model: openai:gpt-5-mini
       post_prompt:
         text: "Summarize response: {output}"
-        model: openai:gpt-3.5-turbo
+        model: openai:gpt-5-mini
 ```
 
 ## Common Settings

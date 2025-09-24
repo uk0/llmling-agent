@@ -321,7 +321,7 @@ if __name__ == "__main__":
 
     async def main():
         # Create agent with LiteLLM provider
-        agent = Agent[Any](provider="litellm", model="openai/gpt-3.5-turbo", name="test")
+        agent = Agent[Any](provider="litellm", model="openai/gpt-5-mini", name="test")
 
         # Test normal completion
         print("\nNormal completion:")

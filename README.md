@@ -195,8 +195,8 @@ agents:
         type: "fallback"  # Lot of special "meta-models" included out of the box!
         models:  # Try models in sequence
           - "openai:gpt-4"
-          - "openai:gpt-3.5-turbo"
-          - "anthropic:claude-2"
+          - "openai:gpt-5-mini"
+          - "anthropic:claude-3.7"
       output_retries: 3  # Max retries for result validation
       defer_model_check: false  # Whether to defer model evaluation
       validation_enabled: true  # Whether to validate outputs

@@ -42,7 +42,7 @@ agents:
   interactive:
     model:
       type: "user-select"
-      models: ["openai:gpt-4", "openai:gpt-3.5-turbo"]
+      models: ["openai:gpt-4", "openai:gpt-5-mini"]
       prompt_template: "🤖 Choose model for: {prompt}"
       input_prompt: "Enter model number (0-{max}): "
       handler: "llmling_models:DefaultInputHandler"
@@ -59,8 +59,8 @@ agents:
       type: "fallback"
       models:
         - "openai:gpt-4"         # Try first
-        - "openai:gpt-3.5-turbo" # Fallback
-        - "anthropic:claude-2"    # Last resort
+        - "openai:5-mini"        # Fallback
+        - "anthropic:claude-2"   # Last resort
 ```
 
 ### Cost-Optimized Model
@@ -70,7 +70,7 @@ agents:
   budget_aware:
     model:
       type: "cost-optimized"
-      models: ["openai:gpt-4", "openai:gpt-3.5-turbo"]
+      models: ["openai:gpt-4", "openai:5-mini"]
       max_input_cost: 0.1  # USD per request
       strategy: "best_within_budget"  # or "cheapest_possible"
 ```
@@ -96,8 +96,8 @@ agents:
     model:
       type: "delegation"
       selector_model: "openai:gpt-4-turbo"
-      models: ["openai:gpt-4", "openai:gpt-3.5-turbo"]
-      selection_prompt: "Pick gpt-4 for complex tasks, gpt-3.5-turbo for simple queries."
+      models: ["openai:gpt-4", "openai:gpt-5-mini"]
+      selection_prompt: "Pick gpt-4 for complex tasks, gpt-5-mini for simple queries."
 ```
 
 ## Wrapper Models
