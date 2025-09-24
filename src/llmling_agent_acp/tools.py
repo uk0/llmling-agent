@@ -36,6 +36,19 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+OPTIONS = [
+    PermissionOption(
+        option_id="allow_once",
+        name="Allow Once",
+        kind="permission",
+    ),
+    PermissionOption(
+        option_id="allow_session",
+        name="Allow for Session",
+        kind="permission",
+    ),
+]
+
 
 # Create a wrapper that intercepts file operations
 class ACPFileSystemTool:
@@ -174,18 +187,7 @@ class ACPToolBridge:
 
             # If it's a file operation, add more specific options
             if operation_type == "file_access":
-                options.extend([
-                    PermissionOption(
-                        option_id="allow_once",
-                        name="Allow Once",
-                        kind="permission",
-                    ),
-                    PermissionOption(
-                        option_id="allow_session",
-                        name="Allow for Session",
-                        kind="permission",
-                    ),
-                ])
+                options.extend(OPTIONS)
 
             request = RequestPermissionRequest(
                 session_id=session_id,

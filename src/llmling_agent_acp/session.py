@@ -256,7 +256,7 @@ class ACPSession:
             response_parts = []
             msg = "Starting agent.iterate_run for session %s with prompt: %r"
             logger.info(msg, self.session_id, prompt[:100])
-            logger.info("Agent model: %s", getattr(self.agent, "model_name", "unknown"))
+            logger.info("Agent model: %s", self.agent.model_name)
 
             async with self.agent.iterate_run(prompt) as agent_run:
                 logger.info("Agent run started for session %s", self.session_id)

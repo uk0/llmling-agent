@@ -10,11 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from acp import (
-    Client,
-    ReadTextFileResponse,
-    RequestPermissionResponse,
-)
+from acp import Client, ReadTextFileResponse, RequestPermissionResponse
 from acp.schema import AllowedOutcome, DeniedOutcome
 from llmling_agent.log import get_logger
 
