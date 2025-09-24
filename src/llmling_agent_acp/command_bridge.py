@@ -263,14 +263,9 @@ class ACPCommandBridge:
         Returns:
             CommandContext for slashed command execution
         """
-        # Get agent context from session
-        agent_context = session.agent.context
-
-        # Create command context - cast to satisfy type checker
-        command_store: CommandStore = self.command_store
-        return command_store.create_context(
-            data=agent_context,
-            output_writer=output_writer,  # type: ignore
+        return self.command_store.create_context(
+            data=session.agent.context,
+            output_writer=output_writer,
         )
 
     def get_commands_by_category(
@@ -285,15 +280,10 @@ class ACPCommandBridge:
             List of commands in the category
         """
         commands = []
-
         for command in self.command_store._commands.values():
-            cmd_category = getattr(command, "category", None)
-
-            if category is None or cmd_category == category:
-                acp_command = self._convert_command(command)
-                if acp_command:
+            if category is None or command.category == category:  # noqa: SIM102
+                if acp_command := self._convert_command(command):
                     commands.append(acp_command)
-
         return commands
 
     def update_commands(self, new_commands: list[BaseCommand]) -> None:
@@ -304,8 +294,6 @@ class ACPCommandBridge:
         """
         for command in new_commands:
             self.command_store.register_command(command)
-
-        # Notify sessions about command changes
         self._notify_command_update()
 
     def register_update_callback(self, callback: Callable[[], None]) -> None:
