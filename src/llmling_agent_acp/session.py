@@ -105,48 +105,32 @@ class ACPSession:
         if not self.mcp_servers:
             return
 
-        logger.info(
-            "Initializing %d MCP servers for session %s",
-            len(self.mcp_servers),
-            self.session_id,
+        msg = "Initializing %d MCP servers for session %s"
+        logger.info(msg, len(self.mcp_servers), self.session_id)
+        server_configs = [
+            convert_acp_mcp_server_to_config(server) for server in self.mcp_servers
+        ]
+
+        # Initialize MCP manager with converted configs
+        self.mcp_manager = MCPManager(
+            name=f"session_{self.session_id}",
+            servers=server_configs,
+            context=self.agent.context,
         )
-
         try:
-            # Convert ACP McpServer configs to our format
-            server_configs = [
-                convert_acp_mcp_server_to_config(server) for server in self.mcp_servers
-            ]
-
-            # Initialize MCP manager with converted configs
-            self.mcp_manager = MCPManager(
-                name=f"session_{self.session_id}",
-                servers=server_configs,
-                context=self.agent.context,
-            )
-
-            # Start MCP manager and get tools
+            # Start MCP manager and, fetch and add tools
             await self.mcp_manager.__aenter__()
-
-            # Add MCP tools to the agent's tool system
             mcp_tools = await self.mcp_manager.get_tools()
-
-            # Register MCP tools with the agent
             for tool in mcp_tools:
                 self.agent.tools.register_tool(tool)
-
-            logger.info(
-                "Added %d MCP tools to agent for session %s",
-                len(mcp_tools),
-                self.session_id,
-            )
-
+            msg = "Added %d MCP tools to agent for session %s"
+            logger.info(msg, len(mcp_tools), self.session_id)
             # Update available commands since new tools may affect command context
             await self.send_available_commands_update()
 
         except Exception:
-            logger.exception(
-                "Failed to initialize MCP servers for session %s", self.session_id
-            )
+            msg = "Failed to initialize MCP servers for session %s"
+            logger.exception(msg, self.session_id)
             # Don't fail session creation, just log the error
             self.mcp_manager = None
 
@@ -859,6 +843,5 @@ class ACPSessionManager:
                 try:
                     await session.send_available_commands_update()
                 except Exception:
-                    logger.exception(
-                        "Failed to update commands for session %s", session.session_id
-                    )
+                    msg = "Failed to update commands for session %s"
+                    logger.exception(msg, session.session_id)

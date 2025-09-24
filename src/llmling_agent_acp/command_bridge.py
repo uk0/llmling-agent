@@ -153,15 +153,9 @@ class ACPCommandBridge:
         """
         # For now, create a simple text input hint
         # This could be enhanced to parse actual parameter signatures
-
         try:
             sig = inspect.signature(command.execute)
-            params = [
-                name
-                for name, param in sig.parameters.items()
-                if name not in ("self", "ctx")
-            ]
-
+            params = [n for n, _ in sig.parameters.items() if n not in ("self", "ctx")]
             if params:
                 hint = f"Parameters: {', '.join(params)}"
                 return AvailableCommandInput(root=CommandInputHint(hint=hint))
@@ -181,16 +175,6 @@ class ACPCommandBridge:
             True if command should be available
         """
         # Basic filtering - can be enhanced
-        category = getattr(command, "category", None)
-
-        # Pool commands require pool context
-        if category == "pool" and not context.pool:
-            return False
-
-        # Tool commands require tool capabilities
-        if category == "tools":
-            return getattr(context.capabilities, "can_access_tools", True)
-
         return True
 
     def is_slash_command(self, text: str) -> bool:
