@@ -124,7 +124,7 @@ class Connection:
         except asyncio.CancelledError:
             return
 
-    async def _process_message(self, message: dict) -> None:
+    async def _process_message(self, message: dict[str, Any]) -> None:
         method = message.get("method")
         has_id = "id" in message
 
@@ -135,7 +135,7 @@ class Connection:
         elif has_id:
             await self._handle_response(message)
 
-    async def _handle_request(self, message: dict) -> None:
+    async def _handle_request(self, message: dict[str, Any]) -> None:
         """Handle JSON-RPC request."""
         payload = {"jsonrpc": "2.0", "id": message["id"]}
         try:
@@ -157,13 +157,13 @@ class Connection:
             payload["error"] = RequestError.internal_error(data).to_error_obj()
         await self._send_obj(payload)
 
-    async def _handle_notification(self, message: dict) -> None:
+    async def _handle_notification(self, message: dict[str, Any]) -> None:
         """Handle JSON-RPC notification."""
         with contextlib.suppress(Exception):
             # Best-effort; notifications do not produce responses
             await self._handler(message["method"], message.get("params"), True)
 
-    async def _handle_response(self, message: dict) -> None:
+    async def _handle_response(self, message: dict[str, Any]) -> None:
         """Handle JSON-RPC response."""
         fut = self._pending.pop(message["id"], None)
         if fut is None:
@@ -178,7 +178,7 @@ class Connection:
         else:
             fut.future.set_result(None)
 
-    async def _send_obj(self, obj: dict) -> None:
+    async def _send_obj(self, obj: dict[str, Any]) -> None:
         data = (json.dumps(obj, separators=(",", ":")) + "\n").encode("utf-8")
         async with self._write_lock:
             self._writer.write(data)
@@ -193,7 +193,7 @@ class Connection:
     ) -> dict[str, Any]:
         req_id = self._next_request_id
         self._next_request_id += 1
-        fut: asyncio.Future[Any] = asyncio.get_running_loop().create_future()
+        fut: asyncio.Future[dict[str, Any]] = asyncio.get_running_loop().create_future()
         self._pending[req_id] = _Pending(fut)
         await self._send_obj({
             "jsonrpc": "2.0",
@@ -249,9 +249,9 @@ class Client(Protocol):
     ) -> KillTerminalCommandResponse | None: ...
 
     # Extension hooks (optional)
-    async def extMethod(self, method: str, params: dict) -> dict: ...
+    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]: ...
 
-    async def extNotification(self, method: str, params: dict) -> None: ...
+    async def extNotification(self, method: str, params: dict[str, Any]) -> None: ...
 
 
 class Agent(Protocol):
@@ -276,9 +276,9 @@ class Agent(Protocol):
     ) -> SetSessionModeResponse | None: ...
 
     # Extension hooks (optional)
-    async def extMethod(self, method: str, params: dict) -> dict: ...
+    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]: ...
 
-    async def extNotification(self, method: str, params: dict) -> None: ...
+    async def extNotification(self, method: str, params: dict[str, Any]) -> None: ...
 
 
 class AgentSideConnection:
@@ -341,10 +341,10 @@ class AgentSideConnection:
     ) -> CreateTerminalResponse:
         return CreateTerminalResponse(terminal_id="0")
 
-    async def extMethod(self, method: str, params: dict) -> dict:
+    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         return await self._conn.send_request(f"_{method}", params)
 
-    async def extNotification(self, method: str, params: dict) -> None:
+    async def extNotification(self, method: str, params: dict[str, Any]) -> None:
         await self._conn.send_notification(f"_{method}", params)
 
     async def terminalOutput(
@@ -386,7 +386,7 @@ class ClientSideConnection:
         output_stream: asyncio.StreamReader,
     ) -> None:
         # Build client first so handler can delegate
-        client = to_client(self)  # type: ignore[arg-type]
+        client = to_client(self)
         handler = self._create_handler(client)
         self._conn = Connection(handler, input_stream, output_stream)
 
@@ -450,10 +450,10 @@ class ClientSideConnection:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         await self._conn.send_notification(AGENT_METHODS["session_cancel"], dct)
 
-    async def extMethod(self, method: str, params: dict) -> dict:
+    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         return await self._conn.send_request(f"_{method}", params)
 
-    async def extNotification(self, method: str, params: dict) -> None:
+    async def extNotification(self, method: str, params: dict[str, Any]) -> None:
         await self._conn.send_notification(f"_{method}", params)
 
 
@@ -564,9 +564,9 @@ async def _handle_client_extension_methods(
     if isinstance(method, str) and method.startswith("_"):
         ext_name = method[1:]
         if is_notification:
-            await client.extNotification(ext_name, params or {})  # type: ignore[arg-type]
+            await client.extNotification(ext_name, params or {})
             return None
-        return await client.extMethod(ext_name, params or {})  # type: ignore[arg-type]
+        return await client.extMethod(ext_name, params or {})
     return _NO_MATCH
 
 
@@ -681,9 +681,9 @@ async def _handle_agent_ext_methods(
     if isinstance(method, str) and method.startswith("_"):
         ext_name = method[1:]
         if is_notification:
-            await agent.extNotification(ext_name, params or {})  # type: ignore[arg-type]
+            await agent.extNotification(ext_name, params or {})
             return None
-        return await agent.extMethod(ext_name, params or {})  # type: ignore[arg-type]
+        return await agent.extMethod(ext_name, params or {})
     return _NO_MATCH
 
 

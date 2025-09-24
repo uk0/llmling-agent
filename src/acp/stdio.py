@@ -6,7 +6,7 @@ import contextlib
 import logging
 import platform
 import sys
-from typing import cast
+from typing import Any, cast
 
 
 class _WritePipeProtocol(asyncio.BaseProtocol):
@@ -15,12 +15,12 @@ class _WritePipeProtocol(asyncio.BaseProtocol):
         self._paused = False
         self._drain_waiter: asyncio.Future[None] | None = None
 
-    def pause_writing(self) -> None:  # type: ignore[override]
+    def pause_writing(self) -> None:
         self._paused = True
         if self._drain_waiter is None:
             self._drain_waiter = self._loop.create_future()
 
-    def resume_writing(self) -> None:  # type: ignore[override]
+    def resume_writing(self) -> None:
         self._paused = False
         if self._drain_waiter is not None and not self._drain_waiter.done():
             self._drain_waiter.set_result(None)
@@ -54,7 +54,7 @@ class _StdoutTransport(asyncio.BaseTransport):
     def __init__(self) -> None:
         self._is_closing = False
 
-    def write(self, data: bytes) -> None:  # type: ignore[override]
+    def write(self, data: bytes) -> None:
         if self._is_closing:
             return
         try:
@@ -63,21 +63,21 @@ class _StdoutTransport(asyncio.BaseTransport):
         except Exception:
             logging.exception("Error writing to stdout")
 
-    def can_write_eof(self) -> bool:  # type: ignore[override]
+    def can_write_eof(self) -> bool:
         return False
 
-    def is_closing(self) -> bool:  # type: ignore[override]
+    def is_closing(self) -> bool:
         return self._is_closing
 
-    def close(self) -> None:  # type: ignore[override]
+    def close(self) -> None:
         self._is_closing = True
         with contextlib.suppress(Exception):
             sys.stdout.flush()
 
-    def abort(self) -> None:  # type: ignore[override]
+    def abort(self) -> None:
         self.close()
 
-    def get_extra_info(self, name: str, default=None):  # type: ignore[override]
+    def get_extra_info(self, name: str, default: Any = None) -> Any:
         return default
 
 

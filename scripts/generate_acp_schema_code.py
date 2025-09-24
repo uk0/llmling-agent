@@ -45,7 +45,7 @@ def main() -> None:
             "-m",
             "datamodel_code_generator",
             "--input",
-            temp_schema_path,
+            str(temp_schema_path),
             "--input-file-type",
             "jsonschema",
             "--output",
