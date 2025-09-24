@@ -37,6 +37,28 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+# Create a wrapper that intercepts file operations
+class ACPFileSystemTool:
+    """Wrapper for file system operations through ACP client."""
+
+    def __init__(self, original_tool: Tool, bridge: ACPToolBridge):
+        self.original_tool = original_tool
+        self.bridge = bridge
+        self.name = original_tool.name
+        self.description = original_tool.description
+
+    async def __call__(self, **kwargs) -> Any:
+        # Intercept file operations and route through ACP client
+        modified_kwargs = await self._process_file_params(kwargs)
+        return await self.original_tool.execute(**modified_kwargs)
+
+    async def _process_file_params(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Process parameters to handle file operations through ACP."""
+        # This is a simplified implementation
+        # In practice, you'd need more sophisticated file handling
+        return params
+
+
 class ACPToolBridge:
     """Bridges llmling tools with ACP tool call system.
 
@@ -76,7 +98,7 @@ class ACPToolBridge:
 
         try:
             # Send initial tool call notification
-            yield await self._create_tool_start_notification(
+            yield await _create_tool_start_notification(
                 tool, params, session_id, tool_call_id
             )
 
@@ -89,137 +111,19 @@ class ACPToolBridge:
             }
 
             result = await tool.execute(**params)
-            yield await self._create_tool_completion_notification(
+            yield await _create_tool_completion_notification(
                 tool, params, result, session_id, tool_call_id
             )
 
         except Exception as e:
             logger.exception("Tool execution failed: %s", tool.name)
-            yield await self._create_tool_error_notification(
+            yield await _create_tool_error_notification(
                 tool, params, str(e), session_id, tool_call_id
             )
 
         finally:
             # Clean up active tool
             self._active_tools.pop(tool_call_id, None)
-
-    async def _create_tool_start_notification(
-        self,
-        tool: Tool,
-        params: dict[str, Any],
-        session_id: str,
-        tool_call_id: str,
-    ) -> SessionNotification:
-        """Create tool start notification.
-
-        Args:
-            tool: Tool being executed
-            params: Tool parameters
-            session_id: ACP session ID
-            tool_call_id: Unique tool call identifier
-
-        Returns:
-            SessionNotification for tool start
-        """
-        locations = self._extract_file_locations(params)
-        tool_kind = _determine_tool_kind(tool.name)
-
-        tool_call = ToolCall(
-            tool_call_id=tool_call_id,
-            title=f"Execute {tool.name}",
-            status="running",
-            kind=tool_kind,
-            locations=locations,
-            raw_input=params,
-            raw_output=None,
-        )
-
-        return SessionNotification(session_id=session_id, update=tool_call)
-
-    async def _create_tool_completion_notification(
-        self,
-        tool: Tool,
-        params: dict[str, Any],
-        result: Any,
-        session_id: str,
-        tool_call_id: str,
-    ) -> SessionNotification:
-        """Create tool completion notification.
-
-        Args:
-            tool: Tool that was executed
-            params: Tool parameters
-            result: Tool execution result
-            session_id: ACP session ID
-            tool_call_id: Unique tool call identifier
-
-        Returns:
-            SessionNotification for tool completion
-        """
-        return format_tool_call_for_acp(
-            tool_name=tool.name,
-            tool_input=params,
-            tool_output=result,
-            session_id=session_id,
-            status="completed",
-        )
-
-    async def _create_tool_error_notification(
-        self,
-        tool: Tool,
-        params: dict[str, Any],
-        error: str,
-        session_id: str,
-        tool_call_id: str,
-    ) -> SessionNotification:
-        """Create tool error notification.
-
-        Args:
-            tool: Tool that failed
-            params: Tool parameters
-            error: Error message
-            session_id: ACP session ID
-            tool_call_id: Unique tool call identifier
-
-        Returns:
-            SessionNotification for tool error
-        """
-        return format_tool_call_for_acp(
-            tool_name=tool.name,
-            tool_input=params,
-            tool_output=f"Error: {error}",
-            session_id=session_id,
-            status="error",
-        )
-
-    def _extract_file_locations(self, params: dict[str, Any]) -> list[ToolCallLocation]:
-        """Extract file locations from tool parameters.
-
-        Args:
-            params: Tool parameters to analyze
-
-        Returns:
-            List of file locations found in parameters
-        """
-        # Common file parameter names
-        file_param_names = [
-            "path",
-            "file_path",
-            "filepath",
-            "filename",
-            "file",
-            "input_path",
-            "output_path",
-            "source",
-            "destination",
-        ]
-        return [
-            ToolCallLocation(path=param_value)
-            for param_name, param_value in params.items()
-            if param_name.lower() in file_param_names
-            and isinstance(param_value, str)
-            and ("/" in param_value or "\\" in param_value or "." in param_value)
-        ]
 
     def wrap_tool_for_filesystem(self, tool: Tool) -> Tool:
         """Wrap tool to use ACP filesystem operations.
@@ -230,28 +134,6 @@ class ACPToolBridge:
         Returns:
             Wrapped tool that uses ACP filesystem
         """
-
-        # Create a wrapper that intercepts file operations
-        class ACPFileSystemTool:
-            def __init__(self, original_tool: Tool, bridge: ACPToolBridge):
-                self.original_tool = original_tool
-                self.bridge = bridge
-                self.name = original_tool.name
-                self.description = original_tool.description
-
-            async def __call__(self, **kwargs) -> Any:
-                # Intercept file operations and route through ACP client
-                modified_kwargs = await self._process_file_params(kwargs)
-                return await self.original_tool.execute(**modified_kwargs)
-
-            async def _process_file_params(
-                self, params: dict[str, Any]
-            ) -> dict[str, Any]:
-                """Process parameters to handle file operations through ACP."""
-                # This is a simplified implementation
-                # In practice, you'd need more sophisticated file handling
-                return params
-
         wrapper = ACPFileSystemTool(tool, self)
         return Tool.from_callable(wrapper)
 
@@ -350,32 +232,149 @@ class ACPToolBridge:
         logger.info("Cancelled tool call %s", tool_call_id)
         return True
 
-    async def create_tool_progress_update(
-        self,
-        tool_call_id: str,
-        progress_message: str,
-        session_id: str,
-    ) -> SessionNotification:
-        """Create a progress update for a running tool.
 
-        Args:
-            tool_call_id: ID of the tool call
-            progress_message: Progress message to send
-            session_id: ACP session ID
+async def _create_tool_start_notification(
+    tool: Tool,
+    params: dict[str, Any],
+    session_id: str,
+    tool_call_id: str,
+) -> SessionNotification:
+    """Create tool start notification.
 
-        Returns:
-            SessionNotification with progress update
-        """
-        content = TextContent(text=progress_message)
-        update = ToolCallUpdateMessage(
-            tool_call_id=tool_call_id,
-            status="running",
-            content=[ToolCallContent(type="content", content=content)],
-            raw_input=None,
-            raw_output=None,
-        )
+    Args:
+        tool: Tool being executed
+        params: Tool parameters
+        session_id: ACP session ID
+        tool_call_id: Unique tool call identifier
 
-        return SessionNotification(session_id=session_id, update=update)
+    Returns:
+        SessionNotification for tool start
+    """
+    locations = _extract_file_locations(params)
+    tool_kind = _determine_tool_kind(tool.name)
+
+    tool_call = ToolCall(
+        tool_call_id=tool_call_id,
+        title=f"Execute {tool.name}",
+        status="running",
+        kind=tool_kind,
+        locations=locations,
+        raw_input=params,
+        raw_output=None,
+    )
+
+    return SessionNotification(session_id=session_id, update=tool_call)
+
+
+async def create_tool_progress_update(
+    tool_call_id: str,
+    progress_message: str,
+    session_id: str,
+) -> SessionNotification:
+    """Create a progress update for a running tool.
+
+    Args:
+        tool_call_id: ID of the tool call
+        progress_message: Progress message to send
+        session_id: ACP session ID
+
+    Returns:
+        SessionNotification with progress update
+    """
+    content = TextContent(text=progress_message)
+    update = ToolCallUpdateMessage(
+        tool_call_id=tool_call_id,
+        status="running",
+        content=[ToolCallContent(type="content", content=content)],
+    )
+
+    return SessionNotification(session_id=session_id, update=update)
+
+
+async def _create_tool_completion_notification(
+    tool: Tool,
+    params: dict[str, Any],
+    result: Any,
+    session_id: str,
+    tool_call_id: str,
+) -> SessionNotification:
+    """Create tool completion notification.
+
+    Args:
+        tool: Tool that was executed
+        params: Tool parameters
+        result: Tool execution result
+        session_id: ACP session ID
+        tool_call_id: Unique tool call identifier
+
+    Returns:
+        SessionNotification for tool completion
+    """
+    return format_tool_call_for_acp(
+        tool_name=tool.name,
+        tool_input=params,
+        tool_output=result,
+        session_id=session_id,
+        status="completed",
+    )
+
+
+async def _create_tool_error_notification(
+    tool: Tool,
+    params: dict[str, Any],
+    error: str,
+    session_id: str,
+    tool_call_id: str,
+) -> SessionNotification:
+    """Create tool error notification.
+
+    Args:
+        tool: Tool that failed
+        params: Tool parameters
+        error: Error message
+        session_id: ACP session ID
+        tool_call_id: Unique tool call identifier
+
+    Returns:
+        SessionNotification for tool error
+    """
+    return format_tool_call_for_acp(
+        tool_name=tool.name,
+        tool_input=params,
+        tool_output=f"Error: {error}",
+        session_id=session_id,
+        status="error",
+    )
+
+
+def _extract_file_locations(params: dict[str, Any]) -> list[ToolCallLocation]:
+    """Extract file locations from tool parameters.
+
+    Args:
+        params: Tool parameters to analyze
+
+    Returns:
+        List of file locations found in parameters
+    """
+    # Common file parameter names
+    file_param_names = [
+        "path",
+        "file_path",
+        "filepath",
+        "filename",
+        "file",
+        "input_path",
+        "output_path",
+        "source",
+        "destination",
+    ]
+    return [
+        ToolCallLocation(path=param_value)
+        for param_name, param_value in params.items()
+        if param_name.lower() in file_param_names
+        and isinstance(param_value, str)
+        and ("/" in param_value or "\\" in param_value or "." in param_value)
+    ]
 
 
 class ACPToolRegistry:
@@ -473,25 +472,3 @@ class ACPToolRegistry:
         # Execute tool through bridge
         async for notification in self.bridge.execute_tool(tool, params, session_id):
             yield notification
-
-    def get_tool_info(self, name: str) -> dict[str, Any] | None:
-        """Get information about a tool.
-
-        Args:
-            name: Tool name
-
-        Returns:
-            Tool information dictionary or None if not found
-        """
-        tool = self._tools.get(name)
-        if not tool:
-            return None
-
-        permissions = self._tool_permissions.get(name, {})
-
-        return {
-            "name": str(tool),
-            "description": getattr(tool, "description", ""),
-            "requires_permission": permissions.get("requires_permission", False),
-            "filesystem_access": permissions.get("filesystem_access", False),
-        }
