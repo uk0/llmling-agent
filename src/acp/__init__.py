@@ -5,7 +5,6 @@ from .core import (
     AgentSideConnection,
     Client,
     ClientSideConnection,
-    RequestError,
     TerminalHandle,
 )
 from .meta import (
@@ -45,6 +44,7 @@ from .schema import (
     WriteTextFileResponse,
 )
 from .stdio import stdio_streams
+from .exceptions import RequestError
 
 __version__ = "0.0.1"
 

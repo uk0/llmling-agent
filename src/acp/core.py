@@ -6,10 +6,11 @@ import contextlib
 from dataclasses import dataclass
 import json
 import logging
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ValidationError
 
+from .exceptions import RequestError
 from .meta import AGENT_METHODS, CLIENT_METHODS
 from .schema import (
     AuthenticateRequest,
@@ -50,42 +51,7 @@ _AGENT_CONNECTION_ERROR = "AgentSideConnection requires asyncio StreamWriter/Str
 _CLIENT_CONNECTION_ERROR = (
     "ClientSideConnection requires asyncio StreamWriter/StreamReader"
 )
-
-
-class RequestError(Exception):
-    """Raised when a JSON-RPC request fails."""
-
-    def __init__(self, code: int, message: str, data: Any | None = None) -> None:
-        super().__init__(message)
-        self.code = code
-        self.data = data
-
-    @staticmethod
-    def parse_error(data: dict | None = None) -> RequestError:
-        return RequestError(-32700, "Parse error", data)
-
-    @staticmethod
-    def invalid_request(data: dict | None = None) -> RequestError:
-        return RequestError(-32600, "Invalid request", data)
-
-    @staticmethod
-    def method_not_found(method: str) -> RequestError:
-        return RequestError(-32601, "Method not found", {"method": method})
-
-    @staticmethod
-    def invalid_params(data: dict | None = None) -> RequestError:
-        return RequestError(-32602, "Invalid params", data)
-
-    @staticmethod
-    def internal_error(data: dict | None = None) -> RequestError:
-        return RequestError(-32603, "Internal error", data)
-
-    @staticmethod
-    def auth_required(data: dict | None = None) -> RequestError:
-        return RequestError(-32000, "Authentication required", data)
-
-    def to_error_obj(self) -> dict:
-        return {"code": self.code, "message": str(self), "data": self.data}
+ConfirmationMode = Literal["confirm", "yolo", "human"]
 
 
 # --- Transport & Connection ------------------------------------------------------
@@ -452,19 +418,44 @@ class AgentSideConnection:
             WriteTextFileResponse.model_validate(resp) if isinstance(resp, dict) else None
         )
 
-    async def createTerminal(self, params: CreateTerminalRequest) -> TerminalHandle:
-        resp = await self._conn.send_request(
-            CLIENT_METHODS["terminal_create"],
-            params.model_dump(exclude_none=True, exclude_defaults=True),
-        )
-        create_resp = CreateTerminalResponse.model_validate(resp)
-        return TerminalHandle(create_resp.terminal_id, params.session_id, self._conn)
+    # async def createTerminal(self, params: CreateTerminalRequest) -> TerminalHandle:
+    #     resp = await self._conn.send_request(
+    #         CLIENT_METHODS["terminal_create"],
+    #         params.model_dump(exclude_none=True, exclude_defaults=True),
+    #     )
+    #     create_resp = CreateTerminalResponse.model_validate(resp)
+    #     return TerminalHandle(create_resp.terminal_id, params.session_id, self._conn)
+
+    async def createTerminal(
+        self, params: CreateTerminalRequest
+    ) -> CreateTerminalResponse:
+        return CreateTerminalResponse(terminal_id="0")
 
     async def extMethod(self, method: str, params: dict) -> dict:
         return await self._conn.send_request(f"_{method}", params)
 
     async def extNotification(self, method: str, params: dict) -> None:
         await self._conn.send_notification(f"_{method}", params)
+
+    async def terminalOutput(
+        self, params: TerminalOutputRequest
+    ) -> TerminalOutputResponse:
+        return TerminalOutputResponse(output="", truncated=False)
+
+    async def releaseTerminal(
+        self, params: ReleaseTerminalRequest
+    ) -> ReleaseTerminalResponse | None:
+        pass
+
+    async def waitForTerminalExit(
+        self, params: WaitForTerminalExitRequest
+    ) -> WaitForTerminalExitResponse:
+        return WaitForTerminalExitResponse()
+
+    async def killTerminal(
+        self, params: KillTerminalCommandRequest
+    ) -> KillTerminalCommandResponse | None:
+        return KillTerminalCommandResponse()
 
 
 class ClientSideConnection:
