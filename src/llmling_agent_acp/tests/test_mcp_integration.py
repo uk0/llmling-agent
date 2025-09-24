@@ -7,6 +7,9 @@ integrated into ACP sessions and that MCP tools become available to agents.
 from __future__ import annotations
 
 import asyncio
+import sys
+
+import pytest
 
 from acp.schema import EnvVariable, StdioMcpServer
 from llmling_agent import Agent
@@ -46,6 +49,7 @@ async def test_mcp_server_conversion():
     print("✓ MCP server conversion works correctly")
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")
 async def test_session_with_mcp_servers():
     """Test creating an ACP session with MCP servers."""
     print("Testing ACP session with MCP servers...")
@@ -119,6 +123,7 @@ async def test_session_with_mcp_servers():
         raise
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")
 async def test_session_manager_with_mcp():
     """Test session manager creating sessions with MCP servers."""
     print("Testing session manager with MCP servers...")
