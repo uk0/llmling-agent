@@ -58,7 +58,13 @@ ConfirmationMode = Literal["confirm", "yolo", "human"]
 
 JsonValue = Any
 MethodHandler = Callable[[str, JsonValue | None, bool], Awaitable[JsonValue | None]]
-_NO_MATCH = object()
+
+
+class NoMatch:
+    """NoMatch Sentinel."""
+
+
+_NO_MATCH = NoMatch()
 
 
 @dataclass(slots=True)
@@ -181,7 +187,9 @@ class Connection:
 
     # --- Public API --------------------------------------------------------------
 
-    async def send_request(self, method: str, params: JsonValue | None = None) -> Any:
+    async def send_request(
+        self, method: str, params: JsonValue | None = None
+    ) -> dict[str, Any]:
         req_id = self._next_request_id
         self._next_request_id += 1
         fut: asyncio.Future[Any] = asyncio.get_running_loop().create_future()
@@ -301,7 +309,14 @@ class AgentSideConnection:
 
     async def _handle_agent_method(
         self, agent: Agent, method: str, params: Any, is_notification: bool
-    ) -> Any:
+    ) -> (
+        NewSessionResponse
+        | InitializeResponse
+        | PromptResponse
+        | dict[str, Any]
+        | NoMatch
+        | None
+    ):
         # Init/new
         result = await self._handle_agent_init_methods(agent, method, params)
         if result is not _NO_MATCH:
@@ -324,7 +339,7 @@ class AgentSideConnection:
 
     async def _handle_agent_init_methods(
         self, agent: Agent, method: str, params: Any
-    ) -> Any:
+    ) -> NewSessionResponse | InitializeResponse | NoMatch:
         if method == AGENT_METHODS["initialize"]:
             initialize_request = InitializeRequest.model_validate(params)
             return await agent.initialize(initialize_request)
@@ -335,7 +350,7 @@ class AgentSideConnection:
 
     async def _handle_agent_session_methods(
         self, agent: Agent, method: str, params: Any
-    ) -> Any:
+    ) -> None | dict[str, Any] | PromptResponse | NoMatch:
         if method == AGENT_METHODS["session_load"]:
             if not hasattr(agent, "loadSession"):
                 raise RequestError.method_not_found(method)
@@ -361,7 +376,7 @@ class AgentSideConnection:
 
     async def _handle_agent_auth_methods(
         self, agent: Agent, method: str, params: Any
-    ) -> Any:
+    ) -> dict[str, Any] | NoMatch:
         if method == AGENT_METHODS["authenticate"]:
             p = AuthenticateRequest.model_validate(params)
             result = await agent.authenticate(p)
@@ -374,7 +389,7 @@ class AgentSideConnection:
 
     async def _handle_agent_ext_methods(
         self, agent: Agent, method: str, params: Any, is_notification: bool
-    ) -> Any:
+    ) -> dict[str, Any] | NoMatch | None:
         if isinstance(method, str) and method.startswith("_"):
             ext_name = method[1:]
             if is_notification:
@@ -487,7 +502,20 @@ class ClientSideConnection:
     def _create_handler(self, client: Client) -> MethodHandler:
         """Create the method handler for client-side connection."""
 
-        async def handler(method: str, params: Any, is_notification: bool) -> Any:
+        async def handler(
+            method: str, params: Any, is_notification: bool
+        ) -> (
+            WriteTextFileResponse
+            | ReadTextFileResponse
+            | RequestPermissionResponse
+            | SessionNotification
+            | CreateTerminalResponse
+            | TerminalOutputResponse
+            | WaitForTerminalExitResponse
+            | dict[str, Any]
+            | NoMatch
+            | None
+        ):
             return await self._handle_client_method(
                 client, method, params, is_notification
             )
@@ -496,7 +524,18 @@ class ClientSideConnection:
 
     async def _handle_client_method(
         self, client: Client, method: str, params: Any, is_notification: bool
-    ) -> Any:
+    ) -> (
+        WriteTextFileResponse
+        | ReadTextFileResponse
+        | RequestPermissionResponse
+        | SessionNotification
+        | CreateTerminalResponse
+        | TerminalOutputResponse
+        | WaitForTerminalExitResponse
+        | dict[str, Any]
+        | NoMatch
+        | None
+    ):
         """Handle client method calls."""
         # Core session/file methods
         result = await self._handle_client_core_methods(client, method, params)
@@ -516,7 +555,14 @@ class ClientSideConnection:
 
     async def _handle_client_core_methods(
         self, client: Client, method: str, params: Any
-    ) -> Any:
+    ) -> (
+        WriteTextFileResponse
+        | ReadTextFileResponse
+        | RequestPermissionResponse
+        | SessionNotification
+        | NoMatch
+        | None
+    ):
         if method == CLIENT_METHODS["fs_write_text_file"]:
             write_file_request = WriteTextFileRequest.model_validate(params)
             return await client.writeTextFile(write_file_request)
@@ -533,7 +579,14 @@ class ClientSideConnection:
 
     async def _handle_client_terminal_methods(
         self, client: Client, method: str, params: Any
-    ) -> Any:
+    ) -> (
+        WaitForTerminalExitResponse
+        | CreateTerminalResponse
+        | TerminalOutputResponse
+        | None
+        | dict[str, Any]
+        | NoMatch
+    ):
         result = await self._handle_client_terminal_basic(client, method, params)
         if result is not _NO_MATCH:
             return result
@@ -544,7 +597,7 @@ class ClientSideConnection:
 
     async def _handle_client_terminal_basic(
         self, client: Client, method: str, params: Any
-    ) -> Any:
+    ) -> CreateTerminalResponse | TerminalOutputResponse | None | NoMatch:
         if method == CLIENT_METHODS["terminal_create"]:
             if hasattr(client, "createTerminal"):
                 create_request = CreateTerminalRequest.model_validate(params)
@@ -559,7 +612,7 @@ class ClientSideConnection:
 
     async def _handle_client_terminal_lifecycle(  # noqa: PLR0911
         self, client: Client, method: str, params: Any
-    ) -> Any:
+    ) -> dict[str, Any] | WaitForTerminalExitResponse | NoMatch | None:
         if method == CLIENT_METHODS["terminal_release"]:
             if hasattr(client, "releaseTerminal"):
                 release_request = ReleaseTerminalRequest.model_validate(params)
@@ -589,7 +642,7 @@ class ClientSideConnection:
 
     async def _handle_client_extension_methods(
         self, client: Client, method: str, params: Any, is_notification: bool
-    ) -> Any:
+    ) -> NoMatch | dict[str, Any] | None:
         if isinstance(method, str) and method.startswith("_"):
             ext_name = method[1:]
             if is_notification:
