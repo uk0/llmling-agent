@@ -29,13 +29,13 @@ if TYPE_CHECKING:
 
     from pydantic_ai import ModelRequestNode
     from pydantic_ai.agent import CallToolsNode
+    from pydantic_ai.run import AgentRun
 
     from acp import Client
     from acp.acp_types import ContentBlock, MCPServer, StopReason
     from acp.schema import AvailableCommand
     from llmling_agent import Agent
     from llmling_agent_acp.command_bridge import ACPCommandBridge
-    from llmling_agent_providers.base import AgentRunProtocol
 
 from acp.schema import AvailableCommandsUpdate, SessionNotification
 
@@ -125,6 +125,13 @@ class ACPSession:
                 self.agent.tools.register_tool(tool)
             msg = "Added %d MCP tools to agent for session %s"
             logger.info(msg, len(mcp_tools), self.session_id)
+
+            # Log the tool schemas for debugging
+            for tool in mcp_tools:
+                logger.debug(
+                    "Registered MCP tool %s with schema: %s", tool.name, tool.schema
+                )
+
             # Update available commands since new tools may affect command context
             await self.send_available_commands_update()
 
@@ -356,8 +363,8 @@ class ACPSession:
 
     async def _stream_model_request(  # noqa: PLR0915
         self,
-        node: ModelRequestNode,
-        agent_run: AgentRunProtocol,
+        node: ModelRequestNode[Any, Any],
+        agent_run: AgentRun[Any, Any],
     ) -> AsyncGenerator[SessionNotification | StopReason, None]:
         """Stream model request events.
 
@@ -470,7 +477,7 @@ class ACPSession:
     async def _stream_tool_execution(
         self,
         node: CallToolsNode,
-        agent_run: AgentRunProtocol,
+        agent_run: AgentRun[Any, Any],
     ) -> AsyncGenerator[SessionNotification, None]:
         """Stream tool execution events.
 

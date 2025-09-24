@@ -13,6 +13,7 @@ import pydantic_ai._function_schema
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.result import StreamedRunResult
+from pydantic_ai.run import AgentRun
 from pydantic_ai.tools import GenerateToolJsonSchema, RunContext
 from pydantic_ai.usage import UsageLimits as PydanticAiUsageLimits
 
@@ -27,11 +28,7 @@ from llmling_agent.tasks.exceptions import (
     ToolSkippedError,
 )
 from llmling_agent.utils.inspection import execute, has_argument_type
-from llmling_agent_providers.base import (
-    AgentLLMProvider,
-    AgentRunProtocol,
-    ProviderResponse,
-)
+from llmling_agent_providers.base import AgentLLMProvider, ProviderResponse
 from llmling_agent_providers.pydanticai.utils import (
     convert_prompts_to_user_content,
     format_part,
@@ -85,7 +82,7 @@ def _is_call_ctx(annotation: Any) -> bool:
 pydantic_ai._function_schema._is_call_ctx = _is_call_ctx
 
 
-class PydanticAIProvider(AgentLLMProvider):
+class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
     """Provider using pydantic-ai as backend."""
 
     NAME = "pydantic_ai"
@@ -363,18 +360,18 @@ class PydanticAIProvider(AgentLLMProvider):
                 raise ValueError(msg)
 
     @asynccontextmanager
-    async def iterate_run(
+    async def iterate_run[TResult](
         self,
         *prompts: str | Content,  # Provider signature
         message_id: str,
         message_history: list[ChatMessage[Any]],  # Use Any generic
         tools: list[Tool] | None = None,
-        result_type: type[Any] | None = None,
+        result_type: type[TResult] | None = None,
         usage_limits: UsageLimits | None = None,
         model: ModelType = None,
         system_prompt: str | None = None,
         **kwargs: Any,  # Analogous kwargs
-    ) -> AsyncIterator[AgentRunProtocol[Any]]:  # Use Any generic for now
+    ) -> AsyncIterator[AgentRun[TDeps, TResult]]:  # Use Any generic for now
         """Starts an iterable agent run using pydantic-ai's Agent.iter."""
         agent = await self.get_agent(system_prompt or "", tools=tools or [])
         use_model = model or self.model
@@ -413,7 +410,7 @@ class PydanticAIProvider(AgentLLMProvider):
                 # Add model name to the run object if possible/needed?
                 # setattr(agent_run, 'model_name', resolved_model_name)
 
-                yield cast(AgentRunProtocol[Any], agent_run)  # Yield the run object
+                yield cast(AgentRun[Any, Any], agent_run)  # Yield the run object
         except Exception as e:
             # Catch potential errors from argument mismatches in agent.iter
             logger.exception("Error calling agent.iter")

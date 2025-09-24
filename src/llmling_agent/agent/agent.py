@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
     import PIL.Image
+    from pydantic_ai.run import AgentRun
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AgentContext, AnyAgent
@@ -69,13 +70,16 @@ if TYPE_CHECKING:
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
     from llmling_agent_providers.base import (
-        AgentProvider,
-        AgentRunProtocol,
         StreamingResponseProtocol,
         UsageLimits,
     )
 
-    AgentType = Literal["pydantic_ai", "human"] | AgentProvider | Callable[..., Any]
+from llmling_agent_providers.base import (
+    AgentProvider,
+)
+
+
+AgentType = Literal["pydantic_ai", "human"] | AgentProvider | Callable[..., Any]
 
 logger = get_logger(__name__)
 
@@ -988,7 +992,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         tool_choice: str | list[str] | None = None,
         conversation_id: str | None = None,
         store_history: bool = True,
-    ) -> AsyncIterator[AgentRunProtocol[TResult]]:
+    ) -> AsyncIterator[AgentRun[TDeps, TResult]]:
         """Run the agent step-by-step, yielding an object to observe the execution graph.
 
         Args:
@@ -1005,7 +1009,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             store_history: Whether to store the conversation in agent's history.
 
         Yields:
-            An object conforming to AgentRunProtocol for iterating over execution nodes.
+            An AgentRun object for iterating over execution nodes.
 
         Example: (Same as before)
             async with agent.iterate_run("Capital of France?") as agent_run:
@@ -1057,17 +1061,15 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 usage_limits=usage_limits,
                 model=model,
                 system_prompt=effective_system_prompt,
-            ) as agent_run_protocol_object:
-                yield agent_run_protocol_object
+            ) as agent_run:
+                yield agent_run
                 # Store conversation history if requested
-                if store_history and user_msg and agent_run_protocol_object.result:
+                if store_history and user_msg and agent_run.result:
                     response_msg = ChatMessage[TResult](
-                        content=agent_run_protocol_object.result.output,
+                        content=agent_run.result.output,
                         role="assistant",
                         name=self.name,
-                        model=getattr(
-                            agent_run_protocol_object.result, "model_name", None
-                        ),
+                        model=getattr(agent_run.result, "model_name", None),
                         message_id=run_message_id,
                         conversation_id=conversation_id or user_msg.conversation_id,
                         response_time=time.perf_counter()
