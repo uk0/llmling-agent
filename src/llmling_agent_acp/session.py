@@ -34,10 +34,11 @@ if TYPE_CHECKING:
     from acp import Client
     from acp.acp_types import ContentBlock, MCPServer, StopReason
     from acp.schema import AvailableCommand
-    from llmling_agent import Agent
+    from llmling_agent import Agent, AgentPool
     from llmling_agent_acp.command_bridge import ACPCommandBridge
+    from llmling_agent_acp.permission_server import PermissionMCPServer
 
-from acp.schema import AvailableCommandsUpdate, SessionNotification
+from acp.schema import AvailableCommandsUpdate, HttpHeader, SessionNotification
 
 
 logger = get_logger(__name__)
@@ -57,7 +58,8 @@ class ACPSession:
     def __init__(
         self,
         session_id: str,
-        agent: Agent[Any],
+        agent_pool: AgentPool,
+        current_agent_name: str,
         cwd: str,
         client: Client,
         mcp_servers: Sequence[MCPServer] | None = None,
@@ -69,7 +71,8 @@ class ACPSession:
 
         Args:
             session_id: Unique session identifier
-            agent: llmling agent instance for this session
+            agent_pool: AgentPool containing available agents
+            current_agent_name: Name of currently active agent
             cwd: Working directory for the session
             client: External library Client interface for operations
             mcp_servers: Optional MCP server configurations
@@ -78,7 +81,8 @@ class ACPSession:
             command_bridge: Optional command bridge for slash commands
         """
         self.session_id = session_id
-        self.agent = agent
+        self.agent_pool = agent_pool
+        self.current_agent_name = current_agent_name
         self.cwd = cwd
         self.client = client
         self.mcp_servers = mcp_servers or []
@@ -98,10 +102,21 @@ class ACPSession:
         # MCP integration
         self.mcp_manager: MCPManager | None = None
 
-        logger.info("Created ACP session %s with agent %s", session_id, agent.name)
+        # Permission server
+
+        self.permission_server: PermissionMCPServer | None = None
+
+        logger.info(
+            "Created ACP session %s with agent pool (current: %s)",
+            session_id,
+            current_agent_name,
+        )
 
     async def initialize_mcp_servers(self) -> None:
         """Initialize MCP servers if any are configured."""
+        # Always initialize permission server first
+        await self._initialize_permission_server()
+
         if not self.mcp_servers:
             return
 
@@ -123,7 +138,7 @@ class ACPSession:
             mcp_tools = await self.mcp_manager.get_tools()
             for tool in mcp_tools:
                 self.agent.tools.register_tool(tool)
-            msg = "Added %d MCP tools to agent for session %s"
+            msg = "Added %d MCP tools to current agent for session %s"
             logger.info(msg, len(mcp_tools), self.session_id)
 
             # Log the tool schemas for debugging
@@ -140,6 +155,82 @@ class ACPSession:
             logger.exception(msg, self.session_id)
             # Don't fail session creation, just log the error
             self.mcp_manager = None
+
+    async def _initialize_permission_server(self) -> None:
+        """Initialize the permission MCP server for this session."""
+        try:
+            from acp.schema import HttpMcpServer
+            from llmling_agent_acp.permission_server import PermissionMCPServer
+
+            # Create permission server
+            self.permission_server = PermissionMCPServer(
+                client=self.client, session_id=self.session_id
+            )
+
+            # Start HTTP server
+            url, port = await self.permission_server.start()
+            logger.info(
+                "Permission server started for session %s at %s:%d",
+                self.session_id,
+                url,
+                port,
+            )
+
+            # Add permission server to MCP servers list
+            permission_mcp = HttpMcpServer(
+                name="acp-permission",
+                url=f"{url}/mcp",
+                headers=[HttpHeader(name="x-acp-session-id", value=self.session_id)],
+            )
+
+            # Add to session's MCP servers (create list if None)
+            if self.mcp_servers is None:
+                self.mcp_servers = []
+
+            # Convert to list if it's not already (in case it's a tuple/sequence)
+            if not isinstance(self.mcp_servers, list):
+                self.mcp_servers = list(self.mcp_servers)
+
+            self.mcp_servers.append(permission_mcp)
+
+        except Exception:
+            logger.exception(
+                "Failed to initialize permission server for session %s", self.session_id
+            )
+            # Don't fail session creation, just log the error
+            self.permission_server = None
+
+    @property
+    def agent(self) -> Agent[Any]:
+        """Get the currently active agent."""
+        return self.agent_pool.get_agent(self.current_agent_name)
+
+    async def switch_active_agent(self, agent_name: str) -> None:
+        """Switch to a different agent in the pool.
+
+        Args:
+            agent_name: Name of the agent to switch to
+
+        Raises:
+            ValueError: If agent not found in pool
+        """
+        if agent_name not in self.agent_pool.agents:
+            available = list(self.agent_pool.agents.keys())
+            msg = f"Agent '{agent_name}' not found. Available: {available}"
+            raise ValueError(msg)
+
+        old_agent = self.current_agent_name
+        self.current_agent_name = agent_name
+
+        logger.info(
+            "Session %s switched from agent %s to %s",
+            self.session_id,
+            old_agent,
+            agent_name,
+        )
+
+        # Update available commands since different agents may have different tools
+        await self.send_available_commands_update()
 
     @property
     def active(self) -> bool:
@@ -613,12 +704,18 @@ class ACPSession:
         self._active = False
 
         try:
+            # Clean up permission server if present
+            if self.permission_server:
+                await self.permission_server.stop()
+                self.permission_server = None
+
             # Clean up MCP manager if present
             if self.mcp_manager:
                 await self.mcp_manager.cleanup()
                 self.mcp_manager = None
 
-            await self.agent.__aexit__(None, None, None)
+            # Note: Individual agents are managed by the pool's lifecycle
+            # The pool will handle agent cleanup when it's closed
             logger.info("Closed ACP session %s", self.session_id)
         except Exception:
             logger.exception("Error closing session %s", self.session_id)
@@ -695,7 +792,8 @@ class ACPSessionManager:
 
     async def create_session(
         self,
-        agent: Agent[Any],
+        agent_pool: AgentPool,
+        default_agent_name: str,
         cwd: str,
         client: Client,
         mcp_servers: Sequence[MCPServer] | None = None,
@@ -706,7 +804,8 @@ class ACPSessionManager:
         """Create a new ACP session.
 
         Args:
-            agent: llmling agent instance for the session
+            agent_pool: AgentPool containing available agents
+            default_agent_name: Name of the default agent to start with
             cwd: Working directory for the session
             client: External library Client interface
             mcp_servers: Optional MCP server configurations
@@ -731,7 +830,8 @@ class ACPSessionManager:
             # Create session
             session = ACPSession(
                 session_id=session_id,
-                agent=agent,
+                agent_pool=agent_pool,
+                current_agent_name=default_agent_name,
                 cwd=cwd,
                 client=client,
                 mcp_servers=mcp_servers,
@@ -748,8 +848,6 @@ class ACPSessionManager:
 
             # Announce available slash commands to client
             await session.send_available_commands_update()
-
-            logger.info("Created ACP session %s for agent %s", session_id, agent.name)
             return session_id
 
     async def get_session(self, session_id: str) -> ACPSession | None:

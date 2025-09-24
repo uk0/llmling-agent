@@ -34,7 +34,10 @@ from .schema import (
     ReleaseTerminalResponse,
     RequestPermissionRequest,
     RequestPermissionResponse,
+    SessionModelState,
     SessionNotification,
+    SetSessionModelRequest,
+    SetSessionModelResponse,
     SetSessionModeRequest,
     SetSessionModeResponse,
     TerminalOutputRequest,
@@ -275,6 +278,10 @@ class Agent(Protocol):
         self, params: SetSessionModeRequest
     ) -> SetSessionModeResponse | None: ...
 
+    async def setSessionModel(
+        self, params: SetSessionModelRequest
+    ) -> SetSessionModelResponse | None: ...
+
     # Extension hooks (optional)
     async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]: ...
 
@@ -433,6 +440,14 @@ class ClientSideConnection:
         r = await self._conn.send_request(AGENT_METHODS["session_set_mode"], dct)
         # May be empty object
         return SetSessionModeResponse.model_validate(r) if isinstance(r, dict) else None
+
+    async def setSessionModel(
+        self, params: SetSessionModelRequest
+    ) -> SetSessionModelResponse | None:
+        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        r = await self._conn.send_request(AGENT_METHODS["model_select"], dct)
+        # May be empty object
+        return SetSessionModelResponse.model_validate(r) if isinstance(r, dict) else None
 
     async def authenticate(
         self, params: AuthenticateRequest
@@ -662,6 +677,13 @@ async def _handle_agent_session_methods(
         cancel_notification = CancelNotification.model_validate(params)
         await agent.cancel(cancel_notification)
         return None
+    if method == AGENT_METHODS["model_select"]:
+        set_model_request = SetSessionModelRequest.model_validate(params)
+        return (
+            result.model_dump(by_alias=True, exclude_none=True)
+            if (result := await agent.setSessionModel(set_model_request))
+            else {}
+        )
     return _NO_MATCH
 
 
@@ -727,3 +749,37 @@ def _create_agent_handler(agent: Agent) -> MethodHandler:
         return await _handle_agent_method(agent, method, params, is_notification)
 
     return handler
+
+
+def create_session_model_state(
+    available_models: list[str], current_model: str | None = None
+) -> SessionModelState | None:
+    """Create a SessionModelState from available models.
+
+    Args:
+        available_models: List of all models the agent can switch between
+        current_model: The currently active model (defaults to first available)
+
+    Returns:
+        SessionModelState with all available models, None if no models provided
+    """
+    if not available_models:
+        return None
+
+    # Import here to avoid circular imports
+    from .schema import ModelInfo
+
+    # Create ModelInfo objects for each available model
+    model_infos = []
+    for model_id in available_models:
+        # Extract display name (e.g., "gpt-4" from "openai:gpt-4")
+        display_name = model_id.split(":")[-1] if ":" in model_id else model_id
+        info = ModelInfo(model_id=model_id, name=display_name, description=model_id)
+        model_infos.append(info)
+
+    # Use first model as current if not specified
+    current_model_id = current_model or available_models[0]
+
+    return SessionModelState(
+        available_models=model_infos, current_model_id=current_model_id
+    )

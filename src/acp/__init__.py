@@ -6,6 +6,7 @@ from .core import (
     Client,
     ClientSideConnection,
     TerminalHandle,
+    create_session_model_state,
 )
 from .meta import (
     AGENT_METHODS,
@@ -23,6 +24,7 @@ from .schema import (
     KillTerminalCommandRequest,
     KillTerminalCommandResponse,
     LoadSessionRequest,
+    ModelInfo,
     NewSessionRequest,
     NewSessionResponse,
     PromptRequest,
@@ -33,7 +35,10 @@ from .schema import (
     ReleaseTerminalResponse,
     RequestPermissionRequest,
     RequestPermissionResponse,
+    SessionModelState,
     SessionNotification,
+    SetSessionModelRequest,
+    SetSessionModelResponse,
     SetSessionModeRequest,
     SetSessionModeResponse,
     TerminalOutputRequest,
@@ -73,6 +78,11 @@ __all__ = [  # noqa: RUF022
     "SessionNotification",
     "SetSessionModeRequest",
     "SetSessionModeResponse",
+    # model types
+    "ModelInfo",
+    "SessionModelState",
+    "SetSessionModelRequest",
+    "SetSessionModelResponse",
     # terminal types
     "CreateTerminalRequest",
     "CreateTerminalResponse",
@@ -91,6 +101,8 @@ __all__ = [  # noqa: RUF022
     "Agent",
     "Client",
     "TerminalHandle",
+    # utilities
+    "create_session_model_state",
     # stdio helper
     "stdio_streams",
 ]

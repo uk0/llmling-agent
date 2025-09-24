@@ -47,13 +47,22 @@ def acp_command(
     The ACP protocol provides:
     - Bidirectional JSON-RPC 2.0 communication
     - Session management and conversation history
+    - Agent switching via session modes (if multiple agents configured)
     - File system operations with permission handling
     - Terminal integration (optional)
     - Content blocks (text, image, audio, resources)
 
+    Agent Mode Switching:
+    If your config defines multiple agents, the IDE will show a mode selector
+    allowing users to switch between agents mid-conversation. Each agent appears
+    as a different "mode" with its own name and capabilities.
+
     Examples:
-        # Run ACP server with basic agent
+        # Run ACP server with single agent
         llmling-agent acp config.yml
+
+        # Run with multiple agents (enables mode switching)
+        llmling-agent acp multi-agent-config.yml
 
         # Run with file system access enabled
         llmling-agent acp config.yml --file-access
@@ -67,9 +76,10 @@ def acp_command(
     Protocol Flow:
         1. Client sends initialize request
         2. Server responds with capabilities
-        3. Client creates new session
-        4. Client sends prompt requests
-        5. Server streams responses via session updates
+        3. Client creates new session with available agent modes
+        4. User can switch modes (agents) via IDE interface
+        5. Client sends prompt requests
+        6. Server streams responses via session updates
     """  # noqa: E501
     from llmling_agent_acp import ACPServer
 
