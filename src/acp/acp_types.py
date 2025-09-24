@@ -34,8 +34,7 @@ from acp.schema import (
 )
 
 
-# Content block union type
-ContentBlock = (
+type ContentBlock = (
     TextContentBlock
     | ImageContentBlock
     | AudioContentBlock

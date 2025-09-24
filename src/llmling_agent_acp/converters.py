@@ -39,20 +39,10 @@ from llmling_agent_config.mcp_server import (
 )
 
 
-# Define ContentBlock union type
-type ContentBlock = (
-    TextContentBlock
-    | ImageContentBlock
-    | AudioContentBlock
-    | ResourceContentBlock
-    | EmbeddedResourceContentBlock
-)
-
-
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from acp.acp_types import MCPServer
+    from acp.acp_types import ContentBlock, MCPServer
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -92,28 +82,19 @@ def convert_acp_mcp_server_to_config(acp_server: MCPServer) -> MCPServerConfig:
         MCPServerConfig instance
     """
     match acp_server:
-        case StdioMcpServer():  # Stdio transport
-            # Convert environment variables
-            env_dict = {var.name: var.value for var in acp_server.env}
-
+        case StdioMcpServer():
             return StdioMCPServerConfig(
                 name=acp_server.name,
                 command=acp_server.command,
                 args=list(acp_server.args),
-                environment=env_dict,
+                environment={var.name: var.value for var in acp_server.env},
             )
 
-        case SseMcpServer():  # SSE transport
-            return SSEMCPServerConfig(
-                name=acp_server.name,
-                url=acp_server.url,
-            )
+        case SseMcpServer():
+            return SSEMCPServerConfig(name=acp_server.name, url=acp_server.url)
 
-        case HttpMcpServer():  # HTTP transport
-            return StreamableHTTPMCPServerConfig(
-                name=acp_server.name,
-                url=acp_server.url,
-            )
+        case HttpMcpServer():
+            return StreamableHTTPMCPServerConfig(name=acp_server.name, url=acp_server.url)
 
         case _:
             msg = f"Unsupported MCP server type: {type(acp_server)}"
@@ -189,12 +170,11 @@ def to_session_updates(response: str, session_id: str) -> list[SessionNotificati
 
     # Split response into chunks for streaming
     chunks = _split_response_into_chunks(response)
-    updates = []
+    updates: list[SessionNotification] = []
 
     for chunk in chunks:
         if chunk.strip():
-            content = TextContentBlock(text=chunk)
-            update = AgentMessageChunk(content=content)
+            update = AgentMessageChunk(content=TextContentBlock(text=chunk))
             updates.append(SessionNotification(session_id=session_id, update=update))
 
     return updates
@@ -273,7 +253,7 @@ def _split_response_into_chunks(response: str, chunk_size: int = 100) -> list[st
     if len(response) <= chunk_size:
         return [response]
 
-    chunks = []
+    chunks: list[str] = []
     words = response.split()
     current_chunk: list[str] = []
     current_length = 0
@@ -448,27 +428,24 @@ def format_tool_call_for_acp(
         SessionNotification with tool call update
     """
     # Create tool call content from output
-    content = []
+    content: list[ContentToolCallContent] = []
     if tool_output is not None:
         output_text = str(tool_output)
         block = TextContentBlock(text=output_text)
         content.append(ContentToolCallContent(content=block))
 
     # Extract file locations if present
-    locations = []
-    for key, value in tool_input.items():
-        if key in ("path", "file_path", "filepath") and isinstance(value, str):
-            locations.append(ToolCallLocation(path=value))
-
-    # Use simple execute title but infer kind for UI hints
-    title = f"Execute {tool_name}"
-    kind = _determine_tool_kind(tool_name)
+    locations = [
+        ToolCallLocation(path=value)
+        for key, value in tool_input.items()
+        if key in ("path", "file_path", "filepath") and isinstance(value, str)
+    ]
 
     tool_call = ToolCall(
         tool_call_id=f"{tool_name}_{hash(str(tool_input))}",
-        title=title,
+        title=f"Execute {tool_name}",
         status=status,
-        kind=kind,
+        kind=_determine_tool_kind(tool_name),
         locations=locations or None,
         content=content or None,
         raw_input=tool_input,
