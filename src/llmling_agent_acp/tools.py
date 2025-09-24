@@ -176,7 +176,6 @@ class ACPToolBridge:
                 status="pending",
                 kind=_determine_tool_kind(tool.name),
                 raw_input=params,
-                raw_output=None,
             )
 
             # Create permission options
@@ -262,7 +261,6 @@ async def _create_tool_start_notification(
         kind=tool_kind,
         locations=locations,
         raw_input=params,
-        raw_output=None,
     )
 
     return SessionNotification(session_id=session_id, update=tool_call)
