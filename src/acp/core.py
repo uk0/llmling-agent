@@ -113,7 +113,7 @@ class Connection:
                 if not line:
                     break
                 try:
-                    message = anyenv.load_json(line)
+                    message = anyenv.load_json(line, return_type=dict)
                 except Exception:
                     # Align with Rust/TS: on parse error,
                     # do not send a response; just skip
@@ -151,7 +151,7 @@ class Connection:
             }).to_error_obj()
         except Exception as err:  # noqa: BLE001
             try:
-                data = anyenv.load_json(str(err))
+                data = anyenv.load_json(str(err), return_type=dict)
             except Exception:  # noqa: BLE001
                 data = {"details": str(err)}
             payload["error"] = RequestError.internal_error(data).to_error_obj()

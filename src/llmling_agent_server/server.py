@@ -120,7 +120,7 @@ if __name__ == "__main__":
                         data = line[6:]  # Remove "data: " prefix
                         if data == "[DONE]":
                             break
-                        chunk = anyenv.load_json(data)
+                        chunk = anyenv.load_json(data, return_type=dict)
                         delta = chunk["choices"][0]["delta"]
                         if "content" in delta:
                             print(delta["content"], end="", flush=True)
