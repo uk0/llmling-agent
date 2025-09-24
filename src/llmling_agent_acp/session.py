@@ -476,7 +476,7 @@ class ACPSession:
 
     async def _stream_tool_execution(
         self,
-        node: CallToolsNode,
+        node: CallToolsNode[Any, Any],
         agent_run: AgentRun[Any, Any],
     ) -> AsyncGenerator[SessionNotification, None]:
         """Stream tool execution events.
