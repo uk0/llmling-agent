@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from acp import RequestPermissionRequest
 from acp.schema import (
+    AllowedOutcome,
     PermissionOption,
     SessionNotification,
     ToolCallLocation,
@@ -236,13 +237,11 @@ class ACPToolBridge:
                 self.original_tool = original_tool
                 self.bridge = bridge
                 self.name = original_tool.name
-                self.description = getattr(original_tool, "description", "")
+                self.description = original_tool.description
 
             async def __call__(self, **kwargs) -> Any:
                 # Intercept file operations and route through ACP client
                 modified_kwargs = await self._process_file_params(kwargs)
-
-                # Execute original tool with modified parameters using Tool.execute()
                 return await self.original_tool.execute(**modified_kwargs)
 
             async def _process_file_params(
@@ -314,9 +313,9 @@ class ACPToolBridge:
 
             response = await self.client.requestPermission(request)
 
-            return response.outcome.outcome == "selected" and getattr(
-                response.outcome, "optionId", None
-            ) in ["allow", "allow_once", "allow_session"]
+            return isinstance(
+                response.outcome, AllowedOutcome
+            ) and response.outcome.option_id in ["allow", "allow_once", "allow_session"]
 
         except Exception:
             logger.exception("Failed to request tool permission")
