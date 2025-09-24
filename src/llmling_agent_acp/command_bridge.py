@@ -81,22 +81,16 @@ class ACPCommandBridge:
         Returns:
             List of ACP AvailableCommand objects
         """
-        commands = []
-
-        for cmd_name, command in self.command_store._commands.items():
-            # Skip internal or hidden commands
-            if cmd_name.startswith("_") or getattr(command, "hidden", False):
-                continue
-
-            # Filter commands based on context/capabilities if needed
-            if context and not self._is_command_available(command, context):
-                continue
-
-            acp_command = self._convert_command(command)
-            if acp_command:
-                commands.append(acp_command)
-
-        return commands
+        available_commands = [
+            cmd
+            for cmd in self.command_store.list_commands()
+            if not context or self._is_command_available(cmd, context)
+        ]
+        return [
+            acp_cmd
+            for cmd in available_commands
+            if (acp_cmd := self._convert_command(cmd)) is not None
+        ]
 
     def _convert_command(self, command: BaseCommand) -> AvailableCommand | None:
         """Convert a single slashed command to ACP format.
@@ -107,20 +101,9 @@ class ACPCommandBridge:
         Returns:
             ACP AvailableCommand or None if conversion fails
         """
-        try:
-            # Get command metadata
-            name = command.name
-            description = self._get_command_description(command)
-
-            # Create input specification if command has parameters
-            input_spec = self._create_input_spec(command)
-
-            return AvailableCommand(name=name, description=description, input=input_spec)
-
-        except Exception:
-            msg = "Failed to convert command %s"
-            logger.exception(msg, getattr(command, "name", "unknown"))
-            return None
+        description = self._get_command_description(command)
+        spec = self._create_input_spec(command)
+        return AvailableCommand(name=command.name, description=description, input=spec)
 
     def _get_command_description(self, command: BaseCommand) -> str:
         """Extract description from command.
@@ -280,10 +263,9 @@ class ACPCommandBridge:
             List of commands in the category
         """
         commands = []
-        for command in self.command_store._commands.values():
-            if category is None or command.category == category:  # noqa: SIM102
-                if acp_command := self._convert_command(command):
-                    commands.append(acp_command)
+        for command in self.command_store.list_commands(category):
+            if acp_command := self._convert_command(command):
+                commands.append(acp_command)
         return commands
 
     def update_commands(self, new_commands: list[BaseCommand]) -> None:
