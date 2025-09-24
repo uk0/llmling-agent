@@ -10,6 +10,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from acp import RequestPermissionRequest
+from acp.acp_types import (
+    ContentToolCallContent,
+    TextContentBlock,
+    ToolCallProgress,
+    ToolCallStart,
+)
 from acp.schema import (
     AllowedOutcome,
     PermissionOption,
@@ -19,12 +25,6 @@ from acp.schema import (
 )
 from llmling_agent.log import get_logger
 from llmling_agent.tools.base import Tool
-from llmling_agent_acp.acp_types import (
-    TextContent,
-    ToolCall,
-    ToolCallContent,
-    ToolCallUpdateMessage,
-)
 from llmling_agent_acp.converters import _determine_tool_kind, format_tool_call_for_acp
 
 
@@ -255,7 +255,7 @@ async def _create_tool_start_notification(
     locations = _extract_file_locations(params)
     tool_kind = _determine_tool_kind(tool.name)
 
-    tool_call = ToolCall(
+    tool_call = ToolCallStart(
         tool_call_id=tool_call_id,
         title=f"Execute {tool.name}",
         status="running",
@@ -283,11 +283,11 @@ async def create_tool_progress_update(
     Returns:
         SessionNotification with progress update
     """
-    content = TextContent(text=progress_message)
-    update = ToolCallUpdateMessage(
+    content = TextContentBlock(text=progress_message)
+    update = ToolCallProgress(
         tool_call_id=tool_call_id,
         status="running",
-        content=[ToolCallContent(type="content", content=content)],
+        content=[ContentToolCallContent(type="content", content=content)],
     )
 
     return SessionNotification(session_id=session_id, update=update)

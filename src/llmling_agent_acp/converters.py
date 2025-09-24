@@ -14,6 +14,7 @@ from acp import (
     RequestPermissionRequest,
     WriteTextFileRequest,
 )
+from acp.acp_types import HttpMcpServer, SseMcpServer, StdioMcpServer
 from acp.schema import (
     AgentMessageChunk,
     AgentThoughtChunk,
@@ -31,7 +32,6 @@ from acp.schema import (
     ToolCallUpdate,
 )
 from llmling_agent.log import get_logger
-from llmling_agent_acp.acp_types import HttpMcpServer, SseMcpServer, StdioMcpServer
 from llmling_agent_config.mcp_server import (
     SSEMCPServerConfig,
     StdioMCPServerConfig,
@@ -52,8 +52,8 @@ type ContentBlock = (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from acp.acp_types import MCPServer
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent_acp.acp_types import MCPServer
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 

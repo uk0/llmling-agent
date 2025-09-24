@@ -31,9 +31,9 @@ if TYPE_CHECKING:
     from pydantic_ai.agent import CallToolsNode
 
     from acp import Client
+    from acp.acp_types import ContentBlock, MCPServer, StopReason
     from acp.schema import AvailableCommand
     from llmling_agent import Agent
-    from llmling_agent_acp.acp_types import ContentBlock, MCPServer, StopReason
     from llmling_agent_acp.command_bridge import ACPCommandBridge
     from llmling_agent_providers.base import AgentRunProtocol
 

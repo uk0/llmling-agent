@@ -10,41 +10,47 @@ from typing import Literal
 
 from acp.schema import (
     AgentMessageChunk,
-    AgentPlan as Plan,
+    AgentPlan,
     AgentThoughtChunk,
     AllowedOutcome,
-    AudioContentBlock as AudioContent,
+    AudioContentBlock,
     AvailableCommandsUpdate,
-    ContentToolCallContent as ToolCallContent,
+    ContentToolCallContent,
     # Terminal types
     DeniedOutcome,
-    EmbeddedResourceContentBlock as EmbeddedResource,
-    FileEditToolCallContent as ToolCallDiffContent,
+    EmbeddedResourceContentBlock,
+    FileEditToolCallContent,
     HttpMcpServer,
-    ImageContentBlock as ImageContent,
-    ResourceContentBlock as ResourceLink,
+    ImageContentBlock,
+    ResourceContentBlock,
     SseMcpServer,
     StdioMcpServer,
-    TerminalToolCallContent as ToolCallTerminalContent,
-    TextContentBlock as TextContent,
-    ToolCallProgress as ToolCallUpdateMessage,
+    TerminalToolCallContent,
+    TextContentBlock,
+    ToolCallProgress,
     # Permission types
-    ToolCallStart as ToolCall,
+    ToolCallStart,
     UserMessageChunk,
 )
 
 
 # Content block union type
-ContentBlock = TextContent | ImageContent | AudioContent | ResourceLink | EmbeddedResource
+ContentBlock = (
+    TextContentBlock
+    | ImageContentBlock
+    | AudioContentBlock
+    | ResourceContentBlock
+    | EmbeddedResourceContentBlock
+)
 
 # Session update union type
 SessionUpdate = (
     UserMessageChunk
     | AgentMessageChunk
     | AgentThoughtChunk
-    | ToolCall
-    | ToolCallUpdateMessage
-    | Plan
+    | ToolCallStart
+    | ToolCallProgress
+    | AgentPlan
     | AvailableCommandsUpdate
 )
 
@@ -52,7 +58,9 @@ SessionUpdate = (
 RequestPermissionOutcome = DeniedOutcome | AllowedOutcome
 
 # Tool call content union type
-ToolCallContentUnion = ToolCallContent | ToolCallDiffContent | ToolCallTerminalContent
+ToolCallContentUnion = (
+    ContentToolCallContent | FileEditToolCallContent | TerminalToolCallContent
+)
 
 MCPServer = HttpMcpServer | SseMcpServer | StdioMcpServer
 

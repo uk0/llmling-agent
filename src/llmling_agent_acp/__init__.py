@@ -35,7 +35,7 @@ from llmling_agent_acp.converters import (
     to_session_updates,
 )
 from llmling_agent_acp.tools import ACPToolBridge
-from llmling_agent_acp.acp_types import StopReason
+from acp.acp_types import StopReason
 
 
 __all__ = [
