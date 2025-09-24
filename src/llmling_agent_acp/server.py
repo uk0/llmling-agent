@@ -22,6 +22,8 @@ from acp.schema import (
     NewSessionResponse,
     PromptCapabilities,
     PromptResponse,
+    SessionMode,
+    SessionModeState,
     SetSessionModelRequest,
     SetSessionModelResponse,
     SetSessionModeRequest,
@@ -101,7 +103,9 @@ class LLMlingACPAgent(ACPAgent):
         self.client = client or DefaultACPClient(allow_file_operations=file_access)
         self.max_turn_requests = max_turn_requests
         self.max_tokens = max_tokens
-        command_store = CommandStore()
+        command_store = CommandStore(enable_system_commands=True)
+        command_store._initialize_sync()  # Ensure store is initialized
+
         for command in get_commands():
             command_store.register_command(command)
 
@@ -114,31 +118,21 @@ class LLMlingACPAgent(ACPAgent):
 
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
         """Initialize the agent and negotiate capabilities."""
-        try:
-            logger.info("Initializing ACP agent implementation")
-            version = min(params.protocol_version, self.PROTOCOL_VERSION)
-            prompt_caps = PromptCapabilities(
-                audio=True, embedded_context=True, image=True
-            )
-            mcp_caps = McpCapabilities(http=False, sse=False)
-            agent_caps = AgentCapabilities(
-                load_session=self.session_support,
-                prompt_capabilities=prompt_caps,
-                mcp_capabilities=mcp_caps,
-            )
+        logger.info("Initializing ACP agent implementation")
+        version = min(params.protocol_version, self.PROTOCOL_VERSION)
+        prompt_caps = PromptCapabilities(audio=True, embedded_context=True, image=True)
+        mcp_caps = McpCapabilities(http=False, sse=False)
+        caps = AgentCapabilities(
+            load_session=self.session_support,
+            prompt_capabilities=prompt_caps,
+            mcp_capabilities=mcp_caps,
+        )
 
-            self._initialized = True
-            response = InitializeResponse(
-                protocol_version=version,
-                agent_capabilities=agent_caps,
-            )
+        self._initialized = True
+        response = InitializeResponse(protocol_version=version, agent_capabilities=caps)
 
-            logger.info("ACP agent implementation initialized successfully: %s", response)
-        except Exception:
-            logger.exception("Failed to initialize ACP agent implementation")
-            raise
-        else:
-            return response
+        logger.info("ACP agent implementation initialized successfully: %s", response)
+        return response
 
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
         """Create a new session."""
@@ -148,23 +142,14 @@ class LLMlingACPAgent(ACPAgent):
 
         try:
             logger.info("Creating new session")
-
-            # Get available agents from the pool
-            if not self.agent_pool:
-                logger.error("No agent pool available for session creation")
-                msg = "No agent pool available"
-                raise RuntimeError(msg)  # noqa: TRY301
-
             agent_names = list(self.agent_pool.agents.keys())
             logger.info("Available agents: %s", agent_names)
-
             if not agent_names:
                 logger.error("No agents available for session creation")
                 msg = "No agents available"
                 raise RuntimeError(msg)  # noqa: TRY301
 
-            # Use the first available agent as default
-            default_agent_name = agent_names[0]
+            default_agent_name = agent_names[0]  # Use the first agent as default
             logger.info("Using agent %s as default for new session", default_agent_name)
 
             # Create session through session manager (pass the pool, not individual agent)
@@ -179,14 +164,14 @@ class LLMlingACPAgent(ACPAgent):
             )
 
             # Create session modes from available agents
-            from acp.schema import SessionMode, SessionModeState
 
             available_modes = [
                 SessionMode(
                     id=agent_name,
                     name=self.agent_pool.get_agent(agent_name).name,
                     description=(
-                        f"Switch to {self.agent_pool.get_agent(agent_name).name} agent"
+                        self.agent_pool.get_agent(agent_name).description
+                        or f"Switch to {self.agent_pool.get_agent(agent_name).name} agent"
                     ),
                 )
                 for agent_name in agent_names
@@ -212,15 +197,11 @@ class LLMlingACPAgent(ACPAgent):
             response = NewSessionResponse(
                 session_id=session_id, modes=modes, models=models
             )
-            logger.info(
-                "Created session %s with %d available agents",
-                session_id,
-                len(available_modes),
-            )
-
-            # Send initial available commands
+            msg = "Created session %s with %d available agents"
+            logger.info(msg, session_id, len(available_modes))
             session = await self.session_manager.get_session(session_id)
             assert session
+            logger.debug("About to send available commands update")
             await session.send_available_commands_update()
 
         except Exception:
@@ -257,8 +238,6 @@ class LLMlingACPAgent(ACPAgent):
     async def authenticate(self, params: AuthenticateRequest) -> None:
         """Authenticate with the agent."""
         logger.info("Authentication requested with method %s", params.method_id)
-        # In a real implementation, you might validate credentials here
-        # For now, we'll just accept all authentication attempts
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         """Process a prompt request."""
