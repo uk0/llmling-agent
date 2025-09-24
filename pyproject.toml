@@ -175,7 +175,7 @@ Discussions = "https://github.com/phil65/llmling-agent/discussions"
 llmling_agent = "llmling_agent.utils:setup_env"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "src/llmling_agent_acp/tests"]
 log_cli = true
 python_files = ["test_*.py"]
 pythonpath = ["src"]
