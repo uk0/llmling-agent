@@ -318,23 +318,27 @@ class AgentSideConnection:
         | None
     ):
         # Init/new
-        result = await self._handle_agent_init_methods(agent, method, params)
-        if result is not _NO_MATCH:
-            return result
+        if (
+            init_result := await self._handle_agent_init_methods(agent, method, params)
+        ) is not _NO_MATCH:
+            return init_result
         # Session-related
-        result = await self._handle_agent_session_methods(agent, method, params)
-        if result is not _NO_MATCH:
+        if (
+            result := await self._handle_agent_session_methods(agent, method, params)
+        ) is not _NO_MATCH:
             return result
         # Auth
-        result = await self._handle_agent_auth_methods(agent, method, params)
-        if result is not _NO_MATCH:
-            return result
+        if (
+            auth_result := await self._handle_agent_auth_methods(agent, method, params)
+        ) is not _NO_MATCH:
+            return auth_result
         # Extensions
-        result = await self._handle_agent_ext_methods(
-            agent, method, params, is_notification
-        )
-        if result is not _NO_MATCH:
-            return result
+        if (
+            ext_result := await self._handle_agent_ext_methods(
+                agent, method, params, is_notification
+            )
+        ) is not _NO_MATCH:
+            return ext_result
         raise RequestError.method_not_found(method)
 
     async def _handle_agent_init_methods(
@@ -355,7 +359,8 @@ class AgentSideConnection:
             if not hasattr(agent, "loadSession"):
                 raise RequestError.method_not_found(method)
             load_request = LoadSessionRequest.model_validate(params)
-            return await agent.loadSession(load_request)
+            await agent.loadSession(load_request)
+            return None
         if method == AGENT_METHODS["session_set_mode"]:
             if not hasattr(agent, "setSessionMode"):
                 raise RequestError.method_not_found(method)
@@ -371,7 +376,8 @@ class AgentSideConnection:
             return await agent.prompt(prompt_request)
         if method == AGENT_METHODS["session_cancel"]:
             cancel_notification = CancelNotification.model_validate(params)
-            return await agent.cancel(cancel_notification)
+            await agent.cancel(cancel_notification)
+            return None
         return _NO_MATCH
 
     async def _handle_agent_auth_methods(
@@ -542,15 +548,19 @@ class ClientSideConnection:
         if result is not _NO_MATCH:
             return result
         # Terminal methods
-        result = await self._handle_client_terminal_methods(client, method, params)
-        if result is not _NO_MATCH:
-            return result
+        if (
+            term_result := await self._handle_client_terminal_methods(
+                client, method, params
+            )
+        ) is not _NO_MATCH:
+            return term_result
         # Extension methods/notifications
-        result = await self._handle_client_extension_methods(
-            client, method, params, is_notification
-        )
-        if result is not _NO_MATCH:
-            return result
+        if (
+            ext_result := await self._handle_client_extension_methods(
+                client, method, params, is_notification
+            )
+        ) is not _NO_MATCH:
+            return ext_result
         raise RequestError.method_not_found(method)
 
     async def _handle_client_core_methods(
@@ -574,7 +584,8 @@ class ClientSideConnection:
             return await client.requestPermission(permission_request)
         if method == CLIENT_METHODS["session_update"]:
             notification = SessionNotification.model_validate(params)
-            return await client.sessionUpdate(notification)
+            await client.sessionUpdate(notification)
+            return None
         return _NO_MATCH
 
     async def _handle_client_terminal_methods(
@@ -587,12 +598,16 @@ class ClientSideConnection:
         | dict[str, Any]
         | NoMatch
     ):
-        result = await self._handle_client_terminal_basic(client, method, params)
-        if result is not _NO_MATCH:
+        if (
+            result := await self._handle_client_terminal_basic(client, method, params)
+        ) is not _NO_MATCH:
             return result
-        result = await self._handle_client_terminal_lifecycle(client, method, params)
-        if result is not _NO_MATCH:
-            return result
+        if (
+            term_result := await self._handle_client_terminal_lifecycle(
+                client, method, params
+            )
+        ) is not _NO_MATCH:
+            return term_result
         return _NO_MATCH
 
     async def _handle_client_terminal_basic(
