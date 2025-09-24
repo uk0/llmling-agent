@@ -173,7 +173,7 @@ class ACPToolBridge:
             tool_call = ToolCallUpdate(
                 tool_call_id=f"{tool!s}_permission_{hash(str(params))}",
                 title=f"Execute {tool.name}",
-                status="pending_permission",
+                status="pending",
                 kind=_determine_tool_kind(tool.name),
                 raw_input=params,
                 raw_output=None,

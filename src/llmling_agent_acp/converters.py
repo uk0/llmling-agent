@@ -348,7 +348,7 @@ class FileSystemBridge:
         tool_call = ToolCallUpdate(
             tool_call_id=f"fs_{operation}_{hash(details.get('path', ''))}",
             title=f"File {operation.title()}",
-            status="pending_permission",
+            status="pending",
             kind="filesystem",
         )
 
