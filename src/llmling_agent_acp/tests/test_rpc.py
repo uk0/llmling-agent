@@ -29,11 +29,7 @@ from acp.schema import AgentMessageChunk, TextContentBlock, UserMessageChunk
 
 
 if TYPE_CHECKING:
-    from acp import (
-        LoadSessionRequest,
-        PromptRequest,
-        RequestPermissionRequest,
-    )
+    from acp import LoadSessionRequest, PromptRequest, RequestPermissionRequest
 
 # --------------------- Test Utilities ---------------------
 
@@ -151,7 +147,6 @@ class _TestAgent(Agent):
         return InitializeResponse(
             protocol_version=params.protocol_version,
             agent_capabilities=None,
-            auth_methods=[],
         )
 
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
@@ -290,16 +285,14 @@ async def test_session_notifications_flow():
 
         # Agent -> Client notifications
         content = TextContentBlock(text="Hello")
+        agent_chunk = AgentMessageChunk(content=content)
         await client_conn.sessionUpdate(
-            SessionNotification(
-                session_id="sess", update=AgentMessageChunk(content=content)
-            )
+            SessionNotification(session_id="sess", update=agent_chunk)
         )
         content = TextContentBlock(text="World")
+        chunk = UserMessageChunk(content=content)
         await client_conn.sessionUpdate(
-            SessionNotification(
-                session_id="sess", update=UserMessageChunk(content=content)
-            )
+            SessionNotification(session_id="sess", update=chunk)
         )
 
         # Wait for async dispatch
