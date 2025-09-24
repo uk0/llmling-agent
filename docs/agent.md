@@ -31,7 +31,7 @@ from pydantic import BaseModel
     # Create agent with string output. It will have all resources and tools available from the config.
 async with Agent(
         runtime="config.yml",
-        model="openai:gpt-4",
+        model="openai:gpt-5",
         system_prompt="You are a helpful assistant."
     ) as basic_agent:
     await basic_agent.run("Open google for me.")  # Uses tool to open browser
@@ -47,7 +47,7 @@ async with Agent(
     typed_agent = Agent[Any, Analysis](
         runtime,
         result_type=Analysis,
-        model="openai:gpt-4",
+        model="openai:gpt-5",
         system_prompt=[
             "You are a code analysis assistant.",
             "Always provide structured results.",
@@ -66,7 +66,7 @@ The agent can be configured with various options:
 agent = Agent(
     runtime,
     # Model settings
-    model="openai:gpt-4",            # Model to use
+    model="openai:gpt-5",            # Model to use
     result_type=Analysis,            # Optional result type
 
     # Prompt configuration

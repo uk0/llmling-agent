@@ -20,7 +20,7 @@ EXAMPLE = """
 agents:
   analyzer:
     name: "Analyzer"
-    model: "gpt-4"
+    model: "gpt-5"
     capabilities:
       can_load_resources: true
 

@@ -15,7 +15,7 @@ agents:
     name: "analyzer"  # Optional override for agent name
     inherits: "base_agent"  # Optional parent config to inherit from
     description: "Code analysis specialist"
-    model: "openai:gpt-4"  # or structured model definition
+    model: "openai:gpt-5"  # or structured model definition
     debug: false
 
     # Provider behavior

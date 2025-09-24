@@ -57,7 +57,7 @@ Asynchronously yields ChatMessages:
 async for msg in agent.run_iter(
     "analyze this",
     store_history=True,
-    model="gpt-4",
+    model="gpt-5",
 ):
     print(msg.content)
 ```
@@ -82,7 +82,7 @@ Stream responses (supported by Agents and TeamRuns):
 async with agent.run_stream(
     "analyze",
     store_history=True,
-    model="gpt-4",
+    model="gpt-5",
 ) as stream:
     async for chunk in stream.stream_output():
         print(chunk)

@@ -366,13 +366,13 @@ class ACPServer:
             server = ACPServer()
 
             # Method 1: Direct registration
-            my_agent = Agent("my-agent", model="gpt-4")
+            my_agent = Agent("my-agent", model="gpt-5")
             server.agent(my_agent, name="chat_agent")
 
             # Method 2: Decorator
             @server.agent(name="expert_agent", file_access=True)
             def create_expert():
-                return Agent("expert", model="gpt-4", tools=["file_tools"])
+                return Agent("expert", model="gpt-5", tools=["file_tools"])
             ```
         """
 

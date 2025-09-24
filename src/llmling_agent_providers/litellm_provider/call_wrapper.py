@@ -111,7 +111,7 @@ class FakeAgent:
 if __name__ == "__main__":
 
     async def main():
-        agent = FakeAgent("copilot:gpt-4o-mini")
+        agent = FakeAgent("copilot:gpt-5-mini")
         return await agent.run([])
 
     import asyncio

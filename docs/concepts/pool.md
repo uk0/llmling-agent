@@ -18,13 +18,13 @@ Here's a typical pool setup with two agents:
 # agents.yml
 agents:
   analyzer:
-    model: openai:gpt-4
+    model: openai:gpt-5
     description: "Analyzes input and extracts key information"
     system_prompts:
       - "You analyze and summarize information precisely."
 
   planner:
-    model: openai:gpt-4
+    model: openai:gpt-5
     description: "Creates execution plans based on analysis"
     system_prompts:
       - "You create detailed execution plans."
@@ -43,7 +43,7 @@ async def main():
         # Create new agent dynamically
         planner = await pool.add_agent(
             "dynamic_planner",
-            model="openai:gpt-4",
+            model="openai:gpt-5",
             system_prompt="You plan next steps.",
         )
 
@@ -157,7 +157,7 @@ The `add_agent()` method creates new agents dynamically:
 # Basic agent creation
 agent = await pool.add_agent(
     "dynamic_agent",
-    model="openai:gpt-4",
+    model="openai:gpt-5",
     system_prompt="You are a helpful assistant.",
 )
 
@@ -165,7 +165,7 @@ agent = await pool.add_agent(
 planner = await pool.add_agent(
     "planner",
     result_type=PlanResult,
-    model="openai:gpt-4",
+    model="openai:gpt-5",
     system_prompt="You create execution plans.",
 )
 

@@ -64,7 +64,7 @@ capabilities = Capabilities(
 agent = Agent(
     name="my_agent",
     capabilities=capabilities,
-    model="gpt-4"
+    model="gpt-5"
 )
 ```
 

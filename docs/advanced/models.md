@@ -15,7 +15,7 @@ agents:
   my_agent:
     model:
       type: string           # Basic string model identifier
-      identifier: gpt-4      # Model name
+      identifier: gpt-5      # Model name
 ```
 
 ## Available Model Types
@@ -30,9 +30,9 @@ agents:
     model:
       type: fallback
       models:
-        - openai:gpt-4          # First choice
+        - openai:gpt-5          # First choice
         - openai:gpt-5-mini  # Fallback option
-        - anthropic:claude-2    # Last resort
+        - anthropic:claude-3.5-sonnet    # Last resort
 ```
 
 ### Cost-Optimized Model
@@ -45,7 +45,7 @@ agents:
     model:
       type: cost-optimized
       models:
-        - openai:gpt-4
+        - openai:gpt-5
         - openai:gpt-5-mini
       max_input_cost: 0.1     # Maximum USD per request
       strategy: cheapest_possible  # Or best_within_budget
@@ -76,7 +76,7 @@ agents:
   smart_delegator:
     model:
       type: delegation
-      selector_model: openai:gpt-4-turbo
+      selector_model: openai:gpt-5-mini
       models:
         - openai:gpt-5
         - openai:gpt-5-mini
@@ -122,7 +122,7 @@ agents:
   llm_based:
     model:
       type: llm
-      model_name: gpt-4o-mini
+      model_name: gpt-5-mini
 ```
 
 ### AISuite Integration
@@ -149,7 +149,7 @@ agents:
   enhanced_agent:
     model:
       type: augmented
-      main_model: openai:gpt-4
+      main_model: openai:gpt-5
       pre_prompt:
         text: "Expand this question: {input}"
         model: openai:gpt-5-mini
@@ -200,8 +200,8 @@ agents:
   advanced_agent:
     provider:
       type: pydantic_ai
-      name: "Advanced GPT-4"
-      model: openai:gpt-4
+      name: "Advanced GPT-5"
+      model: openai:gpt-5
       end_strategy: early
       validation_enabled: true
       allow_text_fallback: true

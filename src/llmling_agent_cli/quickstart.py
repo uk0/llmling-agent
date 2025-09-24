@@ -16,7 +16,7 @@ from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 
 
 THEME_HELP = "UI theme (soft/base/monochrome/glass/default)"
-MODEL_HELP = "Model to use (e.g. openai:gpt-5-mini, gpt-4)"
+MODEL_HELP = "Model to use (e.g. openai:gpt-5-mini)"
 
 QUICKSTART_CONFIG = """\
 agents:

@@ -1,7 +1,7 @@
 agents:
   city_picker:
-    model: gpt-4o-mini
+    model: gpt-5-mini
     system_prompts: ["You generate random city names."]
   fact_finder:
-    model: gpt-4o-mini
+    model: gpt-5-mini
     system_prompts: ["You provide interesting facts about cities."]

@@ -76,8 +76,8 @@ def show_history(
         # Search for specific content
         llmling-agent history show --query "database schema"
 
-        # Show GPT-4 conversations with token usage
-        llmling-agent history show --model gpt-4 --tokens
+        # Show GPT-5 conversations with token usage
+        llmling-agent history show --model gpt-5 --tokens
 
         # Compact view of recent conversations
         llmling-agent history show --period 1d --compact

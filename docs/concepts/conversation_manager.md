@@ -95,7 +95,7 @@ Session configuration is part of the agent definition:
 ```yaml
 agents:
   my_agent:
-    model: openai:gpt-4
+    model: openai:gpt-5
     description: "Support assistant"
 
     # Session configuration

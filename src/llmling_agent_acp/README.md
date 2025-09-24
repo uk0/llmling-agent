@@ -44,7 +44,7 @@ async def main():
     def create_chat_agent():
         return Agent(
             name="assistant",
-            model="openrouter:openai/gpt-4o-mini",
+            model="openrouter:openai/gpt-5-mini",
             system_prompt="You are a helpful AI assistant with file access capabilities."
         )
 
@@ -80,13 +80,13 @@ asyncio.run(main())
 agents:
   chat_agent:
     name: "ChatAssistant"
-    model: "gpt-4o-mini"
+    model: "gpt-5-mini"
     system_prompt: "You are helpful"
     description: "A friendly AI assistant"
 
   file_processor:
     name: "FileProcessor"
-    model: "gpt-4o-mini"
+    model: "gpt-5-mini"
     system_prompt: "You process and analyze files"
     description: "File processing specialist"
     tools: ["file_tools"]
@@ -407,7 +407,7 @@ def create_file_agent():
 
     return Agent(
         name="file_analyzer",
-        model="gpt-4",
+        model="gpt-5",
         system_prompt="You analyze files and provide insights.",
         tools=[analyze_file]
     )
@@ -420,7 +420,7 @@ def create_file_agent():
 def create_terminal_agent():
     return Agent(
         name="terminal_assistant",
-        model="gpt-4",
+        model="gpt-5",
         system_prompt="You help with terminal commands and system administration."
     )
 ```
@@ -431,11 +431,11 @@ def create_terminal_agent():
 # Sequential processing pipeline
 @server.agent(name="analyzer")
 def create_analyzer():
-    return Agent(name="analyzer", model="gpt-4", system_prompt="Analyze content.")
+    return Agent(name="analyzer", model="gpt-5", system_prompt="Analyze content.")
 
 @server.agent(name="summarizer")
 def create_summarizer():
-    return Agent(name="summarizer", model="gpt-4", system_prompt="Create summaries.")
+    return Agent(name="summarizer", model="gpt-5", system_prompt="Create summaries.")
 
 # Agents work together through session management
 ```

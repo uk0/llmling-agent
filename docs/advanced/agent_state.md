@@ -47,7 +47,7 @@ async with agent.temporary_state(
     history=["Previous relevant chat"],  # Temporary history
     replace_history=True,  # Replace existing history
     pause_routing=True,  # Pause message routing
-    model="openai:gpt-4",  # Temporary model
+    model="openai:gpt-5",  # Temporary model
 ) as modified_agent:
     result = await modified_agent.run("Summarize this.")
     # Original state is restored after the block

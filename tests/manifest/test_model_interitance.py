@@ -41,7 +41,7 @@ agents:
     child:
         inherits: middle
         name: Child
-        model: openai:gpt-4-turbo
+        model: openai:gpt-5-mini
 """
 
 
@@ -113,7 +113,7 @@ def test_multi_level_inheritance(multi_level_config: Path):
 
     child = manifest.agents["child"]
     assert child.name == "Child"
-    assert child.model.identifier == "openai:gpt-4-turbo"  # type: ignore
+    assert child.model.identifier == "openai:gpt-5-mini"  # type: ignore
     assert child.system_prompts == ["Middle prompt"]  # Inherited from middle
 
 

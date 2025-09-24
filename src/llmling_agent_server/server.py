@@ -107,7 +107,7 @@ if __name__ == "__main__":
                 "http://localhost:8000/v1/chat/completions",
                 headers={"Authorization": "Bearer dummy"},
                 json={
-                    "model": "gpt-4o-mini",
+                    "model": "gpt-5-mini",
                     "messages": [{"role": "user", "content": "Tell me a joke"}],
                     "stream": True,
                 },
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     async def main():
         """Run server and test client."""
         pool = AgentPool[None]()
-        await pool.add_agent("gpt-4o-mini", model="openai:gpt-5-mini")
+        await pool.add_agent("gpt-5-mini", model="openai:gpt-5-mini")
         async with pool:  # Ensure pool is properly initialized
             server = OpenAIServer(pool)
             config = uvicorn.Config(

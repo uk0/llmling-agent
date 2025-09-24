@@ -62,7 +62,7 @@ def auto_callable(
         retries: Max retries for failed responses
 
     Example:
-        @auto_callable("gpt-4")
+        @auto_callable("gpt-5")
         async def analyze_sentiment(text: str) -> dict[str, float]:
             '''Analyze sentiment scores (positive/negative) for text.'''
     """

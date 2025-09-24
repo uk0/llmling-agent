@@ -194,7 +194,7 @@ agents:
       model:  # Model configuration
         type: "fallback"  # Lot of special "meta-models" included out of the box!
         models:  # Try models in sequence
-          - "openai:gpt-4"
+          - "openai:gpt-5"
           - "openai:gpt-5-mini"
           - "anthropic:claude-3.7"
       output_retries: 3  # Max retries for result validation
@@ -708,7 +708,7 @@ Extensive slash commands available in all interfaces:
 /list-tools              # Show available tools
 /enable-tool tool_name   # Enable specific tool
 /connect other_agent     # Forward results
-/model gpt-4            # Switch models
+/model gpt-5            # Switch models
 /history search "query"  # Search conversation
 /stats                   # Show usage statistics
 ```

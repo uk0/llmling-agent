@@ -54,7 +54,7 @@ Example: /show-resource template --date today
 
 # Change model
 /set-model <model>
-Example: /set-model gpt-4
+Example: /set-model gpt-5
 ```
 
 ## Additional Commands

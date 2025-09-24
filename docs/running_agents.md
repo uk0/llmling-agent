@@ -31,7 +31,7 @@ llmling-agent history stats --group-by model            # Show usage statistics
 Advanced CLI options:
 ```bash
 # Override model
-llmling-agent run my-agent --model openai:gpt-4 "Complex query"
+llmling-agent run my-agent --model openai:gpt-5-mini "Complex query"
 
 # Output formatting
 llmling-agent run my-agent --output-format json "Query"

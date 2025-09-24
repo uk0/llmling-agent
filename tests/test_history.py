@@ -63,7 +63,7 @@ async def sample_data(cleanup_database: None):
                 "Hello",  # content
                 "user",  # role
                 "user",  # name
-                "gpt-4",  # model
+                "gpt-5",  # model
                 TokenCost(
                     token_usage={"total": 10, "prompt": 5, "completion": 5},
                     total_cost=0.001,
@@ -74,7 +74,7 @@ async def sample_data(cleanup_database: None):
                 "Hi there!",
                 "assistant",
                 "test_agent",
-                "gpt-4",
+                "gpt-5",
                 TokenCost(
                     token_usage={"total": 20, "prompt": 10, "completion": 10},
                     total_cost=0.002,
@@ -152,9 +152,9 @@ async def test_get_conversation_stats(provider: SQLModelProvider, sample_data: N
     stats = await provider.get_conversation_stats(filters)
 
     # Check model grouping
-    assert "gpt-4" in stats
-    assert stats["gpt-4"]["messages"] == 2  # noqa: PLR2004
-    assert stats["gpt-4"]["total_tokens"] == 30  # noqa: PLR2004
+    assert "gpt-5" in stats
+    assert stats["gpt-5"]["messages"] == 2  # noqa: PLR2004
+    assert stats["gpt-5"]["total_tokens"] == 30  # noqa: PLR2004
     assert "gpt-3.5-turbo" in stats
     assert stats["gpt-3.5-turbo"]["messages"] == 1
 
@@ -164,14 +164,14 @@ async def test_complex_filtering(provider: SQLModelProvider, sample_data: None):
     """Test combined filtering capabilities."""
     since = BASE_TIME - timedelta(hours=1.5)
     filters = QueryFilters(
-        agent_name="test_agent", model="gpt-4", since=since, query="Hello"
+        agent_name="test_agent", model="gpt-5", since=since, query="Hello"
     )
     results = await provider.get_conversations(filters)
     assert len(results) == 1
     conv, msgs = results[0]
     assert conv["agent"] == "test_agent"
     assert any(msg.content == "Hello" for msg in msgs)
-    assert all(msg.model == "gpt-4" for msg in msgs)
+    assert all(msg.model == "gpt-5" for msg in msgs)
 
 
 @pytest.mark.asyncio
@@ -191,11 +191,11 @@ async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
     assert len(msgs) == 2  # noqa: PLR2004
 
     # Filter by model
-    filters = QueryFilters(model="gpt-4")
+    filters = QueryFilters(model="gpt-5")
     results = await provider.get_conversations(filters)
     assert len(results) == 1
     conv, msgs = results[0]
-    assert all(msg.model == "gpt-4" for msg in msgs)
+    assert all(msg.model == "gpt-5" for msg in msgs)
 
 
 @pytest.mark.asyncio

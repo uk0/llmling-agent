@@ -58,7 +58,7 @@ conversion:
   providers:
     - type: markitdown  # Uses MarkItDown for document conversion
       enabled: true
-      llm_model: gpt-4  # Optional, for image descriptions
+      llm_model: gpt-5  # Optional, for image descriptions
     # More providers will be added soon
 ```
 

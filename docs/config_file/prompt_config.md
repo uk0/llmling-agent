@@ -138,7 +138,7 @@ Reference prompts in agent configuration:
 ```yaml
 agents:
   technical_assistant:
-    model: gpt-4
+    model: gpt-5
     # Direct prompts
     system_prompts:
       - "You are a technical assistant."
@@ -204,7 +204,7 @@ prompts:
 
 agents:
   senior_dev:
-    model: gpt-4
+    model: gpt-5
     description: "Senior developer specialized in code review and optimization"
     system_prompts:
       - "Specialize in Python and TypeScript."
@@ -216,7 +216,7 @@ agents:
       - structured
 
   teacher:
-    model: gpt-4
+    model: gpt-5
     description: "Programming teacher and mentor"
     library_system_prompts:
       - technical_expert

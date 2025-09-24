@@ -21,7 +21,7 @@ The model change takes effect immediately for all following messages.
 Previous messages and their context are preserved.
 
 Examples:
-  /set-model gpt-4
+  /set-model gpt-5
   /set-model openai:gpt-5-mini
   /set-model claude-2
 
@@ -36,7 +36,7 @@ async def set_model(
 ):
     """Change the model for the current conversation."""
     if not args:
-        await ctx.output.print("Usage: /set-model <model>\nExample: /set-model gpt-4")
+        await ctx.output.print("Usage: /set-model <model>\nExample: /set-model gpt-5")
         return
 
     model = args[0]

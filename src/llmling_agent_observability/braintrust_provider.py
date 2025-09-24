@@ -70,7 +70,7 @@ if __name__ == "__main__":
     config = BraintrustProviderConfig()
     provider = BraintrustProvider(config)
     registry.configure_provider(provider)
-    agent = Agent[None](model="gpt-4o-mini", name="test")
+    agent = Agent[None](model="openai:gpt-5-mini", name="test")
 
     @agent.tools.tool(name="test")
     def square(x: int) -> int:

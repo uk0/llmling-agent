@@ -101,7 +101,7 @@ agents:
 await agent.spawn_delegate(
     task="Research this topic",
     system_prompt="You are a research specialist...",
-    model="gpt-4",
+    model="gpt-5",
     connect_back=True  # Send results back to creator
 )
 ```

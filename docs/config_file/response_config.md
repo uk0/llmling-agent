@@ -118,7 +118,7 @@ responses:
 ```yaml
 agents:
   analyzer:
-    model: "openai:gpt-4"
+    model: "openai:gpt-5"
     result_type: "CodeAnalysis"  # Reference response by name
 ```
 

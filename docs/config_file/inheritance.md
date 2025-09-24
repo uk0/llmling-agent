@@ -10,7 +10,7 @@ Agents can inherit configuration from other agents using the `inherits` field:
 agents:
   # Base agent configuration
   base_assistant:
-    model: openai:gpt-4
+    model: openai:gpt-5
     system_prompts:
       - "You are a helpful assistant."
     capabilities:
@@ -48,7 +48,7 @@ Using Yamling's inheritance system, entire YAML files can inherit from other fil
 # base.yml - Base configuration
 agents:
   base_agent:
-    model: openai:gpt-4
+    model: openai:gpt-5
     capabilities:
       can_load_resources: true
 

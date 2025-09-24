@@ -10,7 +10,7 @@ Complete example of an agent configuration:
 agents:
   web_assistant:                   # Name of the agent
     description: "Helps with web tasks"  # Optional description
-    model: openai:gpt-4           # Model to use
+    model: openai:gpt-5           # Model to use
 
     tools:
       open_browser:
@@ -40,8 +40,8 @@ agents:
 
 **model**
 The language model to use. Can be:
-- Simple string: `openai:gpt-4`
-- Model name: `gpt-4`
+- Simple string: `openai:gpt-5`
+- Model name: `gpt-5`
 - Structured model configuration (for testing/development)
 
 **environment**
@@ -170,7 +170,7 @@ Basic model configuration options:
 ```yaml
 agents:
   assistant:
-    model: openai:gpt-4
+    model: openai:gpt-5
     model_settings:
       temperature: 0.7
       max_tokens: 2000

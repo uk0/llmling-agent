@@ -15,27 +15,27 @@ async def main():
     developer = Agent[None](
         name="developer",
         description="Implements new code features and changes",
-        model="gpt-4o-mini",
+        model="gpt-5-mini",
         system_prompt="You write Python code and implement features.",
     )
 
     doc_writer = Agent[None](
         name="doc_writer",
         description="Writes and updates technical documentation",
-        model="gpt-4o-mini",
+        model="gpt-5-mini",
         system_prompt="You specialize in writing technical documentation.",
     )
 
     lazy_bob = Agent[None](
         name="lazy_bob",
         description="Has no useful skills or contributions",
-        model="gpt-4o-mini",
+        model="gpt-5-mini",
         system_prompt="You avoid work at all costs.",
     )
 
     team_lead = Agent[None](
         name="team_lead",
-        model="gpt-4o-mini",
+        model="gpt-5-mini",
         system_prompt="You assign work to team members based on their skills.",
     )
     feature_team = Team([developer, doc_writer, lazy_bob], picker=team_lead)

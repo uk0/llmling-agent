@@ -12,7 +12,7 @@ LLMling integrates with MCP (Model Context Protocol) servers to provide addition
 agents:
   code_assistant:
     description: "Helps with coding tasks"
-    model: openai:gpt-4
+    model: openai:gpt-5
     mcp_servers:
       # Simple string form (stdio)
       - "python -m myserver --debug"

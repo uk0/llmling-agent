@@ -86,7 +86,7 @@ responses:
 
 agents:
   code_reviewer:
-    model: openai:gpt-4
+    model: openai:gpt-5
     result_type: CodeReview  # Use structured response
     environment: env_code.yml
     system_prompts:
@@ -101,7 +101,7 @@ Create an agent that interacts with the file system:
 # agents.yml
 agents:
   file_manager:
-    model: openai:gpt-4
+    model: openai:gpt-5
     environment: env_files.yml
     system_prompts:
       - "You help users manage their files and directories."

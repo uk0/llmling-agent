@@ -42,7 +42,7 @@ async def main():
     # Create movie critic agent
     base_agent = Agent[None](
         name="movie_critic",
-        model="openai:gpt-4",
+        model="openai:gpt-5",
         system_prompt=(
             "You are an enthusiastic but honest movie critic. "
             "You love great movies but won't pretend to like bad ones."

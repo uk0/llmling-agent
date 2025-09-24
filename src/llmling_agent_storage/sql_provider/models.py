@@ -143,7 +143,7 @@ class Message(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     """Full model identifier (including provider)"""
 
     model_name: str | None = Field(default=None, index=True)
-    """Name of the model (e.g., "gpt-4")"""
+    """Name of the model (e.g., "gpt-5")"""
 
     model_provider: str | None = Field(default=None, index=True)
     """Provider of the model (e.g., "openai")"""

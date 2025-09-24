@@ -87,7 +87,7 @@ def parse_model_info(model: str | None) -> tuple[str | None, str | None]:
     """Parse model string into provider and name.
 
     Args:
-        model: Full model string (e.g., "openai:gpt-4", "anthropic/claude-2")
+        model: Full model string (e.g., "openai:gpt-5", "anthropic:claude-4.1-sonnet")
 
     Returns:
         Tuple of (provider, name)

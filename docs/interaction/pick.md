@@ -6,7 +6,7 @@ The `pick()` method provides a flexible way for agents to make decisions by sele
 
 ### Simple Options
 ```python
-agent = Agent(model="gpt-4")
+agent = Agent(model="gpt-5")
 decision = await agent.talk.pick(
     ["analyze", "plan", "execute"],
     task="What should we do next?"
@@ -105,7 +105,7 @@ architect = Agent(name="architect", description="System architect")
 
 # Create decision maker
 decider = Agent(
-    model="gpt-4",
+    model="gpt-5",
     system_prompt="You are an expert at task delegation"
 )
 

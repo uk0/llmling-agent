@@ -81,7 +81,7 @@ Example:
 ```yaml
 agents:
   analyzer:
-    model: openai:gpt-4
+    model: openai:gpt-5
     description: "Analyzes text and provides structured output"
     capabilities:
       can_execute_code: false

@@ -79,7 +79,7 @@ print("Token:", token)
 #     }
 # )
 # model = OpenAIModel(
-#     model_name="gpt-4o-mini",
+#     model_name="gpt-5-mini",
 #     base_url="https://api.githubcopilot.com",
 #     api_key=token,
 #     http_client=client,

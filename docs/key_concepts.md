@@ -57,7 +57,7 @@ Define complete agents in YAML without writing code:
 # agents.yml
 agents:
   web_assistant:
-    model: openai:gpt-4
+    model: openai:gpt-5
     tools:
       - type: import
         name: open_url

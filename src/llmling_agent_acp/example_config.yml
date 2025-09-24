@@ -5,7 +5,7 @@
 agents:
   chat_agent:
     name: "ChatAssistant"
-    model: "openrouter:openai/gpt-4o-mini"
+    model: "openrouter:openai/gpt-5-mini"
     system_prompt: |
       You are a helpful AI assistant. Be conversational and friendly.
       You can help with general questions, writing tasks, and analysis.
@@ -15,7 +15,7 @@ agents:
 
   file_agent:
     name: "FileProcessor"
-    model: "openrouter:openai/gpt-4o-mini"
+    model: "openrouter:openai/gpt-5-mini"
     system_prompt: |
       You are a file processing expert. You can read, analyze, and process files
       through the ACP client's file system interface. Always request permission
@@ -35,7 +35,7 @@ agents:
 
   terminal_agent:
     name: "TerminalHelper"
-    model: "openrouter:openai/gpt-4o-mini"
+    model: "openrouter:openai/gpt-5-mini"
     system_prompt: |
       You are a terminal and system administration assistant.
       You can help with command-line tasks, system administration, and automation.
@@ -47,7 +47,7 @@ agents:
 
   research_agent:
     name: "ResearchAssistant"
-    model: "openrouter:openai/gpt-4o-mini"
+    model: "openrouter:openai/gpt-5-mini"
     system_prompt: |
       You are a research assistant that can help gather information, analyze documents,
       and compile research findings. You work with various file formats and can
@@ -71,7 +71,6 @@ teams:
     mode: "parallel"
     members: ["code_assistant", "terminal_agent"]
     description: "Parallel development: code analysis and system operations"
-
 # ACP server settings are controlled via CLI:
 #
 # Basic usage:

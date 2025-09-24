@@ -187,7 +187,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 - str/UUID: Session identifier
                 - SessionQuery: Query to recover conversation
                 - MemoryConfig: Complete memory configuration
-            model: The default model to use (defaults to GPT-4)
+            model: The default model to use (defaults to GPT-5)
             system_prompt: Static system prompts to use for this agent
             name: Name of the agent for logging
             description: Description of the Agent ("what it can do")

@@ -14,7 +14,7 @@ agents:
       end_strategy: "early"  # "early" | "complete" | "confirm"
       output_retries: 3  # max retries for result validation
       defer_model_check: false  # whether to defer model check until first run
-      model: "openai:gpt-4"  # optional model override
+      model: "openai:gpt-5"  # optional model override
       model_settings:  # additional settings passed to pydantic-ai
         temperature: 0.7
         max_output_tokens: 1000
@@ -46,7 +46,7 @@ agents:
         type: "litellm"
         name: "litellm-agent"  # optional instance name
         retries: 3  # max retries for failed calls
-        model: "openai:gpt-4"  # optional model override
+        model: "openai:gpt-5"  # optional model override
         model_settings:  # additional settings passed to LiteLLM
           temperature: 0.5
           presence_penalty: 0

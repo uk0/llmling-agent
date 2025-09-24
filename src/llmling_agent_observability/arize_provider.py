@@ -104,7 +104,7 @@ if __name__ == "__main__":
     config = ArizePhoenixProviderConfig(environment="dev")
     provider = ArizePhoenixProvider(config)
 
-    agent = Agent[None](model="gpt-4o-mini", name="test")
+    agent = Agent[None](model="openai:gpt-5-mini", name="test")
 
     @agent.tools.tool(name="test")
     def square(x: int) -> int:

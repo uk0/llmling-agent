@@ -7,15 +7,15 @@ Teams and sequential chains in LLMling-agent allow you to create sophisticated m
 ```yaml
 agents:
   analyzer:
-    model: openai:gpt-4
+    model: openai:gpt-5
     system_prompts: ["You analyze code for issues."]
 
   planner:
-    model: openai:gpt-4
+    model: openai:gpt-5
     system_prompts: ["You create fix plans."]
 
   executor:
-    model: openai:gpt-4
+    model: openai:gpt-5
     system_prompts: ["You implement fixes."]
 
 teams:

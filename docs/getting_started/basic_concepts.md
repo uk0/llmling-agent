@@ -30,7 +30,7 @@ LLMling-agent excels at static definition of agents using YAML files and Pydanti
 # agents.yml (AgentsManifest)
 agents:
   analyzer:    # AgentConfig
-    model: "openai:gpt-4"
+    model: "openai:gpt-5"
     system_prompts: [...]
     capabilities: {...}
     environment: {...}

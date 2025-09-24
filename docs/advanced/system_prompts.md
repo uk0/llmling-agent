@@ -208,7 +208,7 @@ agent.sys_prompts.add("step_by_step")
 # In YAML configuration:
 agents:
   my_agent:
-    model: gpt-4
+    model: gpt-5
     system_prompts:    # direct prompts
       - "You are a helpful assistant"
     library_system_prompts:      # reference library prompts

@@ -24,11 +24,11 @@ The function receives fully configured agents matching the parameter names from 
 ```yaml
 agents:
   analyzer:
-    model: gpt-4
+    model: gpt-5
     system_prompts:
       - "You are an expert code analyzer..."
   reviewer:
-    model: gpt-4
+    model: gpt-5
     system_prompts:
       - "You are an expert code reviewer..."
 ```
@@ -231,10 +231,10 @@ from llmling_agent import AgentPool, AgentsManifest
 manifest = """
 agents:
   researcher:
-    model: gpt-4
+    model: gpt-5
     system_prompts: ["You are an expert researcher..."]
   writer:
-    model: gpt-4
+    model: gpt-5
     system_prompts: ["You are an expert writer..."]
 """
 

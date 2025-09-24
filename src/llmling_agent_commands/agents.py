@@ -33,7 +33,7 @@ Examples:
   /create-agent poet --system-prompt "Create poems from any text"
 
   # Create analyzer with different model
-  /create-agent analyzer --system-prompt "Analyze in detail" --model gpt-4
+  /create-agent analyzer --system-prompt "Analyze in detail" --model gpt-5
 
   # Create specialized helper
   /create-agent helper --system-prompt "Debug code" --role specialist

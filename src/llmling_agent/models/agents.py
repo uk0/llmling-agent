@@ -73,7 +73,7 @@ class AgentConfig(NodeConfig):
 
     model: str | AnyModelConfig | None = None
     """The model to use for this agent. Can be either a simple model name
-    string (e.g. 'openai:gpt-4') or a structured model definition."""
+    string (e.g. 'openai:gpt-5') or a structured model definition."""
 
     tools: list[ToolConfig | str] = Field(default_factory=list)
     """A list of tools to register with this agent."""
