@@ -311,7 +311,7 @@ class AgentSideConnection:
 
     # client-bound methods (agent -> client)
     async def sessionUpdate(self, params: SessionNotification) -> None:
-        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        dct = params.model_dump(by_alias=True, exclude_none=True)
         await self._conn.send_notification(CLIENT_METHODS["session_update"], dct)
 
     async def requestPermission(
