@@ -60,7 +60,7 @@ agents:
       models:
         - "openai:gpt-5"         # Try first
         - "openai:5-mini"        # Fallback
-        - "anthropic:claude-4.1-sonnet"   # Last resort
+        - "anthropic:claude-sonnet-4-0"   # Last resort
 ```
 
 ### Cost-Optimized Model

@@ -196,7 +196,7 @@ agents:
         models:  # Try models in sequence
           - "openai:gpt-5"
           - "openai:gpt-5-mini"
-          - "anthropic:claude-3.7"
+          - "anthropic:claude-sonnet-4-0"
       output_retries: 3  # Max retries for result validation
       defer_model_check: false  # Whether to defer model evaluation
       validation_enabled: true  # Whether to validate outputs

@@ -35,7 +35,7 @@ agents:
     capabilities: {...}
     environment: {...}
   planner:
-    model: "anthropic:claude-2"
+    model: "anthropic:claude-sonnet-4-0"
     ...
 ```
 

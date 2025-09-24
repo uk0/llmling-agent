@@ -25,7 +25,7 @@ agents:
 
   code_assistant:
     name: "CodeAssistant"
-    model: "openrouter:anthropic/claude-3-5-sonnet"
+    model: "openrouter:anthropic/claude-sonnet-4"
     system_prompt: |
       You are a coding assistant that can help with programming tasks.
       You can read and analyze code files, suggest improvements, and help debug issues.

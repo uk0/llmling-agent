@@ -32,7 +32,7 @@ agents:
       models:
         - openai:gpt-5          # First choice
         - openai:gpt-5-mini  # Fallback option
-        - anthropic:claude-3.5-sonnet    # Last resort
+        - anthropic:claude-sonnet-4-0    # Last resort
 ```
 
 ### Cost-Optimized Model
@@ -215,7 +215,7 @@ agents:
     provider:
       type: litellm
       name: "Careful Claude"
-      model: anthropic:claude-2
+      model: anthropic:claude-sonnet-4-0
       retries: 3
       model_settings:
         temperature: 0.3  # More deterministic
