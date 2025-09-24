@@ -19,7 +19,7 @@ from acp.schema import (
     AgentMessageChunk,
     AgentThoughtChunk,
     AudioContentBlock,
-    ContentToolCallContent as ToolCallContent,
+    ContentToolCallContent,
     EmbeddedResourceContentBlock,
     ImageContentBlock,
     PermissionOption,
@@ -452,7 +452,7 @@ def format_tool_call_for_acp(
     if tool_output is not None:
         output_text = str(tool_output)
         block = TextContentBlock(text=output_text)
-        content.append(ToolCallContent(type="content", content=block))
+        content.append(ContentToolCallContent(content=block))
 
     # Extract file locations if present
     locations = []

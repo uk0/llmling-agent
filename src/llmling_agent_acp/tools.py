@@ -287,7 +287,7 @@ async def create_tool_progress_update(
     update = ToolCallProgress(
         tool_call_id=tool_call_id,
         status="running",
-        content=[ContentToolCallContent(type="content", content=content)],
+        content=[ContentToolCallContent(content=content)],
     )
 
     return SessionNotification(session_id=session_id, update=update)
