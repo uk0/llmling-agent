@@ -134,7 +134,7 @@ class Connection:
         try:
             result = await self._handler(message["method"], message.get("params"), False)
             if isinstance(result, BaseModel):
-                result = result.model_dump()
+                result = result.model_dump(by_alias=True, exclude_none=True)
             payload["result"] = result if result is not None else None
         except RequestError as re:
             payload["error"] = re.to_error_obj()
@@ -347,7 +347,9 @@ class AgentSideConnection:
             set_mode_request = SetSessionModeRequest.model_validate(params)
             result = await agent.setSessionMode(set_mode_request)
             return (
-                result.model_dump() if isinstance(result, BaseModel) else (result or {})
+                result.model_dump(by_alias=True, exclude_none=True)
+                if isinstance(result, BaseModel)
+                else (result or {})
             )
         if method == AGENT_METHODS["session_prompt"]:
             prompt_request = PromptRequest.model_validate(params)
@@ -364,7 +366,9 @@ class AgentSideConnection:
             p = AuthenticateRequest.model_validate(params)
             result = await agent.authenticate(p)
             return (
-                result.model_dump() if isinstance(result, BaseModel) else (result or {})
+                result.model_dump(by_alias=True, exclude_none=True)
+                if isinstance(result, BaseModel)
+                else (result or {})
             )
         return _NO_MATCH
 
@@ -387,7 +391,7 @@ class AgentSideConnection:
     async def sessionUpdate(self, params: SessionNotification) -> None:
         await self._conn.send_notification(
             CLIENT_METHODS["session_update"],
-            params.model_dump(exclude_none=True, exclude_defaults=True),
+            params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True),
         )
 
     async def requestPermission(
@@ -395,14 +399,14 @@ class AgentSideConnection:
     ) -> RequestPermissionResponse:
         resp = await self._conn.send_request(
             CLIENT_METHODS["session_request_permission"],
-            params.model_dump(exclude_none=True, exclude_defaults=True),
+            params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True),
         )
         return RequestPermissionResponse.model_validate(resp)
 
     async def readTextFile(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
         resp = await self._conn.send_request(
             CLIENT_METHODS["fs_read_text_file"],
-            params.model_dump(exclude_none=True, exclude_defaults=True),
+            params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True),
         )
         return ReadTextFileResponse.model_validate(resp)
 
@@ -411,7 +415,7 @@ class AgentSideConnection:
     ) -> WriteTextFileResponse | None:
         resp = await self._conn.send_request(
             CLIENT_METHODS["fs_write_text_file"],
-            params.model_dump(exclude_none=True, exclude_defaults=True),
+            params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True),
         )
         # Response may be empty object
         return (
@@ -561,7 +565,7 @@ class ClientSideConnection:
                 release_request = ReleaseTerminalRequest.model_validate(params)
                 result = await client.releaseTerminal(release_request)
                 return (
-                    result.model_dump()
+                    result.model_dump(by_alias=True, exclude_none=True)
                     if isinstance(result, BaseModel)
                     else (result or {})
                 )
@@ -576,7 +580,7 @@ class ClientSideConnection:
                 kill_request = KillTerminalCommandRequest.model_validate(params)
                 kill_result = await client.killTerminal(kill_request)
                 return (
-                    kill_result.model_dump()
+                    kill_result.model_dump(by_alias=True, exclude_none=True)
                     if isinstance(kill_result, BaseModel)
                     else (kill_result or {})
                 )
@@ -602,21 +606,21 @@ class ClientSideConnection:
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
         resp = await self._conn.send_request(
             AGENT_METHODS["initialize"],
-            params.model_dump(exclude_none=True, exclude_defaults=True),
+            params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True),
         )
         return InitializeResponse.model_validate(resp)
 
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
         resp = await self._conn.send_request(
             AGENT_METHODS["session_new"],
-            params.model_dump(exclude_none=True, exclude_defaults=True),
+            params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True),
         )
         return NewSessionResponse.model_validate(resp)
 
     async def loadSession(self, params: LoadSessionRequest) -> None:
         await self._conn.send_request(
             AGENT_METHODS["session_load"],
-            params.model_dump(exclude_none=True, exclude_defaults=True),
+            params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True),
         )
 
     async def setSessionMode(
@@ -624,7 +628,7 @@ class ClientSideConnection:
     ) -> SetSessionModeResponse | None:
         resp = await self._conn.send_request(
             AGENT_METHODS["session_set_mode"],
-            params.model_dump(exclude_none=True, exclude_defaults=True),
+            params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True),
         )
         # May be empty object
         return (
@@ -638,7 +642,7 @@ class ClientSideConnection:
     ) -> AuthenticateResponse | None:
         resp = await self._conn.send_request(
             AGENT_METHODS["authenticate"],
-            params.model_dump(exclude_none=True, exclude_defaults=True),
+            params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True),
         )
         return (
             AuthenticateResponse.model_validate(resp) if isinstance(resp, dict) else None
@@ -647,14 +651,14 @@ class ClientSideConnection:
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         resp = await self._conn.send_request(
             AGENT_METHODS["session_prompt"],
-            params.model_dump(exclude_none=True, exclude_defaults=True),
+            params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True),
         )
         return PromptResponse.model_validate(resp)
 
     async def cancel(self, params: CancelNotification) -> None:
         await self._conn.send_notification(
             AGENT_METHODS["session_cancel"],
-            params.model_dump(exclude_none=True, exclude_defaults=True),
+            params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True),
         )
 
     async def extMethod(self, method: str, params: dict) -> dict:
