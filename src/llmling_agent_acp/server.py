@@ -18,6 +18,7 @@ from acp import Agent as ACPAgent, AgentSideConnection
 from acp.schema import (
     AgentCapabilities,
     InitializeResponse,
+    McpCapabilities,
     NewSessionResponse,
     PromptCapabilities,
     PromptResponse,
@@ -116,19 +117,20 @@ class LLMlingACPAgent(ACPAgent):
             prompt_caps = PromptCapabilities(
                 audio=True, embedded_context=True, image=True
             )
+            mcp_caps = McpCapabilities(http=False, sse=False)
             agent_caps = AgentCapabilities(
                 load_session=self.session_support,
                 prompt_capabilities=prompt_caps,
+                mcp_capabilities=mcp_caps,
             )
 
             self._initialized = True
             response = InitializeResponse(
                 protocol_version=version,
                 agent_capabilities=agent_caps,
-                auth_methods=[],  # No authentication methods by default
             )
 
-            logger.info("ACP agent implementation initialized successfully")
+            logger.info("ACP agent implementation initialized successfully: %s", response)
         except Exception:
             logger.exception("Failed to initialize ACP agent implementation")
             raise

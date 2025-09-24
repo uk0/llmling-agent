@@ -6,7 +6,7 @@ import inspect
 import re
 from typing import TYPE_CHECKING, Any
 
-from acp.schema import AvailableCommand, AvailableCommandInput, AvailableCommandInput1
+from acp.schema import AvailableCommand, AvailableCommandInput, CommandInputHint
 from llmling_agent.log import get_logger
 from llmling_agent_acp.converters import to_session_updates
 
@@ -164,7 +164,7 @@ class ACPCommandBridge:
 
             if params:
                 hint = f"Parameters: {', '.join(params)}"
-                return AvailableCommandInput(root=AvailableCommandInput1(hint=hint))
+                return AvailableCommandInput(root=CommandInputHint(hint=hint))
         except Exception:  # noqa: BLE001
             pass
 

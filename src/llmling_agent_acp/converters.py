@@ -15,23 +15,23 @@ from acp import (
     WriteTextFileRequest,
 )
 from acp.schema import (
-    ContentBlock1,
-    ContentBlock2,
-    ContentBlock3,
-    ContentBlock4,
-    ContentBlock5,
+    AgentMessageChunk,
+    AgentThoughtChunk,
+    AudioContentBlock,
+    ContentToolCallContent as ToolCallContent,
+    EmbeddedResourceContentBlock,
+    ImageContentBlock,
     PermissionOption,
+    ResourceContentBlock,
     SessionNotification,
-    SessionUpdate2 as AgentMessageChunk,
-    SessionUpdate3 as AgentThoughtChunk,
-    SessionUpdate4 as ToolCall,
+    TextContentBlock,
     TextResourceContents,
-    ToolCallContent1 as ToolCallContent,
     ToolCallLocation,
+    ToolCallStart as ToolCall,
     ToolCallUpdate,
 )
 from llmling_agent.log import get_logger
-from llmling_agent_acp.acp_types import McpServer1, McpServer2, McpServer3
+from llmling_agent_acp.acp_types import HttpMcpServer, SseMcpServer, StdioMcpServer
 from llmling_agent_config.mcp_server import (
     SSEMCPServerConfig,
     StdioMCPServerConfig,
@@ -41,16 +41,20 @@ from llmling_agent_config.mcp_server import (
 
 # Define ContentBlock union type
 type ContentBlock = (
-    ContentBlock1 | ContentBlock2 | ContentBlock3 | ContentBlock4 | ContentBlock5
+    TextContentBlock
+    | ImageContentBlock
+    | AudioContentBlock
+    | ResourceContentBlock
+    | EmbeddedResourceContentBlock
 )
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent_acp.acp_types import MCPServer
-    from llmling_agent_config.mcp_server import (
-        MCPServerConfig,
-    )
+    from llmling_agent_config.mcp_server import MCPServerConfig
 
 
 logger = get_logger(__name__)
@@ -58,19 +62,19 @@ logger = get_logger(__name__)
 
 @overload
 def convert_acp_mcp_server_to_config(
-    acp_server: McpServer1,
+    acp_server: HttpMcpServer,
 ) -> StreamableHTTPMCPServerConfig: ...
 
 
 @overload
 def convert_acp_mcp_server_to_config(
-    acp_server: McpServer2,
+    acp_server: SseMcpServer,
 ) -> SSEMCPServerConfig: ...
 
 
 @overload
 def convert_acp_mcp_server_to_config(
-    acp_server: McpServer3,
+    acp_server: StdioMcpServer,
 ) -> StdioMCPServerConfig: ...
 
 
@@ -88,24 +92,24 @@ def convert_acp_mcp_server_to_config(acp_server: MCPServer) -> MCPServerConfig:
         MCPServerConfig instance
     """
     match acp_server:
-        case McpServer3():  # Stdio transport
+        case StdioMcpServer():  # Stdio transport
             # Convert environment variables
             env_dict = {var.name: var.value for var in acp_server.env}
 
             return StdioMCPServerConfig(
                 name=acp_server.name,
                 command=acp_server.command,
-                args=acp_server.args,
+                args=list(acp_server.args),
                 environment=env_dict,
             )
 
-        case McpServer2():  # SSE transport
+        case SseMcpServer():  # SSE transport
             return SSEMCPServerConfig(
                 name=acp_server.name,
                 url=acp_server.url,
             )
 
-        case McpServer1():  # HTTP transport
+        case HttpMcpServer():  # HTTP transport
             return StreamableHTTPMCPServerConfig(
                 name=acp_server.name,
                 url=acp_server.url,
@@ -116,7 +120,7 @@ def convert_acp_mcp_server_to_config(acp_server: MCPServer) -> MCPServerConfig:
             raise ValueError(msg)
 
 
-def from_content_blocks(blocks: list[ContentBlock]) -> str:
+def from_content_blocks(blocks: Sequence[ContentBlock]) -> str:
     """Convert ACP content blocks to a single prompt string for llmling agents.
 
     Args:
@@ -129,20 +133,20 @@ def from_content_blocks(blocks: list[ContentBlock]) -> str:
 
     for block in blocks:
         match block:
-            case ContentBlock1():  # Text content
+            case TextContentBlock():  # Text content
                 parts.append(block.text)
-            case ContentBlock2():  # Image content
+            case ImageContentBlock():  # Image content
                 parts.append(f"[Image: {block.mime_type}]")
                 if block.uri:
                     parts.append(f"Image URI: {block.uri}")
-            case ContentBlock3():  # Audio content
+            case AudioContentBlock():  # Audio content
                 parts.append(f"[Audio: {block.mime_type}]")
-            case ContentBlock4():  # Resource link
+            case ResourceContentBlock():  # Resource link
                 parts.append(f"[Resource: {block.name}]")
                 if block.description:
                     parts.append(f"Description: {block.description}")
                 parts.append(f"URI: {block.uri}")
-            case ContentBlock5():  # Embedded resource
+            case EmbeddedResourceContentBlock():  # Embedded resource
                 parts.append(f"[Resource: {block.resource.uri}]")
                 match block.resource:
                     case TextResourceContents():
@@ -167,7 +171,7 @@ def to_content_blocks(text: str) -> list[ContentBlock]:
 
     # For now, return simple text content block
     # Future enhancement: detect and parse structured content
-    return [ContentBlock1(text=text, type="text")]
+    return [TextContentBlock(text=text)]
 
 
 def to_session_updates(response: str, session_id: str) -> list[SessionNotification]:
@@ -189,7 +193,7 @@ def to_session_updates(response: str, session_id: str) -> list[SessionNotificati
 
     for chunk in chunks:
         if chunk.strip():
-            content = ContentBlock1(text=chunk, type="text")
+            content = TextContentBlock(text=chunk)
             update = AgentMessageChunk(content=content)
             updates.append(SessionNotification(session_id=session_id, update=update))
 
@@ -447,7 +451,7 @@ def format_tool_call_for_acp(
     content = []
     if tool_output is not None:
         output_text = str(tool_output)
-        block = ContentBlock1(text=output_text, type="text")
+        block = TextContentBlock(text=output_text)
         content.append(ToolCallContent(type="content", content=block))
 
     # Extract file locations if present
@@ -484,6 +488,6 @@ def create_thought_chunk(thought: str, session_id: str) -> SessionNotification:
     Returns:
         SessionNotification with thought chunk
     """
-    content = ContentBlock1(text=thought, type="text")
+    content = TextContentBlock(text=thought)
     update = AgentThoughtChunk(content=content)
     return SessionNotification(session_id=session_id, update=update)

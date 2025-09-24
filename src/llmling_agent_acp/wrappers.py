@@ -15,7 +15,7 @@ from acp import (
     ReadTextFileResponse,
     RequestPermissionResponse,
 )
-from acp.schema import RequestPermissionOutcome1, RequestPermissionOutcome2
+from acp.schema import AllowedOutcome, DeniedOutcome
 from llmling_agent.log import get_logger
 
 
@@ -62,11 +62,11 @@ class DefaultACPClient:
         # Default: grant permission for the first option
         if params.options:
             id_ = params.options[0].option_id
-            selected_outcome = RequestPermissionOutcome2(option_id=id_)
+            selected_outcome = AllowedOutcome(option_id=id_)
             return RequestPermissionResponse(outcome=selected_outcome)
 
         # No options - deny
-        cancelled_outcome = RequestPermissionOutcome1()
+        cancelled_outcome = DeniedOutcome()
         return RequestPermissionResponse(outcome=cancelled_outcome)
 
     async def sessionUpdate(self, params: SessionNotification) -> None:

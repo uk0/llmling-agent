@@ -66,7 +66,7 @@ from llmling_agent_acp import ACPServer
 async def main():
     # Load from existing agent config
     server = await ACPServer.from_config("agents.yml")
-    
+
     # Run the server
     await server.run()
 
@@ -85,7 +85,7 @@ agents:
     description: "A friendly AI assistant"
 
   file_processor:
-    name: "FileProcessor" 
+    name: "FileProcessor"
     model: "gpt-4o-mini"
     system_prompt: "You process and analyze files"
     description: "File processing specialist"
@@ -144,7 +144,7 @@ ACP uses JSON-RPC 2.0 over newline-delimited JSON streams:
 // Initialize request
 {"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":1},"id":1}
 
-// Initialize response  
+// Initialize response
 {"jsonrpc":"2.0","result":{"protocolVersion":1,"agentCapabilities":{...}},"id":1}
 
 // Create session
@@ -172,9 +172,9 @@ ACP supports rich content blocks:
 
 ```python
 # Text content
-TextContent(type="text", text="Hello world")
+TextContent(text="Hello world")
 
-# Image content  
+# Image content
 ImageContent(type="image", data="base64...", mimeType="image/png")
 
 # Audio content
@@ -197,7 +197,7 @@ from llmling_agent_acp import FileSystemBridge
 # Read file through ACP client
 content = await fs_bridge.read_file("/path/to/file.txt", session_id)
 
-# Write file through ACP client  
+# Write file through ACP client
 await fs_bridge.write_file("/path/to/output.txt", "content", session_id)
 
 # Request permission for sensitive operations
@@ -212,7 +212,7 @@ Sessions maintain conversation state and context:
 # Sessions are managed automatically
 session_id = await session_manager.create_session(
     agent=my_agent,
-    cwd="/working/directory", 
+    cwd="/working/directory",
     client=acp_client
 )
 
@@ -233,15 +233,15 @@ class CustomACPClient:
     async def requestPermission(self, params):
         # Custom permission handling
         return RequestPermissionResponse(outcome=...)
-    
+
     async def readTextFile(self, params):
         # Custom file reading logic
         return ReadTextFileResponse(content=...)
-    
+
     async def writeTextFile(self, params):
         # Custom file writing logic
         pass
-    
+
     async def sessionUpdate(self, params):
         # Handle session updates (streaming responses)
         print(f"Update: {params.update.sessionUpdate}")
@@ -324,11 +324,11 @@ Currently supports:
 async def demo_mcp_integration():
     # MCP servers are connected during session creation
     # Tools become available immediately
-    
+
     response = await agent.run(
         "Search for Python tutorials and save the results to a file"
     )
-    
+
     # Agent can now use:
     # - web_search tool (from MCP server)
     # - file_write tool (from MCP server)
@@ -385,7 +385,7 @@ while True:
     line = process.stdout.readline()
     if not line:
         break
-    
+
     message = json.loads(line)
     if message.get("method") == "session/update":
         # Handle streaming response
@@ -404,7 +404,7 @@ def create_file_agent():
         """Analyze a file and return insights."""
         # File access is handled through ACP client automatically
         return f"Analysis of {path}: ..."
-    
+
     return Agent(
         name="file_analyzer",
         model="gpt-4",
@@ -416,10 +416,10 @@ def create_file_agent():
 ### Terminal Integration
 
 ```python
-@server.agent(name="terminal_helper", terminal_access=True) 
+@server.agent(name="terminal_helper", terminal_access=True)
 def create_terminal_agent():
     return Agent(
-        name="terminal_assistant", 
+        name="terminal_assistant",
         model="gpt-4",
         system_prompt="You help with terminal commands and system administration."
     )
@@ -433,7 +433,7 @@ def create_terminal_agent():
 def create_analyzer():
     return Agent(name="analyzer", model="gpt-4", system_prompt="Analyze content.")
 
-@server.agent(name="summarizer")  
+@server.agent(name="summarizer")
 def create_summarizer():
     return Agent(name="summarizer", model="gpt-4", system_prompt="Create summaries.")
 
@@ -446,7 +446,7 @@ Supports the full ACP specification:
 
 - **Agent Methods**: `initialize`, `session/new`, `session/load`, `session/prompt`, `session/cancel`, `authenticate`
 - **Client Methods**: `fs/read_text_file`, `fs/write_text_file`, `session/request_permission`, `session/update`
-- **Content Types**: Text, Image, Audio, Resource Links, Embedded Resources  
+- **Content Types**: Text, Image, Audio, Resource Links, Embedded Resources
 - **Session Management**: Creation, loading, history, cancellation
 - **Permission System**: User confirmation for sensitive operations
 - **Tool Execution**: Progress tracking, error handling, streaming updates
@@ -469,7 +469,7 @@ except Exception as e:
 ## Security
 
 - **Permission System**: All file operations require user approval
-- **Sandboxed Execution**: Agents run in controlled environment  
+- **Sandboxed Execution**: Agents run in controlled environment
 - **Path Validation**: File paths are validated before access
 - **Session Isolation**: Each session maintains separate state
 - **Input Validation**: All inputs are validated using Pydantic models

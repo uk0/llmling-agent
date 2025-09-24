@@ -20,7 +20,7 @@ from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 logger = get_logger(__name__)
 
 
-def acp_command(  # noqa: PLR0915
+def acp_command(
     config: str = t.Argument(None, help="Path to agent configuration"),
     log_level: LogLevel = t.Option("info", help="Logging level"),  # noqa: B008
     file_access: bool = t.Option(
@@ -71,14 +71,7 @@ def acp_command(  # noqa: PLR0915
         4. Client sends prompt requests
         5. Server streams responses via session updates
     """  # noqa: E501
-    try:
-        from llmling_agent_acp import ACPServer
-    except ImportError as e:
-        msg = (
-            "ACP integration is not available. "
-            "This might be due to missing deps or the ACP package not being installed."
-        )
-        raise t.BadParameter(msg) from e
+    from llmling_agent_acp import ACPServer
 
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)

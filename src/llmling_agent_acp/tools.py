@@ -367,7 +367,7 @@ class ACPToolBridge:
         Returns:
             SessionNotification with progress update
         """
-        content = TextContent(text=progress_message, type="text")
+        content = TextContent(text=progress_message)
         update = ToolCallUpdateMessage(
             tool_call_id=tool_call_id,
             status="running",

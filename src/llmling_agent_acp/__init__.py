@@ -37,39 +37,8 @@ from llmling_agent_acp.converters import (
 from llmling_agent_acp.tools import ACPToolBridge
 from llmling_agent_acp.acp_types import StopReason
 
-# Re-export important types from external library
-from acp import Agent as ACPAgent
-from acp.schema import (
-    # Core protocol types
-    InitializeRequest,
-    InitializeResponse,
-    NewSessionRequest,
-    NewSessionResponse,
-    PromptRequest,
-    PromptResponse,
-    SessionNotification,
-    # Content types
-    ContentBlock1 as TextContent,
-    ContentBlock2 as ImageContent,
-    ContentBlock3 as AudioContent,
-    ContentBlock4 as ResourceLink,
-    ContentBlock5 as EmbeddedResource,
-    # Capability types
-    AgentCapabilities,
-    ClientCapabilities,
-    PromptCapabilities,
-)
-
-# Re-export protocol constants
-from acp import PROTOCOL_VERSION, AGENT_METHODS, CLIENT_METHODS
 
 __all__ = [
-    "AGENT_METHODS",
-    "CLIENT_METHODS",
-    # Protocol constants
-    "PROTOCOL_VERSION",
-    # Protocol interfaces
-    "ACPAgent",
     "ACPClientInterface",
     # Command bridge
     "ACPCommandBridge",
@@ -77,27 +46,12 @@ __all__ = [
     "ACPSession",
     "ACPSessionManager",
     "ACPToolBridge",
-    "AgentCapabilities",
-    "AudioContent",
-    "ClientCapabilities",
     "DefaultACPClient",
-    "EmbeddedResource",
     "FileSystemBridge",
-    "ImageContent",
-    "InitializeRequest",
-    "InitializeResponse",
     "LLMlingACPAgent",
-    "NewSessionRequest",
-    "NewSessionResponse",
-    "PromptCapabilities",
-    "PromptRequest",
-    "PromptResponse",
-    "ResourceLink",
-    "SessionNotification",
     # Stop reason type
     "StopReason",
     # Content types
-    "TextContent",
     "convert_acp_mcp_server_to_config",
     "from_content_blocks",
     "to_content_blocks",

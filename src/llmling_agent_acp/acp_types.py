@@ -9,29 +9,28 @@ from __future__ import annotations
 from typing import Literal
 
 from acp.schema import (
-    # Capability types
-    ContentBlock1 as TextContent,
-    ContentBlock2 as ImageContent,
-    ContentBlock3 as AudioContent,
-    ContentBlock4 as ResourceLink,
-    ContentBlock5 as EmbeddedResource,
-    McpServer1,
-    McpServer2,
-    McpServer3,
+    AgentMessageChunk,
+    AgentPlan as Plan,
+    AgentThoughtChunk,
+    AllowedOutcome,
+    AudioContentBlock as AudioContent,
+    AvailableCommandsUpdate,
+    ContentToolCallContent as ToolCallContent,
     # Terminal types
-    RequestPermissionOutcome1,
-    RequestPermissionOutcome2,
+    DeniedOutcome,
+    EmbeddedResourceContentBlock as EmbeddedResource,
+    FileEditToolCallContent as ToolCallDiffContent,
+    HttpMcpServer,
+    ImageContentBlock as ImageContent,
+    ResourceContentBlock as ResourceLink,
+    SseMcpServer,
+    StdioMcpServer,
+    TerminalToolCallContent as ToolCallTerminalContent,
+    TextContentBlock as TextContent,
+    ToolCallProgress as ToolCallUpdateMessage,
     # Permission types
-    SessionUpdate1 as UserMessageChunk,
-    SessionUpdate2 as AgentMessageChunk,
-    SessionUpdate3 as AgentThoughtChunk,
-    SessionUpdate4 as ToolCall,
-    SessionUpdate5 as ToolCallUpdateMessage,
-    SessionUpdate6 as Plan,
-    SessionUpdate7 as AvailableCommandsUpdate,
-    ToolCallContent1 as ToolCallContent,
-    ToolCallContent2 as ToolCallDiffContent,
-    ToolCallContent3 as ToolCallTerminalContent,
+    ToolCallStart as ToolCall,
+    UserMessageChunk,
 )
 
 
@@ -50,12 +49,12 @@ SessionUpdate = (
 )
 
 # Permission outcome union type
-RequestPermissionOutcome = RequestPermissionOutcome1 | RequestPermissionOutcome2
+RequestPermissionOutcome = DeniedOutcome | AllowedOutcome
 
 # Tool call content union type
 ToolCallContentUnion = ToolCallContent | ToolCallDiffContent | ToolCallTerminalContent
 
-MCPServer = McpServer1 | McpServer2 | McpServer3
+MCPServer = HttpMcpServer | SseMcpServer | StdioMcpServer
 
 StopReason = Literal[
     "end_turn", "max_tokens", "max_turn_requests", "refusal", "cancelled"

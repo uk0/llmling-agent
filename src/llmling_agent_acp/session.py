@@ -37,10 +37,7 @@ if TYPE_CHECKING:
     from llmling_agent_acp.command_bridge import ACPCommandBridge
     from llmling_agent_providers.base import AgentRunProtocol
 
-from acp.schema import (
-    SessionNotification,
-    SessionUpdate7 as AvailableCommandsUpdate,
-)
+from acp.schema import AvailableCommandsUpdate, SessionNotification
 
 
 logger = get_logger(__name__)
@@ -168,7 +165,7 @@ class ACPSession:
         return self._cancelled
 
     async def process_prompt(
-        self, content_blocks: list[ContentBlock]
+        self, content_blocks: Sequence[ContentBlock]
     ) -> AsyncGenerator[SessionNotification | StopReason, None]:
         """Process a prompt request and stream responses.
 
@@ -269,7 +266,7 @@ class ACPSession:
             SessionNotification objects for all agent execution events,
             or StopReason literal
         """
-        from acp.schema import ContentBlock1, SessionUpdate2
+        from acp.schema import AgentMessageChunk, TextContentBlock
 
         try:
             response_parts = []
@@ -351,10 +348,8 @@ class ACPSession:
                                     "sending final response for session %s"
                                 )
                                 logger.info(msg, self.session_id)
-                                content_block = ContentBlock1(
-                                    text=final_content, type="text"
-                                )
-                                update = SessionUpdate2(content=content_block)
+                                content_block = TextContentBlock(text=final_content)
+                                update = AgentMessageChunk(content=content_block)
                                 notification = SessionNotification(
                                     session_id=self.session_id, update=update
                                 )
@@ -398,7 +393,7 @@ class ACPSession:
             ToolCallPartDelta,
         )
 
-        from acp.schema import ContentBlock1, SessionUpdate2
+        from acp.schema import AgentMessageChunk, TextContentBlock
 
         try:
             async with node.stream(agent_run.ctx) as request_stream:
@@ -438,10 +433,8 @@ class ACPSession:
                             text_content.append(content)
 
                             # Create single chunk update directly
-                            content_block = ContentBlock1(
-                                text=content, type="text", annotations=None
-                            )
-                            update = SessionUpdate2(content=content_block)
+                            content_block = TextContentBlock(text=content)
+                            update = AgentMessageChunk(content=content_block)
                             notification = SessionNotification(
                                 session_id=self.session_id, update=update
                             )
