@@ -24,6 +24,7 @@ from .schema import (
     KillTerminalCommandRequest,
     KillTerminalCommandResponse,
     LoadSessionRequest,
+    LoadSessionResponse,
     NewSessionRequest,
     NewSessionResponse,
     PromptRequest,
@@ -264,7 +265,7 @@ class Agent(Protocol):
 
     async def newSession(self, params: NewSessionRequest) -> NewSessionResponse: ...
 
-    async def loadSession(self, params: LoadSessionRequest) -> None: ...
+    async def loadSession(self, params: LoadSessionRequest) -> LoadSessionResponse: ...
 
     async def authenticate(
         self, params: AuthenticateRequest
@@ -429,9 +430,10 @@ class ClientSideConnection:
         resp = await self._conn.send_request(AGENT_METHODS["session_new"], dct)
         return NewSessionResponse.model_validate(resp)
 
-    async def loadSession(self, params: LoadSessionRequest) -> None:
+    async def loadSession(self, params: LoadSessionRequest) -> LoadSessionResponse:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
-        await self._conn.send_request(AGENT_METHODS["session_load"], dct)
+        resp = await self._conn.send_request(AGENT_METHODS["session_load"], dct)
+        return LoadSessionResponse.model_validate(resp)
 
     async def setSessionMode(
         self, params: SetSessionModeRequest
@@ -680,8 +682,8 @@ async def _handle_agent_session_methods(
     if method == AGENT_METHODS["model_select"]:
         set_model_request = SetSessionModelRequest.model_validate(params)
         return (
-            result.model_dump(by_alias=True, exclude_none=True)
-            if (result := await agent.setSessionModel(set_model_request))
+            set_model_response.model_dump(by_alias=True, exclude_none=True)
+            if (set_model_response := await agent.setSessionModel(set_model_request))
             else {}
         )
     return _NO_MATCH

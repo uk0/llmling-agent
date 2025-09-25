@@ -74,8 +74,8 @@ class TestAgentPoolModeSwitch:
 
         assert coding_agent is not None
         assert research_agent is not None
-        assert coding_agent.name == "Coding Assistant"
-        assert research_agent.name == "Research Assistant"
+        assert coding_agent.name == "coding-agent"
+        assert research_agent.name == "research-agent"
 
     def test_session_agent_property(self, agent_pool, mock_client):
         """Test session agent property returns current agent."""
@@ -89,7 +89,7 @@ class TestAgentPoolModeSwitch:
 
         # Should return coding agent initially
         current_agent = session.agent
-        assert current_agent.name == "Coding Assistant"
+        assert current_agent.name == "coding-agent"
 
     async def test_switch_active_agent(self, agent_pool, mock_client):
         """Test switching active agent in session."""
@@ -103,13 +103,13 @@ class TestAgentPoolModeSwitch:
 
         # Initially should be coding agent
         assert session.current_agent_name == "coding-agent"
-        assert session.agent.name == "Coding Assistant"
+        assert session.agent.name == "coding-agent"
 
         # Switch to research agent
         await session.switch_active_agent("research-agent")
 
         assert session.current_agent_name == "research-agent"
-        assert session.agent.name == "Research Assistant"
+        assert session.agent.name == "research-agent"
 
     async def test_switch_to_invalid_agent(self, agent_pool, mock_client):
         """Test switching to non-existent agent raises error."""
@@ -154,9 +154,9 @@ class TestAgentPoolModeSwitch:
         assert "research-agent" in mode_ids
         assert "writing-agent" in mode_ids
 
-        assert "Coding Assistant" in mode_names
-        assert "Research Assistant" in mode_names
-        assert "Writing Assistant" in mode_names
+        assert "coding-agent" in mode_names
+        assert "research-agent" in mode_names
+        assert "writing-agent" in mode_names
 
     async def test_from_config_creates_agent_pool(self, tmp_path):
         """Test that from_config creates server with agent pool."""
