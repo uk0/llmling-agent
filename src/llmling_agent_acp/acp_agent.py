@@ -20,6 +20,7 @@ from acp.schema import (
     NewSessionResponse,
     PromptCapabilities,
     PromptResponse,
+    ReadTextFileRequest,
     ReleaseTerminalRequest,
     SessionMode,
     SessionModeState,
@@ -29,6 +30,7 @@ from acp.schema import (
     SetSessionModeResponse,
     TerminalOutputRequest,
     WaitForTerminalExitRequest,
+    WriteTextFileRequest,
 )
 from llmling_agent.log import get_logger
 from llmling_agent.tools.base import Tool
@@ -102,6 +104,7 @@ class LLMlingACPAgent(ACPAgent):
         self.usage_limits = usage_limits
 
         # Terminal support - client-side execution via ACP protocol
+        # Filesystem support - client-side file operations via ACP protocol
 
         command_store = CommandStore(enable_system_commands=True)
         command_store._initialize_sync()  # Ensure store is initialized
@@ -120,6 +123,9 @@ class LLMlingACPAgent(ACPAgent):
         # Register terminal tools with agents if terminal access is enabled
         if self.terminal_access:
             self._register_terminal_tools_with_agents()
+
+        # Register filesystem tools with agents
+        self._register_filesystem_tools_with_agents()
 
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
         """Initialize the agent and negotiate capabilities."""
@@ -747,3 +753,110 @@ class LLMlingACPAgent(ACPAgent):
             return result
 
         return run_command_with_timeout
+
+    def _register_filesystem_tools_with_agents(self) -> None:
+        """Register client-side filesystem tools with all agents in the pool."""
+        if not self.agent_pool or not self.agent_pool.agents:
+            logger.debug("No agents in pool to register filesystem tools with")
+            return
+
+        from llmling_agent.tools.base import Tool
+
+        # Create client-side filesystem tools
+        tools = [
+            Tool.from_callable(
+                self._create_read_file_tool(),
+                source="filesystem",
+                name_override="read_text_file",
+            ),
+            Tool.from_callable(
+                self._create_write_file_tool(),
+                source="filesystem",
+                name_override="write_text_file",
+            ),
+        ]
+
+        # Register tools with each agent in the pool
+        registered_count = 0
+        for agent_name, agent in self.agent_pool.agents.items():
+            for tool in tools:
+                agent.tools.register_tool(tool)
+            registered_count += 1
+            logger.debug(
+                "Registered %d filesystem tools with agent %s",
+                len(tools),
+                agent_name,
+            )
+
+        logger.info(
+            "Registered filesystem tools with %d agents (%d tools per agent)",
+            registered_count,
+            len(tools),
+        )
+
+    def _create_read_file_tool(self):
+        """Create a tool that reads text files via the ACP client."""
+
+        async def read_text_file(
+            path: str,
+            line: int | None = None,
+            limit: int | None = None,
+            session_id: str = "default_session",
+        ) -> str:
+            """Read text file contents from the client's filesystem.
+
+            Args:
+                path: Absolute path to the file to read
+                line: Optional line number to start reading from (1-based)
+                limit: Optional maximum number of lines to read
+                session_id: Session ID for the request
+
+            Returns:
+                File content or error message
+            """
+            try:
+                request = ReadTextFileRequest(
+                    session_id=session_id,
+                    path=path,
+                    line=line,
+                    limit=limit,
+                )
+                response = await self.connection.read_text_file(request)
+            except Exception as e:  # noqa: BLE001
+                return f"Error reading file: {e}"
+            else:
+                return response.content
+
+        return read_text_file
+
+    def _create_write_file_tool(self):
+        """Create a tool that writes text files via the ACP client."""
+
+        async def write_text_file(
+            path: str,
+            content: str,
+            session_id: str = "default_session",
+        ) -> str:
+            """Write text content to a file in the client's filesystem.
+
+            Args:
+                path: Absolute path to the file to write
+                content: The text content to write to the file
+                session_id: Session ID for the request
+
+            Returns:
+                Success message or error message
+            """
+            try:
+                request = WriteTextFileRequest(
+                    session_id=session_id,
+                    path=path,
+                    content=content,
+                )
+                await self.connection.write_text_file(request)
+            except Exception as e:  # noqa: BLE001
+                return f"Error writing file: {e}"
+            else:
+                return f"Successfully wrote file: {path}"
+
+        return write_text_file

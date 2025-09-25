@@ -402,6 +402,22 @@ def _is_terminal_tool(tool_name: str) -> bool:
     return tool_name in terminal_tool_names
 
 
+def _is_filesystem_tool(tool_name: str) -> bool:
+    """Check if a tool is a filesystem operation tool.
+
+    Args:
+        tool_name: Name of the tool to check
+
+    Returns:
+        True if tool is filesystem-related
+    """
+    filesystem_tool_names = {
+        "read_text_file",
+        "write_text_file",
+    }
+    return tool_name in filesystem_tool_names
+
+
 async def create_terminal_tool_call_notification(
     tool_name: str,
     params: dict[str, Any],
@@ -438,6 +454,39 @@ async def create_terminal_tool_call_notification(
     # Add terminal content if we have a terminal ID
     if terminal_id:
         tool_call.content = [TerminalToolCallContent(terminal_id=terminal_id)]
+
+    return SessionNotification(session_id=session_id, update=tool_call)
+
+
+async def create_filesystem_tool_call_notification(
+    tool_name: str,
+    params: dict[str, Any],
+    session_id: str,
+    tool_call_id: str,
+    status: ToolCallStatus = "in_progress",
+) -> SessionNotification:
+    """Create a filesystem tool call notification.
+
+    Args:
+        tool_name: Name of filesystem tool
+        params: Tool parameters
+        session_id: ACP session ID
+        tool_call_id: Tool call identifier
+        status: Tool call status
+
+    Returns:
+        SessionNotification with filesystem tool call
+    """
+    locations = _extract_file_locations(params)
+
+    tool_call = ToolCallStartSchema(
+        tool_call_id=tool_call_id,
+        title=f"Filesystem: {tool_name}",
+        status=status,
+        kind="edit" if tool_name == "write_text_file" else "read",
+        locations=locations,
+        raw_input=params,
+    )
 
     return SessionNotification(session_id=session_id, update=tool_call)
 
@@ -540,6 +589,12 @@ class ACPToolRegistry:
                 tool, params, session_id
             ):
                 yield notification
+        # Handle filesystem tools specially
+        elif _is_filesystem_tool(name):
+            async for notification in self._execute_filesystem_tool(
+                tool, params, session_id
+            ):
+                yield notification
         else:
             # Execute regular tool through bridge
             async for notification in self.bridge.execute_tool(tool, params, session_id):
@@ -579,6 +634,44 @@ class ACPToolRegistry:
 
         except Exception as e:
             logger.exception("Terminal tool execution failed: %s", tool.name)
+            yield await _create_tool_error_notification(
+                tool, params, str(e), session_id, tool_call_id
+            )
+
+    async def _execute_filesystem_tool(
+        self,
+        tool: Tool,
+        params: dict[str, Any],
+        session_id: str,
+    ) -> AsyncGenerator[SessionNotification, None]:
+        """Execute a filesystem tool with special handling.
+
+        Args:
+            tool: Filesystem tool to execute
+            params: Tool parameters
+            session_id: ACP session ID
+
+        Yields:
+            SessionNotification objects for filesystem tool execution
+        """
+        tool_call_id = f"{tool.name}_{hash(str(params))}"
+
+        try:
+            # Send initial filesystem tool notification
+            yield await create_filesystem_tool_call_notification(
+                tool.name, params, session_id, tool_call_id, "in_progress"
+            )
+
+            # Execute the filesystem tool
+            result = await tool.execute(**params)
+
+            # Send completion notification
+            yield await _create_tool_completion_notification(
+                tool, params, result, session_id, tool_call_id
+            )
+
+        except Exception as e:
+            logger.exception("Filesystem tool execution failed: %s", tool.name)
             yield await _create_tool_error_notification(
                 tool, params, str(e), session_id, tool_call_id
             )

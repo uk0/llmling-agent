@@ -68,7 +68,7 @@ class TestClientTerminalTools:
 
     def test_terminal_tools_registered(self, acp_agent: LLMlingACPAgent):
         """Test that terminal tools are registered when terminal access is enabled."""
-        expected_tools = {
+        expected_terminal_tools = {
             "run_command",
             "get_command_output",
             "create_terminal",
@@ -78,28 +78,67 @@ class TestClientTerminalTools:
             "run_command_with_timeout",
         }
         registered_tools = set(acp_agent._mock_tools.keys())  # type: ignore[attr-defined]
-        assert registered_tools == expected_tools
 
-        for tool_name in expected_tools:
+        # Check that all expected terminal tools are present
+        assert expected_terminal_tools.issubset(registered_tools)
+
+        # Also check that filesystem tools are present (always registered)
+        expected_filesystem_tools = {"read_text_file", "write_text_file"}
+        assert expected_filesystem_tools.issubset(registered_tools)
+
+        for tool_name in expected_terminal_tools:
             tool = acp_agent._mock_tools[tool_name]  # type: ignore[attr-defined]
             assert tool.source == "terminal"
 
-    def test_no_tools_without_terminal_access(self, mock_connection, mock_agent_pool):
-        """Test no tools registered when terminal access disabled."""
+        for tool_name in expected_filesystem_tools:
+            tool = acp_agent._mock_tools[tool_name]  # type: ignore[attr-defined]
+            assert tool.source == "filesystem"
+
+    def test_no_terminal_tools_without_terminal_access(
+        self, mock_connection, mock_agent_pool
+    ):
+        """Test terminal tools not registered when terminal access disabled."""
         from llmling_agent_acp.acp_agent import LLMlingACPAgent
 
         mock_agent = Mock()
+        mock_tools = {}
+
+        def register_tool(tool):
+            mock_tools[tool.name] = tool
+
         mock_agent.tools = Mock()
-        mock_agent.tools.register_tool = Mock()
+        mock_agent.tools.register_tool = register_tool
         mock_agent_pool.agents = {"test_agent": mock_agent}
 
-        LLMlingACPAgent(
+        agent = LLMlingACPAgent(
             connection=mock_connection,
             agent_pool=mock_agent_pool,
             terminal_access=False,
         )
 
-        mock_agent.tools.register_tool.assert_not_called()
+        agent._mock_tools = mock_tools  # type: ignore[attr-defined]
+
+        # Terminal tools should not be registered
+        terminal_tools = {
+            "run_command",
+            "get_command_output",
+            "create_terminal",
+            "wait_for_terminal_exit",
+            "kill_terminal",
+            "release_terminal",
+            "run_command_with_timeout",
+        }
+        registered_tools = set(mock_tools.keys())
+
+        assert not terminal_tools.intersection(registered_tools), (
+            "Terminal tools should not be registered when terminal_access=False"
+        )
+
+        # But filesystem tools should still be registered
+        filesystem_tools = {"read_text_file", "write_text_file"}
+        assert filesystem_tools.issubset(registered_tools), (
+            "Filesystem tools should always be registered"
+        )
 
     @pytest.mark.asyncio
     async def test_run_command_success(self, acp_agent: LLMlingACPAgent):
