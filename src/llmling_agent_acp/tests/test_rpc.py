@@ -73,13 +73,6 @@ class _Server:
             self._server.close()
             await self._server.wait_closed()
 
-    # --------------------- Test Doubles -----------------------
-
-    # Test classes moved to conftest.py as fixtures
-
-
-# ------------------------ Tests --------------------------
-
 
 @pytest.mark.asyncio
 async def test_initialize_and_new_session(
