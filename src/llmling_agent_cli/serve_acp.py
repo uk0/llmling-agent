@@ -107,22 +107,9 @@ def acp_command(
         if agent_count == 0:
             logger.error("No agents found in configuration")
             raise t.Exit(1)
-
         logger.info("Configured %d agents for ACP protocol", agent_count)
-
-        if file_access:
-            logger.info("File system access enabled")
-
-        if terminal_access:
-            logger.info("Terminal access enabled")
-
-        if session_support:
-            logger.info("Session loading support enabled")
-
-        # Set up message logging if requested
         if show_messages:
             logger.info("Message activity logging enabled")
-
         logger.info(
             "Starting ACP server with protocol features: "
             "file_access=%s, terminal_access=%s, session_support=%s",
@@ -132,7 +119,6 @@ def acp_command(
         )
 
         try:
-            # Run the ACP server (communicates over stdio)
             await acp_server.run()
         except KeyboardInterrupt:
             logger.info("ACP server shutdown requested")

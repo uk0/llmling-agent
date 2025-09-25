@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from llmling_agent import Agent, AgentPool
     from llmling_agent_acp.command_bridge import ACPCommandBridge
     from llmling_agent_acp.permission_server import PermissionMCPServer
+    from llmling_agent_providers.base import UsageLimits
 
 from acp.schema import AvailableCommandsUpdate, HttpHeader, SessionNotification
 
@@ -63,8 +64,7 @@ class ACPSession:
         cwd: str,
         client: Client,
         mcp_servers: Sequence[MCPServer] | None = None,
-        max_turn_requests: int = 50,
-        max_tokens: int | None = None,
+        usage_limits: UsageLimits | None = None,
         command_bridge: ACPCommandBridge | None = None,
     ) -> None:
         """Initialize ACP session.
@@ -76,8 +76,7 @@ class ACPSession:
             cwd: Working directory for the session
             client: External library Client interface for operations
             mcp_servers: Optional MCP server configurations
-            max_turn_requests: Maximum model requests per turn
-            max_tokens: Maximum tokens per turn (if None, no limit)
+            usage_limits: Optional usage limits for model requests and tokens
             command_bridge: Optional command bridge for slash commands
         """
         self.session_id = session_id
@@ -86,8 +85,7 @@ class ACPSession:
         self.cwd = cwd
         self.client = client
         self.mcp_servers = mcp_servers or []
-        self.max_turn_requests = max_turn_requests
-        self.max_tokens = max_tokens
+        self.usage_limits = usage_limits
 
         # Session state
         self._active = True
@@ -262,10 +260,8 @@ class ACPSession:
             yield "refusal"
             return
 
-        # Reset turn counters
+        # Reset cancellation flag
         self._cancelled = False
-        self._current_turn_requests = 0
-        self._current_turn_tokens = 0
 
         async with self._task_lock:
             try:
@@ -347,6 +343,8 @@ class ACPSession:
             SessionNotification objects for all agent execution events,
             or StopReason literal
         """
+        from pydantic_ai.exceptions import UsageLimitExceeded
+
         from acp.schema import AgentMessageChunk, TextContentBlock
 
         try:
@@ -355,7 +353,9 @@ class ACPSession:
             logger.info(msg, self.session_id, prompt[:100])
             logger.info("Agent model: %s", self.agent.model_name)
 
-            async with self.agent.iterate_run(prompt) as agent_run:
+            async with self.agent.iterate_run(
+                prompt, usage_limits=self.usage_limits
+            ) as agent_run:
                 logger.info("Agent run started for session %s", self.session_id)
                 node_count = 0
                 has_yielded_anything = False
@@ -363,11 +363,6 @@ class ACPSession:
                     # Check for cancellation
                     if self._cancelled:
                         yield "cancelled"
-                        return
-
-                    # Check turn limits
-                    if self._current_turn_requests >= self.max_turn_requests:
-                        yield "max_turn_requests"
                         return
 
                     node_count += 1
@@ -379,9 +374,6 @@ class ACPSession:
                         logger.debug(msg, self.session_id)
 
                     elif PydanticAIAgent.is_model_request_node(node):
-                        # Increment request counter
-                        self._current_turn_requests += 1
-
                         # Model request node - stream the model's response
                         msg = "Starting model request streaming for session %s"
                         logger.info(msg, self.session_id)
@@ -441,9 +433,27 @@ class ACPSession:
                     else:
                         msg = "Unknown node type for session %s: %s"
                         logger.info(msg, self.session_id, type(node).__name__)
+
                 msg = "Agent iteration finished. Processed %d nodes, yielded anything: %s"
                 logger.info(msg, node_count, has_yielded_anything)
 
+        except UsageLimitExceeded as e:
+            logger.info("Usage limit exceeded for session %s: %s", self.session_id, e)
+            # Determine which limit was exceeded based on the error message
+            error_msg = str(e)
+
+            # Check for request limit (maps to max_turn_requests)
+            if "request_limit" in error_msg:
+                yield "max_turn_requests"
+            # Check for any token limits (maps to max_tokens)
+            elif any(limit in error_msg for limit in ["tokens_limit", "token_limit"]):
+                yield "max_tokens"
+            # Tool call limits don't have a direct ACP stop reason, treat as refusal
+            elif "tool_calls_limit" in error_msg or "tool call" in error_msg:
+                yield "refusal"
+            else:
+                # Default to max_tokens for other usage limits
+                yield "max_tokens"
         except Exception as e:
             logger.exception("Error in agent iteration for session %s", self.session_id)
             logger.info("Sending error updates for session %s", self.session_id)
@@ -499,17 +509,8 @@ class ACPSession:
                         case PartDeltaEvent(
                             delta=TextPartDelta(content_delta=content)
                         ) if content:
-                            msg = "Processing TextPartDelta %r for session %s"
-                            logger.info(msg, content, self.session_id)
-                            # Track tokens if limits are set
-                            if self.max_tokens is not None:
-                                # Rough token estimation (1 token ≈ 4 characters)
-                                estimated_tokens = len(content) // 4
-                                self._current_turn_tokens += estimated_tokens
-                                if self._current_turn_tokens >= self.max_tokens:
-                                    yield "max_tokens"
-                                    return
-
+                            msg = "Processing TextPartDelta (length=%d) %r for session %s"
+                            logger.info(msg, len(content), content[:100], self.session_id)
                             # Stream text deltas directly as single agent message chunks
                             text_content.append(content)
 
@@ -795,8 +796,7 @@ class ACPSessionManager:
         client: Client,
         mcp_servers: Sequence[MCPServer] | None = None,
         session_id: str | None = None,
-        max_turn_requests: int = 50,
-        max_tokens: int | None = None,
+        usage_limits: UsageLimits | None = None,
     ) -> str:
         """Create a new ACP session.
 
@@ -807,8 +807,7 @@ class ACPSessionManager:
             client: External library Client interface
             mcp_servers: Optional MCP server configurations
             session_id: Optional specific session ID (generated if None)
-            max_turn_requests: Maximum model requests per turn
-            max_tokens: Maximum tokens per turn (if None, no limit)
+            usage_limits: Optional usage limits for model requests and tokens
 
         Returns:
             Session ID for the created session
@@ -832,8 +831,7 @@ class ACPSessionManager:
                 cwd=cwd,
                 client=client,
                 mcp_servers=mcp_servers,
-                max_turn_requests=max_turn_requests,
-                max_tokens=max_tokens,
+                usage_limits=usage_limits,
                 command_bridge=self.command_bridge,
             )
 

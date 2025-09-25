@@ -59,6 +59,7 @@ if TYPE_CHECKING:
         SetSessionModeRequest,
     )
     from llmling_agent import Agent, AgentPool
+    from llmling_agent_providers.base import UsageLimits
 
 logger = get_logger(__name__)
 
@@ -88,8 +89,7 @@ class LLMlingACPAgent(ACPAgent):
         file_access: bool = False,
         terminal_access: bool = False,
         client: Client | None = None,
-        max_turn_requests: int = 50,
-        max_tokens: int | None = None,
+        usage_limits: UsageLimits | None = None,
     ) -> None:
         """Initialize ACP agent implementation.
 
@@ -101,8 +101,7 @@ class LLMlingACPAgent(ACPAgent):
             file_access: Whether agent can access filesystem
             terminal_access: Whether agent can use terminal
             client: Optional client interface for operations
-            max_turn_requests: Maximum model requests per turn
-            max_tokens: Maximum tokens per turn (if None, no limit)
+            usage_limits: Optional usage limits for model requests and tokens
         """
         self.connection = connection
         self.agent_pool = agent_pool
@@ -111,8 +110,7 @@ class LLMlingACPAgent(ACPAgent):
         self.file_access = file_access
         self.terminal_access = terminal_access
         self.client: Client = client or connection
-        self.max_turn_requests = max_turn_requests
-        self.max_tokens = max_tokens
+        self.usage_limits = usage_limits
         command_store = CommandStore(enable_system_commands=True)
         command_store._initialize_sync()  # Ensure store is initialized
 
@@ -167,8 +165,7 @@ class LLMlingACPAgent(ACPAgent):
                 cwd=params.cwd,
                 client=self.client,
                 mcp_servers=params.mcp_servers,
-                max_turn_requests=self.max_turn_requests,
-                max_tokens=self.max_tokens,
+                usage_limits=self.usage_limits,
             )
 
             # Create session modes from available agents
@@ -382,15 +379,13 @@ class ACPServer:
         self,
         *,
         client: Client | None = None,
-        max_turn_requests: int = 50,
-        max_tokens: int | None = None,
+        usage_limits: UsageLimits | None = None,
     ) -> None:
         """Initialize ACP server.
 
         Args:
             client: ACP client interface for operations (DefaultACPClient if None)
-            max_turn_requests: Maximum model requests per turn
-            max_tokens: Maximum tokens per turn (if None, no limit)
+            usage_limits: Optional usage limits for model requests and tokens
         """
         self._client = client or DefaultACPClient(allow_file_operations=True)
 
@@ -402,8 +397,7 @@ class ACPServer:
         self._session_support = True
         self._file_access = False
         self._terminal_access = False
-        self._max_turn_requests = max_turn_requests
-        self._max_tokens = max_tokens
+        self.usage_limits = usage_limits
 
         # Model discovery cache
         self._available_models: list[ModelInfo] = []
@@ -520,8 +514,7 @@ class ACPServer:
                     session_support=self._session_support,
                     file_access=self._file_access,
                     terminal_access=self._terminal_access,
-                    max_turn_requests=self._max_turn_requests,
-                    max_tokens=self._max_tokens,
+                    usage_limits=self.usage_limits,
                 )
 
             # AgentSideConnection expects (factory, input_stream, output_stream)
