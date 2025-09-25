@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -123,11 +123,11 @@ class _TestClient(Client):
     async def killTerminal(self, params) -> None:  # pragma: no cover - placeholder
         pass
 
-    async def extMethod(self, method: str, params: dict) -> dict:
+    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         self.ext_calls.append((method, params))
         return {"ok": True, "method": method}
 
-    async def extNotification(self, method: str, params: dict) -> None:
+    async def extNotification(self, method: str, params: dict[str, Any]) -> None:
         self.ext_notes.append((method, params))
 
 
@@ -166,11 +166,11 @@ class _TestAgent(Agent):
     async def setSessionMode(self, params):
         return {}
 
-    async def extMethod(self, method: str, params: dict) -> dict:
+    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         self.ext_calls.append((method, params))
         return {"ok": True, "method": method}
 
-    async def extNotification(self, method: str, params: dict) -> None:
+    async def extNotification(self, method: str, params: dict[str, Any]) -> None:
         self.ext_notes.append((method, params))
 
     async def setSessionModel(self, params):
