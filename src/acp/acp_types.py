@@ -6,7 +6,8 @@ compatibility with existing code while using the standard ACP implementation.
 
 from __future__ import annotations
 
-from typing import Literal
+from collections.abc import Awaitable, Callable
+from typing import Any, Literal
 
 from acp.schema import (
     AgentMessageChunk,
@@ -68,3 +69,8 @@ StopReason = Literal[
 ]
 
 ToolCallStatus = Literal["pending", "in_progress", "completed", "failed"]
+ConfirmationMode = Literal["confirm", "yolo", "human"]
+
+
+JsonValue = Any
+MethodHandler = Callable[[str, JsonValue | None, bool], Awaitable[JsonValue | None]]
