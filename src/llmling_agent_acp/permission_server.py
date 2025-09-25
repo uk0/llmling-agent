@@ -28,12 +28,12 @@ logger = get_logger(__name__)
 class PermissionMCPHandler(BaseHTTPRequestHandler):
     """HTTP request handler for permission MCP server."""
 
-    def __init__(self, client: Client, session_id: str, *args, **kwargs):
+    def __init__(self, client: Client, session_id: str, *args: Any, **kwargs: Any):
         self.client = client
         self.session_id = session_id
         super().__init__(*args, **kwargs)
 
-    def log_message(self, fmt: str, *args) -> None:
+    def log_message(self, fmt: str, *args: Any) -> None:
         """Override to use our logger instead of stderr."""
         logger.debug(fmt, args)
 
@@ -254,7 +254,7 @@ class PermissionMCPServer:
         """
 
         # Create handler factory with client and session_id
-        def handler_factory(*args, **kwargs):
+        def handler_factory(*args: Any, **kwargs: Any) -> PermissionMCPHandler:
             return PermissionMCPHandler(self.client, self.session_id, *args, **kwargs)
 
         # Create and start server

@@ -58,7 +58,7 @@ class ACPSession:
     def __init__(
         self,
         session_id: str,
-        agent_pool: AgentPool,
+        agent_pool: AgentPool[Any],
         current_agent_name: str,
         cwd: str,
         client: Client,
@@ -779,7 +779,7 @@ class ACPSessionManager:
         self._sessions: dict[str, ACPSession] = {}
         self._lock = asyncio.Lock()
         self.command_bridge = command_bridge
-        self._command_update_task: asyncio.Task | None = None
+        self._command_update_task: asyncio.Task[None] | None = None
 
         # Register for command update notifications
         if command_bridge:
@@ -789,7 +789,7 @@ class ACPSessionManager:
 
     async def create_session(
         self,
-        agent_pool: AgentPool,
+        agent_pool: AgentPool[Any],
         default_agent_name: str,
         cwd: str,
         client: Client,
@@ -926,7 +926,7 @@ class ACPSessionManager:
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(self, *exc: object):
         """Async context manager exit."""
         await self.close_all_sessions()
 

@@ -75,7 +75,7 @@ class LLMlingACPAgent(ACPAgent):
     def __init__(
         self,
         connection: AgentSideConnection,
-        agent_pool: AgentPool,
+        agent_pool: AgentPool[Any],
         *,
         session_support: bool = True,
         file_access: bool = False,
@@ -132,7 +132,6 @@ class LLMlingACPAgent(ACPAgent):
 
         self._initialized = True
         response = InitializeResponse(protocol_version=version, agent_capabilities=caps)
-
         logger.info("ACP agent implementation initialized successfully: %s", response)
         return response
 
@@ -143,17 +142,15 @@ class LLMlingACPAgent(ACPAgent):
             raise RuntimeError(msg)
 
         try:
-            logger.info("Creating new session")
             agent_names = list(self.agent_pool.agents.keys())
-            logger.info("Available agents: %s", agent_names)
             if not agent_names:
                 logger.error("No agents available for session creation")
                 msg = "No agents available"
                 raise RuntimeError(msg)  # noqa: TRY301
 
             default_name = agent_names[0]  # Use the first agent as default
-            logger.info("Using agent %s as default for new session", default_name)
-
+            msg = "Creating new session. Available agents: %s. Default agent: %s"
+            logger.info(msg, agent_names, default_name)
             # Create session through session manager (pass the pool, not individual agent)
             session_id = await self.session_manager.create_session(
                 agent_pool=self.agent_pool,
@@ -303,10 +300,10 @@ class LLMlingACPAgent(ACPAgent):
         except Exception:
             logger.exception("Failed to cancel session %s", params.session_id)
 
-    async def extMethod(self, method: str, params: dict) -> dict:
+    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         return {"example": "response"}
 
-    async def extNotification(self, method: str, params: dict) -> None:
+    async def extNotification(self, method: str, params: dict[str, Any]) -> None:
         return None
 
     async def setSessionMode(
@@ -395,7 +392,7 @@ class ACPServer:
         self._client = client or DefaultACPClient(allow_file_operations=True)
 
         # Agent pool management
-        self._agent_pool: AgentPool | None = None
+        self._agent_pool: AgentPool[Any] | None = None
         self._running = False
 
         # Server configuration
@@ -407,7 +404,7 @@ class ACPServer:
 
     def set_agent_pool(
         self,
-        agent_pool: AgentPool,
+        agent_pool: AgentPool[Any],
         *,
         session_support: bool = True,
         file_access: bool = False,
@@ -429,7 +426,7 @@ class ACPServer:
         logger.info("Set agent pool with %d agents", len(agent_pool.agents))
 
     @property
-    def agent_pool(self) -> AgentPool | None:
+    def agent_pool(self) -> AgentPool[Any] | None:
         """Get the current agent pool."""
         return self._agent_pool
 
@@ -470,7 +467,7 @@ class ACPServer:
 
         return server
 
-    def get_agent(self, name: str) -> Agent | None:
+    def get_agent(self, name: str) -> Agent[Any] | None:
         """Get agent by name from the pool."""
         if not self._agent_pool:
             return None
@@ -566,6 +563,6 @@ class ACPServer:
             await self._agent_pool.__aenter__()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(self, *exc: object) -> None:
         """Async context manager exit."""
         await self.shutdown()

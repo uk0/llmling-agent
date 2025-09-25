@@ -60,7 +60,7 @@ class _Server:
         assert self.client_writer
         return self
 
-    async def __aexit__(self, exc_type, exc, tb):
+    async def __aexit__(self, *exc: object):
         if self.client_writer:
             self.client_writer.close()
             with contextlib.suppress(Exception):

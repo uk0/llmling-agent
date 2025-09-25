@@ -71,7 +71,7 @@ class ACPCommandBridge:
         self._update_callbacks: list[Callable[[], None]] = []
 
     def to_available_commands(
-        self, context: AgentContext | None = None
+        self, context: AgentContext[Any] | None = None
     ) -> list[AvailableCommand]:
         """Convert slashed commands to ACP format.
 
@@ -147,7 +147,11 @@ class ACPCommandBridge:
 
         return None
 
-    def _is_command_available(self, command: BaseCommand, context: AgentContext) -> bool:
+    def _is_command_available(
+        self,
+        command: BaseCommand,
+        context: AgentContext[Any],
+    ) -> bool:
         """Check if command is available in the given context.
 
         Args:

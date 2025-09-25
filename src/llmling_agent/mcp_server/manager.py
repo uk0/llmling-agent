@@ -187,7 +187,7 @@ class MCPManager(ResourceProvider):
                     logger.exception("Failed to convert resource: %s", resource.name)
         return resources
 
-    async def cleanup(self):
+    async def cleanup(self) -> None:
         """Clean up all MCP connections."""
         try:
             try:

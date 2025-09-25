@@ -195,10 +195,10 @@ class DefaultACPClient:
         """Clear all stored session updates."""
         self._session_updates.clear()
 
-    async def extMethod(self, method: str, params: dict) -> dict:
+    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         return {"example": "response"}
 
-    async def extNotification(self, method: str, params: dict) -> None:
+    async def extNotification(self, method: str, params: dict[str, Any]) -> None:
         return None
 
 

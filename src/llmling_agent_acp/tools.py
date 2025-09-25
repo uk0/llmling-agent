@@ -60,7 +60,7 @@ class ACPFileSystemTool:
         self.name = original_tool.name
         self.description = original_tool.description
 
-    async def __call__(self, **kwargs) -> Any:
+    async def __call__(self, **kwargs: Any) -> Any:
         # Intercept file operations and route through ACP client
         modified_kwargs = await self._process_file_params(kwargs)
         return await self.original_tool.execute(**modified_kwargs)
