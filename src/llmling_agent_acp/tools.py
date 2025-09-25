@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 from acp import RequestPermissionRequest
 from acp.acp_types import (
     ContentToolCallContent,
+    TerminalToolCallContent,
     TextContentBlock,
     ToolCallProgress,
     ToolCallStart,
@@ -21,6 +22,7 @@ from acp.schema import (
     PermissionOption,
     SessionNotification,
     ToolCallLocation,
+    ToolCallStart as ToolCallStartSchema,
     ToolCallUpdate,
 )
 from llmling_agent.log import get_logger
@@ -32,6 +34,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
     from acp import Client
+    from acp.acp_types import ToolCallStatus
 
 
 logger = get_logger(__name__)
@@ -367,6 +370,7 @@ def _extract_file_locations(params: dict[str, Any]) -> list[ToolCallLocation]:
         "output_path",
         "source",
         "destination",
+        "cwd",  # Working directory for terminal operations
     ]
     return [
         ToolCallLocation(path=param_value)
@@ -375,6 +379,67 @@ def _extract_file_locations(params: dict[str, Any]) -> list[ToolCallLocation]:
         and isinstance(param_value, str)
         and ("/" in param_value or "\\" in param_value or "." in param_value)
     ]
+
+
+def _is_terminal_tool(tool_name: str) -> bool:
+    """Check if a tool is a terminal operation tool.
+
+    Args:
+        tool_name: Name of the tool to check
+
+    Returns:
+        True if tool is terminal-related
+    """
+    terminal_tool_names = {
+        "run_command",
+        "get_command_output",
+        "create_terminal",
+        "wait_for_terminal_exit",
+        "kill_terminal",
+        "release_terminal",
+        "run_command_with_timeout",
+    }
+    return tool_name in terminal_tool_names
+
+
+async def create_terminal_tool_call_notification(
+    tool_name: str,
+    params: dict[str, Any],
+    session_id: str,
+    tool_call_id: str,
+    status: ToolCallStatus = "in_progress",
+) -> SessionNotification:
+    """Create a terminal tool call notification with embedded terminal.
+
+    Args:
+        tool_name: Name of terminal tool
+        params: Tool parameters
+        session_id: ACP session ID
+        tool_call_id: Tool call identifier
+        status: Tool call status
+
+    Returns:
+        SessionNotification with terminal tool call
+    """
+    # Extract terminal ID if present
+    terminal_id = params.get("terminal_id")
+
+    locations = _extract_file_locations(params)
+
+    tool_call = ToolCallStartSchema(
+        tool_call_id=tool_call_id,
+        title=f"Terminal: {tool_name}",
+        status=status,
+        kind="execute",  # Terminal operations are execution type
+        locations=locations,
+        raw_input=params,
+    )
+
+    # Add terminal content if we have a terminal ID
+    if terminal_id:
+        tool_call.content = [TerminalToolCallContent(terminal_id=terminal_id)]
+
+    return SessionNotification(session_id=session_id, update=tool_call)
 
 
 class ACPToolRegistry:
@@ -469,6 +534,51 @@ class ACPToolRegistry:
                 logger.info("Permission denied for tool %s", name)
                 return
 
-        # Execute tool through bridge
-        async for notification in self.bridge.execute_tool(tool, params, session_id):
-            yield notification
+        # Handle terminal tools specially
+        if _is_terminal_tool(name):
+            async for notification in self._execute_terminal_tool(
+                tool, params, session_id
+            ):
+                yield notification
+        else:
+            # Execute regular tool through bridge
+            async for notification in self.bridge.execute_tool(tool, params, session_id):
+                yield notification
+
+    async def _execute_terminal_tool(
+        self,
+        tool: Tool,
+        params: dict[str, Any],
+        session_id: str,
+    ) -> AsyncGenerator[SessionNotification, None]:
+        """Execute a terminal tool with special handling.
+
+        Args:
+            tool: Terminal tool to execute
+            params: Tool parameters
+            session_id: ACP session ID
+
+        Yields:
+            SessionNotification objects for terminal tool execution
+        """
+        tool_call_id = f"{tool.name}_{hash(str(params))}"
+
+        try:
+            # Send initial terminal tool notification
+            yield await create_terminal_tool_call_notification(
+                tool.name, params, session_id, tool_call_id, "in_progress"
+            )
+
+            # Execute the terminal tool
+            result = await tool.execute(**params)
+
+            # Send completion notification
+            yield await _create_tool_completion_notification(
+                tool, params, result, session_id, tool_call_id
+            )
+
+        except Exception as e:
+            logger.exception("Terminal tool execution failed: %s", tool.name)
+            yield await _create_tool_error_notification(
+                tool, params, str(e), session_id, tool_call_id
+            )
