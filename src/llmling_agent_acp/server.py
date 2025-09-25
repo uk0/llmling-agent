@@ -309,7 +309,6 @@ class LLMlingACPAgent(ACPAgent):
         The mode ID corresponds to the agent name in the pool.
         """
         try:
-            # Get session and switch active agent
             session = await self.session_manager.get_session(params.session_id)
             if not session:
                 logger.warning("Session %s not found for mode switch", params.session_id)
@@ -320,12 +319,9 @@ class LLMlingACPAgent(ACPAgent):
                 logger.error("Agent %s not found in pool", params.mode_id)
                 return None
 
-            # Switch the active agent in the session
             await session.switch_active_agent(params.mode_id)
-
-            logger.info(
-                "Switched session %s to agent %s", params.session_id, params.mode_id
-            )
+            msg = "Switched session %s to agent %s"
+            logger.info(msg, params.session_id, params.mode_id)
             return SetSessionModeResponse()
 
         except Exception:
@@ -340,24 +336,13 @@ class LLMlingACPAgent(ACPAgent):
         Changes the model for the active agent in the session.
         """
         try:
-            # Get session and active agent
             session = await self.session_manager.get_session(params.session_id)
             if not session:
                 logger.warning("Session %s not found for model switch", params.session_id)
                 return None
-
-            # Get the active agent from the session
-            active_agent = session.agent
-            if not active_agent:
-                logger.warning("No active agent in session %s", params.session_id)
-                return None
-
-            # Set the model on the active agent
-            active_agent.set_model(params.model_id)
-
+            session.agent.set_model(params.model_id)
             logger.info("Set model %s for session %s", params.model_id, params.session_id)
             return SetSessionModelResponse()
-
         except Exception:
             logger.exception("Failed to set session model for %s", params.session_id)
             return None
