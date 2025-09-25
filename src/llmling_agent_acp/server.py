@@ -349,6 +349,7 @@ class ACPServer:
 
     def __init__(
         self,
+        agent_pool: AgentPool[Any],
         *,
         client: Client | None = None,
         usage_limits: UsageLimits | None = None,
@@ -356,13 +357,12 @@ class ACPServer:
         """Initialize ACP server.
 
         Args:
+            agent_pool: AgentPool containing available agents
             client: ACP client interface for operations (DefaultACPClient if None)
             usage_limits: Optional usage limits for model requests and tokens
         """
         self._client = client or DefaultACPClient(allow_file_operations=True)
-
-        # Agent pool management
-        self._agent_pool: AgentPool[Any] | None = None
+        self.agent_pool = agent_pool
         self._running = False
 
         # Server configuration
@@ -391,29 +391,27 @@ class ACPServer:
             file_access: Enable file system access
             terminal_access: Enable terminal access
         """
-        self._agent_pool = agent_pool
+        self.agent_pool = agent_pool
         self._session_support = session_support
         self._file_access = file_access
         self._terminal_access = terminal_access
 
         logger.info("Set agent pool with %d agents", len(agent_pool.agents))
 
-    @property
-    def agent_pool(self) -> AgentPool[Any] | None:
-        """Get the current agent pool."""
-        return self._agent_pool
-
     @classmethod
     async def from_config(
         cls,
         config_path: str | Path,
-        **kwargs: Any,
-    ) -> ACPServer:
+        *,
+        client: Client | None = None,
+        usage_limits: UsageLimits | None = None,
+    ) -> Self:
         """Create ACP server from existing llmling-agent configuration.
 
         Args:
             config_path: Path to llmling-agent YAML config file
-            **kwargs: Additional server initialization parameters
+            client: ACP client interface for operations (DefaultACPClient if None)
+            usage_limits: Optional usage limits for model requests and tokens
 
         Returns:
             Configured ACP server instance with agent pool from config
@@ -421,36 +419,34 @@ class ACPServer:
         config_str = Path(config_path).read_text()
         manifest = AgentsManifest.from_yaml(config_str)
 
-        # Create server
-        server = cls(**kwargs)
-
-        # Store the agent pool - server context manager will handle lifecycle
-        server._agent_pool = manifest.pool
+        server = cls(
+            agent_pool=manifest.pool,
+            client=client,
+            usage_limits=usage_limits,
+        )
 
         # Set up the agent pool with capabilities
         server.set_agent_pool(
-            agent_pool=server._agent_pool,
+            agent_pool=manifest.pool,
             session_support=True,
             file_access=True,
             terminal_access=False,  # Conservative default
         )
 
-        agent_names = list(server._agent_pool.agents.keys())
+        agent_names = list(server.agent_pool.agents.keys())
         logger.info("Created ACP server with agent pool containing: %s", agent_names)
 
         return server
 
-    def get_agent(self, name: str) -> Agent[Any] | None:
+    def get_agent(self, name: str) -> Agent[Any]:
         """Get agent by name from the pool."""
-        if not self._agent_pool:
-            return None
-        return self._agent_pool.get_agent(name)
+        return self.agent_pool.get_agent(name)
 
     def list_agents(self) -> list[str]:
         """List all available agent names."""
-        if not self._agent_pool:
+        if not self.agent_pool:
             return []
-        return list(self._agent_pool.agents.keys())
+        return list(self.agent_pool.agents.keys())
 
     async def run(self) -> None:
         """Run the ACP server using external library."""
@@ -460,7 +456,7 @@ class ACPServer:
         try:
             self._running = True
 
-            if not self._agent_pool:
+            if not self.agent_pool:
                 logger.error("No agent pool available - cannot start server")
                 msg = "No agent pool available"
                 raise RuntimeError(msg)  # noqa: TRY301
@@ -468,7 +464,7 @@ class ACPServer:
             # Initialize models on first run
             await self._initialize_models()
 
-            agent_names = list(self._agent_pool.agents.keys())
+            agent_names = list(self.agent_pool.agents.keys())
             msg = "Starting ACP server with %d agents on stdio: %s"
             logger.info(msg, len(agent_names), agent_names)
             # Create stdio streams
@@ -476,12 +472,12 @@ class ACPServer:
 
             # Create agent factory function for external library
             def create_acp_agent(connection: AgentSideConnection) -> ACPAgent:
-                if not self._agent_pool:
+                if not self.agent_pool:
                     msg = "Agent pool not initialized"
                     raise RuntimeError(msg)  # noqa: TRY301
                 return LLMlingACPAgent(
                     connection=connection,
-                    agent_pool=self._agent_pool,
+                    agent_pool=self.agent_pool,
                     available_models=self._available_models,
                     session_support=self._session_support,
                     file_access=self._file_access,
@@ -522,21 +518,17 @@ class ACPServer:
         self._running = False
         logger.info("Shutting down ACP server")
 
-        # Cleanup agent pool
-        if self._agent_pool:
-            try:
-                await self._agent_pool.__aexit__(None, None, None)
-            except Exception as e:  # noqa: BLE001
-                logger.warning("Failed to cleanup agent pool: %s", e)
+        try:
+            await self.agent_pool.__aexit__(None, None, None)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Failed to cleanup agent pool: %s", e)
 
-        self._agent_pool = None
         logger.info("ACP server shutdown complete")
 
     async def __aenter__(self) -> Self:
         """Async context manager entry."""
         # Initialize agent pool if present
-        if self._agent_pool:
-            await self._agent_pool.__aenter__()
+        await self.agent_pool.__aenter__()
         return self
 
     async def __aexit__(self, *exc: object) -> None:
