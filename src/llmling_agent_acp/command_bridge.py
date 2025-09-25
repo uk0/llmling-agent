@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from llmling_agent_acp.session import ACPSession
 
 logger = get_logger(__name__)
+SLASH_PATTERN = re.compile(r"^/(\w+)(?:\s+(.*))?$")
 
 
 class ACPOutputWriter:
@@ -67,7 +68,6 @@ class ACPCommandBridge:
             command_store: The slashed CommandStore containing available commands
         """
         self.command_store = command_store
-        self._slash_pattern = re.compile(r"^/(\w+)(?:\s+(.*))?$")
         self._update_callbacks: list[Callable[[], None]] = []
 
     def to_available_commands(
@@ -169,7 +169,7 @@ class ACPCommandBridge:
         Returns:
             True if text is a slash command
         """
-        return bool(self._slash_pattern.match(text.strip()))
+        return bool(SLASH_PATTERN.match(text.strip()))
 
     def parse_slash_command(self, text: str) -> tuple[str, str] | None:
         """Parse slash command text.
@@ -180,8 +180,7 @@ class ACPCommandBridge:
         Returns:
             Tuple of (command_name, args) or None if not a command
         """
-        match = self._slash_pattern.match(text.strip())
-        if match:
+        if match := SLASH_PATTERN.match(text.strip()):
             command_name = match.group(1)
             args = match.group(2) or ""
             return command_name, args.strip()
@@ -250,33 +249,6 @@ class ACPCommandBridge:
             data=session.agent.context,
             output_writer=output_writer,
         )
-
-    def get_commands_by_category(
-        self, category: str | None = None
-    ) -> list[AvailableCommand]:
-        """Get commands filtered by category.
-
-        Args:
-            category: Category to filter by (None for all)
-
-        Returns:
-            List of commands in the category
-        """
-        commands = []
-        for command in self.command_store.list_commands(category):
-            if acp_command := self._convert_command(command):
-                commands.append(acp_command)
-        return commands
-
-    def update_commands(self, new_commands: list[BaseCommand]) -> None:
-        """Update command store with new commands.
-
-        Args:
-            new_commands: List of new commands to add
-        """
-        for command in new_commands:
-            self.command_store.register_command(command)
-        self._notify_command_update()
 
     def register_update_callback(self, callback: Callable[[], None]) -> None:
         """Register callback for command updates.
