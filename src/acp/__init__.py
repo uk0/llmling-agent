@@ -3,9 +3,18 @@
 from acp.client import DefaultACPClient
 from acp.core import (
     Agent,
+    AgentExtensibilityCapability,
     AgentSideConnection,
+    BaseAgent,
+    BaseClient,
     Client,
     ClientSideConnection,
+    ExtensibilityCapability,
+    FileSystemCapability,
+    SessionModeCapability,
+    SessionModelCapability,
+    SessionPersistenceCapability,
+    TerminalCapability,
     TerminalHandle,
     create_session_model_state,
 )
@@ -105,6 +114,16 @@ __all__ = [  # noqa: RUF022
     "Client",
     "DefaultACPClient",
     "TerminalHandle",
+    # split protocols
+    "BaseAgent",
+    "SessionPersistenceCapability",
+    "SessionModeCapability",
+    "SessionModelCapability",
+    "AgentExtensibilityCapability",
+    "BaseClient",
+    "FileSystemCapability",
+    "TerminalCapability",
+    "ExtensibilityCapability",
     # utilities
     "create_session_model_state",
     # stdio helper

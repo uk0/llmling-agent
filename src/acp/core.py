@@ -65,14 +65,18 @@ _NO_MATCH = NoMatch()
 # --- High-level Agent/Client wrappers -------------------------------------------
 
 
-class Client(Protocol):
-    """High-level client interface for interacting with an ACP server."""
+class BaseClient(Protocol):
+    """Base client interface for ACP - always required."""
 
     async def request_permission(
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse: ...
 
     async def session_update(self, params: SessionNotification) -> None: ...
+
+
+class FileSystemCapability(Protocol):
+    """Client capability for filesystem operations."""
 
     async def write_text_file(
         self, params: WriteTextFileRequest
@@ -82,7 +86,10 @@ class Client(Protocol):
         self, params: ReadTextFileRequest
     ) -> ReadTextFileResponse: ...
 
-    # Optional/unstable terminal methods
+
+class TerminalCapability(Protocol):
+    """Client capability for terminal operations."""
+
     async def create_terminal(
         self, params: CreateTerminalRequest
     ) -> CreateTerminalResponse: ...
@@ -103,18 +110,39 @@ class Client(Protocol):
         self, params: KillTerminalCommandRequest
     ) -> KillTerminalCommandResponse | None: ...
 
-    # Extension hooks (optional)
+
+class ExtensibilityCapability(Protocol):
+    """Client capability for extension methods."""
+
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]: ...
 
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None: ...
 
 
-class Agent(Protocol):
-    """ACP Agent interface."""
+class Client(
+    BaseClient, FileSystemCapability, TerminalCapability, ExtensibilityCapability
+):
+    """High-level client interface for interacting with an ACP server.
+
+    Backward compatibility class that includes all client capabilities.
+    New implementations should inherit from specific capability protocols instead.
+    """
+
+
+class BaseAgent(Protocol):
+    """Base agent interface for ACP - always required."""
 
     async def initialize(self, params: InitializeRequest) -> InitializeResponse: ...
 
     async def new_session(self, params: NewSessionRequest) -> NewSessionResponse: ...
+
+    async def prompt(self, params: PromptRequest) -> PromptResponse: ...
+
+    async def cancel(self, params: CancelNotification) -> None: ...
+
+
+class SessionPersistenceCapability(Protocol):
+    """Agent capability for session persistence and authentication."""
 
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse: ...
 
@@ -122,22 +150,43 @@ class Agent(Protocol):
         self, params: AuthenticateRequest
     ) -> AuthenticateResponse | None: ...
 
-    async def prompt(self, params: PromptRequest) -> PromptResponse: ...
 
-    async def cancel(self, params: CancelNotification) -> None: ...
+class SessionModeCapability(Protocol):
+    """Agent capability for session mode switching."""
 
     async def set_session_mode(
         self, params: SetSessionModeRequest
     ) -> SetSessionModeResponse | None: ...
 
+
+class SessionModelCapability(Protocol):
+    """Agent capability for session model switching."""
+
     async def set_session_model(
         self, params: SetSessionModelRequest
     ) -> SetSessionModelResponse | None: ...
 
-    # Extension hooks (optional)
+
+class AgentExtensibilityCapability(Protocol):
+    """Agent capability for extension methods."""
+
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]: ...
 
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None: ...
+
+
+class Agent(
+    BaseAgent,
+    SessionPersistenceCapability,
+    SessionModeCapability,
+    SessionModelCapability,
+    AgentExtensibilityCapability,
+):
+    """ACP Agent interface.
+
+    Backward compatibility class that includes all agent capabilities.
+    New implementations should inherit from specific capability protocols instead.
+    """
 
 
 class AgentSideConnection(Client):
@@ -621,7 +670,7 @@ def create_session_model_state(
         return None
 
     # Import here to avoid circular imports
-    from .schema import ModelInfo
+    from acp.schema import ModelInfo
 
     # Create ModelInfo objects for each available model
     model_infos = []
