@@ -147,8 +147,7 @@ class ACPSession:
                     "Registered MCP tool %s with schema: %s", tool.name, tool.schema
                 )
 
-            # Update available commands since new tools may affect command context
-            await self.send_available_commands_update()
+            # Commands will be sent after session creation is complete
 
         except Exception:
             msg = "Failed to initialize MCP servers for session %s"
@@ -735,8 +734,6 @@ class ACPSession:
             # Send to client
             notification = SessionNotification(session_id=self.session_id, update=update)
             await self.client.sessionUpdate(notification)
-            msg = "Sent %s available commands for session %s"
-            logger.debug(msg, len(commands), self.session_id)
 
         except Exception:
             msg = "Failed to send available commands update for session %s"
@@ -846,8 +843,7 @@ class ACPSessionManager:
             # Store session
             self._sessions[session_id] = session
 
-            # Announce available slash commands to client
-            await session.send_available_commands_update()
+            # Commands will be sent after session response is returned
             return session_id
 
     async def get_session(self, session_id: str) -> ACPSession | None:

@@ -32,6 +32,7 @@ from acp.schema import (
 from acp.stdio import stdio_streams
 from llmling_agent.log import get_logger
 from llmling_agent.models.manifest import AgentsManifest
+from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import to_session_updates
 from llmling_agent_acp.session import ACPSessionManager
@@ -100,7 +101,7 @@ class LLMlingACPAgent(ACPAgent):
         self.session_support = session_support
         self.file_access = file_access
         self.terminal_access = terminal_access
-        self.client = client or DefaultACPClient(allow_file_operations=file_access)
+        self.client = client or connection
         self.max_turn_requests = max_turn_requests
         self.max_tokens = max_tokens
         command_store = CommandStore(enable_system_commands=True)
@@ -111,6 +112,7 @@ class LLMlingACPAgent(ACPAgent):
 
         self.command_bridge = ACPCommandBridge(command_store)
         self.session_manager = ACPSessionManager(command_bridge=self.command_bridge)
+        self.tasks = TaskManagerMixin()
 
         self._initialized = False
         agent_count = len(self.agent_pool.agents)
@@ -195,15 +197,19 @@ class LLMlingACPAgent(ACPAgent):
             )
             msg = "Created session %s with %d available agents"
             logger.info(msg, session_id, len(modes))
-            session = await self.session_manager.get_session(session_id)
-            assert session
-            logger.debug("About to send available commands update")
-            await session.send_available_commands_update()
 
         except Exception:
             logger.exception("Failed to create new session")
             raise
         else:
+            # Schedule available commands update after session response is returned
+            session = await self.session_manager.get_session(session_id)
+            if session:
+                # Schedule task to run after response is sent
+                self.tasks.create_task(
+                    session.send_available_commands_update(),
+                    name=f"send_commands_update_{session_id}",
+                )
             return response
 
     async def loadSession(self, params: LoadSessionRequest) -> LoadSessionResponse:
@@ -506,7 +512,6 @@ class ACPServer:
                     session_support=self._session_support,
                     file_access=self._file_access,
                     terminal_access=self._terminal_access,
-                    client=self._client,
                     max_turn_requests=self._max_turn_requests,
                     max_tokens=self._max_tokens,
                 )
