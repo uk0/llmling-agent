@@ -45,6 +45,8 @@ from llmling_agent_commands import get_commands
 
 
 if TYPE_CHECKING:
+    from tokonomics.model_discovery.model_info import ModelInfo
+
     from acp import Client
     from acp.schema import (
         AuthenticateRequest,
@@ -81,6 +83,7 @@ class LLMlingACPAgent(ACPAgent):
         connection: AgentSideConnection,
         agent_pool: AgentPool[Any],
         *,
+        available_models: list[ModelInfo] | None = None,
         session_support: bool = True,
         file_access: bool = False,
         terminal_access: bool = False,
@@ -93,6 +96,7 @@ class LLMlingACPAgent(ACPAgent):
         Args:
             connection: ACP connection for client communication
             agent_pool: AgentPool containing available agents
+            available_models: List of available tokonomics ModelInfo objects
             session_support: Whether agent supports session loading
             file_access: Whether agent can access filesystem
             terminal_access: Whether agent can use terminal
@@ -102,6 +106,7 @@ class LLMlingACPAgent(ACPAgent):
         """
         self.connection = connection
         self.agent_pool = agent_pool
+        self.available_models = available_models or []
         self.session_support = session_support
         self.file_access = file_access
         self.terminal_access = terminal_access
@@ -183,13 +188,9 @@ class LLMlingACPAgent(ACPAgent):
             # Get model information from the default agent
             session = await self.session_manager.get_session(session_id)
             if session and session.agent:
-                # For now, create model state with single current model
-                # TODO: Get list of available models from agent provider
                 current_model = session.agent.model_name
-                if current_model:
-                    models = create_session_model_state([current_model], current_model)
-                else:
-                    models = None
+                model_ids = [m.pydantic_ai_id for m in self.available_models]
+                models = create_session_model_state(model_ids, current_model)
             else:
                 models = None
 
@@ -228,10 +229,8 @@ class LLMlingACPAgent(ACPAgent):
 
             # Get model information
             current_model = session.agent.model_name if session.agent else None
-            if current_model:
-                models = create_session_model_state([current_model], current_model)
-            else:
-                models = None
+            model_ids = [m.pydantic_ai_id for m in self.available_models]
+            models = create_session_model_state(model_ids, current_model)
 
             return LoadSessionResponse(models=models)
         except Exception:
@@ -406,6 +405,10 @@ class ACPServer:
         self._max_turn_requests = max_turn_requests
         self._max_tokens = max_tokens
 
+        # Model discovery cache
+        self._available_models: list[ModelInfo] = []
+        self._models_initialized = False
+
     def set_agent_pool(
         self,
         agent_pool: AgentPool[Any],
@@ -496,6 +499,9 @@ class ACPServer:
                 msg = "No agent pool available"
                 raise RuntimeError(msg)  # noqa: TRY301
 
+            # Initialize models on first run
+            await self._initialize_models()
+
             agent_names = list(self._agent_pool.agents.keys())
             msg = "Starting ACP server with %d agents on stdio: %s"
             logger.info(msg, len(agent_names), agent_names)
@@ -510,6 +516,7 @@ class ACPServer:
                 return LLMlingACPAgent(
                     connection=connection,
                     agent_pool=self._agent_pool,
+                    available_models=self._available_models,
                     session_support=self._session_support,
                     file_access=self._file_access,
                     terminal_access=self._terminal_access,
@@ -570,3 +577,31 @@ class ACPServer:
     async def __aexit__(self, *exc: object) -> None:
         """Async context manager exit."""
         await self.shutdown()
+
+    async def _initialize_models(self) -> None:
+        """Initialize available models using tokonomics model discovery."""
+        if self._models_initialized:
+            return
+
+        try:
+            # Import tokonomics here to avoid dependency issues
+            from tokonomics.model_discovery import get_all_models
+
+            logger.info("Discovering available models...")
+            tokonomics_models = await get_all_models(include_deprecated=False)
+
+            # Store tokonomics models directly
+            self._available_models = tokonomics_models
+
+            self._models_initialized = True
+            logger.info(
+                "Discovered %d models from %d providers",
+                len(self._available_models),
+                len({m.provider for m in tokonomics_models}),
+            )
+
+        except Exception:
+            logger.exception("Failed to discover models")
+            self._available_models = []
+        finally:
+            self._models_initialized = True
