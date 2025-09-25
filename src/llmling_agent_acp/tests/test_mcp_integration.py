@@ -13,6 +13,7 @@ import pytest
 
 from acp.schema import EnvVariable, StdioMcpServer
 from llmling_agent import Agent
+from llmling_agent.delegation import AgentPool
 from llmling_agent.log import get_logger
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import convert_acp_mcp_server_to_config
@@ -63,6 +64,10 @@ async def test_session_with_mcp_servers():
         provider=simple_callback,
     )
 
+    # Create empty agent pool and register the agent
+    agent_pool = AgentPool()
+    agent_pool.register("test_agent", agent)
+
     # Create ACP client
     client = DefaultACPClient(allow_file_operations=True)
 
@@ -92,7 +97,8 @@ async def test_session_with_mcp_servers():
         # Create session with MCP servers
         session = ACPSession(
             session_id="test_session",
-            agent=agent,
+            agent_pool=agent_pool,
+            current_agent_name="test_agent",
             cwd="/tmp",
             client=client,
             mcp_servers=mcp_servers,
@@ -146,6 +152,10 @@ async def test_session_manager_with_mcp():
         provider=simple_callback,
     )
 
+    # Create empty agent pool and register the agent
+    agent_pool = AgentPool()
+    agent_pool.register("test_agent", agent)
+
     # Create client
     client = DefaultACPClient()
 
@@ -155,7 +165,8 @@ async def test_session_manager_with_mcp():
     try:
         # Create session
         session_id = await session_manager.create_session(
-            agent=agent,
+            agent_pool=agent_pool,
+            default_agent_name="test_agent",
             cwd="/tmp",
             client=client,
             mcp_servers=mcp_servers,
