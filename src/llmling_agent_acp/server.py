@@ -149,13 +149,13 @@ class LLMlingACPAgent(ACPAgent):
                 msg = "No agents available"
                 raise RuntimeError(msg)  # noqa: TRY301
 
-            default_agent_name = agent_names[0]  # Use the first agent as default
-            logger.info("Using agent %s as default for new session", default_agent_name)
+            default_name = agent_names[0]  # Use the first agent as default
+            logger.info("Using agent %s as default for new session", default_name)
 
             # Create session through session manager (pass the pool, not individual agent)
             session_id = await self.session_manager.create_session(
                 agent_pool=self.agent_pool,
-                default_agent_name=default_agent_name,
+                default_agent_name=default_name,
                 cwd=params.cwd,
                 client=self.client,
                 mcp_servers=params.mcp_servers,
@@ -164,8 +164,7 @@ class LLMlingACPAgent(ACPAgent):
             )
 
             # Create session modes from available agents
-
-            available_modes = [
+            modes = [
                 SessionMode(
                     id=agent_name,
                     name=self.agent_pool.get_agent(agent_name).name,
@@ -177,10 +176,7 @@ class LLMlingACPAgent(ACPAgent):
                 for agent_name in agent_names
             ]
 
-            modes = SessionModeState(
-                current_mode_id=default_agent_name, available_modes=available_modes
-            )
-
+            state = SessionModeState(current_mode_id=default_name, available_modes=modes)
             # Get model information from the default agent
             session = await self.session_manager.get_session(session_id)
             if session and session.agent:
@@ -195,10 +191,10 @@ class LLMlingACPAgent(ACPAgent):
                 models = None
 
             response = NewSessionResponse(
-                session_id=session_id, modes=modes, models=models
+                session_id=session_id, modes=state, models=models
             )
             msg = "Created session %s with %d available agents"
-            logger.info(msg, session_id, len(available_modes))
+            logger.info(msg, session_id, len(modes))
             session = await self.session_manager.get_session(session_id)
             assert session
             logger.debug("About to send available commands update")
