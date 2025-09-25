@@ -78,6 +78,9 @@ class UsageLimits:
     request_limit: int | None = 50
     """The maximum number of requests allowed to the model."""
 
+    tool_calls_limit: int | None = None
+    """The maximum number of successful tool calls allowed to be executed."""
+
     input_tokens_limit: int | None = None
     """The maximum number of tokens allowed in requests to the model."""
 
