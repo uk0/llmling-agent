@@ -19,11 +19,7 @@ from acp import (
     SetSessionModeRequest,
     WriteTextFileRequest,
 )
-from acp.schema import (
-    AgentMessageChunk,
-    TextContentBlock,
-    UserMessageChunk,
-)
+from acp.schema import AgentMessageChunk, TextContentBlock, UserMessageChunk
 
 
 if TYPE_CHECKING:
@@ -56,8 +52,6 @@ class _Server:
             await asyncio.sleep(0.01)
         assert self.server_reader
         assert self.server_writer
-        assert self.client_reader
-        assert self.client_writer
         return self
 
     async def __aexit__(self, *exc: object):
@@ -83,14 +77,12 @@ async def test_initialize_and_new_session(
         assert s.client_reader is not None
         assert s.server_writer is not None
         assert s.server_reader is not None
-        agent = test_agent
-        client = test_client
         # server side is agent; client side is client
         agent_conn = ClientSideConnection(
-            lambda _conn: client, s.client_writer, s.client_reader
+            lambda _conn: test_client, s.client_writer, s.client_reader
         )
         _client_conn = AgentSideConnection(
-            lambda _conn: agent, s.server_writer, s.server_reader
+            lambda _conn: test_agent, s.server_writer, s.server_reader
         )
 
         resp = await agent_conn.initialize(InitializeRequest(protocol_version=1))

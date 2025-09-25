@@ -1,8 +1,4 @@
-"""Test MCP server integration with ACP sessions.
-
-This module provides a simple test to verify that MCP servers can be properly
-integrated into ACP sessions and that MCP tools become available to agents.
-"""
+"""Test MCP server integration with ACP sessions."""
 
 from __future__ import annotations
 
@@ -10,6 +6,7 @@ import asyncio
 import sys
 
 import pytest
+from slashed import CommandStore
 
 from acp import DefaultACPClient
 from acp.schema import EnvVariable, StdioMcpServer
@@ -26,9 +23,6 @@ logger = get_logger(__name__)
 
 async def test_mcp_server_conversion():
     """Test conversion from ACP McpServer to our MCPServerConfig."""
-    print("Testing MCP server conversion...")
-
-    # Create sample ACP MCP server
     acp_server = StdioMcpServer(
         name="test_server",
         command="uv",
@@ -38,42 +32,24 @@ async def test_mcp_server_conversion():
             EnvVariable(name="DEBUG", value="true"),
         ],
     )
-
-    # Convert to our format
     config = convert_acp_mcp_server_to_config(acp_server)
-
     assert config.name == "test_server"
     assert config.command == "uv"
     assert config.args == ["run", "test-mcp-server"]
     assert config.environment == {"API_KEY": "test123", "DEBUG": "true"}
 
-    print("✓ MCP server conversion works correctly")
-
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")
 async def test_session_with_mcp_servers():
     """Test creating an ACP session with MCP servers."""
-    print("Testing ACP session with MCP servers...")
 
-    # Create a simple agent with callback provider
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"
 
-    agent = Agent[None](
-        name="test_agent",
-        provider=simple_callback,
-    )
-
-    # Create empty agent pool and register the agent
+    agent = Agent[None](name="test_agent", provider=simple_callback)
     agent_pool = AgentPool[None]()
     agent_pool.register("test_agent", agent)
-
-    # Create ACP client
     client = DefaultACPClient(allow_file_operations=True)
-
-    # Create command bridge
-    from slashed import CommandStore
-
     command_store = CommandStore()
     command_bridge = ACPCommandBridge(command_store)
 
