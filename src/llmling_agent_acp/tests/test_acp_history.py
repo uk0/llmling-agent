@@ -6,6 +6,7 @@ import tempfile
 from slashed import CommandStore
 
 from llmling_agent import Agent
+from llmling_agent.delegation import AgentPool
 from llmling_agent_acp import DefaultACPClient
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import to_content_blocks
@@ -23,6 +24,10 @@ async def test_conversation_history():
         system_prompt="You are a helpful assistant. Remember our conversation.",
     )
 
+    # Create agent pool and register the agent
+    agent_pool = AgentPool()
+    agent_pool.register("test_agent", agent)
+
     # Create session manager directly
     client = DefaultACPClient(allow_file_operations=False)
 
@@ -34,7 +39,8 @@ async def test_conversation_history():
     # Create a session
     with tempfile.TemporaryDirectory() as temp_dir:
         session_id = await session_manager.create_session(
-            agent=agent,
+            agent_pool=agent_pool,
+            default_agent_name="test_agent",
             cwd=temp_dir,
             client=client,
         )
@@ -106,6 +112,10 @@ async def test_simple_sync():
     # Create a simple agent
     agent = Agent(name="sync_test_agent", model="openrouter:openai/gpt-5-mini")
 
+    # Create agent pool and register the agent
+    agent_pool = AgentPool()
+    agent_pool.register("sync_test_agent", agent)
+
     client = DefaultACPClient()
 
     command_store = CommandStore()
@@ -116,7 +126,8 @@ async def test_simple_sync():
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_id = await session_manager.create_session(
-                agent=agent,
+                agent_pool=agent_pool,
+                default_agent_name="sync_test_agent",
                 cwd=temp_dir,
                 client=client,
             )
