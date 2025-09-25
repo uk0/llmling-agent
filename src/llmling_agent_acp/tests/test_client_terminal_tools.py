@@ -2,22 +2,21 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from acp.schema import (
+    ClientCapabilities,
     CreateTerminalResponse,
+    FileSystemCapability,
+    InitializeRequest,
     ReleaseTerminalResponse,
     TerminalExitStatus,
     TerminalOutputResponse,
     WaitForTerminalExitResponse,
 )
-
-
-if TYPE_CHECKING:
-    from llmling_agent_acp.acp_agent import LLMlingACPAgent
+from llmling_agent_acp.acp_agent import LLMlingACPAgent
 
 
 class TestClientTerminalTools:
@@ -40,10 +39,8 @@ class TestClientTerminalTools:
         return pool
 
     @pytest.fixture
-    def acp_agent(self, mock_connection, mock_agent_pool):
+    async def acp_agent(self, mock_connection, mock_agent_pool):
         """Create ACP agent with terminal support."""
-        from llmling_agent_acp.acp_agent import LLMlingACPAgent
-
         # Create mock agent
         mock_agent = Mock()
         mock_tools = {}
@@ -62,11 +59,23 @@ class TestClientTerminalTools:
             terminal_access=True,
         )
 
+        # Initialize with full capabilities
+        await agent.initialize(
+            InitializeRequest(
+                protocol_version=1,
+                client_capabilities=ClientCapabilities(
+                    fs=FileSystemCapability(read_text_file=True, write_text_file=True),
+                    terminal=True,
+                ),
+            )
+        )
+
         # Store reference to mock tools for testing
         agent._mock_tools = mock_tools  # type: ignore[attr-defined]
         return agent
 
-    def test_terminal_tools_registered(self, acp_agent: LLMlingACPAgent):
+    @pytest.mark.asyncio
+    async def test_terminal_tools_registered(self, acp_agent: LLMlingACPAgent):
         """Test that terminal tools are registered when terminal access is enabled."""
         expected_terminal_tools = {
             "run_command",
@@ -94,12 +103,11 @@ class TestClientTerminalTools:
             tool = acp_agent._mock_tools[tool_name]  # type: ignore[attr-defined]
             assert tool.source == "filesystem"
 
-    def test_no_terminal_tools_without_terminal_access(
+    @pytest.mark.asyncio
+    async def test_no_terminal_tools_without_terminal_access(
         self, mock_connection, mock_agent_pool
     ):
         """Test terminal tools not registered when terminal access disabled."""
-        from llmling_agent_acp.acp_agent import LLMlingACPAgent
-
         mock_agent = Mock()
         mock_tools = {}
 
@@ -114,6 +122,17 @@ class TestClientTerminalTools:
             connection=mock_connection,
             agent_pool=mock_agent_pool,
             terminal_access=False,
+        )
+
+        # Initialize with full capabilities
+        await agent.initialize(
+            InitializeRequest(
+                protocol_version=1,
+                client_capabilities=ClientCapabilities(
+                    fs=FileSystemCapability(read_text_file=True, write_text_file=True),
+                    terminal=True,
+                ),
+            )
         )
 
         agent._mock_tools = mock_tools  # type: ignore[attr-defined]

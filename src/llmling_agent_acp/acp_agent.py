@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from acp.schema import (
         AuthenticateRequest,
         CancelNotification,
+        ClientCapabilities,
         InitializeRequest,
         LoadSessionRequest,
         NewSessionRequest,
@@ -92,6 +93,7 @@ class LLMlingACPAgent(ACPAgent):
         self.terminal_access = terminal_access
         self.client: Client = client or connection
         self.usage_limits = usage_limits
+        self.client_capabilities: ClientCapabilities | None = None
 
         # Terminal support - client-side execution via ACP protocol
         # Filesystem support - client-side file operations via ACP protocol
@@ -110,17 +112,20 @@ class LLMlingACPAgent(ACPAgent):
         agent_count = len(self.agent_pool.agents)
         logger.info("Created ACP agent implementation with %d agents", agent_count)
 
-        # Register terminal tools with agents if terminal access is enabled
-        if self.terminal_access:
-            self._register_terminal_tools_with_agents()
-
-        # Register filesystem tools with agents
-        self._register_filesystem_tools_with_agents()
+        # Note: Tool registration happens after initialize() when we know client caps
 
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
         """Initialize the agent and negotiate capabilities."""
         logger.info("Initializing ACP agent implementation")
         version = min(params.protocol_version, self.PROTOCOL_VERSION)
+
+        # Store client capabilities for tool registration
+        self.client_capabilities = params.client_capabilities
+        logger.info("Client capabilities: %s", self.client_capabilities)
+
+        # Register tools based on client capabilities
+        self._register_tools_based_on_capabilities()
+
         prompt_caps = PromptCapabilities(audio=True, embedded_context=True, image=True)
         mcp_caps = McpCapabilities(http=True, sse=True)
         caps = AgentCapabilities(
@@ -337,6 +342,40 @@ class LLMlingACPAgent(ACPAgent):
             logger.exception("Failed to set session model for %s", params.session_id)
             return None
 
+    def _register_tools_based_on_capabilities(self) -> None:
+        """Register tools based on client capabilities."""
+        if not self.client_capabilities:
+            logger.warning("No client capabilities available, skipping tool registration")
+            return
+
+        # Register terminal tools if supported and enabled
+        if self.terminal_access and self.client_capabilities.terminal:
+            logger.info("Client supports terminal operations, registering terminal tools")
+            self._register_terminal_tools_with_agents()
+        elif self.terminal_access:
+            logger.info(
+                "Terminal access enabled but client doesn't support terminal operations"
+            )
+
+        # Register filesystem tools if supported
+        fs_caps = self.client_capabilities.fs
+        if fs_caps:
+            # Handle case where fs_caps might be a dict (from schema defaults)
+            if isinstance(fs_caps, dict):
+                read_supported = fs_caps.get("readTextFile", False)
+                write_supported = fs_caps.get("writeTextFile", False)
+            else:
+                read_supported = fs_caps.read_text_file
+                write_supported = fs_caps.write_text_file
+
+            if read_supported or write_supported:
+                logger.info("Client supports filesystem operations, registering tools")
+                self._register_filesystem_tools_with_agents()
+            else:
+                logger.info("Client doesn't support filesystem operations")
+        else:
+            logger.info("Client doesn't support filesystem operations")
+
     def _register_terminal_tools_with_agents(self) -> None:
         """Register client-side terminal tools with all agents in the pool."""
         if not self.agent_pool or not self.agent_pool.agents:
@@ -370,8 +409,27 @@ class LLMlingACPAgent(ACPAgent):
             logger.debug("No agents in pool to register filesystem tools with")
             return
 
-        # Get filesystem tools
-        tools = get_filesystem_tools(self)
+        if not self.client_capabilities or not self.client_capabilities.fs:
+            logger.warning("No filesystem capabilities available")
+            return
+
+        # Get filesystem tools based on client capabilities
+        fs_caps = self.client_capabilities.fs
+
+        # Convert dict to FileSystemCapability if needed
+        if isinstance(fs_caps, dict):
+            from acp.schema import FileSystemCapability
+
+            fs_caps = FileSystemCapability(
+                read_text_file=fs_caps.get("readTextFile", False),
+                write_text_file=fs_caps.get("writeTextFile", False),
+            )
+
+        tools = get_filesystem_tools(self, fs_caps)
+
+        if not tools:
+            logger.info("No filesystem tools to register (client doesn't support any)")
+            return
 
         # Register tools with each agent in the pool
         registered_count = 0

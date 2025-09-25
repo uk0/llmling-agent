@@ -10,33 +10,51 @@ from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
+    from acp.schema import FileSystemCapability
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
 
 
 logger = get_logger(__name__)
 
 
-def get_filesystem_tools(agent: LLMlingACPAgent) -> list[Tool]:
-    """Get filesystem tools for ACP agent.
+def get_filesystem_tools(
+    agent: LLMlingACPAgent, fs_capabilities: FileSystemCapability | None = None
+) -> list[Tool]:
+    """Get filesystem tools for ACP agent based on client capabilities.
 
     Args:
         agent: The ACP agent instance
+        fs_capabilities: Client filesystem capabilities
 
     Returns:
-        List of filesystem tools
+        List of filesystem tools supported by the client
     """
-    return [
-        Tool.from_callable(
-            _create_read_text_file_tool(agent),
-            source="filesystem",
-            name_override="read_text_file",
-        ),
-        Tool.from_callable(
-            _create_write_text_file_tool(agent),
-            source="filesystem",
-            name_override="write_text_file",
-        ),
-    ]
+    if not fs_capabilities:
+        return []
+
+    tools = []
+
+    # Only add read tool if client supports it
+    if fs_capabilities.read_text_file:
+        tools.append(
+            Tool.from_callable(
+                _create_read_text_file_tool(agent),
+                source="filesystem",
+                name_override="read_text_file",
+            )
+        )
+
+    # Only add write tool if client supports it
+    if fs_capabilities.write_text_file:
+        tools.append(
+            Tool.from_callable(
+                _create_write_text_file_tool(agent),
+                source="filesystem",
+                name_override="write_text_file",
+            )
+        )
+
+    return tools
 
 
 def _create_read_text_file_tool(agent: LLMlingACPAgent):

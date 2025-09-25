@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from acp.schema import (
+    ClientCapabilities,
+    FileSystemCapability,
+    InitializeRequest,
     ReadTextFileResponse,
     WriteTextFileResponse,
 )
-
-
-if TYPE_CHECKING:
-    from llmling_agent_acp.acp_agent import LLMlingACPAgent
+from llmling_agent_acp.acp_agent import LLMlingACPAgent
 
 
 class TestClientFilesystemTools:
@@ -37,10 +36,8 @@ class TestClientFilesystemTools:
         return pool
 
     @pytest.fixture
-    def acp_agent(self, mock_connection, mock_agent_pool):
+    async def acp_agent(self, mock_connection, mock_agent_pool):
         """Create ACP agent with filesystem support."""
-        from llmling_agent_acp.acp_agent import LLMlingACPAgent
-
         # Create mock agent
         mock_agent = Mock()
         mock_tools = {}
@@ -59,11 +56,23 @@ class TestClientFilesystemTools:
             terminal_access=False,  # Disable terminal tools for cleaner testing
         )
 
+        # Initialize with filesystem capabilities
+        await agent.initialize(
+            InitializeRequest(
+                protocol_version=1,
+                client_capabilities=ClientCapabilities(
+                    fs=FileSystemCapability(read_text_file=True, write_text_file=True),
+                    terminal=False,
+                ),
+            )
+        )
+
         # Store reference to mock tools for testing
         agent._mock_tools = mock_tools  # type: ignore[attr-defined]
         return agent
 
-    def test_filesystem_tools_registered(self, acp_agent: LLMlingACPAgent):
+    @pytest.mark.asyncio
+    async def test_filesystem_tools_registered(self, acp_agent: LLMlingACPAgent):
         """Test that filesystem tools are registered."""
         expected_tools = {"read_text_file", "write_text_file"}
         registered_tools = set(acp_agent._mock_tools.keys())  # type: ignore[attr-defined]
