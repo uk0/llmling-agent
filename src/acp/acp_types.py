@@ -1,8 +1,4 @@
-"""ACP (Agent Client Protocol) types re-exported from external library.
-
-This module re-exports types from the external acp library to maintain
-compatibility with existing code while using the standard ACP implementation.
-"""
+"""ACP (Agent Client Protocol) types."""
 
 from __future__ import annotations
 
@@ -17,7 +13,6 @@ from acp.schema import (
     AudioContentBlock,
     AvailableCommandsUpdate,
     ContentToolCallContent,
-    # Terminal types
     DeniedOutcome,
     EmbeddedResourceContentBlock,
     FileEditToolCallContent,
@@ -29,7 +24,6 @@ from acp.schema import (
     TerminalToolCallContent,
     TextContentBlock,
     ToolCallProgress,
-    # Permission types
     ToolCallStart,
     UserMessageChunk,
 )
@@ -43,7 +37,6 @@ type ContentBlock = (
     | EmbeddedResourceContentBlock
 )
 
-# Session update union type
 SessionUpdate = (
     UserMessageChunk
     | AgentMessageChunk
@@ -53,24 +46,18 @@ SessionUpdate = (
     | AgentPlan
     | AvailableCommandsUpdate
 )
-
-# Permission outcome union type
+MCPServer = HttpMcpServer | SseMcpServer | StdioMcpServer
 RequestPermissionOutcome = DeniedOutcome | AllowedOutcome
-
-# Tool call content union type
 ToolCallContentUnion = (
     ContentToolCallContent | FileEditToolCallContent | TerminalToolCallContent
 )
 
-MCPServer = HttpMcpServer | SseMcpServer | StdioMcpServer
-
-StopReason = Literal[
-    "end_turn", "max_tokens", "max_turn_requests", "refusal", "cancelled"
-]
 
 ToolCallStatus = Literal["pending", "in_progress", "completed", "failed"]
 ConfirmationMode = Literal["confirm", "yolo", "human"]
-
+StopReason = Literal[
+    "end_turn", "max_tokens", "max_turn_requests", "refusal", "cancelled"
+]
 
 JsonValue = Any
 MethodHandler = Callable[[str, JsonValue | None, bool], Awaitable[JsonValue | None]]
