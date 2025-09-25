@@ -124,7 +124,7 @@ class LLMlingACPAgent(ACPAgent):
         logger.info("Initializing ACP agent implementation")
         version = min(params.protocol_version, self.PROTOCOL_VERSION)
         prompt_caps = PromptCapabilities(audio=True, embedded_context=True, image=True)
-        mcp_caps = McpCapabilities(http=False, sse=False)
+        mcp_caps = McpCapabilities(http=True, sse=True)
         caps = AgentCapabilities(
             load_session=self.session_support,
             prompt_capabilities=prompt_caps,
