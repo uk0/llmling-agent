@@ -257,7 +257,7 @@ async def _create_tool_start_notification(
     tool_call = ToolCallStart(
         tool_call_id=tool_call_id,
         title=f"Execute {tool.name}",
-        status="running",
+        status="in_progress",
         kind=tool_kind,
         locations=locations,
         raw_input=params,
@@ -284,7 +284,7 @@ async def create_tool_progress_update(
     content = TextContentBlock(text=progress_message)
     update = ToolCallProgress(
         tool_call_id=tool_call_id,
-        status="running",
+        status="in_progress",
         content=[ContentToolCallContent(content=content)],
     )
 
