@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from acp import DefaultACPClient
-from llmling_agent_acp.server import ACPServer, LLMlingACPAgent
+from llmling_agent_acp.server import ACPServer
+from llmling_agent_acp.acp_agent import LLMlingACPAgent
 from llmling_agent_acp.wrappers import ACPClientInterface
 from llmling_agent_acp.session import ACPSession, ACPSessionManager
 from llmling_agent_acp.command_bridge import ACPCommandBridge
