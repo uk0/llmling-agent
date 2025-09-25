@@ -77,7 +77,7 @@ async def test_conversation_history():
             # Print the actual response content for verification
             if hasattr(result.update, "content"):
                 content = result.update.content  # pyright: ignore[reportAttributeAccessIssue]
-                if hasattr(content, "text"):
+                if content and hasattr(content, "text"):
                     print(f"   Response chunk: {content.text}")  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
 
         print(f"   Got {len(responses_2)} response chunks")

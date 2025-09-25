@@ -27,9 +27,14 @@ from acp import (
 )
 from acp.schema import (
     AgentMessageChunk,
+    CreateTerminalResponse,
+    KillTerminalCommandResponse,
     LoadSessionResponse,
+    ReleaseTerminalResponse,
+    TerminalOutputResponse,
     TextContentBlock,
     UserMessageChunk,
+    WaitForTerminalExitResponse,
 )
 
 
@@ -113,22 +118,20 @@ class _TestClient(Client):
         self.notifications.append(params)
 
     # Optional terminal methods (not implemented in this test client)
-    async def create_terminal(self, params) -> None:  # pragma: no cover - placeholder
-        pass
+    async def create_terminal(self, params) -> CreateTerminalResponse:
+        return CreateTerminalResponse(terminal_id="1")
 
-    async def terminal_output(self, params) -> None:  # pragma: no cover - placeholder
-        pass
+    async def terminal_output(self, params) -> TerminalOutputResponse:
+        return TerminalOutputResponse(output="", truncated=False)
 
-    async def release_terminal(self, params) -> None:  # pragma: no cover - placeholder
-        pass
+    async def release_terminal(self, params) -> ReleaseTerminalResponse:
+        return ReleaseTerminalResponse()
 
-    async def wait_for_terminal_exit(
-        self, params
-    ) -> None:  # pragma: no cover - placeholder
-        pass
+    async def wait_for_terminal_exit(self, params) -> WaitForTerminalExitResponse:
+        return WaitForTerminalExitResponse()
 
-    async def kill_terminal(self, params) -> None:  # pragma: no cover - placeholder
-        pass
+    async def kill_terminal(self, params) -> KillTerminalCommandResponse:
+        return KillTerminalCommandResponse()
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         self.ext_calls.append((method, params))
