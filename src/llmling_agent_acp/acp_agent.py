@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-import contextlib
 from typing import TYPE_CHECKING, Any
 
 from slashed import CommandStore
@@ -11,33 +9,25 @@ from slashed import CommandStore
 from acp import Agent as ACPAgent, create_session_model_state
 from acp.schema import (
     AgentCapabilities,
-    CreateTerminalRequest,
-    EnvVariable,
     InitializeResponse,
-    KillTerminalCommandRequest,
     LoadSessionResponse,
     McpCapabilities,
     NewSessionResponse,
     PromptCapabilities,
     PromptResponse,
-    ReadTextFileRequest,
-    ReleaseTerminalRequest,
     SessionMode,
     SessionModeState,
     SetSessionModelRequest,
     SetSessionModelResponse,
     SetSessionModeRequest,
     SetSessionModeResponse,
-    TerminalOutputRequest,
-    WaitForTerminalExitRequest,
-    WriteTextFileRequest,
 )
 from llmling_agent.log import get_logger
-from llmling_agent.tools.base import Tool
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import to_session_updates
 from llmling_agent_acp.session import ACPSessionManager
+from llmling_agent_acp.tools import get_filesystem_tools, get_terminal_tools
 from llmling_agent_commands import get_commands
 
 
@@ -353,406 +343,26 @@ class LLMlingACPAgent(ACPAgent):
             logger.debug("No agents in pool to register terminal tools with")
             return
 
-        # Create client-side terminal tools
-        tools = [
-            Tool.from_callable(
-                self._create_run_command_tool(),
-                source="terminal",
-                name_override="run_command",
-            ),
-            Tool.from_callable(
-                self._create_get_command_output_tool(),
-                source="terminal",
-                name_override="get_command_output",
-            ),
-            Tool.from_callable(
-                self._create_create_terminal_tool(),
-                source="terminal",
-                name_override="create_terminal",
-            ),
-            Tool.from_callable(
-                self._create_wait_for_terminal_exit_tool(),
-                source="terminal",
-                name_override="wait_for_terminal_exit",
-            ),
-            Tool.from_callable(
-                self._create_kill_terminal_tool(),
-                source="terminal",
-                name_override="kill_terminal",
-            ),
-            Tool.from_callable(
-                self._create_release_terminal_tool(),
-                source="terminal",
-                name_override="release_terminal",
-            ),
-            Tool.from_callable(
-                self._create_run_command_with_timeout_tool(),
-                source="terminal",
-                name_override="run_command_with_timeout",
-            ),
-        ]
+        # Get terminal tools
+        tools = get_terminal_tools(self)
 
         # Register tools with each agent in the pool
+        registered_count = 0
         for agent_name, agent in self.agent_pool.agents.items():
             for tool in tools:
                 agent.tools.register_tool(tool)
-            msg = "Registered %d terminal tools with agent %s"
-            logger.debug(msg, len(tools), agent_name)
+            registered_count += 1
+            logger.debug(
+                "Registered %d terminal tools with agent %s",
+                len(tools),
+                agent_name,
+            )
 
-        msg = "Registered terminal tools with %d agents (%d tools per agent)"
-        logger.info(msg, len(self.agent_pool.agents), len(tools))
-
-    def _create_run_command_tool(self):
-        """Create a tool that runs commands via the ACP client."""
-
-        async def run_command(
-            command: str,
-            args: list[str] | None = None,
-            cwd: str | None = None,
-            env: dict[str, str] | None = None,
-            session_id: str = "default_session",
-        ) -> str:
-            """Execute a command in the client's environment.
-
-            Args:
-                command: The command to execute
-                args: Command arguments (optional)
-                cwd: Working directory (optional)
-                env: Environment variables (optional)
-                session_id: Session ID for the request
-
-            Returns:
-                Combined stdout and stderr output, or error message
-            """
-            try:
-                # Create terminal via client
-                env_var = [EnvVariable(name=k, value=v) for k, v in (env or {}).items()]
-                request = CreateTerminalRequest(
-                    session_id=session_id,
-                    command=command,
-                    args=args or [],
-                    cwd=cwd,
-                    env=env_var,
-                    output_byte_limit=1048576,
-                )
-                create_response = await self.connection.create_terminal(request)
-                terminal_id = create_response.terminal_id
-                wait_request = WaitForTerminalExitRequest(
-                    session_id=session_id,
-                    terminal_id=terminal_id,
-                )
-                await self.connection.wait_for_terminal_exit(wait_request)
-                output_request = TerminalOutputRequest(
-                    session_id=session_id,
-                    terminal_id=terminal_id,
-                )
-                output_response = await self.connection.terminal_output(output_request)
-                release_request = ReleaseTerminalRequest(
-                    session_id=session_id,
-                    terminal_id=terminal_id,
-                )
-                await self.connection.release_terminal(release_request)
-
-                result = output_response.output
-                if output_response.exit_status:
-                    code = output_response.exit_status.exit_code
-                    if code is not None:
-                        result += f"\n[Command exited with code {code}]"
-                    if output_response.exit_status.signal:
-                        result += (
-                            f"\n[Terminated by signal "
-                            f"{output_response.exit_status.signal}]"
-                        )
-
-            except Exception as e:  # noqa: BLE001
-                return f"Error executing command: {e}"
-            else:
-                return result
-
-        return run_command
-
-    def _create_get_command_output_tool(self):
-        """Create a tool that gets output from a running command."""
-
-        async def get_command_output(
-            terminal_id: str,
-            session_id: str = "default_session",
-        ) -> str:
-            """Get current output from a running command.
-
-            Args:
-                terminal_id: The terminal ID to get output from
-                session_id: Session ID for the request
-
-            Returns:
-                Current command output
-            """
-            try:
-                # Get output
-                request = TerminalOutputRequest(
-                    session_id=session_id,
-                    terminal_id=terminal_id,
-                )
-                output_response = await self.connection.terminal_output(request)
-
-                result = output_response.output
-                if output_response.truncated:
-                    result += "\n[Output was truncated]"
-                if output_response.exit_status:
-                    if (code := output_response.exit_status.exit_code) is not None:
-                        result += f"\n[Exited with code {code}]"
-                    if signal := output_response.exit_status.signal:
-                        result += f"\n[Terminated by signal {signal}]"
-                else:
-                    result += "\n[Still running]"
-            except Exception as e:  # noqa: BLE001
-                return f"Error getting command output: {e}"
-            else:
-                return result
-
-        return get_command_output
-
-    def _create_create_terminal_tool(self):
-        """Create a tool that creates a terminal and returns the terminal ID."""
-
-        async def create_terminal(
-            command: str,
-            args: list[str] | None = None,
-            cwd: str | None = None,
-            env: dict[str, str] | None = None,
-            output_byte_limit: int = 1048576,
-            session_id: str = "default_session",
-        ) -> str:
-            """Create a terminal and start executing a command.
-
-            Args:
-                command: The command to execute
-                args: Command arguments (optional)
-                cwd: Working directory (optional)
-                env: Environment variables (optional)
-                output_byte_limit: Maximum output bytes to retain
-                session_id: Session ID for the request
-
-            Returns:
-                Terminal ID for the created terminal
-            """
-            try:
-                request = CreateTerminalRequest(
-                    session_id=session_id,
-                    command=command,
-                    args=args or [],
-                    cwd=cwd,
-                    env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
-                    output_byte_limit=output_byte_limit,
-                )
-                create_response = await self.connection.create_terminal(request)
-            except Exception as e:  # noqa: BLE001
-                return f"Error creating terminal: {e}"
-            else:
-                return create_response.terminal_id
-
-        return create_terminal
-
-    def _create_wait_for_terminal_exit_tool(self):
-        """Create a tool that waits for a terminal to exit."""
-
-        async def wait_for_terminal_exit(
-            terminal_id: str,
-            session_id: str = "default_session",
-        ) -> str:
-            """Wait for a terminal command to complete.
-
-            Args:
-                terminal_id: The terminal ID to wait for
-                session_id: Session ID for the request
-
-            Returns:
-                Exit status information
-            """
-            try:
-                request = WaitForTerminalExitRequest(
-                    session_id=session_id,
-                    terminal_id=terminal_id,
-                )
-                exit_response = await self.connection.wait_for_terminal_exit(request)
-
-                result = f"Terminal {terminal_id} completed"
-                if exit_response.exit_code is not None:
-                    result += f" with exit code {exit_response.exit_code}"
-                if exit_response.signal:
-                    result += f" (terminated by signal {exit_response.signal})"
-            except Exception as e:  # noqa: BLE001
-                return f"Error waiting for terminal exit: {e}"
-            else:
-                return result
-
-        return wait_for_terminal_exit
-
-    def _create_kill_terminal_tool(self):
-        """Create a tool that kills a running terminal command."""
-
-        async def kill_terminal(
-            terminal_id: str,
-            session_id: str = "default_session",
-        ) -> str:
-            """Kill a running terminal command.
-
-            Args:
-                terminal_id: The terminal ID to kill
-                session_id: Session ID for the request
-
-            Returns:
-                Success/failure message
-            """
-            try:
-                request = KillTerminalCommandRequest(
-                    session_id=session_id,
-                    terminal_id=terminal_id,
-                )
-                await self.connection.kill_terminal(request)
-            except Exception as e:  # noqa: BLE001
-                return f"Error killing terminal: {e}"
-            else:
-                return f"Terminal {terminal_id} killed successfully"
-
-        return kill_terminal
-
-    def _create_release_terminal_tool(self):
-        """Create a tool that releases terminal resources."""
-
-        async def release_terminal(
-            terminal_id: str,
-            session_id: str = "default_session",
-        ) -> str:
-            """Release a terminal and free its resources.
-
-            Args:
-                terminal_id: The terminal ID to release
-                session_id: Session ID for the request
-
-            Returns:
-                Success/failure message
-            """
-            try:
-                request = ReleaseTerminalRequest(
-                    session_id=session_id,
-                    terminal_id=terminal_id,
-                )
-                await self.connection.release_terminal(request)
-            except Exception as e:  # noqa: BLE001
-                return f"Error releasing terminal: {e}"
-            else:
-                return f"Terminal {terminal_id} released successfully"
-
-        return release_terminal
-
-    def _create_run_command_with_timeout_tool(self):
-        """Create a tool that runs commands with timeout support."""
-
-        async def run_command_with_timeout(
-            command: str,
-            args: list[str] | None = None,
-            cwd: str | None = None,
-            env: dict[str, str] | None = None,
-            timeout_seconds: int = 30,
-            session_id: str = "default_session",
-        ) -> str:
-            """Execute a command with timeout support.
-
-            Args:
-                command: The command to execute
-                args: Command arguments (optional)
-                cwd: Working directory (optional)
-                env: Environment variables (optional)
-                timeout_seconds: Timeout in seconds (default: 30)
-                session_id: Session ID for the request
-
-            Returns:
-                Command output or timeout/error message
-            """
-            try:
-                # Create terminal
-                create_request = CreateTerminalRequest(
-                    session_id=session_id,
-                    command=command,
-                    args=args or [],
-                    cwd=cwd,
-                    env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
-                    output_byte_limit=1048576,
-                )
-                create_response = await self.connection.create_terminal(create_request)
-                terminal_id = create_response.terminal_id
-
-                try:
-                    # Wait for completion with timeout
-                    wait_request = WaitForTerminalExitRequest(
-                        session_id=session_id,
-                        terminal_id=terminal_id,
-                    )
-                    await asyncio.wait_for(
-                        self.connection.wait_for_terminal_exit(wait_request),
-                        timeout=timeout_seconds,
-                    )
-
-                    # Get output
-                    out_request = TerminalOutputRequest(
-                        session_id=session_id,
-                        terminal_id=terminal_id,
-                    )
-                    output_response = await self.connection.terminal_output(out_request)
-
-                    result = output_response.output
-                    if output_response.exit_status:
-                        code = output_response.exit_status.exit_code
-                        if code is not None:
-                            result += f"\n[Command exited with code {code}]"
-                        if output_response.exit_status.signal:
-                            signal = output_response.exit_status.signal
-                            result += f"\n[Terminated by signal {signal}]"
-
-                except TimeoutError:
-                    # Kill the command on timeout
-                    try:
-                        kill_request = KillTerminalCommandRequest(
-                            session_id=session_id,
-                            terminal_id=terminal_id,
-                        )
-                        await self.connection.kill_terminal(kill_request)
-
-                        # Get partial output
-                        request = TerminalOutputRequest(
-                            session_id=session_id,
-                            terminal_id=terminal_id,
-                        )
-                        output_response = await self.connection.terminal_output(request)
-
-                        result = output_response.output
-                        timeout_msg = (
-                            f"Command timed out after {timeout_seconds} "
-                            f"seconds and was killed"
-                        )
-                        result += f"\n[{timeout_msg}]"
-                    except Exception:  # noqa: BLE001
-                        result = (
-                            f"Command timed out after {timeout_seconds} "
-                            f"seconds and failed to kill"
-                        )
-
-                finally:
-                    # Always release terminal
-                    release_request = ReleaseTerminalRequest(
-                        session_id=session_id,
-                        terminal_id=terminal_id,
-                    )
-                    with contextlib.suppress(Exception):
-                        await self.connection.release_terminal(release_request)
-
-            except Exception as e:  # noqa: BLE001
-                return f"Error executing command with timeout: {e}"
-
-            return result
-
-        return run_command_with_timeout
+        logger.info(
+            "Registered terminal tools with %d agents (%d tools per agent)",
+            registered_count,
+            len(tools),
+        )
 
     def _register_filesystem_tools_with_agents(self) -> None:
         """Register client-side filesystem tools with all agents in the pool."""
@@ -760,21 +370,8 @@ class LLMlingACPAgent(ACPAgent):
             logger.debug("No agents in pool to register filesystem tools with")
             return
 
-        from llmling_agent.tools.base import Tool
-
-        # Create client-side filesystem tools
-        tools = [
-            Tool.from_callable(
-                self._create_read_file_tool(),
-                source="filesystem",
-                name_override="read_text_file",
-            ),
-            Tool.from_callable(
-                self._create_write_file_tool(),
-                source="filesystem",
-                name_override="write_text_file",
-            ),
-        ]
+        # Get filesystem tools
+        tools = get_filesystem_tools(self)
 
         # Register tools with each agent in the pool
         registered_count = 0
@@ -793,70 +390,3 @@ class LLMlingACPAgent(ACPAgent):
             registered_count,
             len(tools),
         )
-
-    def _create_read_file_tool(self):
-        """Create a tool that reads text files via the ACP client."""
-
-        async def read_text_file(
-            path: str,
-            line: int | None = None,
-            limit: int | None = None,
-            session_id: str = "default_session",
-        ) -> str:
-            """Read text file contents from the client's filesystem.
-
-            Args:
-                path: Absolute path to the file to read
-                line: Optional line number to start reading from (1-based)
-                limit: Optional maximum number of lines to read
-                session_id: Session ID for the request
-
-            Returns:
-                File content or error message
-            """
-            try:
-                request = ReadTextFileRequest(
-                    session_id=session_id,
-                    path=path,
-                    line=line,
-                    limit=limit,
-                )
-                response = await self.connection.read_text_file(request)
-            except Exception as e:  # noqa: BLE001
-                return f"Error reading file: {e}"
-            else:
-                return response.content
-
-        return read_text_file
-
-    def _create_write_file_tool(self):
-        """Create a tool that writes text files via the ACP client."""
-
-        async def write_text_file(
-            path: str,
-            content: str,
-            session_id: str = "default_session",
-        ) -> str:
-            """Write text content to a file in the client's filesystem.
-
-            Args:
-                path: Absolute path to the file to write
-                content: The text content to write to the file
-                session_id: Session ID for the request
-
-            Returns:
-                Success message or error message
-            """
-            try:
-                request = WriteTextFileRequest(
-                    session_id=session_id,
-                    path=path,
-                    content=content,
-                )
-                await self.connection.write_text_file(request)
-            except Exception as e:  # noqa: BLE001
-                return f"Error writing file: {e}"
-            else:
-                return f"Successfully wrote file: {path}"
-
-        return write_text_file
