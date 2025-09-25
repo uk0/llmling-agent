@@ -69,40 +69,35 @@ async def test_session_with_mcp_servers():
         ),
     ]
 
+    # Create session with MCP servers
+    session = ACPSession(
+        session_id="test_session",
+        agent_pool=agent_pool,
+        current_agent_name="test_agent",
+        cwd="/tmp",
+        client=client,
+        mcp_servers=mcp_servers,
+        command_bridge=command_bridge,
+    )
+
+    # Note: In a real test, we would mock the MCP connections
+    # For now, just verify the session was created properly
+    assert session.session_id == "test_session"
+    assert session.mcp_servers == mcp_servers
+    assert session.mcp_manager is None  # Not initialized yet
+
+    print(f"✓ Created session with {len(mcp_servers)} MCP servers")
+
+    # Test initialization (this will fail without real MCP servers, which is expected)
     try:
-        # Create session with MCP servers
-        session = ACPSession(
-            session_id="test_session",
-            agent_pool=agent_pool,
-            current_agent_name="test_agent",
-            cwd="/tmp",
-            client=client,
-            mcp_servers=mcp_servers,
-            command_bridge=command_bridge,
-        )
+        await session.initialize_mcp_servers()
+        print("✓ MCP servers initialized (unexpectedly succeeded)")
+    except Exception as e:  # noqa: BLE001
+        print(f"✓ MCP server initialization failed as expected: {type(e).__name__}")
 
-        # Note: In a real test, we would mock the MCP connections
-        # For now, just verify the session was created properly
-        assert session.session_id == "test_session"
-        assert session.mcp_servers == mcp_servers
-        assert session.mcp_manager is None  # Not initialized yet
-
-        print(f"✓ Created session with {len(mcp_servers)} MCP servers")
-
-        # Test initialization (this will fail without real MCP servers, which is expected)
-        try:
-            await session.initialize_mcp_servers()
-            print("✓ MCP servers initialized (unexpectedly succeeded)")
-        except Exception as e:  # noqa: BLE001
-            print(f"✓ MCP server initialization failed as expected: {type(e).__name__}")
-
-        # Cleanup
-        await session.close()
-        print("✓ Session closed successfully")
-
-    except Exception:
-        logger.exception("Session test failed")
-        raise
+    # Cleanup
+    await session.close()
+    print("✓ Session closed successfully")
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")
