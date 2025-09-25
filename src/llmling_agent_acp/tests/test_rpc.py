@@ -3,43 +3,33 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pytest
 
 from acp import (
-    Agent,
     AgentSideConnection,
     CancelNotification,
-    Client,
     ClientSideConnection,
     InitializeRequest,
     InitializeResponse,
     NewSessionRequest,
-    NewSessionResponse,
-    PromptResponse,
     ReadTextFileRequest,
-    ReadTextFileResponse,
-    RequestPermissionResponse,
     SessionNotification,
     SetSessionModeRequest,
     WriteTextFileRequest,
 )
 from acp.schema import (
     AgentMessageChunk,
-    CreateTerminalResponse,
-    KillTerminalCommandResponse,
-    LoadSessionResponse,
-    ReleaseTerminalResponse,
-    TerminalOutputResponse,
     TextContentBlock,
     UserMessageChunk,
-    WaitForTerminalExitResponse,
 )
 
 
 if TYPE_CHECKING:
-    from acp import LoadSessionRequest, PromptRequest, RequestPermissionRequest
+    from llmling_agent_acp.wrappers import DefaultACPClient
+
+    from .conftest import TestAgent
 
 
 class _Server:
@@ -83,122 +73,25 @@ class _Server:
             self._server.close()
             await self._server.wait_closed()
 
+    # --------------------- Test Doubles -----------------------
 
-# --------------------- Test Doubles -----------------------
-
-
-class _TestClient(Client):
-    __test__ = False  # prevent pytest from collecting this class
-
-    def __init__(self) -> None:
-        self.permission_outcomes: list[dict] = []
-        self.files: dict[str, str] = {}
-        self.notifications: list[SessionNotification] = []
-        self.ext_calls: list[tuple[str, dict]] = []
-        self.ext_notes: list[tuple[str, dict]] = []
-
-    async def request_permission(
-        self, params: RequestPermissionRequest
-    ) -> RequestPermissionResponse:
-        outcome = (
-            self.permission_outcomes.pop()
-            if self.permission_outcomes
-            else {"outcome": "cancelled"}
-        )
-        return RequestPermissionResponse.model_validate({"outcome": outcome})
-
-    async def write_text_file(self, params: WriteTextFileRequest) -> None:
-        self.files[str(params.path)] = params.content
-
-    async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
-        content = self.files.get(str(params.path), "default content")
-        return ReadTextFileResponse(content=content)
-
-    async def session_update(self, params: SessionNotification) -> None:
-        self.notifications.append(params)
-
-    # Optional terminal methods (not implemented in this test client)
-    async def create_terminal(self, params) -> CreateTerminalResponse:
-        return CreateTerminalResponse(terminal_id="1")
-
-    async def terminal_output(self, params) -> TerminalOutputResponse:
-        return TerminalOutputResponse(output="", truncated=False)
-
-    async def release_terminal(self, params) -> ReleaseTerminalResponse:
-        return ReleaseTerminalResponse()
-
-    async def wait_for_terminal_exit(self, params) -> WaitForTerminalExitResponse:
-        return WaitForTerminalExitResponse()
-
-    async def kill_terminal(self, params) -> KillTerminalCommandResponse:
-        return KillTerminalCommandResponse()
-
-    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
-        self.ext_calls.append((method, params))
-        return {"ok": True, "method": method}
-
-    async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
-        self.ext_notes.append((method, params))
-
-
-class _TestAgent(Agent):
-    __test__ = False  # prevent pytest from collecting this class
-
-    def __init__(self) -> None:
-        self.prompts: list[PromptRequest] = []
-        self.cancellations: list[str] = []
-        self.ext_calls: list[tuple[str, dict]] = []
-        self.ext_notes: list[tuple[str, dict]] = []
-
-    async def initialize(self, params: InitializeRequest) -> InitializeResponse:
-        # Avoid serializer warnings by omitting defaults
-        return InitializeResponse(
-            protocol_version=params.protocol_version,
-            agent_capabilities=None,
-        )
-
-    async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
-        return NewSessionResponse(session_id="test-session-123")
-
-    async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
-        return LoadSessionResponse()
-
-    async def authenticate(self, params) -> None:
-        return None
-
-    async def prompt(self, params: PromptRequest) -> PromptResponse:
-        self.prompts.append(params)
-        return PromptResponse(stop_reason="end_turn")
-
-    async def cancel(self, params: CancelNotification) -> None:
-        self.cancellations.append(params.session_id)
-
-    async def set_session_mode(self, params):
-        return {}
-
-    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
-        self.ext_calls.append((method, params))
-        return {"ok": True, "method": method}
-
-    async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
-        self.ext_notes.append((method, params))
-
-    async def set_session_model(self, params):
-        return {}
+    # Test classes moved to conftest.py as fixtures
 
 
 # ------------------------ Tests --------------------------
 
 
 @pytest.mark.asyncio
-async def test_initialize_and_new_session():
+async def test_initialize_and_new_session(
+    test_agent: TestAgent, test_client: DefaultACPClient
+) -> None:
     async with _Server() as s:
         assert s.client_writer is not None
         assert s.client_reader is not None
         assert s.server_writer is not None
         assert s.server_reader is not None
-        agent = _TestAgent()
-        client = _TestClient()
+        agent = test_agent
+        client = test_client
         # server side is agent; client side is client
         agent_conn = ClientSideConnection(
             lambda _conn: client, s.client_writer, s.client_reader
@@ -218,14 +111,16 @@ async def test_initialize_and_new_session():
 
 
 @pytest.mark.asyncio
-async def test_bidirectional_file_ops():
+async def test_bidirectional_file_ops(
+    test_agent: TestAgent, test_client: DefaultACPClient
+) -> None:
     async with _Server() as s:
         assert s.client_writer is not None
         assert s.client_reader is not None
         assert s.server_writer is not None
         assert s.server_reader is not None
-        agent = _TestAgent()
-        client = _TestClient()
+        agent = test_agent
+        client = test_client
         client.files["/test/file.txt"] = "Hello, World!"
         _agent_conn = ClientSideConnection(
             lambda _conn: client, s.client_writer, s.client_reader
@@ -250,15 +145,17 @@ async def test_bidirectional_file_ops():
 
 
 @pytest.mark.asyncio
-async def test_cancel_notification_and_capture_wire():
+async def test_cancel_notification_and_capture_wire(
+    test_agent: TestAgent, test_client: DefaultACPClient
+) -> None:
     async with _Server() as s:
         assert s.client_writer is not None
         assert s.client_reader is not None
         assert s.server_writer is not None
         assert s.server_reader is not None
         # Build only agent-side (server) connection. Client side: reader to inspect wire
-        agent = _TestAgent()
-        client = _TestClient()
+        agent = test_agent
+        client = test_client
         agent_conn = ClientSideConnection(
             lambda _conn: client, s.client_writer, s.client_reader
         )
@@ -279,19 +176,19 @@ async def test_cancel_notification_and_capture_wire():
 
 
 @pytest.mark.asyncio
-async def test_session_notifications_flow():
+async def test_session_notifications_flow(
+    test_agent: TestAgent, test_client: DefaultACPClient
+) -> None:
     async with _Server() as s:
-        agent = _TestAgent()
-        client = _TestClient()
         assert s.client_writer is not None
         assert s.client_reader is not None
         assert s.server_writer is not None
         assert s.server_reader is not None
         _agent_conn = ClientSideConnection(
-            lambda _conn: client, s.client_writer, s.client_reader
+            lambda _conn: test_client, s.client_writer, s.client_reader
         )
         client_conn = AgentSideConnection(
-            lambda _conn: agent, s.server_writer, s.server_reader
+            lambda _conn: test_agent, s.server_writer, s.server_reader
         )
 
         # Agent -> Client notifications
@@ -308,29 +205,29 @@ async def test_session_notifications_flow():
 
         # Wait for async dispatch
         for _ in range(50):
-            if len(client.notifications) >= 2:  # noqa: PLR2004
+            if len(test_client.notifications) >= 2:  # noqa: PLR2004
                 break
             await asyncio.sleep(0.01)
-        assert len(client.notifications) >= 2  # noqa: PLR2004
-        assert client.notifications[0].session_id == "sess"
+        assert len(test_client.notifications) >= 2  # noqa: PLR2004
+        assert test_client.notifications[0].session_id == "sess"
 
 
 @pytest.mark.asyncio
-async def test_concurrent_reads():
+async def test_concurrent_reads(
+    test_agent: TestAgent, test_client: DefaultACPClient
+) -> None:
     async with _Server() as s:
-        agent = _TestAgent()
-        client = _TestClient()
         assert s.client_writer is not None
         assert s.client_reader is not None
         assert s.server_writer is not None
         assert s.server_reader is not None
         for i in range(5):
-            client.files[f"/test/file{i}.txt"] = f"Content {i}"
+            test_client.files[f"/test/file{i}.txt"] = f"Content {i}"
         _agent_conn = ClientSideConnection(
-            lambda _conn: client, s.client_writer, s.client_reader
+            lambda _conn: test_client, s.client_writer, s.client_reader
         )
         client_conn = AgentSideConnection(
-            lambda _conn: agent, s.server_writer, s.server_reader
+            lambda _conn: test_agent, s.server_writer, s.server_reader
         )
 
         async def read_one(i: int):
@@ -344,16 +241,15 @@ async def test_concurrent_reads():
 
 
 @pytest.mark.asyncio
-async def test_invalid_params_results_in_error_response():
+async def test_invalid_params_results_in_error_response(test_agent: TestAgent):
     async with _Server() as s:
         # Only start agent-side (server) so we can inject raw request from client socket
-        agent = _TestAgent()
         assert s.client_writer is not None
         assert s.client_reader is not None
         assert s.server_writer is not None
         assert s.server_reader is not None
         _server_conn = AgentSideConnection(
-            lambda _conn: agent, s.server_writer, s.server_reader
+            lambda _conn: test_agent, s.server_writer, s.server_reader
         )
 
         # Send initialize with wrong param type (protocolVersion should be int)
@@ -376,15 +272,14 @@ async def test_invalid_params_results_in_error_response():
 
 
 @pytest.mark.asyncio
-async def test_method_not_found_results_in_error_response():
+async def test_method_not_found_results_in_error_response(test_agent: TestAgent):
     async with _Server() as s:
         assert s.client_writer is not None
         assert s.client_reader is not None
         assert s.server_writer is not None
         assert s.server_reader is not None
-        agent = _TestAgent()
         _server_conn = AgentSideConnection(
-            lambda _conn: agent, s.server_writer, s.server_reader
+            lambda _conn: test_agent, s.server_writer, s.server_reader
         )
 
         req = {"jsonrpc": "2.0", "id": 2, "method": "unknown/method", "params": {}}
@@ -399,14 +294,16 @@ async def test_method_not_found_results_in_error_response():
 
 
 @pytest.mark.asyncio
-async def test_set_session_mode_and_extensions():
+async def test_set_session_mode_and_extensions(
+    test_agent: TestAgent, test_client: DefaultACPClient
+) -> None:
     async with _Server() as s:
         assert s.client_writer is not None
         assert s.client_reader is not None
         assert s.server_writer is not None
         assert s.server_reader is not None
-        agent = _TestAgent()
-        client = _TestClient()
+        agent = test_agent
+        client = test_client
         agent_conn = ClientSideConnection(
             lambda _conn: client, s.client_writer, s.client_reader
         )
@@ -434,15 +331,14 @@ async def test_set_session_mode_and_extensions():
 
 
 @pytest.mark.asyncio
-async def test_ignore_invalid_messages():
+async def test_ignore_invalid_messages(test_agent: TestAgent):
     async with _Server() as s:
         assert s.client_writer is not None
         assert s.client_reader is not None
         assert s.server_writer is not None
         assert s.server_reader is not None
-        agent = _TestAgent()
         _server_conn = AgentSideConnection(
-            lambda _conn: agent, s.server_writer, s.server_reader
+            lambda _conn: test_agent, s.server_writer, s.server_reader
         )
 
         # Message without id and method

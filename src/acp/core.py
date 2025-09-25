@@ -228,7 +228,7 @@ class AgentSideConnection:
         return KillTerminalCommandResponse()
 
 
-class ClientSideConnection:
+class ClientSideConnection(Agent):
     """Client-side connection.
 
     Use when you implement the Client and need to talk to an Agent.

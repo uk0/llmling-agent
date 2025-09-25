@@ -26,26 +26,39 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class DefaultACPClient:
+class DefaultACPClient(Client):
     """Default implementation of ACP Client interface for basic operations.
 
     This provides a basic client implementation that can be used for testing
     or as a base for more sophisticated client implementations.
     """
 
-    def __init__(self, *, allow_file_operations: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        allow_file_operations: bool = False,
+        permission_outcomes: list[dict] | None = None,
+        use_real_files: bool = True,
+    ) -> None:
         """Initialize default ACP client.
 
         Args:
             allow_file_operations: Whether to allow file read/write operations
+            permission_outcomes: Queue of permission outcomes for testing
+            use_real_files: Whether to use real filesystem or in-memory storage
         """
         self.allow_file_operations = allow_file_operations
-        self._session_updates: list[SessionNotification] = []
+        self.use_real_files = use_real_files
+        self.permission_outcomes = permission_outcomes or []
+        self.files: dict[str, str] = {}  # In-memory file storage for testing
+        self.ext_calls: list[tuple[str, dict]] = []
+        self.ext_notes: list[tuple[str, dict]] = []
+        self.notifications: list[SessionNotification] = []
 
     async def request_permission(
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
-        """Default permission handler - grants all permissions.
+        """Default permission handler - grants all permissions or uses test queue.
 
         Args:
             params: Permission request parameters
@@ -54,6 +67,11 @@ class DefaultACPClient:
             Permission response granting access
         """
         logger.info("Permission requested for %s", params.tool_call.title or "operation")
+
+        # If we have test outcomes queued, use them
+        if self.permission_outcomes:
+            outcome = self.permission_outcomes.pop(0)
+            return RequestPermissionResponse.model_validate({"outcome": outcome})
 
         # Default: grant permission for the first option
         if params.options:
@@ -73,7 +91,7 @@ class DefaultACPClient:
         """
         msg = "Session update for %s: %s"
         logger.debug(msg, params.session_id, params.update.session_update)
-        self._session_updates.append(params)
+        self.notifications.append(params)
 
     async def write_text_file(self, params: WriteTextFileRequest) -> None:
         """Write text to file (if allowed).
@@ -85,13 +103,17 @@ class DefaultACPClient:
             msg = "File operations not allowed"
             raise RuntimeError(msg)
 
-        try:
-            path = Path(params.path)
-            path.write_text(params.content, encoding="utf-8")
-            logger.info("Wrote file %s", params.path)
-        except Exception:
-            logger.exception("Failed to write file %s", params.path)
-            raise
+        if self.use_real_files:
+            try:
+                path = Path(params.path)
+                path.write_text(params.content, encoding="utf-8")
+                logger.info("Wrote file %s", params.path)
+            except Exception:
+                logger.exception("Failed to write file %s", params.path)
+                raise
+        else:
+            # In-memory storage for testing
+            self.files[str(params.path)] = params.content
 
     async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
         """Read text from file (if allowed).
@@ -106,28 +128,33 @@ class DefaultACPClient:
             msg = "File operations not allowed"
             raise RuntimeError(msg)
 
-        try:
-            path = Path(params.path)
+        if self.use_real_files:
+            try:
+                path = Path(params.path)
 
-            if not path.exists():
-                msg = f"File not found: {params.path}"
-                raise FileNotFoundError(msg)  # noqa: TRY301
+                if not path.exists():
+                    msg = f"File not found: {params.path}"
+                    raise FileNotFoundError(msg)  # noqa: TRY301
 
-            content = path.read_text(encoding="utf-8")
+                content = path.read_text(encoding="utf-8")
 
-            # Apply line filtering if requested
-            if params.line is not None or params.limit is not None:
-                lines = content.splitlines()
-                start_line = (params.line - 1) if params.line else 0
-                end_line = start_line + params.limit if params.limit else len(lines)
-                content = "\n".join(lines[start_line:end_line])
+                # Apply line filtering if requested
+                if params.line is not None or params.limit is not None:
+                    lines = content.splitlines()
+                    start_line = (params.line - 1) if params.line else 0
+                    end_line = start_line + params.limit if params.limit else len(lines)
+                    content = "\n".join(lines[start_line:end_line])
 
-            logger.info("Read file %s", params.path)
+                logger.info("Read file %s", params.path)
+                return ReadTextFileResponse(content=content)
+
+            except Exception:
+                logger.exception("Failed to read file %s", params.path)
+                raise
+        else:
+            # In-memory storage for testing
+            content = self.files.get(str(params.path), "default content")
             return ReadTextFileResponse(content=content)
-
-        except Exception:
-            logger.exception("Failed to read file %s", params.path)
-            raise
 
     async def create_terminal(self, params: Any) -> Any:
         """Create terminal (not implemented).
@@ -189,17 +216,18 @@ class DefaultACPClient:
         Returns:
             List of session update notifications
         """
-        return self._session_updates.copy()
+        return self.notifications.copy()
 
     def clear_session_updates(self) -> None:
         """Clear all stored session updates."""
-        self._session_updates.clear()
+        self.notifications.clear()
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
-        return {"example": "response"}
+        self.ext_calls.append((method, params))
+        return {"ok": True, "method": method}
 
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
-        return None
+        self.ext_notes.append((method, params))
 
 
 ACPClientInterface = Client
