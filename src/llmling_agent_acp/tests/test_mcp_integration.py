@@ -11,6 +11,7 @@ import sys
 
 import pytest
 
+from acp import DefaultACPClient
 from acp.schema import EnvVariable, StdioMcpServer
 from llmling_agent import Agent
 from llmling_agent.delegation import AgentPool
@@ -18,7 +19,6 @@ from llmling_agent.log import get_logger
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import convert_acp_mcp_server_to_config
 from llmling_agent_acp.session import ACPSession, ACPSessionManager
-from llmling_agent_acp.wrappers import DefaultACPClient
 
 
 logger = get_logger(__name__)

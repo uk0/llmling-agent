@@ -13,7 +13,12 @@ from typing import TYPE_CHECKING, Any, Self
 
 from slashed import CommandStore
 
-from acp import Agent as ACPAgent, AgentSideConnection, create_session_model_state
+from acp import (
+    Agent as ACPAgent,
+    AgentSideConnection,
+    DefaultACPClient,
+    create_session_model_state,
+)
 from acp.schema import (
     AgentCapabilities,
     InitializeResponse,
@@ -36,11 +41,11 @@ from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import to_session_updates
 from llmling_agent_acp.session import ACPSessionManager
-from llmling_agent_acp.wrappers import DefaultACPClient
 from llmling_agent_commands import get_commands
 
 
 if TYPE_CHECKING:
+    from acp import Client
     from acp.schema import (
         AuthenticateRequest,
         CancelNotification,
@@ -52,7 +57,6 @@ if TYPE_CHECKING:
         SetSessionModeRequest,
     )
     from llmling_agent import Agent, AgentPool
-    from llmling_agent_acp.wrappers import ACPClientInterface
 
 logger = get_logger(__name__)
 
@@ -80,7 +84,7 @@ class LLMlingACPAgent(ACPAgent):
         session_support: bool = True,
         file_access: bool = False,
         terminal_access: bool = False,
-        client: ACPClientInterface | None = None,
+        client: Client | None = None,
         max_turn_requests: int = 50,
         max_tokens: int | None = None,
     ) -> None:
@@ -101,7 +105,7 @@ class LLMlingACPAgent(ACPAgent):
         self.session_support = session_support
         self.file_access = file_access
         self.terminal_access = terminal_access
-        self.client = client or connection
+        self.client: Client = client or connection
         self.max_turn_requests = max_turn_requests
         self.max_tokens = max_tokens
         command_store = CommandStore(enable_system_commands=True)
@@ -378,7 +382,7 @@ class ACPServer:
     def __init__(
         self,
         *,
-        client: ACPClientInterface | None = None,
+        client: Client | None = None,
         max_turn_requests: int = 50,
         max_tokens: int | None = None,
     ) -> None:

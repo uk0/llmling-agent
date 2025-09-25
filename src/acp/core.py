@@ -140,7 +140,7 @@ class Agent(Protocol):
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None: ...
 
 
-class AgentSideConnection:
+class AgentSideConnection(Client):
     """Agent-side connection.
 
     Use when you implement the Agent and need to talk to a Client.

@@ -8,12 +8,12 @@ import pytest
 
 from acp import (
     Agent,
+    DefaultACPClient,
     InitializeResponse,
     LoadSessionResponse,
     NewSessionResponse,
     PromptResponse,
 )
-from llmling_agent_acp.wrappers import DefaultACPClient
 
 
 if TYPE_CHECKING:

@@ -27,7 +27,7 @@ from acp.schema import (
 
 
 if TYPE_CHECKING:
-    from llmling_agent_acp.wrappers import DefaultACPClient
+    from acp import DefaultACPClient
 
     from .conftest import TestAgent
 

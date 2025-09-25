@@ -5,9 +5,9 @@ import tempfile
 
 from slashed import CommandStore
 
+from acp import DefaultACPClient
 from llmling_agent import Agent
 from llmling_agent.delegation import AgentPool
-from llmling_agent_acp import DefaultACPClient
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import to_content_blocks
 from llmling_agent_acp.session import ACPSessionManager

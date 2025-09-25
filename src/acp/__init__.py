@@ -1,5 +1,6 @@
 """Agent Client protocol (ACP) implementation."""
 
+from .client import DefaultACPClient
 from .core import (
     Agent,
     AgentSideConnection,
@@ -102,6 +103,7 @@ __all__ = [  # noqa: RUF022
     "RequestError",
     "Agent",
     "Client",
+    "DefaultACPClient",
     "TerminalHandle",
     # utilities
     "create_session_model_state",
