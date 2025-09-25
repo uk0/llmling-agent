@@ -31,8 +31,6 @@ from acp.schema import AgentMessageChunk, TextContentBlock, UserMessageChunk
 if TYPE_CHECKING:
     from acp import LoadSessionRequest, PromptRequest, RequestPermissionRequest
 
-# --------------------- Test Utilities ---------------------
-
 
 class _Server:
     def __init__(self) -> None:
@@ -174,6 +172,9 @@ class _TestAgent(Agent):
 
     async def extNotification(self, method: str, params: dict) -> None:
         self.ext_notes.append((method, params))
+
+    async def setSessionModel(self, params):
+        return {}
 
 
 # ------------------------ Tests --------------------------

@@ -12,7 +12,7 @@ from llmling_agent_acp.converters import to_content_blocks
 from llmling_agent_acp.session import ACPSessionManager
 
 
-async def test_conversation_history():  # noqa: PLR0915
+async def test_conversation_history():
     """Test that conversation history is maintained across multiple prompts."""
     print("🧪 Testing ACP conversation history...")
 
@@ -31,83 +31,72 @@ async def test_conversation_history():  # noqa: PLR0915
 
     session_manager = ACPSessionManager(command_bridge=command_bridge)
 
-    try:
-        # Create a session
-        with tempfile.TemporaryDirectory() as temp_dir:
-            session_id = await session_manager.create_session(
-                agent=agent,
-                cwd=temp_dir,
-                client=client,
+    # Create a session
+    with tempfile.TemporaryDirectory() as temp_dir:
+        session_id = await session_manager.create_session(
+            agent=agent,
+            cwd=temp_dir,
+            client=client,
+        )
+        session = await session_manager.get_session(session_id)
+        assert session
+
+        print(f"✅ Created session: {session.session_id}")
+
+        # Test 1: Send first message
+        print("\n📤 Sending first message: 'My favorite color is blue'")
+        content_blocks_1 = to_content_blocks("My favorite color is blue")
+
+        # Process the prompt and collect responses
+        responses_1 = []
+        async for result in session.process_prompt(content_blocks_1):
+            if isinstance(result, str):
+                print(f"   Stop reason: {result}")
+                break
+            responses_1.append(result)
+
+        print(f"   Got {len(responses_1)} response chunks")
+
+        # Test 2: Send second message that references the first
+        print("\n📤 Sending second message: 'What color did I just mention?'")
+        content_blocks_2 = to_content_blocks("What color did I just mention?")
+
+        # Process the second prompt
+        responses_2 = []
+        async for result in session.process_prompt(content_blocks_2):
+            if isinstance(result, str):
+                print(f"   Stop reason: {result}")
+                break
+            responses_2.append(result)
+            # Print the actual response content for verification
+            if hasattr(result.update, "content"):
+                content = result.update.content  # pyright: ignore[reportAttributeAccessIssue]
+                if hasattr(content, "text"):
+                    print(f"   Response chunk: {content.text}")  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
+
+        print(f"   Got {len(responses_2)} response chunks")
+
+        agent_history = session.agent.conversation.get_history()
+        print(f"\n🧠 Agent's internal history ({len(agent_history)} messages):")
+        for i, msg in enumerate(agent_history):
+            role_icon = "🧑" if msg.role == "user" else "🤖"
+            print(f"   [{i}] {role_icon} {msg.role}: {msg.content}")
+
+        # Verify that the agent has the full conversation context
+        if len(agent_history) >= 2:  # noqa: PLR2004
+            first_user_msg = next(
+                (msg for msg in agent_history if msg.role == "user"), None
             )
-            session = await session_manager.get_session(session_id)
-            assert session
-
-            print(f"✅ Created session: {session.session_id}")
-
-            # Test 1: Send first message
-            print("\n📤 Sending first message: 'My favorite color is blue'")
-            content_blocks_1 = to_content_blocks("My favorite color is blue")
-
-            # Process the prompt and collect responses
-            responses_1 = []
-            async for result in session.process_prompt(content_blocks_1):
-                if isinstance(result, str):
-                    print(f"   Stop reason: {result}")
-                    break
-                responses_1.append(result)
-
-            print(f"   Got {len(responses_1)} response chunks")
-
-            # Test 2: Send second message that references the first
-            print("\n📤 Sending second message: 'What color did I just mention?'")
-            content_blocks_2 = to_content_blocks("What color did I just mention?")
-
-            # Process the second prompt
-            responses_2 = []
-            async for result in session.process_prompt(content_blocks_2):
-                if isinstance(result, str):
-                    print(f"   Stop reason: {result}")
-                    break
-                responses_2.append(result)
-                # Print the actual response content for verification
-                if hasattr(result.update, "content"):
-                    content = result.update.content  # pyright: ignore[reportAttributeAccessIssue]
-                    if hasattr(content, "text"):
-                        print(f"   Response chunk: {content.text}")  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
-
-            print(f"   Got {len(responses_2)} response chunks")
-
-            agent_history = session.agent.conversation.get_history()
-            print(f"\n🧠 Agent's internal history ({len(agent_history)} messages):")
-            for i, msg in enumerate(agent_history):
-                role_icon = "🧑" if msg.role == "user" else "🤖"
-                print(f"   [{i}] {role_icon} {msg.role}: {msg.content}")
-
-            # Verify that the agent has the full conversation context
-            if len(agent_history) >= 2:  # noqa: PLR2004
-                first_user_msg = next(
-                    (msg for msg in agent_history if msg.role == "user"), None
-                )
-                if first_user_msg and "blue" in first_user_msg.content.lower():
-                    print(
-                        "\n✅ SUCCESS: Agent has access to first message about blue color"
-                    )
-                else:
-                    print("\n❌ FAILURE: Agent missing first message about blue color")
+            if first_user_msg and "blue" in first_user_msg.content.lower():
+                print("\n✅ SUCCESS: Agent has access to first message about blue color")
             else:
-                print(
-                    f"\n❌ FAILURE: Agent only has {len(agent_history)} msgs in history"
-                )
+                print("\n❌ FAILURE: Agent missing first message about blue color")
+        else:
+            print(f"\n❌ FAILURE: Agent only has {len(agent_history)} msgs in history")
 
-            # Close the session
-            await session.close()
-            print("\n🏁 Test completed")
-
-    except Exception as e:  # noqa: BLE001
-        print(f"\n💥 Test failed with error: {e}")
-        import traceback
-
-        traceback.print_exc()
+        # Close the session
+        await session.close()
+        print("\n🏁 Test completed")
 
 
 async def test_simple_sync():
