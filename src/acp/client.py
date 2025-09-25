@@ -10,8 +10,8 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .core import Client
-from .schema import (
+from acp.core import Client
+from acp.schema import (
     AllowedOutcome,
     DeniedOutcome,
     ReadTextFileResponse,
@@ -20,7 +20,7 @@ from .schema import (
 
 
 if TYPE_CHECKING:
-    from .schema import (
+    from acp.schema import (
         ReadTextFileRequest,
         RequestPermissionRequest,
         SessionNotification,

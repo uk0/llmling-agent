@@ -1,7 +1,7 @@
 """Agent Client protocol (ACP) implementation."""
 
-from .client import DefaultACPClient
-from .core import (
+from acp.client import DefaultACPClient
+from acp.core import (
     Agent,
     AgentSideConnection,
     Client,
@@ -9,12 +9,12 @@ from .core import (
     TerminalHandle,
     create_session_model_state,
 )
-from .meta import (
+from acp.meta import (
     AGENT_METHODS,
     CLIENT_METHODS,
     PROTOCOL_VERSION,
 )
-from .schema import (
+from acp.schema import (
     AuthenticateRequest,
     AuthenticateResponse,
     CancelNotification,
@@ -50,8 +50,8 @@ from .schema import (
     WriteTextFileRequest,
     WriteTextFileResponse,
 )
-from .stdio import stdio_streams
-from .exceptions import RequestError
+from acp.stdio import stdio_streams
+from acp.exceptions import RequestError
 
 __version__ = "0.0.1"
 

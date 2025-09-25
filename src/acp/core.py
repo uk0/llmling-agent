@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Protocol
 
-from .connection import Connection
-from .exceptions import RequestError
-from .meta import AGENT_METHODS, CLIENT_METHODS
-from .schema import (
+from acp.connection import Connection
+from acp.exceptions import RequestError
+from acp.meta import AGENT_METHODS, CLIENT_METHODS
+from acp.schema import (
     AuthenticateRequest,
     AuthenticateResponse,
     CancelNotification,
@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     import asyncio
     from collections.abc import Callable
 
-    from .acp_types import MethodHandler
+    from acp.acp_types import MethodHandler
 
 
 _AGENT_CONNECTION_ERROR = "AgentSideConnection requires asyncio StreamWriter/StreamReader"

@@ -10,13 +10,11 @@ from typing import TYPE_CHECKING, Any
 import anyenv
 from pydantic import BaseModel, ValidationError
 
-from .exceptions import RequestError
+from acp.exceptions import RequestError
 
 
 if TYPE_CHECKING:
-    from acp.acp_types import JsonValue
-
-    from .acp_types import MethodHandler
+    from acp.acp_types import JsonValue, MethodHandler
 
 
 @dataclass(slots=True)
