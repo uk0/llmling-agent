@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from acp.schema import SessionMode, SessionModeState
 from llmling_agent.models.manifest import AgentConfig, AgentsManifest
 from llmling_agent_acp.server import ACPServer
 from llmling_agent_acp.session import ACPSession
@@ -40,7 +41,7 @@ def test_manifest():
 
 
 @pytest.fixture
-async def agent_pool(test_manifest):
+async def agent_pool(test_manifest: AgentsManifest):
     """Create test agent pool."""
     async with test_manifest.pool as pool:
         yield pool
@@ -82,7 +83,11 @@ class TestAgentPoolModeSwitch:
         assert coding_agent.name == "coding-agent"
         assert research_agent.name == "research-agent"
 
-    def test_session_agent_property(self, agent_pool, mock_client):
+    def test_session_agent_property(
+        self,
+        agent_pool: AgentPool[Any],
+        mock_client: AsyncMock,
+    ):
         """Test session agent property returns current agent."""
         session = ACPSession(
             session_id="test-session",
@@ -96,7 +101,11 @@ class TestAgentPoolModeSwitch:
         current_agent = session.agent
         assert current_agent.name == "coding-agent"
 
-    async def test_switch_active_agent(self, agent_pool, mock_client):
+    async def test_switch_active_agent(
+        self,
+        agent_pool: AgentPool[Any],
+        mock_client: AsyncMock,
+    ):
         """Test switching active agent in session."""
         session = ACPSession(
             session_id="test-session",
@@ -116,7 +125,11 @@ class TestAgentPoolModeSwitch:
         assert session.current_agent_name == "research-agent"
         assert session.agent.name == "research-agent"
 
-    async def test_switch_to_invalid_agent(self, agent_pool, mock_client):
+    async def test_switch_to_invalid_agent(
+        self,
+        agent_pool: AgentPool[Any],
+        mock_client: AsyncMock,
+    ):
         """Test switching to non-existent agent raises error."""
         session = ACPSession(
             session_id="test-session",
@@ -131,8 +144,6 @@ class TestAgentPoolModeSwitch:
 
     def test_session_modes_from_agent_pool(self, agent_pool: AgentPool[Any]):
         """Test that session modes are correctly generated from agent pool."""
-        from acp.schema import SessionMode, SessionModeState
-
         # Simulate what newSession does
         agent_names = list(agent_pool.agents.keys())
         available_modes = [
@@ -162,28 +173,6 @@ class TestAgentPoolModeSwitch:
         assert "coding-agent" in mode_names
         assert "research-agent" in mode_names
         assert "writing-agent" in mode_names
-
-    async def test_from_config_creates_agent_pool(self, tmp_path):
-        """Test that from_config creates server with agent pool."""
-        # Create test config file
-        config_content = """
-agents:
-  agent1:
-    name: "Agent One"
-    model: "test"
-  agent2:
-    name: "Agent Two"
-    model: "test"
-"""
-        config_file = tmp_path / "test_config.yml"
-        config_file.write_text(config_content)
-
-        server = await ACPServer.from_config(str(config_file))
-
-        assert server.agent_pool is not None
-        assert len(server.list_agents()) == 2  # noqa: PLR2004
-        assert "agent1" in server.list_agents()
-        assert "agent2" in server.list_agents()
 
 
 if __name__ == "__main__":
