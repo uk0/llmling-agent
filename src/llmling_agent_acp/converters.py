@@ -364,7 +364,20 @@ class FileSystemBridge:
         )
 
 
-def _determine_tool_kind(tool_name: str) -> str:  # noqa: PLR0911
+def _determine_tool_kind(  # noqa: PLR0911
+    tool_name: str,
+) -> Literal[
+    "read",
+    "edit",
+    "delete",
+    "move",
+    "search",
+    "execute",
+    "think",
+    "fetch",
+    "switch_mode",
+    "other",
+]:
     """Determine the appropriate tool kind based on name.
 
     Args:
