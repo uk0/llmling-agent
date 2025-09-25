@@ -18,14 +18,14 @@ async def test_conversation_history():
     print("🧪 Testing ACP conversation history...")
 
     # Create a simple agent
-    agent = Agent(
+    agent = Agent[None](
         name="test_agent",
         model="openrouter:openai/gpt-5-mini",
         system_prompt="You are a helpful assistant. Remember our conversation.",
     )
 
     # Create agent pool and register the agent
-    agent_pool = AgentPool()
+    agent_pool = AgentPool[None]()
     agent_pool.register("test_agent", agent)
 
     # Create session manager directly
@@ -110,10 +110,10 @@ async def test_simple_sync():
     print("\n🔧 Testing agent conversation baseline...")
 
     # Create a simple agent
-    agent = Agent(name="sync_test_agent", model="openrouter:openai/gpt-5-mini")
+    agent = Agent[None](name="sync_test_agent", model="openrouter:openai/gpt-5-mini")
 
     # Create agent pool and register the agent
-    agent_pool = AgentPool()
+    agent_pool = AgentPool[None]()
     agent_pool.register("sync_test_agent", agent)
 
     client = DefaultACPClient()

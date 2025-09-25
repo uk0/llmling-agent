@@ -65,7 +65,7 @@ async def test_session_with_mcp_servers():
     )
 
     # Create empty agent pool and register the agent
-    agent_pool = AgentPool()
+    agent_pool = AgentPool[None]()
     agent_pool.register("test_agent", agent)
 
     # Create ACP client
@@ -153,7 +153,7 @@ async def test_session_manager_with_mcp():
     )
 
     # Create empty agent pool and register the agent
-    agent_pool = AgentPool()
+    agent_pool = AgentPool[None]()
     agent_pool.register("test_agent", agent)
 
     # Create client

@@ -25,7 +25,12 @@ from acp import (
     SetSessionModeRequest,
     WriteTextFileRequest,
 )
-from acp.schema import AgentMessageChunk, TextContentBlock, UserMessageChunk
+from acp.schema import (
+    AgentMessageChunk,
+    LoadSessionResponse,
+    TextContentBlock,
+    UserMessageChunk,
+)
 
 
 if TYPE_CHECKING:
@@ -152,8 +157,8 @@ class _TestAgent(Agent):
     async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
         return NewSessionResponse(session_id="test-session-123")
 
-    async def load_session(self, params: LoadSessionRequest) -> None:
-        return None
+    async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
+        return LoadSessionResponse()
 
     async def authenticate(self, params) -> None:
         return None
