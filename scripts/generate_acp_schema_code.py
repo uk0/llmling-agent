@@ -29,6 +29,56 @@ def fetch_json(url: str) -> dict:
         sys.exit(1)
 
 
+def convert_oneof_const_to_enum(schema: dict) -> dict:
+    """Convert oneOf patterns with const values to enum format.
+
+    This ensures datamodel-code-generator creates Literal types instead of plain str.
+    Works on the schema WITHOUT dereferencing to preserve names.
+    """
+    import copy
+
+    schema = copy.deepcopy(schema)
+
+    def process_schema(obj: dict, path: str = "") -> None:
+        if isinstance(obj, dict):
+            # Check if this is a oneOf pattern with all const values
+            if "oneOf" in obj and isinstance(obj["oneOf"], list):
+                all_const = all(
+                    isinstance(item, dict)
+                    and item.get("type") == "string"
+                    and "const" in item
+                    for item in obj["oneOf"]
+                )
+                if all_const:
+                    # Convert to enum format
+                    enum_values = [item["const"] for item in obj["oneOf"]]
+                    obj["type"] = "string"
+                    obj["enum"] = enum_values
+                    # Keep the description if available
+                    if "description" not in obj:
+                        # Try to get description from parent or first item
+                        for item in obj["oneOf"]:
+                            if "description" in item:
+                                obj["description"] = item["description"]
+                                break
+                    del obj["oneOf"]
+                    print(f"Converted oneOf+const to enum at {path}")
+
+            # Recursively process all values
+            for key, value in list(obj.items()):
+                if isinstance(value, dict):
+                    process_schema(value, f"{path}.{key}")
+                elif isinstance(value, list):
+                    for i, item in enumerate(value):
+                        if isinstance(item, dict):
+                            process_schema(item, f"{path}.{key}[{i}]")
+
+    # Process the entire schema including $defs
+    process_schema(schema, "")
+
+    return schema
+
+
 def main() -> None:
     # Generate schema.py
     schema_out = ROOT / "src" / "acp" / "schema.py"
@@ -37,7 +87,12 @@ def main() -> None:
     temp_dir = Path(tempfile.gettempdir())
     temp_schema_path = temp_dir / "schema.json"
     schema_data = fetch_json(SCHEMA_URL)
-    temp_schema_path.write_text(json.dumps(schema_data, indent=2))
+
+    # Convert oneOf+const patterns to enums for proper Literal generation
+    # Do NOT dereference - this preserves the semantic names from $defs
+    preprocessed_schema = convert_oneof_const_to_enum(schema_data)
+
+    temp_schema_path.write_text(json.dumps(preprocessed_schema, indent=2))
 
     try:
         cmd = [
