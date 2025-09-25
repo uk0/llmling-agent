@@ -16,14 +16,25 @@ from acp.schema import (
     DeniedOutcome,
     ReadTextFileResponse,
     RequestPermissionResponse,
+    WriteTextFileResponse,
 )
 
 
 if TYPE_CHECKING:
     from acp.schema import (
+        CreateTerminalRequest,
+        CreateTerminalResponse,
+        KillTerminalCommandRequest,
+        KillTerminalCommandResponse,
         ReadTextFileRequest,
+        ReleaseTerminalRequest,
+        ReleaseTerminalResponse,
         RequestPermissionRequest,
         SessionNotification,
+        TerminalOutputRequest,
+        TerminalOutputResponse,
+        WaitForTerminalExitRequest,
+        WaitForTerminalExitResponse,
         WriteTextFileRequest,
     )
 
@@ -97,7 +108,9 @@ class DefaultACPClient(Client):
         logger.debug(msg, params.session_id, params.update.session_update)
         self.notifications.append(params)
 
-    async def write_text_file(self, params: WriteTextFileRequest) -> None:
+    async def write_text_file(
+        self, params: WriteTextFileRequest
+    ) -> WriteTextFileResponse | None:
         """Write text to file (if allowed).
 
         Args:
@@ -118,6 +131,8 @@ class DefaultACPClient(Client):
         else:
             # In-memory storage for testing
             self.files[str(params.path)] = params.content
+
+        return WriteTextFileResponse()
 
     async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
         """Read text from file (if allowed).
@@ -160,7 +175,9 @@ class DefaultACPClient(Client):
             content = self.files.get(str(params.path), "default content")
             return ReadTextFileResponse(content=content)
 
-    async def create_terminal(self, params: Any) -> Any:
+    async def create_terminal(
+        self, params: CreateTerminalRequest
+    ) -> CreateTerminalResponse:
         """Create terminal (not implemented).
 
         Args:
@@ -172,7 +189,9 @@ class DefaultACPClient(Client):
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def terminal_output(self, params: Any) -> Any:
+    async def terminal_output(
+        self, params: TerminalOutputRequest
+    ) -> TerminalOutputResponse:
         """Get terminal output (not implemented).
 
         Args:
@@ -184,7 +203,9 @@ class DefaultACPClient(Client):
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def release_terminal(self, params: Any) -> None:
+    async def release_terminal(
+        self, params: ReleaseTerminalRequest
+    ) -> ReleaseTerminalResponse | None:
         """Release terminal (not implemented).
 
         Args:
@@ -193,7 +214,9 @@ class DefaultACPClient(Client):
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def wait_for_terminal_exit(self, params: Any) -> Any:
+    async def wait_for_terminal_exit(
+        self, params: WaitForTerminalExitRequest
+    ) -> WaitForTerminalExitResponse:
         """Wait for terminal exit (not implemented).
 
         Args:
@@ -205,7 +228,9 @@ class DefaultACPClient(Client):
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def kill_terminal(self, params: Any) -> None:
+    async def kill_terminal(
+        self, params: KillTerminalCommandRequest
+    ) -> KillTerminalCommandResponse | None:
         """Kill terminal (not implemented).
 
         Args:
