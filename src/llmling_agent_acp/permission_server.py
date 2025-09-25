@@ -190,7 +190,7 @@ class PermissionMCPHandler(BaseHTTPRequestHandler):
             )
 
             # This shows the permission UI dialog
-            response = await self.client.requestPermission(permission_request)
+            response = await self.client.request_permission(permission_request)
 
             # Process response
             if isinstance(response.outcome, AllowedOutcome):
@@ -224,7 +224,7 @@ class PermissionMCPServer:
 
     This server provides a single 'permission' tool that:
     1. Receives permission requests for other tools
-    2. Shows UI dialogs via ACP client.requestPermission()
+    2. Shows UI dialogs via ACP client.request_permission()
     3. Returns allow/deny decisions back to the calling system
     """
 

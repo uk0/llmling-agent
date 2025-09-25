@@ -87,7 +87,7 @@ class _TestClient(Client):
         self.ext_calls: list[tuple[str, dict]] = []
         self.ext_notes: list[tuple[str, dict]] = []
 
-    async def requestPermission(
+    async def request_permission(
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
         outcome = (
@@ -97,37 +97,39 @@ class _TestClient(Client):
         )
         return RequestPermissionResponse.model_validate({"outcome": outcome})
 
-    async def writeTextFile(self, params: WriteTextFileRequest) -> None:
+    async def write_text_file(self, params: WriteTextFileRequest) -> None:
         self.files[str(params.path)] = params.content
 
-    async def readTextFile(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
+    async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
         content = self.files.get(str(params.path), "default content")
         return ReadTextFileResponse(content=content)
 
-    async def sessionUpdate(self, params: SessionNotification) -> None:
+    async def session_update(self, params: SessionNotification) -> None:
         self.notifications.append(params)
 
     # Optional terminal methods (not implemented in this test client)
-    async def createTerminal(self, params) -> None:  # pragma: no cover - placeholder
+    async def create_terminal(self, params) -> None:  # pragma: no cover - placeholder
         pass
 
-    async def terminalOutput(self, params) -> None:  # pragma: no cover - placeholder
+    async def terminal_output(self, params) -> None:  # pragma: no cover - placeholder
         pass
 
-    async def releaseTerminal(self, params) -> None:  # pragma: no cover - placeholder
+    async def release_terminal(self, params) -> None:  # pragma: no cover - placeholder
         pass
 
-    async def waitForTerminalExit(self, params) -> None:  # pragma: no cover - placeholder
+    async def wait_for_terminal_exit(
+        self, params
+    ) -> None:  # pragma: no cover - placeholder
         pass
 
-    async def killTerminal(self, params) -> None:  # pragma: no cover - placeholder
+    async def kill_terminal(self, params) -> None:  # pragma: no cover - placeholder
         pass
 
-    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         self.ext_calls.append((method, params))
         return {"ok": True, "method": method}
 
-    async def extNotification(self, method: str, params: dict[str, Any]) -> None:
+    async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
         self.ext_notes.append((method, params))
 
 
@@ -147,10 +149,10 @@ class _TestAgent(Agent):
             agent_capabilities=None,
         )
 
-    async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
+    async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
         return NewSessionResponse(session_id="test-session-123")
 
-    async def loadSession(self, params: LoadSessionRequest) -> None:
+    async def load_session(self, params: LoadSessionRequest) -> None:
         return None
 
     async def authenticate(self, params) -> None:
@@ -163,17 +165,17 @@ class _TestAgent(Agent):
     async def cancel(self, params: CancelNotification) -> None:
         self.cancellations.append(params.session_id)
 
-    async def setSessionMode(self, params):
+    async def set_session_mode(self, params):
         return {}
 
-    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         self.ext_calls.append((method, params))
         return {"ok": True, "method": method}
 
-    async def extNotification(self, method: str, params: dict[str, Any]) -> None:
+    async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
         self.ext_notes.append((method, params))
 
-    async def setSessionModel(self, params):
+    async def set_session_model(self, params):
         return {}
 
 
@@ -201,7 +203,7 @@ async def test_initialize_and_new_session():
         assert isinstance(resp, InitializeResponse)
         assert resp.protocol_version == 1
 
-        new_sess = await agent_conn.newSession(
+        new_sess = await agent_conn.new_session(
             NewSessionRequest(mcp_servers=[], cwd="/test")
         )
         assert new_sess.session_id == "test-session-123"
@@ -225,13 +227,13 @@ async def test_bidirectional_file_ops():
         )
 
         # Agent asks client to read
-        res = await client_conn.readTextFile(
+        res = await client_conn.read_text_file(
             ReadTextFileRequest(session_id="sess", path="/test/file.txt")
         )
         assert res.content == "Hello, World!"
 
         # Agent asks client to write
-        await client_conn.writeTextFile(
+        await client_conn.write_text_file(
             WriteTextFileRequest(
                 session_id="sess", path="/test/file.txt", content="Updated"
             )
@@ -287,12 +289,12 @@ async def test_session_notifications_flow():
         # Agent -> Client notifications
         content = TextContentBlock(text="Hello")
         agent_chunk = AgentMessageChunk(content=content)
-        await client_conn.sessionUpdate(
+        await client_conn.session_update(
             SessionNotification(session_id="sess", update=agent_chunk)
         )
         content = TextContentBlock(text="World")
         chunk = UserMessageChunk(content=content)
-        await client_conn.sessionUpdate(
+        await client_conn.session_update(
             SessionNotification(session_id="sess", update=chunk)
         )
 
@@ -324,7 +326,7 @@ async def test_concurrent_reads():
         )
 
         async def read_one(i: int):
-            return await client_conn.readTextFile(
+            return await client_conn.read_text_file(
                 ReadTextFileRequest(session_id="sess", path=f"/test/file{i}.txt")
             )
 
@@ -404,19 +406,19 @@ async def test_set_session_mode_and_extensions():
             lambda _conn: agent, s.server_writer, s.server_reader
         )
 
-        # setSessionMode
-        resp = await agent_conn.setSessionMode(
+        # set_session_mode
+        resp = await agent_conn.set_session_mode(
             SetSessionModeRequest(session_id="sess", mode_id="yolo")
         )
         # Either empty object or typed response depending on implementation
         assert resp is None or resp.__class__.__name__ == "SetSessionModeResponse"
 
-        # extMethod
-        res = await agent_conn.extMethod("ping", {"x": 1})
+        # ext_method
+        res = await agent_conn.ext_method("ping", {"x": 1})
         assert res.get("ok") is True
 
-        # extNotification
-        await agent_conn.extNotification("note", {"y": 2})
+        # ext_notification
+        await agent_conn.ext_notification("note", {"y": 2})
         # allow dispatch
         await asyncio.sleep(0.05)
         assert agent.ext_notes

@@ -43,10 +43,10 @@ async def agent_pool(test_manifest):
 def mock_client():
     """Create mock ACP client."""
     client = AsyncMock()
-    client.requestPermission = AsyncMock()
-    client.sessionUpdate = AsyncMock()
-    client.readTextFile = AsyncMock()
-    client.writeTextFile = AsyncMock()
+    client.request_permission = AsyncMock()
+    client.session_update = AsyncMock()
+    client.read_text_file = AsyncMock()
+    client.write_text_file = AsyncMock()
     return client
 
 

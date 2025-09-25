@@ -135,7 +135,7 @@ class LLMlingACPAgent(ACPAgent):
         logger.info("ACP agent implementation initialized successfully: %s", response)
         return response
 
-    async def newSession(self, params: NewSessionRequest) -> NewSessionResponse:
+    async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
         """Create a new session."""
         if not self._initialized:
             msg = "Agent not initialized"
@@ -209,7 +209,7 @@ class LLMlingACPAgent(ACPAgent):
                 )
             return response
 
-    async def loadSession(self, params: LoadSessionRequest) -> LoadSessionResponse:
+    async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
         """Load an existing session."""
         if not self._initialized:
             msg = "Agent not initialized"
@@ -264,7 +264,7 @@ class LLMlingACPAgent(ACPAgent):
                         exclude_none=True, by_alias=True, exclude_defaults=False
                     ),
                 )
-                await self.connection.sessionUpdate(result)
+                await self.connection.session_update(result)
 
             # Return the actual stop reason from the session
             response = PromptResponse(stop_reason=stop_reason)
@@ -276,7 +276,7 @@ class LLMlingACPAgent(ACPAgent):
             error_updates = to_session_updates(msg, params.session_id)
             for update in error_updates:
                 try:
-                    await self.connection.sessionUpdate(update)
+                    await self.connection.session_update(update)
                 except Exception:
                     logger.exception("Failed to send error update")
 
@@ -300,13 +300,13 @@ class LLMlingACPAgent(ACPAgent):
         except Exception:
             logger.exception("Failed to cancel session %s", params.session_id)
 
-    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         return {"example": "response"}
 
-    async def extNotification(self, method: str, params: dict[str, Any]) -> None:
+    async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
         return None
 
-    async def setSessionMode(
+    async def set_session_mode(
         self, params: SetSessionModeRequest
     ) -> SetSessionModeResponse | None:
         """Set the session mode (switch active agent).
@@ -337,7 +337,7 @@ class LLMlingACPAgent(ACPAgent):
             logger.exception("Failed to set session mode for %s", params.session_id)
             return None
 
-    async def setSessionModel(
+    async def set_session_model(
         self, params: SetSessionModelRequest
     ) -> SetSessionModelResponse | None:
         """Set the session model.

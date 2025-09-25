@@ -733,7 +733,7 @@ class ACPSession:
 
             # Send to client
             notification = SessionNotification(session_id=self.session_id, update=update)
-            await self.client.sessionUpdate(notification)
+            await self.client.session_update(notification)
 
         except Exception:
             msg = "Failed to send available commands update for session %s"
@@ -751,7 +751,7 @@ class ACPSession:
 
             # Send to client
             notification = SessionNotification(session_id=self.session_id, update=update)
-            await self.client.sessionUpdate(notification)
+            await self.client.session_update(notification)
 
             logger.debug("Updated available commands for session %s", self.session_id)
 

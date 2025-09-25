@@ -42,7 +42,7 @@ class DefaultACPClient:
         self.allow_file_operations = allow_file_operations
         self._session_updates: list[SessionNotification] = []
 
-    async def requestPermission(
+    async def request_permission(
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
         """Default permission handler - grants all permissions.
@@ -65,7 +65,7 @@ class DefaultACPClient:
         cancelled_outcome = DeniedOutcome()
         return RequestPermissionResponse(outcome=cancelled_outcome)
 
-    async def sessionUpdate(self, params: SessionNotification) -> None:
+    async def session_update(self, params: SessionNotification) -> None:
         """Handle session update notifications.
 
         Args:
@@ -75,7 +75,7 @@ class DefaultACPClient:
         logger.debug(msg, params.session_id, params.update.session_update)
         self._session_updates.append(params)
 
-    async def writeTextFile(self, params: WriteTextFileRequest) -> None:
+    async def write_text_file(self, params: WriteTextFileRequest) -> None:
         """Write text to file (if allowed).
 
         Args:
@@ -93,7 +93,7 @@ class DefaultACPClient:
             logger.exception("Failed to write file %s", params.path)
             raise
 
-    async def readTextFile(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
+    async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
         """Read text from file (if allowed).
 
         Args:
@@ -129,7 +129,7 @@ class DefaultACPClient:
             logger.exception("Failed to read file %s", params.path)
             raise
 
-    async def createTerminal(self, params: Any) -> Any:
+    async def create_terminal(self, params: Any) -> Any:
         """Create terminal (not implemented).
 
         Args:
@@ -141,7 +141,7 @@ class DefaultACPClient:
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def terminalOutput(self, params: Any) -> Any:
+    async def terminal_output(self, params: Any) -> Any:
         """Get terminal output (not implemented).
 
         Args:
@@ -153,7 +153,7 @@ class DefaultACPClient:
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def releaseTerminal(self, params: Any) -> None:
+    async def release_terminal(self, params: Any) -> None:
         """Release terminal (not implemented).
 
         Args:
@@ -162,7 +162,7 @@ class DefaultACPClient:
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def waitForTerminalExit(self, params: Any) -> Any:
+    async def wait_for_terminal_exit(self, params: Any) -> Any:
         """Wait for terminal exit (not implemented).
 
         Args:
@@ -174,7 +174,7 @@ class DefaultACPClient:
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def killTerminal(self, params: Any) -> None:
+    async def kill_terminal(self, params: Any) -> None:
         """Kill terminal (not implemented).
 
         Args:
@@ -195,88 +195,11 @@ class DefaultACPClient:
         """Clear all stored session updates."""
         self._session_updates.clear()
 
-    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         return {"example": "response"}
 
-    async def extNotification(self, method: str, params: dict[str, Any]) -> None:
+    async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
         return None
 
 
-class FileSystemACPClient(DefaultACPClient):
-    """ACP client with enhanced filesystem operations and permission handling.
-
-    This client provides more sophisticated file handling with proper permission
-    checks and user interaction for sensitive operations.
-    """
-
-    def __init__(
-        self,
-        *,
-        allowed_paths: list[str] | None = None,
-        require_permission: bool = True,
-    ) -> None:
-        """Initialize filesystem ACP client.
-
-        Args:
-            allowed_paths: List of allowed file paths/patterns
-            require_permission: Whether to require permission for file operations
-        """
-        super().__init__(allow_file_operations=True)
-        self.allowed_paths = allowed_paths or []
-        self.require_permission = require_permission
-
-    def _is_path_allowed(self, path: str) -> bool:
-        """Check if a path is allowed for operations.
-
-        Args:
-            path: File path to check
-
-        Returns:
-            True if path is allowed
-        """
-        if not self.allowed_paths:
-            return True  # No restrictions if no allowed paths specified
-
-        path_obj = Path(path).resolve()
-
-        for allowed in self.allowed_paths:
-            allowed_path = Path(allowed).resolve()
-            try:
-                path_obj.relative_to(allowed_path)
-            except ValueError:
-                continue
-            else:
-                return True
-
-        return False
-
-    async def writeTextFile(self, params: WriteTextFileRequest) -> None:
-        """Write text to file with permission checking.
-
-        Args:
-            params: File write request parameters
-        """
-        if not self._is_path_allowed(params.path):
-            msg = f"Path not allowed: {params.path}"
-            raise PermissionError(msg)
-
-        await super().writeTextFile(params)
-
-    async def readTextFile(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
-        """Read text from file with permission checking.
-
-        Args:
-            params: File read request parameters
-
-        Returns:
-            File content response
-        """
-        if not self._is_path_allowed(params.path):
-            msg = f"Path not allowed: {params.path}"
-            raise PermissionError(msg)
-
-        return await super().readTextFile(params)
-
-
-# Type alias for compatibility
 ACPClientInterface = Client

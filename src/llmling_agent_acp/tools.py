@@ -194,7 +194,7 @@ class ACPToolBridge:
                 options=options,
             )
 
-            response = await self.client.requestPermission(request)
+            response = await self.client.request_permission(request)
 
             return isinstance(
                 response.outcome, AllowedOutcome
