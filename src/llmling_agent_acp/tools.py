@@ -40,12 +40,12 @@ OPTIONS = [
     PermissionOption(
         option_id="allow_once",
         name="Allow Once",
-        kind="permission",
+        kind="allow_once",
     ),
     PermissionOption(
         option_id="allow_session",
         name="Allow for Session",
-        kind="permission",
+        kind="allow_always",
     ),
 ]
 
@@ -180,8 +180,8 @@ class ACPToolBridge:
 
             # Create permission options
             options = [
-                PermissionOption(option_id="allow", name="Allow", kind="permission"),
-                PermissionOption(option_id="deny", name="Deny", kind="permission"),
+                PermissionOption(option_id="allow", name="Allow", kind="allow_once"),
+                PermissionOption(option_id="deny", name="Deny", kind="reject_once"),
             ]
 
             # If it's a file operation, add more specific options
