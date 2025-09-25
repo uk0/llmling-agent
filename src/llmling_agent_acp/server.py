@@ -184,7 +184,7 @@ class LLMlingACPAgent(ACPAgent):
             state = SessionModeState(current_mode_id=default_name, available_modes=modes)
             # Get model information from the default agent
             session = await self.session_manager.get_session(session_id)
-            if session and session.agent:
+            if session:
                 current_model = session.agent.model_name
                 model_ids = [m.pydantic_ai_id for m in self.available_models]
                 models = create_session_model_state(model_ids, current_model)
@@ -258,12 +258,7 @@ class LLMlingACPAgent(ACPAgent):
                     stop_reason = result
                     break
                 msg = "Sending sessionUpdate notification: %s"
-                logger.info(
-                    msg,
-                    result.model_dump_json(
-                        exclude_none=True, by_alias=True, exclude_defaults=False
-                    ),
-                )
+                logger.info(msg, result.model_dump_json(exclude_none=True, by_alias=True))
                 await self.connection.session_update(result)
 
             # Return the actual stop reason from the session
