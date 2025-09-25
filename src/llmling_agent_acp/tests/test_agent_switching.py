@@ -1,5 +1,8 @@
 """Test agent pool mode switching functionality."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -7,6 +10,10 @@ import pytest
 from llmling_agent.models.manifest import AgentConfig, AgentsManifest
 from llmling_agent_acp.server import ACPServer
 from llmling_agent_acp.session import ACPSession
+
+
+if TYPE_CHECKING:
+    from llmling_agent.delegation.pool import AgentPool
 
 
 @pytest.fixture
@@ -53,10 +60,9 @@ def mock_client():
 class TestAgentPoolModeSwitch:
     """Test agent pool mode switching functionality."""
 
-    def test_server_agent_pool_setup(self, agent_pool):
+    def test_server_agent_pool_setup(self, agent_pool: AgentPool[Any]):
         """Test that server correctly stores agent pool."""
-        server = ACPServer()
-        server.set_agent_pool(agent_pool)
+        server = ACPServer(agent_pool=agent_pool)
 
         assert server.agent_pool is agent_pool
         assert len(server.list_agents()) == 3  # noqa: PLR2004
@@ -64,10 +70,9 @@ class TestAgentPoolModeSwitch:
         assert "research-agent" in server.list_agents()
         assert "writing-agent" in server.list_agents()
 
-    def test_server_get_agent(self, agent_pool):
+    def test_server_get_agent(self, agent_pool: AgentPool[Any]):
         """Test getting agents from pool."""
-        server = ACPServer()
-        server.set_agent_pool(agent_pool)
+        server = ACPServer(agent_pool=agent_pool)
 
         coding_agent = server.get_agent("coding-agent")
         research_agent = server.get_agent("research-agent")
@@ -124,7 +129,7 @@ class TestAgentPoolModeSwitch:
         with pytest.raises(ValueError, match="Agent 'invalid-agent' not found"):
             await session.switch_active_agent("invalid-agent")
 
-    def test_session_modes_from_agent_pool(self, agent_pool):
+    def test_session_modes_from_agent_pool(self, agent_pool: AgentPool[Any]):
         """Test that session modes are correctly generated from agent pool."""
         from acp.schema import SessionMode, SessionModeState
 
