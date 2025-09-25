@@ -7,7 +7,7 @@ content blocks, session updates, and other data structures using the external ac
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 from acp import (
     ReadTextFileRequest,
@@ -48,6 +48,28 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+# this one needs to align with the schema
+ToolCallKind = Literal[
+    "read",
+    "edit",
+    "delete",
+    "move",
+    "search",
+    "execute",
+    "think",
+    "fetch",
+    "switch_mode",
+    "other",
+]
+
+DEFAULT_PERMISSION_OPTIONS = [
+    PermissionOption(option_id="allow_once", name="Allow Once", kind="allow_once"),
+    PermissionOption(option_id="deny_once", name="Deny Once", kind="reject_once"),
+    PermissionOption(option_id="allow_always", name="Always Allow", kind="allow_always"),
+    PermissionOption(option_id="deny_always", name="Always Deny", kind="reject_always"),
+]
 
 
 @overload
@@ -330,32 +352,33 @@ class FileSystemBridge:
 
     @staticmethod
     def create_permission_request(
-        operation: str,
-        details: dict[str, Any],
         session_id: str,
+        tool_call_id: str,
+        title: str,
+        *,
+        kind: ToolCallKind = "other",
+        options: list[PermissionOption] | None = None,
     ) -> RequestPermissionRequest:
-        """Create a permission request for filesystem operation.
+        """Create a permission request.
 
         Args:
-            operation: Type of operation (read, write, etc.)
-            details: Operation details
             session_id: ACP session identifier
+            tool_call_id: Tool call ID
+            title: Title for the permission request
+            kind: Tool kind for the operation
+            options: Permission options (default allow/deny/always-allow/always-deny)
 
         Returns:
             RequestPermissionRequest object
         """
-        # Create permission request
         tool_call = ToolCallUpdate(
-            tool_call_id=f"fs_{operation}_{hash(details.get('path', ''))}",
-            title=f"File {operation.title()}",
+            tool_call_id=tool_call_id,
+            title=title,
             status="pending",
-            kind="filesystem",
+            kind=kind,
         )
-
-        options = [
-            PermissionOption(option_id="allow", name="Allow", kind="allow_once"),
-            PermissionOption(option_id="deny", name="Deny", kind="reject_once"),
-        ]
+        if options is None:
+            options = DEFAULT_PERMISSION_OPTIONS
 
         return RequestPermissionRequest(
             session_id=session_id,
@@ -364,20 +387,7 @@ class FileSystemBridge:
         )
 
 
-def _determine_tool_kind(  # noqa: PLR0911
-    tool_name: str,
-) -> Literal[
-    "read",
-    "edit",
-    "delete",
-    "move",
-    "search",
-    "execute",
-    "think",
-    "fetch",
-    "switch_mode",
-    "other",
-]:
+def _determine_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911
     """Determine the appropriate tool kind based on name.
 
     Args:
