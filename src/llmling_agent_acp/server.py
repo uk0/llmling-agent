@@ -69,12 +69,6 @@ class LLMlingACPAgent(ACPAgent):
 
     This class implements the external library's Agent protocol interface,
     bridging llmling agents with the standard ACP JSON-RPC protocol.
-
-    Protocol Compliance:
-    - Explicitly inherits from acp.Agent protocol for type safety
-    - Uses camelCase method names as required by ACP specification
-    - Implements all required methods: initialize, newSession, loadSession,
-      authenticate, prompt, cancel
     """
 
     PROTOCOL_VERSION = 1
@@ -205,10 +199,8 @@ class LLMlingACPAgent(ACPAgent):
             session = await self.session_manager.get_session(session_id)
             if session:
                 # Schedule task to run after response is sent
-                self.tasks.create_task(
-                    session.send_available_commands_update(),
-                    name=f"send_commands_update_{session_id}",
-                )
+                coro = session.send_available_commands_update()
+                self.tasks.create_task(coro, name=f"send_commands_update_{session_id}")
             return response
 
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
