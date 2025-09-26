@@ -141,18 +141,6 @@ class ACPToolBridge:
             # Clean up active tool
             self._active_tools.pop(tool_call_id, None)
 
-    def wrap_tool_for_filesystem(self, tool: Tool) -> Tool:
-        """Wrap tool to use ACP filesystem operations.
-
-        Args:
-            tool: Original tool to wrap
-
-        Returns:
-            Wrapped tool that uses ACP filesystem
-        """
-        wrapper = ACPFileSystemTool(tool, self)
-        return Tool.from_callable(wrapper)
-
     async def request_tool_permission(
         self,
         tool: Tool,
