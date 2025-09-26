@@ -322,7 +322,7 @@ class ClientSideConnection(Agent):
         """Create the method handler for client-side connection."""
 
         async def handler(
-            method: str, params: Any, is_notification: bool
+            method: str, params: dict[str, Any] | None, is_notification: bool
         ) -> (
             WriteTextFileResponse
             | ReadTextFileResponse
@@ -427,7 +427,7 @@ class TerminalHandle:
 async def _handle_client_core_methods(
     client: Client,
     method: str,
-    params: Any,
+    params: dict[str, Any] | None,
 ) -> (
     WriteTextFileResponse
     | ReadTextFileResponse
@@ -453,7 +453,7 @@ async def _handle_client_core_methods(
 
 
 async def _handle_client_extension_methods(
-    client: Client, method: str, params: Any, is_notification: bool
+    client: Client, method: str, params: dict[str, Any] | None, is_notification: bool
 ) -> NoMatch | dict[str, Any] | None:
     if isinstance(method, str) and method.startswith("_"):
         ext_name = method[1:]
@@ -465,7 +465,7 @@ async def _handle_client_extension_methods(
 
 
 async def _handle_client_terminal_methods(
-    client: Client, method: str, params: Any
+    client: Client, method: str, params: dict[str, Any] | None
 ) -> (
     WaitForTerminalExitResponse
     | CreateTerminalResponse
@@ -501,7 +501,7 @@ async def _handle_client_terminal_methods(
 
 
 async def _handle_client_method(
-    client: Client, method: str, params: Any, is_notification: bool
+    client: Client, method: str, params: dict[str, Any] | None, is_notification: bool
 ) -> (
     WriteTextFileResponse
     | ReadTextFileResponse
@@ -536,7 +536,7 @@ async def _handle_client_method(
 
 
 async def _handle_agent_init_methods(
-    agent: Agent, method: str, params: Any
+    agent: Agent, method: str, params: dict[str, Any] | None
 ) -> NewSessionResponse | InitializeResponse | NoMatch:
     if method == AGENT_METHODS["initialize"]:
         initialize_request = InitializeRequest.model_validate(params)
@@ -548,7 +548,7 @@ async def _handle_agent_init_methods(
 
 
 async def _handle_agent_session_methods(
-    agent: Agent, method: str, params: Any
+    agent: Agent, method: str, params: dict[str, Any] | None
 ) -> None | dict[str, Any] | PromptResponse | NoMatch:
     if method == AGENT_METHODS["session_load"]:
         load_request = LoadSessionRequest.model_validate(params)
@@ -579,7 +579,7 @@ async def _handle_agent_session_methods(
 
 
 async def _handle_agent_auth_methods(
-    agent: Agent, method: str, params: Any
+    agent: Agent, method: str, params: dict[str, Any] | None
 ) -> dict[str, Any] | NoMatch:
     if method == AGENT_METHODS["authenticate"]:
         p = AuthenticateRequest.model_validate(params)
@@ -589,7 +589,7 @@ async def _handle_agent_auth_methods(
 
 
 async def _handle_agent_ext_methods(
-    agent: Agent, method: str, params: Any, is_notification: bool
+    agent: Agent, method: str, params: dict[str, Any] | None, is_notification: bool
 ) -> dict[str, Any] | NoMatch | None:
     if isinstance(method, str) and method.startswith("_"):
         ext_name = method[1:]
@@ -601,7 +601,7 @@ async def _handle_agent_ext_methods(
 
 
 async def _handle_agent_method(
-    agent: Agent, method: str, params: Any, is_notification: bool
+    agent: Agent, method: str, params: dict[str, Any] | None, is_notification: bool
 ) -> (
     NewSessionResponse
     | InitializeResponse
@@ -636,7 +636,9 @@ async def _handle_agent_method(
 
 
 def _create_agent_handler(agent: Agent) -> MethodHandler:
-    async def handler(method: str, params: Any, is_notification: bool) -> Any:
+    async def handler(
+        method: str, params: dict[str, Any] | None, is_notification: bool
+    ) -> Any:
         return await _handle_agent_method(agent, method, params, is_notification)
 
     return handler
