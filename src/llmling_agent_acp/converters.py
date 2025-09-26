@@ -9,11 +9,6 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any, Literal, overload
 
-from acp import (
-    ReadTextFileRequest,
-    RequestPermissionRequest,
-    WriteTextFileRequest,
-)
 from acp.acp_types import HttpMcpServer, SseMcpServer, StdioMcpServer
 from acp.schema import (
     AgentMessageChunk,
@@ -29,7 +24,6 @@ from acp.schema import (
     TextResourceContents,
     ToolCallLocation,
     ToolCallStart as ToolCall,
-    ToolCallUpdate,
 )
 from llmling_agent.log import get_logger
 from llmling_agent_config.mcp_server import (
@@ -295,96 +289,6 @@ def _split_response_into_chunks(response: str, chunk_size: int = 100) -> list[st
         chunks.append(" ".join(current_chunk))
 
     return chunks
-
-
-class FileSystemBridge:
-    """Bridges agent file operations with ACP client filesystem.
-
-    This is a simplified bridge that provides utility functions for file operations.
-    The actual ACP client communication should be handled at the session level.
-    """
-
-    def __init__(self) -> None:
-        """Initialize filesystem bridge."""
-
-    @staticmethod
-    def create_read_request(
-        path: str,
-        session_id: str,
-        line: int | None = None,
-        limit: int | None = None,
-    ) -> ReadTextFileRequest:
-        """Create a read file request.
-
-        Args:
-            path: File path to read
-            session_id: ACP session identifier
-            line: Optional starting line number
-            limit: Optional limit on number of lines
-
-        Returns:
-            ReadTextFileRequest object
-        """
-        return ReadTextFileRequest(
-            session_id=session_id,
-            path=path,
-            line=line,
-            limit=limit,
-        )
-
-    @staticmethod
-    def create_write_request(
-        path: str,
-        content: str,
-        session_id: str,
-    ) -> WriteTextFileRequest:
-        """Create a write file request.
-
-        Args:
-            path: File path to write
-            content: Content to write
-            session_id: ACP session identifier
-
-        Returns:
-            WriteTextFileRequest object
-        """
-        return WriteTextFileRequest(session_id=session_id, path=path, content=content)
-
-    @staticmethod
-    def create_permission_request(
-        session_id: str,
-        tool_call_id: str,
-        title: str,
-        *,
-        kind: ToolCallKind = "other",
-        options: list[PermissionOption] | None = None,
-    ) -> RequestPermissionRequest:
-        """Create a permission request.
-
-        Args:
-            session_id: ACP session identifier
-            tool_call_id: Tool call ID
-            title: Title for the permission request
-            kind: Tool kind for the operation
-            options: Permission options (default allow/deny/always-allow/always-deny)
-
-        Returns:
-            RequestPermissionRequest object
-        """
-        tool_call = ToolCallUpdate(
-            tool_call_id=tool_call_id,
-            title=title,
-            status="pending",
-            kind=kind,
-        )
-        if options is None:
-            options = DEFAULT_PERMISSION_OPTIONS
-
-        return RequestPermissionRequest(
-            session_id=session_id,
-            tool_call=tool_call,
-            options=options,
-        )
 
 
 def _determine_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911

@@ -15,7 +15,6 @@ from pydantic_ai import Agent as PydanticAIAgent
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent_acp.converters import (
-    FileSystemBridge,
     convert_acp_mcp_server_to_config,
     create_thought_chunk,
     format_tool_call_for_acp,
@@ -100,7 +99,6 @@ class ACPSession:
         self._current_turn_requests = 0
         self._current_turn_tokens = 0
 
-        self.fs_bridge = FileSystemBridge()
         self.command_bridge = command_bridge
 
         # MCP integration
