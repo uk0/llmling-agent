@@ -452,41 +452,6 @@ async def _handle_client_core_methods(
     return _NO_MATCH
 
 
-async def _handle_client_terminal_basic(
-    client: Client, method: str, params: Any
-) -> CreateTerminalResponse | TerminalOutputResponse | None | NoMatch:
-    if method == CLIENT_METHODS["terminal_create"]:
-        create_request = CreateTerminalRequest.model_validate(params)
-        return await client.create_terminal(create_request)
-    if method == CLIENT_METHODS["terminal_output"]:
-        output_request = TerminalOutputRequest.model_validate(params)
-        return await client.terminal_output(output_request)
-    return _NO_MATCH
-
-
-async def _handle_client_terminal_lifecycle(
-    client: Client, method: str, params: Any
-) -> dict[str, Any] | WaitForTerminalExitResponse | NoMatch | None:
-    if method == CLIENT_METHODS["terminal_release"]:
-        release_request = ReleaseTerminalRequest.model_validate(params)
-        return (
-            result.model_dump(by_alias=True, exclude_none=True)
-            if (result := await client.release_terminal(release_request))
-            else {}
-        )
-    if method == CLIENT_METHODS["terminal_wait_for_exit"]:
-        wait_request = WaitForTerminalExitRequest.model_validate(params)
-        return await client.wait_for_terminal_exit(wait_request)
-    if method == CLIENT_METHODS["terminal_kill"]:
-        kill_request = KillTerminalCommandRequest.model_validate(params)
-        return (
-            kill_result.model_dump(by_alias=True, exclude_none=True)
-            if (kill_result := await client.kill_terminal(kill_request))
-            else {}
-        )
-    return _NO_MATCH
-
-
 async def _handle_client_extension_methods(
     client: Client, method: str, params: Any, is_notification: bool
 ) -> NoMatch | dict[str, Any] | None:
@@ -509,14 +474,29 @@ async def _handle_client_terminal_methods(
     | dict[str, Any]
     | NoMatch
 ):
-    if (
-        result := await _handle_client_terminal_basic(client, method, params)
-    ) is not _NO_MATCH:
-        return result
-    if (
-        term_result := await _handle_client_terminal_lifecycle(client, method, params)
-    ) is not _NO_MATCH:
-        return term_result
+    if method == CLIENT_METHODS["terminal_create"]:
+        create_request = CreateTerminalRequest.model_validate(params)
+        return await client.create_terminal(create_request)
+    if method == CLIENT_METHODS["terminal_output"]:
+        output_request = TerminalOutputRequest.model_validate(params)
+        return await client.terminal_output(output_request)
+    if method == CLIENT_METHODS["terminal_release"]:
+        release_request = ReleaseTerminalRequest.model_validate(params)
+        return (
+            result.model_dump(by_alias=True, exclude_none=True)
+            if (result := await client.release_terminal(release_request))
+            else {}
+        )
+    if method == CLIENT_METHODS["terminal_wait_for_exit"]:
+        wait_request = WaitForTerminalExitRequest.model_validate(params)
+        return await client.wait_for_terminal_exit(wait_request)
+    if method == CLIENT_METHODS["terminal_kill"]:
+        kill_request = KillTerminalCommandRequest.model_validate(params)
+        return (
+            kill_result.model_dump(by_alias=True, exclude_none=True)
+            if (kill_result := await client.kill_terminal(kill_request))
+            else {}
+        )
     return _NO_MATCH
 
 
@@ -535,17 +515,14 @@ async def _handle_client_method(
     | None
 ):
     """Handle client method calls."""
-    # Core session/file methods
     if (
         result := await _handle_client_core_methods(client, method, params)
     ) is not _NO_MATCH:
         return result
-    # Terminal methods
     if (
         term_result := await _handle_client_terminal_methods(client, method, params)
     ) is not _NO_MATCH:
         return term_result
-    # Extension methods/notifications
     if (
         ext_result := await _handle_client_extension_methods(
             client, method, params, is_notification
