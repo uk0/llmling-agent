@@ -37,10 +37,11 @@ if TYPE_CHECKING:
     from llmling_agent import Agent, AgentPool
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
     from llmling_agent_acp.command_bridge import ACPCommandBridge
-    from llmling_agent_acp.permission_server import PermissionMCPServer
+
+    # from llmling_agent_acp.permission_server import PermissionMCPServer
     from llmling_agent_providers.base import UsageLimits
 
-from acp.schema import AvailableCommandsUpdate, HttpHeader, SessionNotification
+from acp.schema import AvailableCommandsUpdate, SessionNotification
 
 
 logger = get_logger(__name__)
@@ -105,7 +106,7 @@ class ACPSession:
         self.mcp_manager: MCPManager | None = None
 
         # Permission server
-        self.permission_server: PermissionMCPServer | None = None
+        # self.permission_server: PermissionMCPServer | None = None
 
         # ACP capability tools
         self.capability_provider: ACPCapabilityResourceProvider | None = None
@@ -128,7 +129,7 @@ class ACPSession:
     async def initialize_mcp_servers(self) -> None:
         """Initialize MCP servers if any are configured."""
         # Always initialize permission server first
-        await self._initialize_permission_server()
+        # await self._initialize_permission_server()
 
         if not self.mcp_servers:
             return
@@ -168,49 +169,49 @@ class ACPSession:
             # Don't fail session creation, just log the error
             self.mcp_manager = None
 
-    async def _initialize_permission_server(self) -> None:
-        """Initialize the permission MCP server for this session."""
-        try:
-            from acp.schema import HttpMcpServer
-            from llmling_agent_acp.permission_server import PermissionMCPServer
+    # async def _initialize_permission_server(self) -> None:
+    #     """Initialize the permission MCP server for this session."""
+    #     try:
+    #         from acp.schema import HttpMcpServer
+    #         from llmling_agent_acp.permission_server import PermissionMCPServer
 
-            # Create permission server
-            self.permission_server = PermissionMCPServer(
-                client=self.client, session_id=self.session_id
-            )
+    #         # Create permission server
+    #         self.permission_server = PermissionMCPServer(
+    #             client=self.client, session_id=self.session_id
+    #         )
 
-            # Start HTTP server
-            url, port = await self.permission_server.start()
-            logger.info(
-                "Permission server started for session %s at %s:%d",
-                self.session_id,
-                url,
-                port,
-            )
+    #         # Start HTTP server
+    #         url, port = await self.permission_server.start()
+    #         logger.info(
+    #             "Permission server started for session %s at %s:%d",
+    #             self.session_id,
+    #             url,
+    #             port,
+    #         )
 
-            # Add permission server to MCP servers list
-            permission_mcp = HttpMcpServer(
-                name="acp-permission",
-                url=f"{url}/mcp",
-                headers=[HttpHeader(name="x-acp-session-id", value=self.session_id)],
-            )
+    #         # Add permission server to MCP servers list
+    #         permission_mcp = HttpMcpServer(
+    #             name="acp-permission",
+    #             url=f"{url}/mcp",
+    #             headers=[HttpHeader(name="x-acp-session-id", value=self.session_id)],
+    #         )
 
-            # Add to session's MCP servers (create list if None)
-            if self.mcp_servers is None:
-                self.mcp_servers = []
+    #         # Add to session's MCP servers (create list if None)
+    #         if self.mcp_servers is None:
+    #             self.mcp_servers = []
 
-            # Convert to list if it's not already (in case it's a tuple/sequence)
-            if not isinstance(self.mcp_servers, list):
-                self.mcp_servers = list(self.mcp_servers)
+    #         # Convert to list if it's not already (in case it's a tuple/sequence)
+    #         if not isinstance(self.mcp_servers, list):
+    #             self.mcp_servers = list(self.mcp_servers)
 
-            self.mcp_servers.append(permission_mcp)
+    #         self.mcp_servers.append(permission_mcp)
 
-        except Exception:
-            logger.exception(
-                "Failed to initialize permission server for session %s", self.session_id
-            )
-            # Don't fail session creation, just log the error
-            self.permission_server = None
+    #     except Exception:
+    #         logger.exception(
+    #             "Failed to initialize permission server for session %s", self.session_id
+    #         )
+    #         # Don't fail session creation, just log the error
+    #         self.permission_server = None
 
     @property
     def agent(self) -> Agent[Any]:
@@ -728,9 +729,9 @@ class ACPSession:
 
         try:
             # Clean up permission server if present
-            if self.permission_server:
-                await self.permission_server.stop()
-                self.permission_server = None
+            # if self.permission_server:
+            #     await self.permission_server.stop()
+            #     self.permission_server = None
 
             # Clean up MCP manager if present
             if self.mcp_manager:
