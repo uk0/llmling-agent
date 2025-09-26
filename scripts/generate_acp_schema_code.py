@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import subprocess
 import sys
@@ -23,7 +22,7 @@ def fetch_json(url: str) -> dict:
     """Fetch JSON data from a URL."""
     try:
         with urllib.request.urlopen(url) as response:
-            return json.loads(response.read().decode("utf-8"))
+            return anyenv.load_json(response.read().decode("utf-8"))
     except Exception as e:  # noqa: BLE001
         print(f"Failed to fetch {url}: {e}", file=sys.stderr)
         sys.exit(1)
@@ -92,7 +91,7 @@ def main() -> None:
     # Do NOT dereference - this preserves the semantic names from $defs
     preprocessed_schema = convert_oneof_const_to_enum(schema_data)
 
-    temp_schema_path.write_text(json.dumps(preprocessed_schema, indent=2))
+    temp_schema_path.write_text(anyenv.dump_json(preprocessed_schema, indent=2))
 
     try:
         cmd = [

@@ -12,7 +12,6 @@ from llmling_agent.agent.process_manager import (
     RunningProcess,
 )
 from llmling_agent.config.capabilities import Capabilities
-from llmling_agent.delegation.pool import AgentPool
 from llmling_agent.resource_providers.capability_provider import (
     CapabilitiesResourceProvider,
 )
@@ -237,20 +236,6 @@ async def test_output_truncation():
     output = running_proc.get_output()
     assert output.truncated
     assert len(output.stdout.encode()) < output_limit
-
-
-@pytest.mark.asyncio
-async def test_pool_integration(manifest):
-    """Test ProcessManager integration with AgentPool."""
-    async with AgentPool[None](manifest) as pool:
-        # Check that process manager was added to pool
-        assert hasattr(pool, "process_manager")
-        assert isinstance(pool.process_manager, ProcessManager)
-
-        # Check that agents have access to process manager
-        agent = next(iter(pool.agents.values()))
-        assert hasattr(agent.context, "process_manager")
-        assert agent.context.process_manager is pool.process_manager
 
 
 @pytest.mark.asyncio

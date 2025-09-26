@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import json
 from typing import TYPE_CHECKING
 
+import anyenv
 import pytest
 
 from acp import (
@@ -244,12 +244,12 @@ async def test_invalid_params_results_in_error_response(test_agent: TestAgent):
             "method": "initialize",
             "params": {"protocolVersion": "oops"},
         }
-        s.client_writer.write((json.dumps(req) + "\n").encode())
+        s.client_writer.write((anyenv.dump_json(req) + "\n").encode())
         await s.client_writer.drain()
 
         # Read response
         line = await asyncio.wait_for(s.client_reader.readline(), timeout=1)
-        resp = json.loads(line)
+        resp = anyenv.load_json(line)
         assert resp["id"] == 1
         assert "error" in resp
         invalid_params_code = -32602
@@ -268,11 +268,11 @@ async def test_method_not_found_results_in_error_response(test_agent: TestAgent)
         )
 
         req = {"jsonrpc": "2.0", "id": 2, "method": "unknown/method", "params": {}}
-        s.client_writer.write((json.dumps(req) + "\n").encode())
+        s.client_writer.write((anyenv.dump_json(req) + "\n").encode())
         await s.client_writer.drain()
 
         line = await asyncio.wait_for(s.client_reader.readline(), timeout=1)
-        resp = json.loads(line)
+        resp = anyenv.load_json(line)
         assert resp["id"] == 2  # noqa: PLR2004
         method_not_found_code = -32601
         assert resp["error"]["code"] == method_not_found_code
@@ -328,12 +328,12 @@ async def test_ignore_invalid_messages(test_agent: TestAgent):
 
         # Message without id and method
         msg1 = {"jsonrpc": "2.0"}
-        s.client_writer.write((json.dumps(msg1) + "\n").encode())
+        s.client_writer.write((anyenv.dump_json(msg1) + "\n").encode())
         await s.client_writer.drain()
 
         # Message without jsonrpc and without id/method
         msg2 = {"foo": "bar"}
-        s.client_writer.write((json.dumps(msg2) + "\n").encode())
+        s.client_writer.write((anyenv.dump_json(msg2) + "\n").encode())
         await s.client_writer.drain()
 
         # Should not receive any response lines

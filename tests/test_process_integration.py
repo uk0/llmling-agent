@@ -58,12 +58,8 @@ def process_manifest():
 async def test_process_manager_pool_integration(process_manifest):
     """Test ProcessManager is properly integrated with AgentPool."""
     async with AgentPool[None](process_manifest) as pool:
-        # Verify process manager exists in pool
-        assert hasattr(pool, "process_manager")
-
-        # Verify agents can access process manager
         agent = pool.agents["process_agent"]
-        assert hasattr(agent.context, "process_manager")
+        assert agent.context.process_manager
         assert agent.context.process_manager is pool.process_manager
 
 

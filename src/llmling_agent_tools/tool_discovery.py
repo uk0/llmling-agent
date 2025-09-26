@@ -11,7 +11,8 @@ ToolSource = Literal["crewai", "langchain"]
 
 
 def get_tools(
-    source: ToolSource, include_descriptions: bool = False
+    source: ToolSource,
+    include_descriptions: bool = False,
 ) -> dict[str, str | None]:
     """Get available tools from specified source.
 

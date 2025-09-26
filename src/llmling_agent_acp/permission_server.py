@@ -9,10 +9,11 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import json
 from socketserver import ThreadingMixIn
 from threading import Thread
 from typing import TYPE_CHECKING, Any
+
+import anyenv
 
 from acp import RequestPermissionRequest
 from acp.schema import AllowedOutcome, DeniedOutcome, PermissionOption, ToolCallUpdate
@@ -54,8 +55,8 @@ class PermissionMCPHandler(BaseHTTPRequestHandler):
 
             # Parse MCP request
             try:
-                request_data = json.loads(body.decode())
-            except json.JSONDecodeError as e:
+                request_data = anyenv.load_json(body.decode())
+            except anyenv.JsonDumpError as e:
                 logger.exception("Failed to parse JSON request")
                 self.send_error(400, f"Invalid JSON: {e}")
                 return
@@ -68,7 +69,7 @@ class PermissionMCPHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
 
-            response_json = json.dumps(response)
+            response_json = anyenv.dump_json(response)
             self.wfile.write(response_json.encode())
 
         except Exception as e:
@@ -127,7 +128,9 @@ class PermissionMCPHandler(BaseHTTPRequestHandler):
                         "jsonrpc": "2.0",
                         "id": request_id,
                         "result": {
-                            "content": [{"type": "text", "text": json.dumps(result)}]
+                            "content": [
+                                {"type": "text", "text": anyenv.dump_json(result)}
+                            ]
                         },
                     }
                 return {

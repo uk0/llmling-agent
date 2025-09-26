@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import json
 import sys
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
+import anyenv
 import pytest
 
 from llmling_agent_toolsets.openapi import OpenAPITools
@@ -68,7 +68,7 @@ class MockResponse:
 
     def __init__(self):
         self.status_code = 200
-        self._text = json.dumps(PETSTORE_SPEC)
+        self._text = anyenv.dump_json(PETSTORE_SPEC)
 
     @property
     def text(self):
@@ -87,7 +87,7 @@ def mock_openapi_spec(tmp_path):
 
     # Create local spec file
     local_spec = tmp_path / "openapi.json"
-    local_spec.write_text(json.dumps(PETSTORE_SPEC))
+    local_spec.write_text(anyenv.dump_json(PETSTORE_SPEC))
     url = f"{BASE_URL}/openapi.json"
     return {"local_path": str(local_spec), "remote_url": url}
 

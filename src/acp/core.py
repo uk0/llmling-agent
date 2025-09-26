@@ -17,6 +17,7 @@ from acp.schema import (
     KillTerminalCommandResponse,
     LoadSessionRequest,
     LoadSessionResponse,
+    ModelInfo,
     NewSessionRequest,
     NewSessionResponse,
     PromptRequest,
@@ -420,7 +421,7 @@ async def _handle_client_extension_methods(
     params: dict[str, Any] | None,
     is_notification: bool,
 ) -> NoMatch | dict[str, Any] | None:
-    if isinstance(method, str) and method.startswith("_"):
+    if method.startswith("_"):
         ext_name = method[1:]
         if is_notification:
             await client.ext_notification(ext_name, params or {})
@@ -570,7 +571,7 @@ async def _handle_agent_ext_methods(
     params: dict[str, Any] | None,
     is_notification: bool,
 ) -> dict[str, Any] | NoMatch | None:
-    if isinstance(method, str) and method.startswith("_"):
+    if method.startswith("_"):
         ext_name = method[1:]
         if is_notification:
             await agent.ext_notification(ext_name, params or {})
@@ -638,10 +639,6 @@ def create_session_model_state(
     """
     if not available_models:
         return None
-
-    # Import here to avoid circular imports
-    from acp.schema import ModelInfo
-
     # Create ModelInfo objects for each available model
     model_infos = []
     for model_id in available_models:
