@@ -75,9 +75,19 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                 )
 
             if fs_caps.read_text_file:
-                tools.append(self._get_read_file_tool())
+                tool = Tool.from_callable(
+                    self._create_read_text_file_tool(),
+                    source="filesystem",
+                    name_override="read_text_file",
+                )
+                tools.append(tool)
             if fs_caps.write_text_file:
-                tools.append(self._get_write_file_tool())
+                tool = Tool.from_callable(
+                    self._create_write_text_file_tool(),
+                    source="filesystem",
+                    name_override="write_text_file",
+                )
+                tools.append(tool)
 
         return tools
 
@@ -120,22 +130,6 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                 name_override="run_command_with_timeout",
             ),
         ]
-
-    def _get_read_file_tool(self) -> Tool:
-        """Get read file tool with session_id baked in."""
-        return Tool.from_callable(
-            self._create_read_text_file_tool(),
-            source="filesystem",
-            name_override="read_text_file",
-        )
-
-    def _get_write_file_tool(self) -> Tool:
-        """Get write file tool with session_id baked in."""
-        return Tool.from_callable(
-            self._create_write_text_file_tool(),
-            source="filesystem",
-            name_override="write_text_file",
-        )
 
     # Terminal Tool Implementations
 
