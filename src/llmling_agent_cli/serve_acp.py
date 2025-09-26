@@ -112,7 +112,7 @@ def acp_command(
             raise t.Exit(1) from e
 
         # Configure agent capabilities
-        agent_count = len(acp_server.list_agents())
+        agent_count = len(acp_server.agent_pool.agents)
         if agent_count == 0:
             logger.error("No agents found in configuration")
             raise t.Exit(1)
