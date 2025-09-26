@@ -63,7 +63,7 @@ class TestClientFilesystemTools:
         return agent
 
     @pytest.fixture
-    async def fs_provider(self, acp_agent):
+    async def fs_provider(self, acp_agent: LLMlingACPAgent):
         """Create filesystem capability provider for testing."""
         fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
         capabilities = ClientCapabilities(fs=fs_cap, terminal=False)
@@ -149,7 +149,9 @@ class TestClientFilesystemTools:
 
     @pytest.mark.asyncio
     async def test_read_text_file_error(
-        self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
+        self,
+        acp_agent: LLMlingACPAgent,
+        fs_provider: ACPCapabilityResourceProvider,
     ):
         """Test file reading error handling."""
         # Mock read file error
@@ -168,7 +170,9 @@ class TestClientFilesystemTools:
 
     @pytest.mark.asyncio
     async def test_write_text_file_success(
-        self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
+        self,
+        acp_agent: LLMlingACPAgent,
+        fs_provider: ACPCapabilityResourceProvider,
     ):
         """Test successful file writing."""
         # Mock write file response
@@ -197,7 +201,9 @@ class TestClientFilesystemTools:
 
     @pytest.mark.asyncio
     async def test_write_text_file_json(
-        self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
+        self,
+        acp_agent: LLMlingACPAgent,
+        fs_provider: ACPCapabilityResourceProvider,
     ):
         """Test writing JSON content."""
         # Mock write file response
@@ -218,7 +224,7 @@ class TestClientFilesystemTools:
 
         # Verify content was written correctly
         call_args = acp_agent.connection.write_text_file.call_args[0][0]
-        assert call_args.content == json_content
+        assert call_args.content == json_str
 
     @pytest.mark.asyncio
     async def test_write_text_file_error(
