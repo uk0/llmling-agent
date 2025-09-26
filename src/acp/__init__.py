@@ -15,9 +15,9 @@ from acp.core import (
     SessionModelCapability,
     SessionPersistenceCapability,
     TerminalCapability,
-    TerminalHandle,
     create_session_model_state,
 )
+from acp.terminal_handle import TerminalHandle
 from acp.meta import (
     AGENT_METHODS,
     CLIENT_METHODS,
