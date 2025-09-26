@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["datamodel-code-generator"]
+# dependencies = ["datamodel-code-generator", "anyenv"]
 # ///
 
 
@@ -10,6 +10,8 @@ import subprocess
 import sys
 import tempfile
 import urllib.request
+
+import anyenv
 
 
 ROOT = Path(__file__).resolve().parents[1]
