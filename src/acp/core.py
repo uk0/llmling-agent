@@ -386,36 +386,6 @@ class ClientSideConnection(Agent):
         await self._conn.send_notification(f"_{method}", params)
 
 
-class TerminalHandle:
-    """Handle for a terminal session."""
-
-    def __init__(self, terminal_id: str, session_id: str, conn: Connection) -> None:
-        self.id = terminal_id
-        self._session_id = session_id
-        self._conn = conn
-
-    async def current_output(self) -> TerminalOutputResponse:
-        dct = {"sessionId": self._session_id, "terminalId": self.id}
-        resp = await self._conn.send_request(CLIENT_METHODS["terminal_output"], dct)
-        return TerminalOutputResponse.model_validate(resp)
-
-    async def wait_for_exit(self) -> WaitForTerminalExitResponse:
-        dct = {"sessionId": self._session_id, "terminalId": self.id}
-        method = CLIENT_METHODS["terminal_wait_for_exit"]
-        resp = await self._conn.send_request(method, dct)
-        return WaitForTerminalExitResponse.model_validate(resp)
-
-    async def kill(self) -> KillTerminalCommandResponse:
-        dct = {"sessionId": self._session_id, "terminalId": self.id}
-        resp = await self._conn.send_request(CLIENT_METHODS["terminal_kill"], dct)
-        return KillTerminalCommandResponse.model_validate(resp)
-
-    async def release(self) -> ReleaseTerminalResponse:
-        dct = {"sessionId": self._session_id, "terminalId": self.id}
-        resp = await self._conn.send_request(CLIENT_METHODS["terminal_release"], dct)
-        return ReleaseTerminalResponse.model_validate(resp)
-
-
 async def _handle_client_core_methods(
     client: Client,
     method: str,

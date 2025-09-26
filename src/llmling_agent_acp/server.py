@@ -7,7 +7,6 @@ the Agent Client Protocol.
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 
 from acp import AgentSideConnection, DefaultACPClient
@@ -18,6 +17,8 @@ from llmling_agent_acp.acp_agent import LLMlingACPAgent
 
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tokonomics.model_discovery.model_info import ModelInfo
 
     from acp import Agent as ACPAgent, Client
@@ -40,6 +41,9 @@ class ACPServer:
         *,
         client: Client | None = None,
         usage_limits: UsageLimits | None = None,
+        session_support: bool = True,
+        file_access: bool = True,
+        terminal_access: bool = True,
     ) -> None:
         """Initialize ACP server.
 
@@ -47,43 +51,23 @@ class ACPServer:
             agent_pool: AgentPool containing available agents
             client: ACP client interface for operations (DefaultACPClient if None)
             usage_limits: Optional usage limits for model requests and tokens
+            session_support: Whether to support session-based operations
+            file_access: Whether to support file access operations
+            terminal_access: Whether to support terminal access operations
         """
         self._client = client or DefaultACPClient(allow_file_operations=True)
         self.agent_pool = agent_pool
         self._running = False
 
         # Server configuration
-        self._session_support = True
-        self._file_access = False
-        self._terminal_access = False
+        self._session_support = session_support
+        self._file_access = file_access
+        self._terminal_access = terminal_access
         self.usage_limits = usage_limits
 
         # Model discovery cache
         self._available_models: list[ModelInfo] = []
         self._models_initialized = False
-
-    def set_agent_pool(
-        self,
-        agent_pool: AgentPool[Any],
-        *,
-        session_support: bool = True,
-        file_access: bool = True,
-        terminal_access: bool = True,
-    ) -> None:
-        """Set the agent pool for this ACP server.
-
-        Args:
-            agent_pool: AgentPool containing available agents
-            session_support: Enable session loading support
-            file_access: Enable file system access
-            terminal_access: Enable terminal access
-        """
-        self.agent_pool = agent_pool
-        self._session_support = session_support
-        self._file_access = file_access
-        self._terminal_access = terminal_access
-
-        logger.info("Set agent pool with %d agents", len(agent_pool.agents))
 
     @classmethod
     async def from_config(
@@ -109,23 +93,15 @@ class ACPServer:
         Returns:
             Configured ACP server instance with agent pool from config
         """
-        config_str = Path(config_path).read_text()
-        manifest = AgentsManifest.from_yaml(config_str)
-
+        manifest = AgentsManifest.from_file(config_path)
         server = cls(
             agent_pool=manifest.pool,
             client=client,
             usage_limits=usage_limits,
-        )
-
-        # Set up the agent pool with capabilities
-        server.set_agent_pool(
-            agent_pool=manifest.pool,
             session_support=session_support,
             file_access=file_access,
             terminal_access=terminal_access,
         )
-
         agent_names = list(server.agent_pool.agents.keys())
         logger.info("Created ACP server with agent pool containing: %s", agent_names)
 
@@ -135,14 +111,8 @@ class ACPServer:
         """Get agent by name from the pool."""
         return self.agent_pool.get_agent(name)
 
-    def list_agents(self) -> list[str]:
-        """List all available agent names."""
-        if not self.agent_pool:
-            return []
-        return list(self.agent_pool.agents.keys())
-
     async def run(self) -> None:
-        """Run the ACP server using external library."""
+        """Run the ACP server."""
         if self._running:
             return
 
@@ -160,14 +130,9 @@ class ACPServer:
             agent_names = list(self.agent_pool.agents.keys())
             msg = "Starting ACP server with %d agents on stdio: %s"
             logger.info(msg, len(agent_names), agent_names)
-            # Create stdio streams
-            reader, writer = await stdio_streams()
 
-            # Create agent factory function for external library
+            # agent factory function
             def create_acp_agent(connection: AgentSideConnection) -> ACPAgent:
-                if not self.agent_pool:
-                    msg = "Agent pool not initialized"
-                    raise RuntimeError(msg)  # noqa: TRY301
                 return LLMlingACPAgent(
                     connection=connection,
                     agent_pool=self.agent_pool,
@@ -178,8 +143,7 @@ class ACPServer:
                     usage_limits=self.usage_limits,
                 )
 
-            # AgentSideConnection expects (factory, input_stream, output_stream)
-            # where input_stream writes to peer and output_stream reads from peer
+            reader, writer = await stdio_streams()
             AgentSideConnection(create_acp_agent, writer, reader)
 
             logger.info(
@@ -220,7 +184,6 @@ class ACPServer:
 
     async def __aenter__(self) -> Self:
         """Async context manager entry."""
-        # Initialize agent pool if present
         await self.agent_pool.__aenter__()
         return self
 
@@ -230,26 +193,15 @@ class ACPServer:
 
     async def _initialize_models(self) -> None:
         """Initialize available models using tokonomics model discovery."""
+        from tokonomics.model_discovery import get_all_models
+
         if self._models_initialized:
             return
-
         try:
-            # Import tokonomics here to avoid dependency issues
-            from tokonomics.model_discovery import get_all_models
-
             logger.info("Discovering available models...")
-            tokonomics_models = await get_all_models(include_deprecated=False)
-
-            # Store tokonomics models directly
-            self._available_models = tokonomics_models
-
+            self._available_models = await get_all_models(include_deprecated=False)
             self._models_initialized = True
-            logger.info(
-                "Discovered %d models from %d providers",
-                len(self._available_models),
-                len({m.provider for m in tokonomics_models}),
-            )
-
+            logger.info("Discovered %d models", len(self._available_models))
         except Exception:
             logger.exception("Failed to discover models")
             self._available_models = []
