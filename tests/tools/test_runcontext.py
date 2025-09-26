@@ -92,7 +92,6 @@ async def test_plain_tool_no_context():
     async with Agent[None](model=MODEL) as agent:
         agent.context = AgentContext.create_default("test")
         agent.tools.register_tool(plain_tool, enabled=True)
-
         # Should work without error
         await agent.run("Use the plain_tool with arg='test'")
         assert count == 1
@@ -102,18 +101,13 @@ async def test_plain_tool_no_context():
 async def test_capability_tools():
     """Test that capability tools work with AgentContext."""
     async with AgentPool[None]() as pool:
-        agent = await pool.add_agent(
-            name="test",
-            model=MODEL,
-            capabilities=Capabilities(can_list_agents=True),
-        )
-        result = await agent.run(
-            "Get available agents using the list_agents tool and return all names."
-        )
+        caps = Capabilities(can_list_agents=True)
+        agent = await pool.add_agent(name="test", model=MODEL, capabilities=caps)
+        prompt = "Get available agents using the list_agents tool and return all names."
+        result = await agent.run(prompt)
         assert agent.name in str(result.content)
         caps = Capabilities(can_delegate_tasks=True)
         agent_2 = await pool.add_agent(name="test_2", model=MODEL, capabilities=caps)
-
         await pool.add_agent("helper", system_prompt="You help with tasks", model=MODEL)
         result = await agent_2.run("Delegate 'say hello' to agent with name `helper`")
         assert result.tool_calls
@@ -123,16 +117,11 @@ async def test_capability_tools():
 async def test_team_creation():
     """Test that an agent can create other agents and form them into a team."""
     async with AgentPool[None]() as pool:
-        # Create orchestrator agent with needed capabilities
+        # Create creator agent with needed capabilities
         caps = Capabilities(can_add_agents=True, can_add_teams=True)
-        orchestrator = await pool.add_agent(
-            name="orchestrator",
-            model=MODEL,
-            capabilities=caps,
-        )
-
+        creator = await pool.add_agent(name="creator", model=MODEL, capabilities=caps)
         # Ask it to create a content team
-        result = await orchestrator.run("""
+        result = await creator.run("""
             Create two agents:
             1. A researcher who finds information named "alice"
             2. A writer who creates content named "bob"

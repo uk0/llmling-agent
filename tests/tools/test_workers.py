@@ -105,12 +105,8 @@ async def test_history_sharing(tmp_path: Path):
         worker = pool.get_agent("worker")
 
         # Configure test models
-        main_model = TestModel(
-            call_tools=["ask_worker"],  # Only call worker
-        )
-        worker_model = TestModel(
-            custom_output_text="The value is 42"  # Simple string response
-        )
+        main_model = TestModel(call_tools=["ask_worker"])  # Only call worker
+        worker_model = TestModel(custom_output_text="The value is 42")  # string response
 
         # Override the models
         main_agent.set_model(main_model)
@@ -178,9 +174,7 @@ async def test_multiple_workers_same_prompt(tmp_path: Path):
         specialist: Agent[None] = pool.get_agent("specialist")
 
         # Configure test models
-        main_model = TestModel(
-            call_tools=["ask_worker", "ask_specialist"],  # Call both workers
-        )
+        main_model = TestModel(call_tools=["ask_worker", "ask_specialist"])
         worker_model = TestModel(custom_output_text="I am a helpful worker assistant")
         specialist_model = TestModel(custom_output_text="I am a domain specialist")
 

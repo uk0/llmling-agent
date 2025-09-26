@@ -41,10 +41,7 @@ async def test_team_shared_prompt():
         a2 = pool.get_agent(Agent.from_callback(echo, name="a2"))
 
         # Create team with shared prompt
-        team = pool.create_team(
-            [a1, a2],
-            shared_prompt="Common instruction: ",
-        )
+        team = pool.create_team([a1, a2], shared_prompt="Common instruction: ")
         result = await team.execute("specific task")
 
         # Each agent should get both prompts
