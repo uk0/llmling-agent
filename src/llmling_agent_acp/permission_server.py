@@ -55,7 +55,7 @@ class PermissionMCPHandler(BaseHTTPRequestHandler):
 
             # Parse MCP request
             try:
-                request_data = anyenv.load_json(body.decode())
+                request_data = anyenv.load_json(body.decode(), return_type=dict)
             except anyenv.JsonDumpError as e:
                 logger.exception("Failed to parse JSON request")
                 self.send_error(400, f"Invalid JSON: {e}")
