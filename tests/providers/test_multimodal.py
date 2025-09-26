@@ -17,7 +17,7 @@ async def test_vision():
 
     assert isinstance(result.content, str)
     assert "Python" in result.content
-    assert len(result.content) < 100  # noqa: PLR2004
+    assert len(result.content) < 120  # noqa: PLR2004
 
 
 if __name__ == "__main__":

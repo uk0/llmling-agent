@@ -69,10 +69,7 @@ if TYPE_CHECKING:
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
-    from llmling_agent_providers.base import (
-        StreamingResponseProtocol,
-        UsageLimits,
-    )
+    from llmling_agent_providers.base import StreamingResponseProtocol, UsageLimits
 
 from llmling_agent_providers.base import (
     AgentProvider,
