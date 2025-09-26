@@ -22,6 +22,7 @@ from llmling_agent_acp.converters import (
     from_content_blocks,
     to_session_updates,
 )
+from llmling_agent_acp.resource_providers import ACPCapabilityResourceProvider
 
 
 if TYPE_CHECKING:
@@ -33,8 +34,9 @@ if TYPE_CHECKING:
 
     from acp import Client
     from acp.acp_types import ContentBlock, MCPServer, StopReason
-    from acp.schema import AvailableCommand
+    from acp.schema import AvailableCommand, ClientCapabilities
     from llmling_agent import Agent, AgentPool
+    from llmling_agent_acp.acp_agent import LLMlingACPAgent
     from llmling_agent_acp.command_bridge import ACPCommandBridge
     from llmling_agent_acp.permission_server import PermissionMCPServer
     from llmling_agent_providers.base import UsageLimits
@@ -66,6 +68,8 @@ class ACPSession:
         mcp_servers: Sequence[MCPServer] | None = None,
         usage_limits: UsageLimits | None = None,
         command_bridge: ACPCommandBridge | None = None,
+        acp_agent: LLMlingACPAgent | None = None,
+        client_capabilities: ClientCapabilities | None = None,
     ) -> None:
         """Initialize ACP session.
 
@@ -78,6 +82,8 @@ class ACPSession:
             mcp_servers: Optional MCP server configurations
             usage_limits: Optional usage limits for model requests and tokens
             command_bridge: Optional command bridge for slash commands
+            acp_agent: ACP agent instance for capability tools
+            client_capabilities: Client capabilities for tool registration
         """
         self.session_id = session_id
         self.agent_pool = agent_pool
@@ -101,8 +107,19 @@ class ACPSession:
         self.mcp_manager: MCPManager | None = None
 
         # Permission server
-
         self.permission_server: PermissionMCPServer | None = None
+
+        # ACP capability tools
+        self.capability_provider: ACPCapabilityResourceProvider | None = None
+        if acp_agent and client_capabilities:
+            self.capability_provider = ACPCapabilityResourceProvider(
+                agent=acp_agent,
+                session_id=session_id,
+                client_capabilities=client_capabilities,
+            )
+            # Add capability provider to current agent
+            current_agent = self.agent_pool.get_agent(current_agent_name)
+            current_agent.tools.add_provider(self.capability_provider)
 
         logger.info(
             "Created ACP session %s with agent pool (current: %s)",
@@ -216,13 +233,21 @@ class ACPSession:
             msg = f"Agent '{agent_name}' not found. Available: {available}"
             raise ValueError(msg)
 
-        old_agent = self.current_agent_name
+        old_agent_name = self.current_agent_name
         self.current_agent_name = agent_name
+
+        # Move capability provider from old agent to new agent
+        if self.capability_provider:
+            old_agent = self.agent_pool.get_agent(old_agent_name)
+            new_agent = self.agent_pool.get_agent(agent_name)
+
+            old_agent.tools.remove_provider(self.capability_provider)
+            new_agent.tools.add_provider(self.capability_provider)
 
         logger.info(
             "Session %s switched from agent %s to %s",
             self.session_id,
-            old_agent,
+            old_agent_name,
             agent_name,
         )
 
@@ -714,6 +739,12 @@ class ACPSession:
                 await self.mcp_manager.cleanup()
                 self.mcp_manager = None
 
+            # Clean up capability provider if present
+            if self.capability_provider:
+                current_agent = self.agent_pool.get_agent(self.current_agent_name)
+                current_agent.tools.remove_provider(self.capability_provider)
+                self.capability_provider = None
+
             # Note: Individual agents are managed by the pool's lifecycle
             # The pool will handle agent cleanup when it's closed
             logger.info("Closed ACP session %s", self.session_id)
@@ -797,6 +828,8 @@ class ACPSessionManager:
         mcp_servers: Sequence[MCPServer] | None = None,
         session_id: str | None = None,
         usage_limits: UsageLimits | None = None,
+        acp_agent: LLMlingACPAgent | None = None,
+        client_capabilities: ClientCapabilities | None = None,
     ) -> str:
         """Create a new ACP session.
 
@@ -808,6 +841,8 @@ class ACPSessionManager:
             mcp_servers: Optional MCP server configurations
             session_id: Optional specific session ID (generated if None)
             usage_limits: Optional usage limits for model requests and tokens
+            acp_agent: ACP agent instance for capability tools
+            client_capabilities: Client capabilities for tool registration
 
         Returns:
             Session ID for the created session
@@ -833,6 +868,8 @@ class ACPSessionManager:
                 mcp_servers=mcp_servers,
                 usage_limits=usage_limits,
                 command_bridge=self.command_bridge,
+                acp_agent=acp_agent,
+                client_capabilities=client_capabilities,
             )
 
             # Initialize MCP servers if any are provided

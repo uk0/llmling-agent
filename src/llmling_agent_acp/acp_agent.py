@@ -27,7 +27,6 @@ from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import to_session_updates
 from llmling_agent_acp.session import ACPSessionManager
-from llmling_agent_acp.tools import get_filesystem_tools, get_terminal_tools
 from llmling_agent_commands import get_commands
 
 
@@ -123,9 +122,6 @@ class LLMlingACPAgent(ACPAgent):
         self.client_capabilities = params.client_capabilities
         logger.info("Client capabilities: %s", self.client_capabilities)
 
-        # Register tools based on client capabilities
-        self._register_tools_based_on_capabilities()
-
         prompt_caps = PromptCapabilities(audio=True, embedded_context=True, image=True)
         mcp_caps = McpCapabilities(http=True, sse=True)
         caps = AgentCapabilities(
@@ -163,6 +159,8 @@ class LLMlingACPAgent(ACPAgent):
                 client=self.client,
                 mcp_servers=params.mcp_servers,
                 usage_limits=self.usage_limits,
+                acp_agent=self,
+                client_capabilities=self.client_capabilities,
             )
 
             # Create session modes from available agents
@@ -341,80 +339,3 @@ class LLMlingACPAgent(ACPAgent):
         except Exception:
             logger.exception("Failed to set session model for %s", params.session_id)
             return None
-
-    def _register_tools_based_on_capabilities(self) -> None:
-        """Register tools based on client capabilities."""
-        if not self.client_capabilities:
-            logger.warning("No client capabilities available, skipping tool registration")
-            return
-
-        msg = "Registering tools - terminal: %s, fs: %s"
-        logger.info(msg, self.client_capabilities.terminal, self.client_capabilities.fs)
-        if self.terminal_access and self.client_capabilities.terminal:
-            self._register_terminal_tools_with_agents()
-        elif self.terminal_access:
-            logger.info("Terminal access enabled but client doesn't support it")
-
-        # Register filesystem tools if supported
-        fs_caps = self.client_capabilities.fs
-        if fs_caps:
-            read_supported = fs_caps.read_text_file
-            write_supported = fs_caps.write_text_file
-
-            if read_supported or write_supported:
-                self._register_filesystem_tools_with_agents()
-
-    def _register_terminal_tools_with_agents(self) -> None:
-        """Register client-side terminal tools with all agents in the pool."""
-        if not self.agent_pool or not self.agent_pool.agents:
-            logger.debug("No agents in pool to register terminal tools with")
-            return
-
-        # Get terminal tools
-        tools = get_terminal_tools(self)
-
-        # Register tools with each agent in the pool
-        registered_count = 0
-        for agent_name, agent in self.agent_pool.agents.items():
-            for tool in tools:
-                agent.tools.register_tool(tool)
-            registered_count += 1
-            logger.debug(
-                "Registered %d terminal tools with agent %s",
-                len(tools),
-                agent_name,
-            )
-
-        logger.info(
-            "Registered terminal tools with %d agents (%d tools per agent)",
-            registered_count,
-            len(tools),
-        )
-
-    def _register_filesystem_tools_with_agents(self) -> None:
-        """Register client-side filesystem tools with all agents in the pool."""
-        if not self.agent_pool or not self.agent_pool.agents:
-            logger.debug("No agents in pool to register filesystem tools with")
-            return
-
-        # Get filesystem tools based on client capabilities
-        assert self.client_capabilities is not None
-        tools = get_filesystem_tools(self, self.client_capabilities.fs)
-
-        # Register tools with each agent in the pool
-        registered_count = 0
-        for agent_name, agent in self.agent_pool.agents.items():
-            for tool in tools:
-                agent.tools.register_tool(tool)
-            registered_count += 1
-            logger.debug(
-                "Registered %d filesystem tools with agent %s",
-                len(tools),
-                agent_name,
-            )
-
-        logger.info(
-            "Registered filesystem tools with %d agents (%d tools per agent)",
-            registered_count,
-            len(tools),
-        )
