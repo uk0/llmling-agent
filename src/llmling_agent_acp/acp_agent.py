@@ -26,7 +26,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManagerMixin
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import to_session_updates
-from llmling_agent_acp.session import ACPSessionManager
+from llmling_agent_acp.session_manager import ACPSessionManager
 from llmling_agent_commands import get_commands
 
 
