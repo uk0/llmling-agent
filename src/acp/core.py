@@ -247,8 +247,9 @@ class AgentSideConnection(Client):
     async def create_terminal(
         self, params: CreateTerminalRequest
     ) -> CreateTerminalResponse:
-        # Dummy implementation for compatibility
-        return CreateTerminalResponse(terminal_id="0")
+        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        resp = await self._conn.send_request(CLIENT_METHODS["terminal_create"], dct)
+        return CreateTerminalResponse.model_validate(resp)
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         return await self._conn.send_request(f"_{method}", params)
@@ -259,22 +260,40 @@ class AgentSideConnection(Client):
     async def terminal_output(
         self, params: TerminalOutputRequest
     ) -> TerminalOutputResponse:
-        return TerminalOutputResponse(output="", truncated=False)
+        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        resp = await self._conn.send_request(CLIENT_METHODS["terminal_output"], dct)
+        return TerminalOutputResponse.model_validate(resp)
 
     async def release_terminal(
         self, params: ReleaseTerminalRequest
     ) -> ReleaseTerminalResponse | None:
-        pass
+        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        resp = await self._conn.send_request(CLIENT_METHODS["terminal_release"], dct)
+        return (
+            ReleaseTerminalResponse.model_validate(resp)
+            if isinstance(resp, dict)
+            else None
+        )
 
     async def wait_for_terminal_exit(
         self, params: WaitForTerminalExitRequest
     ) -> WaitForTerminalExitResponse:
-        return WaitForTerminalExitResponse()
+        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        resp = await self._conn.send_request(
+            CLIENT_METHODS["terminal_wait_for_exit"], dct
+        )
+        return WaitForTerminalExitResponse.model_validate(resp)
 
     async def kill_terminal(
         self, params: KillTerminalCommandRequest
     ) -> KillTerminalCommandResponse | None:
-        return KillTerminalCommandResponse()
+        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        resp = await self._conn.send_request(CLIENT_METHODS["terminal_kill"], dct)
+        return (
+            KillTerminalCommandResponse.model_validate(resp)
+            if isinstance(resp, dict)
+            else None
+        )
 
 
 class ClientSideConnection(Agent):
