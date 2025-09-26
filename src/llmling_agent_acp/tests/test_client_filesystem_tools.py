@@ -353,3 +353,7 @@ class TestClientFilesystemTools:
 
         write_call_args = acp_agent.connection.write_text_file.call_args[0][0]
         assert write_call_args.session_id == "custom_session_456"
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])

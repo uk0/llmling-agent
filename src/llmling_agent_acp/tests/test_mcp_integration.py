@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import sys
 
 import pytest
@@ -200,27 +199,5 @@ async def test_tool_integration():
         print("✓ MCP tool integration pattern works")
 
 
-async def main():
-    """Run all tests."""
-    print("Running MCP integration tests...\n")
-
-    tests = [
-        test_mcp_server_conversion,
-        test_session_with_mcp_servers,
-        test_session_manager_with_mcp,
-        test_tool_integration,
-    ]
-
-    for test in tests:
-        try:
-            await test()
-            print(f"✓ {test.__name__} passed\n")
-        except Exception as e:
-            print(f"✗ {test.__name__} failed: {e}\n")
-            raise
-
-    print("All MCP integration tests passed! 🎉")
-
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    pytest.main(["-v", __file__])

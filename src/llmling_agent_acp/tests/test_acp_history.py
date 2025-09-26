@@ -1,8 +1,8 @@
 """Tests to verify ACP message history functionality."""
 
-import asyncio
 import tempfile
 
+import pytest
 from slashed import CommandStore
 
 from acp import DefaultACPClient
@@ -156,6 +156,4 @@ async def test_simple_sync():
 
 
 if __name__ == "__main__":
-    print("🚀 Starting ACP conversation history tests...")
-    asyncio.run(test_simple_sync())
-    asyncio.run(test_conversation_history())
+    pytest.main(["-v", __file__])

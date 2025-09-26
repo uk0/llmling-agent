@@ -306,3 +306,7 @@ class TestClientCapabilities:
         response = await acp_agent.initialize(request)
         # Should use client's version
         assert response.protocol_version == 1
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])

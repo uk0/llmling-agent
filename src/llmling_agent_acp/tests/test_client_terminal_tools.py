@@ -677,3 +677,7 @@ class TestAgentSwitchingWithCapabilityProvider:
 
         agent_a.tools.remove_provider.assert_not_called()
         agent_b.tools.add_provider.assert_not_called()
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])
