@@ -57,8 +57,8 @@ class ACPCapabilityResourceProvider(ResourceProvider):
         """Get tools based on client capabilities."""
         tools: list[Tool] = []
 
-        # Terminal tools if supported
-        if self.client_capabilities.terminal:
+        # Terminal tools if supported by both client and agent
+        if self.client_capabilities.terminal and self.agent.terminal_access:
             tools.extend(self._get_terminal_tools())
 
         # Filesystem tools if supported
