@@ -66,10 +66,11 @@ class TestAgentPoolModeSwitch:
         server = ACPServer(agent_pool=agent_pool)
 
         assert server.agent_pool is agent_pool
-        assert len(server.list_agents()) == 3  # noqa: PLR2004
-        assert "coding-agent" in server.list_agents()
-        assert "research-agent" in server.list_agents()
-        assert "writing-agent" in server.list_agents()
+        agent_names = list(server.agent_pool.agents.keys())
+        assert len(agent_names) == 3  # noqa: PLR2004
+        assert "coding-agent" in agent_names
+        assert "research-agent" in agent_names
+        assert "writing-agent" in agent_names
 
     def test_server_get_agent(self, agent_pool: AgentPool[Any]):
         """Test getting agents from pool."""
