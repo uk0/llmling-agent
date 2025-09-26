@@ -1,15 +1,15 @@
 # /// script
-# dependencies = ["datamodel-code-generator", "anyenv"]
+# dependencies = ["datamodel-code-generator", "anyenv[httpx]"]
 # ///
 
 
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
-import urllib.request
 
 import anyenv
 
@@ -20,24 +20,12 @@ SCHEMA_URL = "https://raw.githubusercontent.com/zed-industries/agent-client-prot
 META_URL = "https://raw.githubusercontent.com/zed-industries/agent-client-protocol/refs/heads/main/schema/meta.json"
 
 
-def fetch_json(url: str) -> dict:
-    """Fetch JSON data from a URL."""
-    try:
-        with urllib.request.urlopen(url) as response:
-            return anyenv.load_json(response.read().decode("utf-8"))
-    except Exception as e:  # noqa: BLE001
-        print(f"Failed to fetch {url}: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
 def convert_oneof_const_to_enum(schema: dict) -> dict:
     """Convert oneOf patterns with const values to enum format.
 
     This ensures datamodel-code-generator creates Literal types instead of plain str.
     Works on the schema WITHOUT dereferencing to preserve names.
     """
-    import copy
-
     schema = copy.deepcopy(schema)
 
     def process_schema(obj: dict, path: str = "") -> None:
@@ -76,7 +64,6 @@ def convert_oneof_const_to_enum(schema: dict) -> dict:
 
     # Process the entire schema including $defs
     process_schema(schema, "")
-
     return schema
 
 
@@ -87,13 +74,13 @@ def main() -> None:
     # Create a temporary file for the schema JSON
     temp_dir = Path(tempfile.gettempdir())
     temp_schema_path = temp_dir / "schema.json"
-    schema_data = fetch_json(SCHEMA_URL)
+    schema_data = anyenv.get_json_sync(SCHEMA_URL, return_type=dict)
 
     # Convert oneOf+const patterns to enums for proper Literal generation
     # Do NOT dereference - this preserves the semantic names from $defs
     preprocessed_schema = convert_oneof_const_to_enum(schema_data)
 
-    temp_schema_path.write_text(anyenv.dump_json(preprocessed_schema, indent=2))
+    temp_schema_path.write_text(anyenv.dump_json(preprocessed_schema, indent=True))
 
     try:
         cmd = [
@@ -133,7 +120,7 @@ def main() -> None:
 
     # Generate meta.py
     meta_out = ROOT / "src" / "acp" / "meta.py"
-    meta_data = fetch_json(META_URL)
+    meta_data = anyenv.get_json_sync(META_URL, return_type=dict)
     agent_methods = meta_data.get("agentMethods", {})
     client_methods = meta_data.get("clientMethods", {})
     version = meta_data.get("version", 1)
