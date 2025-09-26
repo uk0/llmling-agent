@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 from typing import TYPE_CHECKING
 
 from acp.schema import (
@@ -231,14 +233,12 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             Returns:
                 Current output and status (running/completed/failed)
             """
+            request = TerminalOutputRequest(
+                session_id=self.session_id,
+                terminal_id=terminal_id,
+            )
             try:
-                # Get output
-                request = TerminalOutputRequest(
-                    session_id=self.session_id,
-                    terminal_id=terminal_id,
-                )
                 output_response = await self.agent.connection.terminal_output(request)
-
                 result = output_response.output
                 if output_response.truncated:
                     result += "\n[Output was truncated]"
@@ -316,11 +316,11 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             Returns:
                 Exit status information
             """
+            request = WaitForTerminalExitRequest(
+                session_id=self.session_id,
+                terminal_id=terminal_id,
+            )
             try:
-                request = WaitForTerminalExitRequest(
-                    session_id=self.session_id,
-                    terminal_id=terminal_id,
-                )
                 exit_response = await self.agent.connection.wait_for_terminal_exit(
                     request
                 )
@@ -351,11 +351,11 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             Returns:
                 Success/failure message
             """
+            request = KillTerminalCommandRequest(
+                session_id=self.session_id,
+                terminal_id=terminal_id,
+            )
             try:
-                request = KillTerminalCommandRequest(
-                    session_id=self.session_id,
-                    terminal_id=terminal_id,
-                )
                 await self.agent.connection.kill_terminal(request)
             except Exception as e:  # noqa: BLE001
                 return f"Error killing terminal: {e}"
@@ -379,11 +379,11 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             Returns:
                 Success/failure message
             """
+            request = ReleaseTerminalRequest(
+                session_id=self.session_id,
+                terminal_id=terminal_id,
+            )
             try:
-                request = ReleaseTerminalRequest(
-                    session_id=self.session_id,
-                    terminal_id=terminal_id,
-                )
                 await self.agent.connection.release_terminal(request)
             except Exception as e:  # noqa: BLE001
                 return f"Error releasing terminal: {e}"
@@ -418,19 +418,15 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             Returns:
                 Command output, or timeout message if command was killed
             """
-            import asyncio
-            import contextlib
-
+            create_request = CreateTerminalRequest(
+                session_id=self.session_id,
+                command=command,
+                args=args or [],
+                cwd=cwd,
+                env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
+                output_byte_limit=1048576,
+            )
             try:
-                # Create terminal
-                create_request = CreateTerminalRequest(
-                    session_id=self.session_id,
-                    command=command,
-                    args=args or [],
-                    cwd=cwd,
-                    env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
-                    output_byte_limit=1048576,
-                )
                 create_response = await self.agent.connection.create_terminal(
                     create_request
                 )
@@ -467,11 +463,11 @@ class ACPCapabilityResourceProvider(ResourceProvider):
 
                 except TimeoutError:
                     # Kill the command on timeout
+                    kill_request = KillTerminalCommandRequest(
+                        session_id=self.session_id,
+                        terminal_id=terminal_id,
+                    )
                     try:
-                        kill_request = KillTerminalCommandRequest(
-                            session_id=self.session_id,
-                            terminal_id=terminal_id,
-                        )
                         await self.agent.connection.kill_terminal(kill_request)
 
                         # Get partial output
@@ -538,13 +534,13 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             Example:
                 read_text_file('/etc/hosts') -> '127.0.0.1 localhost\\n::1 localhost'
             """
+            request = ReadTextFileRequest(
+                session_id=self.session_id,
+                path=path,
+                line=line,
+                limit=limit,
+            )
             try:
-                request = ReadTextFileRequest(
-                    session_id=self.session_id,
-                    path=path,
-                    line=line,
-                    limit=limit,
-                )
                 response = await self.agent.connection.read_text_file(request)
             except Exception as e:  # noqa: BLE001
                 return f"Error reading file: {e}"
@@ -570,12 +566,12 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             Returns:
                 Success confirmation message, or error message if write fails
             """
+            request = WriteTextFileRequest(
+                session_id=self.session_id,
+                path=path,
+                content=content,
+            )
             try:
-                request = WriteTextFileRequest(
-                    session_id=self.session_id,
-                    path=path,
-                    content=content,
-                )
                 await self.agent.connection.write_text_file(request)
             except Exception as e:  # noqa: BLE001
                 return f"Error writing file: {e}"
