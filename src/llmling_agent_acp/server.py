@@ -67,8 +67,8 @@ class ACPServer:
         agent_pool: AgentPool[Any],
         *,
         session_support: bool = True,
-        file_access: bool = False,
-        terminal_access: bool = False,
+        file_access: bool = True,
+        terminal_access: bool = True,
     ) -> None:
         """Set the agent pool for this ACP server.
 
@@ -92,6 +92,9 @@ class ACPServer:
         *,
         client: Client | None = None,
         usage_limits: UsageLimits | None = None,
+        session_support: bool = True,
+        file_access: bool = True,
+        terminal_access: bool = True,
     ) -> Self:
         """Create ACP server from existing llmling-agent configuration.
 
@@ -99,6 +102,9 @@ class ACPServer:
             config_path: Path to llmling-agent YAML config file
             client: ACP client interface for operations (DefaultACPClient if None)
             usage_limits: Optional usage limits for model requests and tokens
+            session_support: Enable session loading support
+            file_access: Enable file system access
+            terminal_access: Enable terminal access
 
         Returns:
             Configured ACP server instance with agent pool from config
@@ -115,9 +121,9 @@ class ACPServer:
         # Set up the agent pool with capabilities
         server.set_agent_pool(
             agent_pool=manifest.pool,
-            session_support=True,
-            file_access=True,
-            terminal_access=False,  # Conservative default
+            session_support=session_support,
+            file_access=file_access,
+            terminal_access=terminal_access,
         )
 
         agent_names = list(server.agent_pool.agents.keys())

@@ -68,8 +68,8 @@ class LLMlingACPAgent(ACPAgent):
         *,
         available_models: list[ModelInfo] | None = None,
         session_support: bool = True,
-        file_access: bool = False,
-        terminal_access: bool = False,
+        file_access: bool = True,
+        terminal_access: bool = True,
         client: Client | None = None,
         usage_limits: UsageLimits | None = None,
     ) -> None:
@@ -348,33 +348,21 @@ class LLMlingACPAgent(ACPAgent):
             logger.warning("No client capabilities available, skipping tool registration")
             return
 
-        # Register terminal tools if supported and enabled
+        msg = "Registering tools - terminal: %s, fs: %s"
+        logger.info(msg, self.client_capabilities.terminal, self.client_capabilities.fs)
         if self.terminal_access and self.client_capabilities.terminal:
-            logger.info("Client supports terminal operations, registering terminal tools")
             self._register_terminal_tools_with_agents()
         elif self.terminal_access:
-            logger.info(
-                "Terminal access enabled but client doesn't support terminal operations"
-            )
+            logger.info("Terminal access enabled but client doesn't support it")
 
         # Register filesystem tools if supported
         fs_caps = self.client_capabilities.fs
         if fs_caps:
-            # Handle case where fs_caps might be a dict (from schema defaults)
-            if isinstance(fs_caps, dict):
-                read_supported = fs_caps.get("readTextFile", False)
-                write_supported = fs_caps.get("writeTextFile", False)
-            else:
-                read_supported = fs_caps.read_text_file
-                write_supported = fs_caps.write_text_file
+            read_supported = fs_caps.read_text_file
+            write_supported = fs_caps.write_text_file
 
             if read_supported or write_supported:
-                logger.info("Client supports filesystem operations, registering tools")
                 self._register_filesystem_tools_with_agents()
-            else:
-                logger.info("Client doesn't support filesystem operations")
-        else:
-            logger.info("Client doesn't support filesystem operations")
 
     def _register_terminal_tools_with_agents(self) -> None:
         """Register client-side terminal tools with all agents in the pool."""
@@ -409,27 +397,9 @@ class LLMlingACPAgent(ACPAgent):
             logger.debug("No agents in pool to register filesystem tools with")
             return
 
-        if not self.client_capabilities or not self.client_capabilities.fs:
-            logger.warning("No filesystem capabilities available")
-            return
-
         # Get filesystem tools based on client capabilities
-        fs_caps = self.client_capabilities.fs
-
-        # Convert dict to FileSystemCapability if needed
-        if isinstance(fs_caps, dict):
-            from acp.schema import FileSystemCapability
-
-            fs_caps = FileSystemCapability(
-                read_text_file=fs_caps.get("readTextFile", False),
-                write_text_file=fs_caps.get("writeTextFile", False),
-            )
-
-        tools = get_filesystem_tools(self, fs_caps)
-
-        if not tools:
-            logger.info("No filesystem tools to register (client doesn't support any)")
-            return
+        assert self.client_capabilities is not None
+        tools = get_filesystem_tools(self, self.client_capabilities.fs)
 
         # Register tools with each agent in the pool
         registered_count = 0

@@ -24,10 +24,14 @@ def acp_command(
     config: str = t.Argument(None, help="Path to agent configuration"),
     log_level: LogLevel = t.Option("info", help="Logging level"),  # noqa: B008
     file_access: bool = t.Option(
-        False, "--file-access", help="Enable file system access for agents"
+        True,
+        "--file-access/--no-file-access",
+        help="Enable file system access for agents",
     ),
     terminal_access: bool = t.Option(
-        False, "--terminal-access", help="Enable terminal access for agents"
+        True,
+        "--terminal-access/--no-terminal-access",
+        help="Enable terminal access for agents",
     ),
     session_support: bool = t.Option(
         True,
@@ -97,7 +101,12 @@ def acp_command(
 
         # Create ACP server from config
         try:
-            acp_server = await ACPServer.from_config(config_path)
+            acp_server = await ACPServer.from_config(
+                config_path,
+                session_support=session_support,
+                file_access=file_access,
+                terminal_access=terminal_access,
+            )
         except Exception as e:
             logger.exception("Failed to create ACP server from config")
             raise t.Exit(1) from e
