@@ -321,10 +321,6 @@ class ACPSession:
                     return
                 msg = "Processing prompt for session %s: %s"
                 logger.debug(msg, self.session_id, prompt_text[:100])
-
-                # Use iterate_run for comprehensive streaming
-                msg = "Starting _process_iter_response for session %s"
-                logger.info(msg, self.session_id)
                 notification_count = 0
                 stop_reason = None
                 async for result in self._process_iter_response(prompt_text):
@@ -332,12 +328,11 @@ class ACPSession:
                         # Stop reason received
                         stop_reason = result
                         break
-                    else:
-                        # Session notification
-                        notification_count += 1
-                        msg = "Yielding notification %d for session %s"
-                        logger.info(msg, notification_count, self.session_id)
-                        yield result
+                    # Session notification
+                    notification_count += 1
+                    msg = "Yielding notification %d for session %s"
+                    logger.info(msg, notification_count, self.session_id)
+                    yield result
 
                 # Yield the final stop reason
                 final_stop_reason = stop_reason or "end_turn"
@@ -756,12 +751,8 @@ class ACPSession:
             return
 
         try:
-            # Get available commands for this session
             commands = self.command_bridge.to_available_commands(self.agent.context)
-
-            # Create update notification
             update = AvailableCommandsUpdate(available_commands=commands)
-
             # Send to client
             notification = SessionNotification(session_id=self.session_id, update=update)
             await self.client.session_update(notification)
