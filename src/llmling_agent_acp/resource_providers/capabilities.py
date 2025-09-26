@@ -146,16 +146,20 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             cwd: str | None = None,
             env: dict[str, str] | None = None,
         ) -> str:
-            """Execute a command in the client's environment.
+            r"""Execute a shell command and return its output.
+
+            Use this tool when you need to run a command and see its complete output.
+            This handles the full lifecycle: creates terminal, runs command,
+            waits for completion, captures output, and cleans up automatically.
 
             Args:
-                command: The command to execute
-                args: Command arguments (optional)
-                cwd: Working directory (optional)
-                env: Environment variables (optional)
+                command: The command to execute (e.g., 'echo', 'ls', 'python')
+                args: Command arguments as list (e.g., ['hello world'] for echo)
+                cwd: Working directory path (optional)
+                env: Environment variables as key-value pairs (optional)
 
             Returns:
-                Combined stdout and stderr output, or error message
+                Complete command output including stdout/stderr and exit status
             """
             try:
                 # Create terminal via client
@@ -216,13 +220,16 @@ class ACPCapabilityResourceProvider(ResourceProvider):
         """Create a tool that gets output from a running command."""
 
         async def get_command_output(terminal_id: str) -> str:
-            """Get current output from a running command.
+            """Get output from a terminal that was created with create_terminal.
+
+            Use this to check output from a terminal created separately.
+            Do NOT use this for simple command execution - use run_command instead.
 
             Args:
-                terminal_id: The terminal ID to get output from
+                terminal_id: The terminal ID returned by create_terminal
 
             Returns:
-                Current command output
+                Current output and status (running/completed/failed)
             """
             try:
                 # Get output
@@ -259,7 +266,13 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             env: dict[str, str] | None = None,
             output_byte_limit: int = 1048576,
         ) -> str:
-            """Create a terminal and start executing a command.
+            """Create a terminal for advanced terminal management (ADVANCED USE ONLY).
+
+            WARNING: This only creates a terminal and returns its ID. It does NOT wait for
+            completion or get output. You must use get_command_output,
+            wait_for_terminal_exit, and release_terminal separately.
+
+            For simple command execution, use run_command instead - it's much easier.
 
             Args:
                 command: The command to execute
@@ -269,7 +282,7 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                 output_byte_limit: Maximum output bytes to retain
 
             Returns:
-                Terminal ID for the created terminal
+                Terminal ID (you must manage this terminal manually)
             """
             try:
                 request = CreateTerminalRequest(
@@ -292,10 +305,13 @@ class ACPCapabilityResourceProvider(ResourceProvider):
         """Create a tool that waits for a terminal to exit."""
 
         async def wait_for_terminal_exit(terminal_id: str) -> str:
-            """Wait for a terminal command to complete.
+            """Wait for a terminal to finish (ADVANCED USE ONLY).
+
+            Only use this with terminals created by create_terminal.
+            For simple command execution, use run_command instead.
 
             Args:
-                terminal_id: The terminal ID to wait for
+                terminal_id: The terminal ID from create_terminal
 
             Returns:
                 Exit status information
@@ -325,10 +341,12 @@ class ACPCapabilityResourceProvider(ResourceProvider):
         """Create a tool that kills a running terminal command."""
 
         async def kill_terminal(terminal_id: str) -> str:
-            """Kill a running terminal command.
+            """Forcefully stop a running terminal (ADVANCED USE ONLY).
+
+            Only use this with terminals created by create_terminal.
 
             Args:
-                terminal_id: The terminal ID to kill
+                terminal_id: The terminal ID from create_terminal
 
             Returns:
                 Success/failure message
@@ -350,10 +368,13 @@ class ACPCapabilityResourceProvider(ResourceProvider):
         """Create a tool that releases terminal resources."""
 
         async def release_terminal(terminal_id: str) -> str:
-            """Release a terminal and free its resources.
+            """Clean up a terminal created with create_terminal (ADVANCED USE ONLY).
+
+            Only use this with terminals created by create_terminal.
+            The run_command tool handles cleanup automatically.
 
             Args:
-                terminal_id: The terminal ID to release
+                terminal_id: The terminal ID from create_terminal
 
             Returns:
                 Success/failure message
@@ -381,17 +402,21 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             env: dict[str, str] | None = None,
             timeout_seconds: int = 30,
         ) -> str:
-            """Execute a command with timeout support.
+            """Execute a command with automatic timeout protection.
+
+            Use this when running commands that might hang or take too long.
+            Like run_command but will automatically kill the command if it exceeds
+            the timeout.
 
             Args:
                 command: The command to execute
                 args: Command arguments (optional)
                 cwd: Working directory (optional)
                 env: Environment variables (optional)
-                timeout_seconds: Timeout in seconds (default: 30)
+                timeout_seconds: Maximum time to wait before killing (default: 30)
 
             Returns:
-                Command output or timeout/error message
+                Command output, or timeout message if command was killed
             """
             import asyncio
             import contextlib
@@ -496,15 +521,22 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             line: int | None = None,
             limit: int | None = None,
         ) -> str:
-            """Read text file contents from the client's filesystem.
+            r"""Read the contents of a text file.
+
+            Use this to read configuration files, source code,
+            logs, or any text-based files from the client's filesystem.
 
             Args:
-                path: Absolute path to the file to read
-                line: Optional line number to start reading from (1-based)
-                limit: Optional maximum number of lines to read
+                path: Absolute path to the file (e.g., '/home/user/config.txt',
+                      'C:\\Users\\user\\file.txt')
+                line: Optional line number to start reading from (1-based indexing)
+                limit: Optional maximum number of lines to read from the starting line
 
             Returns:
-                File content or error message
+                Complete file contents as text, or error message if file cannot be read
+
+            Example:
+                read_text_file('/etc/hosts') -> '127.0.0.1 localhost\\n::1 localhost'
             """
             try:
                 request = ReadTextFileRequest(
@@ -525,14 +557,18 @@ class ACPCapabilityResourceProvider(ResourceProvider):
         """Create a tool that writes text files via the ACP client."""
 
         async def write_text_file(path: str, content: str) -> str:
-            """Write text content to a file in the client's filesystem.
+            r"""Write text content to a file, creating or overwriting as needed.
+
+            Use this to create configuration files, save data, write scripts,
+            or update any text-based files on the client's filesystem.
 
             Args:
-                path: Absolute path to the file to write
-                content: The text content to write to the file
+                path: Absolute path where to write the file
+                      (e.g., '/tmp/output.txt', 'C:\\temp\\data.json')
+                content: The complete text content to write to the file
 
             Returns:
-                Success message or error message
+                Success confirmation message, or error message if write fails
             """
             try:
                 request = WriteTextFileRequest(
