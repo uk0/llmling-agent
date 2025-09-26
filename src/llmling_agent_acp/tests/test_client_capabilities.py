@@ -12,6 +12,7 @@ from acp.schema import (
     FileSystemCapability,
     InitializeRequest,
 )
+from llmling_agent_acp.resource_providers import ACPCapabilityResourceProvider
 
 
 if TYPE_CHECKING:
@@ -44,62 +45,51 @@ class TestClientCapabilities:
 
         # Create mock agent
         mock_agent = Mock()
-        mock_tools = {}
-
-        def register_tool(tool):
-            mock_tools[tool.name] = tool
-
-        mock_agent.tools = Mock()
-        mock_agent.tools.register_tool = register_tool
         mock_agent_pool.agents = {"test_agent": mock_agent}
 
-        # Create ACP agent
-        agent = LLMlingACPAgent(
+        return LLMlingACPAgent(
             connection=mock_connection,
             agent_pool=mock_agent_pool,
-            terminal_access=True,  # Enable terminal access for testing
         )
-
-        # Store reference to mock tools for testing
-        agent._mock_tools = mock_tools  # type: ignore[attr-defined]
-        return agent
 
     @pytest.mark.asyncio
     async def test_no_capabilities_no_tools(self, acp_agent: LLMlingACPAgent):
         """Test that no tools are registered when client has no capabilities."""
-        # Initialize with no capabilities
-        request = InitializeRequest(
-            protocol_version=1,
-            client_capabilities=ClientCapabilities(
-                fs=FileSystemCapability(read_text_file=False, write_text_file=False),
-                terminal=False,
-            ),
+        # Test with ResourceProvider directly - no capabilities
+        capabilities = ClientCapabilities(
+            fs=FileSystemCapability(read_text_file=False, write_text_file=False),
+            terminal=False,
         )
 
-        await acp_agent.initialize(request)
+        provider = ACPCapabilityResourceProvider(
+            agent=acp_agent,
+            session_id="test_session",
+            client_capabilities=capabilities,
+        )
 
-        # No tools should be registered
-        registered_tools = set(acp_agent._mock_tools.keys())  # type: ignore[attr-defined]
-        assert len(registered_tools) == 0
+        tools = await provider.get_tools()
+        assert len(tools) == 0
 
     @pytest.mark.asyncio
-    async def test_full_capabilities_all_tools(self, acp_agent: LLMlingACPAgent):
-        """Test that all tools are registered when client supports everything."""
-        # Initialize with full capabilities
-        request = InitializeRequest(
-            protocol_version=1,
-            client_capabilities=ClientCapabilities(
-                fs=FileSystemCapability(read_text_file=True, write_text_file=True),
-                terminal=True,
-            ),
+    async def test_full_capabilities(self, acp_agent: LLMlingACPAgent):
+        """Test that all tools are registered when client has full capabilities."""
+        # Test with ResourceProvider directly
+        capabilities = ClientCapabilities(
+            fs=FileSystemCapability(read_text_file=True, write_text_file=True),
+            terminal=True,
         )
 
-        await acp_agent.initialize(request)
+        provider = ACPCapabilityResourceProvider(
+            agent=acp_agent,
+            session_id="test_session",
+            client_capabilities=capabilities,
+        )
 
-        # All tools should be registered
-        registered_tools = set(acp_agent._mock_tools.keys())  # type: ignore[attr-defined]
+        tools = await provider.get_tools()
+        tool_names = {tool.name for tool in tools}
 
-        expected_terminal_tools = {
+        expected_tools = {
+            # Terminal tools
             "run_command",
             "get_command_output",
             "create_terminal",
@@ -107,28 +97,30 @@ class TestClientCapabilities:
             "kill_terminal",
             "release_terminal",
             "run_command_with_timeout",
+            # Filesystem tools
+            "read_text_file",
+            "write_text_file",
         }
-        expected_filesystem_tools = {"read_text_file", "write_text_file"}
-        expected_all_tools = expected_terminal_tools | expected_filesystem_tools
 
-        assert registered_tools == expected_all_tools
+        assert tool_names == expected_tools
 
     @pytest.mark.asyncio
     async def test_terminal_only_capabilities(self, acp_agent: LLMlingACPAgent):
         """Test that only term tools are registered when only term is supported."""
-        # Initialize with only terminal capabilities
-        request = InitializeRequest(
-            protocol_version=1,
-            client_capabilities=ClientCapabilities(
-                fs=FileSystemCapability(read_text_file=False, write_text_file=False),
-                terminal=True,
-            ),
+        # Test with ResourceProvider directly
+        capabilities = ClientCapabilities(
+            fs=FileSystemCapability(read_text_file=False, write_text_file=False),
+            terminal=True,
         )
 
-        await acp_agent.initialize(request)
+        provider = ACPCapabilityResourceProvider(
+            agent=acp_agent,
+            session_id="test_session",
+            client_capabilities=capabilities,
+        )
 
-        # Only terminal tools should be registered
-        registered_tools = set(acp_agent._mock_tools.keys())  # type: ignore[attr-defined]
+        tools = await provider.get_tools()
+        tool_names = {tool.name for tool in tools}
 
         expected_terminal_tools = {
             "run_command",
@@ -140,87 +132,88 @@ class TestClientCapabilities:
             "run_command_with_timeout",
         }
 
-        assert registered_tools == expected_terminal_tools
+        assert tool_names == expected_terminal_tools
 
         # Check that all registered tools are terminal tools
-        for tool_name in registered_tools:
-            tool = acp_agent._mock_tools[tool_name]  # type: ignore[attr-defined]
+        for tool in tools:
             assert tool.source == "terminal"
 
     @pytest.mark.asyncio
     async def test_filesystem_only_capabilities(self, acp_agent: LLMlingACPAgent):
         """Test that only fs tools are registered when only fs is supported."""
-        # Initialize with only filesystem capabilities
-        request = InitializeRequest(
-            protocol_version=1,
-            client_capabilities=ClientCapabilities(
-                fs=FileSystemCapability(read_text_file=True, write_text_file=True),
-                terminal=False,
-            ),
+        # Test with ResourceProvider directly
+        capabilities = ClientCapabilities(
+            fs=FileSystemCapability(read_text_file=True, write_text_file=True),
+            terminal=False,
         )
 
-        await acp_agent.initialize(request)
+        provider = ACPCapabilityResourceProvider(
+            agent=acp_agent,
+            session_id="test_session",
+            client_capabilities=capabilities,
+        )
 
-        # Only filesystem tools should be registered
-        registered_tools = set(acp_agent._mock_tools.keys())  # type: ignore[attr-defined]
+        tools = await provider.get_tools()
+        tool_names = {tool.name for tool in tools}
         expected_filesystem_tools = {"read_text_file", "write_text_file"}
 
-        assert registered_tools == expected_filesystem_tools
+        assert tool_names == expected_filesystem_tools
 
         # Check that all registered tools are filesystem tools
-        for tool_name in registered_tools:
-            tool = acp_agent._mock_tools[tool_name]  # type: ignore[attr-defined]
+        for tool in tools:
             assert tool.source == "filesystem"
 
     @pytest.mark.asyncio
-    async def test_partial_filesystem_capabilities(self, acp_agent: LLMlingACPAgent):
-        """Test that only supported filesystem tools are registered."""
-        # Initialize with only read filesystem capability
-        request = InitializeRequest(
-            protocol_version=1,
-            client_capabilities=ClientCapabilities(
-                fs=FileSystemCapability(read_text_file=True, write_text_file=False),
-                terminal=False,
-            ),
+    async def test_partial_filesystem_capabilities_read_only(
+        self, acp_agent: LLMlingACPAgent
+    ):
+        """Test that only read tool is registered when only read is enabled."""
+        # Test with ResourceProvider directly - read only
+        capabilities = ClientCapabilities(
+            fs=FileSystemCapability(read_text_file=True, write_text_file=False),
+            terminal=False,
         )
 
-        await acp_agent.initialize(request)
-
-        # Only read tool should be registered
-        registered_tools = set(acp_agent._mock_tools.keys())  # type: ignore[attr-defined]
-        assert registered_tools == {"read_text_file"}
-
-        # Test with only write capability
-        acp_agent._mock_tools.clear()  # type: ignore[attr-defined]
-
-        request = InitializeRequest(
-            protocol_version=1,
-            client_capabilities=ClientCapabilities(
-                fs=FileSystemCapability(read_text_file=False, write_text_file=True),
-                terminal=False,
-            ),
+        provider = ACPCapabilityResourceProvider(
+            agent=acp_agent,
+            session_id="test_session",
+            client_capabilities=capabilities,
         )
 
-        await acp_agent.initialize(request)
-
-        # Only write tool should be registered
-        registered_tools = set(acp_agent._mock_tools.keys())  # type: ignore[attr-defined]
-        assert registered_tools == {"write_text_file"}
+        tools = await provider.get_tools()
+        tool_names = {tool.name for tool in tools}
+        assert tool_names == {"read_text_file"}
 
     @pytest.mark.asyncio
-    async def test_terminal_disabled_locally(self, mock_connection, mock_agent_pool):
-        """Test that terminal tools are not registered when terminal_access=False."""
+    async def test_partial_filesystem_capabilities_write_only(
+        self, acp_agent: LLMlingACPAgent
+    ):
+        """Test that only write tool is registered when only write is enabled."""
+        # Test with ResourceProvider directly - write only
+        capabilities = ClientCapabilities(
+            fs=FileSystemCapability(read_text_file=False, write_text_file=True),
+            terminal=False,
+        )
+
+        provider = ACPCapabilityResourceProvider(
+            agent=acp_agent,
+            session_id="test_session",
+            client_capabilities=capabilities,
+        )
+
+        tools = await provider.get_tools()
+        tool_names = {tool.name for tool in tools}
+        assert tool_names == {"write_text_file"}
+
+    @pytest.mark.asyncio
+    async def test_mixed_capabilities_with_terminal_disabled_locally(
+        self, mock_connection, mock_agent_pool
+    ):
+        """Test mixed capabilities with terminal disabled locally."""
         from llmling_agent_acp.acp_agent import LLMlingACPAgent
 
         # Create agent with terminal access disabled
         mock_agent = Mock()
-        mock_tools = {}
-
-        def register_tool(tool):
-            mock_tools[tool.name] = tool
-
-        mock_agent.tools = Mock()
-        mock_agent.tools.register_tool = register_tool
         mock_agent_pool.agents = {"test_agent": mock_agent}
 
         agent = LLMlingACPAgent(
@@ -228,26 +221,26 @@ class TestClientCapabilities:
             agent_pool=mock_agent_pool,
             terminal_access=False,  # Disabled locally
         )
-        agent._mock_tools = mock_tools  # type: ignore[attr-defined]
 
-        # Initialize with full capabilities
-        request = InitializeRequest(
-            protocol_version=1,
-            client_capabilities=ClientCapabilities(
-                fs=FileSystemCapability(read_text_file=True, write_text_file=True),
-                terminal=True,  # Client supports terminal
-            ),
+        # Test with ResourceProvider directly
+        capabilities = ClientCapabilities(
+            fs=FileSystemCapability(read_text_file=True, write_text_file=True),
+            terminal=True,  # Client supports terminal
         )
 
-        await agent.initialize(request)
+        provider = ACPCapabilityResourceProvider(
+            agent=agent,
+            session_id="test_session",
+            client_capabilities=capabilities,
+        )
 
-        # Only filesystem tools should be registered (terminal disabled locally)
-        registered_tools = set(mock_tools.keys())
+        tools = await provider.get_tools()
+        tool_names = {tool.name for tool in tools}
         expected_filesystem_tools = {"read_text_file", "write_text_file"}
-        assert registered_tools == expected_filesystem_tools
+        assert tool_names == expected_filesystem_tools
 
     @pytest.mark.asyncio
-    async def test_no_client_capabilities(self, acp_agent: LLMlingACPAgent):
+    async def test_none_client_capabilities(self, acp_agent: LLMlingACPAgent):
         """Test handling when client_capabilities is None."""
         # Initialize with None capabilities
         request = InitializeRequest(
@@ -257,9 +250,10 @@ class TestClientCapabilities:
 
         await acp_agent.initialize(request)
 
-        # No tools should be registered
-        registered_tools = set(acp_agent._mock_tools.keys())  # type: ignore[attr-defined]
-        assert len(registered_tools) == 0
+        # Initialize doesn't register tools anymore - tools are registered via
+        # ResourceProvider
+        # This test verifies that initialize works without error with None caps
+        assert acp_agent.client_capabilities is None
 
     @pytest.mark.asyncio
     async def test_capabilities_stored_correctly(self, acp_agent: LLMlingACPAgent):

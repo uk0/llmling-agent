@@ -14,6 +14,7 @@ from acp.schema import (
     WriteTextFileResponse,
 )
 from llmling_agent_acp.acp_agent import LLMlingACPAgent
+from llmling_agent_acp.resource_providers import ACPCapabilityResourceProvider
 
 
 class TestClientFilesystemTools:
@@ -67,25 +68,38 @@ class TestClientFilesystemTools:
             )
         )
 
-        # Store reference to mock tools for testing
-        agent._mock_tools = mock_tools  # type: ignore[attr-defined]
         return agent
 
+    @pytest.fixture
+    async def fs_provider(self, acp_agent):
+        """Create filesystem capability provider for testing."""
+        capabilities = ClientCapabilities(
+            fs=FileSystemCapability(read_text_file=True, write_text_file=True),
+            terminal=False,
+        )
+
+        return ACPCapabilityResourceProvider(
+            agent=acp_agent,
+            session_id="test_session",
+            client_capabilities=capabilities,
+        )
+
     @pytest.mark.asyncio
-    async def test_filesystem_tools_registered(self, acp_agent: LLMlingACPAgent):
+    async def test_filesystem_tools_registered(self, fs_provider):
         """Test that filesystem tools are registered."""
+        tools = await fs_provider.get_tools()
+        tool_names = {tool.name for tool in tools}
+
         expected_tools = {"read_text_file", "write_text_file"}
-        registered_tools = set(acp_agent._mock_tools.keys())  # type: ignore[attr-defined]
+        assert expected_tools.issubset(tool_names)
 
-        # Check filesystem tools are present (may have terminal tools too)
-        assert expected_tools.issubset(registered_tools)
-
-        for tool_name in expected_tools:
-            tool = acp_agent._mock_tools[tool_name]  # type: ignore[attr-defined]
+        # Check that filesystem tools have correct source
+        fs_tools = [tool for tool in tools if tool.name in expected_tools]
+        for tool in fs_tools:
             assert tool.source == "filesystem"
 
     @pytest.mark.asyncio
-    async def test_read_text_file_success(self, acp_agent: LLMlingACPAgent):
+    async def test_read_text_file_success(self, acp_agent: LLMlingACPAgent, fs_provider):
         """Test successful file reading."""
         # Mock read file response
         acp_agent.connection.read_text_file = AsyncMock(  # type: ignore[method-assign]
@@ -94,8 +108,9 @@ class TestClientFilesystemTools:
             )
         )
 
-        # Execute read_text_file tool
-        read_tool = acp_agent._mock_tools["read_text_file"]  # type: ignore[attr-defined]
+        # Get read_text_file tool from provider
+        tools = await fs_provider.get_tools()
+        read_tool = next(tool for tool in tools if tool.name == "read_text_file")
         result = await read_tool.execute(
             path="/home/user/test.txt",
             session_id="test_session",
@@ -112,15 +127,18 @@ class TestClientFilesystemTools:
         assert call_args.session_id == "test_session"
 
     @pytest.mark.asyncio
-    async def test_read_text_file_with_line_and_limit(self, acp_agent: LLMlingACPAgent):
+    async def test_read_text_file_with_line_and_limit(
+        self, acp_agent: LLMlingACPAgent, fs_provider
+    ):
         """Test file reading with line and limit parameters."""
         # Mock read file response
         acp_agent.connection.read_text_file = AsyncMock(  # type: ignore[method-assign]
             return_value=ReadTextFileResponse(content="Line 10\nLine 11\nLine 12\n")
         )
 
-        # Execute read_text_file tool with line and limit
-        read_tool = acp_agent._mock_tools["read_text_file"]  # type: ignore[attr-defined]
+        # Get read_text_file tool from provider
+        tools = await fs_provider.get_tools()
+        read_tool = next(tool for tool in tools if tool.name == "read_text_file")
         result = await read_tool.execute(
             path="/home/user/large_file.txt",
             line=10,
@@ -140,15 +158,17 @@ class TestClientFilesystemTools:
         assert call_args.limit == 3  # noqa: PLR2004
 
     @pytest.mark.asyncio
-    async def test_read_text_file_error(self, acp_agent: LLMlingACPAgent):
+    async def test_read_text_file_error(self, acp_agent: LLMlingACPAgent, fs_provider):
         """Test file reading error handling."""
         # Mock read file error
         acp_agent.connection.read_text_file = AsyncMock(  # type: ignore[method-assign]
             side_effect=FileNotFoundError("File not found")
         )
 
-        # Execute read_text_file tool
-        read_tool = acp_agent._mock_tools["read_text_file"]  # type: ignore[attr-defined]
+        # Get read_text_file tool from provider
+        tools = await fs_provider.get_tools()
+        read_tool = next(tool for tool in tools if tool.name == "read_text_file")
+
         result = await read_tool.execute(
             path="/home/user/nonexistent.txt",
             session_id="test_session",
@@ -159,15 +179,16 @@ class TestClientFilesystemTools:
         assert "File not found" in result
 
     @pytest.mark.asyncio
-    async def test_write_text_file_success(self, acp_agent: LLMlingACPAgent):
+    async def test_write_text_file_success(self, acp_agent: LLMlingACPAgent, fs_provider):
         """Test successful file writing."""
         # Mock write file response
         acp_agent.connection.write_text_file = AsyncMock(  # type: ignore[method-assign]
             return_value=WriteTextFileResponse()
         )
 
-        # Execute write_text_file tool
-        write_tool = acp_agent._mock_tools["write_text_file"]  # type: ignore[attr-defined]
+        # Get write_text_file tool from provider
+        tools = await fs_provider.get_tools()
+        write_tool = next(tool for tool in tools if tool.name == "write_text_file")
         result = await write_tool.execute(
             path="/home/user/output.txt",
             content="Hello, World!\nThis is written content.\n",
@@ -212,15 +233,16 @@ class TestClientFilesystemTools:
         assert call_args.content == json_content
 
     @pytest.mark.asyncio
-    async def test_write_text_file_error(self, acp_agent: LLMlingACPAgent):
+    async def test_write_text_file_error(self, acp_agent: LLMlingACPAgent, fs_provider):
         """Test file writing error handling."""
         # Mock write file error
         acp_agent.connection.write_text_file = AsyncMock(  # type: ignore[method-assign]
             side_effect=PermissionError("Permission denied")
         )
 
-        # Execute write_text_file tool
-        write_tool = acp_agent._mock_tools["write_text_file"]  # type: ignore[attr-defined]
+        # Get write_text_file tool from provider
+        tools = await fs_provider.get_tools()
+        write_tool = next(tool for tool in tools if tool.name == "write_text_file")
         result = await write_tool.execute(
             path="/root/protected.txt",
             content="This should fail",
