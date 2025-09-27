@@ -50,10 +50,6 @@ if TYPE_CHECKING:
     from acp.acp_types import MethodHandler
 
 
-_AGENT_CONNECTION_ERROR = "AgentSideConnection requires asyncio StreamWriter/StreamReader"
-_CLIENT_CONNECTION_ERROR = (
-    "ClientSideConnection requires asyncio StreamWriter/StreamReader"
-)
 
 
 class NoMatch:
@@ -640,16 +636,13 @@ def create_session_model_state(
     if not available_models:
         return None
     # Create ModelInfo objects for each available model
-    model_infos = []
+    models: list[ModelInfo] = []
     for model_id in available_models:
         # Extract display name (e.g., "gpt-4" from "openai:gpt-4")
         display_name = model_id.split(":")[-1] if ":" in model_id else model_id
         info = ModelInfo(model_id=model_id, name=display_name, description=model_id)
-        model_infos.append(info)
+        models.append(info)
 
     # Use first model as current if not specified
     current_model_id = current_model or available_models[0]
-
-    return SessionModelState(
-        available_models=model_infos, current_model_id=current_model_id
-    )
+    return SessionModelState(available_models=models, current_model_id=current_model_id)
