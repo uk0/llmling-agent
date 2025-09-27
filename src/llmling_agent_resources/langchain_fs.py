@@ -164,7 +164,6 @@ class LangChainFileSystem(AsyncFileSystem):
         return f"{self.fsid}:{path}"
 
 
-# Register the filesystem implementation
 fsspec.register_implementation("langchain", LangChainFileSystem, clobber=True)
 registry.register_implementation("langchain", LangchainPath, clobber=True)
 
@@ -185,23 +184,14 @@ if __name__ == "__main__":
             # Create a loader and filesystem
             loader = TextLoader(str(test_file))
             fs = fsspec.filesystem("langchain", loader=loader)
-
-            # List all documents
             print("\nListing documents:")
             files = fs.ls("")
             print(files)
-
-            # Read content
-            print("\nReading content:")
             content = fs.cat(test_file.name).decode()
             print(content)
-
-            # Get file info
             print("\nFile info:")
             info = fs.info(test_file.name)
             print(info)
-
-            # Test file-like access
             print("\nReading using open:")
             with fs.open(test_file.name) as f:
                 print(f.read().decode())
