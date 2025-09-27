@@ -425,13 +425,11 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                     create_request
                 )
                 terminal_id = create_response.terminal_id
-
+                wait_request = WaitForTerminalExitRequest(
+                    session_id=self.session_id,
+                    terminal_id=terminal_id,
+                )
                 try:
-                    # Wait for completion with timeout
-                    wait_request = WaitForTerminalExitRequest(
-                        session_id=self.session_id,
-                        terminal_id=terminal_id,
-                    )
                     await asyncio.wait_for(
                         self.agent.connection.wait_for_terminal_exit(wait_request),
                         timeout=timeout_seconds,
