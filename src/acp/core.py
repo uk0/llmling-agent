@@ -50,8 +50,6 @@ if TYPE_CHECKING:
     from acp.acp_types import MethodHandler
 
 
-
-
 class NoMatch:
     """NoMatch Sentinel."""
 
