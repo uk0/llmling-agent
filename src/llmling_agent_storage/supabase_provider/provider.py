@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 import os
 from typing import TYPE_CHECKING, Any, Self
 
@@ -274,7 +275,9 @@ class SupabaseProvider(StorageProvider):
                         "token_usage": msg.cost_info.token_usage
                         if msg.cost_info
                         else None,
-                        "cost": msg.cost_info.total_cost if msg.cost_info else None,
+                        "cost": float(msg.cost_info.total_cost)
+                        if msg.cost_info
+                        else None,
                         "response_time": msg.response_time,
                     }
                     for msg in chat_messages
@@ -317,7 +320,7 @@ class SupabaseProvider(StorageProvider):
                         "prompt": row["input_tokens"] or 0,
                         "completion": row["output_tokens"] or 0,
                     },
-                    total_cost=0.0,
+                    total_cost=Decimal(0),
                 )
                 if row["total_tokens"]
                 else None,

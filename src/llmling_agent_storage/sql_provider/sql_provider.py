@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from sqlmodel import Session, SQLModel, desc, select
@@ -150,7 +151,7 @@ class SQLModelProvider(StorageProvider[Message]):
                 output_tokens=cost_info.token_usage.get("completion")
                 if cost_info
                 else None,
-                cost=cost_info.total_cost if cost_info else None,
+                cost=float(cost_info.total_cost) if cost_info else None,
                 forwarded_from=forwarded_from,
                 timestamp=get_now(),
             )
@@ -360,7 +361,7 @@ class SQLModelProvider(StorageProvider[Message]):
                             "prompt": prompt or 0,
                             "completion": completion or 0,
                         },
-                        total_cost=0.0,  # We don't store this in DB
+                        total_cost=Decimal(0),  # We don't store this in DB
                     )
                     if total or prompt or completion
                     else None,

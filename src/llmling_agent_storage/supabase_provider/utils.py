@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from postgrest.types import CountMethod
@@ -47,7 +48,7 @@ def to_chat_message(row: dict[str, Any]) -> ChatMessage[str]:
                 "prompt": row["input_tokens"] or 0,
                 "completion": row["output_tokens"] or 0,
             },
-            total_cost=row["cost"] or 0.0,
+            total_cost=Decimal(row["cost"]) or Decimal(0),
         )
 
     return ChatMessage[str](

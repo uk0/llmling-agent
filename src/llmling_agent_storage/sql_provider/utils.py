@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, Column, and_, or_
@@ -53,7 +54,7 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
                 "prompt": db_message.input_tokens or 0,
                 "completion": db_message.output_tokens or 0,
             },
-            total_cost=db_message.cost or 0.0,
+            total_cost=Decimal(db_message.cost or 0.0),
         )
 
     return ChatMessage[str](
@@ -195,7 +196,7 @@ def format_conversation(
                 "model": msg.model,
                 "name": msg.name,
                 "token_usage": msg.cost_info.token_usage if msg.cost_info else None,
-                "cost": msg.cost_info.total_cost if msg.cost_info else None,
+                "cost": float(msg.cost_info.total_cost) if msg.cost_info else None,
                 "response_time": msg.response_time,
             }
             for msg in chat_messages

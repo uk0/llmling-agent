@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from dataclasses import asdict
+from decimal import Decimal
 from functools import wraps
 from typing import TYPE_CHECKING, Any, cast, get_args
 
@@ -20,7 +21,7 @@ from pydantic_ai.usage import UsageLimits as PydanticAiUsageLimits
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import TokenCost
+from llmling_agent.messaging.messages import TokenCost, TokenUsage
 from llmling_agent.observability import track_action
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
@@ -294,18 +295,14 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
                 use_model.model_name if isinstance(use_model, Model) else str(use_model)
             )
             usage = result.usage()
-            # Create input content representation for cost calculations
-            cost_input = "\n".join(str(p) for p in prompts)
-            cost_info = (
-                await TokenCost.from_usage(
-                    usage,
-                    resolved_model,
-                    cost_input,
-                    str(result.output),
-                )
-                if resolved_model and usage
-                else None
+            responses = [m for m in new_msgs if isinstance(m, ModelResponse)]
+            cost_sum = sum(i.cost().total_price for i in responses)
+            token_usage = TokenUsage(
+                total=usage.total_tokens,
+                prompt=usage.input_tokens,
+                completion=usage.output_tokens,
             )
+            cost_info = TokenCost(token_usage=token_usage, total_cost=Decimal(cost_sum))
             return ProviderResponse(
                 content=result.output,
                 tool_calls=tool_calls,
@@ -509,3 +506,20 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
             stream_result.stream_output = get_wrapped_stream(original_stream)  # type: ignore
             stream_result.stream_text = get_wrapped_stream(original_text_stream)  # type: ignore
             yield stream_result  # type: ignore
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    async def main():
+        provider = PydanticAIProvider[None](model="openai:gpt-5-nano")
+
+        # Example usage
+        response = await provider.generate_response(
+            "Hello, how are you?",
+            message_id="test",
+            message_history=[],
+        )
+        print(response.cost_and_usage)
+
+    asyncio.run(main())

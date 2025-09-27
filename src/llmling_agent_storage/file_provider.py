@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 from tokonomics.toko_types import TokenUsage
@@ -33,7 +34,7 @@ class MessageData(TypedDict):
     timestamp: str
     name: str | None
     model: str | None
-    cost: float | None
+    cost: Decimal | None
     token_usage: TokenUsage | None
     response_time: float | None
     forwarded_from: list[str] | None
@@ -161,7 +162,9 @@ class FileProvider(StorageProvider):
             cost_info = None
             if msg["token_usage"]:
                 usage = cast(TokenUsage, msg["token_usage"])
-                cost_info = TokenCost(token_usage=usage, total_cost=msg["cost"] or 0.0)
+                cost_info = TokenCost(
+                    token_usage=usage, total_cost=Decimal(msg["cost"] or 0.0)
+                )
 
             chat_message = ChatMessage[str](
                 content=msg["content"],
@@ -203,7 +206,7 @@ class FileProvider(StorageProvider):
             "timestamp": get_now().isoformat(),
             "name": name,
             "model": model,
-            "cost": cost_info.total_cost if cost_info else None,
+            "cost": Decimal(cost_info.total_cost) if cost_info else None,
             "token_usage": cost_info.token_usage.copy() if cost_info else None,
             "response_time": response_time,
             "forwarded_from": forwarded_from,

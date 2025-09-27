@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import asdict, dataclass, field, replace
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict
 from uuid import uuid4
 
@@ -101,7 +102,7 @@ class TokenCost:
 
     token_usage: TokenUsage
     """Token counts for prompt and completion"""
-    total_cost: float
+    total_cost: Decimal
     """Total cost in USD"""
 
     @classmethod
@@ -148,7 +149,7 @@ class TokenCost:
         )
         total_cost = cost.total_cost if cost else 0.0
 
-        return cls(token_usage=token_usage, total_cost=total_cost)
+        return cls(token_usage=token_usage, total_cost=Decimal(total_cost))
 
 
 @dataclass
