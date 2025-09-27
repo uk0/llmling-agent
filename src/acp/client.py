@@ -110,7 +110,7 @@ class DefaultACPClient(Client):
 
     async def write_text_file(
         self, params: WriteTextFileRequest
-    ) -> WriteTextFileResponse | None:
+    ) -> WriteTextFileResponse:
         """Write text to file (if allowed).
 
         Args:
