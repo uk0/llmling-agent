@@ -141,6 +141,7 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             args: list[str] | None = None,
             cwd: str | None = None,
             env: dict[str, str] | None = None,
+            output_char_limit: int | None = None,
         ) -> str:
             r"""Execute a shell command and return its output.
 
@@ -151,23 +152,22 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             Args:
                 command: The command to execute (e.g., 'echo', 'ls', 'python')
                 args: Command arguments as list (e.g., ['hello world'] for echo)
-                cwd: Working directory path (optional)
-                env: Environment variables as key-value pairs (optional)
+                cwd: Working directory path
+                env: Environment variables as key-value pairs
+                output_char_limit: Maximum number of characters to capture from output
 
             Returns:
                 Complete command output including stdout/stderr and exit status
             """
+            create_request = CreateTerminalRequest(
+                session_id=self.session_id,
+                command=command,
+                args=args or [],
+                cwd=cwd,
+                env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
+                output_byte_limit=output_char_limit,
+            )
             try:
-                # Create terminal via client
-                env_var = [EnvVariable(name=k, value=v) for k, v in (env or {}).items()]
-                create_request = CreateTerminalRequest(
-                    session_id=self.session_id,
-                    command=command,
-                    args=args or [],
-                    cwd=cwd,
-                    env=env_var,
-                    output_byte_limit=1048576,
-                )
                 create_response = await self.agent.connection.create_terminal(
                     create_request
                 )
@@ -270,9 +270,9 @@ class ACPCapabilityResourceProvider(ResourceProvider):
 
             Args:
                 command: The command to execute
-                args: Command arguments (optional)
-                cwd: Working directory (optional)
-                env: Environment variables (optional)
+                args: Command arguments
+                cwd: Working directory
+                env: Environment variables
                 output_byte_limit: Maximum output bytes to retain
 
             Returns:
@@ -395,6 +395,7 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             cwd: str | None = None,
             env: dict[str, str] | None = None,
             timeout_seconds: int = 30,
+            output_char_limit: int | None = None,
         ) -> str:
             """Execute a command with automatic timeout protection.
 
@@ -404,10 +405,11 @@ class ACPCapabilityResourceProvider(ResourceProvider):
 
             Args:
                 command: The command to execute
-                args: Command arguments (optional)
-                cwd: Working directory (optional)
-                env: Environment variables (optional)
+                args: Command arguments
+                cwd: Working directory
+                env: Environment variables
                 timeout_seconds: Maximum time to wait before killing (default: 30)
+                output_char_limit: Maximum number of characters to capture from output
 
             Returns:
                 Command output, or timeout message if command was killed
@@ -418,7 +420,7 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                 args=args or [],
                 cwd=cwd,
                 env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
-                output_byte_limit=1048576,
+                output_byte_limit=output_char_limit,
             )
             try:
                 create_response = await self.agent.connection.create_terminal(
