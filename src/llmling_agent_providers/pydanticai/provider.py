@@ -79,7 +79,7 @@ def _is_call_ctx(annotation: Any) -> bool:
     )
 
 
-pydantic_ai._function_schema._is_call_ctx = _is_call_ctx
+pydantic_ai._function_schema._is_call_ctx = _is_call_ctx  # type: ignore
 
 
 class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
