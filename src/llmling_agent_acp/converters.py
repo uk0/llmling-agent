@@ -184,16 +184,8 @@ def to_session_updates(response: str, session_id: str) -> list[SessionNotificati
     if not response.strip():
         return []
 
-    # Split response into chunks for streaming
-    chunks = _split_response_into_chunks(response)
-    updates: list[SessionNotification] = []
-
-    for chunk in chunks:
-        if chunk.strip():
-            update = AgentMessageChunk(content=TextContentBlock(text=chunk))
-            updates.append(SessionNotification(session_id=session_id, update=update))
-
-    return updates
+    update = AgentMessageChunk(content=TextContentBlock(text=response))
+    return [SessionNotification(session_id=session_id, update=update)]
 
 
 def to_chat_message(
@@ -254,41 +246,6 @@ def extract_file_references(text: str) -> list[dict[str, Any]]:
         )
 
     return files
-
-
-def _split_response_into_chunks(response: str, chunk_size: int = 100) -> list[str]:
-    """Split response text into chunks for streaming.
-
-    Args:
-        response: Text to split
-        chunk_size: Target size for each chunk
-
-    Returns:
-        List of text chunks
-    """
-    if len(response) <= chunk_size:
-        return [response]
-
-    chunks: list[str] = []
-    words = response.split()
-    current_chunk: list[str] = []
-    current_length = 0
-
-    for word in words:
-        word_length = len(word) + 1  # +1 for space
-
-        if current_length + word_length > chunk_size and current_chunk:
-            chunks.append(" ".join(current_chunk))
-            current_chunk = [word]
-            current_length = len(word)
-        else:
-            current_chunk.append(word)
-            current_length += word_length
-
-    if current_chunk:
-        chunks.append(" ".join(current_chunk))
-
-    return chunks
 
 
 def _determine_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911
