@@ -6,7 +6,6 @@ content blocks, session updates, and other data structures using the external ac
 
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING, Any, Literal, overload
 
 from acp.acp_types import HttpMcpServer, SseMcpServer, StdioMcpServer
@@ -37,7 +36,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from acp.acp_types import ContentBlock, MCPServer, ToolCallStatus
-    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 
@@ -186,66 +184,6 @@ def to_session_updates(response: str, session_id: str) -> list[SessionNotificati
 
     update = AgentMessageChunk(content=TextContentBlock(text=response))
     return [SessionNotification(session_id=session_id, update=update)]
-
-
-def to_chat_message(
-    blocks: list[ContentBlock],
-    agent_name: str = "user",
-) -> ChatMessage[str]:
-    """Convert ACP content blocks to llmling ChatMessage.
-
-    Args:
-        blocks: List of ACP ContentBlock objects
-        agent_name: Name for the message sender
-
-    Returns:
-        llmling ChatMessage
-    """
-    from llmling_agent.messaging.messages import ChatMessage
-
-    content = from_content_blocks(blocks)
-    return ChatMessage[str](content=content, role="user", name=agent_name)
-
-
-def from_chat_message(message: ChatMessage[Any]) -> list[ContentBlock]:
-    """Convert llmling ChatMessage to ACP content blocks.
-
-    Args:
-        message: llmling ChatMessage
-
-    Returns:
-        List of ACP ContentBlock objects
-    """
-    content = str(message.content) if message.content is not None else ""
-    return to_content_blocks(content)
-
-
-def extract_file_references(text: str) -> list[dict[str, Any]]:
-    """Extract file references from agent response text.
-
-    Args:
-        text: Response text to analyze
-
-    Returns:
-        List of file reference dictionaries
-    """
-    # Look for file path patterns
-    file_patterns = [
-        r"(?:file|path|wrote to|created|reading from):\s*([^\s\n]+)",
-        r"`([^`]+\.[a-zA-Z0-9]+)`",  # Files in backticks with extensions
-        r'"([^"]+\.[a-zA-Z0-9]+)"',  # Files in quotes with extensions
-    ]
-
-    files: list[dict[str, Any]] = []
-    for pattern in file_patterns:
-        matches = re.findall(pattern, text, re.IGNORECASE)
-        files.extend(
-            {"path": match, "type": "file_reference"}
-            for match in matches
-            if match and not match.startswith("http")  # Exclude URLs
-        )
-
-    return files
 
 
 def _determine_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911
