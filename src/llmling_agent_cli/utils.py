@@ -37,9 +37,7 @@ def resolve_type(field_type: Any) -> Any:
     # Handle both Union and | syntax
     if origin is Union or origin is pytypes.UnionType:
         types_ = [t for t in get_args(field_type) if t is not type(None)]
-        if len(types_) == 1:
-            return resolve_type(types_[0])
-        return str  # Fallback for complex unions
+        return resolve_type(types_[0]) if len(types_) == 1 else str
 
     # Handle lists/sets
     if origin in (list, set):

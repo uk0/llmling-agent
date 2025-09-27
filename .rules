@@ -109,7 +109,6 @@ src/
 ├── llmling_agent_functional/   # Functional programming utilities
 ├── llmling_agent_input/        # Input providers (human, textual, etc.)
 ├── llmling_agent_mcp/          # Model Context Protocol integration
-├── llmling_agent_models/       # Model abstractions
 ├── llmling_agent_observability/ # Observability providers (Logfire, etc.)
 ├── llmling_agent_prompts/      # Prompt hub integrations
 ├── llmling_agent_providers/    # LLM providers (PydanticAI, Human, ...)

@@ -29,6 +29,7 @@ from llmling_agent_config.environment import (
     InlineEnvironment,
 )
 from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
+from llmling_agent_config.models import AnyModelConfig  # noqa: TC001
 from llmling_agent_config.nodes import NodeConfig
 from llmling_agent_config.providers import ProviderConfig  # noqa: TC001
 from llmling_agent_config.result_types import StructuredResponseConfig  # noqa: TC001
@@ -36,7 +37,6 @@ from llmling_agent_config.session import MemoryConfig, SessionQuery
 from llmling_agent_config.tools import BaseToolConfig, ToolConfig  # noqa: TC001
 from llmling_agent_config.toolsets import ToolsetConfig  # noqa: TC001
 from llmling_agent_config.workers import WorkerConfig  # noqa: TC001
-from llmling_agent_models import AnyModelConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:

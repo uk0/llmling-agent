@@ -1,13 +1,21 @@
-"""Configuration models for LLMling models."""
-
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import Field, ImportString, SecretStr  # noqa: TC002
+from pydantic import Field, ImportString, SecretStr
 from schemez import Schema
 
-from llmling_agent_models.base import BaseModelConfig
+
+class BaseModelConfig(Schema):
+    """Base for model configurations."""
+
+    type: str = Field(init=False)
+    """Type discriminator for model configs."""
+
+    def get_model(self) -> Any:
+        """Create and return actual model instance."""
+        msg = f"Model creation not implemented for {self.__class__.__name__}"
+        raise NotImplementedError(msg)
 
 
 class PrePostPromptConfig(Schema):
@@ -331,3 +339,21 @@ class TestModelConfig(BaseModelConfig):
             custom_output_text=self.custom_output_text,
             call_tools=self.call_tools,
         )
+
+
+AnyModelConfig = Annotated[
+    AugmentedModelConfig
+    | CostOptimizedModelConfig
+    | DelegationModelConfig
+    | FallbackModelConfig
+    | ImportModelConfig
+    | InputModelConfig
+    | LLMAdapterConfig
+    | RemoteInputConfig
+    | RemoteProxyConfig
+    | TokenOptimizedModelConfig
+    | StringModelConfig
+    | TestModelConfig
+    | UserSelectModelConfig,
+    Field(discriminator="type"),
+]

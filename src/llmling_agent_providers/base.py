@@ -70,6 +70,10 @@ class StreamingResponseProtocol[TResult](Protocol):
         """Get token usage statistics if available."""
         ...
 
+    # def cost(self) -> Usage:
+    #     """Get token usage statistics if available."""
+    #     ...
+
 
 @dataclass
 class UsageLimits:
@@ -197,7 +201,7 @@ class AgentProvider[TDeps]:
                 if not self.model_name:
                     return False
                 caps = await tokonomics.get_model_capabilities(self.model_name)
-                return (caps and caps.supports_vision) or False
+                return caps and caps.supports_vision
             case _:
                 return False
 

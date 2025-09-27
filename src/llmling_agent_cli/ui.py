@@ -27,11 +27,7 @@ def ui_command(
     try:
         config_path = resolve_agent_config(config_path)
         pool = AgentPool[None](config_path)
-
-        # Get UI config from manifest
         ui_config = pool.manifest.ui
-
-        # Create appropriate provider based on config type
         match ui_config.type:
             case StdlibUIConfig():
                 from llmling_agent_ui.stdlib_provider import StdlibUIProvider
@@ -51,7 +47,6 @@ def ui_command(
                 msg = f"Unknown UI type: {ui_config.type}"
                 raise ValueError(msg)  # noqa: TRY301
 
-        # Run the UI with pool
         provider.run_pool(pool)
 
     except Exception as e:
