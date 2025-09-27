@@ -296,7 +296,10 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
             )
             usage = result.usage()
             responses = [m for m in new_msgs if isinstance(m, ModelResponse)]
-            cost_sum = sum(i.cost().total_price for i in responses)
+            try:
+                cost_sum = sum(i.cost().total_price for i in responses)
+            except LookupError:
+                cost_sum = Decimal(0)
             token_usage = TokenUsage(
                 total=usage.total_tokens,
                 prompt=usage.input_tokens,
