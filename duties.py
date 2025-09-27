@@ -43,7 +43,7 @@ def lint(ctx):
     """Lint the code and fix issues if possible."""
     ctx.run("uv run ruff check --fix --unsafe-fixes .")
     ctx.run("uv run ruff format .")
-    ctx.run("uv run mypy src/llmling_agent/")
+    ctx.run("uv run mypy src/")
 
 
 @duty(capture=False)
