@@ -65,7 +65,6 @@ def task_command(
 ):
     """Execute a task with the specified agent."""
     try:
-        # Set up logging
         level = getattr(logging, log_level.upper())
         logging.basicConfig(level=level)
         logger = logging.getLogger("llmling_agent.task")
@@ -79,12 +78,9 @@ def task_command(
             msg = str(e)
             raise t.BadParameter(msg) from e
 
-        # Load manifest
         from llmling_agent import AgentsManifest
 
         manifest = AgentsManifest.from_file(config_path)
-
-        # Execute task
         result = asyncio.run(execute_job(agent_name, task_name, manifest, prompt=prompt))
         print(result)
 

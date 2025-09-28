@@ -30,9 +30,8 @@ class CLISessionInputProvider(InputProvider):
     ) -> Any:
         # Use session's prompt and formatting
         if result_type:
-            self.session.console.print(
-                f"\nPlease provide response as {result_type.__name__}:"
-            )
+            msg = f"\nPlease provide response as {result_type.__name__}:"
+            self.session.console.print(msg)
 
         assert self.session._prompt  # should be set up by InteractiveSession
         return await self.session._prompt.prompt_async(prompt + "\n> ")
@@ -93,8 +92,5 @@ class CLISessionInputProvider(InputProvider):
             self.session.console.print(f"\n{description}")
         lexer = PygmentsLexer(PythonLexer)
         session = PromptSession[Any](multiline=True, lexer=lexer)
-
-        return await session.prompt_async(
-            "\nEnter code (ESC + Enter to submit):\n",
-            default=template or "",
-        )
+        msg = "\nEnter code (ESC + Enter to submit):\n"
+        return await session.prompt_async(msg, default=template or "")

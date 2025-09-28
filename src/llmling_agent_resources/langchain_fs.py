@@ -14,6 +14,8 @@ if TYPE_CHECKING:
     from langchain.document_loaders import BaseLoader  # pyright: ignore
     from langchain.schema import Document  # pyright: ignore
 
+OpenMode = Literal["rb", "r"]
+
 
 class LangchainPath(UPath):
     """UPath implementation for browsing Langchain document loaders."""
@@ -111,12 +113,7 @@ class LangChainFileSystem(AsyncFileSystem):
 
         return self._documents[path].page_content.encode()
 
-    async def _open(
-        self,
-        path: str,
-        mode: Literal["rb", "r"] = "rb",
-        **kwargs: Any,
-    ) -> Any:
+    async def _open(self, path: str, mode: OpenMode = "rb", **kwargs: Any) -> Any:
         """Provide file-like access to document content."""
         await self._load_documents()
 
@@ -138,12 +135,8 @@ class LangChainFileSystem(AsyncFileSystem):
             raise FileNotFoundError(msg)
 
         doc = self._documents[path]
-        return {
-            "name": path,
-            "size": len(doc.page_content),
-            "type": "file",
-            **doc.metadata,
-        }
+        size = len(doc.page_content)
+        return {"name": path, "size": size, "type": "file", **doc.metadata}
 
     async def _isfile(self, path: str) -> bool:
         """Check if path is a file."""

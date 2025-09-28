@@ -82,12 +82,7 @@ def api_command(
         server.app.docs_url = None
         server.app.redoc_url = None
 
-    uvicorn.run(
-        server.app,
-        host=host,
-        port=port,
-        log_level=log_level.lower(),
-    )
+    uvicorn.run(server.app, host=host, port=port, log_level=log_level.lower())
 
 
 if __name__ == "__main__":

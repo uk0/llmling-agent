@@ -44,22 +44,16 @@ def serve_command(
         print(message.format(style="simple"))
 
     async def run_server():
-        # Create server config that overrides any manifest settings
-        # Load manifest
-        manifest = AgentsManifest.from_file(config)
-
         # Override/set server config before creating pool
+        manifest = AgentsManifest.from_file(config)
         manifest.pool_server = PoolServerConfig(
             enabled=True,
-            transport=transport,  # type: ignore
+            transport=transport,
             host=host,
             port=port,
             zed_mode=zed_mode,
         )
-
-        # Create pool with modified manifest
         async with AgentPool[None](manifest) as pool:
-            # Optionally show messages
             if show_messages:
                 for agent in pool.agents.values():
                     agent.message_sent.connect(on_message)

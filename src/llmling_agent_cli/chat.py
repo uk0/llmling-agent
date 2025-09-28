@@ -55,7 +55,6 @@ def chat_command(
     logging.basicConfig(level=level)
 
     try:
-        # Resolve configuration
         try:
             config_path = resolve_agent_config(config)
         except ValueError as e:
@@ -63,17 +62,11 @@ def chat_command(
             raise t.BadParameter(msg) from e
 
         async def run_chat():
-            # Create pool with main agent and forwarding targets
-            async with AgentPool[None](
-                config_path,
-                connect_nodes=False,  # We'll handle connections manually
-            ) as pool:
-                # Get main agent
+            # Create pool with main agent, forwarding targets, and connections
+            async with AgentPool[None](config_path, connect_nodes=False) as pool:
                 agent: Agent[Any] = pool.get_agent(agent_name, session=session_id)
                 if model:
                     agent.set_model(model)
-
-                # Set up forwarding if requested
                 if connections:
                     for target in connections:
                         target_agent = pool.get_agent(target)

@@ -31,7 +31,6 @@ def init_agent_config(
     Creates and activates a new agent configuration. The configuration will be
     automatically registered and set as active.
     """
-    # Create config
     from upath import UPath
 
     if interactive:
@@ -48,7 +47,6 @@ def init_agent_config(
 
         shutil.copy2(config_resources.AGENTS_TEMPLATE, output)
 
-    # Add and set as active
     config_name = name or UPath(output).stem
     agent_store.add_config(config_name, output)
     agent_store.set_active(config_name)
@@ -109,7 +107,6 @@ def list_agents(
             msg = str(e)
             raise t.BadParameter(msg) from e
 
-        # Load and validate agent definition
         agent_def = AgentsManifest.from_file(config_path)
         # Set the name field from the dict key for each agent
         agents = [ag.model_copy(update={"name": n}) for n, ag in agent_def.agents.items()]
