@@ -119,13 +119,8 @@ def acp_command(
         logger.info("Configured %d agents for ACP protocol", agent_count)
         if show_messages:
             logger.info("Message activity logging enabled")
-        logger.info(
-            "Starting ACP server with protocol features: "
-            "file_access=%s, terminal_access=%s, session_support=%s",
-            file_access,
-            terminal_access,
-            session_support,
-        )
+        msg = "Starting ACP server (file_access=%s terminal_access=%s session_support=%s)"
+        logger.info(msg, file_access, terminal_access, session_support)
 
         try:
             await acp_server.run()
@@ -137,7 +132,6 @@ def acp_command(
         finally:
             await acp_server.shutdown()
 
-    # Run the async server
     try:
         asyncio.run(run_acp_server())
     except KeyboardInterrupt:
@@ -148,6 +142,4 @@ def acp_command(
 
 
 if __name__ == "__main__":
-    import typer
-
-    typer.run(acp_command)
+    t.run(acp_command)

@@ -211,9 +211,8 @@ class AgentSideConnection(Client):
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
-        resp = await self._conn.send_request(
-            CLIENT_METHODS["session_request_permission"], dct
-        )
+        method = CLIENT_METHODS["session_request_permission"]
+        resp = await self._conn.send_request(method, dct)
         return RequestPermissionResponse.model_validate(resp)
 
     async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
