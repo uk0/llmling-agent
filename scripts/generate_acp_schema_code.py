@@ -98,6 +98,8 @@ def main() -> None:
             "--collapse-root-models",
             "--output-model-type",
             "pydantic_v2.BaseModel",
+            "--base-class",
+            "acp.base.Schema",
             "--use-annotated",
             "--use-one-literal-as-default",
             "--enum-field-as-literal",
@@ -107,7 +109,6 @@ def main() -> None:
             "--use-standard-collections",
             # "--use-field-description",
             "--use-schema-description",
-            "--allow-population-by-field-name",
             "--snake-case-field",
             "--use-generic-container-types",
         ]
