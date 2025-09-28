@@ -98,7 +98,7 @@ def main() -> None:
             "--collapse-root-models",
             "--output-model-type",
             "pydantic_v2.BaseModel",
-            # "--use-annotated",
+            "--use-annotated",
             "--use-one-literal-as-default",
             "--enum-field-as-literal",
             "all",
