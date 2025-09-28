@@ -105,6 +105,7 @@ def main() -> None:
             "--use-double-quotes",
             "--use-union-operator",
             "--use-standard-collections",
+            # "--use-field-description",
             "--use-schema-description",
             "--allow-population-by-field-name",
             "--snake-case-field",

@@ -139,9 +139,8 @@ class CallbackProvider(AgentProvider[None]):
 
 
 if __name__ == "__main__":
-    # Example usage with streaming
+
     async def main():
-        # Create processor
         from llmling_agent.agent.agent import Agent
 
         provider = CallbackProvider(str.upper, name="uppercase")
@@ -150,8 +149,6 @@ if __name__ == "__main__":
         # Normal usage
         result = await uppercase.run("hello")
         print(result.content)  # "HELLO"
-
-        # Streaming usage
         async with uppercase.run_stream("hello") as stream:
             async for chunk in stream.stream_output():
                 print(f"Chunk: {chunk}")  # Will print "HELLO" once
