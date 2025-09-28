@@ -101,6 +101,7 @@ def main() -> None:
             "--base-class",
             "acp.base.Schema",
             "--use-annotated",
+            "--no-alias",
             "--use-one-literal-as-default",
             "--enum-field-as-literal",
             "all",
