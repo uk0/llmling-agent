@@ -95,7 +95,7 @@ class Connection:
         except RequestError as re:
             payload["error"] = re.to_error_obj()
         except ValidationError as ve:
-            data = {"errors": ve.errors()}
+            data: dict[str, Any] = {"errors": ve.errors()}
             payload["error"] = RequestError.invalid_params(data).to_error_obj()
         except Exception as err:  # noqa: BLE001
             try:
