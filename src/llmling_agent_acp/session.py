@@ -621,6 +621,7 @@ class ACPSession:
                                 tool_output=None,  # Not available yet
                                 session_id=self.session_id,
                                 status="pending",
+                                tool_call_id=tool_call_id,
                             )
                             yield tool_notification
 
@@ -637,6 +638,7 @@ class ACPSession:
                                 tool_output=result_event.result.content,
                                 session_id=self.session_id,
                                 status="completed",
+                                tool_call_id=tool_call_id,
                             )
                             yield tool_notification
 
@@ -658,6 +660,7 @@ class ACPSession:
                                 tool_output=f"Error: {error_message}",
                                 session_id=self.session_id,
                                 status="failed",
+                                tool_call_id=tool_call_id,
                             )
                             yield tool_notification
 
