@@ -183,16 +183,18 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
                 content.append(formatted_uri)
 
             case EmbeddedResourceContentBlock():
-                # Embedded resources
                 match block.resource:
                     case TextResourceContents():
-                        # Include the actual text content
-                        content.append(
-                            f"Resource ({block.resource.uri}):\n{block.resource.text}"
-                        )
+                        uri = block.resource.uri
+                        text = block.resource.text
+                        formatted_uri = format_uri_as_link(uri)
+                        content.append(formatted_uri)
+                        context_block = f'\n<context ref="{uri}">\n{text}\n</context>'
+                        content.append(context_block)
                     case _:
-                        # Binary resource - just describe it
-                        content.append(f"Binary Resource: {block.resource.uri}")
+                        # Binary resource - just describe it with formatted URI
+                        formatted_uri = format_uri_as_link(block.resource.uri)
+                        content.append(f"Binary Resource: {formatted_uri}")
 
     return content
 
