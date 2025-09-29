@@ -240,6 +240,7 @@ def format_tool_call_for_acp(
     tool_output: Any,
     session_id: str,
     status: ToolCallStatus = "completed",
+    tool_call_id: str | None = None,
 ) -> SessionNotification:
     """Format tool execution as ACP tool call update.
 
@@ -268,7 +269,7 @@ def format_tool_call_for_acp(
     ]
 
     tool_call = ToolCall(
-        tool_call_id=f"{tool_name}_{hash(str(tool_input))}",
+        tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
         title=f"Execute {tool_name}",
         status=status,
         kind=_determine_tool_kind(tool_name),
