@@ -23,7 +23,8 @@ class ResponsesServer:
         self.setup_routes()
 
     def verify_api_key(
-        self, authorization: Annotated[str | None, Header(alias="Authorization")] = None
+        self,
+        authorization: Annotated[str | None, Header(alias="Authorization")] = None,
     ):
         """Verify API key if configured."""
         if not authorization:
@@ -33,9 +34,8 @@ class ResponsesServer:
 
     def setup_routes(self):
         """Set up API routes."""
-        self.app.post("/v1/responses", dependencies=[Depends(self.verify_api_key)])(
-            self.create_response
-        )
+        deps = Depends(self.verify_api_key)
+        self.app.post("/v1/responses", dependencies=[deps])(self.create_response)
 
     async def create_response(self, req_body: ResponseRequest) -> Response:
         """Handle response creation requests."""
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     async def main():
         """Run server and test client."""
         pool = AgentPool[None]()
-        await pool.add_agent("gpt-5", model="openai:gpt-5")
+        await pool.add_agent("gpt-5", model="openai:gpt-5-nano")
         async with pool:
             server = ResponsesServer(pool)
             config = uvicorn.Config(
