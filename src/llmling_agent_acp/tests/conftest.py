@@ -74,10 +74,7 @@ class TestAgent(Agent):
 @pytest.fixture
 def test_client() -> DefaultACPClient:
     """Create a fresh test client for each test."""
-    return DefaultACPClient(
-        allow_file_operations=True,
-        use_real_files=False,  # Use in-memory storage for tests
-    )
+    return DefaultACPClient(allow_file_operations=True, use_real_files=False)
 
 
 @pytest.fixture

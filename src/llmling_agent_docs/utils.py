@@ -9,11 +9,10 @@ from typing import Literal
 import mknodes as mk
 
 
-def create_example_doc(
-    name: str,
-    *,
-    style: Literal["simple", "full"] = "full",
-) -> mk.MkContainer:
+DocStyle = Literal["simple", "full"]
+
+
+def create_example_doc(name: str, *, style: DocStyle = "full") -> mk.MkContainer:
     """Create documentation for an example file.
 
     Args:
@@ -27,7 +26,6 @@ def create_example_doc(
         Container with all documentation elements
     """
     path = Path("src/llmling_agent_examples") / name
-
     if not path.exists():
         msg = f"Example {name} not found"
         raise FileNotFoundError(msg)
@@ -45,5 +43,4 @@ def create_example_doc(
 
     # Add the code itself
     container += mk.MkCode(path.read_text(encoding="utf-8"), language="python")
-
     return container

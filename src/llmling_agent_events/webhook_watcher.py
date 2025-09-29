@@ -45,11 +45,10 @@ class WebhookEventSource(EventSource):
         """Start webhook server."""
         import uvicorn
 
-        self.server = uvicorn.Server(
-            config=uvicorn.Config(
-                self.app, host="0.0.0.0", port=self.config.port, log_level="error"
-            )
+        cfg = uvicorn.Config(
+            self.app, host="0.0.0.0", port=self.config.port, log_level="error"
         )
+        self.server = uvicorn.Server(config=cfg)
         await self.server.serve()
 
     async def disconnect(self):

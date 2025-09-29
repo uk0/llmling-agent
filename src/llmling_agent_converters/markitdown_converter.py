@@ -48,8 +48,7 @@ class MarkItDownConverter(DocumentConverter):
             if mime_type:
                 import mimetypes
 
-                ext = mimetypes.guess_extension(mime_type)
-                if ext:
+                if ext := mimetypes.guess_extension(mime_type):
                     suffix = ext
 
             # Write content to temporary file

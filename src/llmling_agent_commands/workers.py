@@ -138,9 +138,7 @@ async def list_workers_command(
 ):
     """List all worker tools."""
     # Filter tools by source="agent"
-    worker_tools = [
-        info for info in ctx.context.agent.tools.values() if info.source == "agent"
-    ]
+    worker_tools = [i for i in ctx.context.agent.tools.values() if i.source == "agent"]
 
     if not worker_tools:
         await ctx.output.print("No worker tools registered")

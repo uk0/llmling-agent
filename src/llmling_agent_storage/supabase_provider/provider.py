@@ -139,11 +139,8 @@ class SupabaseProvider(StorageProvider):
     ):
         """Log conversation start."""
         assert self.client, "Client not initialized"
-        data = {
-            "id": conversation_id,
-            "agent_name": node_name,
-            "start_time": start_time or get_now(),
-        }
+        start = start_time or get_now()
+        data = {"id": conversation_id, "agent_name": node_name, "start_time": start}
         await self.client.from_("conversations").insert(data).execute()
 
     async def log_tool_call(

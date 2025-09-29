@@ -90,10 +90,8 @@ def register_handlers(llm_server: LLMLingServer):  # noqa: PLR0915
         try:
             message = await llm_server.provider.get_formatted_prompt(name, arguments)
             mcp_msg = conversions.to_mcp_message(message)
-            return types.GetPromptResult(
-                messages=[mcp_msg],
-                description=message.metadata.get("prompt_name"),  # type: ignore
-            )
+            desc = message.metadata.get("prompt_name")
+            return types.GetPromptResult(messages=[mcp_msg], description=desc)  # type: ignore
         except KeyError as exc:
             error_data = mcp.ErrorData(code=types.INVALID_PARAMS, message=str(exc))
             raise mcp.McpError(error_data) from exc

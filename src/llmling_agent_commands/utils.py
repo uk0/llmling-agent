@@ -107,9 +107,8 @@ class EditAgentFileCommand(SlashedCommand):
 
         try:
             webbrowser.open(config.config_file_path)
-            await ctx.output.print(
-                f"Opening agent configuration: {config.config_file_path}"
-            )
+            msg = f"Opening agent configuration: {config.config_file_path}"
+            await ctx.output.print(msg)
         except Exception as e:
             msg = f"Failed to open configuration file: {e}"
             raise CommandError(msg) from e

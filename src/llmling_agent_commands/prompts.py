@@ -44,9 +44,8 @@ async def prompt_command(
 ):
     """Show prompt content."""
     if not args:
-        await ctx.output.print(
-            "Usage: /prompt <[provider:]identifier[@version][?var=val]>"
-        )
+        msg = "Usage: /prompt <[provider:]identifier[@version][?var=val]>"
+        await ctx.output.print(msg)
         return
 
     try:

@@ -69,8 +69,6 @@ class LocalWhisperConverter(DocumentConverter):
 
         audio = whisper.load_audio(io.BytesIO(content))
         assert self._model
-        result = self._model.transcribe(
-            audio,
-            fp16=(self.config.compute_type == "float16"),
-        )
+        is_fp16 = self.config.compute_type == "float16"
+        result = self._model.transcribe(audio, fp16=(is_fp16))
         return result["text"]

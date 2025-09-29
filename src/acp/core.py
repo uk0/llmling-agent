@@ -635,14 +635,14 @@ def create_session_model_state(
     if not available_models:
         return None
     # Create ModelInfo objects for each available model
-    models: list[ModelInfo] = []
-    for model in available_models:
-        info = ModelInfo(
+    models = [
+        ModelInfo(
             model_id=model.pydantic_ai_id,
             name=f"{model.provider}: {model.name}",
             description=model.description,
         )
-        models.append(info)
+        for model in available_models
+    ]
 
     # Use first model as current if not specified
     current_model_id = current_model or available_models[0].pydantic_ai_id

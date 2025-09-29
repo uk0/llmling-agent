@@ -103,15 +103,13 @@ class EmailEventSource(EventSource):
                     content = payload.decode()
 
         # Create event with email metadata
+        meta = {"date": email_msg["date"], "message_id": email_msg["message-id"]}
         return EmailEventData(
             source=self.config.name,
             subject=email_msg["subject"],
             sender=email_msg["from"],
             body=content,
-            metadata={
-                "date": email_msg["date"],
-                "message_id": email_msg["message-id"],
-            },
+            metadata=meta,
         )
 
     async def events(self) -> AsyncGenerator[EventData, None]:

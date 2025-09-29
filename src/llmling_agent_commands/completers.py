@@ -84,18 +84,16 @@ class PromptCompleter(CompletionProvider):
         if ":" not in current:
             # Always suggest builtin prompts without prefix
             for name in manifest.prompts.system_prompts:
-                if name.startswith(current):
-                    yield CompletionItem(
-                        text=name, metadata="Builtin prompt", kind="choice"
-                    )
+                if not name.startswith(current):
+                    continue
+                yield CompletionItem(name, metadata="Builtin prompt", kind="choice")
 
             # Suggest provider prefixes
             for provider in manifest.prompts.providers or []:
                 prefix = f"{provider.type}:"
-                if prefix.startswith(current):
-                    yield CompletionItem(
-                        text=prefix, metadata="Prompt provider", kind="choice"
-                    )
+                if not prefix.startswith(current):
+                    continue
+                yield CompletionItem(prefix, metadata="Prompt provider", kind="choice")
             return
 
         # If after provider:, get prompts from that provider
@@ -103,9 +101,7 @@ class PromptCompleter(CompletionProvider):
         if _provider == "builtin" or not _provider:
             # Complete from system prompts
             for name in manifest.prompts.system_prompts:
-                if name.startswith(partial):
-                    yield CompletionItem(
-                        text=f"{_provider}:{name}" if _provider else name,
-                        metadata="Builtin prompt",
-                        kind="choice",
-                    )
+                if not name.startswith(partial):
+                    continue
+                text = f"{_provider}:{name}" if _provider else name
+                yield CompletionItem(text=text, metadata="Builtin prompt", kind="choice")
