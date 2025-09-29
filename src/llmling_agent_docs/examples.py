@@ -43,7 +43,7 @@ def gen_docs(page: mk.MkPage):
     agent = Agent[None](model="openai:gpt-5-mini")
     content = pathlib.Path("src/llmling_agent/__init__.py")
     page += mk.MkAdmonition(INTRO)
-    page += mk.MkCode(pathlib.Path(__file__).read_text())
+    page += mk.MkCode(pathlib.Path(__file__).read_text(encoding="utf-8"))
     result = agent.run_sync(
         "Group and list the given classes. Use markdown for the group headers", content
     )

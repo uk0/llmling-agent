@@ -40,10 +40,10 @@ def create_example_doc(
         container += mk.MkHeader(title, level=2)
 
         # Add description from docstring if available
-        if docstring := ast.get_docstring(ast.parse(path.read_text())):
+        if docstring := ast.get_docstring(ast.parse(path.read_text(encoding="utf-8"))):
             container += docstring
 
     # Add the code itself
-    container += mk.MkCode(path.read_text(), language="python")
+    container += mk.MkCode(path.read_text(encoding="utf-8"), language="python")
 
     return container

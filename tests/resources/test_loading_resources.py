@@ -64,7 +64,7 @@ async def test_resource_registry():
 #     test_content = "test content"
 #     test_file = path / "test.txt"
 #     await test_file.write_text(test_content)
-#     assert await test_file.read_text() == test_content
+#     assert await test_file.read_text(encoding="utf-8") == test_content
 
 #     # Test exists
 #     assert await test_file.exists()

@@ -183,7 +183,7 @@ def _rename_numbered_classes(file_path: Path) -> None:
         "AvailableCommandInput1": "CommandInputHint",
     }
 
-    content = file_path.read_text()
+    content = file_path.read_text(encoding="utf-8")
 
     # Replace class definitions and all references
     # Sort by length descending to avoid partial matches (e.g., avoid replacing

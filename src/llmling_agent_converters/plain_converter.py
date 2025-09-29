@@ -38,7 +38,7 @@ class PlainConverter(DocumentConverter):
     def convert_file(self, path: StrPath) -> str:
         """Just read the file as text."""
         try:
-            return UPath(path).read_text()
+            return UPath(path).read_text(encoding="utf-8")
         except Exception as e:
             msg = f"Failed to read file {path}"
             logger.exception(msg)
