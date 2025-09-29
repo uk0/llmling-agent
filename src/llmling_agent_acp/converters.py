@@ -233,6 +233,7 @@ def format_tool_call_for_acp(
         tool_output: Output returned by the tool
         session_id: ACP session identifier
         status: Execution status
+        tool_call_id: Tool call identifier
 
     Returns:
         SessionNotification with tool call update
