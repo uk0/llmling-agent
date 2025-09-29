@@ -154,6 +154,9 @@ class ConversationManager:
             case str():
                 query = SessionQuery(name=key)
                 return self._agent.context.storage.filter_messages_sync(query=query)
+            case _:
+                msg = f"Invalid key type: {type(key)}"
+                raise TypeError(msg)
 
     def __contains__(self, item: Any) -> bool:
         """Check if item is in history."""
