@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from acp.acp_types import ContentBlock, MCPServer, ToolCallStatus
+    from llmling_agent.models.content import BaseContent
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 
@@ -115,41 +116,56 @@ def convert_acp_mcp_server_to_config(acp_server: MCPServer) -> MCPServerConfig:
             raise ValueError(msg)
 
 
-def from_content_blocks(blocks: Sequence[ContentBlock]) -> str:
-    """Convert ACP content blocks to a single prompt string for llmling agents.
+def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseContent]:
+    """Convert ACP content blocks to structured content objects.
 
     Args:
         blocks: List of ACP ContentBlock objects
 
     Returns:
-        Combined prompt string suitable for llmling agents
+        List of content objects (str for text, Content objects for rich media)
     """
-    parts = []
+    from llmling_agent.models.content import AudioBase64Content, ImageBase64Content
+
+    content: list[str | BaseContent] = []
 
     for block in blocks:
         match block:
-            case TextContentBlock():  # Text content
-                parts.append(block.text)
-            case ImageContentBlock():  # Image content
-                parts.append(f"[Image: {block.mime_type}]")
-                if block.uri:
-                    parts.append(f"Image URI: {block.uri}")
-            case AudioContentBlock():  # Audio content
-                parts.append(f"[Audio: {block.mime_type}]")
-            case ResourceContentBlock():  # Resource link
-                parts.append(f"[Resource: {block.name}]")
+            case TextContentBlock():
+                content.append(block.text)
+
+            case ImageContentBlock():
+                # Images always have data, optionally uri
+                content.append(
+                    ImageBase64Content(data=block.data, mime_type=block.mime_type)
+                )
+
+            case AudioContentBlock():
+                # Audio always has data
+                format_type = block.mime_type.split("/")[-1] if block.mime_type else "mp3"
+                content.append(AudioBase64Content(data=block.data, format=format_type))
+
+            case ResourceContentBlock():
+                # Resource links - convert to text for now
+                parts = [f"Resource: {block.name}"]
                 if block.description:
                     parts.append(f"Description: {block.description}")
                 parts.append(f"URI: {block.uri}")
-            case EmbeddedResourceContentBlock():  # Embedded resource
-                parts.append(f"[Resource: {block.resource.uri}]")
+                content.append("\n".join(parts))
+
+            case EmbeddedResourceContentBlock():
+                # Embedded resources
                 match block.resource:
                     case TextResourceContents():
-                        parts.append(block.resource.text)
+                        # Include the actual text content
+                        content.append(
+                            f"Resource ({block.resource.uri}):\n{block.resource.text}"
+                        )
                     case _:
-                        parts.append("[Binary Resource]")
+                        # Binary resource - just describe it
+                        content.append(f"Binary Resource: {block.resource.uri}")
 
-    return "\n".join(parts) if parts else ""
+    return content
 
 
 def to_session_updates(response: str, session_id: str) -> list[SessionNotification]:

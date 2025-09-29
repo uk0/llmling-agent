@@ -11,6 +11,11 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import Agent as PydanticAIAgent
 
+from acp.schema import (
+    AgentMessageChunk,
+    SessionNotification,
+    TextContentBlock,
+)
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent_acp.command_bridge import is_slash_command
@@ -35,13 +40,14 @@ if TYPE_CHECKING:
     from acp.acp_types import ContentBlock, MCPServer, StopReason
     from acp.schema import AvailableCommand, ClientCapabilities
     from llmling_agent import Agent, AgentPool
+    from llmling_agent.models.content import BaseContent
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
     from llmling_agent_acp.command_bridge import ACPCommandBridge
 
     # from llmling_agent_acp.permission_server import PermissionMCPServer
     from llmling_agent_providers.base import UsageLimits
 
-from acp.schema import AvailableCommandsUpdate, SessionNotification
+from acp.schema import AvailableCommandsUpdate
 
 
 logger = get_logger(__name__)
@@ -113,12 +119,8 @@ class ACPSession:
             current_agent.tools.add_provider(self.capability_provider)
 
         # Add cwd context to all agents in the pool
-        def get_cwd_context() -> str:
-            return f"Working directory: {self.cwd}" if self.cwd else ""
-
-        self._cwd_context_callable = get_cwd_context
         for agent in self.agent_pool.agents.values():
-            agent.sys_prompts.prompts.append(self._cwd_context_callable)  # pyright: ignore[reportArgumentType]
+            agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
 
         msg = "Created ACP session %s with agent pool (current: %s)"
         logger.info(msg, session_id, current_agent_name)
@@ -208,6 +210,10 @@ class ACPSession:
         """Get the currently active agent."""
         return self.agent_pool.get_agent(self.current_agent_name)
 
+    def get_cwd_context(self) -> str:
+        """Get current working directory context for prompts."""
+        return f"Working directory: {self.cwd}" if self.cwd else ""
+
     async def switch_active_agent(self, agent_name: str) -> None:
         """Switch to a different agent in the pool.
 
@@ -279,34 +285,49 @@ class ACPSession:
                     yield "cancelled"
                     return
 
-                # Convert content blocks to prompt text
-                prompt_text = from_content_blocks(content_blocks)
-                blocks = [
-                    {"type": b.type, "content": str(b)[:50]} for b in content_blocks
-                ]
-                logger.info("Content blocks received: %s", blocks)
-                logger.info("Converted prompt text: %r", prompt_text)
+                # Convert content blocks to structured content
+                contents = from_content_blocks(content_blocks)
+                logger.info("Converted content: %r", contents)
 
-                if not prompt_text.strip():
+                if not contents:
                     msg = "Empty prompt received for session %s"
                     logger.warning(msg, self.session_id)
                     yield "refusal"
                     return
 
-                # Check for slash commands
-                if self.command_bridge and is_slash_command(prompt_text):
-                    logger.info("Processing slash command: %s", prompt_text)
-                    async for notification in self.command_bridge.execute_slash_command(
-                        prompt_text, self
-                    ):
-                        yield notification
-                    yield "end_turn"
-                    return
-                msg = "Processing prompt for session %s: %s"
-                logger.debug(msg, self.session_id, prompt_text[:100])
+                # Check for slash commands in text content
+                commands = []
+                non_command_content = []
+
+                for item in contents:
+                    if isinstance(item, str) and is_slash_command(item):
+                        # Found a slash command
+                        command_text = item.strip()
+                        logger.info("Found slash command: %s", command_text)
+                        commands.append(command_text)
+                    else:
+                        non_command_content.append(item)
+
+                # Process commands if found
+                if commands and self.command_bridge:
+                    for command in commands:
+                        logger.info("Processing slash command: %s", command)
+                        async for (
+                            notification
+                        ) in self.command_bridge.execute_slash_command(command, self):
+                            yield notification
+
+                    # If only commands, end turn
+                    if not non_command_content:
+                        yield "end_turn"
+                        return
+
+                # Pass structured content to agent for processing
+                msg = "Processing prompt for session %s with %d content items"
+                logger.debug(msg, self.session_id, len(non_command_content))
                 notification_count = 0
                 stop_reason = None
-                async for result in self._process_iter_response(prompt_text):
+                async for result in self._process_iter_response(non_command_content):
                     if isinstance(result, str):
                         # Stop reason received
                         stop_reason = result
@@ -328,18 +349,18 @@ class ACPSession:
                 # Send error as agent message
                 msg = f"I encountered an error while processing your request: {e}"
                 error_updates = to_session_updates(msg, self.session_id)
-                for update in error_updates:
-                    yield update
+                for error_update in error_updates:
+                    yield error_update
                 # Return refusal for errors
                 yield "refusal"
 
     async def _process_iter_response(  # noqa: PLR0915
-        self, prompt: str
+        self, content: list[str | BaseContent]
     ) -> AsyncGenerator[SessionNotification | StopReason, None]:
-        """Process prompt using agent iteration for comprehensive streaming.
+        """Process content using agent iteration for comprehensive streaming.
 
         Args:
-            prompt: Prompt text to process
+            content: List of content objects (strings and Content objects)
 
         Yields:
             SessionNotification objects for all agent execution events,
@@ -347,22 +368,18 @@ class ACPSession:
         """
         from pydantic_ai.exceptions import UsageLimitExceeded
 
-        from acp.schema import AgentMessageChunk, TextContentBlock
+        msg = "Starting agent.iterate_run for session %s with %d content items"
+        logger.info(msg, self.session_id, len(content))
+        logger.info("Agent model: %s", self.agent.model_name)
 
         try:
-            response_parts = []
-            msg = "Starting agent.iterate_run for session %s with prompt: %r"
-            logger.info(msg, self.session_id, prompt[:100])
-            logger.info("Agent model: %s", self.agent.model_name)
-
             async with self.agent.iterate_run(
-                prompt, usage_limits=self.usage_limits
+                *content, usage_limits=self.usage_limits
             ) as agent_run:
                 logger.info("Agent run started for session %s", self.session_id)
                 node_count = 0
                 has_yielded_anything = False
                 async for node in agent_run:
-                    # Check for cancellation
                     if self._cancelled:
                         yield "cancelled"
                         return
@@ -414,8 +431,6 @@ class ACPSession:
                         msg = "End node reached with output: %r"
                         logger.info(msg, final_content[:100])
                         if final_content.strip():
-                            response_parts.append(final_content)
-
                             # Send final response as session update if nothing streamed
                             if not has_yielded_anything:
                                 msg = (
@@ -463,7 +478,7 @@ class ACPSession:
             for error_update in error_updates:
                 yield error_update
 
-    async def _stream_model_request(  # noqa: PLR0915
+    async def _stream_model_request(
         self,
         node: ModelRequestNode[Any, Any],
         agent_run: AgentRun[Any, Any],
@@ -486,11 +501,8 @@ class ACPSession:
             ToolCallPartDelta,
         )
 
-        from acp.schema import AgentMessageChunk, TextContentBlock
-
         try:
             async with node.stream(agent_run.ctx) as request_stream:
-                text_content = []
                 event_count = 0
                 msg = "Starting to iterate over request_stream events for session %s"
                 logger.info(msg, self.session_id)
@@ -514,9 +526,6 @@ class ACPSession:
                             msg = "Processing TextPartDelta (length=%d) %r for session %s"
                             logger.info(msg, len(content), content[:100], self.session_id)
                             # Stream text deltas directly as single agent message chunks
-                            text_content.append(content)
-
-                            # Create single chunk update directly
                             content_block = TextContentBlock(text=content)
                             update = AgentMessageChunk(content=content_block)
                             notification = SessionNotification(
@@ -527,10 +536,7 @@ class ACPSession:
                             yield notification
 
                         case PartDeltaEvent(delta=TextPartDelta(content_delta=content)):
-                            msg = (
-                                "Received TextPartDelta with empty/falsy content:"
-                                " %r for session %s"
-                            )
+                            msg = "Received empty/falsy TextPartDelta %r for session %s"
                             logger.info(msg, content, self.session_id)
 
                         case PartDeltaEvent(
@@ -555,12 +561,6 @@ class ACPSession:
                         case _:
                             msg = "Received unhandled event type: %s for session %s"
                             logger.info(msg, type(event).__name__, self.session_id)
-
-                # Log accumulated text content if any
-                if text_content:
-                    accumulated_text = "".join(text_content)
-                    msg = "Received streaming response for session %s: %r"
-                    logger.debug(msg, self.session_id, accumulated_text[:100])
 
         except Exception:
             msg = "Error streaming model request for session %s"
@@ -648,7 +648,6 @@ class ACPSession:
                                 tool_call_id=tool_call_id,
                             )
                             yield tool_notification
-
                             # Clean up stored input
                             inputs.pop(tool_call_id, None)
 
@@ -726,8 +725,8 @@ class ACPSession:
 
             # Remove cwd context callable from all agents
             for agent in self.agent_pool.agents.values():
-                if self._cwd_context_callable in agent.sys_prompts.prompts:
-                    agent.sys_prompts.prompts.remove(self._cwd_context_callable)  # pyright: ignore[reportArgumentType]
+                if self.get_cwd_context in agent.sys_prompts.prompts:
+                    agent.sys_prompts.prompts.remove(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
                 self.capability_provider = None
 
             # Note: Individual agents are managed by the pool's lifecycle
