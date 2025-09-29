@@ -544,7 +544,6 @@ class ACPSession:
                         ) if content:
                             msg = "Processing ThinkingPartDelta %r for session %s"
                             logger.info(msg, content, self.session_id)
-                            # Stream thinking as agent thought chunks
                             thought_notification = create_thought_chunk(
                                 content, self.session_id
                             )

@@ -70,9 +70,7 @@ class ACPCommandBridge:
         self.command_store = command_store
         self._update_callbacks: list[Callable[[], None]] = []
 
-    def to_available_commands(
-        self, context: AgentContext[Any] | None = None
-    ) -> list[AvailableCommand]:
+    def to_available_commands(self, context: AgentContext[Any]) -> list[AvailableCommand]:
         """Convert slashed commands to ACP format.
 
         Args:
@@ -81,14 +79,9 @@ class ACPCommandBridge:
         Returns:
             List of ACP AvailableCommand objects
         """
-        available_commands = [
-            cmd
-            for cmd in self.command_store.list_commands()
-            if not context or _is_command_available(cmd, context)
-        ]
         return [
             acp_cmd
-            for cmd in available_commands
+            for cmd in self.command_store.list_commands()
             if (acp_cmd := _convert_command(cmd)) is not None
         ]
 
@@ -106,8 +99,12 @@ class ACPCommandBridge:
         Yields:
             SessionNotification objects with command output
         """
-        # Parse command
-        parsed = parse_slash_command(command_text)
+        if match := SLASH_PATTERN.match(command_text.strip()):
+            command_name = match.group(1)
+            args = match.group(2) or ""
+            parsed = command_name, args.strip()
+        else:
+            parsed = None
         if not parsed:
             logger.warning("Invalid slash command: %s", command_text)
             return
@@ -118,8 +115,6 @@ class ACPCommandBridge:
         try:
             # Create command context from session
             cmd_context = self._create_command_context(session, output_writer)
-
-            # Execute command
             command_str = f"{command_name} {args}".strip()
             await self.command_store.execute_command(command_str, cmd_context)
 
@@ -168,57 +163,6 @@ class ACPCommandBridge:
                 logger.exception("Command update callback failed")
 
 
-def _get_command_description(command: BaseCommand) -> str:
-    """Extract description from command.
-
-    Args:
-        command: Slashed command
-
-    Returns:
-        Command description
-    """
-    # Try various sources for description
-    if command.description:
-        return command.description
-
-    if command.__doc__:
-        # Use first line of docstring
-        return command.__doc__.strip().split("\n")[0]
-
-    # Fallback to command name
-    return f"Execute {command.name} command"
-
-
-def parse_slash_command(text: str) -> tuple[str, str] | None:
-    """Parse slash command text.
-
-    Args:
-        text: Command text to parse
-
-    Returns:
-        Tuple of (command_name, args) or None if not a command
-    """
-    if match := SLASH_PATTERN.match(text.strip()):
-        command_name = match.group(1)
-        args = match.group(2) or ""
-        return command_name, args.strip()
-    return None
-
-
-def _is_command_available(command: BaseCommand, context: AgentContext[Any]) -> bool:
-    """Check if command is available in the given context.
-
-    Args:
-        command: Command to check
-        context: Agent context
-
-    Returns:
-        True if command should be available
-    """
-    # Basic filtering - can be enhanced
-    return True
-
-
 def is_slash_command(text: str) -> bool:
     """Check if text starts with a slash command.
 
@@ -254,7 +198,7 @@ def _create_input_spec(command: BaseCommand) -> AvailableCommandInput | None:
     return None
 
 
-def _convert_command(command: BaseCommand) -> AvailableCommand | None:
+def _convert_command(command: BaseCommand) -> AvailableCommand:
     """Convert a single slashed command to ACP format.
 
     Args:
@@ -263,6 +207,6 @@ def _convert_command(command: BaseCommand) -> AvailableCommand | None:
     Returns:
         ACP AvailableCommand or None if conversion fails
     """
-    description = _get_command_description(command)
+    description = command.description
     spec = _create_input_spec(command)
     return AvailableCommand(name=command.name, description=description, input=spec)
