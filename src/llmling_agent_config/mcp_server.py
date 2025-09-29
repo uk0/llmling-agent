@@ -12,6 +12,25 @@ from schemez import Schema
 TransportType = Literal["stdio", "sse", "streamable-http"]
 
 
+class MCPServerAuthSettings(Schema):
+    """Represents authentication configuration for a server.
+
+    Minimal OAuth v2.1 support with sensible defaults.
+    """
+
+    oauth: bool = False
+
+    # Local callback server configuration
+    redirect_port: int = 3030
+    redirect_path: str = "/callback"
+
+    # Optional scope override. If set to a list, values are space-joined.
+    scope: str | list[str] | None = None
+
+    # Token persistence: use OS keychain via 'keyring' by default; fallback to 'memory'.
+    persist: Literal["keyring", "memory"] = "keyring"
+
+
 class BaseMCPServerConfig(Schema):
     """Base model for MCP server configuration."""
 
@@ -73,6 +92,9 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
     url: str
     """URL of the SSE server endpoint."""
 
+    auth: MCPServerAuthSettings = Field(default_factory=MCPServerAuthSettings)
+    """OAuth settings for the SSE server."""
+
 
 class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
     """MCP server using StreamableHttp.
@@ -81,10 +103,13 @@ class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
     """
 
     type: Literal["streamable-http"] = Field("streamable-http", init=False)
-    """SSE server configuration."""
+    """HTTP server configuration."""
 
     url: str
-    """URL of the SSE server endpoint."""
+    """URL of the HTTP server endpoint."""
+
+    auth: MCPServerAuthSettings = Field(default_factory=MCPServerAuthSettings)
+    """OAuth settings for the HTTP server."""
 
 
 MCPServerConfig = Annotated[
