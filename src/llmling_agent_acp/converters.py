@@ -18,6 +18,7 @@ from acp.schema import (
     ImageContentBlock,
     PermissionOption,
     ResourceContentBlock,
+    ResourceLink,
     SessionNotification,
     TextContentBlock,
     TextResourceContents,
@@ -116,6 +117,30 @@ def convert_acp_mcp_server_to_config(acp_server: MCPServer) -> MCPServerConfig:
             raise ValueError(msg)
 
 
+def format_uri_as_link(uri: str) -> str:
+    """Format URI as markdown-style link similar to other ACP implementations.
+
+    Args:
+        uri: URI to format (file://, zed://, etc.)
+
+    Returns:
+        Markdown-style link in format [@name](uri)
+    """
+    try:
+        if uri.startswith("file://"):
+            path = uri[7:]  # Remove "file://"
+            name = path.split("/")[-1] or path
+            return f"[@{name}]({uri})"
+        if uri.startswith("zed://"):
+            parts = uri.split("/")
+            name = parts[-1] or uri
+            return f"[@{name}]({uri})"
+    except Exception:  # noqa: BLE001
+        return uri
+    else:
+        return uri
+
+
 def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseContent]:
     """Convert ACP content blocks to structured content objects.
 
@@ -152,12 +177,10 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
                 parts.append(f"URI: {block.uri}")
                 content.append("\n".join(parts))
 
-            # case ResourceLink():
-            #     parts = [f"Resource: {block.name}"]
-            #     if block.description:
-            #         parts.append(f"Description: {block.description}")
-            #     parts.append(f"URI: {block.uri}")
-            #     content.append("\n".join(parts))
+            case ResourceLink():
+                # Format as markdown-style link
+                formatted_uri = format_uri_as_link(block.uri)
+                content.append(formatted_uri)
 
             case EmbeddedResourceContentBlock():
                 # Embedded resources
