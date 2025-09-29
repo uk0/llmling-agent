@@ -101,14 +101,8 @@ class ACPSession:
         self._current_turn_tokens = 0
 
         self.command_bridge = command_bridge
-
-        # MCP integration
         self.mcp_manager: MCPManager | None = None
-
-        # Permission server
         # self.permission_server: PermissionMCPServer | None = None
-
-        # ACP capability tools
         self.capability_provider: ACPCapabilityResourceProvider | None = None
         if acp_agent and client_capabilities:
             self.capability_provider = ACPCapabilityResourceProvider(
@@ -120,11 +114,8 @@ class ACPSession:
             current_agent = self.agent_pool.get_agent(current_agent_name)
             current_agent.tools.add_provider(self.capability_provider)
 
-        logger.info(
-            "Created ACP session %s with agent pool (current: %s)",
-            session_id,
-            current_agent_name,
-        )
+        msg = "Created ACP session %s with agent pool (current: %s)"
+        logger.info(msg, session_id, current_agent_name)
 
     async def initialize_mcp_servers(self) -> None:
         """Initialize MCP servers if any are configured."""
@@ -136,16 +127,10 @@ class ACPSession:
 
         msg = "Initializing %d MCP servers for session %s"
         logger.info(msg, len(self.mcp_servers), self.session_id)
-        server_configs = [
-            convert_acp_mcp_server_to_config(server) for server in self.mcp_servers
-        ]
-
+        cfgs = [convert_acp_mcp_server_to_config(s) for s in self.mcp_servers]
         # Initialize MCP manager with converted configs
-        self.mcp_manager = MCPManager(
-            name=f"session_{self.session_id}",
-            servers=server_configs,
-            context=self.agent.context,
-        )
+        name = f"session_{self.session_id}"
+        self.mcp_manager = MCPManager(name, servers=cfgs, context=self.agent.context)
         try:
             # Start MCP manager and, fetch and add tools
             await self.mcp_manager.__aenter__()
@@ -157,9 +142,8 @@ class ACPSession:
 
             # Log the tool schemas for debugging
             for tool in mcp_tools:
-                logger.debug(
-                    "Registered MCP tool %s with schema: %s", tool.name, tool.schema
-                )
+                msg = "Registered MCP tool %s with schema: %s"
+                logger.debug(msg, tool.name, tool.schema)
 
             # Commands will be sent after session creation is complete
 
@@ -243,13 +227,8 @@ class ACPSession:
             old_agent.tools.remove_provider(self.capability_provider)
             new_agent.tools.add_provider(self.capability_provider)
 
-        logger.info(
-            "Session %s switched from agent %s to %s",
-            self.session_id,
-            old_agent_name,
-            agent_name,
-        )
-
+        msg = "Session %s switched from agent %s to %s"
+        logger.info(msg, self.session_id, old_agent_name, agent_name)
         # Update available commands since different agents may have different tools
         await self.send_available_commands_update()
 
@@ -754,7 +733,6 @@ class ACPSession:
         try:
             commands = self.command_bridge.to_available_commands(self.agent.context)
             update = AvailableCommandsUpdate(available_commands=commands)
-            # Send to client
             notification = SessionNotification(session_id=self.session_id, update=update)
             await self.client.session_update(notification)
 
@@ -769,15 +747,10 @@ class ACPSession:
             commands: New list of available commands
         """
         try:
-            # Create update notification
             update = AvailableCommandsUpdate(available_commands=commands)
-
-            # Send to client
             notification = SessionNotification(session_id=self.session_id, update=update)
             await self.client.session_update(notification)
-
             logger.debug("Updated available commands for session %s", self.session_id)
-
         except Exception:
             msg = "Failed to update available commands for session %s"
             logger.exception(msg, self.session_id)

@@ -10,7 +10,6 @@ from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import (
     convert_acp_mcp_server_to_config,
     from_content_blocks,
-    to_content_blocks,
     to_session_updates,
 )
 
@@ -23,6 +22,5 @@ __all__ = [
     "LLMlingACPAgent",
     "convert_acp_mcp_server_to_config",
     "from_content_blocks",
-    "to_content_blocks",
     "to_session_updates",
 ]
