@@ -1017,6 +1017,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         Note: (Same as before regarding history management)
         """
         run_message_id = message_id or str(uuid4())
+        start_time = time.perf_counter()
         logger.info("Starting agent iteration run_id=%s", run_message_id)
         converted_prompts = await convert_prompts(prompts)
         if not converted_prompts:
@@ -1069,8 +1070,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                         model=getattr(agent_run.result, "model_name", None),
                         message_id=run_message_id,
                         conversation_id=conversation_id or user_msg.conversation_id,
-                        response_time=time.perf_counter()
-                        - time.perf_counter(),  # Placeholder
+                        response_time=time.perf_counter() - start_time,
                     )
                     self.conversation.add_chat_messages([user_msg, response_msg])
                     msg = "Stored conversation history for run_id=%s"
