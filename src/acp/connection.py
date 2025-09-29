@@ -144,12 +144,8 @@ class Connection:
         self._next_request_id += 1
         fut: asyncio.Future[dict[str, Any]] = asyncio.get_running_loop().create_future()
         self._pending[req_id] = _Pending(fut)
-        await self._send_obj({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "method": method,
-            "params": params,
-        })
+        dct = {"jsonrpc": "2.0", "id": req_id, "method": method, "params": params}
+        await self._send_obj(dct)
         return await fut
 
     async def send_notification(

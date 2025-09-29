@@ -47,6 +47,8 @@ if TYPE_CHECKING:
     import asyncio
     from collections.abc import Callable
 
+    from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
+
     from acp.acp_types import MethodHandler
 
 
@@ -619,7 +621,7 @@ def _create_agent_handler(agent: Agent) -> MethodHandler:
 
 
 def create_session_model_state(
-    available_models: list[str], current_model: str | None = None
+    available_models: list[TokoModelInfo], current_model: str | None = None
 ) -> SessionModelState | None:
     """Create a SessionModelState from available models.
 
@@ -634,12 +636,14 @@ def create_session_model_state(
         return None
     # Create ModelInfo objects for each available model
     models: list[ModelInfo] = []
-    for model_id in available_models:
-        # Extract display name (e.g., "gpt-4" from "openai:gpt-4")
-        display_name = model_id.split(":")[-1] if ":" in model_id else model_id
-        info = ModelInfo(model_id=model_id, name=display_name, description=model_id)
+    for model in available_models:
+        info = ModelInfo(
+            model_id=model.pydantic_ai_id,
+            name=f"{model.provider}: {model.name}",
+            description=model.description,
+        )
         models.append(info)
 
     # Use first model as current if not specified
-    current_model_id = current_model or available_models[0]
+    current_model_id = current_model or available_models[0].pydantic_ai_id
     return SessionModelState(available_models=models, current_model_id=current_model_id)

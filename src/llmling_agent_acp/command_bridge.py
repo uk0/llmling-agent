@@ -101,29 +101,9 @@ class ACPCommandBridge:
         Returns:
             ACP AvailableCommand or None if conversion fails
         """
-        description = self._get_command_description(command)
+        description = _get_command_description(command)
         spec = self._create_input_spec(command)
         return AvailableCommand(name=command.name, description=description, input=spec)
-
-    def _get_command_description(self, command: BaseCommand) -> str:
-        """Extract description from command.
-
-        Args:
-            command: Slashed command
-
-        Returns:
-            Command description
-        """
-        # Try various sources for description
-        if command.description:
-            return command.description
-
-        if command.__doc__:
-            # Use first line of docstring
-            return command.__doc__.strip().split("\n")[0]
-
-        # Fallback to command name
-        return f"Execute {command.name} command"
 
     def _create_input_spec(self, command: BaseCommand) -> AvailableCommandInput | None:
         """Create input specification for command parameters.
@@ -211,8 +191,6 @@ class ACPCommandBridge:
             return
 
         command_name, args = parsed
-
-        # Create output writer
         output_writer = ACPOutputWriter(session.session_id)
 
         try:
@@ -269,3 +247,24 @@ class ACPCommandBridge:
                 callback()
             except Exception:
                 logger.exception("Command update callback failed")
+
+
+def _get_command_description(command: BaseCommand) -> str:
+    """Extract description from command.
+
+    Args:
+        command: Slashed command
+
+    Returns:
+        Command description
+    """
+    # Try various sources for description
+    if command.description:
+        return command.description
+
+    if command.__doc__:
+        # Use first line of docstring
+        return command.__doc__.strip().split("\n")[0]
+
+    # Fallback to command name
+    return f"Execute {command.name} command"

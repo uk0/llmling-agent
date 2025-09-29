@@ -181,8 +181,7 @@ class LLMlingACPAgent(ACPAgent):
             session = await self.session_manager.get_session(session_id)
             if session:
                 current_model = session.agent.model_name
-                model_ids = [m.pydantic_ai_id for m in self.available_models]
-                models = create_session_model_state(model_ids, current_model)
+                models = create_session_model_state(self.available_models, current_model)
             else:
                 models = None
 
