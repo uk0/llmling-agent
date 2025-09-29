@@ -42,6 +42,7 @@ class ACPCapabilityResourceProvider(ResourceProvider):
         agent: LLMlingACPAgent,
         session_id: str,
         client_capabilities: ClientCapabilities,
+        cwd: str | None = None,
     ):
         """Initialize capability provider.
 
@@ -49,11 +50,32 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             agent: The ACP agent instance
             session_id: Session ID for all tools created by this provider
             client_capabilities: Client-reported capabilities
+            cwd: Current working directory for relative path resolution
         """
         super().__init__(name=f"acp_capabilities_{session_id}")
         self.agent = agent
         self.session_id = session_id
         self.client_capabilities = client_capabilities
+        self.cwd = cwd
+
+    def _resolve_path(self, path: str) -> str:
+        """Resolve a potentially relative path to an absolute path.
+
+        If cwd is set and path is relative, resolves relative to cwd.
+        Otherwise returns the path as-is.
+
+        Args:
+            path: Path that may be relative or absolute
+
+        Returns:
+            Absolute path string
+        """
+        if self.cwd and not (path.startswith("/") or (len(path) > 1 and path[1] == ":")):
+            # Path appears to be relative and we have a cwd
+            from pathlib import Path
+
+            return str(Path(self.cwd) / path)
+        return path
 
     async def get_tools(self) -> list[Tool]:
         """Get tools based on client capabilities."""

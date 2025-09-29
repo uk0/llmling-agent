@@ -109,6 +109,7 @@ class ACPSession:
                 agent=acp_agent,
                 session_id=session_id,
                 client_capabilities=client_capabilities,
+                cwd=self.cwd,
             )
             # Add capability provider to current agent
             current_agent = self.agent_pool.get_agent(current_agent_name)
