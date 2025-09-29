@@ -114,6 +114,14 @@ class ACPSession:
             current_agent = self.agent_pool.get_agent(current_agent_name)
             current_agent.tools.add_provider(self.capability_provider)
 
+        # Add cwd context to all agents in the pool
+        def get_cwd_context() -> str:
+            return f"Working directory: {self.cwd}" if self.cwd else ""
+
+        self._cwd_context_callable = get_cwd_context
+        for agent in self.agent_pool.agents.values():
+            agent.sys_prompts.prompts.append(self._cwd_context_callable)  # pyright: ignore[reportArgumentType]
+
         msg = "Created ACP session %s with agent pool (current: %s)"
         logger.info(msg, session_id, current_agent_name)
 
@@ -717,6 +725,11 @@ class ACPSession:
             if self.capability_provider:
                 current_agent = self.agent_pool.get_agent(self.current_agent_name)
                 current_agent.tools.remove_provider(self.capability_provider)
+
+            # Remove cwd context callable from all agents
+            for agent in self.agent_pool.agents.values():
+                if self._cwd_context_callable in agent.sys_prompts.prompts:
+                    agent.sys_prompts.prompts.remove(self._cwd_context_callable)  # pyright: ignore[reportArgumentType]
                 self.capability_provider = None
 
             # Note: Individual agents are managed by the pool's lifecycle
