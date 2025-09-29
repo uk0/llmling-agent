@@ -57,11 +57,7 @@ class ComposioTools(ResourceProvider):
 
         try:
             # Get tools for GitHub toolkit using v3 API
-            tools = self.composio.tools.get(
-                user_id=self.user_id,
-                toolkits=["github"],
-                limit=10,  # Limit to prevent too many tools
-            )
+            tools = self.composio.tools.get(self.user_id, toolkits=["github"])
 
             for tool_def in tools:
                 # In v3 SDK, tools are OpenAI formatted by default

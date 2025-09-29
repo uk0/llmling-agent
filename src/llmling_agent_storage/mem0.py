@@ -83,10 +83,8 @@ class Mem0StorageProvider(StorageProvider):
             "message_id": message_id,
         }
         if cost_info:
-            metadata.update({
-                "token_usage": cost_info.token_usage,
-                "total_cost": float(cost_info.total_cost),
-            })
+            total = float(cost_info.total_cost)
+            metadata.update({"token_usage": cost_info.token_usage, "total_cost": total})
 
         message = self._to_mem0_message(
             content=content,
@@ -94,11 +92,8 @@ class Mem0StorageProvider(StorageProvider):
             name=name,
             metadata=metadata,
         )
-        await self.client.add(
-            [message],
-            user_id=conversation_id,
-            output_format=self.config.output_format,
-        )
+        fmt = self.config.output_format
+        await self.client.add([message], user_id=conversation_id, output_format=fmt)
 
     async def log_conversation(
         self,
@@ -129,11 +124,8 @@ class Mem0StorageProvider(StorageProvider):
             "timing": tool_call.timing,
             "message_id": message_id,
         }
-        message = self._to_mem0_message(
-            content=f"Tool call: {tool_call.tool_name}",
-            role="system",
-            metadata=metadata,
-        )
+        content = f"Tool call: {tool_call.tool_name}"
+        message = self._to_mem0_message(content=content, role="system", metadata=metadata)
         fmt = self.config.output_format
         await self.client.add([message], user_id=conversation_id, output_format=fmt)
 

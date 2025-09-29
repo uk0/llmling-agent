@@ -31,6 +31,8 @@ from llmling_agent_commands import get_commands
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from tokonomics.model_discovery.model_info import ModelInfo
 
     from acp import AgentSideConnection, Client
@@ -86,7 +88,7 @@ class LLMlingACPAgent(ACPAgent):
         """
         self.connection = connection
         self.agent_pool = agent_pool
-        self.available_models = available_models or []
+        self.available_models: Sequence[ModelInfo] = available_models or []
         self.session_support = session_support
         self.file_access = file_access
         self.terminal_access = terminal_access
@@ -218,8 +220,7 @@ class LLMlingACPAgent(ACPAgent):
 
             # Get model information
             current_model = session.agent.model_name if session.agent else None
-            model_ids = [m.pydantic_ai_id for m in self.available_models]
-            models = create_session_model_state(model_ids, current_model)
+            models = create_session_model_state(self.available_models, current_model)
 
             return LoadSessionResponse(models=models)
         except Exception:
@@ -260,8 +261,7 @@ class LLMlingACPAgent(ACPAgent):
         except Exception as e:
             logger.exception("Failed to process prompt for session %s", params.session_id)
             msg = f"Error processing prompt: {e}"
-            error_updates = to_session_updates(msg, params.session_id)
-            for update in error_updates:
+            for update in to_session_updates(msg, params.session_id):
                 try:
                     await self.connection.session_update(update)
                 except Exception:

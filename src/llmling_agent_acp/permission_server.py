@@ -25,6 +25,12 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+OPTIONS = [
+    PermissionOption(option_id="allow_once", name="Allow", kind="allow_once"),
+    PermissionOption(option_id="allow_always", name="Always Allow", kind="allow_always"),
+    PermissionOption(option_id="reject_once", name="Reject", kind="reject_once"),
+]
+
 
 class PermissionMCPHandler(BaseHTTPRequestHandler):
     """HTTP request handler for permission MCP server."""
@@ -124,14 +130,11 @@ class PermissionMCPHandler(BaseHTTPRequestHandler):
 
                 if tool_name == "permission":
                     result = await self._handle_permission_request(arguments)
+                    data = anyenv.dump_json(result)
                     return {
                         "jsonrpc": "2.0",
                         "id": request_id,
-                        "result": {
-                            "content": [
-                                {"type": "text", "text": anyenv.dump_json(result)}
-                            ]
-                        },
+                        "result": {"content": [{"type": "text", "text": data}]},
                     }
                 return {
                     "jsonrpc": "2.0",
@@ -160,23 +163,9 @@ class PermissionMCPHandler(BaseHTTPRequestHandler):
         try:
             tool_name = arguments["tool_name"]
             tool_input = arguments["input"]
-            tool_use_id = arguments.get(
-                "tool_use_id", f"{tool_name}_{hash(str(tool_input))}"
-            )
-
+            name = f"{tool_name}_{hash(str(tool_input))}"
+            tool_use_id = arguments.get("tool_use_id", name)
             logger.info("Handling permission request for tool: %s", tool_name)
-
-            # Create permission options
-            options = [
-                PermissionOption(option_id="allow_once", name="Allow", kind="allow_once"),
-                PermissionOption(
-                    option_id="allow_always", name="Always Allow", kind="allow_always"
-                ),
-                PermissionOption(
-                    option_id="reject_once", name="Reject", kind="reject_once"
-                ),
-            ]
-
             # Create tool call info for permission request
             tool_call = ToolCallUpdate(
                 tool_call_id=tool_use_id,
@@ -189,7 +178,7 @@ class PermissionMCPHandler(BaseHTTPRequestHandler):
             permission_request = RequestPermissionRequest(
                 session_id=self.session_id,
                 tool_call=tool_call,
-                options=options,
+                options=OPTIONS,
             )
 
             # This shows the permission UI dialog
@@ -272,13 +261,8 @@ class PermissionMCPServer:
             daemon=True,
         )
         self.server_thread.start()
-
-        logger.info(
-            "Permission MCP server started for session %s at %s",
-            self.session_id,
-            self._url,
-        )
-
+        msg = "Permission MCP server started for session %s at %s"
+        logger.info(msg, self.session_id, self._url)
         return self._url, self._port
 
     async def stop(self) -> None:

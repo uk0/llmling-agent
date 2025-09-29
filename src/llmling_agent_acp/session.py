@@ -13,6 +13,7 @@ from pydantic_ai import Agent as PydanticAIAgent
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
+from llmling_agent_acp.command_bridge import is_slash_command
 from llmling_agent_acp.converters import (
     convert_acp_mcp_server_to_config,
     create_thought_chunk,
@@ -308,9 +309,7 @@ class ACPSession:
                     return
 
                 # Check for slash commands
-                if self.command_bridge and self.command_bridge.is_slash_command(
-                    prompt_text
-                ):
+                if self.command_bridge and is_slash_command(prompt_text):
                     logger.info("Processing slash command: %s", prompt_text)
                     async for notification in self.command_bridge.execute_slash_command(
                         prompt_text, self

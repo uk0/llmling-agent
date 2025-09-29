@@ -162,9 +162,8 @@ class FileProvider(StorageProvider):
             cost_info = None
             if msg["token_usage"]:
                 usage = cast(TokenUsage, msg["token_usage"])
-                cost_info = TokenCost(
-                    token_usage=usage, total_cost=Decimal(msg["cost"] or 0.0)
-                )
+                cost = Decimal(msg["cost"] or 0.0)
+                cost_info = TokenCost(token_usage=usage, total_cost=cost)
 
             chat_message = ChatMessage[str](
                 content=msg["content"],

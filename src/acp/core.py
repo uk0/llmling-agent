@@ -45,7 +45,7 @@ from acp.schema import (
 
 if TYPE_CHECKING:
     import asyncio
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
     from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
@@ -621,7 +621,7 @@ def _create_agent_handler(agent: Agent) -> MethodHandler:
 
 
 def create_session_model_state(
-    available_models: list[TokoModelInfo], current_model: str | None = None
+    available_models: Sequence[TokoModelInfo], current_model: str | None = None
 ) -> SessionModelState | None:
     """Create a SessionModelState from available models.
 

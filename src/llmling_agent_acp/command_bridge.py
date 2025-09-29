@@ -84,91 +84,13 @@ class ACPCommandBridge:
         available_commands = [
             cmd
             for cmd in self.command_store.list_commands()
-            if not context or self._is_command_available(cmd, context)
+            if not context or _is_command_available(cmd, context)
         ]
         return [
             acp_cmd
             for cmd in available_commands
-            if (acp_cmd := self._convert_command(cmd)) is not None
+            if (acp_cmd := _convert_command(cmd)) is not None
         ]
-
-    def _convert_command(self, command: BaseCommand) -> AvailableCommand | None:
-        """Convert a single slashed command to ACP format.
-
-        Args:
-            command: Slashed command to convert
-
-        Returns:
-            ACP AvailableCommand or None if conversion fails
-        """
-        description = _get_command_description(command)
-        spec = self._create_input_spec(command)
-        return AvailableCommand(name=command.name, description=description, input=spec)
-
-    def _create_input_spec(self, command: BaseCommand) -> AvailableCommandInput | None:
-        """Create input specification for command parameters.
-
-        Args:
-            command: Slashed command
-
-        Returns:
-            Input specification or None if no parameters
-        """
-        # For now, create a simple text input hint
-        # This could be enhanced to parse actual parameter signatures
-        try:
-            sig = inspect.signature(command.execute)
-            params = [n for n, _ in sig.parameters.items() if n not in ("self", "ctx")]
-            if params:
-                hint = f"Parameters: {', '.join(params)}"
-                return AvailableCommandInput(root=CommandInputHint(hint=hint))
-        except Exception:  # noqa: BLE001
-            pass
-
-        return None
-
-    def _is_command_available(
-        self,
-        command: BaseCommand,
-        context: AgentContext[Any],
-    ) -> bool:
-        """Check if command is available in the given context.
-
-        Args:
-            command: Command to check
-            context: Agent context
-
-        Returns:
-            True if command should be available
-        """
-        # Basic filtering - can be enhanced
-        return True
-
-    def is_slash_command(self, text: str) -> bool:
-        """Check if text starts with a slash command.
-
-        Args:
-            text: Text to check
-
-        Returns:
-            True if text is a slash command
-        """
-        return bool(SLASH_PATTERN.match(text.strip()))
-
-    def parse_slash_command(self, text: str) -> tuple[str, str] | None:
-        """Parse slash command text.
-
-        Args:
-            text: Command text to parse
-
-        Returns:
-            Tuple of (command_name, args) or None if not a command
-        """
-        if match := SLASH_PATTERN.match(text.strip()):
-            command_name = match.group(1)
-            args = match.group(2) or ""
-            return command_name, args.strip()
-        return None
 
     async def execute_slash_command(
         self,
@@ -185,7 +107,7 @@ class ACPCommandBridge:
             SessionNotification objects with command output
         """
         # Parse command
-        parsed = self.parse_slash_command(command_text)
+        parsed = parse_slash_command(command_text)
         if not parsed:
             logger.warning("Invalid slash command: %s", command_text)
             return
@@ -202,15 +124,12 @@ class ACPCommandBridge:
             await self.command_store.execute_command(command_str, cmd_context)
 
             # Stream output as session updates
-            updates = output_writer.get_session_updates()
-            for update in updates:
+            for update in output_writer.get_session_updates():
                 yield update
 
         except Exception as e:
             logger.exception("Command execution failed")
-            # Send error as session update
-            error_updates = to_session_updates(f"Command error: {e}", session.session_id)
-            for update in error_updates:
+            for update in to_session_updates(f"Command error: {e}", session.session_id):
                 yield update
 
     def _create_command_context(
@@ -268,3 +187,82 @@ def _get_command_description(command: BaseCommand) -> str:
 
     # Fallback to command name
     return f"Execute {command.name} command"
+
+
+def parse_slash_command(text: str) -> tuple[str, str] | None:
+    """Parse slash command text.
+
+    Args:
+        text: Command text to parse
+
+    Returns:
+        Tuple of (command_name, args) or None if not a command
+    """
+    if match := SLASH_PATTERN.match(text.strip()):
+        command_name = match.group(1)
+        args = match.group(2) or ""
+        return command_name, args.strip()
+    return None
+
+
+def _is_command_available(command: BaseCommand, context: AgentContext[Any]) -> bool:
+    """Check if command is available in the given context.
+
+    Args:
+        command: Command to check
+        context: Agent context
+
+    Returns:
+        True if command should be available
+    """
+    # Basic filtering - can be enhanced
+    return True
+
+
+def is_slash_command(text: str) -> bool:
+    """Check if text starts with a slash command.
+
+    Args:
+        text: Text to check
+
+    Returns:
+        True if text is a slash command
+    """
+    return bool(SLASH_PATTERN.match(text.strip()))
+
+
+def _create_input_spec(command: BaseCommand) -> AvailableCommandInput | None:
+    """Create input specification for command parameters.
+
+    Args:
+        command: Slashed command
+
+    Returns:
+        Input specification or None if no parameters
+    """
+    # For now, create a simple text input hint
+    # This could be enhanced to parse actual parameter signatures
+    try:
+        sig = inspect.signature(command.execute)
+        params = [n for n, _ in sig.parameters.items() if n not in ("self", "ctx")]
+        if params:
+            hint = f"Parameters: {', '.join(params)}"
+            return AvailableCommandInput(root=CommandInputHint(hint=hint))
+    except Exception:  # noqa: BLE001
+        pass
+
+    return None
+
+
+def _convert_command(command: BaseCommand) -> AvailableCommand | None:
+    """Convert a single slashed command to ACP format.
+
+    Args:
+        command: Slashed command to convert
+
+    Returns:
+        ACP AvailableCommand or None if conversion fails
+    """
+    description = _get_command_description(command)
+    spec = _create_input_spec(command)
+    return AvailableCommand(name=command.name, description=description, input=spec)
