@@ -6,6 +6,7 @@ from textwrap import dedent
 from typing import TYPE_CHECKING, Any
 
 from llmling import ToolError
+from mcp import types
 
 from llmling_agent.log import get_logger
 from llmling_agent_input.base import InputProvider
@@ -108,6 +109,36 @@ class StdlibInputProvider(InputProvider):
                 return "abort_chain"
             case _:
                 return "skip"
+
+    async def get_elicitation(
+        self,
+        context: AgentContext,
+        params: types.ElicitRequestParams,
+        message_history: list[ChatMessage] | None = None,
+    ) -> types.ElicitResult | types.ErrorData:
+        """Get user response to elicitation request using stdlib input."""
+        try:
+            print(f"\n{params.message}")
+
+            # Handle structured input with schema
+            print("Please provide response as JSON:")
+            response = input("> ")
+            try:
+                import anyenv
+
+                content = anyenv.load_json(response, return_type=dict)
+                return types.ElicitResult(action="accept", content=content)
+            except anyenv.JsonLoadError as e:
+                return types.ErrorData(
+                    code=types.INVALID_REQUEST, message=f"Invalid JSON: {e}"
+                )
+
+        except KeyboardInterrupt:
+            return types.ElicitResult(action="cancel")
+        except Exception as e:  # noqa: BLE001
+            return types.ErrorData(
+                code=types.INVALID_REQUEST, message=f"Elicitation failed: {e}"
+            )
 
     async def get_code_input(
         self,

@@ -12,6 +12,8 @@ from llmling_agent_input.base import InputProvider
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Iterator
 
+    from mcp import types
+
     from llmling_agent.agent.context import AgentContext, ConfirmationResult
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.tools.base import Tool
@@ -30,11 +32,19 @@ class CallbackInputProvider(InputProvider):
         ]
         | None = None,
         get_code_input: Callable[..., str | Awaitable[str]] | None = None,
+        get_elicitation: Callable[
+            ...,
+            types.ElicitResult
+            | types.ErrorData
+            | Awaitable[types.ElicitResult | types.ErrorData],
+        ]
+        | None = None,
     ):
         self._get_input = get_input
         self._get_streaming = get_streaming_input
         self._get_confirmation = get_tool_confirmation
         self._get_code = get_code_input
+        self._get_elicitation = get_elicitation
 
     async def get_input(
         self,
@@ -114,4 +124,25 @@ class CallbackInputProvider(InputProvider):
             template=template,
             language=language,
             description=description,
+        )
+
+    async def get_elicitation(
+        self,
+        context: AgentContext,
+        params: types.ElicitRequestParams,
+        message_history: list[ChatMessage] | None = None,
+    ) -> types.ElicitResult | types.ErrorData:
+        from mcp import types
+
+        if not self._get_elicitation:
+            # fallback: return not supported
+            return types.ErrorData(
+                code=types.INVALID_REQUEST,
+                message="Elicitation not supported",
+            )
+        return await execute(
+            self._get_elicitation,
+            context=context,
+            params=params,
+            message_history=message_history,
         )

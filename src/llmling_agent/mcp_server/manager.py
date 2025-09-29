@@ -23,6 +23,8 @@ from llmling_agent_config.resources import ResourceInfo
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from mcp import types
+    from mcp.client.session import RequestContext
     from mcp.types import Prompt as MCPPrompt, Resource as MCPResource
 
     from llmling_agent.messaging.context import NodeContext
@@ -112,6 +114,23 @@ class MCPManager(ResourceProvider):
     async def __aexit__(self, *exc):
         await self.cleanup()
 
+    async def _elicitation_callback(
+        self,
+        context: RequestContext,
+        params: types.ElicitRequestParams,
+    ) -> types.ElicitResult | types.ErrorData:
+        """Handle elicitation requests from MCP server."""
+        from mcp import types
+
+        from llmling_agent.agent.context import AgentContext
+
+        if self.context and isinstance(self.context, AgentContext):
+            return await self.context.handle_elicitation(params)
+        return types.ErrorData(
+            code=types.INVALID_REQUEST,
+            message="Elicitation not supported - no agent context available",
+        )
+
     async def setup_server(self, config: MCPServerConfig):
         """Set up a single MCP server connection."""
         if not config.enabled:
@@ -119,17 +138,25 @@ class MCPManager(ResourceProvider):
         env = config.get_env_vars()
         match config:
             case StdioMCPServerConfig():
-                client = MCPClient(transport_mode="stdio")
+                client = MCPClient(
+                    transport_mode="stdio",
+                    elicitation_callback=self._elicitation_callback,
+                )
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect(config.command, args=config.args, env=env)
                 client_id = f"{config.command}_{' '.join(config.args)}"
             case SSEMCPServerConfig():
-                client = MCPClient(transport_mode="sse")
+                client = MCPClient(
+                    transport_mode="sse", elicitation_callback=self._elicitation_callback
+                )
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect("", [], url=config.url, env=env)
                 client_id = f"sse_{config.url}"
             case StreamableHTTPMCPServerConfig():
-                client = MCPClient(transport_mode="streamable-http")
+                client = MCPClient(
+                    transport_mode="streamable-http",
+                    elicitation_callback=self._elicitation_callback,
+                )
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect("", [], url=config.url, env=env)
                 client_id = f"streamable_http_{config.url}"

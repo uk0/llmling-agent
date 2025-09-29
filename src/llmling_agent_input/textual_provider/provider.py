@@ -14,6 +14,7 @@ from llmling_agent_input.textual_provider.run_input import InputModal
 
 
 if TYPE_CHECKING:
+    from mcp import types
     from textual.screen import ModalScreen
 
     from llmling_agent.agent.context import AgentContext, ConfirmationResult
@@ -216,3 +217,44 @@ class TextualInputProvider(InputProvider):
         app = ConfirmationApp(prompt)
         app_result = await app.run_async()
         return app_result or "skip"  # type: ignore
+
+    async def get_elicitation(
+        self,
+        context: AgentContext,
+        params: types.ElicitRequestParams,
+        message_history: list[ChatMessage] | None = None,
+    ) -> types.ElicitResult | types.ErrorData:
+        """Get user response to elicitation request using Textual UI."""
+        import anyenv
+        from mcp import types
+
+        try:
+            prompt = f"{params.message}\nPlease provide response as JSON:"
+
+            if self.app:
+                result: str | None = await self.app.push_screen_wait(
+                    InputModal(prompt, None)  # type: ignore
+                )
+                if result is None:
+                    return types.ElicitResult(action="cancel")
+            else:
+                app = InputApp(prompt, None)
+                result = await app.run_async()
+                if result is None:
+                    return types.ElicitResult(action="cancel")
+
+            # Parse JSON response
+            try:
+                content = anyenv.load_json(result, return_type=dict)
+                return types.ElicitResult(action="accept", content=content)
+            except anyenv.JsonLoadError as e:
+                return types.ErrorData(
+                    code=types.INVALID_REQUEST, message=f"Invalid JSON: {e}"
+                )
+
+        except UserCancelledError:
+            return types.ElicitResult(action="cancel")
+        except Exception as e:  # noqa: BLE001
+            return types.ErrorData(
+                code=types.INVALID_REQUEST, message=f"Elicitation failed: {e}"
+            )

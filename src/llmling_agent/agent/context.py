@@ -14,6 +14,7 @@ from llmling_agent.prompts.conversion_manager import ConversionManager
 
 if TYPE_CHECKING:
     from llmling import RuntimeConfig
+    from mcp import types
 
     from llmling_agent import AgentPool
     from llmling_agent.agent import AnyAgent
@@ -120,3 +121,12 @@ class AgentContext[TDeps](NodeContext[TDeps]):
             return "allow"
         history = self.agent.conversation.get_history() if self.pool else []
         return await provider.get_tool_confirmation(self, tool, args, history)
+
+    async def handle_elicitation(
+        self,
+        params: types.ElicitRequestParams,
+    ) -> types.ElicitResult | types.ErrorData:
+        """Handle elicitation request for additional information."""
+        provider = self.get_input_provider()
+        history = self.agent.conversation.get_history() if self.pool else []
+        return await provider.get_elicitation(self, params, history)

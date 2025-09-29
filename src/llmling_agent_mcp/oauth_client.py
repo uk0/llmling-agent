@@ -332,14 +332,13 @@ def _index_username() -> str:
 
 def _read_index(service: str) -> set[str]:
     try:
-        import json
-
+        import anyenv
         import keyring
 
         raw = keyring.get_password(service, _index_username())
         if not raw:
             return set()
-        data = json.loads(raw)
+        data = anyenv.load_json(raw)  # type: ignore
         if isinstance(data, list):
             return {str(x) for x in data}
     except Exception:  # noqa: BLE001
@@ -350,11 +349,10 @@ def _read_index(service: str) -> set[str]:
 
 def _write_index(service: str, identities: set[str]) -> None:
     try:
-        import json
-
+        import anyenv
         import keyring
 
-        payload = json.dumps(sorted(identities))
+        payload = anyenv.dump_json(sorted(identities))
         keyring.set_password(service, _index_username(), payload)
     except Exception:  # noqa: BLE001
         pass
@@ -422,7 +420,7 @@ def clear_keyring_token(identity: str, service: str = "llmling-agent") -> bool:
     return removed
 
 
-def build_oauth_provider(server_config: MCPServerConfig) -> OAuthClientProvider | None:
+def build_oauth_provider(server_config: MCPServerConfig) -> OAuthClientProvider | None:  # noqa: PLR0915
     """Build an OAuthClientProvider for the given server config if applicable.
 
     Returns None for unsupported transports, or when disabled via config.
@@ -472,15 +470,14 @@ def build_oauth_provider(server_config: MCPServerConfig) -> OAuthClientProvider 
             server = _CallbackServer(port=redirect_port, path=redirect_path)
             server.start()
             try:
-                code, state = server.wait(timeout_seconds=300)
-                return code, state
+                auth_code, state = server.wait(timeout_seconds=300)
+                return auth_code, state
             finally:
                 server.stop()
         except Exception:
             # Fallback to paste-URL flow
-            logger.exception(
-                "OAuth local callback server unavailable, fallback to paste flow"
-            )
+            msg = "OAuth local callback server unavailable, fallback to paste flow"
+            logger.exception(msg)
             try:
                 print("Paste the full callback URL after authorization:", file=sys.stderr)
                 callback_url = input("Callback URL: ").strip()

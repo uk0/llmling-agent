@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Coroutine
 
+    from mcp import types
     from pydantic import BaseModel
 
     from llmling_agent.agent.context import AgentContext, ConfirmationResult
@@ -104,6 +105,21 @@ class InputProvider(ABC):
             context: Current agent context
             tool: Information about the tool to be executed
             args: Tool arguments
+            message_history: Optional conversation history
+        """
+
+    @abstractmethod
+    def get_elicitation(
+        self,
+        context: AgentContext[Any],
+        params: types.ElicitRequestParams,
+        message_history: list[ChatMessage] | None = None,
+    ) -> Coroutine[Any, Any, types.ElicitResult | types.ErrorData]:
+        """Get user response to elicitation request.
+
+        Args:
+            context: Current agent context
+            params: MCP elicit request parameters
             message_history: Optional conversation history
         """
 

@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
     import mcp
     from mcp import ClientSession
+    from mcp.client.session import RequestContext
     from mcp.types import Tool, Tool as MCPTool
 
     from llmling_agent_config.mcp_server import TransportType
@@ -31,12 +32,21 @@ def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
 class MCPClient:
     """MCP client for communicating with MCP servers."""
 
-    def __init__(self, transport_mode: TransportType = "stdio"):
+    def __init__(
+        self,
+        transport_mode: TransportType = "stdio",
+        elicitation_callback: Callable[
+            [RequestContext, mcp.types.ElicitRequestParams],
+            Awaitable[mcp.types.ElicitResult | mcp.types.ErrorData],
+        ]
+        | None = None,
+    ):
         self.exit_stack = AsyncExitStack()
         self.session: ClientSession | None = None
         self._available_tools: list[Tool] = []
         self._old_stdout: TextIO | None = None
         self._transport_mode = transport_mode
+        self._elicitation_callback = elicitation_callback
 
     async def __aenter__(self) -> Self:
         """Enter context and redirect stdout if in stdio mode."""
@@ -70,6 +80,19 @@ class MCPClient:
         elif cm and cm.error:
             raise cm.error
 
+    async def _default_elicitation_callback(
+        self,
+        context: RequestContext,
+        params: mcp.types.ElicitRequestParams,
+    ) -> mcp.types.ElicitResult | mcp.types.ErrorData:
+        """Default elicitation callback that returns not supported."""
+        import mcp
+
+        return mcp.types.ErrorData(
+            code=mcp.types.INVALID_REQUEST,
+            message="Elicitation not supported",
+        )
+
     async def connect(
         self,
         command: str,
@@ -98,7 +121,14 @@ class MCPClient:
         params = StdioServerParameters(command=command, args=args, env=env)
         stdio_transport = await self.exit_stack.enter_async_context(stdio_client(params))
         stdio, write = stdio_transport
-        session = ClientSession(stdio, write)
+
+        # Create a wrapper that matches the expected signature
+        async def elicitation_wrapper(context, params):
+            if self._elicitation_callback:
+                return await self._elicitation_callback(context, params)
+            return await self._default_elicitation_callback(context, params)
+
+        session = ClientSession(stdio, write, elicitation_callback=elicitation_wrapper)
         self.session = await self.exit_stack.enter_async_context(session)
         assert self.session
         init_result = await self.session.initialize()
