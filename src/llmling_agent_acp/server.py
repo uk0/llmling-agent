@@ -115,10 +115,9 @@ class ACPServer:
         """Run the ACP server."""
         if self._running:
             return
+        self._running = True
 
         try:
-            self._running = True
-
             if not self.agent_pool:
                 logger.error("No agent pool available - cannot start server")
                 msg = "No agent pool available"

@@ -153,7 +153,6 @@ class LLMlingACPAgent(ACPAgent):
             default_name = agent_names[0]  # Use the first agent as default
             msg = "Creating new session. Available agents: %s. Default agent: %s"
             logger.info(msg, agent_names, default_name)
-            # Create session through session manager (pass the pool, not individual agent)
             session_id = await self.session_manager.create_session(
                 agent_pool=self.agent_pool,
                 default_agent_name=default_name,
@@ -180,8 +179,7 @@ class LLMlingACPAgent(ACPAgent):
 
             state = SessionModeState(current_mode_id=default_name, available_modes=modes)
             # Get model information from the default agent
-            session = await self.session_manager.get_session(session_id)
-            if session:
+            if session := await self.session_manager.get_session(session_id):
                 current_model = session.agent.model_name
                 models = create_session_model_state(self.available_models, current_model)
             else:
@@ -212,13 +210,11 @@ class LLMlingACPAgent(ACPAgent):
             raise RuntimeError(msg)
 
         try:
-            # Get the session
             session = await self.session_manager.get_session(params.session_id)
             if not session:
                 logger.warning("Session %s not found", params.session_id)
                 return LoadSessionResponse()
 
-            # Get model information
             current_model = session.agent.model_name if session.agent else None
             models = create_session_model_state(self.available_models, current_model)
 
@@ -275,10 +271,8 @@ class LLMlingACPAgent(ACPAgent):
         """Cancel operations for a session."""
         try:
             logger.info("Cancelling session %s", params.session_id)
-
             # Get session and cancel it
-            session = await self.session_manager.get_session(params.session_id)
-            if session:
+            if session := await self.session_manager.get_session(params.session_id):
                 session.cancel()
                 logger.info("Cancelled operations for session %s", params.session_id)
             else:

@@ -135,7 +135,6 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
                 content.append(block.text)
 
             case ImageContentBlock():
-                # Images always have data, optionally uri
                 content.append(
                     ImageBase64Content(data=block.data, mime_type=block.mime_type)
                 )

@@ -416,13 +416,13 @@ async def _handle_client_extension_methods(
     params: dict[str, Any] | None,
     is_notification: bool,
 ) -> NoMatch | dict[str, Any] | None:
-    if method.startswith("_"):
-        ext_name = method[1:]
-        if is_notification:
-            await client.ext_notification(ext_name, params or {})
-            return None
-        return await client.ext_method(ext_name, params or {})
-    return _NO_MATCH
+    if not method.startswith("_"):
+        return _NO_MATCH
+    ext_name = method[1:]
+    if is_notification:
+        await client.ext_notification(ext_name, params or {})
+        return None
+    return await client.ext_method(ext_name, params or {})
 
 
 async def _handle_client_terminal_methods(
