@@ -153,6 +153,13 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
                 parts.append(f"URI: {block.uri}")
                 content.append("\n".join(parts))
 
+            # case ResourceLink():
+            #     parts = [f"Resource: {block.name}"]
+            #     if block.description:
+            #         parts.append(f"Description: {block.description}")
+            #     parts.append(f"URI: {block.uri}")
+            #     content.append("\n".join(parts))
+
             case EmbeddedResourceContentBlock():
                 # Embedded resources
                 match block.resource:
