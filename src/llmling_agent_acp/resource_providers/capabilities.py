@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from pydantic_ai import RunContext  # noqa: TC002
 
 from acp.schema import (
     CreateTerminalRequest,
@@ -528,7 +530,8 @@ class ACPCapabilityResourceProvider(ResourceProvider):
     def _create_read_text_file_tool(self):
         """Create a tool that reads text files via the ACP client."""
 
-        async def read_text_file(
+        async def read_text_file(  # noqa: D417
+            ctx: RunContext[Any],
             path: str,
             line: int | None = None,
             limit: int | None = None,
@@ -568,7 +571,7 @@ class ACPCapabilityResourceProvider(ResourceProvider):
     def _create_write_text_file_tool(self):
         """Create a tool that writes text files via the ACP client."""
 
-        async def write_text_file(path: str, content: str) -> str:
+        async def write_text_file(ctx: RunContext[Any], path: str, content: str) -> str:  # noqa: D417
             r"""Write text content to a file, creating or overwriting as needed.
 
             Use this to create configuration files, save data, write scripts,
