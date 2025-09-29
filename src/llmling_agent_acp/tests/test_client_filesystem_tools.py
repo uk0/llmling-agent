@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, Mock
 
+from pydantic_ai import RunContext, RunUsage
+from pydantic_ai.models.test import TestModel
 import pytest
 
 from acp import AgentSideConnection
@@ -17,6 +19,9 @@ from acp.schema import (
 from llmling_agent import AgentPool
 from llmling_agent_acp.acp_agent import LLMlingACPAgent
 from llmling_agent_acp.resource_providers import ACPCapabilityResourceProvider
+
+
+CTX = RunContext(tool_call_id="test", deps=None, model=TestModel(), usage=RunUsage())
 
 
 class TestClientFilesystemTools:
@@ -104,7 +109,7 @@ class TestClientFilesystemTools:
         # Get read_text_file tool from provider
         tools = await fs_provider.get_tools()
         read_tool = next(tool for tool in tools if tool.name == "read_text_file")
-        result = await read_tool.execute(path="/home/user/test.txt")
+        result = await read_tool.execute(ctx=CTX, path="/home/user/test.txt")
 
         # Verify result
         assert "Hello, World!" in result
@@ -133,7 +138,10 @@ class TestClientFilesystemTools:
         tools = await fs_provider.get_tools()
         read_tool = next(tool for tool in tools if tool.name == "read_text_file")
         result = await read_tool.execute(
-            path="/home/user/large_file.txt", line=10, limit=3
+            ctx=CTX,
+            path="/home/user/large_file.txt",
+            line=10,
+            limit=3,
         )
 
         # Verify result
@@ -163,7 +171,7 @@ class TestClientFilesystemTools:
         tools = await fs_provider.get_tools()
         read_tool = next(tool for tool in tools if tool.name == "read_text_file")
 
-        result = await read_tool.execute(path="/home/user/nonexistent.txt")
+        result = await read_tool.execute(ctx=CTX, path="/home/user/nonexistent.txt")
         # Verify error handling
         assert result.startswith("Error reading file:")
         assert "File not found" in result
@@ -184,6 +192,7 @@ class TestClientFilesystemTools:
         tools = await fs_provider.get_tools()
         write_tool = next(tool for tool in tools if tool.name == "write_text_file")
         result = await write_tool.execute(
+            ctx=CTX,
             path="/home/user/output.txt",
             content="Hello, World!\nThis is written content.\n",
         )
@@ -216,7 +225,11 @@ class TestClientFilesystemTools:
         # Get write_text_file tool from provider
         tools = await fs_provider.get_tools()
         write_tool = next(tool for tool in tools if tool.name == "write_text_file")
-        result = await write_tool.execute(path="/home/user/config.json", content=json_str)
+        result = await write_tool.execute(
+            ctx=CTX,
+            path="/home/user/config.json",
+            content=json_str,
+        )
 
         # Verify result
         assert "Successfully wrote file" in result
@@ -240,6 +253,7 @@ class TestClientFilesystemTools:
         tools = await fs_provider.get_tools()
         write_tool = next(tool for tool in tools if tool.name == "write_text_file")
         result = await write_tool.execute(
+            ctx=CTX,
             path="/root/protected.txt",
             content="This should fail",
         )
@@ -262,6 +276,7 @@ class TestClientFilesystemTools:
         tools = await fs_provider.get_tools()
         read_tool = next(tool for tool in tools if tool.name == "read_text_file")
         result = await read_tool.execute(
+            ctx=CTX,
             path="/home/user/empty.txt",
         )
 
@@ -282,6 +297,7 @@ class TestClientFilesystemTools:
         tools = await fs_provider.get_tools()
         write_tool = next(tool for tool in tools if tool.name == "write_text_file")
         result = await write_tool.execute(
+            ctx=CTX,
             path="/home/user/empty_output.txt",
             content="",
         )
@@ -308,7 +324,7 @@ class TestClientFilesystemTools:
         # Get read_text_file tool from provider
         tools = await fs_provider.get_tools()
         read_tool = next(tool for tool in tools if tool.name == "read_text_file")
-        result = await read_tool.execute(path="/home/user/unicode.txt")
+        result = await read_tool.execute(ctx=CTX, path="/home/user/unicode.txt")
 
         # Verify unicode content is preserved
         assert "世界" in result
@@ -332,6 +348,7 @@ class TestClientFilesystemTools:
         tools = await fs_provider.get_tools()
         write_tool = next(tool for tool in tools if tool.name == "write_text_file")
         result = await write_tool.execute(
+            ctx=CTX,
             path="/home/user/unicode_output.txt",
             content=unicode_content,
         )
@@ -359,10 +376,14 @@ class TestClientFilesystemTools:
         # Get tools from provider
         tools = await fs_provider.get_tools()
         read_tool = next(tool for tool in tools if tool.name == "read_text_file")
-        await read_tool.execute(path="/home/user/test.txt")
+        await read_tool.execute(ctx=CTX, path="/home/user/test.txt")
 
         write_tool = next(tool for tool in tools if tool.name == "write_text_file")
-        await write_tool.execute(path="/home/user/test.txt", content="test content")
+        await write_tool.execute(
+            ctx=CTX,
+            path="/home/user/test.txt",
+            content="test content",
+        )
 
         # Verify both operations use the provider's session ID
         read_call_args = acp_agent.connection.read_text_file.call_args[0][0]
