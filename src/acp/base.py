@@ -13,4 +13,4 @@ def convert(text: str):
 class Schema(BaseModel):
     """Base class for generated models."""
 
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+    model_config = ConfigDict(populate_by_name=True, alias_generator=convert)
