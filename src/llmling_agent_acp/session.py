@@ -97,9 +97,6 @@ class ACPSession:
         self._active = True
         self._task_lock = asyncio.Lock()
         self._cancelled = False
-        self._current_turn_requests = 0
-        self._current_turn_tokens = 0
-
         self.command_bridge = command_bridge
         self.mcp_manager: MCPManager | None = None
         # self.permission_server: PermissionMCPServer | None = None
