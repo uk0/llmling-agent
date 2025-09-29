@@ -152,23 +152,6 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> str:
     return "\n".join(parts) if parts else ""
 
 
-def to_content_blocks(text: str) -> list[ContentBlock]:
-    """Convert text response to ACP content blocks.
-
-    Args:
-        text: Text response from llmling agent
-
-    Returns:
-        List of ACP ContentBlock objects
-    """
-    if not text.strip():
-        return []
-
-    # For now, return simple text content block
-    # Future enhancement: detect and parse structured content
-    return [TextContentBlock(text=text)]
-
-
 def to_session_updates(response: str, session_id: str) -> list[SessionNotification]:
     """Convert agent response to ACP session update notifications.
 
