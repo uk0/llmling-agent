@@ -28,9 +28,25 @@ logger = get_logger(__name__)
 class OpenAIServer:
     """OpenAI-compatible API server backed by LLMling agents."""
 
-    def __init__(self, pool: AgentPool):
+    def __init__(self, pool: AgentPool, *, cors: bool = True, docs: bool = True):
         self.pool = pool
         self.app = FastAPI()
+
+        if cors:
+            from fastapi.middleware.cors import CORSMiddleware
+
+            self.app.add_middleware(
+                CORSMiddleware,
+                allow_origins=["*"],
+                allow_credentials=True,
+                allow_methods=["*"],
+                allow_headers=["*"],
+            )
+
+        if not docs:
+            self.app.docs_url = None
+            self.app.redoc_url = None
+
         self.setup_routes()
 
     def verify_api_key(

@@ -65,22 +65,7 @@ def api_command(
         for agent in pool.agents.values():
             agent.message_sent.connect(on_message)
 
-    server = OpenAIServer(pool)
-
-    if cors:
-        from fastapi.middleware.cors import CORSMiddleware
-
-        server.app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-
-    if not docs:
-        server.app.docs_url = None
-        server.app.redoc_url = None
+    server = OpenAIServer(pool, cors=cors, docs=docs)
 
     uvicorn.run(server.app, host=host, port=port, log_level=log_level.lower())
 
