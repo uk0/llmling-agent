@@ -57,6 +57,9 @@ class StepCondition(Schema):
                     return False
             case "exists":
                 return field_value is not None
+            case _:
+                msg = f"Unknown operator: {self.operator}"
+                raise ValueError(msg)
 
 
 @dataclass
