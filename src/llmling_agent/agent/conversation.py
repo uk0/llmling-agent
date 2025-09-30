@@ -456,9 +456,9 @@ class ConversationManager:
         Raises:
             ValueError: If content cannot be loaded or converted
         """
-        from upath import UPath
+        from upathtools import to_upath
 
-        path_obj = UPath(path)
+        path_obj = to_upath(path)
         if convert_to_md:
             content = await self._agent.context.converter.convert_file(path)
             source = f"markdown:{path_obj.name}"

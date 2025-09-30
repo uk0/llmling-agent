@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from upath import UPath
-
 from llmling_agent.log import get_logger
 from llmling_agent_config.converters import PlainConverterConfig
 from llmling_agent_converters.base import DocumentConverter
@@ -38,7 +36,9 @@ class PlainConverter(DocumentConverter):
     def convert_file(self, path: StrPath) -> str:
         """Just read the file as text."""
         try:
-            return UPath(path).read_text(encoding="utf-8")
+            from upathtools import to_upath
+
+            return to_upath(path).read_text(encoding="utf-8")
         except Exception as e:
             msg = f"Failed to read file {path}"
             logger.exception(msg)

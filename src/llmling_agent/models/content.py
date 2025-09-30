@@ -64,9 +64,9 @@ class BaseImageContent(BaseContent):
             detail: Optional detail level for processing
             description: Optional description of the image
         """
-        from upath import UPath
+        from upathtools import to_upath
 
-        path_obj = UPath(path)
+        path_obj = to_upath(path)
 
         # For http(s) URLs, pass through as URL content
         if path_obj.protocol in ("http", "https"):
@@ -164,9 +164,9 @@ class BasePDFContent(BaseContent):
             detail: Optional detail level for processing
             description: Optional description of the document
         """
-        from upath import UPath
+        from upathtools import to_upath
 
-        path_obj = UPath(path)
+        path_obj = to_upath(path)
 
         # For http(s) URLs, pass through as URL content
         if path_obj.protocol in ("http", "https"):
@@ -276,9 +276,9 @@ class AudioBase64Content(AudioContent):
         """Create from file path with auto format detection."""
         import mimetypes
 
-        from upath import UPath
+        from upathtools import to_upath
 
-        path_obj = UPath(path)
+        path_obj = to_upath(path)
         mime_type, _ = mimetypes.guess_type(str(path_obj))
         fmt = (
             mime_type.removeprefix("audio/")

@@ -48,8 +48,6 @@ async def convert_prompts(
     - Regular prompts -> str via to_prompt
     - Content objects -> pass through
     """
-    from upath import UPath
-
     result: list[str | Content] = []
     for p in prompts:
         match p:
@@ -60,7 +58,9 @@ async def convert_prompts(
             case os.PathLike():
                 from mimetypes import guess_type
 
-                path_obj = UPath(p)
+                from upathtools import to_upath
+
+                path_obj = to_upath(p)
                 mime_type, _ = guess_type(str(path_obj))
 
                 match mime_type:

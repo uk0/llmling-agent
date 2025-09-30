@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence as TypingSequence
 import inspect
-import os
 from typing import Annotated, Literal
 import warnings
 
@@ -70,7 +69,7 @@ class PathResourceLoaderConfig(BaseResourceLoaderConfig):
     type: Literal["path"] = Field(default="path", init=False)
     """Discriminator field identifying this as a path-based resource."""
 
-    path: str | os.PathLike[str]
+    path: str
     """Path to the file or URL to load."""
 
     watch: WatchConfig | None = None

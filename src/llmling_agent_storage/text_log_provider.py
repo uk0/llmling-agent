@@ -148,7 +148,9 @@ class TextLogProvider(StorageProvider):
             template_str = self.TEMPLATES[template]  # type: ignore
         else:
             # Assume it's a path
-            with UPath(template).open() as f:
+            from upathtools import to_upath
+
+            with to_upath(template).open() as f:
                 template_str = f.read()
         return Template(template_str)
 

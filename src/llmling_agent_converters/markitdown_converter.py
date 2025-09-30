@@ -6,8 +6,6 @@ from functools import cached_property
 import tempfile
 from typing import TYPE_CHECKING, Any
 
-from upath import UPath
-
 from llmling_agent.log import get_logger
 from llmling_agent_config.converters import MarkItDownConfig
 from llmling_agent_converters.base import DocumentConverter
@@ -72,7 +70,9 @@ class MarkItDownConverter(DocumentConverter):
     def convert_file(self, path: StrPath) -> str:
         """Convert using MarkItDown's file-based interface."""
         try:
-            path_obj = UPath(path)
+            from upathtools import to_upath
+
+            path_obj = to_upath(path)
 
             # Direct handling for local paths and http(s) URLs
             if path_obj.protocol in ("", "file", "http", "https"):

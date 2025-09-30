@@ -6,8 +6,6 @@ from abc import ABC, abstractmethod
 import mimetypes
 from typing import TYPE_CHECKING, Any
 
-from upath import UPath
-
 
 if TYPE_CHECKING:
     from llmling_agent.common_types import StrPath
@@ -18,7 +16,9 @@ class DocumentConverter(ABC):
 
     def convert_file(self, path: StrPath) -> str:
         """Convert document file to markdown."""
-        path_obj = UPath(path)
+        from upathtools import to_upath
+
+        path_obj = to_upath(path)
         content = path_obj.read_bytes()
         return self.convert_content(content, mimetypes.guess_type(str(path))[0])
 
