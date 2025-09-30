@@ -2,6 +2,7 @@
 
 from llmling_agent.models import AgentsManifest, AgentConfig
 from llmling_agent.agent import Agent, StructuredAgent, AnyAgent, AgentContext
+from importlib.metadata import version as _metadata_version
 
 from llmling_agent.delegation import AgentPool, Team, TeamRun, BaseTeam
 from dotenv import load_dotenv
@@ -18,7 +19,7 @@ from llmling_agent.models.content import (
     VideoURLContent,
 )
 
-__version__ = "0.99.58"
+__version__ = _metadata_version("llmling-agent")
 
 load_dotenv()
 

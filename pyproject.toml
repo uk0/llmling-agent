@@ -1,36 +1,30 @@
-[tool.hatch.version]
-source = "regex_commit"
-commit_extra_args = ["-e"]
-path = "src/llmling_agent/__init__.py"
-
-[tool.hatch.build.targets.wheel]
-packages = [
-    "src/llmling_agent",
-    "src/llmling_agent_web",
-    "src/llmling_agent_config",
-    "src/llmling_agent_cli",
-    "src/llmling_agent_tools",
-    "src/llmling_agent_commands",
-    "src/llmling_agent_examples",
-    "src/llmling_agent_providers",
-    "src/llmling_agent_storage",
-    "src/llmling_agent_functional",
-    "src/llmling_agent_docs",
-    "src/llmling_agent_events",
-    "src/llmling_agent_converters",
-    "src/llmling_agent_prompts",
-    "src/llmling_agent_mcp",
-    "src/llmling_agent_input",
-    "src/llmling_agent_observability",
-    "src/llmling_agent_running",
-    "src/llmling_agent_server",
-    "src/llmling_textual",
+[tool.uv.build-backend]
+module-name = [
+    "llmling_agent",
+    "llmling_agent_config",
+    "llmling_agent_cli",
+    "llmling_agent_tools",
+    "llmling_agent_commands",
+    "llmling_agent_examples",
+    "llmling_agent_providers",
+    "llmling_agent_storage",
+    "llmling_agent_functional",
+    "llmling_agent_docs",
+    "llmling_agent_events",
+    "llmling_agent_converters",
+    "llmling_agent_prompts",
+    "llmling_agent_mcp",
+    "llmling_agent_input",
+    "llmling_agent_observability",
+    "llmling_agent_running",
+    "llmling_agent_server",
+    "llmling_textual",
     "acp",
 ]
 
 [build-system]
-requires = ["hatchling", "hatch-regex-commit"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.8.22"]
+build-backend = "uv_build"
 
 [project]
 name = "llmling-agent"
@@ -39,7 +33,7 @@ authors = [
     { name = "Philipp Temminghoff", email = "philipptemminghoff@googlemail.com" },
 ]
 readme = "README.md"
-dynamic = ["version"]
+version = "0.99.58"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
