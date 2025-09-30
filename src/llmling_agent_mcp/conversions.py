@@ -8,12 +8,14 @@ import urllib.parse
 from mcp import types
 
 from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.models.content import AudioBase64Content, ImageBase64Content
 
 
 if TYPE_CHECKING:
     from llmling.prompts.models import BasePrompt, PromptMessage, PromptParameter
     from llmling.resources.models import LoadedResource
 
+    from llmling_agent.models.content import BaseContent
     from llmling_agent.tools.base import Tool
 
 
@@ -51,6 +53,29 @@ def to_mcp_message(msg: PromptMessage | ChatMessage) -> types.PromptMessage:
     text = msg.content if isinstance(msg, ChatMessage) else msg.get_text_content()
     content = types.TextContent(type="text", text=text)
     return types.PromptMessage(role=role, content=content)
+
+
+def to_content(
+    content: str | BaseContent,
+) -> types.TextContent | types.AudioContent | types.ImageContent:
+    match content:
+        case str():
+            return types.TextContent(type="text", text=content)
+        case AudioBase64Content():
+            return types.AudioContent(
+                type="audio",
+                data=content.data,
+                mimeType=content.mime_type,
+            )
+        case ImageBase64Content():
+            return types.ImageContent(
+                type="image",
+                data=content.data,
+                mimeType=content.mime_type,
+            )
+        case _:
+            msg = f"Unsupported content type: {type(content)}"
+            raise ValueError(msg)
 
 
 def to_mcp_argument(arg: PromptParameter) -> types.PromptArgument:
