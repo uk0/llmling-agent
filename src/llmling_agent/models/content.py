@@ -288,6 +288,11 @@ class AudioBase64Content(AudioContent):
 
         return cls(data=base64.b64encode(path_obj.read_bytes()).decode(), format=fmt)
 
+    @property
+    def mime_type(self) -> str:
+        """Return the MIME type of the audio."""
+        return f"audio/{self.format or 'mp3'}"
+
 
 class VideoContent(BaseContent):
     """Base for video content."""
