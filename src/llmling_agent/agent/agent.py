@@ -242,6 +242,9 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 ctx.runtime = RuntimeConfig.from_config(runtime)
             case RuntimeConfig():
                 ctx.runtime = runtime
+            case _:
+                msg = f"Invalid runtime type: {type(runtime)}"
+                raise TypeError(msg)
 
         runtime_provider = RuntimePromptProvider(ctx.runtime)
         ctx.definition.prompt_manager.providers["runtime"] = runtime_provider
