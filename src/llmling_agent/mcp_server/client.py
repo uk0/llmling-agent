@@ -40,6 +40,11 @@ class MCPClient:
             Awaitable[mcp.types.ElicitResult | mcp.types.ErrorData],
         ]
         | None = None,
+        sampling_callback: Callable[
+            [RequestContext, mcp.types.CreateMessageRequestParams],
+            Awaitable[mcp.types.CreateMessageResult | mcp.types.ErrorData],
+        ]
+        | None = None,
     ):
         self.exit_stack = AsyncExitStack()
         self.session: ClientSession | None = None
@@ -47,6 +52,7 @@ class MCPClient:
         self._old_stdout: TextIO | None = None
         self._transport_mode = transport_mode
         self._elicitation_callback = elicitation_callback
+        self._sampling_callback = sampling_callback
 
     async def __aenter__(self) -> Self:
         """Enter context and redirect stdout if in stdio mode."""
@@ -128,7 +134,26 @@ class MCPClient:
                 return await self._elicitation_callback(context, params)
             return await self._default_elicitation_callback(context, params)
 
-        session = ClientSession(stdio, write, elicitation_callback=elicitation_wrapper)
+        async def sampling_wrapper(
+            context: RequestContext,
+            params: mcp.types.CreateMessageRequestParams,
+        ) -> mcp.types.CreateMessageResult | mcp.types.ErrorData:
+            if self._sampling_callback:
+                return await self._sampling_callback(context, params)
+            # If no callback provided, let MCP SDK handle with its default
+            import mcp
+
+            return mcp.types.ErrorData(
+                code=mcp.types.INVALID_REQUEST,
+                message="Sampling not supported",
+            )
+
+        session = ClientSession(
+            stdio,
+            write,
+            elicitation_callback=elicitation_wrapper,
+            sampling_callback=sampling_wrapper,
+        )
         self.session = await self.exit_stack.enter_async_context(session)
         assert self.session
         init_result = await self.session.initialize()

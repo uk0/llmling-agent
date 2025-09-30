@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import AsyncExitStack
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from llmling.prompts import PromptMessage, StaticPrompt
 from mcp.types import TextResourceContents
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.client import MCPClient
+from llmling_agent.models.content import AudioBase64Content, ImageBase64Content
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent_config.mcp_server import (
     SSEMCPServerConfig,
@@ -18,6 +19,7 @@ from llmling_agent_config.mcp_server import (
     StreamableHTTPMCPServerConfig,
 )
 from llmling_agent_config.resources import ResourceInfo
+from llmling_agent_providers.base import UsageLimits
 
 
 if TYPE_CHECKING:
@@ -28,10 +30,9 @@ if TYPE_CHECKING:
     from mcp.types import Prompt as MCPPrompt, Resource as MCPResource
 
     from llmling_agent.messaging.context import NodeContext
+    from llmling_agent.models.content import BaseContent
     from llmling_agent.tools.base import Tool
-    from llmling_agent_config.mcp_server import (
-        MCPServerConfig,
-    )
+    from llmling_agent_config.mcp_server import MCPServerConfig
 
 
 logger = get_logger(__name__)
@@ -131,6 +132,87 @@ class MCPManager(ResourceProvider):
             message="Elicitation not supported - no agent context available",
         )
 
+    async def _sampling_callback(
+        self,
+        context: RequestContext,
+        params: types.CreateMessageRequestParams,
+    ) -> types.CreateMessageResult | types.ErrorData:
+        """Handle MCP sampling by creating a new agent with specified preferences."""
+        from mcp import types
+
+        from llmling_agent.agent import Agent
+
+        try:
+            # Convert MCP messages to prompts for the agent
+            prompts: list[BaseContent | str] = []
+            for mcp_msg in params.messages:
+                match mcp_msg.content:
+                    case types.TextContent() as text_content:
+                        prompts.append(text_content.text)
+                    case types.ImageContent() as image_content:
+                        # Convert to our ImageBase64Content for actual processing
+                        our_image = ImageBase64Content(
+                            data=image_content.data,
+                            mime_type=image_content.mimeType,
+                        )
+                        prompts.append(our_image)
+                    case types.AudioContent() as audio_content:
+                        # Convert to our AudioBase64Content for actual processing
+                        our_audio = AudioBase64Content(
+                            data=audio_content.data,
+                            format=audio_content.mimeType.removeprefix("audio/"),
+                        )
+                        prompts.append(our_audio)
+
+            # Extract model from preferences
+            model = None
+            if (
+                params.modelPreferences
+                and params.modelPreferences.hints
+                and params.modelPreferences.hints[0].name
+            ):
+                model = params.modelPreferences.hints[0].name
+
+            # Create usage limits from sampling parameters
+            usage_limits = UsageLimits(
+                output_tokens_limit=params.maxTokens,
+                request_limit=1,  # Single sampling request
+            )
+
+            # TODO: Apply temperature from params.temperature
+            # Currently no direct way to pass temperature to Agent constructor
+            # May need provider-level configuration or runtime model settings
+
+            # Create agent with sampling parameters
+            agent: Agent[Any] = Agent(
+                name="mcp-sampling-agent",
+                model=model,
+                system_prompt=params.systemPrompt or "",
+                session=False,  # Don't store history for sampling
+            )
+
+            async with agent:
+                # Pass all prompts directly to the agent
+                result = await agent.run(
+                    *prompts,
+                    store_history=False,
+                    usage_limits=usage_limits,
+                )
+
+                return types.CreateMessageResult(
+                    role="assistant",
+                    content=types.TextContent(type="text", text=str(result.content)),
+                    model=result.model or "unknown",
+                    stopReason="endTurn",  # Could detect actual stop reason from result
+                )
+
+        except Exception as e:
+            logger.exception("Sampling failed")
+            return types.ErrorData(
+                code=types.INTERNAL_ERROR,
+                message=f"Sampling failed: {e!s}",
+            )
+
     async def setup_server(self, config: MCPServerConfig):
         """Set up a single MCP server connection."""
         if not config.enabled:
@@ -141,13 +223,16 @@ class MCPManager(ResourceProvider):
                 client = MCPClient(
                     transport_mode="stdio",
                     elicitation_callback=self._elicitation_callback,
+                    sampling_callback=self._sampling_callback,
                 )
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect(config.command, args=config.args, env=env)
                 client_id = f"{config.command}_{' '.join(config.args)}"
             case SSEMCPServerConfig():
                 client = MCPClient(
-                    transport_mode="sse", elicitation_callback=self._elicitation_callback
+                    transport_mode="sse",
+                    elicitation_callback=self._elicitation_callback,
+                    sampling_callback=self._sampling_callback,
                 )
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect("", [], url=config.url, env=env)
@@ -156,6 +241,7 @@ class MCPManager(ResourceProvider):
                 client = MCPClient(
                     transport_mode="streamable-http",
                     elicitation_callback=self._elicitation_callback,
+                    sampling_callback=self._sampling_callback,
                 )
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect("", [], url=config.url, env=env)
