@@ -327,6 +327,10 @@ combine-as-imports = true
 
 [tool.ty.environment]
 python-version = "3.12"
+python-platform = "all"
+
+[tool.ty.rules]
+unresolved-import = "ignore"
 
 [tool.pyright]
 venvPath = "."
