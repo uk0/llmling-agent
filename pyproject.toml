@@ -57,7 +57,8 @@ requires-python = ">=3.12"
 license = { file = "LICENSE" }
 dependencies = [
     "llmling>=1.0.0",
-    "pydantic",
+    "pydantic; python_version < '3.14'",
+    "pydantic>=2.12.0a1; python_version >= '3.14'",
     # these 4 could be optional
     "prompt-toolkit>=3.0.48",
     "promptantic>=0.4.5",
@@ -97,35 +98,35 @@ tiktoken = ["tiktoken; python_version < '3.14'"]
 composio = ["composio"]
 oauth = ["keyring>=25.6.0"]
 mcp_run = ["mcpx-py"]
-upsonic = ["upsonic"]
+# upsonic = ["upsonic"]
 supabase = ["supabase"]
 events = [
-    "watchfiles; python_version < '3.14'",
+    "watchfiles",
     "aioimaplib>=2.0.1",
     "croniter>=6.0.0",
 ]
 textual = ["textual>=1.0.0", "textualicious", "pygments"]
 litellm = ["litellm; python_version < '3.14'"]
-image = ["pillow; python_version < '3.14'"]
+image = ["pillow"]
 # tools = ["crewai-tools>=0.33.0", "langchain-community>=0.3.17"]
 # pydantic_ai = ["pydantic_ai", "llmling-models"]
 remote = ["websockets>=14.2"]
-mem0 = ["mem0ai>=0.1.48; python_version < '3.14'"]
+mem0 = ["mem0ai>=0.1.48"]
 logfire = ["logfire"]
 agentops = ["agentops>=0.4"]
 # laminar = ["lmnr"]
-braintrust = ["braintrust", "autoevals; python_version < '3.14'"]
-# traceloop = ["traceloop-sdk>=0.38.4; python_version < '3.14'"]
-git = ["pygit2; python_version < '3.14'"] # for fsspec git support
+braintrust = ["braintrust", "autoevals"]
+# traceloop = ["traceloop-sdk>=0.38.4"]
+git = ["pygit2"] # for fsspec git support
 arize = [
-    "arize",
+    "arize; python_version < '3.14'",
     "arize-otel",
     "arize-phoenix-otel",
     "openinference-instrumentation-openai",
 ]
 mlflow = ["mlflow>=2.20.1; python_version < '3.14'"]
-langsmith = ["langsmith; python_version < '3.14'"]
-default = ["pydantic-ai>=1.0.0; python_version < '3.14'"]
+langsmith = ["langsmith"]
+default = ["pydantic-ai>=1.0.0"]
 # acp = ["agent-client-protocol>=0.0.1"]
 
 [tool.uv]
@@ -140,14 +141,13 @@ dev = [
     "devtools",
     # Only add below (Copier)
     "pytest-asyncio>=0.24.0",
-    "openapi_spec_validator; python_version < '3.14'",
-]    "alembic>=1.16.5",
-
+    "openapi_spec_validator",
+    "alembic>=1.16.5",
+]
 benchmark = ["pyinstrument"]
 lint = [
     "ruff",
-    # "mypy[faster-cache]; python_version < '3.14'",
-    "mypy",
+    "mypy[faster-cache]",
     # Only add below (Copier)
 ]
 docs = [
