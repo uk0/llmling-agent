@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, Mock
 
+from pydantic_ai import RunContext, RunUsage
+from pydantic_ai.models.test import TestModel
 import pytest
 
+from acp import AgentSideConnection
 from acp.schema import (
     ClientCapabilities,
     CreateTerminalResponse,
@@ -17,8 +20,12 @@ from acp.schema import (
     WaitForTerminalExitResponse,
     WriteTextFileResponse,
 )
+from llmling_agent import AgentPool
 from llmling_agent_acp.acp_agent import LLMlingACPAgent
 from llmling_agent_acp.resource_providers import ACPCapabilityResourceProvider
+
+
+CTX = RunContext(tool_call_id="test", deps=None, model=TestModel(), usage=RunUsage())
 
 
 class TestACPCapabilityProvider:
@@ -27,15 +34,11 @@ class TestACPCapabilityProvider:
     @pytest.fixture
     def mock_connection(self):
         """Create a mock ACP connection."""
-        from acp import AgentSideConnection
-
         return Mock(spec=AgentSideConnection)
 
     @pytest.fixture
     def mock_agent_pool(self):
         """Create a mock agent pool with a single agent."""
-        from llmling_agent import AgentPool
-
         # Create mock agent
         mock_agent = Mock()
         mock_agent.name = "test_agent"
@@ -202,8 +205,6 @@ class TestSessionScopedTerminalTools:
     @pytest.fixture
     def mock_connection(self):
         """Create a mock ACP connection with terminal responses."""
-        from acp import AgentSideConnection
-
         connection = Mock(spec=AgentSideConnection)
 
         # Mock terminal operations
@@ -234,8 +235,6 @@ class TestSessionScopedTerminalTools:
     @pytest.fixture
     def acp_agent(self, mock_connection):
         """Create ACP agent with mocked connection."""
-        from llmling_agent import AgentPool
-
         # Create mock agent pool
         mock_agent = Mock()
         mock_agent.name = "test_agent"
@@ -274,7 +273,7 @@ class TestSessionScopedTerminalTools:
         provider, tools = provider_with_tools
         run_tool = tools["run_command"]
 
-        result = await run_tool.execute(command="echo", args=["Hello World"])
+        result = await run_tool.execute(ctx=CTX, command="echo", args=["Hello World"])
 
         assert "Hello World" in result
         assert "[Command exited with code 0]" in result
@@ -294,7 +293,7 @@ class TestSessionScopedTerminalTools:
         run_tool = tools["run_command"]
 
         await run_tool.execute(
-            command="env", env={"TEST_VAR": "test_value", "FOO": "bar"}
+            ctx=CTX, command="env", env={"TEST_VAR": "test_value", "FOO": "bar"}
         )
 
         # Verify environment variables were passed
@@ -310,7 +309,7 @@ class TestSessionScopedTerminalTools:
         provider, tools = provider_with_tools
         create_tool = tools["create_terminal"]
 
-        result = await create_tool.execute(command="ls", args=["-la"])
+        result = await create_tool.execute(ctx=CTX, command="ls", args=["-la"])
 
         assert result == "term_123"
 
@@ -325,7 +324,7 @@ class TestSessionScopedTerminalTools:
         provider, tools = provider_with_tools
         output_tool = tools["get_command_output"]
 
-        result = await output_tool.execute(terminal_id="term_123")
+        result = await output_tool.execute(ctx=CTX, terminal_id="term_123")
 
         assert "Hello World" in result
         assert "[Exited with code 0]" in result
@@ -342,7 +341,7 @@ class TestSessionScopedTerminalTools:
         provider, tools = provider_with_tools
         wait_tool = tools["wait_for_terminal_exit"]
 
-        result = await wait_tool.execute(terminal_id="term_123")
+        result = await wait_tool.execute(ctx=CTX, terminal_id="term_123")
 
         assert "Terminal term_123 completed with exit code 0" in result
 
@@ -357,7 +356,7 @@ class TestSessionScopedTerminalTools:
         provider, tools = provider_with_tools
         kill_tool = tools["kill_terminal"]
 
-        result = await kill_tool.execute(terminal_id="term_123")
+        result = await kill_tool.execute(ctx=CTX, terminal_id="term_123")
 
         assert "Terminal term_123 killed successfully" in result
 
@@ -372,7 +371,7 @@ class TestSessionScopedTerminalTools:
         provider, tools = provider_with_tools
         release_tool = tools["release_terminal"]
 
-        result = await release_tool.execute(terminal_id="term_123")
+        result = await release_tool.execute(ctx=CTX, terminal_id="term_123")
 
         assert "Terminal term_123 released successfully" in result
 
@@ -388,7 +387,7 @@ class TestSessionScopedTerminalTools:
         timeout_tool = tools["run_command_with_timeout"]
 
         result = await timeout_tool.execute(
-            command="echo", args=["test"], timeout_seconds=5
+            ctx=CTX, command="echo", args=["test"], timeout_seconds=5
         )
 
         assert "Hello World" in result
@@ -405,7 +404,7 @@ class TestSessionScopedTerminalTools:
         )
 
         run_tool = tools["run_command"]
-        result = await run_tool.execute(command="echo", args=["test"])
+        result = await run_tool.execute(ctx=CTX, command="echo", args=["test"])
 
         assert "Error executing command: Connection error" in result
 
@@ -416,8 +415,6 @@ class TestSessionScopedFilesystemTools:
     @pytest.fixture
     def mock_connection(self):
         """Create a mock ACP connection with filesystem responses."""
-        from acp import AgentSideConnection
-
         connection = Mock(spec=AgentSideConnection)
 
         connection.read_text_file = AsyncMock(
@@ -430,8 +427,6 @@ class TestSessionScopedFilesystemTools:
     @pytest.fixture
     def acp_agent(self, mock_connection):
         """Create ACP agent with mocked connection."""
-        from llmling_agent import AgentPool
-
         mock_agent = Mock()
         mock_agent.name = "test_agent"
         pool = Mock(spec=AgentPool)
@@ -467,7 +462,7 @@ class TestSessionScopedFilesystemTools:
         provider, tools = provider_with_fs_tools
         read_tool = tools["read_text_file"]
 
-        result = await read_tool.execute(path="/test/file.txt")
+        result = await read_tool.execute(ctx=CTX, path="/test/file.txt")
 
         assert result == "file contents here"
 
@@ -483,7 +478,7 @@ class TestSessionScopedFilesystemTools:
         provider, tools = provider_with_fs_tools
         read_tool = tools["read_text_file"]
 
-        await read_tool.execute(path="/test/file.txt", line=10, limit=5)
+        await read_tool.execute(ctx=CTX, path="/test/file.txt", line=10, limit=5)
 
         # Verify parameters were passed
         agent = provider.agent
@@ -498,7 +493,7 @@ class TestSessionScopedFilesystemTools:
         write_tool = tools["write_text_file"]
 
         result = await write_tool.execute(
-            path="/test/output.txt", content="Hello, World!"
+            ctx=CTX, path="/test/output.txt", content="Hello, World!"
         )
 
         assert "Successfully wrote file: /test/output.txt" in result
@@ -519,7 +514,7 @@ class TestSessionScopedFilesystemTools:
         provider.agent.connection.read_text_file.side_effect = Exception("File not found")
 
         read_tool = tools["read_text_file"]
-        result = await read_tool.execute(path="/nonexistent.txt")
+        result = await read_tool.execute(ctx=CTX, path="/nonexistent.txt")
 
         assert "Error reading file: File not found" in result
 
@@ -530,8 +525,6 @@ class TestAgentSwitchingWithCapabilityProvider:
     @pytest.fixture
     def mock_connection(self):
         """Create a mock ACP connection."""
-        from acp import AgentSideConnection
-
         connection = Mock(spec=AgentSideConnection)
         connection.create_terminal = AsyncMock(
             return_value=CreateTerminalResponse(terminal_id="term_switch")
@@ -541,8 +534,6 @@ class TestAgentSwitchingWithCapabilityProvider:
     @pytest.fixture
     def multi_agent_pool(self):
         """Create a mock agent pool with multiple agents."""
-        from llmling_agent import AgentPool
-
         # Create multiple mock agents
         agent_a = Mock()
         agent_a.name = "agent_a"
