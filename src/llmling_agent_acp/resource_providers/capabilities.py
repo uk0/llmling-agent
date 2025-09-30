@@ -160,7 +160,8 @@ class ACPCapabilityResourceProvider(ResourceProvider):
     def _create_run_command_tool(self):
         """Create a tool that runs commands via the ACP client."""
 
-        async def run_command(
+        async def run_command(  # noqa: D417
+            ctx: RunContext[Any],
             command: str,
             args: list[str] | None = None,
             cwd: str | None = None,
@@ -239,7 +240,7 @@ class ACPCapabilityResourceProvider(ResourceProvider):
     def _create_get_command_output_tool(self):
         """Create a tool that gets output from a running command."""
 
-        async def get_command_output(terminal_id: str) -> str:
+        async def get_command_output(ctx: RunContext[Any], terminal_id: str) -> str:  # noqa: D417
             """Get output from a terminal that was created with create_terminal.
 
             Use this to check output from a terminal created separately.
@@ -277,7 +278,8 @@ class ACPCapabilityResourceProvider(ResourceProvider):
     def _create_create_terminal_tool(self):
         """Create a tool that creates a terminal and returns the terminal ID."""
 
-        async def create_terminal(
+        async def create_terminal(  # noqa: D417
+            ctx: RunContext[Any],
             command: str,
             args: list[str] | None = None,
             cwd: str | None = None,
@@ -322,7 +324,7 @@ class ACPCapabilityResourceProvider(ResourceProvider):
     def _create_wait_for_terminal_exit_tool(self):
         """Create a tool that waits for a terminal to exit."""
 
-        async def wait_for_terminal_exit(terminal_id: str) -> str:
+        async def wait_for_terminal_exit(ctx: RunContext[Any], terminal_id: str) -> str:  # noqa: D417
             """Wait for a terminal to finish (ADVANCED USE ONLY).
 
             Only use this with terminals created by create_terminal.
@@ -358,7 +360,7 @@ class ACPCapabilityResourceProvider(ResourceProvider):
     def _create_kill_terminal_tool(self):
         """Create a tool that kills a running terminal command."""
 
-        async def kill_terminal(terminal_id: str) -> str:
+        async def kill_terminal(ctx: RunContext[Any], terminal_id: str) -> str:  # noqa: D417
             """Forcefully stop a running terminal (ADVANCED USE ONLY).
 
             Only use this with terminals created by create_terminal.
@@ -385,7 +387,7 @@ class ACPCapabilityResourceProvider(ResourceProvider):
     def _create_release_terminal_tool(self):
         """Create a tool that releases terminal resources."""
 
-        async def release_terminal(terminal_id: str) -> str:
+        async def release_terminal(ctx: RunContext[Any], terminal_id: str) -> str:  # noqa: D417
             """Clean up a terminal created with create_terminal (ADVANCED USE ONLY).
 
             Only use this with terminals created by create_terminal.
@@ -413,7 +415,8 @@ class ACPCapabilityResourceProvider(ResourceProvider):
     def _create_run_command_with_timeout_tool(self):
         """Create a tool that runs commands with timeout support."""
 
-        async def run_command_with_timeout(
+        async def run_command_with_timeout(  # noqa: D417
+            ctx: RunContext[Any],
             command: str,
             args: list[str] | None = None,
             cwd: str | None = None,
