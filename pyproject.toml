@@ -82,7 +82,6 @@ dependencies = [
     "anyenv>=0.3.0",
     "schemez>=0.0.1",
     "fastmcp>=2.3.4",
-    "alembic>=1.16.5",
 ]
 
 [project.scripts]
@@ -142,7 +141,8 @@ dev = [
     # Only add below (Copier)
     "pytest-asyncio>=0.24.0",
     "openapi_spec_validator; python_version < '3.14'",
-]
+]    "alembic>=1.16.5",
+
 benchmark = ["pyinstrument"]
 lint = [
     "ruff",
