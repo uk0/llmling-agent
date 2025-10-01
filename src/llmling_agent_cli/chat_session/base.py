@@ -235,9 +235,7 @@ class AgentPoolView:
             usage = stream_result.usage()
             model = stream_result.model_name  # type: ignore
             cost_info = (
-                await TokenCost.from_usage(usage, model, content, response)
-                if usage and model
-                else None
+                await TokenCost.from_usage(usage, model) if usage and model else None
             )
 
             # Create final status message with all metrics

@@ -110,16 +110,13 @@ class TokenCost:
         cls,
         usage: tokonomics.Usage | None,
         model: str,
-        prompt: str,
-        completion: str,
     ) -> TokenCost | None:
         """Create result from usage data.
 
         Args:
             usage: Token counts from model response
             model: Name of the model used
-            prompt: The prompt text sent to model
-            completion: The completion text received
+
 
         Returns:
             TokenCost if usage data available, None otherwise

@@ -827,12 +827,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
                 cost_info = None
                 model_name = stream.model_name  # type: ignore
                 if model_name:
-                    cost_info = await TokenCost.from_usage(
-                        usage,
-                        model_name,
-                        str(user_msg.content),
-                        str(stream.formatted_content),  # type: ignore
-                    )
+                    cost_info = await TokenCost.from_usage(usage, model_name)
                 response_msg = ChatMessage[TResult](
                     content=cast(TResult, stream.formatted_content),  # type: ignore
                     role="assistant",
