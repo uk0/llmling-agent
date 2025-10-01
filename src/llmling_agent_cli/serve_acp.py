@@ -41,6 +41,11 @@ def acp_command(
     show_messages: bool = t.Option(
         False, "--show-messages", help="Show message activity in logs"
     ),
+    providers: list[str] | None = t.Option(
+        None,
+        "--model-provider",
+        help="Model providers to search for available models (can be specified multiple times)",
+    ),
 ):
     r"""Run agents as an ACP (Agent Client Protocol) server.
 
@@ -106,6 +111,7 @@ def acp_command(
                 session_support=session_support,
                 file_access=file_access,
                 terminal_access=terminal_access,
+                providers=providers,
             )
         except Exception as e:
             logger.exception("Failed to create ACP server from config")
