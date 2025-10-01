@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -66,7 +67,7 @@ async def sample_data(cleanup_database: None):
                 "gpt-5",  # model
                 TokenCost(
                     token_usage={"total": 10, "prompt": 5, "completion": 5},
-                    total_cost=0.001,
+                    total_cost=Decimal("0.001"),
                 ),  # cost_info
             ),
             (
@@ -77,7 +78,7 @@ async def sample_data(cleanup_database: None):
                 "gpt-5",
                 TokenCost(
                     token_usage={"total": 20, "prompt": 10, "completion": 10},
-                    total_cost=0.002,
+                    total_cost=Decimal("0.002"),
                 ),
             ),
             (
@@ -88,7 +89,7 @@ async def sample_data(cleanup_database: None):
                 "gpt-3.5-turbo",
                 TokenCost(
                     token_usage={"total": 15, "prompt": 7, "completion": 8},
-                    total_cost=0.0015,
+                    total_cost=Decimal("0.0015"),
                 ),
             ),
         ]
