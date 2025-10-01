@@ -19,6 +19,7 @@ from llmling_agent_acp.acp_agent import LLMlingACPAgent
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from tokonomics.model_discovery import ProviderType
     from tokonomics.model_discovery.model_info import ModelInfo
 
     from acp import Agent as ACPAgent, Client
@@ -44,6 +45,7 @@ class ACPServer:
         session_support: bool = True,
         file_access: bool = True,
         terminal_access: bool = True,
+        providers: list[ProviderType] | None = None,
     ) -> None:
         """Initialize ACP server.
 
@@ -54,6 +56,7 @@ class ACPServer:
             session_support: Whether to support session-based operations
             file_access: Whether to support file access operations
             terminal_access: Whether to support terminal access operations
+            providers: List of providers to use for model discovery (None = openrouter)
         """
         self._client = client or DefaultACPClient(allow_file_operations=True)
         self.agent_pool = agent_pool
@@ -64,7 +67,7 @@ class ACPServer:
         self._file_access = file_access
         self._terminal_access = terminal_access
         self.usage_limits = usage_limits
-
+        self.providers = providers or ["openrouter"]
         # Model discovery cache
         self._available_models: list[ModelInfo] = []
         self._models_initialized = False
@@ -79,6 +82,7 @@ class ACPServer:
         session_support: bool = True,
         file_access: bool = True,
         terminal_access: bool = True,
+        providers: list[ProviderType] | None = None,
     ) -> Self:
         """Create ACP server from existing llmling-agent configuration.
 
@@ -89,6 +93,7 @@ class ACPServer:
             session_support: Enable session loading support
             file_access: Enable file system access
             terminal_access: Enable terminal access
+            providers: List of provider types to use for model discovery
 
         Returns:
             Configured ACP server instance with agent pool from config
@@ -101,6 +106,7 @@ class ACPServer:
             session_support=session_support,
             file_access=file_access,
             terminal_access=terminal_access,
+            providers=providers,
         )
         agent_names = list(server.agent_pool.agents.keys())
         logger.info("Created ACP server with agent pool containing: %s", agent_names)
@@ -198,7 +204,9 @@ class ACPServer:
             return
         try:
             logger.info("Discovering available models...")
-            self._available_models = await get_all_models(include_deprecated=False)
+            self._available_models = await get_all_models(
+                include_deprecated=False, providers=self.providers
+            )
             self._models_initialized = True
             logger.info("Discovered %d models", len(self._available_models))
         except Exception:
