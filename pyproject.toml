@@ -33,7 +33,7 @@ authors = [
     { name = "Philipp Temminghoff", email = "philipptemminghoff@googlemail.com" },
 ]
 readme = "README.md"
-version = "0.99.59"
+version = "0.99.60"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
