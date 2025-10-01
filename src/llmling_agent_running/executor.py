@@ -14,8 +14,9 @@ from llmling_agent_running import with_nodes
 
 
 if TYPE_CHECKING:
+    import os
+
     from llmling_agent import AgentPool
-    from llmling_agent.common_types import StrPath
     from llmling_agent_running.discovery import NodeFunction
 
 
@@ -26,7 +27,7 @@ class ExecutionError(Exception):
     """Raised when function execution fails."""
 
 
-def _validate_path(path: StrPath) -> Path:
+def _validate_path(path: str | os.PathLike[str]) -> Path:
     if str(path) == "__main__":
         # Get the actual file being run
 
@@ -41,7 +42,7 @@ def _validate_path(path: StrPath) -> Path:
     return path_obj
 
 
-def discover_functions(path: StrPath) -> list[NodeFunction]:
+def discover_functions(path: str | os.PathLike[str]) -> list[NodeFunction]:
     """Find all node functions in a module.
 
     Args:
