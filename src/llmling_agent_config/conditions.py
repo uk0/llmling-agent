@@ -154,6 +154,9 @@ class TokenThresholdCondition(ConnectionCondition):
                 return (
                     context.message.cost_info.token_usage["completion"] >= self.max_tokens
                 )
+            case _:
+                msg = f"Unknown count type: {self.count_type}"
+                raise ValueError(msg)
 
 
 class CostCondition(ConnectionCondition):
