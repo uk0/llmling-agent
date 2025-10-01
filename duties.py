@@ -70,11 +70,7 @@ def release(
         "major", "minor", "patch", "stable", "alpha", "beta", "rc", "post", "dev"
     ] = "patch",
 ):
-    """Release a new version with git operations.
-
-    Args:
-        bump_type: Version bump type (patch, minor, major)
-    """
+    """Release a new version with git operations. (major|minor|patch|stable|alpha|beta|rc|post|dev)."""  # noqa: E501
     # Check for uncommitted changes
     result = ctx.run("git status --porcelain", capture=True)
     if result.strip():
