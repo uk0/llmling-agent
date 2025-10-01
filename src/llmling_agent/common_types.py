@@ -16,8 +16,8 @@ from typing import (
 from uuid import UUID
 
 from llmling import LLMCallableTool
-from pathlib_abc import JoinablePath
 from pydantic import BaseModel, ConfigDict, field_validator
+from upath.types import JoinablePathLike
 
 
 @runtime_checkable
@@ -38,7 +38,7 @@ type JsonArray = list[JsonValue]
 SimpleJsonType = dict[
     str, bool | int | float | str | list[str] | dict[str, bool | int | float | str]
 ]
-type StrPath = str | JoinablePath | os.PathLike
+type StrPath = JoinablePathLike | os.PathLike
 type SessionIdType = str | UUID | None
 
 
