@@ -57,14 +57,7 @@ def lint_check(ctx):
 
 
 @duty(capture=False)
-def version(ctx, *args: str):
-    """Bump package version."""
-    args_str = " " + " ".join(args) if args else ""
-    ctx.run(f"hatch version{args_str}")
-
-
-@duty(capture=False)
-def release(
+def version(
     ctx,
     bump_type: Literal[
         "major", "minor", "patch", "stable", "alpha", "beta", "rc", "post", "dev"
