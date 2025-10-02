@@ -18,7 +18,7 @@ from acp.schema import (
 )
 from llmling_agent import AgentPool
 from llmling_agent_acp.acp_agent import LLMlingACPAgent
-from llmling_agent_acp.resource_providers import ACPCapabilityResourceProvider
+from llmling_agent_acp.acp_tools import ACPCapabilityResourceProvider
 
 
 CTX = RunContext(tool_call_id="test", deps=None, model=TestModel(), usage=RunUsage())

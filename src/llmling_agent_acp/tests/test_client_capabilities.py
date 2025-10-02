@@ -12,7 +12,7 @@ from acp.schema import (
     FileSystemCapability,
     InitializeRequest,
 )
-from llmling_agent_acp.resource_providers import ACPCapabilityResourceProvider
+from llmling_agent_acp.acp_tools import ACPCapabilityResourceProvider
 
 
 if TYPE_CHECKING:

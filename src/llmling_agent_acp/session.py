@@ -19,6 +19,7 @@ from acp.schema import (
 )
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
+from llmling_agent_acp.acp_tools import ACPCapabilityResourceProvider
 from llmling_agent_acp.command_bridge import is_slash_command
 from llmling_agent_acp.converters import (
     convert_acp_mcp_server_to_config,
@@ -27,7 +28,6 @@ from llmling_agent_acp.converters import (
     from_content_blocks,
     to_session_updates,
 )
-from llmling_agent_acp.resource_providers import ACPCapabilityResourceProvider
 
 
 if TYPE_CHECKING:
