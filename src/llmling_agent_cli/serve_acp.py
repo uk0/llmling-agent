@@ -41,10 +41,10 @@ def acp_command(
     show_messages: bool = t.Option(
         False, "--show-messages", help="Show message activity in logs"
     ),
-    providers: list[str] | None = t.Option(
+    providers: list[str] | None = t.Option(  # noqa: B008
         None,
         "--model-provider",
-        help="Model providers to search for available models (can be specified multiple times)",
+        help="Providers to search for models (can be specified multiple times)",
     ),
 ):
     r"""Run agents as an ACP (Agent Client Protocol) server.
