@@ -7,6 +7,7 @@ between agents and ACP clients through the JSON-RPC protocol.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import Agent as PydanticAIAgent
@@ -30,7 +31,7 @@ from llmling_agent_acp.resource_providers import ACPCapabilityResourceProvider
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Sequence
+    from collections.abc import Sequence
 
     from pydantic_ai import ModelRequestNode
     from pydantic_ai.agent import CallToolsNode
@@ -616,10 +617,36 @@ class ACPSession:
                             tool_call_id = result_event.tool_call_id
                             tool_input = inputs.get(tool_call_id, {})
 
+                            # Check if the tool result is a streaming AsyncGenerator
+                            if isinstance(result_event.result.content, AsyncGenerator):
+                                # Stream the tool output chunks
+                                full_content = ""
+                                async for chunk in result_event.result.content:
+                                    full_content += str(chunk)
+
+                                    # Yield intermediate streaming notification
+                                    streaming_notification = format_tool_call_for_acp(
+                                        tool_name=result_event.result.tool_name,
+                                        tool_input=tool_input,
+                                        tool_output=chunk,
+                                        session_id=self.session_id,
+                                        status="in_progress",
+                                        tool_call_id=tool_call_id,
+                                    )
+                                    yield streaming_notification
+
+                                # Replace the AsyncGenerator with the full content to
+                                # prevent errors
+                                result_event.result.content = full_content
+                                final_output = full_content
+                            else:
+                                final_output = result_event.result.content
+
+                            # Final completion notification
                             tool_notification = format_tool_call_for_acp(
                                 tool_name=result_event.result.tool_name,
                                 tool_input=tool_input,
-                                tool_output=result_event.result.content,
+                                tool_output=final_output,
                                 session_id=self.session_id,
                                 status="completed",
                                 tool_call_id=tool_call_id,
