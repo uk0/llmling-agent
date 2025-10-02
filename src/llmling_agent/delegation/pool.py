@@ -3,11 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import (
-    AsyncExitStack,
-    asynccontextmanager,
-    suppress,
-)
+from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
 from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 
@@ -34,9 +30,7 @@ from llmling_agent_config.workers import AgentWorkerConfig, TeamWorkerConfig
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
-    from contextlib import (
-        AbstractAsyncContextManager,
-    )
+    from contextlib import AbstractAsyncContextManager
     from types import TracebackType
 
     from psygnal.containers._evented_dict import DictEvents
