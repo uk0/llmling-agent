@@ -98,7 +98,7 @@ class AgentKwargs(TypedDict, total=False):
 
     # Runtime Environment
     runtime: RuntimeConfig | Config | StrPath | None
-    tools: Sequence[ToolType] | None
+    tools: Sequence[ToolType | Tool] | None
     capabilities: Capabilities | None
     mcp_servers: Sequence[str | MCPServerConfig] | None
 
@@ -161,7 +161,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         session: SessionIdType | SessionQuery | MemoryConfig | bool | int = None,
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
         description: str | None = None,
-        tools: Sequence[ToolType] | None = None,
+        tools: Sequence[ToolType | Tool] | None = None,
         capabilities: Capabilities | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         resources: Sequence[Resource | PromptType | str] = (),
