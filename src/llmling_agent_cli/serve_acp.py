@@ -111,7 +111,7 @@ def acp_command(
                 session_support=session_support,
                 file_access=file_access,
                 terminal_access=terminal_access,
-                providers=providers,
+                providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
             )
         except Exception as e:
             logger.exception("Failed to create ACP server from config")
