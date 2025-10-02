@@ -4,17 +4,13 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Literal
 
 from llmling_agent_observability.base_provider import ObservabilityProvider
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
-
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 
 @dataclass
@@ -44,7 +40,7 @@ class MockProvider(ObservabilityProvider):
         self.calls.append(MockCall(call_type="wrap_tool", name=name, kwargs=kwargs))
         return func
 
-    def wrap_action(
+    def wrap_action[R, **P](
         self,
         func: Callable[P, R],
         msg_template: str | None = None,

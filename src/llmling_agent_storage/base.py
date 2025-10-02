@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, Self
 from uuid import uuid4
 
 from llmling_agent.utils.tasks import TaskManagerMixin
@@ -21,8 +21,6 @@ if TYPE_CHECKING:
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import BaseStorageProviderConfig
     from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
-
-T = TypeVar("T")
 
 
 class StoredMessage:

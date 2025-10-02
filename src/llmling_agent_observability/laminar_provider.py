@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import os
-from typing import TYPE_CHECKING, Any, LiteralString, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, LiteralString
 
 from lmnr import Laminar, observe  # pyright: ignore
 
@@ -15,10 +15,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
     from llmling_agent_config.observability import LaminarProviderConfig
-
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 
 class LaminarProvider(ObservabilityProvider):
@@ -43,7 +39,7 @@ class LaminarProvider(ObservabilityProvider):
         with Laminar.start_as_current_span(name="my_custom_llm_call") as span:
             yield span
 
-    def wrap_action(
+    def wrap_action[R, **P](
         self,
         func: Callable[P, R],
         msg_template: LiteralString | None = None,

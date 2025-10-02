@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, LiteralString, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, LiteralString
 
 import mlflow
 from mlflow.entities import SpanType
@@ -15,10 +15,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
     from llmling_agent_config.observability import MlFlowProviderConfig
-
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 
 class MlFlowProvider(ObservabilityProvider):
@@ -39,7 +35,7 @@ class MlFlowProvider(ObservabilityProvider):
         with mlflow.start_span(name, attributes=attributes) as span:
             yield span
 
-    def wrap_action(
+    def wrap_action[R, **P](
         self,
         func: Callable[P, R],
         msg_template: LiteralString | None = None,

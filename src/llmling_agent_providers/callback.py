@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 import inspect
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.log import get_logger
@@ -25,8 +25,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
-TResult = TypeVar("TResult")
 
 
 class CallbackProvider(AgentProvider[None]):
@@ -51,7 +49,7 @@ class CallbackProvider(AgentProvider[None]):
         super().__init__(name=name or callback.__name__, debug=debug, context=context)
         self.callback = callback
 
-    async def generate_response(
+    async def generate_response[TResult](
         self,
         *prompts: str | Content,
         message_history: list[ChatMessage],

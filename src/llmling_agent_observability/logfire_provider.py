@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, LiteralString, TypeVar
+from typing import TYPE_CHECKING, Any, LiteralString
 
 import logfire
-from typing_extensions import ParamSpec
 
 from llmling_agent.log import get_logger
 from llmling_agent_observability.base_provider import ObservabilityProvider
@@ -17,9 +16,6 @@ if TYPE_CHECKING:
 
     from llmling_agent_config.observability import LogfireProviderConfig
 
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 logger = get_logger(__name__)
 
@@ -51,7 +47,7 @@ class LogfireProvider(ObservabilityProvider):
         with logfire.span(name, **attributes) as span:
             yield span
 
-    def wrap_action(
+    def wrap_action[R, **P](
         self,
         func: Callable[P, R],
         msg_template: LiteralString | None = None,

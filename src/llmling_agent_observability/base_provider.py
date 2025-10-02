@@ -4,15 +4,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager, contextmanager
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Iterator
-
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 
 class ObservabilityProvider(ABC):
@@ -23,7 +19,7 @@ class ObservabilityProvider(ABC):
         """Wrap a tool function with observability."""
 
     @abstractmethod
-    def wrap_action(
+    def wrap_action[R, **P](
         self,
         func: Callable[P, R],
         msg_template: str | None = None,

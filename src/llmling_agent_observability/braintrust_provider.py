@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import os
-from typing import TYPE_CHECKING, Any, LiteralString, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, LiteralString
 
 import braintrust
 
@@ -15,10 +15,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
     from llmling_agent_config.observability import BraintrustProviderConfig
-
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 
 class BraintrustProvider(ObservabilityProvider):
@@ -43,7 +39,7 @@ class BraintrustProvider(ObservabilityProvider):
         with braintrust.start_span(name, span_attributes=attributes) as span:
             yield span
 
-    def wrap_action(
+    def wrap_action[R, **P](
         self,
         func: Callable[P, R],
         msg_template: LiteralString | None = None,

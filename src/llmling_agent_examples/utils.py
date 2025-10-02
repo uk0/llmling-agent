@@ -5,14 +5,12 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Self, TypeVar
+from typing import TYPE_CHECKING, Self
 
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Iterator
 
-
-T = TypeVar("T")
 
 EXAMPLES_DIR = Path("src/llmling_agent_examples")
 

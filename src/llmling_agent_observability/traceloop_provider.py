@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from contextlib import contextmanager
 import os
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from traceloop.sdk import Traceloop  # pyright: ignore
 from traceloop.sdk.decorators import task, tool  # pyright: ignore
@@ -18,10 +18,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
     from llmling_agent_config.observability import TraceloopProviderConfig
-
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 
 class TraceloopProvider(ObservabilityProvider):
@@ -42,7 +38,7 @@ class TraceloopProvider(ObservabilityProvider):
             disable_batch=True,
         )
 
-    def wrap_action(
+    def wrap_action[R, **P](
         self,
         func: Callable[P, R],
         msg_template: str | None = None,

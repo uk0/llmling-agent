@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 import heapq
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
 from llmling_agent.utils.now import get_now
@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from datetime import datetime, timedelta
 
 
-T = TypeVar("T")
 logger = get_logger(__name__)
 
 
@@ -46,7 +45,7 @@ class TaskManagerMixin:
         self._task_queue: list[PrioritizedTask] = []  # heap queue
         self._scheduler_task: asyncio.Task[Any] | None = None
 
-    def create_task(
+    def create_task[T](
         self,
         coro: Coroutine[Any, Any, T],
         *,
@@ -133,7 +132,7 @@ class TaskManagerMixin:
             finally:
                 loop.close()
 
-    def run_task_sync(self, coro: Coroutine[Any, Any, T]) -> T:
+    def run_task_sync[T](self, coro: Coroutine[Any, Any, T]) -> T:
         """Run coroutine synchronously."""
         try:
             loop = asyncio.get_running_loop()

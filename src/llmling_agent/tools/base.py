@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import inspect
-from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling import LLMCallableTool
 import py2openai  # noqa: TC002
@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AgentContext
     from llmling_agent.common_types import ToolSource
 
-T = TypeVar("T")
 
 logger = get_logger(__name__)
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import functools
 import inspect
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from llmling_agent_functional.structure import get_structured
 
@@ -17,13 +17,9 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import AnyCallable
 
 
-P = ParamSpec("P")
-R = TypeVar("R")
-
-
 # We need separate overloads for async and sync functions
 @overload
-def auto_callable(
+def auto_callable[R, **P](
     model: str | models.Model | models.KnownModelName,
     *,
     system_prompt: str | None = None,
@@ -34,7 +30,7 @@ def auto_callable(
 
 
 @overload
-def auto_callable(
+def auto_callable[R, **P](
     model: str | models.Model | models.KnownModelName,
     *,
     system_prompt: str | None = None,
@@ -42,7 +38,7 @@ def auto_callable(
 ) -> Callable[[Callable[P, R]], Callable[P, Coroutine[Any, Any, R]]]: ...
 
 
-def auto_callable(
+def auto_callable[R, **P](
     model: str | models.Model | models.KnownModelName,
     *,
     system_prompt: str | None = None,

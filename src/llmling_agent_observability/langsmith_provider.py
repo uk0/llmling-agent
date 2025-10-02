@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import os
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from langsmith import Client
 from langsmith.run_helpers import traceable
@@ -16,9 +16,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
     from llmling_agent_config.observability import LangsmithProviderConfig
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 
 class LangsmithProvider(ObservabilityProvider):
@@ -68,7 +65,7 @@ class LangsmithProvider(ObservabilityProvider):
             tags=self.config.tags,
         )(func)
 
-    def wrap_action(
+    def wrap_action[R, **P](
         self,
         func: Callable[P, R],
         msg_template: str | None = None,

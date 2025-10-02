@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from contextlib import contextmanager
 import os
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import agentops
 from agentops.sdk.decorators import operation
@@ -17,9 +17,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
     from llmling_agent_config.observability import AgentOpsProviderConfig
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 
 class AgentOpsProvider(ObservabilityProvider):
@@ -48,7 +45,7 @@ class AgentOpsProvider(ObservabilityProvider):
         self.config = {k: v for k, v in self.config.items() if v is not None}
         agentops.init(**self.config)
 
-    def wrap_action(
+    def wrap_action[R, **P](
         self,
         func: Callable[P, R],
         msg_template: str | None = None,
