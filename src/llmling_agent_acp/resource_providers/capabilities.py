@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunContext  # noqa: TC002
@@ -74,7 +75,6 @@ class ACPCapabilityResourceProvider(ResourceProvider):
         """
         if self.cwd and not (path.startswith("/") or (len(path) > 1 and path[1] == ":")):
             # Path appears to be relative and we have a cwd
-            from pathlib import Path
 
             return str(Path(self.cwd) / path)
         return path
