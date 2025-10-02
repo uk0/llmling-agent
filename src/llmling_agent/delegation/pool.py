@@ -717,7 +717,6 @@ class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
                     case AgentWorkerConfig():
                         agent.register_worker(
                             worker,
-                            name=worker_config.name,
                             reset_history_on_run=worker_config.reset_history_on_run,
                             pass_message_history=worker_config.pass_message_history,
                             share_context=worker_config.share_context,

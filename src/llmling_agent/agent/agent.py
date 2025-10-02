@@ -651,7 +651,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
             share_context: Whether to pass parent's context/deps
             parent: Optional parent agent for history/context sharing
         """
-        tool_name = f"ask_{self.name}"
+        tool_name = name or f"ask_{self.name}"
 
         async def wrapped_tool(prompt: str) -> str:
             if pass_message_history and not parent:
