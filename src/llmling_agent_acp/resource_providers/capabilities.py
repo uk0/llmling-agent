@@ -15,7 +15,10 @@ from acp.schema import (
     KillTerminalCommandRequest,
     ReadTextFileRequest,
     ReleaseTerminalRequest,
+    SessionNotification,
     TerminalOutputRequest,
+    ToolCallLocation,
+    ToolCallProgress,
     WaitForTerminalExitRequest,
     WriteTextFileRequest,
 )
@@ -196,16 +199,22 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                 create_response = await self.agent.connection.create_terminal(
                     create_request
                 )
+                logger.info("🔧 DEBUG: Got create_response: %s", create_response)
                 terminal_id = create_response.terminal_id
+                logger.info("🔧 DEBUG: Extracted terminal_id: %s", terminal_id)
 
                 # Wait for completion
+                logger.info("🔧 DEBUG: Creating wait_request")
                 wait_request = WaitForTerminalExitRequest(
                     session_id=self.session_id,
                     terminal_id=terminal_id,
                 )
+                logger.info("🔧 DEBUG: Calling wait_for_terminal_exit")
                 await self.agent.connection.wait_for_terminal_exit(wait_request)
+                logger.info("🔧 DEBUG: Terminal exit completed")
 
                 # Get output
+                logger.info("🔧 DEBUG: Getting terminal output")
                 output_request = TerminalOutputRequest(
                     session_id=self.session_id,
                     terminal_id=terminal_id,
@@ -213,13 +222,16 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                 output_response = await self.agent.connection.terminal_output(
                     output_request
                 )
+                logger.info("🔧 DEBUG: Got output response")
 
                 # Release terminal
+                logger.info("🔧 DEBUG: Releasing terminal")
                 release_request = ReleaseTerminalRequest(
                     session_id=self.session_id,
                     terminal_id=terminal_id,
                 )
                 await self.agent.connection.release_terminal(release_request)
+                logger.info("🔧 DEBUG: Terminal released")
 
                 result = output_response.output
                 if output_response.exit_status:
@@ -304,20 +316,28 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             Returns:
                 Terminal ID (you must manage this terminal manually)
             """
+            logger.info("🔧 DEBUG: Starting create_terminal execution")
+            logger.info("🔧 DEBUG: Command: %s, Args: %s", command, args)
+
+            request = CreateTerminalRequest(
+                session_id=self.session_id,
+                command=command,
+                args=args or [],
+                cwd=cwd,
+                env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
+                output_byte_limit=output_byte_limit,
+            )
+            logger.info("🔧 DEBUG: Calling create_terminal")
             try:
-                request = CreateTerminalRequest(
-                    session_id=self.session_id,
-                    command=command,
-                    args=args or [],
-                    cwd=cwd,
-                    env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
-                    output_byte_limit=output_byte_limit,
-                )
                 create_response = await self.agent.connection.create_terminal(request)
-            except Exception as e:  # noqa: BLE001
+                logger.info("🔧 DEBUG: Got create_response: %s", create_response)
+                terminal_id = create_response.terminal_id
+            except Exception as e:
+                logger.exception("🔧 DEBUG: Exception in create_terminal")
                 return f"Error creating terminal: {e}"
             else:
-                return create_response.terminal_id
+                logger.info("🔧 DEBUG: Returning terminal_id: %s", terminal_id)
+                return terminal_id
 
         return create_terminal
 
@@ -545,8 +565,7 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             logs, or any text-based files from the client's filesystem.
 
             Args:
-                path: Absolute path to the file (e.g., '/home/user/config.txt',
-                      'C:\\Users\\user\\file.txt')
+                path: File path (absolute or relative to session cwd)
                 line: Optional line number to start reading from (1-based indexing)
                 limit: Optional maximum number of lines to read from the starting line
 
@@ -554,17 +573,112 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                 Complete file contents as text, or error message if file cannot be read
 
             Example:
-                read_text_file('/etc/hosts') -> '127.0.0.1 localhost\\n::1 localhost'
+                read_text_file('src/main.py') -> 'def main():\\n    pass'
             """
+            # Resolve relative paths against session cwd
+            resolved_path = self._resolve_path(path)
+            logger.info(
+                "🔧 DEBUG: Starting read_text_file for path: %s -> %s",
+                path,
+                resolved_path,
+            )
+            logger.info("🔧 DEBUG: Line: %s, Limit: %s", line, limit)
+
             request = ReadTextFileRequest(
                 session_id=self.session_id,
-                path=path,
+                path=resolved_path,
                 line=line,
                 limit=limit,
             )
+            logger.info(
+                "🔧 DEBUG: Created ReadTextFileRequest, calling connection.read_text_file"
+            )
+
+            # Send in_progress update
+            if ctx.tool_call_id:
+                try:
+                    progress = ToolCallProgress(
+                        tool_call_id=ctx.tool_call_id,
+                        status="in_progress",
+                        locations=[ToolCallLocation(path=resolved_path)],
+                    )
+                    progress_update = SessionNotification(
+                        session_id=self.session_id,
+                        update=progress,
+                    )
+                    await self.agent.connection.session_update(progress_update)
+                    logger.info("🔧 DEBUG: Sent in_progress update for read")
+                except Exception as e:  # noqa: BLE001
+                    logger.warning("🔧 DEBUG: Failed to send in_progress update: %s", e)
+
             try:
-                response = await self.agent.connection.read_text_file(request)
-            except Exception as e:  # noqa: BLE001
+                # Add timeout to prevent hanging
+                response = await asyncio.wait_for(
+                    self.agent.connection.read_text_file(request),
+                    timeout=30.0,  # 30 second timeout
+                )
+                logger.info("🔧 DEBUG: Got read_text_file response")
+
+                # Send completion update
+                if ctx.tool_call_id:
+                    try:
+                        completed_update = SessionNotification(
+                            session_id=self.session_id,
+                            update=ToolCallProgress(
+                                tool_call_id=ctx.tool_call_id,
+                                status="completed",
+                                raw_output=response.content,
+                            ),
+                        )
+                        await self.agent.connection.session_update(completed_update)
+                        logger.info("🔧 DEBUG: Sent completed update for read")
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning("🔧 DEBUG: Failed to send completed update: %s", e)
+
+                logger.info(
+                    "🔧 DEBUG: Returning file content (length: %d)", len(response.content)
+                )
+            except TimeoutError:
+                logger.exception("🔧 DEBUG: read_text_file timed out after 30 seconds")
+
+                # Send failed update
+                if ctx.tool_call_id:
+                    try:
+                        failed_update = SessionNotification(
+                            session_id=self.session_id,
+                            update=ToolCallProgress(
+                                tool_call_id=ctx.tool_call_id,
+                                status="failed",
+                                raw_output="Operation timed out",
+                            ),
+                        )
+                        await self.agent.connection.session_update(failed_update)
+                        logger.info("🔧 DEBUG: Sent failed update for read")
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning("🔧 DEBUG: Failed to send failed update: %s", e)
+
+                return "Error reading file: Operation timed out"
+            except Exception as e:
+                logger.exception("🔧 DEBUG: Exception in read_text_file")
+
+                # Send failed update
+                if ctx.tool_call_id:
+                    try:
+                        update = ToolCallProgress(
+                            tool_call_id=ctx.tool_call_id,
+                            status="failed",
+                            raw_output=f"Error: {e}",
+                        )
+                        failed_update = SessionNotification(
+                            session_id=self.session_id, update=update
+                        )
+                        await self.agent.connection.session_update(failed_update)
+                        logger.info("🔧 DEBUG: Sent failed update for read")
+                    except Exception as update_e:  # noqa: BLE001
+                        logger.warning(
+                            "🔧 DEBUG: Failed to send failed update: %s", update_e
+                        )
+
                 return f"Error reading file: {e}"
             else:
                 return response.content
@@ -581,21 +695,107 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             or update any text-based files on the client's filesystem.
 
             Args:
-                path: Absolute path where to write the file
-                      (e.g., '/tmp/output.txt', 'C:\\temp\\data.json')
+                path: File path (absolute or relative to session cwd)
                 content: The complete text content to write to the file
 
             Returns:
                 Success confirmation message, or error message if write fails
             """
+            # Resolve relative paths against session cwd
+            resolved_path = self._resolve_path(path)
+            msg = "🔧 DEBUG: Starting write_text_file for path: %s -> %s"
+            logger.info(msg, path, resolved_path)
+            logger.info("🔧 DEBUG: Content length: %d", len(content))
+
+            # Send in_progress update
+            if ctx.tool_call_id:
+                try:
+                    progress_update = SessionNotification(
+                        session_id=self.session_id,
+                        update=ToolCallProgress(
+                            tool_call_id=ctx.tool_call_id,
+                            status="in_progress",
+                            locations=[ToolCallLocation(path=resolved_path)],
+                        ),
+                    )
+                    await self.agent.connection.session_update(progress_update)
+                    logger.info("🔧 DEBUG: Sent in_progress update for write")
+                except Exception as e:  # noqa: BLE001
+                    logger.warning("🔧 DEBUG: Failed to send in_progress update: %s", e)
+
             request = WriteTextFileRequest(
                 session_id=self.session_id,
-                path=path,
+                path=resolved_path,
                 content=content,
             )
+            logger.info("🔧 DEBUG: Created WriteTextFileRequest, calling write_text_file")
+
             try:
-                await self.agent.connection.write_text_file(request)
-            except Exception as e:  # noqa: BLE001
+                # Add timeout to prevent hanging
+                await asyncio.wait_for(
+                    self.agent.connection.write_text_file(request),
+                    timeout=30.0,  # 30 second timeout
+                )
+                logger.info("🔧 DEBUG: Got write_text_file response")
+
+                # Send completion update
+                if ctx.tool_call_id:
+                    try:
+                        progress = ToolCallProgress(
+                            tool_call_id=ctx.tool_call_id,
+                            status="completed",
+                            raw_output=f"Successfully wrote file: {path}",
+                        )
+                        completed_update = SessionNotification(
+                            session_id=self.session_id,
+                            update=progress,
+                        )
+                        await self.agent.connection.session_update(completed_update)
+                        logger.info("🔧 DEBUG: Sent completed update for write")
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning("🔧 DEBUG: Failed to send completed update: %s", e)
+
+            except TimeoutError:
+                logger.exception("🔧 DEBUG: write_text_file timed out after 30 seconds")
+
+                # Send failed update
+                if ctx.tool_call_id:
+                    try:
+                        failed_update = SessionNotification(
+                            session_id=self.session_id,
+                            update=ToolCallProgress(
+                                tool_call_id=ctx.tool_call_id,
+                                status="failed",
+                                raw_output="Operation timed out",
+                            ),
+                        )
+                        await self.agent.connection.session_update(failed_update)
+                        logger.info("🔧 DEBUG: Sent failed update for write")
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning("🔧 DEBUG: Failed to send failed update: %s", e)
+
+                return "Error writing file: Operation timed out"
+            except Exception as e:
+                logger.exception("🔧 DEBUG: Exception in write_text_file")
+
+                # Send failed update
+                if ctx.tool_call_id:
+                    try:
+                        failed_update = SessionNotification(
+                            session_id=self.session_id,
+                            update=ToolCallProgress(
+                                tool_call_id=ctx.tool_call_id,
+                                status="failed",
+                                raw_output=f"Error: {e}",
+                            ),
+                        )
+                        await self.agent.connection.session_update(failed_update)
+                        logger.info("🔧 DEBUG: Sent failed update for write")
+                    except Exception as update_e:  # noqa: BLE001
+                        logger.warning(
+                            "🔧 DEBUG: Failed to send failed update: %s", update_e
+                        )
+
                 return f"Error writing file: {e}"
             else:
                 return f"Successfully wrote file: {path}"
