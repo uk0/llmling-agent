@@ -67,7 +67,7 @@ class NodeEntry(Static, can_focus=True):  # type: ignore
     class Clicked(Message):
         """Emitted when entry is clicked."""
 
-        def __init__(self, node: MessageNode):
+        def __init__(self, node: MessageNode[Any, Any]):
             self.node = node
             super().__init__()
 
@@ -86,6 +86,9 @@ class NodeEntry(Static, can_focus=True):  # type: ignore
                     exra = self.node.provider.NAME
                 case BaseTeam():
                     exra = " | ".join(node.name for node in self.node.agents)
+                case _:
+                    msg = f"Unknown node type: {type(self.node)}"
+                    raise ValueError(msg)
             yield Static(f"({exra})", classes="provider")
 
     def on_click(self):

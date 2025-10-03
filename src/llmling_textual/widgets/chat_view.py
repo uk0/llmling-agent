@@ -67,7 +67,7 @@ class ChatView(ScrollableContainer):
     }
     """
 
-    async def append_chat_message(self, message: ChatMessage):
+    async def append_chat_message(self, message: ChatMessage[str]):
         """Add a new message to the chat."""
         widget = MessageWidget(message)
         await self.mount(widget)

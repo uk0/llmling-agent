@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from textual.containers import ScrollableContainer
 from textual.widgets import Static
@@ -40,7 +40,7 @@ class MessageStream(ScrollableContainer):
 
     def __init__(
         self,
-        pool: AgentPool,
+        pool: AgentPool[Any],
         *,
         id: str | None = None,  # noqa: A002
         classes: str | None = None,
