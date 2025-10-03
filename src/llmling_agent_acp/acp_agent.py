@@ -71,7 +71,6 @@ class LLMlingACPAgent(ACPAgent):
         session_support: bool = True,
         file_access: bool = True,
         terminal_access: bool = True,
-        client: Client | None = None,
         usage_limits: UsageLimits | None = None,
     ) -> None:
         """Initialize ACP agent implementation.
@@ -83,7 +82,6 @@ class LLMlingACPAgent(ACPAgent):
             session_support: Whether agent supports session loading
             file_access: Whether agent can access filesystem
             terminal_access: Whether agent can use terminal
-            client: Optional client interface for operations
             usage_limits: Optional usage limits for model requests and tokens
         """
         self.connection = connection
@@ -92,10 +90,11 @@ class LLMlingACPAgent(ACPAgent):
         self.session_support = session_support
         self.file_access = file_access
         self.terminal_access = terminal_access
-        self.client: Client = client or connection
+        self.client: Client = connection
         self.usage_limits = usage_limits
         self.client_capabilities: ClientCapabilities | None = None
 
+        # The connection IS the client - it handles communication with external process
         # Terminal support - client-side execution via ACP protocol
         # Filesystem support - client-side file operations via ACP protocol
 

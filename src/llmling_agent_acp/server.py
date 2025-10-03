@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any, Self
 
-from acp import AgentSideConnection, DefaultACPClient
+from acp import AgentSideConnection
 from acp.stdio import stdio_streams
 from llmling_agent.log import get_logger
 from llmling_agent.models.manifest import AgentsManifest
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery import ProviderType
     from tokonomics.model_discovery.model_info import ModelInfo
 
-    from acp import Agent as ACPAgent, Client
+    from acp import Agent as ACPAgent
     from llmling_agent import Agent, AgentPool
     from llmling_agent_providers.base import UsageLimits
 
@@ -34,13 +34,15 @@ class ACPServer:
 
     Provides a bridge between llmling-agent's Agent system and the standard ACP
     JSON-RPC protocol using the external acp library for robust communication.
+
+    The actual client communication happens via the AgentSideConnection created
+    when run() is called, which communicates with the external process over stdio.
     """
 
     def __init__(
         self,
         agent_pool: AgentPool[Any],
         *,
-        client: Client | None = None,
         usage_limits: UsageLimits | None = None,
         session_support: bool = True,
         file_access: bool = True,
@@ -51,14 +53,12 @@ class ACPServer:
 
         Args:
             agent_pool: AgentPool containing available agents
-            client: ACP client interface for operations (DefaultACPClient if None)
             usage_limits: Optional usage limits for model requests and tokens
             session_support: Whether to support session-based operations
             file_access: Whether to support file access operations
             terminal_access: Whether to support terminal access operations
             providers: List of providers to use for model discovery (None = openrouter)
         """
-        self._client = client or DefaultACPClient(allow_file_operations=True)
         self.agent_pool = agent_pool
         self._running = False
 
@@ -77,7 +77,6 @@ class ACPServer:
         cls,
         config_path: str | Path,
         *,
-        client: Client | None = None,
         usage_limits: UsageLimits | None = None,
         session_support: bool = True,
         file_access: bool = True,
@@ -88,7 +87,6 @@ class ACPServer:
 
         Args:
             config_path: Path to llmling-agent YAML config file
-            client: ACP client interface for operations (DefaultACPClient if None)
             usage_limits: Optional usage limits for model requests and tokens
             session_support: Enable session loading support
             file_access: Enable file system access
@@ -101,7 +99,6 @@ class ACPServer:
         manifest = AgentsManifest.from_file(config_path)
         server = cls(
             agent_pool=manifest.pool,
-            client=client,
             usage_limits=usage_limits,
             session_support=session_support,
             file_access=file_access,
