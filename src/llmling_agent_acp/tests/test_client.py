@@ -205,7 +205,7 @@ def main() -> int:  # noqa: PLR0915
                 "prompt": [
                     {
                         "type": "text",
-                        "text": "Please read the README.md file in the current directory.",
+                        "text": "Please read README.md file in the current directory.",
                     }
                 ],
             },

@@ -804,27 +804,24 @@ async def ask_user(  # noqa: D417
     Returns:
         The user's response as a string
     """
-    from mcp.types import ElicitRequestParams
+    from mcp.types import ElicitRequestParams, ElicitResult, ErrorData
     from pydantic_ai.tools import RunContext
 
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
 
-    # Default to string response if no schema provided
-    schema = response_schema or {"type": "string"}
-
+    schema = response_schema or {"type": "string"}  # string schema if no none provided
     params = ElicitRequestParams(message=prompt, requestedSchema=schema)
     result = await ctx.handle_elicitation(params)
 
-    # Import the MCP types for proper isinstance checks
-    from mcp.types import ElicitResult, ErrorData
-
-    if isinstance(result, ElicitResult):
-        if result.action == "accept":
-            return str(result.content)
-        if result.action == "cancel":
+    match result:
+        case ElicitResult(action="accept", content=content):
+            return str(content)
+        case ElicitResult(action="cancel"):
             return "User cancelled the request"
-        return "User declined to answer"
-    if isinstance(result, ErrorData):
-        return f"Error: {result.message}"
-    return "Unknown error occurred"
+        case ElicitResult():
+            return "User declined to answer"
+        case ErrorData(message=message):
+            return f"Error: {message}"
+        case _:
+            return "Unknown error occurred"
