@@ -162,6 +162,8 @@ class ACPServer:
                     await asyncio.sleep(0.1)
             except KeyboardInterrupt:
                 logger.info("ACP server shutdown requested")
+            except Exception:
+                logger.exception("Connection receive task failed")
 
         except Exception:
             logger.exception("Error running ACP server")

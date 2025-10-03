@@ -13,6 +13,9 @@ from pydantic import BaseModel, ValidationError
 from acp.exceptions import RequestError
 
 
+logger = logging.getLogger(__name__)
+
+
 if TYPE_CHECKING:
     from acp.acp_types import JsonValue, MethodHandler
 
@@ -72,6 +75,11 @@ class Connection:
                 await self._process_message(message)
         except asyncio.CancelledError:
             return
+        except Exception:
+            logger.exception("🔧 Receive loop crashed")
+            raise
+        finally:
+            logger.debug("🔧 Receive loop ended")
 
     async def _process_message(self, message: dict[str, Any]) -> None:
         method = message.get("method")
@@ -83,6 +91,8 @@ class Connection:
             await self._handle_notification(message)
         elif has_id:
             await self._handle_response(message)
+        else:
+            logger.warning("🔧 Unrecognized message format: %s", message)
 
     async def _handle_request(self, message: dict[str, Any]) -> None:
         """Handle JSON-RPC request."""

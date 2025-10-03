@@ -59,7 +59,7 @@ class ACPSessionManager:
         agent_pool: AgentPool[Any],
         default_agent_name: str,
         cwd: str,
-        client: Client,
+        client: Client,  # This is the AgentSideConnection
         mcp_servers: Sequence[MCPServer] | None = None,
         session_id: str | None = None,
         usage_limits: UsageLimits | None = None,
