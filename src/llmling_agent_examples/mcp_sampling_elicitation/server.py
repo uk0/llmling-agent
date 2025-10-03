@@ -26,7 +26,7 @@ async def fix_code(ctx: Context, code: str) -> str:
 
     # Step 2: Use elicitation to ask user whether to fix (boolean)
     prompt = "LLM found issues in your code. Should I fix them?"
-    fix_request = await ctx.elicit(prompt, response_type=bool)
+    fix_request = await ctx.elicit(prompt, response_type=bool)  # type: ignore[arg-type]
 
     if fix_request.action != "accept" or not fix_request.data:
         return f"No changes made.\n\nOriginal code:\n{code}"
