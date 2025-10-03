@@ -207,4 +207,13 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 )
                 tools.append(tool)
 
+        # User interaction tools
+        if self.capabilities.can_ask_user:
+            tool = Tool.from_callable(
+                capability_tools.ask_user,
+                source="builtin",
+                requires_capability="can_ask_user",
+            )
+            tools.append(tool)
+
         return tools

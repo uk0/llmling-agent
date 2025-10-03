@@ -23,6 +23,7 @@ agents:
       can_delegate_tasks: false     # Whether agent can assign tasks to other agents
       can_observe_agents: false     # Whether agent can monitor other agents' activities
       can_ask_agents: false         # Whether agent can ask other agents directly
+      can_ask_user: false           # Whether agent can ask the user clarifying questions
 
       # History & Statistics Access
       history_access: none          # Access to conversation history (none|own|all)
@@ -88,6 +89,9 @@ can_observe_agents: bool = False
 
 can_ask_agents: bool = False
 """Whether the agent can ask other agents of the pool."""
+
+can_ask_user: bool = False
+"""Whether the agent can ask the user clarifying questions during processing."""
 ```
 
 ### History Access

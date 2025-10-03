@@ -14,6 +14,7 @@ agents:
       can_observe_agents: false    # Monitor other agents' activities
       can_list_teams: false        # Discover available teams
       can_ask_agents: true         # Can ask other agents in the pool
+      can_ask_user: false          # Can ask the user clarifying questions
 
       # History & Statistics Access
       history_access: "own"        # "none" | "own" | "all"
@@ -51,6 +52,7 @@ agents:
 - `can_observe_agents`: Permits monitoring of other agents' activities
 - `can_list_teams`: Allows discovering available teams
 - `can_ask_agents`: Can ask other agents in the pool questions
+- `can_ask_user`: Can ask the user clarifying questions during processing
 
 ### History & Statistics Access
 - `history_access`: Controls access to conversation history

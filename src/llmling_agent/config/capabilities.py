@@ -87,6 +87,9 @@ class Capabilities(EventedModel):
     can_connect_nodes: bool = False
     """Whether the agent can add teams to the pool."""
 
+    can_ask_user: bool = False
+    """Whether the agent can ask the user clarifying questions during processing."""
+
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     def __contains__(self, required: Capabilities) -> bool:

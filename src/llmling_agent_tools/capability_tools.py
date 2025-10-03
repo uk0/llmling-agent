@@ -785,3 +785,46 @@ async def list_processes(ctx: AgentContext) -> str:
         return result.strip()
     except Exception as e:  # noqa: BLE001
         return f"Error listing processes: {e}"
+
+
+async def ask_user(  # noqa: D417
+    ctx: AgentContext,
+    prompt: str,
+    response_schema: dict[str, Any] | None = None,
+) -> str:
+    """Allow LLM to ask user a clarifying question during processing.
+
+    This tool enables agents to ask users for additional information or clarification
+    when needed to complete a task effectively.
+
+    Args:
+        prompt: Question to ask the user
+        response_schema: Optional JSON schema for structured response (defaults to string)
+
+    Returns:
+        The user's response as a string
+    """
+    from mcp.types import ElicitRequestParams
+    from pydantic_ai.tools import RunContext
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+
+    # Default to string response if no schema provided
+    schema = response_schema or {"type": "string"}
+
+    params = ElicitRequestParams(message=prompt, requestedSchema=schema)
+    result = await ctx.handle_elicitation(params)
+
+    # Import the MCP types for proper isinstance checks
+    from mcp.types import ElicitResult, ErrorData
+
+    if isinstance(result, ElicitResult):
+        if result.action == "accept":
+            return str(result.content)
+        if result.action == "cancel":
+            return "User cancelled the request"
+        return "User declined to answer"
+    if isinstance(result, ErrorData):
+        return f"Error: {result.message}"
+    return "Unknown error occurred"
