@@ -122,6 +122,11 @@ class StdlibInputProvider(InputProvider):
 
             # Handle structured input with schema
             print("Please provide response as JSON:")
+            if params.requestedSchema:
+                import anyenv
+
+                schema_json = anyenv.dump_json(params.requestedSchema, indent=True)
+                print(f"Expected schema:\n{schema_json}")
             response = input("> ")
             try:
                 import anyenv
