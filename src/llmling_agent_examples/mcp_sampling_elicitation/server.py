@@ -1,6 +1,6 @@
 """Compact FastMCP server demonstrating sampling and elicitation in one workflow."""
 
-from fastmcp import Context, FastMCP  # noqa: TC002
+from fastmcp import Context, FastMCP
 from mcp.types import ModelHint, ModelPreferences, TextContent
 
 
