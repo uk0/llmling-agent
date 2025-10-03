@@ -52,7 +52,6 @@ class TestClientCapabilities:
             agent_pool=mock_agent_pool,
         )
 
-    @pytest.mark.asyncio
     async def test_no_capabilities_no_tools(self, acp_agent: LLMlingACPAgent):
         """Test that no tools are registered when client has no capabilities."""
         # Test with ResourceProvider directly - no capabilities
@@ -70,7 +69,6 @@ class TestClientCapabilities:
         tools = await provider.get_tools()
         assert len(tools) == 0
 
-    @pytest.mark.asyncio
     async def test_full_capabilities(self, acp_agent: LLMlingACPAgent):
         """Test that all tools are registered when client has full capabilities."""
         # Test with ResourceProvider directly
@@ -104,7 +102,6 @@ class TestClientCapabilities:
 
         assert tool_names == expected_tools
 
-    @pytest.mark.asyncio
     async def test_terminal_only_capabilities(self, acp_agent: LLMlingACPAgent):
         """Test that only term tools are registered when only term is supported."""
         # Test with ResourceProvider directly
@@ -138,7 +135,6 @@ class TestClientCapabilities:
         for tool in tools:
             assert tool.source == "terminal"
 
-    @pytest.mark.asyncio
     async def test_filesystem_only_capabilities(self, acp_agent: LLMlingACPAgent):
         """Test that only fs tools are registered when only fs is supported."""
         # Test with ResourceProvider directly
@@ -163,7 +159,6 @@ class TestClientCapabilities:
         for tool in tools:
             assert tool.source == "filesystem"
 
-    @pytest.mark.asyncio
     async def test_partial_filesystem_capabilities_read_only(
         self, acp_agent: LLMlingACPAgent
     ):
@@ -184,7 +179,6 @@ class TestClientCapabilities:
         tool_names = {tool.name for tool in tools}
         assert tool_names == {"read_text_file"}
 
-    @pytest.mark.asyncio
     async def test_partial_filesystem_capabilities_write_only(
         self, acp_agent: LLMlingACPAgent
     ):
@@ -205,7 +199,6 @@ class TestClientCapabilities:
         tool_names = {tool.name for tool in tools}
         assert tool_names == {"write_text_file"}
 
-    @pytest.mark.asyncio
     async def test_mixed_capabilities_with_terminal_disabled_locally(
         self, mock_connection, mock_agent_pool
     ):
@@ -239,7 +232,6 @@ class TestClientCapabilities:
         expected_filesystem_tools = {"read_text_file", "write_text_file"}
         assert tool_names == expected_filesystem_tools
 
-    @pytest.mark.asyncio
     async def test_none_client_capabilities(self, acp_agent: LLMlingACPAgent):
         """Test handling when client_capabilities is None."""
         # Initialize with None capabilities
@@ -255,7 +247,6 @@ class TestClientCapabilities:
         # This test verifies that initialize works without error with None caps
         assert acp_agent.client_capabilities is None
 
-    @pytest.mark.asyncio
     async def test_capabilities_stored_correctly(self, acp_agent: LLMlingACPAgent):
         """Test that client capabilities are stored correctly in the agent."""
         capabilities = ClientCapabilities(
@@ -278,7 +269,6 @@ class TestClientCapabilities:
         assert acp_agent.client_capabilities.fs.write_text_file is False
         assert acp_agent.client_capabilities.terminal is True
 
-    @pytest.mark.asyncio
     async def test_protocol_version_negotiation(self, acp_agent: LLMlingACPAgent):
         """Test that protocol version is negotiated correctly."""
         # Test client with higher version

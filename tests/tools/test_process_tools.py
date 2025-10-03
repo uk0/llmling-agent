@@ -35,7 +35,6 @@ def mock_process_output():
 class TestStartProcess:
     """Tests for start_process tool."""
 
-    @pytest.mark.asyncio
     async def test_start_process_success(self, mock_context):
         """Test successful process start."""
         mock_context.process_manager.start_process.return_value = "proc_123"
@@ -58,7 +57,6 @@ class TestStartProcess:
             output_limit=1024,
         )
 
-    @pytest.mark.asyncio
     async def test_start_process_minimal_args(self, mock_context):
         """Test starting process with minimal arguments."""
         mock_context.process_manager.start_process.return_value = "proc_456"
@@ -74,7 +72,6 @@ class TestStartProcess:
             output_limit=None,
         )
 
-    @pytest.mark.asyncio
     async def test_start_process_failure(self, mock_context):
         """Test handling process start failure."""
         mock_context.process_manager.start_process.side_effect = OSError(
@@ -90,7 +87,6 @@ class TestStartProcess:
 class TestGetProcessOutput:
     """Tests for get_process_output tool."""
 
-    @pytest.mark.asyncio
     async def test_get_output_success(self, mock_context, mock_process_output):
         """Test successful output retrieval."""
         mock_context.process_manager.get_output.return_value = mock_process_output
@@ -102,7 +98,6 @@ class TestGetProcessOutput:
         assert "Exit code: 0" in result
         mock_context.process_manager.get_output.assert_called_once_with("proc_123")
 
-    @pytest.mark.asyncio
     async def test_get_output_with_stderr(self, mock_context):
         """Test output retrieval with stderr content."""
         output = ProcessOutput(
@@ -121,7 +116,6 @@ class TestGetProcessOutput:
         assert "STDERR:\nWarning: something" in result
         assert "Exit code: 1" in result
 
-    @pytest.mark.asyncio
     async def test_get_output_truncated(self, mock_context):
         """Test output retrieval with truncated output."""
         output = ProcessOutput(
@@ -138,7 +132,6 @@ class TestGetProcessOutput:
 
         assert "Note: Output was truncated due to size limits" in result
 
-    @pytest.mark.asyncio
     async def test_get_output_not_found(self, mock_context):
         """Test handling non-existent process."""
         mock_context.process_manager.get_output.side_effect = ValueError(
@@ -149,7 +142,6 @@ class TestGetProcessOutput:
 
         assert result == "Process not found"
 
-    @pytest.mark.asyncio
     async def test_get_output_error(self, mock_context):
         """Test handling unexpected errors."""
         mock_context.process_manager.get_output.side_effect = Exception(
@@ -165,7 +157,6 @@ class TestGetProcessOutput:
 class TestWaitForProcess:
     """Tests for wait_for_process tool."""
 
-    @pytest.mark.asyncio
     async def test_wait_success(self, mock_context, mock_process_output):
         """Test successful process wait."""
         mock_context.process_manager.wait_for_exit.return_value = 0
@@ -178,7 +169,6 @@ class TestWaitForProcess:
         mock_context.process_manager.wait_for_exit.assert_called_once_with("proc_123")
         mock_context.process_manager.get_output.assert_called_once_with("proc_123")
 
-    @pytest.mark.asyncio
     async def test_wait_failure_exit_code(self, mock_context):
         """Test waiting for process with non-zero exit code."""
         mock_context.process_manager.wait_for_exit.return_value = 1
@@ -197,7 +187,6 @@ class TestWaitForProcess:
         assert "completed with exit code 1" in result
         assert "STDERR:\nError occurred" in result
 
-    @pytest.mark.asyncio
     async def test_wait_not_found(self, mock_context):
         """Test waiting for non-existent process."""
         mock_context.process_manager.wait_for_exit.side_effect = ValueError(
@@ -212,7 +201,6 @@ class TestWaitForProcess:
 class TestKillProcess:
     """Tests for kill_process tool."""
 
-    @pytest.mark.asyncio
     async def test_kill_success(self, mock_context):
         """Test successful process termination."""
         mock_context.process_manager.kill_process.return_value = None
@@ -222,7 +210,6 @@ class TestKillProcess:
         assert result == "Process proc_123 has been terminated"
         mock_context.process_manager.kill_process.assert_called_once_with("proc_123")
 
-    @pytest.mark.asyncio
     async def test_kill_not_found(self, mock_context):
         """Test killing non-existent process."""
         mock_context.process_manager.kill_process.side_effect = ValueError(
@@ -233,7 +220,6 @@ class TestKillProcess:
 
         assert result == "Process not found"
 
-    @pytest.mark.asyncio
     async def test_kill_error(self, mock_context):
         """Test handling kill errors."""
         mock_context.process_manager.kill_process.side_effect = Exception("Kill failed")
@@ -247,7 +233,6 @@ class TestKillProcess:
 class TestReleaseProcess:
     """Tests for release_process tool."""
 
-    @pytest.mark.asyncio
     async def test_release_success(self, mock_context):
         """Test successful process resource release."""
         mock_context.process_manager.release_process.return_value = None
@@ -257,7 +242,6 @@ class TestReleaseProcess:
         assert result == "Process proc_123 resources have been released"
         mock_context.process_manager.release_process.assert_called_once_with("proc_123")
 
-    @pytest.mark.asyncio
     async def test_release_not_found(self, mock_context):
         """Test releasing non-existent process."""
         mock_context.process_manager.release_process.side_effect = ValueError(
@@ -268,7 +252,6 @@ class TestReleaseProcess:
 
         assert result == "Process not found"
 
-    @pytest.mark.asyncio
     async def test_release_error(self, mock_context):
         """Test handling release errors."""
         mock_context.process_manager.release_process.side_effect = Exception(
@@ -284,7 +267,6 @@ class TestReleaseProcess:
 class TestListProcesses:
     """Tests for list_processes tool."""
 
-    @pytest.mark.asyncio
     async def test_list_no_processes(self, mock_context):
         """Test listing when no processes are active."""
         mock_context.process_manager.list_processes.return_value = []
@@ -293,7 +275,6 @@ class TestListProcesses:
 
         assert result == "No active processes"
 
-    @pytest.mark.asyncio
     async def test_list_with_processes(self, mock_context):
         """Test listing active processes."""
         mock_context.process_manager.list_processes.return_value = [
@@ -321,7 +302,6 @@ class TestListProcesses:
         assert "proc_123: echo hello [running]" in result
         assert "proc_456: sleep 60 [exited (0)]" in result
 
-    @pytest.mark.asyncio
     async def test_list_with_info_error(self, mock_context):
         """Test listing when process info retrieval fails."""
         mock_context.process_manager.list_processes.return_value = ["proc_123"]
@@ -333,7 +313,6 @@ class TestListProcesses:
 
         assert "proc_123: Error getting info - Info error" in result
 
-    @pytest.mark.asyncio
     async def test_list_general_error(self, mock_context):
         """Test handling general list errors."""
         mock_context.process_manager.list_processes.side_effect = Exception("List failed")
@@ -347,7 +326,6 @@ class TestListProcesses:
 class TestPydanticAICompatibility:
     """Tests for PydanticAI RunContext compatibility."""
 
-    @pytest.mark.asyncio
     async def test_runcontext_handling(self):
         """Test that tools handle PydanticAI RunContext correctly."""
         from pydantic_ai.tools import RunContext

@@ -10,7 +10,6 @@ from llmling_agent.messaging.messages import AgentResponse
 from llmling_agent.talk.talk import Talk
 
 
-@pytest.mark.asyncio
 async def test_agent_piping():
     # Use explicit names for all agents
     agent1 = Agent[None].from_callback(lambda x: f"model: {x}", name="agent1")
@@ -34,7 +33,6 @@ async def test_agent_piping():
     assert pipeline.execution_stats.message_count == 3  # noqa: PLR2004
 
 
-@pytest.mark.asyncio
 async def test_agent_piping_with_monitoring():
     def callback(text: str) -> str:
         return f"model: {text}"
@@ -60,7 +58,6 @@ async def test_agent_piping_with_monitoring():
     assert updates  # Last update should show no active agents
 
 
-@pytest.mark.asyncio
 async def test_agent_piping_errors(caplog):
     caplog.set_level(logging.CRITICAL)
     agent1 = Agent[None].from_callback(lambda x: f"model: {x}", name="agent1")
@@ -81,7 +78,6 @@ async def test_agent_piping_errors(caplog):
     assert pipeline.execution_stats.messages[0].content == "model: test"
 
 
-@pytest.mark.asyncio
 async def test_agent_piping_iter(caplog):
     """Test that execute_iter allows tracking the pipeline step by step."""
     caplog.set_level(logging.CRITICAL)
@@ -111,7 +107,6 @@ async def test_agent_piping_iter(caplog):
     assert items[0].message.content == "model: test"  # type: ignore
 
 
-@pytest.mark.asyncio
 async def test_agent_piping_background_error(caplog):
     """Test that background execution properly handles errors."""
     caplog.set_level(logging.CRITICAL)
@@ -133,7 +128,6 @@ async def test_agent_piping_background_error(caplog):
     assert len(talk.stats.messages) == 1  # Only the first message
 
 
-@pytest.mark.asyncio
 async def test_agent_piping_async():
     async def model_callback(text: str) -> str:
         return f"model: {text}"

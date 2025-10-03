@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from llmling_agent import ChatMessage
 
 
-@pytest.mark.asyncio
 async def test_message_chain():
     """Test that message chain tracks transformations correctly."""
     async with Agent[None](name="agent-a", model="test") as agent_a:  # noqa: SIM117
@@ -35,7 +34,6 @@ async def test_message_chain():
                 assert result_c.forwarded_from == [agent_a.name, agent_b.name]
 
 
-@pytest.mark.asyncio
 async def test_run_result_not_modified_by_connections():
     """Test that the message returned by run() isn't modified by connections."""
     # Create two agents
@@ -63,7 +61,6 @@ async def test_run_result_not_modified_by_connections():
             agent_b.message_sent.connect(collect_b)
 
 
-@pytest.mark.asyncio
 async def test_message_chain_through_routing():
     """Test that message chain tracks correctly through the routing system."""
     model_b = TestModel(custom_output_text="Response from B")

@@ -40,7 +40,6 @@ async def no_ctx_tool(arg: str) -> str:
     return f"No context tool got: {arg}"
 
 
-@pytest.mark.asyncio
 async def test_tool_context_injection():
     """Test that tools receive correct context."""
     context_received = None
@@ -77,7 +76,6 @@ async def test_tool_context_injection():
         assert deps_received.node_name == "test"
 
 
-@pytest.mark.asyncio
 async def test_plain_tool_no_context():
     """Test that plain tools work without context."""
     count = 0
@@ -137,7 +135,6 @@ async def test_team_creation():
         assert "bob" in str(result.content.lower())
 
 
-@pytest.mark.asyncio
 async def test_context_compatibility():
     """Test that both context types work in tools."""
     async with Agent[None](model=MODEL) as agent:
@@ -162,7 +159,6 @@ async def test_context_compatibility():
         )
 
 
-@pytest.mark.asyncio
 async def test_context_sharing():
     """Test that both context types access same data."""
     shared_data = {"key": "value"}

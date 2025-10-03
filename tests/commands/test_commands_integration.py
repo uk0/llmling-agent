@@ -63,7 +63,6 @@ def config() -> Config:
     return Config(prompts={"greet": greet_prompt, "analyze": analyze_prompt})
 
 
-@pytest.mark.asyncio
 async def test_prompt_command():
     """Test prompt command with new prompt system."""
     messages = []

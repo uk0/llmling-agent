@@ -38,7 +38,6 @@ class _TestPersonality(BaseModel):
     style: str = "I speak formally"
 
 
-@pytest.mark.asyncio
 async def test_basic_prompt(agent):
     """Test basic prompt without special features."""
     result = await agent.sys_prompts.format_system_prompt(agent)
@@ -49,7 +48,6 @@ async def test_basic_prompt(agent):
     assert "add" not in result  # Tools not included by default
 
 
-@pytest.mark.asyncio
 async def test_tool_injection(agent):
     """Test tool injection in different modes."""
     # Enable tool injection
@@ -66,7 +64,6 @@ async def test_tool_injection(agent):
     assert "Do not attempt to perform tasks without using appropriate tools" in result
 
 
-@pytest.mark.asyncio
 async def test_agent_info_control(agent):
     """Test control of agent info injection."""
     # Default includes agent info
@@ -82,7 +79,6 @@ async def test_agent_info_control(agent):
     assert "Be helpful" in result  # Other prompts still included
 
 
-@pytest.mark.asyncio
 async def test_structured_prompt():
     """Test using a pydantic model as prompt."""
     agent = Agent[None](name="structured", system_prompt=_TestPersonality())
@@ -91,7 +87,6 @@ async def test_structured_prompt():
     assert "I speak formally" in result
 
 
-@pytest.mark.asyncio
 async def test_custom_template(agent):
     """Test using a custom template."""
     agent.sys_prompts.template = """
@@ -106,7 +101,6 @@ async def test_custom_template(agent):
     assert "- Be concise" in result
 
 
-@pytest.mark.asyncio
 async def test_dynamic_evaluation(agent):
     """Test dynamic vs cached prompt evaluation."""
     counter = 0
@@ -133,7 +127,6 @@ async def test_dynamic_evaluation(agent):
     assert "Count: 3" in result4  # Same as before due to caching
 
 
-@pytest.mark.asyncio
 async def test_tool_capability_rendering(agent):
     """Test rendering of tool capabilities."""
 

@@ -25,7 +25,6 @@ def test_basic_tool_management():
     assert manager.is_tool_enabled("tool1")
 
 
-@pytest.mark.asyncio
 async def test_priority_sorting():
     """Test tools are sorted by priority."""
     tool1 = Tool.from_callable(lambda x: x, name_override="tool1")
@@ -39,7 +38,6 @@ async def test_priority_sorting():
     assert [t.name for t in tools] == ["tool2", "tool1"]
 
 
-@pytest.mark.asyncio
 async def test_state_filtering():
     """Test filtering tools by state."""
     tool1 = Tool.from_callable(lambda x: x, name_override="tool1")

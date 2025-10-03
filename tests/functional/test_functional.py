@@ -7,7 +7,6 @@ import pytest
 from llmling_agent_functional import run_agent, run_agent_sync
 
 
-@pytest.mark.asyncio
 async def test_agent_pipeline():
     """Test async pipeline."""
     result = await run_agent("Hello!", model="test")

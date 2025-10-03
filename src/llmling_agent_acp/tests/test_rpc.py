@@ -68,7 +68,6 @@ class _Server:
             await self._server.wait_closed()
 
 
-@pytest.mark.asyncio
 async def test_initialize_and_new_session(
     test_agent: TestAgent, test_client: DefaultACPClient
 ) -> None:
@@ -93,7 +92,6 @@ async def test_initialize_and_new_session(
         assert new_sess.session_id == "test-session-123"
 
 
-@pytest.mark.asyncio
 async def test_bidirectional_file_ops(
     test_agent: TestAgent, test_client: DefaultACPClient
 ) -> None:
@@ -123,7 +121,6 @@ async def test_bidirectional_file_ops(
         assert client.files["/test/file.txt"] == "A"
 
 
-@pytest.mark.asyncio
 async def test_cancel_notification_and_capture_wire(
     test_agent: TestAgent, test_client: DefaultACPClient
 ) -> None:
@@ -154,7 +151,6 @@ async def test_cancel_notification_and_capture_wire(
         assert agent.cancellations == ["test-123"]
 
 
-@pytest.mark.asyncio
 async def test_session_notifications_flow(
     test_agent: TestAgent, test_client: DefaultACPClient
 ) -> None:
@@ -189,7 +185,6 @@ async def test_session_notifications_flow(
         assert test_client.notifications[0].session_id == "sess"
 
 
-@pytest.mark.asyncio
 async def test_concurrent_reads(
     test_agent: TestAgent, test_client: DefaultACPClient
 ) -> None:
@@ -216,7 +211,6 @@ async def test_concurrent_reads(
             assert res.content == f"Content {i}"
 
 
-@pytest.mark.asyncio
 async def test_invalid_params_results_in_error_response(test_agent: TestAgent):
     async with _Server() as s:
         # Only start agent-side (server) so we can inject raw request from client socket
@@ -247,7 +241,6 @@ async def test_invalid_params_results_in_error_response(test_agent: TestAgent):
         assert resp["error"]["code"] == invalid_params_code
 
 
-@pytest.mark.asyncio
 async def test_method_not_found_results_in_error_response(test_agent: TestAgent):
     async with _Server() as s:
         assert s.client_writer is not None
@@ -269,7 +262,6 @@ async def test_method_not_found_results_in_error_response(test_agent: TestAgent)
         assert resp["error"]["code"] == method_not_found_code
 
 
-@pytest.mark.asyncio
 async def test_set_session_mode_and_extensions(
     test_agent: TestAgent, test_client: DefaultACPClient
 ) -> None:
@@ -305,7 +297,6 @@ async def test_set_session_mode_and_extensions(
         assert agent.ext_notes[-1][0] == "note"
 
 
-@pytest.mark.asyncio
 async def test_ignore_invalid_messages(test_agent: TestAgent):
     async with _Server() as s:
         assert s.client_writer is not None

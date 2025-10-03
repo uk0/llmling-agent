@@ -3,7 +3,6 @@ import pytest
 from llmling_agent import Agent
 
 
-@pytest.mark.asyncio
 async def test_pick_from_options():
     """Test picking from a list of options."""
     # Create agent for making decisions
@@ -21,7 +20,6 @@ async def test_pick_from_options():
     assert len(decision.reason) > 0
 
 
-@pytest.mark.asyncio
 async def test_pick_from_agents():
     """Test picking from a team of agents."""
     # Create a team of specialized agents
@@ -54,7 +52,6 @@ async def test_pick_from_agents():
     assert "security" in decision.reason.lower()
 
 
-@pytest.mark.asyncio
 async def test_pick_multiple():
     """Test picking multiple options with constraints."""
     decider = Agent[None](model="openai:gpt-5-mini")

@@ -20,7 +20,6 @@ SIMPLE_PROMPT = "Hello, how are you?"
 TEST_RESPONSE = "I am a test response"
 
 
-@pytest.mark.asyncio
 async def test_simple_agent_run(test_agent: Agent[None]):
     """Test basic agent text response."""
     result = await test_agent.run(SIMPLE_PROMPT)
@@ -29,7 +28,6 @@ async def test_simple_agent_run(test_agent: Agent[None]):
     assert result.cost_info is not None
 
 
-@pytest.mark.asyncio
 async def test_agent_message_history(test_agent: Agent[None]):
     """Test agent with message history."""
     history = [
@@ -43,7 +41,6 @@ async def test_agent_message_history(test_agent: Agent[None]):
     assert len(test_agent.conversation.last_run_messages) == 2  # noqa: PLR2004
 
 
-@pytest.mark.asyncio
 async def test_agent_streaming(test_agent: Agent[None]):
     """Test agent streaming response."""
     stream_ctx = test_agent.run_stream(SIMPLE_PROMPT)
@@ -52,7 +49,6 @@ async def test_agent_streaming(test_agent: Agent[None]):
         assert "".join(collected) == TEST_RESPONSE
 
 
-@pytest.mark.asyncio
 async def test_agent_streaming_pydanticai_history(test_agent: Agent[None]):
     """Test streaming pydantic-ai history."""
     history = [
@@ -81,7 +77,6 @@ async def test_agent_streaming_pydanticai_history(test_agent: Agent[None]):
         assert new_messages[1].parts[0].content == TEST_RESPONSE
 
 
-@pytest.mark.asyncio
 async def test_agent_concurrent_runs(test_agent: Agent[None]):
     """Test running multiple prompts concurrently."""
     prompts = ["Hello!", "Hi there!", "Good morning!"]
@@ -90,7 +85,6 @@ async def test_agent_concurrent_runs(test_agent: Agent[None]):
     assert all(r.data == TEST_RESPONSE for r in results)
 
 
-@pytest.mark.asyncio
 async def test_agent_model_override():
     """Test overriding model for specific runs."""
     default_response = "default response"
@@ -113,7 +107,6 @@ def test_sync_wrapper(test_agent: Agent[None]):
     assert result.data == TEST_RESPONSE
 
 
-@pytest.mark.asyncio
 async def test_agent_forwarding():
     """Test message forwarding between agents."""
     async with AgentPool[None]() as pool:

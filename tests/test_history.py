@@ -123,7 +123,6 @@ def test_parse_time_period():
     assert parse_time_period("1w") == timedelta(weeks=1)
 
 
-@pytest.mark.asyncio
 async def test_get_conversations(provider: SQLModelProvider, sample_data: None):
     """Test conversation retrieval with filters."""
     # Get all conversations
@@ -145,7 +144,6 @@ async def test_get_conversations(provider: SQLModelProvider, sample_data: None):
     assert len(results) == 1
 
 
-@pytest.mark.asyncio
 async def test_get_conversation_stats(provider: SQLModelProvider, sample_data: None):
     """Test statistics retrieval and aggregation."""
     cutoff = BASE_TIME - timedelta(hours=3)
@@ -160,7 +158,6 @@ async def test_get_conversation_stats(provider: SQLModelProvider, sample_data: N
     assert stats["gpt-3.5-turbo"]["messages"] == 1
 
 
-@pytest.mark.asyncio
 async def test_complex_filtering(provider: SQLModelProvider, sample_data: None):
     """Test combined filtering capabilities."""
     since = BASE_TIME - timedelta(hours=1.5)
@@ -175,7 +172,6 @@ async def test_complex_filtering(provider: SQLModelProvider, sample_data: None):
     assert all(msg.model == "gpt-5" for msg in msgs)
 
 
-@pytest.mark.asyncio
 async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
     """Test basic filtering by agent and model."""
     # Get all conversations
@@ -199,7 +195,6 @@ async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
     assert all(msg.model == "gpt-5" for msg in msgs)
 
 
-@pytest.mark.asyncio
 async def test_time_filters(provider: SQLModelProvider, sample_data: None):
     """Test time-based filtering."""
     # First find conversation start times
@@ -225,7 +220,6 @@ async def test_time_filters(provider: SQLModelProvider, sample_data: None):
     assert len(results) > 0
 
 
-@pytest.mark.asyncio
 async def test_filtered_conversations(provider: SQLModelProvider, sample_data: None):
     """Test high-level filtered conversation helper."""
     # Filter by agent (should get all messages for test_agent)
@@ -240,7 +234,6 @@ async def test_filtered_conversations(provider: SQLModelProvider, sample_data: N
     assert conv["token_usage"]["total"] == 30  # 10 + 20 tokens  # noqa: PLR2004
 
 
-@pytest.mark.asyncio
 async def test_period_filtering(provider: SQLModelProvider, sample_data: None):
     """Test just the period filtering to isolate the issue."""
     # Test direct period parsing

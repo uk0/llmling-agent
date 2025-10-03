@@ -25,7 +25,6 @@ agents: {}  # Empty but required
 """
 
 
-@pytest.mark.asyncio
 async def test_builtin_provider():
     # Load test config
     config = yaml.safe_load(TEST_CONFIG)

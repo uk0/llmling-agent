@@ -54,7 +54,6 @@ def process_manifest():
     return AgentsManifest(agents={"process_agent": agent_config})
 
 
-@pytest.mark.asyncio
 async def test_process_manager_pool_integration(process_manifest):
     """Test ProcessManager is properly integrated with AgentPool."""
     async with AgentPool[None](process_manifest) as pool:
@@ -63,7 +62,6 @@ async def test_process_manager_pool_integration(process_manifest):
         assert agent.context.process_manager is pool.process_manager
 
 
-@pytest.mark.asyncio
 async def test_process_tools_registration(process_manifest):
     """Test that process management tools are properly registered."""
     async with AgentPool[None](process_manifest) as pool:
@@ -87,7 +85,6 @@ async def test_process_tools_registration(process_manifest):
             assert expected_tool in tool_names, f"Tool {expected_tool} not found"
 
 
-@pytest.mark.asyncio
 async def test_basic_process_workflow(process_manifest):
     """Test a complete process management workflow."""
     async with AgentPool[None](process_manifest) as pool:
@@ -114,7 +111,6 @@ async def test_basic_process_workflow(process_manifest):
         assert process_id not in processes
 
 
-@pytest.mark.asyncio
 async def test_pool_cleanup_kills_processes(process_manifest):
     """Test that pool cleanup properly kills all processes."""
     async with AgentPool[None](process_manifest) as pool:
@@ -134,7 +130,6 @@ async def test_pool_cleanup_kills_processes(process_manifest):
     # but the test passes if no exceptions were raised during cleanup
 
 
-@pytest.mark.asyncio
 async def test_capability_requirement_enforcement():
     """Test that tools are not available without proper capabilities."""
     # Create agent without process management capability
@@ -166,7 +161,6 @@ async def test_capability_requirement_enforcement():
             )
 
 
-@pytest.mark.asyncio
 async def test_multiple_processes_management(process_manifest):
     """Test managing multiple processes simultaneously."""
     async with AgentPool[None](process_manifest) as pool:
@@ -201,7 +195,6 @@ async def test_multiple_processes_management(process_manifest):
 
 
 @pytest.mark.skip(reason="Output limit test needs refinement")
-@pytest.mark.asyncio
 async def test_process_output_limit(process_manifest):
     """Test process output limiting functionality."""
     async with AgentPool[None](process_manifest) as pool:
@@ -226,7 +219,6 @@ async def test_process_output_limit(process_manifest):
         await pm.release_process(process_id)
 
 
-@pytest.mark.asyncio
 async def test_error_handling_invalid_command(process_manifest):
     """Test error handling for invalid commands."""
     async with AgentPool[None](process_manifest) as pool:
@@ -237,7 +229,6 @@ async def test_error_handling_invalid_command(process_manifest):
             await pm.start_process("nonexistent_command_12345")
 
 
-@pytest.mark.asyncio
 async def test_process_info_retrieval(process_manifest):
     """Test getting detailed process information."""
     async with AgentPool[None](process_manifest) as pool:

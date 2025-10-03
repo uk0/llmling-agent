@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pydantic import BaseModel
-import pytest
 
 from llmling_agent import AgentsManifest
 
@@ -21,7 +20,6 @@ agents:
 """
 
 
-@pytest.mark.asyncio
 async def test_structured_response():
     manifest = AgentsManifest.from_yaml(AGENT_CONFIG)
     async with manifest.pool as pool:

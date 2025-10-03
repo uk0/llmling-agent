@@ -48,7 +48,6 @@ requires_providers = pytest.mark.skipif(
 
 
 @requires_providers
-@pytest.mark.asyncio
 async def test_provider_integration():
     """Test that all configured providers can be initialized and work together."""
     manifest_str = MANIFEST.format(

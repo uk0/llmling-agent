@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
-import pytest
 
 from llmling_agent import AgentPool, AgentsManifest
 
@@ -61,7 +60,6 @@ agents:
 """
 
 
-@pytest.mark.asyncio
 async def test_parallel_execution():
     """Test parallel execution of multiple agents."""
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
@@ -81,7 +79,6 @@ async def test_parallel_execution():
         assert agent_names == {"agent_1", "agent_2"}
 
 
-@pytest.mark.asyncio
 async def test_sequential_execution():
     """Test sequential execution through agent chain."""
     manifest: AgentsManifest = AgentsManifest.from_yaml(TEST_CONFIG)
@@ -107,8 +104,7 @@ async def test_sequential_execution():
         assert expected_input in second_response
 
 
-# @pytest.mark.asyncio
-# async def test_shared_context():
+# # async def test_shared_context():
 #     """Test that AgentGroup properly sets shared context."""
 #     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 #     shared_data = {"key": "shared_value"}

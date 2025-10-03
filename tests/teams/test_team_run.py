@@ -14,7 +14,6 @@ async def delayed_processor(msg: str, delay: float = 0.1) -> str:
     return f"Processed: {msg}"
 
 
-@pytest.mark.asyncio
 class TestTeamRunBackground:
     """Test background execution of a team run."""
 

@@ -91,7 +91,6 @@ class TestACPCapabilityProvider:
         """Client capabilities with no features enabled."""
         return ClientCapabilities()
 
-    @pytest.mark.asyncio
     async def test_provider_creates_all_tools_with_full_capabilities(
         self, acp_agent: LLMlingACPAgent, full_capabilities: ClientCapabilities
     ):
@@ -123,7 +122,6 @@ class TestACPCapabilityProvider:
         assert expected_fs_tools.issubset(tool_names)
         assert len(tools) == len(expected_terminal_tools) + len(expected_fs_tools)
 
-    @pytest.mark.asyncio
     async def test_provider_creates_only_terminal_tools_with_terminal_capabilities(
         self, acp_agent: LLMlingACPAgent, terminal_only_capabilities: ClientCapabilities
     ):
@@ -154,7 +152,6 @@ class TestACPCapabilityProvider:
         fs_tools = {"read_text_file", "write_text_file"}
         assert not fs_tools.intersection(tool_names)
 
-    @pytest.mark.asyncio
     async def test_provider_creates_only_fs_tools_with_fs_capabilities(
         self, acp_agent: LLMlingACPAgent, fs_only_capabilities: ClientCapabilities
     ):
@@ -184,7 +181,6 @@ class TestACPCapabilityProvider:
         }
         assert not terminal_tools.intersection(tool_names)
 
-    @pytest.mark.asyncio
     async def test_provider_creates_no_tools_with_no_capabilities(
         self, acp_agent: LLMlingACPAgent, no_capabilities: ClientCapabilities
     ):
@@ -267,7 +263,6 @@ class TestSessionScopedTerminalTools:
 
         return provider, tool_dict
 
-    @pytest.mark.asyncio
     async def test_run_command_success(self, provider_with_tools):
         """Test run_command tool executes successfully."""
         provider, tools = provider_with_tools
@@ -286,7 +281,6 @@ class TestSessionScopedTerminalTools:
         assert create_call.command == "echo"
         assert create_call.args == ["Hello World"]
 
-    @pytest.mark.asyncio
     async def test_run_command_with_environment(self, provider_with_tools):
         """Test run_command with environment variables."""
         provider, tools = provider_with_tools
@@ -303,7 +297,6 @@ class TestSessionScopedTerminalTools:
         env_dict = {var.name: var.value for var in create_call.env}
         assert env_dict == {"TEST_VAR": "test_value", "FOO": "bar"}
 
-    @pytest.mark.asyncio
     async def test_create_terminal_tool(self, provider_with_tools):
         """Test create_terminal tool returns terminal ID."""
         provider, tools = provider_with_tools
@@ -318,7 +311,6 @@ class TestSessionScopedTerminalTools:
         create_call = agent.connection.create_terminal.call_args[0][0]
         assert create_call.session_id == "test_session_123"
 
-    @pytest.mark.asyncio
     async def test_get_command_output_tool(self, provider_with_tools):
         """Test get_command_output tool retrieves output."""
         provider, tools = provider_with_tools
@@ -335,7 +327,6 @@ class TestSessionScopedTerminalTools:
         assert output_call.session_id == "test_session_123"
         assert output_call.terminal_id == "term_123"
 
-    @pytest.mark.asyncio
     async def test_wait_for_terminal_exit_tool(self, provider_with_tools):
         """Test wait_for_terminal_exit tool."""
         provider, tools = provider_with_tools
@@ -350,7 +341,6 @@ class TestSessionScopedTerminalTools:
         wait_call = agent.connection.wait_for_terminal_exit.call_args[0][0]
         assert wait_call.session_id == "test_session_123"
 
-    @pytest.mark.asyncio
     async def test_kill_terminal_tool(self, provider_with_tools):
         """Test kill_terminal tool."""
         provider, tools = provider_with_tools
@@ -365,7 +355,6 @@ class TestSessionScopedTerminalTools:
         kill_call = agent.connection.kill_terminal.call_args[0][0]
         assert kill_call.session_id == "test_session_123"
 
-    @pytest.mark.asyncio
     async def test_release_terminal_tool(self, provider_with_tools):
         """Test release_terminal tool."""
         provider, tools = provider_with_tools
@@ -380,7 +369,6 @@ class TestSessionScopedTerminalTools:
         release_call = agent.connection.release_terminal.call_args[0][0]
         assert release_call.session_id == "test_session_123"
 
-    @pytest.mark.asyncio
     async def test_run_command_with_timeout_success(self, provider_with_tools):
         """Test run_command_with_timeout completes successfully."""
         _provider, tools = provider_with_tools
@@ -393,7 +381,6 @@ class TestSessionScopedTerminalTools:
         assert "Hello World" in result
         assert "[Command exited with code 0]" in result
 
-    @pytest.mark.asyncio
     async def test_terminal_error_handling(self, provider_with_tools):
         """Test terminal tool error handling."""
         provider, tools = provider_with_tools
@@ -456,7 +443,6 @@ class TestSessionScopedFilesystemTools:
 
         return provider, tool_dict
 
-    @pytest.mark.asyncio
     async def test_read_text_file_tool(self, provider_with_fs_tools):
         """Test read_text_file tool."""
         provider, tools = provider_with_fs_tools
@@ -472,7 +458,6 @@ class TestSessionScopedFilesystemTools:
         assert read_call.session_id == "fs_session_456"
         assert read_call.path == "/test/file.txt"
 
-    @pytest.mark.asyncio
     async def test_read_text_file_with_line_limit(self, provider_with_fs_tools):
         """Test read_text_file with line and limit parameters."""
         provider, tools = provider_with_fs_tools
@@ -486,7 +471,6 @@ class TestSessionScopedFilesystemTools:
         assert read_call.line == 10  # noqa: PLR2004
         assert read_call.limit == 5  # noqa: PLR2004
 
-    @pytest.mark.asyncio
     async def test_write_text_file_tool(self, provider_with_fs_tools):
         """Test write_text_file tool."""
         provider, tools = provider_with_fs_tools
@@ -505,7 +489,6 @@ class TestSessionScopedFilesystemTools:
         assert write_call.path == "/test/output.txt"
         assert write_call.content == "Hello, World!"
 
-    @pytest.mark.asyncio
     async def test_filesystem_error_handling(self, provider_with_fs_tools):
         """Test filesystem tool error handling."""
         provider, tools = provider_with_fs_tools
@@ -580,7 +563,6 @@ class TestAgentSwitchingWithCapabilityProvider:
 
         return session, multi_agent_pool
 
-    @pytest.mark.asyncio
     async def test_capability_provider_moves_on_agent_switch(
         self, session_with_multiple_agents
     ):
@@ -610,7 +592,6 @@ class TestAgentSwitchingWithCapabilityProvider:
         moved_provider = agent_b.tools.add_provider.call_args[0][0]
         assert moved_provider is initial_provider
 
-    @pytest.mark.asyncio
     async def test_current_agent_name_updates_on_switch(
         self, session_with_multiple_agents
     ):
@@ -626,7 +607,6 @@ class TestAgentSwitchingWithCapabilityProvider:
         # Verify current agent changed
         assert session.current_agent_name == "agent_b"
 
-    @pytest.mark.asyncio
     async def test_switch_to_nonexistent_agent_raises_error(
         self, session_with_multiple_agents
     ):
@@ -639,7 +619,6 @@ class TestAgentSwitchingWithCapabilityProvider:
         # Verify current agent unchanged
         assert session.current_agent_name == "agent_a"
 
-    @pytest.mark.asyncio
     async def test_no_provider_movement_when_no_capability_provider(
         self, multi_agent_pool
     ):

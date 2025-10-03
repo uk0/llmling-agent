@@ -78,7 +78,6 @@ class TestClientFilesystemTools:
             client_capabilities=capabilities,
         )
 
-    @pytest.mark.asyncio
     async def test_filesystem_tools_registered(
         self,
         fs_provider: ACPCapabilityResourceProvider,
@@ -93,7 +92,6 @@ class TestClientFilesystemTools:
         for tool in fs_tools:
             assert tool.source == "filesystem"
 
-    @pytest.mark.asyncio
     async def test_read_text_file_success(
         self,
         acp_agent: LLMlingACPAgent,
@@ -121,7 +119,6 @@ class TestClientFilesystemTools:
         assert call_args.path == "/home/user/test.txt"
         assert call_args.session_id == "test_session"
 
-    @pytest.mark.asyncio
     async def test_read_text_file_with_line_and_limit(
         self,
         acp_agent: LLMlingACPAgent,
@@ -155,7 +152,6 @@ class TestClientFilesystemTools:
         assert call_args.line == 10  # noqa: PLR2004
         assert call_args.limit == 3  # noqa: PLR2004
 
-    @pytest.mark.asyncio
     async def test_read_text_file_error(
         self,
         acp_agent: LLMlingACPAgent,
@@ -176,7 +172,6 @@ class TestClientFilesystemTools:
         assert result.startswith("Error reading file:")
         assert "File not found" in result
 
-    @pytest.mark.asyncio
     async def test_write_text_file_success(
         self,
         acp_agent: LLMlingACPAgent,
@@ -208,7 +203,6 @@ class TestClientFilesystemTools:
         assert call_args.content == "Hello, World!\nThis is written content.\n"
         assert call_args.session_id == "test_session"
 
-    @pytest.mark.asyncio
     async def test_write_text_file_json(
         self,
         acp_agent: LLMlingACPAgent,
@@ -239,7 +233,6 @@ class TestClientFilesystemTools:
         call_args = acp_agent.connection.write_text_file.call_args[0][0]
         assert call_args.content == json_str
 
-    @pytest.mark.asyncio
     async def test_write_text_file_error(
         self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
     ):
@@ -262,7 +255,6 @@ class TestClientFilesystemTools:
         assert result.startswith("Error writing file:")
         assert "Permission denied" in result
 
-    @pytest.mark.asyncio
     async def test_read_empty_file(
         self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
     ):
@@ -283,7 +275,6 @@ class TestClientFilesystemTools:
         # Verify empty content is handled correctly
         assert result == ""
 
-    @pytest.mark.asyncio
     async def test_write_empty_file(
         self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
     ):
@@ -309,7 +300,6 @@ class TestClientFilesystemTools:
         call_args = acp_agent.connection.write_text_file.call_args[0][0]
         assert call_args.content == ""
 
-    @pytest.mark.asyncio
     async def test_read_file_with_unicode(
         self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
     ):
@@ -332,7 +322,6 @@ class TestClientFilesystemTools:
         assert "émojis" in result
         assert "café" in result
 
-    @pytest.mark.asyncio
     async def test_write_file_with_unicode(
         self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
     ):
@@ -360,7 +349,6 @@ class TestClientFilesystemTools:
         call_args = acp_agent.connection.write_text_file.call_args[0][0]
         assert call_args.content == unicode_content
 
-    @pytest.mark.asyncio
     async def test_file_operations_with_provider_session(
         self, acp_agent: LLMlingACPAgent, fs_provider
     ):

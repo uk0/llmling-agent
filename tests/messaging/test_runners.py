@@ -66,7 +66,6 @@ agents:
 """
 
 
-@pytest.mark.asyncio
 async def test_agent_pool_conversation_flow():
     """Test conversation flow maintaining history between messages."""
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
@@ -98,7 +97,6 @@ async def test_agent_pool_conversation_flow():
         assert all(r.name == "test_agent" for r in responses)
 
 
-@pytest.mark.asyncio
 async def test_agent_pool_validation():
     """Test AgentPool validation and error handling."""
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
@@ -109,7 +107,6 @@ async def test_agent_pool_validation():
             pool.get_agent("nonexistent")
 
 
-@pytest.mark.asyncio
 async def test_agent_pool_team_errors():
     """Test error handling in team tasks."""
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
@@ -120,7 +117,6 @@ async def test_agent_pool_team_errors():
             pool.create_team(["test_agent", "nonexistent"])
 
 
-@pytest.mark.asyncio
 async def test_agent_pool_cleanup():
     """Test proper cleanup of agent resources."""
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
@@ -140,7 +136,6 @@ async def test_agent_pool_cleanup():
         assert not pool.agents  # Should be empty after cleanup
 
 
-@pytest.mark.asyncio
 async def test_agent_pool_context_cleanup():
     """Test cleanup through context manager."""
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)

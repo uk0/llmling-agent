@@ -92,7 +92,6 @@ def mock_openapi_spec(tmp_path):
     return {"local_path": str(local_spec), "remote_url": url}
 
 
-@pytest.mark.asyncio
 @skip_py314
 async def test_openapi_toolset_local(mock_openapi_spec):
     """Test OpenAPI toolset with local file."""
@@ -110,7 +109,6 @@ async def test_openapi_toolset_local(mock_openapi_spec):
     assert len(tools) == 1, f"Expected 1 tool, got {len(tools)}: {tools}"
 
 
-@pytest.mark.asyncio
 @skip_py314
 async def test_openapi_toolset_remote(mock_openapi_spec, caplog, monkeypatch):
     """Test OpenAPI toolset with remote spec."""

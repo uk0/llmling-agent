@@ -36,7 +36,6 @@ def mock_process():
     return process
 
 
-@pytest.mark.asyncio
 async def test_process_manager_initialization(process_manager):
     """Test ProcessManager initializes correctly."""
     assert isinstance(process_manager._processes, dict)
@@ -44,7 +43,6 @@ async def test_process_manager_initialization(process_manager):
     assert len(process_manager._processes) == 0
 
 
-@pytest.mark.asyncio
 async def test_start_process_success(process_manager, mock_process):
     """Test successfully starting a process."""
     with patch("asyncio.create_subprocess_exec", return_value=mock_process):
@@ -60,7 +58,6 @@ async def test_start_process_success(process_manager, mock_process):
         assert running_proc.process == mock_process
 
 
-@pytest.mark.asyncio
 async def test_start_process_with_options(process_manager, mock_process):
     """Test starting a process with environment and working directory."""
     with patch(
@@ -82,7 +79,6 @@ async def test_start_process_with_options(process_manager, mock_process):
         assert "TEST_VAR" in call_args[1]["env"]
 
 
-@pytest.mark.asyncio
 async def test_start_process_failure(process_manager):
     """Test handling process creation failure."""
     with (
@@ -92,7 +88,6 @@ async def test_start_process_failure(process_manager):
         await process_manager.start_process("nonexistent_command")
 
 
-@pytest.mark.asyncio
 async def test_get_output_success(process_manager, mock_process):
     """Test getting process output."""
     with patch("asyncio.create_subprocess_exec", return_value=mock_process):
@@ -109,14 +104,12 @@ async def test_get_output_success(process_manager, mock_process):
         assert output.combined == "Hello\n"
 
 
-@pytest.mark.asyncio
 async def test_get_output_nonexistent_process(process_manager):
     """Test getting output for non-existent process."""
     with pytest.raises(ValueError, match="Process nonexistent not found"):
         await process_manager.get_output("nonexistent")
 
 
-@pytest.mark.asyncio
 async def test_wait_for_exit(process_manager, mock_process):
     """Test waiting for process completion."""
     mock_process.wait.return_value = 42
@@ -129,7 +122,6 @@ async def test_wait_for_exit(process_manager, mock_process):
         mock_process.wait.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_kill_process(process_manager, mock_process):
     """Test killing a running process."""
     mock_process.returncode = None  # Still running
@@ -142,14 +134,12 @@ async def test_kill_process(process_manager, mock_process):
         mock_process.terminate.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_kill_nonexistent_process(process_manager):
     """Test killing non-existent process."""
     with pytest.raises(ValueError, match="Process nonexistent not found"):
         await process_manager.kill_process("nonexistent")
 
 
-@pytest.mark.asyncio
 async def test_release_process(process_manager, mock_process):
     """Test releasing process resources."""
     with patch("asyncio.create_subprocess_exec", return_value=mock_process):
@@ -166,7 +156,6 @@ async def test_release_process(process_manager, mock_process):
         assert process_id not in process_manager._output_tasks
 
 
-@pytest.mark.asyncio
 async def test_list_processes(process_manager, mock_process):
     """Test listing active processes."""
     assert process_manager.list_processes() == []
@@ -181,7 +170,6 @@ async def test_list_processes(process_manager, mock_process):
         assert process_id2 in processes
 
 
-@pytest.mark.asyncio
 async def test_get_process_info(process_manager, mock_process):
     """Test getting process information."""
     with patch("asyncio.create_subprocess_exec", return_value=mock_process):
@@ -196,7 +184,6 @@ async def test_get_process_info(process_manager, mock_process):
         assert "is_running" in info
 
 
-@pytest.mark.asyncio
 async def test_cleanup(process_manager, mock_process):
     """Test cleaning up all processes."""
     mock_process.returncode = None  # Still running
@@ -215,7 +202,6 @@ async def test_cleanup(process_manager, mock_process):
         assert len(process_manager._output_tasks) == 0
 
 
-@pytest.mark.asyncio
 async def test_output_truncation():
     """Test output truncation when limit is exceeded."""
     output_limit = 100
@@ -238,7 +224,6 @@ async def test_output_truncation():
     assert len(output.stdout.encode()) < output_limit
 
 
-@pytest.mark.asyncio
 async def test_capability_provider_tools():
     """Test that process management tools are registered with capabilities."""
     capabilities = Capabilities(can_manage_processes=True)
@@ -260,7 +245,6 @@ async def test_capability_provider_tools():
         assert expected_tool in tool_names, f"Tool {expected_tool} not found"
 
 
-@pytest.mark.asyncio
 async def test_capability_provider_no_tools():
     """Test that tools are not registered without can_manage_processes capability."""
     capabilities = Capabilities(can_manage_processes=False)
@@ -306,7 +290,6 @@ class TestRunningProcess:
         assert output.stderr == "error"
         assert output.combined == "helloerror"
 
-    @pytest.mark.asyncio
     async def test_is_running(self):
         """Test checking if process is running."""
         mock_process = MagicMock()

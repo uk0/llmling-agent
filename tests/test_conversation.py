@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import pytest
-
 from llmling_agent import Agent
 
 
-@pytest.mark.asyncio
 async def test_conversation_history_management():
     """Test that conversation history is maintained correctly."""
     async with Agent[None](model="openai:gpt-5-mini") as agent:

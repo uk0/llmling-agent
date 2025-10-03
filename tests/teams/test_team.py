@@ -7,7 +7,6 @@ import pytest
 from llmling_agent import Agent, AgentPool, ChatMessage, Team, TeamRun
 
 
-@pytest.mark.asyncio
 async def test_team_parallel_execution():
     """Test that team runs all agents in parallel and collects responses."""
     async with AgentPool[None]() as pool:
@@ -29,7 +28,6 @@ async def test_team_parallel_execution():
         assert all(isinstance(msg, ChatMessage) for msg in team.execution_stats.messages)
 
 
-@pytest.mark.asyncio
 async def test_team_shared_prompt():
     """Test that shared prompt is prepended to individual prompts."""
     async with AgentPool[None]() as pool:
@@ -52,7 +50,6 @@ async def test_team_shared_prompt():
             assert "specific task" in str(response.message.content)
 
 
-@pytest.mark.asyncio
 async def test_nested_teams():
     """Test nesting Teams and TeamRuns inside each other."""
     async with AgentPool[None]() as pool:
@@ -72,7 +69,6 @@ async def test_nested_teams():
         )  # Team(a1+a2) + a3
 
 
-@pytest.mark.asyncio
 async def test_nested_team_run():
     """Test nesting Teams and TeamRuns inside each other."""
     async with AgentPool[None]() as pool:
@@ -103,7 +99,6 @@ async def test_nested_team_run():
         assert len(messages) == 3  # Should get all messages  # noqa: PLR2004
 
 
-@pytest.mark.asyncio
 async def test_simple_team_run_iter():
     """Test run_iter with a simple team of agents."""
     async with AgentPool[None]() as pool:
@@ -120,7 +115,6 @@ async def test_simple_team_run_iter():
         assert {msg.name for msg in messages} == {"a1", "a2"}
 
 
-@pytest.mark.asyncio
 async def test_sequential_run_iter():
     """Test run_iter with a sequential execution (TeamRun)."""
     async with AgentPool[None]() as pool:
@@ -136,7 +130,6 @@ async def test_sequential_run_iter():
         assert [msg.name for msg in messages] == ["a1", "a2"]
 
 
-@pytest.mark.asyncio
 async def test_simple_team_with_teamrun_iter():
     """Test run_iter with a team containing a simple TeamRun."""
     async with AgentPool[None]() as pool:
@@ -163,7 +156,6 @@ async def test_simple_team_with_teamrun_iter():
         assert "execution_order" in teamrun_msg.metadata
 
 
-@pytest.mark.asyncio
 async def test_team_run_iter_execution_order():
     """Test that run_iter preserves execution order within sequential parts."""
     async with AgentPool[None]() as pool:
@@ -184,7 +176,6 @@ async def test_team_run_iter_execution_order():
         assert [msg.name for msg in seq_msg.associated_messages] == ["a1", "a2"]
 
 
-@pytest.mark.asyncio
 async def test_team_operators():
     """Test team combination operators (& and |)."""
     async with AgentPool[None]() as pool:
