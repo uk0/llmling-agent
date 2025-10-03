@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from acp.client import DefaultACPClient
 from acp.schema import SessionMode, SessionModeState
 from llmling_agent.models.manifest import AgentConfig, AgentsManifest
 from llmling_agent_acp.server import ACPServer
@@ -64,8 +63,7 @@ class TestAgentPoolModeSwitch:
 
     def test_server_agent_pool_setup(self, agent_pool: AgentPool[Any]):
         """Test that server correctly stores agent pool."""
-        client = DefaultACPClient()
-        server = ACPServer(agent_pool=agent_pool, client=client)
+        server = ACPServer(agent_pool=agent_pool)
 
         assert server.agent_pool is agent_pool
         agent_names = list(server.agent_pool.agents.keys())
@@ -76,8 +74,7 @@ class TestAgentPoolModeSwitch:
 
     def test_server_get_agent(self, agent_pool: AgentPool[Any]):
         """Test getting agents from pool."""
-        client = DefaultACPClient()
-        server = ACPServer(agent_pool=agent_pool, client=client)
+        server = ACPServer(agent_pool=agent_pool)
 
         coding_agent = server.get_agent("coding-agent")
         research_agent = server.get_agent("research-agent")

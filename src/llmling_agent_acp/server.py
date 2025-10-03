@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any, Self
 
-from acp import AgentSideConnection
+from acp import AgentSideConnection, DefaultACPClient
 from acp.stdio import stdio_streams
 from llmling_agent.log import get_logger
 from llmling_agent.models.manifest import AgentsManifest
@@ -40,7 +40,7 @@ class ACPServer:
         self,
         agent_pool: AgentPool[Any],
         *,
-        client: Client,
+        client: Client | None = None,
         usage_limits: UsageLimits | None = None,
         session_support: bool = True,
         file_access: bool = True,
@@ -58,7 +58,7 @@ class ACPServer:
             terminal_access: Whether to support terminal access operations
             providers: List of providers to use for model discovery (None = openrouter)
         """
-        self._client = client
+        self._client = client or DefaultACPClient(allow_file_operations=True)
         self.agent_pool = agent_pool
         self._running = False
 
@@ -77,7 +77,7 @@ class ACPServer:
         cls,
         config_path: str | Path,
         *,
-        client: Client,
+        client: Client | None = None,
         usage_limits: UsageLimits | None = None,
         session_support: bool = True,
         file_access: bool = True,
