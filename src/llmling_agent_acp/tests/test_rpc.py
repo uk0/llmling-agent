@@ -88,10 +88,8 @@ async def test_initialize_and_new_session(
         resp = await agent_conn.initialize(InitializeRequest(protocol_version=1))
         assert isinstance(resp, InitializeResponse)
         assert resp.protocol_version == 1
-
-        new_sess = await agent_conn.new_session(
-            NewSessionRequest(mcp_servers=[], cwd="/test")
-        )
+        request = NewSessionRequest(mcp_servers=[], cwd="/test")
+        new_sess = await agent_conn.new_session(request)
         assert new_sess.session_id == "test-session-123"
 
 
@@ -115,18 +113,14 @@ async def test_bidirectional_file_ops(
         )
 
         # Agent asks client to read
-        res = await client_conn.read_text_file(
-            ReadTextFileRequest(session_id="sess", path="/test/file.txt")
-        )
+        read_request = ReadTextFileRequest(session_id="sess", path="/test/file.txt")
+        res = await client_conn.read_text_file(read_request)
         assert res.content == "Hello, World!"
 
         # Agent asks client to write
-        await client_conn.write_text_file(
-            WriteTextFileRequest(
-                session_id="sess", path="/test/file.txt", content="Updated"
-            )
-        )
-        assert client.files["/test/file.txt"] == "Updated"
+        req = WriteTextFileRequest(session_id="sess", path="/test/file.txt", content="A")
+        await client_conn.write_text_file(req)
+        assert client.files["/test/file.txt"] == "A"
 
 
 @pytest.mark.asyncio
@@ -179,14 +173,12 @@ async def test_session_notifications_flow(
         # Agent -> Client notifications
         content = TextContentBlock(text="Hello")
         agent_chunk = AgentMessageChunk(content=content)
-        await client_conn.session_update(
-            SessionNotification(session_id="sess", update=agent_chunk)
-        )
+        notification = SessionNotification(session_id="sess", update=agent_chunk)
+        await client_conn.session_update(notification)
         content = TextContentBlock(text="World")
         chunk = UserMessageChunk(content=content)
-        await client_conn.session_update(
-            SessionNotification(session_id="sess", update=chunk)
-        )
+        notification = SessionNotification(session_id="sess", update=chunk)
+        await client_conn.session_update(notification)
 
         # Wait for async dispatch
         for _ in range(50):
@@ -216,9 +208,8 @@ async def test_concurrent_reads(
         )
 
         async def read_one(i: int):
-            return await client_conn.read_text_file(
-                ReadTextFileRequest(session_id="sess", path=f"/test/file{i}.txt")
-            )
+            request = ReadTextFileRequest(session_id="sess", path=f"/test/file{i}.txt")
+            return await client_conn.read_text_file(request)
 
         results = await asyncio.gather(*(read_one(i) for i in range(5)))
         for i, res in enumerate(results):
@@ -297,9 +288,8 @@ async def test_set_session_mode_and_extensions(
         )
 
         # set_session_mode
-        resp = await agent_conn.set_session_mode(
-            SetSessionModeRequest(session_id="sess", mode_id="yolo")
-        )
+        request = SetSessionModeRequest(session_id="sess", mode_id="yolo")
+        resp = await agent_conn.set_session_mode(request)
         # Either empty object or typed response depending on implementation
         assert resp is None or resp.__class__.__name__ == "SetSessionModeResponse"
 

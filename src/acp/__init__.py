@@ -18,11 +18,7 @@ from acp.core import (
     create_session_model_state,
 )
 from acp.terminal_handle import TerminalHandle
-from acp.meta import (
-    AGENT_METHODS,
-    CLIENT_METHODS,
-    PROTOCOL_VERSION,
-)
+from acp.meta import AGENT_METHODS, CLIENT_METHODS, PROTOCOL_VERSION
 from acp.schema import (
     AuthenticateRequest,
     AuthenticateResponse,
