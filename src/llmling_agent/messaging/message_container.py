@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-DEFAULT_TOKEN_MODEL = "gpt-3.5-turbo"
+DEFAULT_TOKEN_MODEL = "gpt-4.1"
 
 
 class ChatMessageContainer(EventedList[ChatMessage[Any]]):
