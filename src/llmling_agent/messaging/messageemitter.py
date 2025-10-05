@@ -12,9 +12,7 @@ from psygnal import Signal
 
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.prompts.convert import convert_prompts
-from llmling_agent.talk.stats import (
-    AggregatedTalkStats,
-)
+from llmling_agent.talk.stats import AggregatedTalkStats
 from llmling_agent.tools import ToolCallInfo
 from llmling_agent.utils.inspection import has_return_type
 from llmling_agent.utils.tasks import TaskManagerMixin
@@ -34,10 +32,7 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.content import Content
     from llmling_agent.talk import Talk, TeamTalk
-    from llmling_agent.talk.stats import (
-        AggregatedMessageStats,
-        MessageStats,
-    )
+    from llmling_agent.talk.stats import AggregatedMessageStats, MessageStats
     from llmling_agent_config.forward_targets import ConnectionType
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.providers import ProcessorCallback

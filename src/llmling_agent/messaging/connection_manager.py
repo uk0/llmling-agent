@@ -64,11 +64,7 @@ class ConnectionManager:
         """Forward message flow to our aggregated signal."""
         self.connection_processed.emit(event)
 
-    def set_wait_state(
-        self,
-        target: MessageEmitter | AgentName,
-        wait: bool = True,
-    ):
+    def set_wait_state(self, target: MessageEmitter | AgentName, wait: bool = True):
         """Set waiting behavior for target."""
         target_name = target if isinstance(target, str) else target.name
         self._wait_states[target_name] = wait

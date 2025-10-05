@@ -12,9 +12,9 @@ from schemez import Schema
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.talk.talk import Talk
 from llmling_agent.utils.now import get_now
-from llmling_agent_config.events import (  # noqa: TC001
+from llmling_agent_config.events import (
     ConnectionEventType,
-    EventSourceConfig,
+    EventSourceConfig,  # noqa: TC001
 )
 
 

@@ -89,12 +89,7 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
         """Get most recent message or None if empty."""
         return self[-1] if self else None
 
-    def format(
-        self,
-        *,
-        style: FormatStyle = "simple",
-        **kwargs: Any,
-    ) -> str:
+    def format(self, *, style: FormatStyle = "simple", **kwargs: Any) -> str:
         """Format conversation history with configurable style.
 
         Args:
