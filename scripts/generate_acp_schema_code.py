@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["datamodel-code-generator", "anyenv[httpx]"]
+# dependencies = ["datamodel-code-generator[http]", "anyenv[httpx]"]
 # ///
 
 
