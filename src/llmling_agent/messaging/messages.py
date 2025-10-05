@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict
 from uuid import uuid4
 
+from genai_prices import Usage, calc_price
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
@@ -121,8 +122,6 @@ class TokenCost:
         Returns:
             TokenCost if usage data available, None otherwise
         """
-        import tokonomics
-
         if not (
             usage
             and usage.total_tokens is not None
@@ -138,15 +137,25 @@ class TokenCost:
             completion=usage.output_tokens,
         )
         logger.debug("Token usage: %s", token_usage)
+        # cost = await tokonomics.calculate_token_cost(
+        #     model,
+        #     usage.input_tokens,
+        #     usage.output_tokens,
+        # )
+        # total_cost = cost.total_cost if cost else 0.0
 
-        cost = await tokonomics.calculate_token_cost(
-            model,
-            usage.input_tokens,
-            usage.output_tokens,
-        )
-        total_cost = cost.total_cost if cost else 0.0
-
-        return cls(token_usage=token_usage, total_cost=Decimal(total_cost))
+        # return cls(token_usage=token_usage, total_cost=Decimal(total_cost))
+        if model == "None":
+            price = Decimal(0)
+        else:
+            parts = model.split(":", 1)
+            price_data = calc_price(
+                Usage(input_tokens=usage.input_tokens, output_tokens=usage.output_tokens),
+                model_ref=parts[1] if len(parts) > 1 else parts[0],
+                provider_id=parts[0] if len(parts) > 1 else "openai",
+            )
+            price = price_data.total_price
+        return cls(token_usage=token_usage, total_cost=price)
 
 
 @dataclass
