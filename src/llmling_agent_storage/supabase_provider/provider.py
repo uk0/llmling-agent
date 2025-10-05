@@ -6,6 +6,8 @@ from decimal import Decimal
 import os
 from typing import TYPE_CHECKING, Any, Self
 
+from postgrest import APIResponse
+
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.utils.now import get_now
@@ -87,7 +89,8 @@ class SupabaseProvider(StorageProvider):
             q = q.limit(query.limit)
 
         result = await q.execute()
-        return [to_chat_message(r) for r in result.data]
+        assert isinstance(result, APIResponse)
+        return [to_chat_message(r) for r in result.data]  # type: ignore
 
     async def log_message(
         self,
