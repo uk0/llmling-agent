@@ -1,28 +1,25 @@
 """Agent configuration and creation."""
 
-from __future__ import annotations
+from llmling_agent.models import AgentsManifest, AgentConfig
+from llmling_agent.agent import Agent, StructuredAgent, AnyAgent, AgentContext
+from importlib.metadata import version as _metadata_version
 
-from importlib.metadata import version
-
-__version__ = version("llmling-agent")
-
+from llmling_agent.delegation import AgentPool, Team, TeamRun, BaseTeam
 from dotenv import load_dotenv
-
-from llmling_agent.agent import Agent, AgentContext, AnyAgent, StructuredAgent
-from llmling_agent.delegation import AgentPool, BaseTeam, Team, TeamRun
-from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage
-from llmling_agent.models import AgentConfig, AgentsManifest
+from llmling_agent.tools import Tool, ToolCallInfo
+from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models.content import (
-    AudioBase64Content,
-    AudioURLContent,
+    PDFURLContent,
+    PDFBase64Content,
     ImageBase64Content,
     ImageURLContent,
-    PDFBase64Content,
-    PDFURLContent,
+    AudioURLContent,
+    AudioBase64Content,
     VideoURLContent,
 )
-from llmling_agent.tools import Tool, ToolCallInfo
+
+__version__ = _metadata_version("llmling-agent")
 
 load_dotenv()
 
