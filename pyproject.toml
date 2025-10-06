@@ -1,337 +1,175 @@
-[tool.uv.build-backend]
-module-name = [
-    "llmling_agent",
-    "llmling_agent_config",
-    "llmling_agent_cli",
-    "llmling_agent_tools",
-    "llmling_agent_commands",
-    "llmling_agent_examples",
-    "llmling_agent_providers",
-    "llmling_agent_storage",
-    "llmling_agent_functional",
-    "llmling_agent_docs",
-    "llmling_agent_events",
-    "llmling_agent_converters",
-    "llmling_agent_prompts",
-    "llmling_agent_mcp",
-    "llmling_agent_input",
-    "llmling_agent_observability",
-    "llmling_agent_running",
-    "llmling_agent_server",
-    "llmling_textual",
-    "acp",
+[project]
+name = "llmling-agent"
+version = "0.99.60"
+description = "A brand new AI framework.  Fully async. Excellently typed. MCP & ACP Integration. Human in the loop. Unique messaging features."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Philipp Temminghoff", email = "philipptemminghoff@googlemail.com" },
+]
+keywords = []
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Framework :: Pydantic",
+  "Framework :: Pydantic :: 2",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Documentation",
+  "Topic :: Internet",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development",
+  "Topic :: Utilities",
+  "Typing :: Typed",
+]
+dependencies = [
+  "aiosqlite>=0.19.0",
+  "anyenv>=0.3.0",
+  "bigtree>=0.23.1",
+  "fastmcp>=2.3.4",
+  "griffe>=1.5.4",
+  "jinjarope",
+  "llmling>=1.0.0",
+  "llmling-models",
+  "mcp>=1.2.0",
+  "morefs[asynclocal]",
+  # these 4 could be optional
+  "prompt-toolkit>=3.0.48",
+  "promptantic>=0.4.5",
+  "psygnal>=0.11.1",
+  "pydantic>=2.12.0a1; python_version >= '3.14'",
+  "pydantic_ai_slim>=1.0.0",
+  "pydantic; python_version < '3.14'",
+  # Only add below (Copier)
+  "python-dotenv>=1.0.1",
+  "schemez>=0.0.1",
+  "slashed>=0.1.0",
+  "sqlmodel>=0.0.22",
+  "tokonomics>=0.1.2",
+  "toprompt>=0.0.1",
+  "typer",
+  "typing_extensions",
+  "upathtools>=0.1.0",
+]
+
+[project.urls]
+"Code coverage" = "https://app.codecov.io/gh/phil65/llmling-agent"
+Discussions = "https://github.com/phil65/llmling-agent/discussions"
+Documentation = "https://phil65.github.io/llmling-agent/"
+Issues = "https://github.com/phil65/llmling-agent/issues"
+Source = "https://github.com/phil65/llmling-agent"
+
+[project.scripts]
+llmling-agent = "llmling_agent.__main__:cli"
+llmling-agent-db = "llmling_agent_storage.sql_provider.cli:main"
+
+[project.entry-points."jinjarope.environment"]
+llmling_agent = "llmling_agent.utils:setup_env"
+
+[project.optional-dependencies]
+agentops = ["agentops>=0.4"]
+arize = [
+  "arize; python_version < '3.14'",
+  "arize-otel",
+  "arize-phoenix-otel",
+  "openinference-instrumentation-openai",
+]
+# laminar = ["lmnr"]
+braintrust = ["braintrust", "autoevals"]
+clipboard = ["clipman"]
+# markitdown = ["markitdown; python_version < '3.14'"]
+composio = ["composio"]
+default = ["pydantic-ai>=1.0.0"]
+events = [
+  "watchfiles",
+  "aioimaplib>=2.0.1",
+  "croniter>=6.0.0",
+]
+# traceloop = ["traceloop-sdk>=0.38.4"]
+git = ["pygit2"]  # for fsspec git support
+image = ["pillow"]
+langsmith = ["langsmith"]
+litellm = ["litellm; python_version < '3.14'"]
+logfire = ["logfire"]
+mcp_run = ["mcpx-py"]
+mem0 = ["mem0ai>=0.1.48"]
+mlflow = ["mlflow>=2.20.1; python_version < '3.14'"]
+oauth = ["keyring>=25.6.0"]
+# tools = ["crewai-tools>=0.33.0", "langchain-community>=0.3.17"]
+# pydantic_ai = ["pydantic_ai", "llmling-models"]
+remote = ["websockets>=14.2"]
+# chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]
+server = ["fastapi", "uvicorn", "websockets"]
+# upsonic = ["upsonic"]
+supabase = ["supabase"]
+textual = ["textual>=1.0.0", "textualicious", "pygments"]
+tiktoken = ["tiktoken; python_version < '3.14'"]
+# acp = ["agent-client-protocol>=0.0.1"]
+
+[dependency-groups]
+dev = [
+  "alembic>=1.16.5",
+  "devtools",
+  "openapi_spec_validator",
+  "pyreadline3",
+  "pytest",
+  # Only add below (Copier)
+  "pytest-asyncio>=0.24.0",
+  "pytest-cov",
+  "pytest-xdist",
+]
+benchmark = ["pyinstrument"]
+docs = [
+  "mkdocs-material",
+  "mkdocs-mknodes",
+  # Only add below (Copier)
+]
+lint = [
+  "mypy[faster-cache]",
+  "ruff",
+  # Only add below (Copier)
 ]
 
 [build-system]
 requires = ["uv_build>=0.8.22"]
 build-backend = "uv_build"
 
-[project]
-name = "llmling-agent"
-description = "A brand new AI framework.  Fully async. Excellently typed. MCP & ACP Integration. Human in the loop. Unique messaging features."
-authors = [
-    { name = "Philipp Temminghoff", email = "philipptemminghoff@googlemail.com" },
-]
-readme = "README.md"
-version = "0.99.60"
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-    "Topic :: Internet",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Documentation",
-    "Topic :: Software Development",
-    "Topic :: Utilities",
-    "Typing :: Typed",
-    "Framework :: Pydantic",
-    "Framework :: Pydantic :: 2",
-]
-keywords = []
-requires-python = ">=3.12"
-license = { file = "LICENSE" }
-dependencies = [
-    "llmling>=1.0.0",
-    "pydantic; python_version < '3.14'",
-    "pydantic>=2.12.0a1; python_version >= '3.14'",
-    # these 4 could be optional
-    "prompt-toolkit>=3.0.48",
-    "promptantic>=0.4.5",
-    "pydantic_ai_slim>=1.0.0",
-    "llmling-models",
-    # Only add below (Copier)
-    "python-dotenv>=1.0.1",
-    "sqlmodel>=0.0.22",
-    "aiosqlite>=0.19.0",
-    "typer",
-    "psygnal>=0.11.1",
-    "tokonomics>=0.1.2",
-    "slashed>=0.1.0",
-    "toprompt>=0.0.1",
-    "mcp>=1.2.0",
-    "jinjarope",
-    "griffe>=1.5.4",
-    "morefs[asynclocal]",
-    "bigtree>=0.23.1",
-    "typing_extensions",
-    "upathtools>=0.1.0",
-    "anyenv>=0.3.0",
-    "schemez>=0.0.1",
-    "fastmcp>=2.3.4",
-]
-
-[project.scripts]
-llmling-agent = "llmling_agent.__main__:cli"
-llmling-agent-db = "llmling_agent_storage.sql_provider.cli:main"
-
-[project.optional-dependencies]
-# chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]
-server = ["fastapi", "uvicorn", "websockets"]
-clipboard = ["clipman"]
-tiktoken = ["tiktoken; python_version < '3.14'"]
-# markitdown = ["markitdown; python_version < '3.14'"]
-composio = ["composio"]
-oauth = ["keyring>=25.6.0"]
-mcp_run = ["mcpx-py"]
-# upsonic = ["upsonic"]
-supabase = ["supabase"]
-events = [
-    "watchfiles",
-    "aioimaplib>=2.0.1",
-    "croniter>=6.0.0",
-]
-textual = ["textual>=1.0.0", "textualicious", "pygments"]
-litellm = ["litellm; python_version < '3.14'"]
-image = ["pillow"]
-# tools = ["crewai-tools>=0.33.0", "langchain-community>=0.3.17"]
-# pydantic_ai = ["pydantic_ai", "llmling-models"]
-remote = ["websockets>=14.2"]
-mem0 = ["mem0ai>=0.1.48"]
-logfire = ["logfire"]
-agentops = ["agentops>=0.4"]
-# laminar = ["lmnr"]
-braintrust = ["braintrust", "autoevals"]
-# traceloop = ["traceloop-sdk>=0.38.4"]
-git = ["pygit2"] # for fsspec git support
-arize = [
-    "arize; python_version < '3.14'",
-    "arize-otel",
-    "arize-phoenix-otel",
-    "openinference-instrumentation-openai",
-]
-mlflow = ["mlflow>=2.20.1; python_version < '3.14'"]
-langsmith = ["langsmith"]
-default = ["pydantic-ai>=1.0.0"]
-# acp = ["agent-client-protocol>=0.0.1"]
-
-[tool.uv]
-default-groups = ["dev", "lint", "docs"]
-
-[dependency-groups]
-dev = [
-    "pytest",
-    "pytest-cov",
-    "pytest-xdist",
-    "pyreadline3",
-    "devtools",
-    # Only add below (Copier)
-    "pytest-asyncio>=0.24.0",
-    "openapi_spec_validator",
-    "alembic>=1.16.5",
-]
-benchmark = ["pyinstrument"]
-lint = [
-    "ruff",
-    "mypy[faster-cache]",
-    # Only add below (Copier)
-]
-docs = [
-    "mkdocs-mknodes",
-    "mkdocs-material",
-    # Only add below (Copier)
-]
-
-[project.urls]
-Documentation = "https://phil65.github.io/llmling-agent/"
-Source = "https://github.com/phil65/llmling-agent"
-Issues = "https://github.com/phil65/llmling-agent/issues"
-Discussions = "https://github.com/phil65/llmling-agent/discussions"
-"Code coverage" = "https://app.codecov.io/gh/phil65/llmling-agent"
-
-[project.entry-points."jinjarope.environment"]
-llmling_agent = "llmling_agent.utils:setup_env"
-
-[tool.pytest.ini_options]
-testpaths = ["tests", "src/llmling_agent_acp/tests"]
-log_cli = true
-python_files = ["test_*.py"]
-pythonpath = ["src"]
-log_level = "ERROR"
-asyncio_default_fixture_loop_scope = "function"
-log_format = "%(asctime)s %(levelname)s %(message)s"
-log_date_format = "%Y-%m-%d %H:%M:%S"
-asyncio_mode = "auto"
-addopts = "-m 'not slow'"
-markers = [
-    "asyncio: mark test as async",
-    "slow: marks tests as slow",
-    "unit: marks tests as unit tests",
-    "integration: marks tests as integration tests",
-]
-filterwarnings = [
-    "ignore::DeprecationWarning:pydantic.*:",
-    "ignore::DeprecationWarning:typer.*",
-]
-
 [tool.coverage.report]
 exclude_lines = [
-    "pragma: no cover",
-    "if TYPE_CHECKING:",
-    "@overload",
-    "except ImportError",
-    'if __name__ == "__main__":',
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "@overload",
+  "except ImportError",
+  'if __name__ == "__main__":',
 ]
 
 [tool.logfire]
 ignore_no_config = true
+
+[tool.mknodes]
+allowed-commit-types = [
+  "fix",
+  "feat",
+  "refactor",
+  "docs",
+  "test",
+  "build",
+  "chore",
+]
+docstring-style = "google"
 
 [tool.mypy]
 python_version = "3.12"
 disable_error_code = ["misc", "import"]
 pretty = true
 check_untyped_defs = true
-exclude = ['venv/', '.venv/', 'tests/', 'src/acp/schema.py']
+exclude = ["venv/", ".venv/", "tests/", "src/acp/schema.py"]
 plugins = ["pydantic.mypy"]
-
-[tool.ruff]
-line-length = 90
-extend-exclude = ['docs', 'src/acp/schema.py']
-target-version = "py312"
-
-[tool.ruff.lint]
-future-annotations = true
-select = [
-    "A", # Flake8-builtins
-    # "ANN",  # Flake8-Annotations
-    # "ASYNC",  # Flake8-Async
-    # "ARG",  # # Flake8-Unused-Arguments
-    "B",   # flake8-bugbear
-    "BLE", # Flake8-blind-except
-    "C",
-    "C4",  # flake8-comprehensions
-    # "C90",  # MCCabe
-    "COM", #  Flake8-commas
-    # "CPY",  #  Copyright-related rules
-    "D", # PyDocStyle
-    # "DTZ",  # Flake8- Datetimez
-    "E",  # PyCodeStyle Error
-    "EM", # flake8-errmsg
-    # "ERA",  #  Eradicate
-    "EXE", # flake8-executable
-    "F",   # PyFlakes
-    "FA",  # flake8-future-annotations
-    # "FBT",  # flake8-boolean-trap
-    # "FIX",  # flake8-fixme
-    "FLY", # flynt
-    "G",   #  flake8-logging-format
-    "I",   # ISort
-    "ICN", # Flake8-import-conventions
-    "INP", # flake8-no-pep420
-    "INT", # flake8-gettext
-    "ISC", # flake8-implicit-str-concat
-    "N",   # pep8-naming
-    # "NPY",  # numpy-specific rules
-    # "PD",   # pandas-vet
-    "PERF", # perflint
-    # "PGH",  # pygrep-hooks
-    "PIE", # flake8-pie
-    "PLE", # PyLint Error
-    "PLC", # PyLint convention
-    # "PLW",  # PyLint Warning
-    "PLR", # PyLint refactor
-    "PT",  # flake8-pytest-style
-    "PTH", # flake8-use-pathlib
-    "PYI", # flake8-pyi
-    "Q",   # flake8-quotes
-    "RET", # flake8-return
-    "RSE", # flake8-raise
-    "RUF", # ruff-specific rules
-    # "S",    # flake8-bandit
-    "SIM",  # flake8-simplify
-    "SLF",  # flake8-self
-    "SLOT", # flake8-slots
-    # "T",
-    # "TD",   # flake8-todos
-    "T10", # flake8-debugger
-    # "T20",  # flake8-print
-    "TC",  # flake8-type-checking
-    "TID", # flake8-tidy-imports
-    "TRY", # tryceratops
-    "UP",  # PyUpgrade
-    "W",   # PyCodeStyle warning
-    "YTT", # flake8-2020
-]
-ignore = [
-    "C408",   # Unnecessary {obj_type} call (rewrite as a literal)
-    "C901",   # {name} is too complex ({complexity} > {max_complexity})
-    "COM812",
-    # "CPY001", # Missing copyright notice at top of file
-    "D100",    # Missing docstring in public module
-    "D102",    # Missing docstring in public method
-    "D103",    # Missing docstring in public function
-    "D105",    # Missing docstring in magic method
-    "D107",    # Missing docstring in __init__
-    "D203",    # 1 blank line required before class docstring
-    "D204",    # 1 blank line required after class docstring
-    "D213",    # Multi-line docstring summary should start at the second line
-    "D401",    # First line of docstring should be in imperative mood: "{first_line}"
-    "D408",    # Section underline should be in the line following the section's name ("{name}")
-    "D413",    # Missing blank line after last section ("{name}")
-    "ISC001",
-    "PLC0415",
-    "PLR0912", # Too many branches
-    "PLR0913", # Too many arguments to function call
-    # "PLR2004", # Magic values instead of named consts
-    "SLF001", # Private member accessed
-    "TRY003", # Avoid specifying long messages outside the exception class
-    "TC006", # runtime-cast-value
-]
-
-[tool.ruff.lint.flake8-quotes]
-docstring-quotes = "double"
-
-[tool.ruff.lint.flake8-type-checking]
-runtime-evaluated-base-classes = ["pydantic.BaseModel", "sqlalchemy.orm.DeclarativeBase", "schemez.Schema"]
-runtime-evaluated-decorators = ["pydantic.validate_call", "attrs.define", "fastapi.FastAPI.get", "fastapi.FastAPI.post", "fastmcp.FastMCP.tool"]
-
-[tool.ruff.format]
-# Enable preview style formatting.
-preview = true
-
-[tool.ruff.lint.isort]
-lines-after-imports = 2
-# lines-between-types = 1
-# atomic = true
-force-sort-within-sections = true
-combine-as-imports = true
-
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["E402", "I001"]
-"scripts/*" = ["INP001"]
-
-"src/llmling_agent_examples/**/*.py" = ["TC001"]  # Examples don't need TYPE_CHECKING imports
-
-[tool.ty.environment]
-python-version = "3.12"
-python-platform = "all"
-
-[tool.ty.rules]
-unresolved-import = "ignore"
 
 [tool.pyright]
 venvPath = "."
@@ -354,14 +192,187 @@ reportPrivateImportUsage = false
 reportUnusedExpression = false
 ignore = ["src/acp/schema.py"]
 
-[tool.mknodes]
-allowed-commit-types = [
-    "fix",
-    "feat",
-    "refactor",
-    "docs",
-    "test",
-    "build",
-    "chore",
+[tool.pytest.ini_options]
+addopts = "-m 'not slow'"
+filterwarnings = [
+  "ignore::DeprecationWarning:pydantic.*:",
+  "ignore::DeprecationWarning:typer.*",
 ]
-docstring-style = "google"
+log_cli = true
+log_date_format = "%Y-%m-%d %H:%M:%S"
+log_format = "%(asctime)s %(levelname)s %(message)s"
+log_level = "ERROR"
+markers = [
+  "asyncio: mark test as async",
+  "slow: marks tests as slow",
+  "unit: marks tests as unit tests",
+  "integration: marks tests as integration tests",
+]
+python_files = ["test_*.py"]
+pythonpath = ["src"]
+testpaths = ["tests", "src/llmling_agent_acp/tests"]
+asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 90
+extend-exclude = ["docs", "src/acp/schema.py"]
+target-version = "py312"
+
+[tool.ruff.lint]
+future-annotations = true
+select = [
+  "A",  # Flake8-builtins
+  # "ANN",  # Flake8-Annotations
+  # "ASYNC",  # Flake8-Async
+  # "ARG",  # # Flake8-Unused-Arguments
+  "B",  # flake8-bugbear
+  "BLE",  # Flake8-blind-except
+  "C",
+  "C4",  # flake8-comprehensions
+  # "C90",  # MCCabe
+  "COM",  # Flake8-commas
+  # "CPY",  #  Copyright-related rules
+  "D",  # PyDocStyle
+  # "DTZ",  # Flake8- Datetimez
+  "E",  # PyCodeStyle Error
+  "EM",  # flake8-errmsg
+  # "ERA",  #  Eradicate
+  "EXE",  # flake8-executable
+  "F",  # PyFlakes
+  "FA",  # flake8-future-annotations
+  # "FBT",  # flake8-boolean-trap
+  # "FIX",  # flake8-fixme
+  "FLY",  # flynt
+  "G",  # flake8-logging-format
+  "I",  # ISort
+  "ICN",  # Flake8-import-conventions
+  "INP",  # flake8-no-pep420
+  "INT",  # flake8-gettext
+  "ISC",  # flake8-implicit-str-concat
+  "N",  # pep8-naming
+  # "NPY",  # numpy-specific rules
+  # "PD",   # pandas-vet
+  "PERF",  # perflint
+  # "PGH",  # pygrep-hooks
+  "PIE",  # flake8-pie
+  "PLE",  # PyLint Error
+  "PLC",  # PyLint convention
+  # "PLW",  # PyLint Warning
+  "PLR",  # PyLint refactor
+  "PT",  # flake8-pytest-style
+  "PTH",  # flake8-use-pathlib
+  "PYI",  # flake8-pyi
+  "Q",  # flake8-quotes
+  "RET",  # flake8-return
+  "RSE",  # flake8-raise
+  "RUF",  # ruff-specific rules
+  # "S",    # flake8-bandit
+  "SIM",  # flake8-simplify
+  "SLF",  # flake8-self
+  "SLOT",  # flake8-slots
+  # "T",
+  # "TD",   # flake8-todos
+  "T10",  # flake8-debugger
+  # "T20",  # flake8-print
+  "TC",  # flake8-type-checking
+  "TID",  # flake8-tidy-imports
+  "TRY",  # tryceratops
+  "UP",  # PyUpgrade
+  "W",  # PyCodeStyle warning
+  "YTT",  # flake8-2020
+]
+ignore = [
+  "C408",  # Unnecessary {obj_type} call (rewrite as a literal)
+  "C901",  # {name} is too complex ({complexity} > {max_complexity})
+  "COM812",
+  # "CPY001", # Missing copyright notice at top of file
+  "D100",  # Missing docstring in public module
+  "D102",  # Missing docstring in public method
+  "D103",  # Missing docstring in public function
+  "D105",  # Missing docstring in magic method
+  "D107",  # Missing docstring in __init__
+  "D203",  # 1 blank line required before class docstring
+  "D204",  # 1 blank line required after class docstring
+  "D213",  # Multi-line docstring summary should start at the second line
+  "D401",  # First line of docstring should be in imperative mood: "{first_line}"
+  "D408",  # Section underline should be in the line following the section's name ("{name}")
+  "D413",  # Missing blank line after last section ("{name}")
+  "ISC001",
+  "PLC0415",
+  "PLR0912",  # Too many branches
+  "PLR0913",  # Too many arguments to function call
+  # "PLR2004", # Magic values instead of named consts
+  "SLF001",  # Private member accessed
+  "TRY003",  # Avoid specifying long messages outside the exception class
+  "TC006",  # runtime-cast-value
+]
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-base-classes = [
+  "pydantic.BaseModel",
+  "sqlalchemy.orm.DeclarativeBase",
+  "schemez.Schema",
+]
+runtime-evaluated-decorators = [
+  "pydantic.validate_call",
+  "attrs.define",
+  "fastapi.FastAPI.get",
+  "fastapi.FastAPI.post",
+  "fastmcp.FastMCP.tool",
+]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+# lines-between-types = 1
+# atomic = true
+force-sort-within-sections = true
+combine-as-imports = true
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402", "I001"]
+"scripts/*" = ["INP001"]
+"src/llmling_agent_examples/**/*.py" = [
+  "TC001",
+]  # Examples don't need TYPE_CHECKING imports
+
+[tool.ruff.format]
+# Enable preview style formatting.
+preview = true
+
+[tool.ty.environment]
+python-version = "3.12"
+python-platform = "all"
+
+[tool.ty.rules]
+unresolved-import = "ignore"
+
+[tool.uv]
+default-groups = ["dev", "lint", "docs"]
+
+[tool.uv.build-backend]
+module-name = [
+  "llmling_agent",
+  "llmling_agent_config",
+  "llmling_agent_cli",
+  "llmling_agent_tools",
+  "llmling_agent_commands",
+  "llmling_agent_examples",
+  "llmling_agent_providers",
+  "llmling_agent_storage",
+  "llmling_agent_functional",
+  "llmling_agent_docs",
+  "llmling_agent_events",
+  "llmling_agent_converters",
+  "llmling_agent_prompts",
+  "llmling_agent_mcp",
+  "llmling_agent_input",
+  "llmling_agent_observability",
+  "llmling_agent_running",
+  "llmling_agent_server",
+  "llmling_textual",
+  "acp",
+]
