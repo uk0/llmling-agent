@@ -13,6 +13,7 @@ from py2openai import create_schema
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent.tools.base import Tool
 
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -120,15 +121,13 @@ async def _exec_func():
         ]
 
         if return_models:
-            parts.extend(
-                [
-                    "# Generated return type models",
-                    return_models,
-                    "",
-                    "# Available functions:",
-                    "",
-                ]
-            )
+            parts.extend([
+                "# Generated return type models",
+                return_models,
+                "",
+                "# Available functions:",
+                "",
+            ])
 
         for tool in all_tools:
             if self.include_signatures:
@@ -145,15 +144,13 @@ async def _exec_func():
                 parts.append(f'    """{indented_desc}"""')
             parts.append("")
 
-        parts.extend(
-            [
-                "Usage notes:",
-                "- All tool functions are async, use 'await'",
-                "- Set '_result' variable to control return value",
-                "- Use 'return' statements for early returns",
-                "- Last expression value returned if no _result or return",
-            ]
-        )
+        parts.extend([
+            "Usage notes:",
+            "- All tool functions are async, use 'await'",
+            "- Set '_result' variable to control return value",
+            "- Use 'return' statements for early returns",
+            "- Last expression value returned if no _result or return",
+        ])
 
         return "\n".join(parts)
 
