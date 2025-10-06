@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, get_args
+from typing import TYPE_CHECKING, Any, get_args
 
 from slashed import CompletionItem, CompletionProvider
+
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -12,37 +15,34 @@ if TYPE_CHECKING:
 
     from slashed import CompletionContext
 
-    from llmling_agent.agent.context import AgentContext
-    from llmling_agent.messaging.context import NodeContext
 
-
-def get_available_agents(ctx: CompletionContext[AgentContext]) -> list[str]:
+def get_available_agents(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
     """Get available agent names."""
     if not ctx.command_context.context.pool:
         return []
     return list(ctx.command_context.context.pool.agents.keys())
 
 
-def get_available_nodes(ctx: CompletionContext[NodeContext]) -> list[str]:
+def get_available_nodes(ctx: CompletionContext[NodeContext[Any]]) -> list[str]:
     """Get available node names."""
     if not ctx.command_context.context.pool:
         return []
     return list(ctx.command_context.context.pool.nodes.keys())
 
 
-def get_resource_names(ctx: CompletionContext[AgentContext]) -> list[str]:
+def get_resource_names(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
     """Get available resource names."""
     resources = ctx.command_context.context.agent.runtime.get_resources()
     return [r.name or "" for r in resources]
 
 
-def get_prompt_names(ctx: CompletionContext[AgentContext]) -> list[str]:
+def get_prompt_names(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
     """Get available prompt names."""
     prompts = ctx.command_context.context.agent.runtime.get_prompts()
     return [p.name or "" for p in prompts]
 
 
-def get_model_names(ctx: CompletionContext[AgentContext]) -> list[str]:
+def get_model_names(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
     """Get available model names from pydantic-ai and current configuration.
 
     Returns:
@@ -74,7 +74,7 @@ class PromptCompleter(CompletionProvider):
     """Completer for prompts."""
 
     async def get_completions(
-        self, ctx: CompletionContext[AgentContext]
+        self, ctx: CompletionContext[AgentContext[Any]]
     ) -> AsyncIterator[CompletionItem]:
         """Complete prompt references."""
         current = ctx.current_word
