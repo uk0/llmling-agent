@@ -20,6 +20,13 @@ from llmling_agent.models.content import (
 )
 
 __version__ = _metadata_version("llmling-agent")
+__title__ = "LLMling-Agent"
+__description__ = "A pydantic-ai based Agent with LLMling backend"
+__author__ = "Philipp Temminghoff"
+__author_email__ = "philipptemminghoff@googlemail.com"
+__copyright__ = "Copyright (c) 2024 Philipp Temminghoff"
+__license__ = "MIT"
+__url__ = "https://github.com/phil65/llmling-agent"
 
 load_dotenv()
 
