@@ -1,9 +1,14 @@
-"""Agent configuration and creation."""
+"""LLMling-Agent: main package.
+
+A pydantic-ai based Agent with LLMling backend.
+"""
+
+from __future__ import annotations
+
+from importlib.metadata import version
 
 from llmling_agent.models import AgentsManifest, AgentConfig
 from llmling_agent.agent import Agent, StructuredAgent, AnyAgent, AgentContext
-from importlib.metadata import version as _metadata_version
-
 from llmling_agent.delegation import AgentPool, Team, TeamRun, BaseTeam
 from dotenv import load_dotenv
 from llmling_agent.messaging.messages import ChatMessage
@@ -19,9 +24,8 @@ from llmling_agent.models.content import (
     VideoURLContent,
 )
 
-__version__ = _metadata_version("llmling-agent")
+__version__ = version("llmling-agent")
 __title__ = "LLMling-Agent"
-__description__ = "A pydantic-ai based Agent with LLMling backend"
 __author__ = "Philipp Temminghoff"
 __author_email__ = "philipptemminghoff@googlemail.com"
 __copyright__ = "Copyright (c) 2024 Philipp Temminghoff"
