@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 import webbrowser
 
 from llmling import Config, RuntimeConfig
 from slashed import Command, CommandContext, CommandError, PathCompleter  # noqa: TC002
 
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent_config.environment import FileEnvironment, InlineEnvironment
-
-
-if TYPE_CHECKING:
-    from llmling_agent import AgentContext
 
 
 SET_ENV_HELP = """\

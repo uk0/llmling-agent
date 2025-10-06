@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from slashed import Command, CommandContext, CommandError  # noqa: TC002
 
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent_commands.completers import PromptCompleter
 
-
-if TYPE_CHECKING:
-    from llmling_agent.agent.context import AgentContext
 
 PROMPT_HELP = """\
 Show prompts from configured prompt hubs.

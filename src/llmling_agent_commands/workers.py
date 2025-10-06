@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from slashed import Command, CommandContext, CommandError  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent_commands.completers import get_available_agents
-
-
-if TYPE_CHECKING:
-    from llmling_agent.agent.context import AgentContext
 
 
 logger = get_logger(__name__)

@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from slashed import Command, CommandContext  # noqa: TC002
 
-
-if TYPE_CHECKING:
-    from llmling_agent.agent.context import AgentContext
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 
 
 RESET_HELP = """\

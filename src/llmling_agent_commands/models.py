@@ -2,16 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from slashed import Command, CommandContext  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent_commands.completers import get_model_names
-
-
-if TYPE_CHECKING:
-    from llmling_agent.agent.context import AgentContext
 
 
 SET_MODEL_HELP = """\

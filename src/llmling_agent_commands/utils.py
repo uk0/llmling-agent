@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 import importlib.util
-from typing import TYPE_CHECKING
 import webbrowser
 
 from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
 
-
-if TYPE_CHECKING:
-    from llmling_agent.agent.context import AgentContext
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 
 
 class CopyClipboardCommand(SlashedCommand):
