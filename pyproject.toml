@@ -1,6 +1,6 @@
 [project]
 name = "llmling-agent"
-version = "0.99.60"
+version = "0.100.0"
 description = "A brand new AI framework.  Fully async. Excellently typed. MCP & ACP Integration. Human in the loop. Unique messaging features."
 readme = "README.md"
 requires-python = ">=3.12"
