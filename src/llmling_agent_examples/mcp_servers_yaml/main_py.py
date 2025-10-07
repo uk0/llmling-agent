@@ -19,7 +19,7 @@ You are an expert in retrieving and returning information
 about a specific commit from the current working directoy."
 """
 
-MODEL = "openai:gpt-5-mini"
+MODEL = "openai:gpt-5-nano"
 SERVERS = ["uvx mcp-server-git"]
 
 

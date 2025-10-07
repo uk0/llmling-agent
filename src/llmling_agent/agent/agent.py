@@ -1362,7 +1362,7 @@ if __name__ == "__main__":
     # import logging
 
     sys_prompt = "Open browser with google,"
-    _model = "openai:gpt-5-mini"
+    _model = "openai:gpt-5-nano"
 
     async def main():
         async with Agent[None](model=_model, tools=["webbrowser.open"]) as agent:

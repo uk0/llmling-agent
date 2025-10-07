@@ -326,12 +326,12 @@ if __name__ == "__main__":
             agent1 = await pool.add_agent(
                 "analyzer",
                 system_prompt="You analyze text and find key points.",
-                model="openai:gpt-5-mini",
+                model="openai:gpt-5-nano",
             )
             agent2 = await pool.add_agent(
                 "summarizer",
                 system_prompt="You create concise summaries.",
-                model="openai:gpt-5-mini",
+                model="openai:gpt-5-nano",
             )
 
             # Create team and get monitored execution

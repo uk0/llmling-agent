@@ -14,7 +14,7 @@ class Result(BaseModel):
 AGENT_CONFIG = """
 agents:
     summarizer:
-        model: openai:gpt-5-mini
+        model: openai:gpt-5-nano
         system_prompts:
             - Summarize text in a structured way.
 """

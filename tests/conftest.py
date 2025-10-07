@@ -38,14 +38,14 @@ responses:
 agents:
   support:
     name: Support Agent
-    model: openai:gpt-5-mini
+    model: openai:gpt-5-nano
     result_type: SupportResult
     system_prompts:
       - You are a support agent
       - "Context: {data}"
   researcher:
     name: Research Agent
-    model: openai:gpt-5-mini
+    model: openai:gpt-5-nano
     result_type: ResearchResult
     system_prompts:
       - You are a researcher
