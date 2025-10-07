@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from llmling import BasePrompt
 from llmling.config.models import ToolConfig
@@ -17,10 +17,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
 
 
-TResult = TypeVar("TResult", default=str)
-
-
-class Job[TDeps, TResult](Schema):
+class Job[TDeps, TResult = str](Schema):
     """A task is a piece of work that can be executed by an agent.
 
     Requirements:

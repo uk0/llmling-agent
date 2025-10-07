@@ -11,7 +11,6 @@ from llmling_agent.log import get_logger
 logger = get_logger(__name__)
 
 F = TypeVar("F", bound=Callable[..., Any])
-T = TypeVar("T", bound=type)
 
 
 def track_tool(name: str | None = None, **kwargs: Any) -> Callable[[F], F]:

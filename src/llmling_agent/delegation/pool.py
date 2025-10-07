@@ -51,10 +51,9 @@ logger = get_logger(__name__)
 
 
 TResult = TypeVar("TResult", default=Any)
-TPoolDeps = TypeVar("TPoolDeps", default=None)
 
 
-class AgentPool[TPoolDeps](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
+class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
     """Pool managing message processing nodes (agents and teams).
 
     Acts as a unified registry for all nodes, providing:
