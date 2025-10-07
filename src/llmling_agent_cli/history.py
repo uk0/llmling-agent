@@ -6,7 +6,7 @@ from datetime import datetime
 import logging
 
 from llmling.cli.constants import output_format_opt
-from llmling.cli.utils import format_output
+from llmling.cli.utils import OutputFormat, format_output
 import typer as t
 
 from llmling_agent import AgentsManifest
@@ -59,7 +59,7 @@ def show_history(
     limit: int = t.Option(10, "--limit", "-n", help="Number of conversations"),
     compact: bool = t.Option(False, "--compact", help=COMPACT_HELP),
     tokens: bool = t.Option(False, "--tokens", "-t", help=TOKEN_HELP),
-    output_format: str = output_format_opt,
+    output_format: OutputFormat = output_format_opt,
 ):
     """Show conversation history with filtering options.
 
@@ -114,7 +114,7 @@ def show_stats(
         "1d", "--period", "-p", help="Time period (1h, 1d, 1w, 1m, 1y)"
     ),
     group_by: GroupBy = t.Option("agent", "--group-by", "-g", help="Group by"),  # noqa: B008
-    output_format: str = output_format_opt,
+    output_format: OutputFormat = output_format_opt,
 ):
     """Show usage statistics.
 

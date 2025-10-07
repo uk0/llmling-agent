@@ -5,7 +5,7 @@ from __future__ import annotations
 import shutil
 
 from llmling.cli.constants import output_format_opt, verbose_opt
-from llmling.cli.utils import format_output
+from llmling.cli.utils import OutputFormat, format_output
 import typer as t
 
 from llmling_agent.utils.inspection import validate_import
@@ -94,7 +94,7 @@ def list_agents(
         "--config",
         help="Name of agent configuration to list (defaults to active)",
     ),
-    output_format: str = output_format_opt,
+    output_format: OutputFormat = output_format_opt,
     verbose: bool = verbose_opt,
 ):
     """List agents from the active (or specified) configuration."""
