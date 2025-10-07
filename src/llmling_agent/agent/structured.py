@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any, Self, get_type_hints, overload
+from typing import TYPE_CHECKING, Any, Self, TypeVar, get_type_hints, overload
 
 from pydantic import ValidationError
-from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode

@@ -85,7 +85,7 @@ class FileSystemEventSource(EventSource):
         self._watch = None
         self._stop_event = None
 
-    async def events(self) -> AsyncGenerator[EventData, None]:
+    async def events(self) -> AsyncGenerator[EventData]:
         """Get file system events."""
         watch = self._watch
         from watchfiles import Change

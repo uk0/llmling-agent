@@ -5,10 +5,9 @@ from __future__ import annotations
 import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
-from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
+from typing import TYPE_CHECKING, Any, Self, TypeVar, Unpack, cast, overload
 
 from llmling import BaseRegistry, LLMLingError
-from typing_extensions import TypeVar
 
 from llmling_agent.agent import Agent, StructuredAgent
 from llmling_agent.common_types import NodeName

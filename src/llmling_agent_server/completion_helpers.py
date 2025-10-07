@@ -23,7 +23,7 @@ async def stream_response(
     agent: AnyAgent[Any, Any],
     content: str,
     request: ChatCompletionRequest,
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[str]:
     """Generate streaming response chunks."""
     response_id = f"chatcmpl-{int(time.time() * 1000)}"
     created = int(time.time())

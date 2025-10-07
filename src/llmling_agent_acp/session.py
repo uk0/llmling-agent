@@ -261,7 +261,7 @@ class ACPSession:
 
     async def process_prompt(
         self, content_blocks: Sequence[ContentBlock]
-    ) -> AsyncGenerator[SessionNotification | StopReason, None]:
+    ) -> AsyncGenerator[SessionNotification | StopReason]:
         """Process a prompt request and stream responses.
 
         Args:
@@ -357,7 +357,7 @@ class ACPSession:
 
     async def _process_iter_response(  # noqa: PLR0915
         self, content: list[str | BaseContent]
-    ) -> AsyncGenerator[SessionNotification | StopReason, None]:
+    ) -> AsyncGenerator[SessionNotification | StopReason]:
         """Process content using agent iteration for comprehensive streaming.
 
         Args:
@@ -483,7 +483,7 @@ class ACPSession:
         self,
         node: ModelRequestNode[Any, Any],
         agent_run: AgentRun[Any, Any],
-    ) -> AsyncGenerator[SessionNotification | StopReason, None]:
+    ) -> AsyncGenerator[SessionNotification | StopReason]:
         """Stream model request events.
 
         Args:
@@ -571,7 +571,7 @@ class ACPSession:
         self,
         node: CallToolsNode[Any, Any],
         agent_run: AgentRun[Any, Any],
-    ) -> AsyncGenerator[SessionNotification, None]:
+    ) -> AsyncGenerator[SessionNotification]:
         """Stream tool execution events.
 
         Args:
@@ -683,7 +683,7 @@ class ACPSession:
 
     async def execute_tool(
         self, tool_name: str, tool_params: dict[str, Any]
-    ) -> AsyncGenerator[SessionNotification, None]:
+    ) -> AsyncGenerator[SessionNotification]:
         """Execute a tool and stream the results.
 
         Args:

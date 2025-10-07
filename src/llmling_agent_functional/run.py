@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Unpack, overload
-
-from typing_extensions import TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Unpack, overload
 
 from llmling_agent import Agent
 from llmling_agent.models.content import ImageURLContent

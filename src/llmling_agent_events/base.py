@@ -29,7 +29,7 @@ class EventSource(ABC):
         """Close connection to event source."""
 
     @abstractmethod
-    def events(self) -> AsyncGenerator[EventData, None]:
+    def events(self) -> AsyncGenerator[EventData]:
         """Get event iterator.
 
         Returns:

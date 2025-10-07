@@ -43,7 +43,7 @@ class Event[TEventData]:
         self._stop_event.set()
 
     @abstractmethod
-    def create_monitor(self) -> AsyncGenerator[Any, None]:
+    def create_monitor(self) -> AsyncGenerator[Any]:
         """Create async generator that yields raw event data.
 
         Yields:

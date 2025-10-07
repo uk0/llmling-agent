@@ -8,12 +8,11 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from os import PathLike
 import time
-from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, TypeVar, cast, overload
 from uuid import uuid4
 
 from llmling import Config, RuntimeConfig, ToolError
 from psygnal import Signal
-from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode

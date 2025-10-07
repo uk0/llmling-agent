@@ -1,7 +1,7 @@
 """CLI commands for llmling-agent."""
 
 from __future__ import annotations
-from typing_extensions import TypeVar
+from typing import TypeVar
 
 from llmling_agent.agent.agent import Agent
 from llmling_agent.agent.structured import StructuredAgent

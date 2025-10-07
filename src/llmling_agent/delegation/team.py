@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import asyncio
 from time import perf_counter
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import uuid4
 
 from toprompt import to_prompt
-from typing_extensions import TypeVar
 
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger

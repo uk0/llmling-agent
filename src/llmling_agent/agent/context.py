@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Literal
-
-from typing_extensions import TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from llmling_agent.messaging.context import NodeContext
 from llmling_agent.prompts.conversion_manager import ConversionManager

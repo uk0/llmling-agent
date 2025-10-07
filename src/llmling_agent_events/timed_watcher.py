@@ -42,7 +42,7 @@ class TimeEventSource(EventSource):
         """Stop event generation."""
         self._stop_event.set()
 
-    async def events(self) -> AsyncGenerator[EventData, None]:
+    async def events(self) -> AsyncGenerator[EventData]:
         """Generate events based on schedule."""
         from croniter import croniter
 

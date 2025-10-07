@@ -280,7 +280,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
                     return Usage(0, 0)
 
-                async def stream_output(self) -> AsyncGenerator[str, None]:  # type: ignore
+                async def stream_output(self) -> AsyncGenerator[str]:  # type: ignore
                     for idx, stream in enumerate(self.streams):
                         self.current_stream_idx = idx
                         async for chunk in stream.stream_output():
@@ -291,7 +291,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                 async def stream_text(
                     self,
                     delta: bool = False,
-                ) -> AsyncGenerator[str, None]:
+                ) -> AsyncGenerator[str]:
                     for idx, stream in enumerate(self.streams):
                         self.current_stream_idx = idx
                         async for chunk in stream.stream_text(delta=delta):

@@ -5,12 +5,11 @@ from __future__ import annotations
 import dataclasses
 from dataclasses import asdict, dataclass, field, replace
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, TypeVar
 from uuid import uuid4
 
 from genai_prices import Usage, calc_price
 from pydantic import BaseModel
-from typing_extensions import TypeVar
 
 from llmling_agent.common_types import MessageRole, SimpleJsonType  # noqa: TC001
 from llmling_agent.log import get_logger

@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from llmling import BasePrompt
 from llmling.config.models import ToolConfig
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
-from typing_extensions import TypeVar
 
 from llmling_agent.tools.base import Tool
 from llmling_agent_config.knowledge import Knowledge

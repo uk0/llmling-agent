@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar, runtime_checkable
 
 from psygnal import Signal
 from pydantic_ai import _agent_graph
 from pydantic_ai.result import FinalResult
 from pydantic_graph import End
-from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.tools import ToolCallInfo
@@ -58,11 +57,11 @@ class StreamingResponseProtocol[TResult](Protocol):
     is_complete: bool
     formatted_content: TResult = None  # type: ignore
 
-    def stream_output(self) -> AsyncGenerator[TResult, None]:
+    def stream_output(self) -> AsyncGenerator[TResult]:
         """Stream individual chunks as they arrive."""
         ...
 
-    def stream_text(self, delta: bool = False) -> AsyncGenerator[str, None]:
+    def stream_text(self, delta: bool = False) -> AsyncGenerator[str]:
         """Stream individual chunks as they arrive."""
         ...
 

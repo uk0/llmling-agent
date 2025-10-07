@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, Literal, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast, overload
 
 from schemez import Schema
-from typing_extensions import TypeVar
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage

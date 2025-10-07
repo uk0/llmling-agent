@@ -56,7 +56,7 @@ class WebhookEventSource(EventSource):
         if self.server:
             await self.server.shutdown()
 
-    async def events(self) -> AsyncGenerator[EventData, None]:
+    async def events(self) -> AsyncGenerator[EventData]:
         """Yield events as they arrive."""
         while True:
             event = await self._queue.get()
