@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 from schemez import Schema
 
@@ -21,8 +21,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.delegation.base_team import BaseTeam
 
-TResult = TypeVar("TResult", default=str)
-TDeps = TypeVar("TDeps", default=None)
+
 ExtractionMode = Literal["structured", "tool_calls"]
 
 type EndCondition = Callable[[list[ChatMessage[Any]], ChatMessage[Any]], bool]

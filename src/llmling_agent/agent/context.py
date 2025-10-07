@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Literal
 
 from llmling_agent.messaging.context import NodeContext
 from llmling_agent.prompts.conversion_manager import ConversionManager
@@ -22,13 +22,11 @@ if TYPE_CHECKING:
     from llmling_agent_input.base import InputProvider
 
 
-TDeps = TypeVar("TDeps", default=Any)
-
 ConfirmationResult = Literal["allow", "skip", "abort_run", "abort_chain"]
 
 
 @dataclass(kw_only=True)
-class AgentContext[TDeps](NodeContext[TDeps]):
+class AgentContext[TDeps = Any](NodeContext[TDeps]):
     """Runtime context for agent execution.
 
     Generically typed with AgentContext[Type of Dependencies]

@@ -4,15 +4,7 @@ from __future__ import annotations
 
 import inspect
 import types as pytypes
-from typing import (
-    TYPE_CHECKING,
-    Annotated,
-    Any,
-    TypeVar,
-    Union,
-    get_args,
-    get_origin,
-)
+from typing import TYPE_CHECKING, Annotated, Any, Union, get_args, get_origin
 
 import typer
 
@@ -22,8 +14,6 @@ if TYPE_CHECKING:
     from inspect import Parameter
 
     from pydantic import BaseModel
-
-T = TypeVar("T", bound="BaseModel")
 
 
 def resolve_type(field_type: Any) -> Any:
@@ -47,7 +37,7 @@ def resolve_type(field_type: Any) -> Any:
     return field_type
 
 
-def create_typer_command(
+def create_typer_command[T: BaseModel](
     config_cls: type[T],
     callback: Callable[[T], Any] | None = None,
     *,

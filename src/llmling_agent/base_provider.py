@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Any, Self, TypeVar
+from typing import Any, Self
 
 from pydantic import BaseModel
 
 
-ConfigT = TypeVar("ConfigT", bound=BaseModel)
-
-
-class BaseProvider[ConfigT]:
+class BaseProvider[ConfigT: BaseModel]:
     """Base class for all providers."""
 
     def __init__(self, config: ConfigT):
