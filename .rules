@@ -188,7 +188,7 @@ from pathlib import Path
 
 # Third-party libraries
 import pydantic
-from typing_extensions import TypedDict
+from typing import TypedDict
 
 # Local imports last
 from llmling_agent import Agent

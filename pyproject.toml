@@ -52,7 +52,6 @@ dependencies = [
   "tokonomics>=0.1.2",
   "toprompt>=0.0.1",
   "typer",
-  "typing_extensions",
   "upathtools>=0.1.0",
 ]
 
