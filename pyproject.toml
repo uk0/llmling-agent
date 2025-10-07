@@ -42,9 +42,8 @@ dependencies = [
   "prompt-toolkit>=3.0.48",
   "promptantic>=0.4.5",
   "psygnal>=0.11.1",
-  "pydantic>=2.12.0a1; python_version >= '3.14'",
+  "pydantic>=2.12.0",
   "pydantic_ai_slim>=1.0.0",
-  "pydantic; python_version < '3.14'",
   # Only add below (Copier)
   "python-dotenv>=1.0.1",
   "schemez>=0.0.1",
