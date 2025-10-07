@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime  # noqa: TC003
+from datetime import datetime
 import logging
 
 from llmling.cli.constants import output_format_opt
@@ -13,7 +13,7 @@ from llmling_agent import AgentsManifest
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_cli import resolve_agent_config
-from llmling_agent_cli.cli_types import GroupBy  # noqa: TC001
+from llmling_agent_cli.cli_types import GroupBy
 
 
 logger = logging.getLogger(__name__)

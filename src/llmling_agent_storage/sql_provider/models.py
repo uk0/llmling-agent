@@ -15,7 +15,7 @@ from sqlalchemy.types import TypeDecorator
 from sqlmodel import JSON, Field, SQLModel
 from sqlmodel.main import SQLModelConfig
 
-from llmling_agent.common_types import JsonValue  # noqa: TC001
+from llmling_agent.common_types import JsonValue
 from llmling_agent.utils.now import get_now
 
 
