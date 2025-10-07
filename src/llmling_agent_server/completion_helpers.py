@@ -44,11 +44,8 @@ async def stream_response(
                 # Skip empty chunks
                 if not chunk:
                     continue
-                choice = {
-                    "index": 0,
-                    "delta": {"content": chunk},
-                    "finish_reason": None,
-                }
+                delta = {"content": chunk}
+                choice = {"index": 0, "delta": delta, "finish_reason": None}
                 chunk_data = {
                     "id": response_id,
                     "object": "chat.completion.chunk",
@@ -69,11 +66,8 @@ async def stream_response(
 
     except Exception as e:
         logger.exception("Error during streaming response")
-        choice = {
-            "index": 0,
-            "delta": {"content": f"Error: {e!s}"},
-            "finish_reason": "error",
-        }
+        delta = {"content": f"Error: {e!s}"}
+        choice = {"index": 0, "delta": delta, "finish_reason": "error"}
         error_chunk = {
             "id": response_id,
             "object": "chat.completion.chunk",
