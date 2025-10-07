@@ -70,9 +70,7 @@ if TYPE_CHECKING:
     from llmling_agent_input.base import InputProvider
     from llmling_agent_providers.base import StreamingResponseProtocol, UsageLimits
 
-from llmling_agent_providers.base import (
-    AgentProvider,
-)
+from llmling_agent_providers.base import AgentProvider
 
 
 AgentType = Literal["pydantic_ai", "human"] | AgentProvider | Callable[..., Any]
@@ -80,7 +78,6 @@ AgentType = Literal["pydantic_ai", "human"] | AgentProvider | Callable[..., Any]
 logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=str)
-TDeps = TypeVar("TDeps", default=None)
 
 
 class AgentKwargs(TypedDict, total=False):
@@ -116,7 +113,7 @@ class AgentKwargs(TypedDict, total=False):
     debug: bool
 
 
-class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
+class Agent[TDeps = None](MessageNode[TDeps, str], TaskManagerMixin):
     """Agent for AI-powered interaction with LLMling resources and tools.
 
     Generically typed with: LLMLingAgent[Type of Dependencies, Type of Result]
@@ -533,7 +530,7 @@ class Agent[TDeps](MessageNode[TDeps, str], TaskManagerMixin):
         return self._provider
 
     @provider.setter
-    def provider(self, value: AgentProvider, model: ModelType = None):
+    def provider(self, value: AgentType, model: ModelType = None):
         """Set the underlying provider."""
         from llmling_agent_providers.base import AgentProvider
 

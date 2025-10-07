@@ -1,7 +1,6 @@
 """CLI commands for llmling-agent."""
 
 from __future__ import annotations
-from typing import TypeVar
 
 from llmling_agent.agent.agent import Agent
 from llmling_agent.agent.structured import StructuredAgent
@@ -13,10 +12,9 @@ from llmling_agent.agent.process_manager import (
 )
 
 
-TDeps = TypeVar("TDeps", default=None)
-TResult = TypeVar("TResult", default=str)
-
-type AnyAgent[TDeps, TResult] = Agent[TDeps] | StructuredAgent[TDeps, TResult]
+type AnyAgent[TDeps = None, TResult = str] = (
+    Agent[TDeps] | StructuredAgent[TDeps, TResult]
+)
 
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.agent.interactions import Interactions
