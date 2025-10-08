@@ -37,13 +37,12 @@ dependencies = [
   "llmling>=1.0.0",
   "llmling-models",
   "mcp>=1.2.0",
-  "morefs[asynclocal]",
   # these 4 could be optional
   "prompt-toolkit>=3.0.48",
   "promptantic>=0.4.5",
   "psygnal>=0.11.1",
   "pydantic>=2.12.0",
-  "pydantic_ai_slim>=1.0.0",
+  "pydantic-ai-slim>=1.0.0",
   # Only add below (Copier)
   "python-dotenv>=1.0.1",
   "schemez>=0.0.1",
@@ -82,7 +81,9 @@ braintrust = ["braintrust", "autoevals"]
 clipboard = ["clipman"]
 # markitdown = ["markitdown; python_version < '3.14'"]
 composio = ["composio"]
-default = ["pydantic-ai>=1.0.0"]
+default = [
+  "pydantic-ai-slim[logfire,openai,google,anthropic,mistral,retries]>=1.0.0",
+]
 events = [
   "watchfiles",
   "aioimaplib>=2.0.1",
@@ -94,7 +95,7 @@ image = ["pillow"]
 langsmith = ["langsmith"]
 litellm = ["litellm; python_version < '3.14'"]
 logfire = ["logfire"]
-mcp_run = ["mcpx-py"]
+mcp_run = ["mcpx-py>=0.7.0"]
 mem0 = ["mem0ai>=0.1.48"]
 mlflow = ["mlflow>=2.20.1; python_version < '3.14'"]
 oauth = ["keyring>=25.6.0"]
