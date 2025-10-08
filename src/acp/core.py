@@ -341,30 +341,30 @@ class ClientSideConnection(Agent):
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request(AGENT_METHODS["session_load"], dct)
-        return LoadSessionResponse.model_validate(resp)
+        payload = resp if isinstance(resp, dict) else {}
+        return LoadSessionResponse.model_validate(payload)
 
     async def set_session_mode(
         self, params: SetSessionModeRequest
-    ) -> SetSessionModeResponse | None:
+    ) -> SetSessionModeResponse:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
-        r = await self._conn.send_request(AGENT_METHODS["session_set_mode"], dct)
-        # May be empty object
-        return SetSessionModeResponse.model_validate(r) if isinstance(r, dict) else None
+        resp = await self._conn.send_request(AGENT_METHODS["session_set_mode"], dct)
+        payload = resp if isinstance(resp, dict) else {}
+        return SetSessionModeResponse.model_validate(payload)
 
     async def set_session_model(
         self, params: SetSessionModelRequest
-    ) -> SetSessionModelResponse | None:
+    ) -> SetSessionModelResponse:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
-        r = await self._conn.send_request(AGENT_METHODS["session_set_model"], dct)
-        # May be empty object
-        return SetSessionModelResponse.model_validate(r) if isinstance(r, dict) else None
+        resp = await self._conn.send_request(AGENT_METHODS["session_set_model"], dct)
+        payload = resp if isinstance(resp, dict) else {}
+        return SetSessionModelResponse.model_validate(payload)
 
-    async def authenticate(
-        self, params: AuthenticateRequest
-    ) -> AuthenticateResponse | None:
+    async def authenticate(self, params: AuthenticateRequest) -> AuthenticateResponse:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
-        r = await self._conn.send_request(AGENT_METHODS["authenticate"], dct)
-        return AuthenticateResponse.model_validate(r) if isinstance(r, dict) else None
+        resp = await self._conn.send_request(AGENT_METHODS["authenticate"], dct)
+        payload = resp if isinstance(resp, dict) else {}
+        return AuthenticateResponse.model_validate(payload)
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)

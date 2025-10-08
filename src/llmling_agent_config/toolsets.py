@@ -51,14 +51,14 @@ class EntryPointToolsetConfig(BaseToolsetConfig):
     """Python module path to load tools from via entry points."""
 
     def get_provider(self) -> ResourceProvider:
-        """Create entry point tools provider from this config."""
+        """Create provider from this config."""
         from llmling_agent_toolsets.entry_points import EntryPointTools
 
         return EntryPointTools(module=self.module)
 
 
 class ComposioToolSetConfig(BaseToolsetConfig):
-    """Configuration for entry point toolsets."""
+    """Configuration for Composio toolsets."""
 
     type: Literal["composio"] = Field("composio", init=False)
     """Composio Toolsets."""
@@ -70,7 +70,7 @@ class ComposioToolSetConfig(BaseToolsetConfig):
     """User ID for composio tools."""
 
     def get_provider(self) -> ResourceProvider:
-        """Create entry point tools provider from this config."""
+        """Create provider from this config."""
         from llmling_agent_toolsets.composio_toolset import ComposioTools
 
         key = (
@@ -82,7 +82,7 @@ class ComposioToolSetConfig(BaseToolsetConfig):
 
 
 class UpsonicToolSetConfig(BaseToolsetConfig):
-    """Configuration for entry point toolsets."""
+    """Configuration for Upsonic toolsets."""
 
     type: Literal["upsonic"] = Field("upsonic", init=False)
     """Upsonic Toolsets."""
@@ -97,7 +97,7 @@ class UpsonicToolSetConfig(BaseToolsetConfig):
     """Toolset entity id."""
 
     def get_provider(self) -> ResourceProvider:
-        """Create entry point tools provider from this config."""
+        """Create provider from this config."""
         from llmling_agent_toolsets.upsonic_toolset import UpsonicTools
 
         return UpsonicTools(base_url=self.base_url, api_key=self.api_key)

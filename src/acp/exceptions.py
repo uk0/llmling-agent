@@ -35,7 +35,8 @@ class RequestError(Exception):
 
     @classmethod
     def resource_not_found(cls, uri: str | None = None) -> Self:
-        return cls(-32002, "Resource not found", {"uri": uri})
+        data = {"uri": uri} if uri is not None else None
+        return cls(-32002, "Resource not found", data)
 
     @classmethod
     def auth_required(cls, data: dict[str, Any] | None = None) -> Self:

@@ -39,9 +39,11 @@ class TerminalHandle:
     async def kill(self) -> KillTerminalCommandResponse:
         dct = {"sessionId": self._session_id, "terminalId": self.id}
         resp = await self._conn.send_request(CLIENT_METHODS["terminal_kill"], dct)
-        return KillTerminalCommandResponse.model_validate(resp)
+        payload = resp if isinstance(resp, dict) else {}
+        return KillTerminalCommandResponse.model_validate(payload)
 
     async def release(self) -> ReleaseTerminalResponse:
         dct = {"sessionId": self._session_id, "terminalId": self.id}
         resp = await self._conn.send_request(CLIENT_METHODS["terminal_release"], dct)
-        return ReleaseTerminalResponse.model_validate(resp)
+        payload = resp if isinstance(resp, dict) else {}
+        return ReleaseTerminalResponse.model_validate(payload)
