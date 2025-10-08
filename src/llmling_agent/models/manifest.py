@@ -487,6 +487,6 @@ class AgentsManifest(Schema):
 
 if __name__ == "__main__":
     model = {"type": "input"}
-    agent_cfg = AgentConfig(name="test_agent", model=model)  # type: ignore
-    manifest = AgentsManifest(agents=dict(test_agent=agent_cfg))
+    agent_cfg = dict(name="test_agent", model=model)  # type: ignore
+    manifest = AgentsManifest(agents=dict(test_agent=agent_cfg))  # type: ignore
     print(manifest.agents["test_agent"].model)
