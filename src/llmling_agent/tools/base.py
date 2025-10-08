@@ -7,7 +7,7 @@ import inspect
 from typing import TYPE_CHECKING, Any, Self
 
 from llmling import LLMCallableTool
-import py2openai  # noqa: TC002
+import schemez  # noqa: TC002
 
 from llmling_agent.log import get_logger
 from llmling_agent.observability import track_tool
@@ -17,7 +17,7 @@ from llmling_agent.utils.inspection import execute
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from py2openai.typedefs import Property, ToolParameters
+    from schemez.typedefs import Property, ToolParameters
 
     from llmling_agent.agent import AgentContext
     from llmling_agent.common_types import ToolSource
@@ -37,7 +37,7 @@ class ToolContext:
     args: dict[str, Any]
     """Arguments being passed to the tool"""
 
-    schema: py2openai.OpenAIFunctionTool
+    schema: schemez.OpenAIFunctionTool
     """Complete OpenAI function schema"""
 
     runtime_ctx: AgentContext
@@ -94,7 +94,7 @@ class Tool:
     """Whether to enable caching for this tool."""
 
     @property
-    def schema(self) -> py2openai.OpenAIFunctionTool:
+    def schema(self) -> schemez.OpenAIFunctionTool:
         """Get the OpenAI function schema for the tool."""
         return self.callable.get_schema()
 
@@ -178,7 +178,7 @@ class Tool:
         *,
         name_override: str | None = None,
         description_override: str | None = None,
-        schema_override: py2openai.OpenAIFunctionDefinition | None = None,
+        schema_override: schemez.OpenAIFunctionDefinition | None = None,
         **kwargs: Any,
     ) -> Self:
         tool = LLMCallableTool.from_callable(
@@ -196,7 +196,7 @@ class Tool:
         *,
         name_override: str | None = None,
         description_override: str | None = None,
-        schema_override: py2openai.OpenAIFunctionDefinition | None = None,
+        schema_override: schemez.OpenAIFunctionDefinition | None = None,
         **kwargs: Any,
     ) -> Self:
         """Allows importing crewai tools."""
@@ -226,7 +226,7 @@ class Tool:
         *,
         name_override: str | None = None,
         description_override: str | None = None,
-        schema_override: py2openai.OpenAIFunctionDefinition | None = None,
+        schema_override: schemez.OpenAIFunctionDefinition | None = None,
         **kwargs: Any,
     ) -> Self:
         """Create a tool from a LangChain tool."""
@@ -258,7 +258,7 @@ class Tool:
         *,
         name_override: str | None = None,
         description_override: str | None = None,
-        schema_override: py2openai.OpenAIFunctionDefinition | None = None,
+        schema_override: schemez.OpenAIFunctionDefinition | None = None,
         **kwargs: Any,
     ) -> Self:
         """Create a tool from a AutoGen tool."""

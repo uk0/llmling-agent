@@ -194,7 +194,7 @@ class MCPClient:
 
     def create_tool_callable(self, tool: MCPTool) -> Callable[..., Awaitable[str]]:
         """Create a properly typed callable from MCP tool schema."""
-        from py2openai.functionschema import FunctionSchema
+        from schemez.functionschema import FunctionSchema
 
         schema = mcp_tool_to_fn_schema(tool)
         fn_schema = FunctionSchema.from_dict(schema)

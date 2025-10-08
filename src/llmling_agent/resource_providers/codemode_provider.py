@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 from typing import TYPE_CHECKING, Any
 
-from py2openai import create_schema
+from schemez import create_schema
 
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent.tools.base import Tool
@@ -131,7 +131,7 @@ async def _exec_func():
 
         for tool in all_tools:
             if self.include_signatures:
-                # Use py2openai to get proper signature
+                # Use schemez to get proper signature
                 signature = await self._get_function_signature(tool)
                 parts.append(f"async def {signature}:")
             else:
@@ -155,12 +155,12 @@ async def _exec_func():
         return "\n".join(parts)
 
     async def _get_function_signature(self, tool: Tool) -> str:
-        """Extract function signature using py2openai."""
+        """Extract function signature using schemez."""
         try:
             # Get the actual callable from the tool
             callable_func = tool.callable.callable
 
-            # Create schema using py2openai
+            # Create schema using schemez
             schema = create_schema(callable_func)
 
             # Convert back to Python signature
@@ -261,7 +261,7 @@ async def _exec_func():
 
         for tool in all_tools:
             try:
-                # Get return schema from py2openai
+                # Get return schema from schemez
                 callable_func = tool.callable.callable
                 schema = create_schema(callable_func)
                 return_schema = schema.returns
