@@ -19,7 +19,18 @@ from acp import (
     SetSessionModeRequest,
     WriteTextFileRequest,
 )
-from acp.schema import AgentMessageChunk, TextContentBlock, UserMessageChunk
+from acp.schema import (
+    AgentMessageChunk,
+    AuthenticateRequest,
+    AuthenticateResponse,
+    LoadSessionRequest,
+    LoadSessionResponse,
+    SetSessionModelRequest,
+    SetSessionModelResponse,
+    SetSessionModeResponse,
+    TextContentBlock,
+    UserMessageChunk,
+)
 
 
 if TYPE_CHECKING:
@@ -90,6 +101,27 @@ async def test_initialize_and_new_session(
         request = NewSessionRequest(mcp_servers=[], cwd="/test")
         new_sess = await agent_conn.new_session(request)
         assert new_sess.session_id == "test-session-123"
+        load_resp = await agent_conn.load_session(
+            LoadSessionRequest(
+                session_id=new_sess.session_id, cwd="/test", mcp_servers=[]
+            )
+        )
+        assert isinstance(load_resp, LoadSessionResponse)
+
+        auth_resp = await agent_conn.authenticate(
+            AuthenticateRequest(method_id="password")
+        )
+        assert isinstance(auth_resp, AuthenticateResponse)
+
+        mode_resp = await agent_conn.set_session_mode(
+            SetSessionModeRequest(session_id=new_sess.session_id, mode_id="ask")
+        )
+        assert isinstance(mode_resp, SetSessionModeResponse)
+
+        model_resp = await agent_conn.set_session_model(
+            SetSessionModelRequest(session_id=new_sess.session_id, model_id="gpt-4o")
+        )
+        assert isinstance(model_resp, SetSessionModelResponse)
 
 
 async def test_bidirectional_file_ops(
