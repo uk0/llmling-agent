@@ -527,8 +527,8 @@ async def _handle_agent_session_methods(
     if method == AGENT_METHODS["session_set_mode"]:
         set_mode_request = SetSessionModeRequest.model_validate(params)
         return (
-            result.model_dump(by_alias=True, exclude_none=True)
-            if (result := await agent.set_session_mode(set_mode_request))
+            session_resp.model_dump(by_alias=True, exclude_none=True)
+            if (session_resp := await agent.set_session_mode(set_mode_request))
             else {}
         )
     if method == AGENT_METHODS["session_prompt"]:
