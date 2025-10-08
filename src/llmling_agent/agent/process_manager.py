@@ -420,9 +420,8 @@ class ProcessManager:
                 future = asyncio.gather(*termination_tasks, return_exceptions=True)
                 await asyncio.wait_for(future, timeout=5.0)  # Wait up to 5 seconds
             except TimeoutError:
-                logger.warning(
-                    "Some processes didn't terminate gracefully, force killing"
-                )
+                msg = "Some processes didn't terminate gracefully, force killing"
+                logger.warning(msg)
                 # Force kill remaining processes
                 for proc in self._processes.values():
                     if await proc.is_running():

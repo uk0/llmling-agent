@@ -138,11 +138,7 @@ class SystemPrompts:
 
         Examples:
             await sys_prompts.add("code_review", variables={"language": "python"})
-            await sys_prompts.add(
-                "expert",
-                provider="langfuse",
-                version="v2"
-            )
+            await sys_prompts.add("expert", provider="langfuse", version="v2")
         """
         if not self.context:
             msg = "No context available to resolve prompts"

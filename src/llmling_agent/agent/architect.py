@@ -48,9 +48,7 @@ Add response schemas and storage providers and environment section only when ask
 
 CONFIG_PATH = pathlib.Path(llmling_agent_config.__file__).parent
 CORE_CONFIG_PATH = pathlib.Path(models.__file__).parent
-README_URL = (
-    "https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/README.md"
-)
+README_URL = "https://raw.githubusercontent.com/phil65/llmling-agent/main/README.md"
 
 
 async def create_architect_agent(
