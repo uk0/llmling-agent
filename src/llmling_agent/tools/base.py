@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import inspect
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from llmling import LLMCallableTool
 import py2openai  # noqa: TC002
@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent import AgentContext
     from llmling_agent.common_types import ToolSource
+    from llmling_agent.tools.manager import ToolState
 
 
 logger = get_logger(__name__)
@@ -107,7 +108,7 @@ class Tool:
         """Get tool description."""
         return self.callable.description
 
-    def matches_filter(self, state: Literal["all", "enabled", "disabled"]) -> bool:
+    def matches_filter(self, state: ToolState) -> bool:
         """Check if tool matches state filter."""
         match state:
             case "all":

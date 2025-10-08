@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
-from llmling_agent.utils.inspection import execute
 from llmling_agent.utils.now import get_now
 from llmling_agent_config.conditions import Condition
 
@@ -188,6 +187,8 @@ class CallableConnectionConfig(ConnectionConfig):
 
         Handles both sync and async callables transparently.
         """
+        from llmling_agent.utils.inspection import execute
+
         return await execute(self.callable, message, **self.kw_args)
 
     def get_provider(self) -> CallbackProvider:

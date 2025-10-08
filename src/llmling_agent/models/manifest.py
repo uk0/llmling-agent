@@ -46,7 +46,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# TODO: python 3.13: set defaults here
 class AgentsManifest(Schema):
     """Complete agent configuration manifest defining all available agents.
 
