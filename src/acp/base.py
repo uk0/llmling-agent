@@ -1,3 +1,5 @@
+"""Base class for generated models."""
+
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict

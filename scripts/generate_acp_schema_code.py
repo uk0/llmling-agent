@@ -129,6 +129,7 @@ def main() -> None:
     version = meta_data.get("version", 1)
 
     meta_out.write_text(
+        f'"""Auto-generated metadata file."""\n\n'
         f"# This file is generated from {META_URL}.\n# Do not edit by hand.\n"
         f"AGENT_METHODS = {agent_methods!r}\n"
         f"CLIENT_METHODS = {client_methods!r}\n"

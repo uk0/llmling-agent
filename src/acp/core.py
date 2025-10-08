@@ -355,7 +355,7 @@ class ClientSideConnection(Agent):
         self, params: SetSessionModelRequest
     ) -> SetSessionModelResponse | None:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
-        r = await self._conn.send_request(AGENT_METHODS["model_select"], dct)
+        r = await self._conn.send_request(AGENT_METHODS["session_set_model"], dct)
         # May be empty object
         return SetSessionModelResponse.model_validate(r) if isinstance(r, dict) else None
 
@@ -538,7 +538,7 @@ async def _handle_agent_session_methods(
         cancel_notification = CancelNotification.model_validate(params)
         await agent.cancel(cancel_notification)
         return None
-    if method == AGENT_METHODS["model_select"]:
+    if method == AGENT_METHODS["session_set_model"]:
         set_model_request = SetSessionModelRequest.model_validate(params)
         return (
             model_result.model_dump(by_alias=True, exclude_none=True)

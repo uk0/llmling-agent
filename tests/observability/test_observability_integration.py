@@ -1,3 +1,5 @@
+"""Tests for the observability providers."""
+
 import os
 
 import pytest

@@ -1,3 +1,5 @@
+"""Tests for the observability functions."""
+
 import asyncio
 
 from pydantic_ai.models.test import TestModel
