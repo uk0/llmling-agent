@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Self
 from pydantic import ConfigDict, Field, model_validator
 from schemez.schema import Schema
 
-from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.agents import AgentConfig  # noqa: TC001
 from llmling_agent.resource_registry import ResourceRegistry
 from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.mcp_server import (
