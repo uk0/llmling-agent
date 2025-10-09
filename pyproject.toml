@@ -356,6 +356,7 @@ default-groups = ["dev", "lint", "docs"]
 
 [tool.uv.build-backend]
 module-name = [
+  "llmling_agent_acp",
   "llmling_agent",
   "llmling_agent_config",
   "llmling_agent_cli",
