@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import typer as t
 
+from llmling_agent import log
 from llmling_agent_cli import resolve_agent_config
 from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 
@@ -67,7 +68,7 @@ def task_command(
     try:
         level = getattr(logging, log_level.upper())
         logging.basicConfig(level=level)
-        logger = logging.getLogger("llmling_agent.task")
+        logger = log.get_logger(__name__)
         logger.debug("Starting task execution: %s", task_name)
 
         # Resolve configuration path

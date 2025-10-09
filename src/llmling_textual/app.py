@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 from typing import ClassVar
 
 from textual.app import App
 from textual.binding import Binding
 from textualicious import LoggingWidget
 
+from llmling_agent import log
 from llmling_agent.delegation.pool import AgentPool
 from llmling_agent_input.textual_provider import TextualInputProvider
 from llmling_textual.screens.log_screen import LogWindow
@@ -35,7 +35,7 @@ class PoolApp(App):
         self.agent_pool = pool
         self.main_screen: MainScreen | None = None
         self.log_widget = LoggingWidget()
-        logger = logging.getLogger()
+        logger = log.get_logger(__name__)
         logger.setLevel(logging.DEBUG)
         logger.addHandler(self.log_widget.handler)
 

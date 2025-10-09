@@ -107,7 +107,6 @@ class OpenAIServer:
 
 if __name__ == "__main__":
     import asyncio
-    import logging
 
     import httpx
     import uvicorn
@@ -116,8 +115,6 @@ if __name__ == "__main__":
 
     async def test_client():
         """Test the API with a direct HTTP request."""
-        logger = logging.getLogger(__name__)
-
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "http://localhost:8000/v1/chat/completions",
@@ -142,7 +139,7 @@ if __name__ == "__main__":
                             print(delta["content"], end="", flush=True)
                 print("\n")
             else:
-                logger.error("Response error: %s", response.text)
+                print("Response error:", response.text)
 
     async def main():
         """Run server and test client."""
@@ -157,5 +154,4 @@ if __name__ == "__main__":
             await server_instance.serve()
 
     fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    logging.basicConfig(level=logging.DEBUG, format=fmt)
     asyncio.run(main())

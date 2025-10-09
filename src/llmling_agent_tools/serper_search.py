@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import datetime
-import logging
 import os
 from typing import Any, Literal
 
 import httpx
 import upath
 
+from llmling_agent import log
 
-logger = logging.getLogger(__name__)
+
+logger = log.get_logger(__name__)
 
 
 class SerperTool:

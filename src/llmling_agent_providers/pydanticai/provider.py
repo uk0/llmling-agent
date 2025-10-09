@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from decimal import Decimal
 from functools import wraps
-from typing import TYPE_CHECKING, Any, cast, get_args
+from typing import TYPE_CHECKING, Any, cast, get_args, get_origin
 
 from llmling_models import AllModels, infer_model
 from pydantic_ai import Agent as PydanticAgent
@@ -64,10 +64,8 @@ def _is_call_ctx(annotation: Any) -> bool:
     # Yes, we're monkey-patching pydantic-ai's internal function.
     # No, we're not proud of it.
     # But it works™
-    from typing import get_origin
 
     from pydantic._internal import _typing_extra
-    from pydantic_ai.tools import RunContext
 
     if annotation is RunContext or (
         _typing_extra.is_generic_alias(annotation)
