@@ -10,6 +10,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from typing import Literal
 
 import anyenv
 
@@ -147,18 +148,23 @@ def main() -> None:
     )
 
     # Format generated files with ruff
-    _format_with_ruff(schema_out)
-    _format_with_ruff(meta_out)
+    _format_with_ruff(schema_out, method="format")
+    _format_with_ruff(schema_out, method="check")
+    _format_with_ruff(meta_out, method="format")
+    _format_with_ruff(meta_out, method="check")
 
 
-def _format_with_ruff(file_path: Path) -> None:
+def _format_with_ruff(path: Path, method: Literal["format", "check"]) -> None:
     """Format a Python file with ruff."""
     try:
-        cmd = ["uv", "run", "ruff", "format", str(file_path)]
+        if method == "format":
+            cmd = ["uv", "run", "ruff", "format", str(path)]
+        else:
+            cmd = ["uv", "run", "ruff", "check", "--fix", "--unsafe-fixes", str(path)]
         subprocess.check_call(cmd)
-        print(f"Formatted {file_path}")
+        print(f"Formatted {path}")
     except subprocess.CalledProcessError as e:
-        print(f"Warning: Failed to format {file_path}: {e}", file=sys.stderr)
+        print(f"Warning: Failed to format {path}: {e}", file=sys.stderr)
 
 
 def _rename_numbered_classes(file_path: Path) -> None:
