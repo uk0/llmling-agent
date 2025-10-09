@@ -266,49 +266,51 @@ async def _handle_client_method(  # noqa: PLR0911
     | None
 ):
     """Handle client method calls."""
-    if method == "fs/write_text_file":
-        write_file_request = WriteTextFileRequest.model_validate(params)
-        return await client.write_text_file(write_file_request)
-    if method == "fs/read_text_file":
-        read_file_request = ReadTextFileRequest.model_validate(params)
-        return await client.read_text_file(read_file_request)
-    if method == "session/request_permission":
-        permission_request = RequestPermissionRequest.model_validate(params)
-        return await client.request_permission(permission_request)
-    if method == "session/update":
-        notification = SessionNotification.model_validate(params)
-        await client.session_update(notification)
-        return None
-    if method == "terminal/create":
-        create_request = CreateTerminalRequest.model_validate(params)
-        return await client.create_terminal(create_request)
-    if method == "terminal/output":
-        output_request = TerminalOutputRequest.model_validate(params)
-        return await client.terminal_output(output_request)
-    if method == "terminal/release":
-        release_request = ReleaseTerminalRequest.model_validate(params)
-        return (
-            result.model_dump(by_alias=True, exclude_none=True)
-            if (result := await client.release_terminal(release_request))
-            else {}
-        )
-    if method == "terminal/wait_for_exit":
-        wait_request = WaitForTerminalExitRequest.model_validate(params)
-        return await client.wait_for_terminal_exit(wait_request)
-    if method == "terminal/kill":
-        kill_request = KillTerminalCommandRequest.model_validate(params)
-        return (
-            kill_result.model_dump(by_alias=True, exclude_none=True)
-            if (kill_result := await client.kill_terminal(kill_request))
-            else {}
-        )
-    if method.startswith("_"):
-        ext_name = method[1:]
-        if is_notification:
-            await client.ext_notification(ext_name, params or {})
+    match method:
+        case "fs/write_text_file":
+            write_file_request = WriteTextFileRequest.model_validate(params)
+            return await client.write_text_file(write_file_request)
+        case "fs/read_text_file":
+            read_file_request = ReadTextFileRequest.model_validate(params)
+            return await client.read_text_file(read_file_request)
+        case "session/request_permission":
+            permission_request = RequestPermissionRequest.model_validate(params)
+            return await client.request_permission(permission_request)
+        case "session/update":
+            notification = SessionNotification.model_validate(params)
+            await client.session_update(notification)
             return None
-        return await client.ext_method(ext_name, params or {})
-    raise RequestError.method_not_found(method)
+        case "terminal/create":
+            create_request = CreateTerminalRequest.model_validate(params)
+            return await client.create_terminal(create_request)
+        case "terminal/output":
+            output_request = TerminalOutputRequest.model_validate(params)
+            return await client.terminal_output(output_request)
+        case "terminal/release":
+            release_request = ReleaseTerminalRequest.model_validate(params)
+            return (
+                result.model_dump(by_alias=True, exclude_none=True)
+                if (result := await client.release_terminal(release_request))
+                else {}
+            )
+        case "terminal/wait_for_exit":
+            wait_request = WaitForTerminalExitRequest.model_validate(params)
+            return await client.wait_for_terminal_exit(wait_request)
+        case "terminal/kill":
+            kill_request = KillTerminalCommandRequest.model_validate(params)
+            return (
+                kill_result.model_dump(by_alias=True, exclude_none=True)
+                if (kill_result := await client.kill_terminal(kill_request))
+                else {}
+            )
+        case _ if method.startswith("_"):
+            ext_name = method[1:]
+            if is_notification:
+                await client.ext_notification(ext_name, params or {})
+                return None
+            return await client.ext_method(ext_name, params or {})
+        case _:
+            raise RequestError.method_not_found(method)
 
 
 # agent
@@ -320,48 +322,50 @@ async def _handle_agent_method(  # noqa: PLR0911
     params: dict[str, Any] | None,
     is_notification: bool,
 ) -> NewSessionResponse | InitializeResponse | PromptResponse | dict[str, Any] | None:
-    if method == "initialize":
-        initialize_request = InitializeRequest.model_validate(params)
-        return await agent.initialize(initialize_request)
-    if method == "session/new":
-        new_session_request = NewSessionRequest.model_validate(params)
-        return await agent.new_session(new_session_request)
-    if method == "session/load":
-        load_request = LoadSessionRequest.model_validate(params)
-        await agent.load_session(load_request)
-        return None
-    if method == "session/set_mode":
-        set_mode_request = SetSessionModeRequest.model_validate(params)
-        return (
-            session_resp.model_dump(by_alias=True, exclude_none=True)
-            if (session_resp := await agent.set_session_mode(set_mode_request))
-            else {}
-        )
-    if method == "session/prompt":
-        prompt_request = PromptRequest.model_validate(params)
-        return await agent.prompt(prompt_request)
-    if method == "session/cancel":
-        cancel_notification = CancelNotification.model_validate(params)
-        await agent.cancel(cancel_notification)
-        return None
-    if method == "session/set_model":
-        set_model_request = SetSessionModelRequest.model_validate(params)
-        return (
-            model_result.model_dump(by_alias=True, exclude_none=True)
-            if (model_result := await agent.set_session_model(set_model_request))
-            else {}
-        )
-    if method == "authenticate":
-        p = AuthenticateRequest.model_validate(params)
-        result = await agent.authenticate(p)
-        return result.model_dump(by_alias=True, exclude_none=True) if result else {}
-    if method.startswith("_"):
-        ext_name = method[1:]
-        if is_notification:
-            await agent.ext_notification(ext_name, params or {})
+    match method:
+        case "initialize":
+            initialize_request = InitializeRequest.model_validate(params)
+            return await agent.initialize(initialize_request)
+        case "session/new":
+            new_session_request = NewSessionRequest.model_validate(params)
+            return await agent.new_session(new_session_request)
+        case "session/load":
+            load_request = LoadSessionRequest.model_validate(params)
+            await agent.load_session(load_request)
             return None
-        return await agent.ext_method(ext_name, params or {})
-    raise RequestError.method_not_found(method)
+        case "session/set_mode":
+            set_mode_request = SetSessionModeRequest.model_validate(params)
+            return (
+                session_resp.model_dump(by_alias=True, exclude_none=True)
+                if (session_resp := await agent.set_session_mode(set_mode_request))
+                else {}
+            )
+        case "session/prompt":
+            prompt_request = PromptRequest.model_validate(params)
+            return await agent.prompt(prompt_request)
+        case "session/cancel":
+            cancel_notification = CancelNotification.model_validate(params)
+            await agent.cancel(cancel_notification)
+            return None
+        case "session/set_model":
+            set_model_request = SetSessionModelRequest.model_validate(params)
+            return (
+                model_result.model_dump(by_alias=True, exclude_none=True)
+                if (model_result := await agent.set_session_model(set_model_request))
+                else {}
+            )
+        case "authenticate":
+            p = AuthenticateRequest.model_validate(params)
+            result = await agent.authenticate(p)
+            return result.model_dump(by_alias=True, exclude_none=True) if result else {}
+        case _ if method.startswith("_"):
+            ext_name = method[1:]
+            if is_notification:
+                await agent.ext_notification(ext_name, params or {})
+                return None
+            return await agent.ext_method(ext_name, params or {})
+        case _:
+            raise RequestError.method_not_found(method)
 
 
 def _create_agent_handler(agent: Agent) -> MethodHandler:
