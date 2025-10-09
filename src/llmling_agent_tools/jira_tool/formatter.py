@@ -65,7 +65,7 @@ def format_issue(issue_field: Any) -> str:
         if not value:
             continue
 
-        if field_name in ("created", "duedate"):
+        if field_name in {"created", "duedate"}:
             formatted_value = _format_date(value)
         elif field_name == "labels":
             formatted_value = ", ".join(value) if value else ""

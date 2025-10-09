@@ -69,7 +69,7 @@ class BaseImageContent(BaseContent):
         path_obj = to_upath(path)
 
         # For http(s) URLs, pass through as URL content
-        if path_obj.protocol in ("http", "https"):
+        if path_obj.protocol in {"http", "https"}:
             return ImageURLContent(
                 url=str(path_obj), detail=detail, description=description
             )
@@ -169,7 +169,7 @@ class BasePDFContent(BaseContent):
         path_obj = to_upath(path)
 
         # For http(s) URLs, pass through as URL content
-        if path_obj.protocol in ("http", "https"):
+        if path_obj.protocol in {"http", "https"}:
             return PDFURLContent(
                 url=str(path_obj), detail=detail, description=description
             )

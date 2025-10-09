@@ -188,7 +188,7 @@ def _create_input_spec(command: BaseCommand) -> AvailableCommandInput | None:
     # This could be enhanced to parse actual parameter signatures
     try:
         sig = inspect.signature(command.execute)
-        params = [n for n, _ in sig.parameters.items() if n not in ("self", "ctx")]
+        params = [n for n, _ in sig.parameters.items() if n not in {"self", "ctx"}]
         if params:
             hint = f"Parameters: {', '.join(params)}"
             return AvailableCommandInput(root=CommandInputHint(hint=hint))

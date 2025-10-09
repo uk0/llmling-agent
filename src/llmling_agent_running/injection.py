@@ -57,10 +57,10 @@ def inject_nodes[T, **P](
 
     nodes: dict[str, MessageNode[Any, Any]] = {}
     for name, param in params.items():
-        if param.kind not in (
+        if param.kind not in {
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
             inspect.Parameter.KEYWORD_ONLY,
-        ):
+        }:
             logger.debug("Skipping %s: wrong parameter kind %s", name, param.kind)
             continue
 

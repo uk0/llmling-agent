@@ -51,7 +51,7 @@ async def read_command(
         return
 
     path = args[0]
-    convert_to_md = kwargs.get("convert_to_md", "").lower() in ("true", "1", "yes")
+    convert_to_md = kwargs.get("convert_to_md", "").lower() in {"true", "1", "yes"}
 
     try:
         agent = ctx.context.agent

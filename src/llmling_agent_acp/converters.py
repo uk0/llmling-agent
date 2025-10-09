@@ -296,7 +296,7 @@ def format_tool_call_for_acp(
     locations = [
         ToolCallLocation(path=value)
         for key, value in tool_input.items()
-        if key in ("path", "file_path", "filepath") and isinstance(value, str)
+        if key in {"path", "file_path", "filepath"} and isinstance(value, str)
     ]
 
     tool_call = ToolCall(

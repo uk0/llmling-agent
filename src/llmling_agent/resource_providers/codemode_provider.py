@@ -267,7 +267,7 @@ async def _exec_func():
                 return_schema = schema.returns
 
                 # Skip if return type is too simple
-                if return_schema.get("type") not in ("object", "array"):
+                if return_schema.get("type") not in {"object", "array"}:
                     continue
 
                 # Create temporary file for schema

@@ -75,7 +75,7 @@ class MarkItDownConverter(DocumentConverter):
             path_obj = to_upath(path)
 
             # Direct handling for local paths and http(s) URLs
-            if path_obj.protocol in ("", "file", "http", "https"):
+            if path_obj.protocol in {"", "file", "http", "https"}:
                 result = self.converter.convert(path_obj.path)
             else:
                 # For other protocols, use temporary file
