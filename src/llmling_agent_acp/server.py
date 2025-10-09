@@ -48,6 +48,8 @@ class ACPServer:
         file_access: bool = True,
         terminal_access: bool = True,
         providers: list[ProviderType] | None = None,
+        debug_messages: bool = False,
+        debug_file: str | None = None,
     ) -> None:
         """Initialize ACP server.
 
@@ -58,6 +60,8 @@ class ACPServer:
             file_access: Whether to support file access operations
             terminal_access: Whether to support terminal access operations
             providers: List of providers to use for model discovery (None = openrouter)
+            debug_messages: Whether to enable debug message logging
+            debug_file: File path for debug message logging
         """
         self.agent_pool = agent_pool
         self._running = False
@@ -68,6 +72,8 @@ class ACPServer:
         self._terminal_access = terminal_access
         self.usage_limits = usage_limits
         self.providers = providers or ["openrouter"]
+        self._debug_messages = debug_messages
+        self._debug_file = debug_file
         # Model discovery cache
         self._available_models: list[ModelInfo] = []
         self._models_initialized = False
@@ -82,6 +88,8 @@ class ACPServer:
         file_access: bool = True,
         terminal_access: bool = True,
         providers: list[ProviderType] | None = None,
+        debug_messages: bool = False,
+        debug_file: str | None = None,
     ) -> Self:
         """Create ACP server from existing llmling-agent configuration.
 
@@ -92,6 +100,8 @@ class ACPServer:
             file_access: Enable file system access
             terminal_access: Enable terminal access
             providers: List of provider types to use for model discovery
+            debug_messages: Enable saving JSON messages to file
+            debug_file: Path to debug file
 
         Returns:
             Configured ACP server instance with agent pool from config
@@ -104,6 +114,8 @@ class ACPServer:
             file_access=file_access,
             terminal_access=terminal_access,
             providers=providers,
+            debug_messages=debug_messages,
+            debug_file=debug_file,
         )
         agent_names = list(server.agent_pool.agents.keys())
         logger.info("Created ACP server with agent pool containing: %s", agent_names)
@@ -146,7 +158,13 @@ class ACPServer:
                 )
 
             reader, writer = await stdio_streams()
-            AgentSideConnection(create_acp_agent, writer, reader)
+            AgentSideConnection(
+                create_acp_agent,
+                writer,
+                reader,
+                debug_messages=self._debug_messages,
+                debug_file=self._debug_file,
+            )
 
             logger.info(
                 "ACP server started with protocol features: "

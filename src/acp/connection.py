@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 from dataclasses import dataclass
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import anyenv
@@ -44,10 +45,14 @@ class Connection:
         handler: MethodHandler,
         writer: asyncio.StreamWriter,
         reader: asyncio.StreamReader,
+        debug_messages: bool = False,
+        debug_file: str | None = None,
     ) -> None:
         self._handler = handler
         self._writer = writer
         self._reader = reader
+        self._debug_messages = debug_messages
+        self._debug_file = Path(debug_file) if debug_file else None
         self._next_request_id = 0
         self._pending: dict[int, _Pending] = {}
         self._inflight: set[asyncio.Task[Any]] = set()
@@ -78,6 +83,8 @@ class Connection:
                     break
                 try:
                     message = anyenv.load_json(line, return_type=dict)
+                    if self._debug_messages and self._debug_file:
+                        self._write_debug_message("←", line.decode().strip())
                 except Exception:
                     # Align with Rust/TS: on parse error,
                     # do not send a response; just skip
@@ -159,6 +166,8 @@ class Connection:
 
     async def _send_obj(self, obj: dict[str, Any]) -> None:
         data = (json.dumps(obj, separators=(",", ":")) + "\n").encode("utf-8")
+        if self._debug_messages and self._debug_file:
+            self._write_debug_message("→", json.dumps(obj, separators=(",", ":")))
         async with self._write_lock:
             self._writer.write(data)
             with contextlib.suppress(ConnectionError, RuntimeError):
@@ -177,6 +186,21 @@ class Connection:
         dct = {"jsonrpc": "2.0", "id": req_id, "method": method, "params": params}
         await self._send_obj(dct)
         return await fut
+
+    def _write_debug_message(self, direction: str, message: str) -> None:
+        """Write debug message to file."""
+        if not self._debug_file:
+            return
+        try:
+            import datetime
+
+            timestamp = datetime.datetime.now().isoformat()
+            debug_line = f"{timestamp} {direction} {message}\n"
+            with open(self._debug_file, "a", encoding="utf-8") as f:
+                f.write(debug_line)
+        except Exception:
+            # Don't let debug logging break the connection
+            pass
 
     async def send_notification(
         self, method: str, params: JsonValue | None = None

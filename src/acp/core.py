@@ -75,10 +75,14 @@ class AgentSideConnection(Client):
         to_agent: Callable[[AgentSideConnection], Agent],
         input_stream: asyncio.StreamWriter,
         output_stream: asyncio.StreamReader,
+        debug_messages: bool = False,
+        debug_file: str | None = None,
     ) -> None:
         agent = to_agent(self)
         handler = _create_agent_handler(agent)
-        self._conn = Connection(handler, input_stream, output_stream)
+        self._conn = Connection(
+            handler, input_stream, output_stream, debug_messages, debug_file
+        )
 
     # client-bound methods (agent -> client)
     async def session_update(self, params: SessionNotification) -> None:

@@ -41,6 +41,14 @@ def acp_command(
     show_messages: bool = t.Option(
         False, "--show-messages", help="Show message activity in logs"
     ),
+    debug_messages: bool = t.Option(
+        False, "--debug-messages", help="Save raw JSON-RPC messages to debug file"
+    ),
+    debug_file: str | None = t.Option(
+        None,
+        "--debug-file",
+        help="File to save JSON-RPC debug messages (default: acp-debug.jsonl)",
+    ),
     providers: list[str] | None = t.Option(  # noqa: B008
         None,
         "--model-provider",
@@ -112,6 +120,8 @@ def acp_command(
                 file_access=file_access,
                 terminal_access=terminal_access,
                 providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
+                debug_messages=debug_messages,
+                debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
             )
         except Exception as e:
             logger.exception("Failed to create ACP server from config")
@@ -125,6 +135,9 @@ def acp_command(
         logger.info("Configured %d agents for ACP protocol", agent_count)
         if show_messages:
             logger.info("Message activity logging enabled")
+        if debug_messages:
+            debug_path = debug_file or "acp-debug.jsonl"
+            logger.info("Raw JSON-RPC message debugging enabled -> %s", debug_path)
         msg = "Starting ACP server (file_access=%s terminal_access=%s session_support=%s)"
         logger.info(msg, file_access, terminal_access, session_support)
 
