@@ -10,7 +10,6 @@ from uuid import uuid4
 from pydantic import Field
 from schemez import Schema
 import websockets
-import websockets.client
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import TokenCost
