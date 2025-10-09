@@ -6,16 +6,16 @@ import asyncio
 import contextlib
 from dataclasses import dataclass
 import json
-import logging
 from typing import TYPE_CHECKING, Any
 
 import anyenv
 from pydantic import BaseModel, ValidationError
 
 from acp.exceptions import RequestError
+from llmling_agent import log
 
 
-logger = logging.getLogger(__name__)
+logger = log.get_logger(__name__)
 
 
 if TYPE_CHECKING:
@@ -71,7 +71,7 @@ class Connection:
                 except Exception:
                     # Align with Rust/TS: on parse error,
                     # do not send a response; just skip
-                    logging.exception("Error parsing JSON-RPC message")
+                    logger.exception("Error parsing JSON-RPC message")
                     continue
 
                 await self._process_message(message)

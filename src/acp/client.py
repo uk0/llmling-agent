@@ -6,7 +6,6 @@ that can be used for testing or as a base for more sophisticated client implemen
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -18,6 +17,7 @@ from acp.schema import (
     RequestPermissionResponse,
     WriteTextFileResponse,
 )
+from llmling_agent import log
 
 
 if TYPE_CHECKING:
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
         WriteTextFileRequest,
     )
 
-logger = logging.getLogger(__name__)
+logger = log.get_logger(__name__)
 
 
 class DefaultACPClient(Client):

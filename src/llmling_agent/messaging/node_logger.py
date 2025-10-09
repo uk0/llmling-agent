@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from psygnal.containers import EventedList
 
+from llmling_agent import log
 from llmling_agent.messaging.message_container import ChatMessageContainer
 from llmling_agent.tools import ToolCallInfo
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.messages import ChatMessage
 
 
-logger = logging.getLogger(__name__)
+logger = log.get_logger(__name__)
 
 
 class NodeLogger:

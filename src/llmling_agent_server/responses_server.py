@@ -48,7 +48,6 @@ class ResponsesServer:
 
 if __name__ == "__main__":
     import asyncio
-    import logging
 
     import httpx
     import uvicorn
@@ -57,8 +56,6 @@ if __name__ == "__main__":
 
     async def test_client():
         """Test the API with a direct HTTP request."""
-        logger = logging.getLogger(__name__)
-
         timeout = httpx.Timeout(30.0, connect=5.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(
@@ -69,10 +66,10 @@ if __name__ == "__main__":
                     "input": "Tell me a three sentence bedtime story about a unicorn.",
                 },
             )
-            logger.info("Response: %s", response.text)
+            print("Response:", response.text)
 
             if not response.is_success:
-                logger.error("Error: %s", response.text)
+                print("Error:", response.text)
 
     async def main():
         """Run server and test client."""
@@ -92,8 +89,6 @@ if __name__ == "__main__":
             try:
                 await server_task
             except asyncio.CancelledError:
-                logging.info("Server task cancelled.")
+                print("Server task cancelled.")
 
-    fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    logging.basicConfig(level=logging.DEBUG, format=fmt)
     asyncio.run(main())

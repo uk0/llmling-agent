@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
@@ -20,6 +19,7 @@ from pydantic import Field, model_validator
 from schemez import InlineSchemaDef
 from toprompt import render_prompt
 
+from llmling_agent import log
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.config import Capabilities
 from llmling_agent.resource_providers.static import StaticResourceProvider
@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 ToolConfirmationMode = Literal["always", "never", "per_tool"]
 ProviderName = Literal["pydantic_ai", "human"]
 
-logger = logging.getLogger(__name__)
+logger = log.get_logger(__name__)
 
 
 class AgentConfig(NodeConfig):

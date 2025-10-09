@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from functools import cached_property
-import logging
 from typing import TYPE_CHECKING, Any, Self
 
 from pydantic import ConfigDict, Field, model_validator
 from schemez.schema import Schema
 
+from llmling_agent import log
 from llmling_agent.models.agents import AgentConfig  # noqa: TC001
 from llmling_agent.resource_registry import ResourceRegistry
 from llmling_agent_config.converters import ConversionConfig
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from llmling_agent.prompts.manager import PromptManager
 
 
-logger = logging.getLogger(__name__)
+logger = log.get_logger(__name__)
 
 
 class AgentsManifest(Schema):
