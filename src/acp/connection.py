@@ -19,6 +19,8 @@ logger = log.get_logger(__name__)
 
 
 if TYPE_CHECKING:
+    from collections.abc import Coroutine
+
     from acp.acp_types import JsonValue, MethodHandler
 
 
@@ -48,6 +50,7 @@ class Connection:
         self._reader = reader
         self._next_request_id = 0
         self._pending: dict[int, _Pending] = {}
+        self._inflight: set[asyncio.Task[Any]] = set()
         self._write_lock = asyncio.Lock()
         self._recv_task = asyncio.create_task(self._receive_loop())
 
@@ -56,6 +59,13 @@ class Connection:
             self._recv_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._recv_task
+        if self._inflight:
+            tasks = list(self._inflight)
+            for task in tasks:
+                task.cancel()
+            for task in tasks:
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
         # Do not close writer here; lifecycle owned by caller
 
     # --- IO loops ----------------------------------------------------------------
@@ -77,24 +87,33 @@ class Connection:
                 await self._process_message(message)
         except asyncio.CancelledError:
             return
-        except Exception:
-            logger.exception("🔧 Receive loop crashed")
-            raise
-        finally:
-            logger.debug("🔧 Receive loop ended")
 
-    async def _process_message(self, message: dict[str, Any]) -> None:
+    async def _process_message(self, message: dict) -> None:
         method = message.get("method")
         has_id = "id" in message
 
         if method is not None and has_id:
-            await self._handle_request(message)
-        elif method is not None and not has_id:
+            self._schedule(self._handle_request(message))
+            return
+        if method is not None and not has_id:
             await self._handle_notification(message)
-        elif has_id:
+            return
+        if has_id:
             await self._handle_response(message)
-        else:
-            logger.warning("🔧 Unrecognized message format: %s", message)
+
+    def _schedule(self, coro: Coroutine[None, None, Any]) -> None:
+        task = asyncio.create_task(coro)
+        self._inflight.add(task)
+        task.add_done_callback(self._task_done)
+
+    def _task_done(self, task: asyncio.Task[Any]) -> None:
+        self._inflight.discard(task)
+        if task.cancelled():
+            return
+        try:
+            task.result()
+        except Exception:
+            logger.exception("Unhandled error in JSON-RPC request handler")
 
     async def _handle_request(self, message: dict[str, Any]) -> None:
         """Handle JSON-RPC request."""
