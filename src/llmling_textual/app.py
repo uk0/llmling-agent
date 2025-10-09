@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import ClassVar
 
 from textual.app import App
