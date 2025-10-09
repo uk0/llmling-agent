@@ -104,45 +104,42 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         if not self._ws:
             return
 
-        try:
-            async for raw_message in self._ws:
-                try:
-                    message = WebSocketMessage.model_validate_json(raw_message)
+        async for raw_message in self._ws:
+            try:
+                message = WebSocketMessage.model_validate_json(raw_message)
 
-                    match message.type:
-                        case "response":
-                            id_ = message.ref_id or ""
-                            if future := self._pending_responses.get(id_):
-                                future.set_result(message.content)
+                match message.type:
+                    case "response":
+                        id_ = message.ref_id or ""
+                        if future := self._pending_responses.get(id_):
+                            future.set_result(message.content)
 
-                        case "stream_chunk":
-                            if queue := self._active_streams.get(message.ref_id or ""):
-                                await queue.put(message.content)
+                    case "stream_chunk":
+                        if queue := self._active_streams.get(message.ref_id or ""):
+                            await queue.put(message.content)
 
-                        case "stream_end":
-                            if queue := self._active_streams.get(message.ref_id or ""):
-                                await queue.put(None)
+                    case "stream_end":
+                        if queue := self._active_streams.get(message.ref_id or ""):
+                            await queue.put(None)
 
-                        case "tool_call":
-                            result = await self._handle_tool_call(message)
-                            await self._send_message(
-                                "tool_result",
-                                content=result,
-                                ref_id=message.message_id,
-                            )
+                    case "tool_call":
+                        result = await self._handle_tool_call(message)
+                        await self._send_message(
+                            "tool_result",
+                            content=result,
+                            ref_id=message.message_id,
+                        )
 
-                        case "error":
-                            if future := self._pending_responses.get(
-                                message.ref_id or ""
-                            ):
-                                future.set_exception(RuntimeError(message.content))
+                    case "error":
+                        if future := self._pending_responses.get(message.ref_id or ""):
+                            future.set_exception(RuntimeError(message.content))
 
-                except Exception:
-                    logger.exception("Error handling message")
-
-        except websockets.ConnectionClosed:
-            logger.warning("WebSocket connection closed")
-            self._ws = None
+            except websockets.ConnectionClosed:
+                logger.warning("WebSocket connection closed")
+                self._ws = None
+                break
+            except Exception:
+                logger.exception("Error handling message")
 
     async def _send_message(
         self,
