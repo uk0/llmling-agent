@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling.tools.base import BaseTool
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from llmling import RuntimeConfig
 
 
-class ErrorStrategy(str, Enum):
+class ErrorStrategy(StrEnum):
     """Strategy for handling errors in the pipeline."""
 
     STOP = "stop"  # Stop pipeline on error
