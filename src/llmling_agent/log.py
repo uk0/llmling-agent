@@ -13,16 +13,23 @@ if TYPE_CHECKING:
     from slashed import OutputWriter
 
 
-def get_logger(name: str) -> logging.Logger:
+LogLevel = int | str
+
+
+def get_logger(name: str, log_level: LogLevel | None = None) -> logging.Logger:
     """Get a logger for the given name.
 
     Args:
         name: The name of the logger, will be prefixed with 'llmling_agent.'
+        log_level: The logging level to set for the logger
 
     Returns:
         A logger instance
     """
-    return logging.getLogger(f"llmling_agent.{name}")
+    logger = logging.getLogger(f"llmling_agent.{name}")
+    if log_level is not None:
+        logger.setLevel(log_level)
+    return logger
 
 
 @contextmanager
