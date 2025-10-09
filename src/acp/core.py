@@ -643,7 +643,7 @@ def create_session_model_state(
         )
         for model in available_models
     ]
-
     # Use first model as current if not specified
-    current_model_id = current_model or available_models[0].pydantic_ai_id
+    all_ids = [model.pydantic_ai_id for model in available_models]
+    current_model_id = current_model if current_model in all_ids else all_ids[0]
     return SessionModelState(available_models=models, current_model_id=current_model_id)
