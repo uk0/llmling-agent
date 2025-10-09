@@ -1,7 +1,11 @@
+"""Client ACP Connection."""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any
 
+from acp.agent.protocol import Agent
+from acp.client.protocol import Client
 from acp.connection import Connection
 from acp.exceptions import RequestError
 from acp.meta import AGENT_METHODS, CLIENT_METHODS
@@ -52,137 +56,6 @@ if TYPE_CHECKING:
     from acp.acp_types import MethodHandler
 
 
-class NoMatch:
-    """NoMatch Sentinel."""
-
-
-_NO_MATCH = NoMatch()
-
-
-class BaseClient(Protocol):
-    """Base client interface for ACP - always required."""
-
-    async def request_permission(
-        self, params: RequestPermissionRequest
-    ) -> RequestPermissionResponse: ...
-
-    async def session_update(self, params: SessionNotification) -> None: ...
-
-
-class FileSystemCapability(Protocol):
-    """Client capability for filesystem operations."""
-
-    async def write_text_file(
-        self, params: WriteTextFileRequest
-    ) -> WriteTextFileResponse | None: ...
-
-    async def read_text_file(
-        self, params: ReadTextFileRequest
-    ) -> ReadTextFileResponse: ...
-
-
-class TerminalCapability(Protocol):
-    """Client capability for terminal operations."""
-
-    async def create_terminal(
-        self, params: CreateTerminalRequest
-    ) -> CreateTerminalResponse: ...
-
-    async def terminal_output(
-        self, params: TerminalOutputRequest
-    ) -> TerminalOutputResponse: ...
-
-    async def release_terminal(
-        self, params: ReleaseTerminalRequest
-    ) -> ReleaseTerminalResponse | None: ...
-
-    async def wait_for_terminal_exit(
-        self, params: WaitForTerminalExitRequest
-    ) -> WaitForTerminalExitResponse: ...
-
-    async def kill_terminal(
-        self, params: KillTerminalCommandRequest
-    ) -> KillTerminalCommandResponse | None: ...
-
-
-class ExtensibilityCapability(Protocol):
-    """Client capability for extension methods."""
-
-    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]: ...
-
-    async def ext_notification(self, method: str, params: dict[str, Any]) -> None: ...
-
-
-class Client(
-    BaseClient, FileSystemCapability, TerminalCapability, ExtensibilityCapability
-):
-    """High-level client interface for interacting with an ACP server.
-
-    Includes all client capabilities.
-    New implementations should inherit from specific capability protocols instead.
-    """
-
-
-class BaseAgent(Protocol):
-    """Base agent interface for ACP - always required."""
-
-    async def initialize(self, params: InitializeRequest) -> InitializeResponse: ...
-
-    async def new_session(self, params: NewSessionRequest) -> NewSessionResponse: ...
-
-    async def prompt(self, params: PromptRequest) -> PromptResponse: ...
-
-    async def cancel(self, params: CancelNotification) -> None: ...
-
-
-class SessionPersistenceCapability(Protocol):
-    """Agent capability for session persistence and authentication."""
-
-    async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse: ...
-
-    async def authenticate(
-        self, params: AuthenticateRequest
-    ) -> AuthenticateResponse | None: ...
-
-
-class SessionModeCapability(Protocol):
-    """Agent capability for session mode switching."""
-
-    async def set_session_mode(
-        self, params: SetSessionModeRequest
-    ) -> SetSessionModeResponse | None: ...
-
-
-class SessionModelCapability(Protocol):
-    """Agent capability for session model switching."""
-
-    async def set_session_model(
-        self, params: SetSessionModelRequest
-    ) -> SetSessionModelResponse | None: ...
-
-
-class AgentExtensibilityCapability(Protocol):
-    """Agent capability for extension methods."""
-
-    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]: ...
-
-    async def ext_notification(self, method: str, params: dict[str, Any]) -> None: ...
-
-
-class Agent(
-    BaseAgent,
-    SessionPersistenceCapability,
-    SessionModeCapability,
-    SessionModelCapability,
-    AgentExtensibilityCapability,
-):
-    """ACP Agent interface.
-
-    Backward compatibility class that includes all agent capabilities.
-    New implementations should inherit from specific capability protocols instead.
-    """
-
-
 class AgentSideConnection(Client):
     """Agent-side connection.
 
@@ -224,10 +97,10 @@ class AgentSideConnection(Client):
 
     async def write_text_file(
         self, params: WriteTextFileRequest
-    ) -> WriteTextFileResponse | None:
+    ) -> WriteTextFileResponse:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         r = await self._conn.send_request(CLIENT_METHODS["fs_write_text_file"], dct)
-        return WriteTextFileResponse.model_validate(r) if isinstance(r, dict) else None
+        return WriteTextFileResponse.model_validate(r)
 
     # async def createTerminal(self, params: CreateTerminalRequest) -> TerminalHandle:
     async def create_terminal(
@@ -254,14 +127,10 @@ class AgentSideConnection(Client):
 
     async def release_terminal(
         self, params: ReleaseTerminalRequest
-    ) -> ReleaseTerminalResponse | None:
+    ) -> ReleaseTerminalResponse:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request(CLIENT_METHODS["terminal_release"], dct)
-        return (
-            ReleaseTerminalResponse.model_validate(resp)
-            if isinstance(resp, dict)
-            else None
-        )
+        return ReleaseTerminalResponse.model_validate(resp)
 
     async def wait_for_terminal_exit(
         self, params: WaitForTerminalExitRequest
@@ -274,14 +143,10 @@ class AgentSideConnection(Client):
 
     async def kill_terminal(
         self, params: KillTerminalCommandRequest
-    ) -> KillTerminalCommandResponse | None:
+    ) -> KillTerminalCommandResponse:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request(CLIENT_METHODS["terminal_kill"], dct)
-        return (
-            KillTerminalCommandResponse.model_validate(resp)
-            if isinstance(resp, dict)
-            else None
-        )
+        return KillTerminalCommandResponse.model_validate(resp)
 
 
 class ClientSideConnection(Agent):
@@ -320,7 +185,6 @@ class ClientSideConnection(Agent):
             | TerminalOutputResponse
             | WaitForTerminalExitResponse
             | dict[str, Any]
-            | NoMatch
             | None
         ):
             return await _handle_client_method(client, method, params, is_notification)
@@ -382,18 +246,23 @@ class ClientSideConnection(Agent):
         await self._conn.send_notification(f"_{method}", params)
 
 
-async def _handle_client_core_methods(
+async def _handle_client_method(  # noqa: PLR0911
     client: Client,
     method: str,
     params: dict[str, Any] | None,
+    is_notification: bool,
 ) -> (
     WriteTextFileResponse
     | ReadTextFileResponse
     | RequestPermissionResponse
     | SessionNotification
-    | NoMatch
+    | CreateTerminalResponse
+    | TerminalOutputResponse
+    | WaitForTerminalExitResponse
+    | dict[str, Any]
     | None
 ):
+    """Handle client method calls."""
     if method == CLIENT_METHODS["fs_write_text_file"]:
         write_file_request = WriteTextFileRequest.model_validate(params)
         return await client.write_text_file(write_file_request)
@@ -407,36 +276,6 @@ async def _handle_client_core_methods(
         notification = SessionNotification.model_validate(params)
         await client.session_update(notification)
         return None
-    return _NO_MATCH
-
-
-async def _handle_client_extension_methods(
-    client: Client,
-    method: str,
-    params: dict[str, Any] | None,
-    is_notification: bool,
-) -> NoMatch | dict[str, Any] | None:
-    if not method.startswith("_"):
-        return _NO_MATCH
-    ext_name = method[1:]
-    if is_notification:
-        await client.ext_notification(ext_name, params or {})
-        return None
-    return await client.ext_method(ext_name, params or {})
-
-
-async def _handle_client_terminal_methods(
-    client: Client,
-    method: str,
-    params: dict[str, Any] | None,
-) -> (
-    WaitForTerminalExitResponse
-    | CreateTerminalResponse
-    | TerminalOutputResponse
-    | None
-    | dict[str, Any]
-    | NoMatch
-):
     if method == CLIENT_METHODS["terminal_create"]:
         create_request = CreateTerminalRequest.model_validate(params)
         return await client.create_terminal(create_request)
@@ -460,66 +299,30 @@ async def _handle_client_terminal_methods(
             if (kill_result := await client.kill_terminal(kill_request))
             else {}
         )
-    return _NO_MATCH
-
-
-async def _handle_client_method(
-    client: Client,
-    method: str,
-    params: dict[str, Any] | None,
-    is_notification: bool,
-) -> (
-    WriteTextFileResponse
-    | ReadTextFileResponse
-    | RequestPermissionResponse
-    | SessionNotification
-    | CreateTerminalResponse
-    | TerminalOutputResponse
-    | WaitForTerminalExitResponse
-    | dict[str, Any]
-    | NoMatch
-    | None
-):
-    """Handle client method calls."""
-    if (
-        result := await _handle_client_core_methods(client, method, params)
-    ) is not _NO_MATCH:
-        return result
-    if (
-        term_result := await _handle_client_terminal_methods(client, method, params)
-    ) is not _NO_MATCH:
-        return term_result
-    if (
-        ext_result := await _handle_client_extension_methods(
-            client, method, params, is_notification
-        )
-    ) is not _NO_MATCH:
-        return ext_result
+    if method.startswith("_"):
+        ext_name = method[1:]
+        if is_notification:
+            await client.ext_notification(ext_name, params or {})
+            return None
+        return await client.ext_method(ext_name, params or {})
     raise RequestError.method_not_found(method)
 
 
 # agent
 
 
-async def _handle_agent_init_methods(
+async def _handle_agent_method(  # noqa: PLR0911
     agent: Agent,
     method: str,
     params: dict[str, Any] | None,
-) -> NewSessionResponse | InitializeResponse | NoMatch:
+    is_notification: bool,
+) -> NewSessionResponse | InitializeResponse | PromptResponse | dict[str, Any] | None:
     if method == AGENT_METHODS["initialize"]:
         initialize_request = InitializeRequest.model_validate(params)
         return await agent.initialize(initialize_request)
     if method == AGENT_METHODS["session_new"]:
         new_session_request = NewSessionRequest.model_validate(params)
         return await agent.new_session(new_session_request)
-    return _NO_MATCH
-
-
-async def _handle_agent_session_methods(
-    agent: Agent,
-    method: str,
-    params: dict[str, Any] | None,
-) -> None | dict[str, Any] | PromptResponse | NoMatch:
     if method == AGENT_METHODS["session_load"]:
         load_request = LoadSessionRequest.model_validate(params)
         await agent.load_session(load_request)
@@ -545,67 +348,16 @@ async def _handle_agent_session_methods(
             if (model_result := await agent.set_session_model(set_model_request))
             else {}
         )
-    return _NO_MATCH
-
-
-async def _handle_agent_auth_methods(
-    agent: Agent,
-    method: str,
-    params: dict[str, Any] | None,
-) -> dict[str, Any] | NoMatch:
     if method == AGENT_METHODS["authenticate"]:
         p = AuthenticateRequest.model_validate(params)
         result = await agent.authenticate(p)
         return result.model_dump(by_alias=True, exclude_none=True) if result else {}
-    return _NO_MATCH
-
-
-async def _handle_agent_ext_methods(
-    agent: Agent,
-    method: str,
-    params: dict[str, Any] | None,
-    is_notification: bool,
-) -> dict[str, Any] | NoMatch | None:
     if method.startswith("_"):
         ext_name = method[1:]
         if is_notification:
             await agent.ext_notification(ext_name, params or {})
             return None
         return await agent.ext_method(ext_name, params or {})
-    return _NO_MATCH
-
-
-async def _handle_agent_method(
-    agent: Agent,
-    method: str,
-    params: dict[str, Any] | None,
-    is_notification: bool,
-) -> (
-    NewSessionResponse
-    | InitializeResponse
-    | PromptResponse
-    | dict[str, Any]
-    | NoMatch
-    | None
-):
-    if (
-        init_result := await _handle_agent_init_methods(agent, method, params)
-    ) is not _NO_MATCH:
-        return init_result
-    if (
-        result := await _handle_agent_session_methods(agent, method, params)
-    ) is not _NO_MATCH:
-        return result
-    if (
-        auth_result := await _handle_agent_auth_methods(agent, method, params)
-    ) is not _NO_MATCH:
-        return auth_result
-    if (
-        ext_result := await _handle_agent_ext_methods(
-            agent, method, params, is_notification
-        )
-    ) is not _NO_MATCH:
-        return ext_result
     raise RequestError.method_not_found(method)
 
 
