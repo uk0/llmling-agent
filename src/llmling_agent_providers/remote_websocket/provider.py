@@ -198,17 +198,13 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         """Execute local tool and return result."""
         try:
             tool_ctx = ToolContext.model_validate(message.content)
-
-            # Use current tools list
-            tool_dict = {t.name: t for t in self._current_tools}
-            if not (tool := tool_dict.get(tool_ctx.name)):
+            try:
+                tool = next(t for t in self._current_tools if t.name == tool_ctx.name)
+            except StopIteration:
                 msg = f"Tool not found: {tool_ctx.name}"
-                raise RuntimeError(msg)  # noqa: TRY301
+                raise RuntimeError(msg) from None
 
-            # Execute tool
             result = await tool.execute(**tool_ctx.args)
-
-            # Emit tool usage signal
             info = ToolCallInfo(
                 agent_name=self.name,
                 tool_name=tool_ctx.name,
