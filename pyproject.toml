@@ -4,7 +4,8 @@ version = "1.0.2"
 description = "A brand new AI framework.  Fully async. Excellently typed. MCP & ACP Integration. Human in the loop. Unique messaging features."
 readme = "README.md"
 requires-python = ">=3.13"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   { name = "Philipp Temminghoff", email = "philipptemminghoff@googlemail.com" },
 ]
@@ -338,9 +339,9 @@ combine-as-imports = true
 "src/llmling_agent_examples/**/*.py" = [
   "TC001",
 ]  # Examples don't need TYPE_CHECKING imports
+"*tests/*" = ["D100"]
 
 [tool.ruff.format]
-# Enable preview style formatting.
 preview = true
 
 [tool.ty.environment]
