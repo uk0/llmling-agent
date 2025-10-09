@@ -202,7 +202,18 @@ class MCPClient:
 
         async def tool_callable(**kwargs: Any) -> str:
             """Dynamically generated MCP tool wrapper."""
-            return await self.call_tool(tool.name, kwargs)
+            # Filter out None values for optional parameters to avoid MCP validation errors
+            # Only include parameters that are either required or have non-None values
+            schema_props = tool.inputSchema.get("properties", {})
+            required_props = set(tool.inputSchema.get("required", []))
+
+            filtered_kwargs = {}
+            for k, v in kwargs.items():
+                # Include if required, or if optional but not None
+                if k in required_props or (k in schema_props and v is not None):
+                    filtered_kwargs[k] = v
+
+            return await self.call_tool(tool.name, filtered_kwargs)
 
         # Set proper signature and docstring
         tool_callable.__signature__ = sig  # type: ignore
