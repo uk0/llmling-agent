@@ -255,7 +255,7 @@ agents:
       - type: "stdio"
         command: "python"
         args: ["-m", "mcp_server"]
-        environment:
+        env:
           DEBUG: "1"
       - "python -m other_server"  # shorthand syntax
 

@@ -32,7 +32,7 @@ agents:
         command: "python"
         args: ["-m", "mcp_server", "--debug"]
         enabled: true
-        environment:
+        env:
           PYTHONPATH: "src"
           DEBUG: "1"
         timeout: 30.0
@@ -43,7 +43,7 @@ agents:
         url: "http://localhost:3001"
         enabled: true
         timeout: 30.0
-        
+
       # StreamableHTTP-based server
       - type: "streamable-http"
         url: "http://localhost:3002"
@@ -82,7 +82,7 @@ mcp_servers:
   - type: "stdio"
     command: "python"
     args: ["-m", "mcp_server"]
-    environment:
+    env:
       PYTHONPATH: "src"
 ```
 
@@ -124,17 +124,17 @@ Configure how the agent pool exposes nodes and prompts through MCP:
 # At manifest level
 pool_server:
   enabled: true
-  
+
   # Resource exposure control
   serve_nodes: ["agent1", "agent2"]  # or true for all nodes
   serve_prompts: true                # expose all prompts
-  
+
   # Transport configuration
   transport: "sse"                   # "stdio", "sse", or "streamable-http"
   host: "localhost"                  # for HTTP-based transports
   port: 3001                         # for HTTP-based transports
   cors_origins: ["*"]                # CORS settings
-  
+
   # Editor integration
   zed_mode: false                    # Enable Zed editor compatibility
 ```
@@ -148,7 +148,7 @@ mcp_servers:
   - type: "stdio"
     command: "python"
     args: ["-m", "mcp_server"]
-    environment:
+    env:
       MODEL_API_KEY: "${API_KEY}"  # From environment
       DEBUG: "true"
       LOG_LEVEL: "debug"

@@ -26,7 +26,7 @@ agents:
       - type: stdio
         command: "pipx"
         args: ["run", "python-mcp-server", "--debug"]
-        environment:
+        env:
           MY_VAR: "value"
       - type: sse  # Not yet implemented
         url: "http://localhost:3001"

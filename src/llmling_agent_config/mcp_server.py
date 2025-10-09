@@ -43,7 +43,7 @@ class BaseMCPServerConfig(Schema):
     enabled: bool = True
     """Whether this server is currently enabled."""
 
-    environment: dict[str, str] | None = None
+    env: dict[str, str] | None = None
     """Environment variables to pass to the server process."""
 
     timeout: float = 30.0
@@ -52,8 +52,8 @@ class BaseMCPServerConfig(Schema):
     def get_env_vars(self) -> dict[str, str]:
         """Get environment variables for the server process."""
         env = os.environ.copy()
-        if self.environment:
-            env.update(self.environment)
+        if self.env:
+            env.update(self.env)
         env["PYTHONIOENCODING"] = "utf-8"
         return env
 

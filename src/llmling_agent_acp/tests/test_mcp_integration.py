@@ -36,7 +36,7 @@ async def test_mcp_server_conversion():
     assert config.name == "test_server"
     assert config.command == "uv"
     assert config.args == ["run", "test-mcp-server"]
-    assert config.environment == {"API_KEY": "test123", "DEBUG": "true"}
+    assert config.env == {"API_KEY": "test123", "DEBUG": "true"}
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")

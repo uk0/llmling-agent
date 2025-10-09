@@ -103,7 +103,7 @@ def convert_acp_mcp_server_to_config(acp_server: MCPServer) -> MCPServerConfig:
                 name=acp_server.name,
                 command=acp_server.command,
                 args=list(acp_server.args),
-                environment={var.name: var.value for var in acp_server.env},
+                env={var.name: var.value for var in acp_server.env},
             )
 
         case SseMcpServer():

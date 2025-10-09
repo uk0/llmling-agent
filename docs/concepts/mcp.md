@@ -21,7 +21,7 @@ agents:
       - type: stdio
         command: python
         args: ["-m", "codetools"]
-        environment:
+        env:
           PYTHONPATH: src
           DEBUG: "1"
 
@@ -44,7 +44,7 @@ agent = Agent(
         StdioMCPServerConfig(
             command="python",
             args=["-m", "codetools"],
-            environment={"DEBUG": "1"}
+            env={"DEBUG": "1"}
         )
     ]
 )
@@ -101,7 +101,7 @@ class StdioMCPServerConfig:
     args: list[str]
     """Command arguments"""
 
-    environment: dict[str, str] | None
+    env: dict[str, str] | None
     """Environment variables"""
 
     enabled: bool = True
