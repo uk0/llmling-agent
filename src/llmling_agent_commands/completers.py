@@ -97,11 +97,11 @@ class PromptCompleter(CompletionProvider):
             return
 
         # If after provider:, get prompts from that provider
-        _provider, partial = current.split(":", 1)
-        if _provider == "builtin" or not _provider:
+        provider_, partial = current.split(":", 1)
+        if provider_ == "builtin" or not provider_:
             # Complete from system prompts
             for name in manifest.prompts.system_prompts:
                 if not name.startswith(partial):
                     continue
-                text = f"{_provider}:{name}" if _provider else name
+                text = f"{provider_}:{name}" if provider_ else name
                 yield CompletionItem(text=text, metadata="Builtin prompt", kind="choice")

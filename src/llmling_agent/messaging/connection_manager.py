@@ -102,10 +102,10 @@ class ConnectionManager:
 
         for target in targets:
             if target.name not in seen:
-                _targets = target.connections.get_targets(recursive=True, _seen=seen)
+                targets_ = target.connections.get_targets(recursive=True, _seen=seen)
                 seen.add(target.name)
                 all_targets.add(target)
-                all_targets.update(_targets)
+                all_targets.update(targets_)
 
         return all_targets
 

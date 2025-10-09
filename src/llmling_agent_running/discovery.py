@@ -80,14 +80,14 @@ def node_function(
     def decorator(func: Callable) -> Callable:
         match depends_on:
             case None:
-                _depends_on = []
+                depends_on_ = []
             case str():
-                _depends_on = [depends_on]
+                depends_on_ = [depends_on]
             case Callable():
-                _depends_on = [depends_on.__name__]
+                depends_on_ = [depends_on.__name__]
 
             case [*items]:
-                _depends_on = [
+                depends_on_ = [
                     i.__name__ if isinstance(i, Callable) else str(i)  # type: ignore[union-attr, arg-type]
                     for i in items
                 ]
@@ -95,7 +95,7 @@ def node_function(
                 msg = f"Invalid depends_on: {depends_on}"
                 raise ValueError(msg)
         # TODO: we still need to inject the deps in execution part.
-        metadata = NodeFunction(func=func, depends_on=_depends_on or [], deps=deps)
+        metadata = NodeFunction(func=func, depends_on=depends_on_ or [], deps=deps)
         func._node_function = metadata  # type: ignore
         return func
 

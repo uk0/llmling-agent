@@ -49,8 +49,8 @@ class BuiltinPromptProvider(BasePromptProvider):
             # Check for unknown variables
             unknown_vars = set(variables) - required_vars
             if unknown_vars:
-                _vars = ", ".join(unknown_vars)
-                msg = f"Unknown variables for prompt {identifier}: {_vars}"
+                vars_ = ", ".join(unknown_vars)
+                msg = f"Unknown variables for prompt {identifier}: {vars_}"
                 raise KeyError(msg)
 
         if required_vars:
@@ -62,8 +62,8 @@ class BuiltinPromptProvider(BasePromptProvider):
             # Check for missing required variables
             missing_vars = required_vars - set(variables or {})
             if missing_vars:
-                _vars = ", ".join(missing_vars)
-                msg = f"Missing required variables for prompt {identifier}: {_vars}"
+                vars_ = ", ".join(missing_vars)
+                msg = f"Missing required variables for prompt {identifier}: {vars_}"
                 raise KeyError(msg)
 
             try:
