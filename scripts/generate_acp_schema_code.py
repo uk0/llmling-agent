@@ -128,11 +128,21 @@ def main() -> None:
     client_methods = meta_data.get("clientMethods", {})
     version = meta_data.get("version", 1)
 
+    # Extract just the values (actual method names)
+    agent_method_names = sorted(agent_methods.values())
+    client_method_names = sorted(client_methods.values())
+
+    # Generate Literal types
+    agent_literal = ",\n    ".join(f'"{name}"' for name in agent_method_names)
+    client_literal = ",\n    ".join(f'"{name}"' for name in client_method_names)
+
     meta_out.write_text(
         f'"""Auto-generated metadata file."""\n\n'
-        f"# This file is generated from {META_URL}.\n# Do not edit by hand.\n"
-        f"AGENT_METHODS = {agent_methods!r}\n"
-        f"CLIENT_METHODS = {client_methods!r}\n"
+        f"from typing import Literal\n\n"
+        f"# This file is generated from {META_URL}.\n"
+        f"# Do not edit by hand.\n\n"
+        f"AgentMethod = Literal[\n    {agent_literal},\n]\n\n"
+        f"ClientMethod = Literal[\n    {client_literal},\n]\n\n"
         f"PROTOCOL_VERSION = {int(version)}\n"
     )
 

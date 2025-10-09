@@ -18,7 +18,6 @@ from acp.client.protocol import (
     TerminalCapability,
 )
 from acp.terminal_handle import TerminalHandle
-from acp.meta import AGENT_METHODS, CLIENT_METHODS, PROTOCOL_VERSION
 from acp.schema import (
     AuthenticateRequest,
     AuthenticateResponse,
@@ -57,14 +56,16 @@ from acp.schema import (
 )
 from acp.stdio import stdio_streams
 from acp.exceptions import RequestError
+from acp.meta import PROTOCOL_VERSION, AgentMethod, ClientMethod
 
 __version__ = "0.0.1"
 
 __all__ = [  # noqa: RUF022
     # constants
     "PROTOCOL_VERSION",
-    "AGENT_METHODS",
-    "CLIENT_METHODS",
+    # literal types
+    "AgentMethod",
+    "ClientMethod",
     # types
     "InitializeRequest",
     "InitializeResponse",

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from acp.meta import CLIENT_METHODS
 from acp.schema import (
     KillTerminalCommandResponse,
     ReleaseTerminalResponse,
@@ -27,23 +26,23 @@ class TerminalHandle:
 
     async def current_output(self) -> TerminalOutputResponse:
         dct = {"sessionId": self._session_id, "terminalId": self.id}
-        resp = await self._conn.send_request(CLIENT_METHODS["terminal_output"], dct)
+        resp = await self._conn.send_request("terminal/output", dct)
         return TerminalOutputResponse.model_validate(resp)
 
     async def wait_for_exit(self) -> WaitForTerminalExitResponse:
         dct = {"sessionId": self._session_id, "terminalId": self.id}
-        method = CLIENT_METHODS["terminal_wait_for_exit"]
+        method = "terminal/wait_for_exit"
         resp = await self._conn.send_request(method, dct)
         return WaitForTerminalExitResponse.model_validate(resp)
 
     async def kill(self) -> KillTerminalCommandResponse:
         dct = {"sessionId": self._session_id, "terminalId": self.id}
-        resp = await self._conn.send_request(CLIENT_METHODS["terminal_kill"], dct)
+        resp = await self._conn.send_request("terminal/kill", dct)
         payload = resp if isinstance(resp, dict) else {}
         return KillTerminalCommandResponse.model_validate(payload)
 
     async def release(self) -> ReleaseTerminalResponse:
         dct = {"sessionId": self._session_id, "terminalId": self.id}
-        resp = await self._conn.send_request(CLIENT_METHODS["terminal_release"], dct)
+        resp = await self._conn.send_request("terminal/release", dct)
         payload = resp if isinstance(resp, dict) else {}
         return ReleaseTerminalResponse.model_validate(payload)
