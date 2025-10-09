@@ -187,6 +187,8 @@ class ClientSideConnection(Agent):
             | CreateTerminalResponse
             | TerminalOutputResponse
             | WaitForTerminalExitResponse
+            | ReleaseTerminalResponse
+            | KillTerminalCommandResponse
             | dict[str, Any]
             | None
         ):
@@ -262,6 +264,8 @@ async def _handle_client_method(  # noqa: PLR0911
     | CreateTerminalResponse
     | TerminalOutputResponse
     | WaitForTerminalExitResponse
+    | ReleaseTerminalResponse
+    | KillTerminalCommandResponse
     | dict[str, Any]
     | None
 ):
@@ -288,21 +292,13 @@ async def _handle_client_method(  # noqa: PLR0911
             return await client.terminal_output(output_request)
         case "terminal/release":
             release_request = ReleaseTerminalRequest.model_validate(params)
-            return (
-                result.model_dump(by_alias=True, exclude_none=True)
-                if (result := await client.release_terminal(release_request))
-                else {}
-            )
+            return await client.release_terminal(release_request)
         case "terminal/wait_for_exit":
             wait_request = WaitForTerminalExitRequest.model_validate(params)
             return await client.wait_for_terminal_exit(wait_request)
         case "terminal/kill":
             kill_request = KillTerminalCommandRequest.model_validate(params)
-            return (
-                kill_result.model_dump(by_alias=True, exclude_none=True)
-                if (kill_result := await client.kill_terminal(kill_request))
-                else {}
-            )
+            return await client.kill_terminal(kill_request)
         case _ if method.startswith("_"):
             ext_name = method[1:]
             if is_notification:
