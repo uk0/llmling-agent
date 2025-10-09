@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from dataclasses import dataclass
+import datetime
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -192,13 +193,11 @@ class Connection:
         if not self._debug_file:
             return
         try:
-            import datetime
-
             timestamp = datetime.datetime.now().isoformat()
             debug_line = f"{timestamp} {direction} {message}\n"
-            with open(self._debug_file, "a", encoding="utf-8") as f:
+            with self._debug_file.open("a", encoding="utf-8") as f:
                 f.write(debug_line)
-        except Exception:
+        except Exception:  # noqa: BLE001
             # Don't let debug logging break the connection
             pass
 
