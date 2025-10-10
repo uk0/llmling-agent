@@ -615,16 +615,14 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             except Exception as e:  # noqa: BLE001
                 # Send failed update
                 assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=f"Error: {e}",
+                )
+                failed = SessionNotification(session_id=self.session_id, update=progress)
                 try:
-                    failed_update = SessionNotification(
-                        session_id=self.session_id,
-                        update=ToolCallProgress(
-                            tool_call_id=ctx.tool_call_id,
-                            status="failed",
-                            raw_output=f"Error: {e}",
-                        ),
-                    )
-                    await self.agent.connection.session_update(failed_update)
+                    await self.agent.connection.session_update(failed)
                 except Exception:  # noqa: BLE001
                     logger.warning("Failed to send failed update")
 
