@@ -12,7 +12,7 @@ from llmling_agent import AgentPool, AgentsManifest
 from llmling_agent.log import get_logger
 from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 from llmling_agent_config.pool_server import (
-    PoolServerMCPConfig,
+    MCPPoolServerConfig,
     TransportType,  # noqa: TC001
 )
 
@@ -49,7 +49,7 @@ def serve_command(
     async def run_server():
         # Override/set server config before creating pool
         manifest = AgentsManifest.from_file(config)
-        manifest.pool_server = PoolServerMCPConfig(
+        manifest.pool_server = MCPPoolServerConfig(
             enabled=True,
             transport=transport,
             host=host,

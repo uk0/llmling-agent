@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from mcp.server.lowlevel.server import LifespanResultT
 
     from llmling_agent.resource_providers.base import ResourceProvider
-    from llmling_agent_config.pool_server import PoolServerMCPConfig
+    from llmling_agent_config.pool_server import MCPPoolServerConfig
 
 logger = get_logger(__name__)
 
@@ -34,7 +34,7 @@ class LLMLingServer(TaskManagerMixin):
     def __init__(
         self,
         provider: ResourceProvider,
-        config: PoolServerMCPConfig,
+        config: MCPPoolServerConfig,
         lifespan: (
             Callable[
                 [FastMCP[LifespanResultT]],

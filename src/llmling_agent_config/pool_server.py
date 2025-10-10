@@ -11,7 +11,7 @@ from schemez import Schema
 TransportType = Literal["stdio", "sse", "streamable-http"]
 
 
-class PoolServerMCPConfig(Schema):
+class MCPPoolServerConfig(Schema):
     """Configuration for pool-based MCP server."""
 
     enabled: bool = False
@@ -32,7 +32,6 @@ class PoolServerMCPConfig(Schema):
     - list[str]: Specific prompt names
     """
 
-    # Transport configuration
     transport: TransportType = "stdio"
     """Transport type to use."""
 
