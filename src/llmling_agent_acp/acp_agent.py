@@ -93,11 +93,6 @@ class LLMlingACPAgent(ACPAgent):
         self.client: Client = connection
         self.usage_limits = usage_limits
         self.client_capabilities: ClientCapabilities | None = None
-
-        # The connection IS the client - it handles communication with external process
-        # Terminal support - client-side execution via ACP protocol
-        # Filesystem support - client-side file operations via ACP protocol
-
         command_store = CommandStore(enable_system_commands=True)
         command_store._initialize_sync()  # Ensure store is initialized
 
