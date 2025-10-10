@@ -84,9 +84,7 @@ def mock_openapi_spec(tmp_path):
     from openapi_spec_validator import validate
 
     validate(PETSTORE_SPEC)
-
-    # Create local spec file
-    local_spec = tmp_path / "openapi.json"
+    local_spec = tmp_path / "openapi.json"  # Create local spec file
     local_spec.write_text(anyenv.dump_json(PETSTORE_SPEC))
     url = f"{BASE_URL}/openapi.json"
     return {"local_path": str(local_spec), "remote_url": url}
@@ -99,13 +97,9 @@ async def test_openapi_toolset_local(mock_openapi_spec):
 
     local_path = mock_openapi_spec["local_path"]
     toolset = OpenAPITools(spec=local_path, base_url=BASE_URL)
-
-    # Load and validate spec
-    spec = await toolset._load_spec()
+    spec = await toolset._load_spec()  # Load and validate spec
     validate(spec)
-    # Get tools
     tools = await toolset.get_tools()
-
     assert len(tools) == 1, f"Expected 1 tool, got {len(tools)}: {tools}"
 
 
@@ -116,11 +110,7 @@ async def test_openapi_toolset_remote(mock_openapi_spec, caplog, monkeypatch):
 
     caplog.set_level("DEBUG")
     url = mock_openapi_spec["remote_url"]
-
-    # Create mock response
     mock_response = MockResponse()
-
-    # Create mock client
     mock_client = MagicMock()
     mock_get = AsyncMock(return_value=mock_response)
     mock_client.get = mock_get
@@ -129,19 +119,11 @@ async def test_openapi_toolset_remote(mock_openapi_spec, caplog, monkeypatch):
     def mock_client_factory(*args, **kwargs):
         return mock_client
 
-    # Patch the AsyncClient class
     monkeypatch.setattr("httpx.AsyncClient", mock_client_factory)
-
     toolset = OpenAPITools(spec=url, base_url=BASE_URL)
-
-    # Load spec
     spec = await toolset._load_spec()
     validate(spec)
-
-    # Verify mocks were called correctly
-    mock_get.assert_called_once_with(url)
-
-    # Get tools
+    mock_get.assert_called_once_with(url)  # Verify mocks were called correctly
     tools = await toolset.get_tools()
     assert len(tools) == 1, f"Expected 1 tool, got {len(tools)}: {tools}"
 
