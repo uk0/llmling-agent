@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence  # noqa: TC003
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
@@ -112,7 +113,7 @@ class AgentConfig(NodeConfig):
     avatar: str | None = None
     """URL or path to agent's avatar image"""
 
-    system_prompts: list[str | PromptConfig] = Field(default_factory=list)
+    system_prompts: Sequence[str | PromptConfig] = Field(default_factory=list)
     """System prompts for the agent. Can be strings or structured prompt configs."""
 
     user_prompts: list[str] = Field(default_factory=list)
@@ -280,7 +281,8 @@ class AgentConfig(NodeConfig):
                         template_path = base_path / prompt.path
 
                     template_content = template_path.read_text()
-                    # Create a template-based prompt (for now as StaticPrompt with placeholder)
+                    # Create a template-based prompt
+                    # (for now as StaticPrompt with placeholder)
                     static_prompt = StaticPrompt(
                         name="system",
                         description=f"File prompt: {prompt.path}",

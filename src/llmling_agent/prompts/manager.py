@@ -18,7 +18,7 @@ from llmling_agent_config.prompt_hubs import (
 
 if TYPE_CHECKING:
     from llmling_agent.prompts.base import BasePromptProvider
-    from llmling_agent_config.prompts import PromptConfig
+    from llmling_agent_config.prompts import PromptLibraryConfig
 
 logger = get_logger(__name__)
 
@@ -68,7 +68,7 @@ class PromptManager(TaskManagerMixin):
     - Access to prompts from different sources
     """
 
-    def __init__(self, config: PromptConfig):
+    def __init__(self, config: PromptLibraryConfig):
         """Initialize prompt manager.
 
         Args:
