@@ -373,7 +373,7 @@ def _create_agent_handler(agent: Agent) -> MethodHandler:
         method: AgentMethod | str,
         params: dict[str, Any] | None,
         is_notification: bool,
-    ) -> Any:
+    ) -> NewSessionResponse | InitializeResponse | PromptResponse | dict[str, Any] | None:
         return await _handle_agent_method(agent, method, params, is_notification)
 
     return handler
