@@ -22,7 +22,7 @@ from acp.schema import (
 )
 from llmling_agent import AgentPool
 from llmling_agent_acp.acp_agent import LLMlingACPAgent
-from llmling_agent_acp.acp_tools import ACPCapabilityResourceProvider
+from llmling_agent_acp.acp_tools import ACPFileSystemProvider, ACPTerminalProvider
 
 
 CTX = RunContext(tool_call_id="test", deps=None, model=TestModel(), usage=RunUsage())
@@ -122,15 +122,13 @@ class TestSessionScopedTerminalTools:
             terminal=True,
         )
 
-        provider = ACPCapabilityResourceProvider(
+        provider = ACPTerminalProvider(
             agent=acp_agent,
             session_id="test_session_123",
             client_capabilities=capabilities,
         )
-
         tools = await provider.get_tools()
         tool_dict = {tool.name: tool for tool in tools}
-
         return provider, tool_dict
 
     async def test_run_command_success(self, provider_with_tools):
@@ -302,7 +300,7 @@ class TestSessionScopedFilesystemTools:
             fs=FileSystemCapability(read_text_file=True, write_text_file=True),
         )
 
-        provider = ACPCapabilityResourceProvider(
+        provider = ACPFileSystemProvider(
             agent=acp_agent,
             session_id="fs_session_456",
             client_capabilities=capabilities,
@@ -310,7 +308,6 @@ class TestSessionScopedFilesystemTools:
 
         tools = await provider.get_tools()
         tool_dict = {tool.name: tool for tool in tools}
-
         return provider, tool_dict
 
     async def test_read_text_file_tool(self, provider_with_fs_tools):
