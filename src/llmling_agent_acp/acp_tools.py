@@ -584,17 +584,15 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             # Send initial pending notification
             assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
             try:
-                pending_update = SessionNotification(
-                    session_id=self.session_id,
-                    update=ToolCallStart(
-                        tool_call_id=ctx.tool_call_id,
-                        status="pending",
-                        title=f"Reading file: {path}",
-                        kind="read",
-                        locations=[ToolCallLocation(path=resolved_path)],
-                    ),
+                start = ToolCallStart(
+                    tool_call_id=ctx.tool_call_id,
+                    status="pending",
+                    title=f"Reading file: {path}",
+                    kind="read",
+                    locations=[ToolCallLocation(path=resolved_path)],
                 )
-                await self.agent.connection.session_update(pending_update)
+                notifi = SessionNotification(session_id=self.session_id, update=start)
+                await self.agent.connection.session_update(notifi)
             except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to send pending update: %s", e)
 
@@ -610,23 +608,16 @@ class ACPCapabilityResourceProvider(ResourceProvider):
 
                 # Send completion update
                 assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
+                block = TextContentBlock(text=f"````\n{response.content}\n````")
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="completed",
+                    locations=[ToolCallLocation(path=resolved_path)],
+                    content=[ContentToolCallContent(content=block)],
+                )
+                notifi = SessionNotification(session_id=self.session_id, update=progress)
                 try:
-                    completed_update = SessionNotification(
-                        session_id=self.session_id,
-                        update=ToolCallProgress(
-                            tool_call_id=ctx.tool_call_id,
-                            status="completed",
-                            locations=[ToolCallLocation(path=resolved_path)],
-                            content=[
-                                ContentToolCallContent(
-                                    content=TextContentBlock(
-                                        text=f"````\n{response.content}\n````"
-                                    )
-                                )
-                            ],
-                        ),
-                    )
-                    await self.agent.connection.session_update(completed_update)
+                    await self.agent.connection.session_update(notifi)
                 except Exception as e:  # noqa: BLE001
                     logger.warning("Failed to send completed update: %s", e)
 
@@ -673,17 +664,15 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             # Send initial pending notification
             assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
             try:
-                pending_update = SessionNotification(
-                    session_id=self.session_id,
-                    update=ToolCallStart(
-                        tool_call_id=ctx.tool_call_id,
-                        status="pending",
-                        title=f"Writing file: {path}",
-                        kind="edit",
-                        locations=[ToolCallLocation(path=resolved_path)],
-                    ),
+                update = ToolCallStart(
+                    tool_call_id=ctx.tool_call_id,
+                    status="pending",
+                    title=f"Writing file: {path}",
+                    kind="edit",
+                    locations=[ToolCallLocation(path=resolved_path)],
                 )
-                await self.agent.connection.session_update(pending_update)
+                noti = SessionNotification(session_id=self.session_id, update=update)
+                await self.agent.connection.session_update(noti)
             except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to send pending update: %s", e)
 
@@ -699,22 +688,16 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                 # Send completion update
                 assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
                 try:
-                    completed_update = SessionNotification(
-                        session_id=self.session_id,
-                        update=ToolCallProgress(
-                            tool_call_id=ctx.tool_call_id,
-                            status="completed",
-                            locations=[ToolCallLocation(path=resolved_path)],
-                            content=[
-                                ContentToolCallContent(
-                                    content=TextContentBlock(
-                                        text=f"Successfully wrote file: {path}"
-                                    )
-                                )
-                            ],
-                        ),
+                    block = TextContentBlock(text=content)
+                    tool_content = ContentToolCallContent(content=block)
+                    progress = ToolCallProgress(
+                        tool_call_id=ctx.tool_call_id,
+                        status="completed",
+                        locations=[ToolCallLocation(path=resolved_path)],
+                        content=[tool_content],
                     )
-                    await self.agent.connection.session_update(completed_update)
+                    s = SessionNotification(session_id=self.session_id, update=progress)
+                    await self.agent.connection.session_update(s)
                 except Exception as e:  # noqa: BLE001
                     logger.warning("Failed to send completed update: %s", e)
 
@@ -722,15 +705,13 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                 # Send failed update
                 assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
                 try:
-                    failed_update = SessionNotification(
-                        session_id=self.session_id,
-                        update=ToolCallProgress(
-                            tool_call_id=ctx.tool_call_id,
-                            status="failed",
-                            raw_output=f"Error: {e}",
-                        ),
+                    progress = ToolCallProgress(
+                        tool_call_id=ctx.tool_call_id,
+                        status="failed",
+                        raw_output=f"Error: {e}",
                     )
-                    await self.agent.connection.session_update(failed_update)
+                    s = SessionNotification(session_id=self.session_id, update=progress)
+                    await self.agent.connection.session_update(s)
                 except Exception:  # noqa: BLE001
                     logger.warning("Failed to send failed update")
 
