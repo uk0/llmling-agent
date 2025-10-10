@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import copy
 from pathlib import Path
 import subprocess
@@ -68,14 +69,16 @@ def convert_oneof_const_to_enum(schema: dict) -> dict:
     return schema
 
 
-def main() -> None:
-    # Generate schema.py
+async def generate_schema() -> None:
+    """Generate schema.py from ACP schema."""
     schema_out = ROOT / "src" / "acp" / "schema.py"
 
     # Create a temporary file for the schema JSON
     temp_dir = Path(tempfile.gettempdir())
     temp_schema_path = temp_dir / "schema.json"
-    schema_data = anyenv.get_json_sync(SCHEMA_URL, return_type=dict)
+
+    # Fetch schema data asynchronously
+    schema_data = await anyenv.get_json(SCHEMA_URL, return_type=dict)
 
     # Convert oneOf+const patterns to enums for proper Literal generation
     # Do NOT dereference - this preserves the semantic names from $defs
@@ -114,7 +117,15 @@ def main() -> None:
             "--snake-case-field",
             "--use-generic-container-types",
         ]
-        subprocess.check_call(cmd)
+        process = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(
+                process.returncode or 1, cmd, stdout, stderr
+            )
 
         # Post-process to rename numbered classes
         _rename_numbered_classes(schema_out)
@@ -122,9 +133,14 @@ def main() -> None:
         # Clean up temporary file
         temp_schema_path.unlink(missing_ok=True)
 
-    # Generate meta.py
+
+async def generate_meta() -> None:
+    """Generate meta.py from ACP metadata."""
     meta_out = ROOT / "src" / "acp" / "meta.py"
-    meta_data = anyenv.get_json_sync(META_URL, return_type=dict)
+
+    # Fetch meta data asynchronously
+    meta_data = await anyenv.get_json(META_URL, return_type=dict)
+
     agent_methods = meta_data.get("agentMethods", {})
     client_methods = meta_data.get("clientMethods", {})
     version = meta_data.get("version", 1)
@@ -147,23 +163,42 @@ def main() -> None:
         f"PROTOCOL_VERSION = {int(version)}\n"
     )
 
+
+async def main() -> None:
+    """Main async entry point."""
+    # Generate both files concurrently
+    await asyncio.gather(generate_schema(), generate_meta())
+
     # Format generated files with ruff
-    _format_with_ruff(schema_out, method="format")
-    _format_with_ruff(schema_out, method="check")
-    _format_with_ruff(meta_out, method="format")
-    _format_with_ruff(meta_out, method="check")
+    schema_out = ROOT / "src" / "acp" / "schema.py"
+    meta_out = ROOT / "src" / "acp" / "meta.py"
+
+    # Format files concurrently, but maintain format->check sequence per file
+    async def format_file(path: Path) -> None:
+        await _format_with_ruff(path, method="format")
+        await _format_with_ruff(path, method="check")
+
+    await asyncio.gather(format_file(schema_out), format_file(meta_out))
 
 
-def _format_with_ruff(path: Path, method: Literal["format", "check"]) -> None:
-    """Format a Python file with ruff."""
+async def _format_with_ruff(path: Path, method: Literal["format", "check"]) -> None:
+    """Format a Python file with ruff asynchronously."""
     try:
         if method == "format":
             cmd = ["uv", "run", "ruff", "format", str(path)]
         else:
             cmd = ["uv", "run", "ruff", "check", "--fix", "--unsafe-fixes", str(path)]
-        subprocess.check_call(cmd)
-        print(f"Formatted {path}")
-    except subprocess.CalledProcessError as e:
+
+        process = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        _stdout, stderr = await process.communicate()
+
+        if process.returncode == 0:
+            print(f"Formatted {path}")
+        else:
+            print(f"Warning: Failed to format {path}: {stderr.decode()}", file=sys.stderr)
+    except Exception as e:  # noqa: BLE001
         print(f"Warning: Failed to format {path}: {e}", file=sys.stderr)
 
 
@@ -249,4 +284,4 @@ def _rename_numbered_classes(file_path: Path) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
