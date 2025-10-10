@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from mcp.client.session import RequestContext
     from mcp.types import Prompt as MCPPrompt, Resource as MCPResource
 
+    from llmling_agent.mcp_server.progress import ProgressHandler
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.content import BaseContent
     from llmling_agent.tools.base import Tool
@@ -68,6 +69,7 @@ class MCPManager(ResourceProvider):
         owner: str | None = None,
         servers: Sequence[MCPServerConfig | str] | None = None,
         context: NodeContext | None = None,
+        progress_handler: ProgressHandler | None = None,
     ):
         super().__init__(name, owner=owner)
         self.servers: list[MCPServerConfig] = []
@@ -76,6 +78,7 @@ class MCPManager(ResourceProvider):
         self.context = context
         self.clients: dict[str, MCPClient] = {}
         self.exit_stack = AsyncExitStack()
+        self._progress_handler = progress_handler
 
     @property
     def requires_async(self) -> bool:
@@ -224,6 +227,7 @@ class MCPManager(ResourceProvider):
                     transport_mode="stdio",
                     elicitation_callback=self._elicitation_callback,
                     sampling_callback=self._sampling_callback,
+                    progress_handler=self._progress_handler,
                 )
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect(config.command, args=config.args, env=env)
@@ -233,6 +237,7 @@ class MCPManager(ResourceProvider):
                     transport_mode="sse",
                     elicitation_callback=self._elicitation_callback,
                     sampling_callback=self._sampling_callback,
+                    progress_handler=self._progress_handler,
                 )
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect("", [], url=config.url, env=env)
@@ -242,6 +247,7 @@ class MCPManager(ResourceProvider):
                     transport_mode="streamable-http",
                     elicitation_callback=self._elicitation_callback,
                     sampling_callback=self._sampling_callback,
+                    progress_handler=self._progress_handler,
                 )
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect("", [], url=config.url, env=env)

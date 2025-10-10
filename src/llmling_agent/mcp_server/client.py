@@ -16,8 +16,11 @@ if TYPE_CHECKING:
     import mcp
     from mcp import ClientSession
     from mcp.client.session import RequestContext
+    from mcp.shared.session import ProgressFnT
     from mcp.types import Tool, Tool as MCPTool
+    from pydantic_ai import RunContext
 
+    from llmling_agent.mcp_server.progress import ProgressHandler
     from llmling_agent_config.pool_server import TransportType
 
 logger = get_logger(__name__)
@@ -45,6 +48,7 @@ class MCPClient:
             Awaitable[mcp.types.CreateMessageResult | mcp.types.ErrorData],
         ]
         | None = None,
+        progress_handler: ProgressHandler | None = None,
     ):
         self.exit_stack = AsyncExitStack()
         self.session: ClientSession | None = None
@@ -53,6 +57,7 @@ class MCPClient:
         self._transport_mode = transport_mode
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
+        self._progress_handler = progress_handler
 
     async def __aenter__(self) -> Self:
         """Enter context and redirect stdout if in stdio mode."""
@@ -200,7 +205,7 @@ class MCPClient:
         fn_schema = FunctionSchema.from_dict(schema)
         sig = fn_schema.to_python_signature()
 
-        async def tool_callable(**kwargs: Any) -> str:
+        async def tool_callable(ctx: RunContext, **kwargs: Any) -> str:
             """Dynamically generated MCP tool wrapper."""
             # Filter out None values for optional params to avoid MCP validation errors
             # Only include parameters that are either required or have non-None values
@@ -211,7 +216,9 @@ class MCPClient:
                 for k, v in kwargs.items()
                 if k in required_props or (k in schema_props and v is not None)
             }
-            return await self.call_tool(tool.name, filtered_kwargs)
+            return await self.call_tool(
+                tool.name, filtered_kwargs, tool_call_id=ctx.tool_call_id
+            )
 
         # Set proper signature and docstring
         tool_callable.__signature__ = sig  # type: ignore
@@ -220,16 +227,30 @@ class MCPClient:
         tool_callable.__doc__ = tool.description or "No description provided."
         return tool_callable
 
-    async def call_tool(self, name: str, arguments: dict | None = None) -> str:
-        """Call an MCP tool."""
+    async def call_tool(
+        self,
+        name: str,
+        arguments: dict | None = None,
+        tool_call_id: str | None = None,
+    ) -> str:
+        """Call an MCP tool with optional ACP progress bridging."""
         from mcp.types import TextContent, TextResourceContents
 
         if not self.session:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
+        # Create progress callback if handler and tool_call_id available
+        progress_callback = None
+        if self._progress_handler and tool_call_id:
+            progress_callback = self._create_progress_callback(
+                name, tool_call_id, arguments or {}
+            )
+
         try:
-            result = await self.session.call_tool(name, arguments or {})
+            result = await self.session.call_tool(
+                name, arguments or {}, progress_callback=progress_callback
+            )
             if not isinstance(result.content[0], TextResourceContents | TextContent):
                 msg = "Tool returned a non-text response"
                 raise TypeError(msg)  # noqa: TRY301
@@ -237,3 +258,31 @@ class MCPClient:
         except Exception as e:
             msg = f"MCP tool call failed: {e}"
             raise RuntimeError(msg) from e
+
+    def _create_progress_callback(
+        self,
+        tool_name: str,
+        tool_call_id: str,
+        tool_input: dict,
+    ) -> ProgressFnT:
+        """Create progress callback that uses the progress notification handler."""
+
+        async def progress_callback(
+            progress: float, total: float | None = None, message: str | None = None
+        ) -> None:
+            if not self._progress_handler:
+                return
+
+            try:
+                await self._progress_handler(
+                    tool_name,
+                    tool_call_id,
+                    tool_input,
+                    progress,
+                    total,
+                    message,
+                )
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Progress notification handler failed: %s", e)
+
+        return progress_callback

@@ -143,7 +143,18 @@ class ACPSession:
         cfgs = [convert_acp_mcp_server_to_config(s) for s in self.mcp_servers]
         # Initialize MCP manager with converted configs
         name = f"session_{self.session_id}"
-        self.mcp_manager = MCPManager(name, servers=cfgs, context=self.agent.context)
+
+        # Create progress handler for MCP to ACP bridging
+        from llmling_agent_acp.mcp_progress import create_acp_progress_handler
+
+        progress_handler = create_acp_progress_handler(self)
+
+        self.mcp_manager = MCPManager(
+            name,
+            servers=cfgs,
+            context=self.agent.context,
+            progress_handler=progress_handler,
+        )
         try:
             # Start MCP manager and, fetch and add tools
             await self.mcp_manager.__aenter__()
