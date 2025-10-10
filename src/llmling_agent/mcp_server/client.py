@@ -217,12 +217,14 @@ class MCPClient:
             raise RuntimeError(msg)
         return await self.session.list_resources()
 
-    async def get_prompt(self, name: str) -> mcp.types.GetPromptResult:
+    async def get_prompt(
+        self, name: str, arguments: dict[str, str] | None = None
+    ) -> mcp.types.GetPromptResult:
         """Get a specific prompt's content."""
         if not self.session:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
-        return await self.session.get_prompt(name)
+        return await self.session.get_prompt(name, arguments)
 
     def create_tool_callable(self, tool: MCPTool) -> Callable[..., Awaitable[str]]:
         """Create a properly typed callable from MCP tool schema."""

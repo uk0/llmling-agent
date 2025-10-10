@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from acp.schema import AvailableCommand, AvailableCommandInput, CommandInputHint
 from llmling_agent.log import get_logger
 from llmling_agent_acp.converters import to_session_updates
+from llmling_agent_acp.mcp_commands import MCPPromptCommand
 
 
 if TYPE_CHECKING:
@@ -69,6 +70,7 @@ class ACPCommandBridge:
         """
         self.command_store = command_store
         self._update_callbacks: list[Callable[[], None]] = []
+        self._mcp_prompt_commands: dict[str, MCPPromptCommand] = {}
 
     def to_available_commands(self, context: AgentContext[Any]) -> list[AvailableCommand]:
         """Convert slashed commands to ACP format.
@@ -79,11 +81,18 @@ class ACPCommandBridge:
         Returns:
             List of ACP AvailableCommand objects
         """
-        return [
-            acp_cmd
+        commands = [  # Add regular slashed commands
+            _convert_command(cmd)
             for cmd in self.command_store.list_commands()
-            if (acp_cmd := _convert_command(cmd)) is not None
+            if _convert_command(cmd) is not None
         ]
+
+        commands.extend([  # Add MCP prompt commands
+            mcp_cmd.to_available_command()
+            for mcp_cmd in self._mcp_prompt_commands.values()
+        ])
+
+        return commands
 
     async def execute_slash_command(
         self,
@@ -113,6 +122,13 @@ class ACPCommandBridge:
         output_writer = ACPOutputWriter(session.session_id)
 
         try:
+            # Check if it's an MCP prompt command first
+            if command_name in self._mcp_prompt_commands:
+                mcp_cmd = self._mcp_prompt_commands[command_name]
+                async for update in mcp_cmd.execute(args, session):
+                    yield update
+                return
+
             # Create command context from session
             cmd_context = self._create_command_context(session, output_writer)
             command_str = f"{command_name} {args}".strip()
@@ -153,6 +169,26 @@ class ACPCommandBridge:
             callback: Function to call when commands are updated
         """
         self._update_callbacks.append(callback)
+
+    def add_mcp_prompt_commands(self, mcp_prompts: list[Any]) -> None:
+        """Add MCP prompts as slash commands.
+
+        Args:
+            mcp_prompts: List of MCP prompt objects from MCP servers
+        """
+        from mcp.types import Prompt as MCPPrompt
+
+        # Clear existing MCP commands
+        self._mcp_prompt_commands.clear()
+
+        # Add new MCP prompt commands
+        for prompt in mcp_prompts:
+            if isinstance(prompt, MCPPrompt):
+                cmd = MCPPromptCommand(prompt)
+                self._mcp_prompt_commands[prompt.name] = cmd
+
+        # Notify about command updates
+        self._notify_command_update()
 
     def _notify_command_update(self) -> None:
         """Notify all registered callbacks about command updates."""

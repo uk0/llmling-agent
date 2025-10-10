@@ -175,10 +175,11 @@ class ACPSession:
                 msg = "Registered MCP tool %s with schema: %s"
                 logger.debug(msg, tool.name, tool.schema)
 
-            # Commands will be sent after session creation is complete
+            # Register MCP prompts as slash commands
+            await self._register_mcp_prompts_as_commands()
 
         except Exception:
-            msg = "Failed to initialize MCP servers for session %s"
+            msg = "Failed to initialize MCP manager for session %s"
             logger.exception(msg, self.session_id)
             # Don't fail session creation, just log the error
             self.mcp_manager = None
@@ -824,4 +825,32 @@ class ACPSession:
             logger.debug("Updated available commands for session %s", self.session_id)
         except Exception:
             msg = "Failed to update available commands for session %s"
+            logger.exception(msg, self.session_id)
+
+    async def _register_mcp_prompts_as_commands(self) -> None:
+        """Register MCP prompts as slash commands."""
+        if not self.mcp_manager or not self.command_bridge:
+            return
+
+        try:
+            # Collect all prompts from all MCP clients
+            all_prompts = []
+            for client in self.mcp_manager.clients.values():
+                try:
+                    result = await client.list_prompts()
+                    all_prompts.extend(result.prompts)
+                except Exception as e:  # noqa: BLE001
+                    logger.warning("Failed to list prompts from MCP client: %s", e)
+
+            # Register prompts as commands
+            if all_prompts:
+                self.command_bridge.add_mcp_prompt_commands(all_prompts)
+                msg = "Registered %d MCP prompts as slash commands for session %s"
+                logger.info(msg, len(all_prompts), self.session_id)
+
+                # Send updated command list to client
+                await self.send_available_commands_update()
+
+        except Exception:
+            msg = "Failed to register MCP prompts as commands for session %s"
             logger.exception(msg, self.session_id)
