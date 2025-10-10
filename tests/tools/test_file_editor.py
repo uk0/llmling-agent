@@ -181,7 +181,6 @@ if __name__ == "__main__":
 class TestEditFileTool:
     """Test the main edit_file_tool function."""
 
-    @pytest.mark.asyncio
     async def test_simple_edit(self, temp_file):
         result = await edit_file_tool(
             file_path=temp_file,
@@ -194,7 +193,6 @@ class TestEditFileTool:
         assert result["diff"]
         assert result["lines_changed"] >= 1
 
-    @pytest.mark.asyncio
     async def test_multiline_edit(self, temp_file):
         old_function = """def calculate(a, b):
     result = a + b
@@ -217,7 +215,6 @@ class TestEditFileTool:
         assert "TypeError" in content
         assert "Sum:" in content
 
-    @pytest.mark.asyncio
     async def test_replace_all(self, temp_file):
         result = await edit_file_tool(
             file_path=temp_file, old_string="result", new_string="total", replace_all=True
@@ -228,28 +225,24 @@ class TestEditFileTool:
         assert "result" not in content
         assert "total" in content
 
-    @pytest.mark.asyncio
     async def test_file_not_found(self):
         with pytest.raises(FileNotFoundError):
             await edit_file_tool(
                 file_path="/nonexistent/file.py", old_string="old", new_string="new"
             )
 
-    @pytest.mark.asyncio
     async def test_directory_path_error(self, tmp_path):
         with pytest.raises(ValueError, match="directory, not a file"):
             await edit_file_tool(
                 file_path=str(tmp_path), old_string="old", new_string="new"
             )
 
-    @pytest.mark.asyncio
     async def test_same_strings_error(self, temp_file):
         with pytest.raises(ValueError, match="must be different"):
             await edit_file_tool(
                 file_path=temp_file, old_string="same", new_string="same"
             )
 
-    @pytest.mark.asyncio
     async def test_string_not_found(self, temp_file):
         with pytest.raises(ValueError, match="not found"):
             await edit_file_tool(
@@ -258,7 +251,6 @@ class TestEditFileTool:
                 new_string="replacement",
             )
 
-    @pytest.mark.asyncio
     async def test_empty_file_handling(self):
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write("")  # Empty file
@@ -274,7 +266,6 @@ class TestEditFileTool:
         finally:
             Path(temp_path).unlink()
 
-    @pytest.mark.asyncio
     async def test_unicode_handling(self):
         content = "# Test with émojis 🐍 and ñoño"
         with tempfile.NamedTemporaryFile(mode="w", delete=False, encoding="utf-8") as f:
@@ -292,7 +283,6 @@ class TestEditFileTool:
         finally:
             Path(temp_path).unlink()
 
-    @pytest.mark.asyncio
     async def test_relative_path_handling(self, temp_file):
         # Test with relative path
         relative_path = Path(temp_file).name
