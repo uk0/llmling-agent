@@ -11,7 +11,10 @@ import typer as t
 from llmling_agent import AgentPool, AgentsManifest
 from llmling_agent.log import get_logger
 from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
-from llmling_agent_config.mcp_server import PoolServerConfig, TransportType  # noqa: TC001
+from llmling_agent_config.pool_server import (
+    PoolServerConfig,
+    TransportType,  # noqa: TC001
+)
 
 
 if TYPE_CHECKING:

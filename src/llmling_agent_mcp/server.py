@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from mcp.server.lowlevel.server import LifespanResultT
 
     from llmling_agent.resource_providers.base import ResourceProvider
-    from llmling_agent_config.mcp_server import PoolServerConfig
+    from llmling_agent_config.pool_server import PoolServerConfig
 
 logger = get_logger(__name__)
 

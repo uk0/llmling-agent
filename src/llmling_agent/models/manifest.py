@@ -15,10 +15,10 @@ from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.mcp_server import (
     BaseMCPServerConfig,
     MCPServerConfig,  # noqa: TC001
-    PoolServerConfig,
     StdioMCPServerConfig,
 )
 from llmling_agent_config.observability import ObservabilityConfig
+from llmling_agent_config.pool_server import PoolServerConfig
 from llmling_agent_config.prompts import PromptConfig
 from llmling_agent_config.providers import BaseProviderConfig
 from llmling_agent_config.resources import (  # noqa: TC001
