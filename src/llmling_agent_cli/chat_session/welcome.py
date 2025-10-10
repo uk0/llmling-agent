@@ -77,10 +77,28 @@ async def create_welcome_messages(
     prompts_info = []
     if agent.context.config.system_prompts:
         prompts_info.append(fmt("System Prompts:", "bold"))
-        prompts_info.extend(
-            fmt(f"  {prompt.split()[0]}...", "dim")
-            for prompt in agent.context.config.system_prompts
+        from llmling_agent_config.system_prompts import (
+            FilePromptConfig,
+            FunctionPromptConfig,
+            LibraryPromptConfig,
+            StaticPromptConfig,
         )
+
+        for prompt in agent.context.config.system_prompts:
+            match prompt:
+                case str():
+                    prompts_info.append(fmt(f"  {prompt.split()[0]}...", "dim"))
+                case StaticPromptConfig():
+                    prompts_info.append(fmt("  static prompt", "dim"))
+                case FilePromptConfig():
+                    prompts_info.append(fmt("  file prompt", "dim"))
+                case LibraryPromptConfig():
+                    prompts_info.append(fmt("  library prompt", "dim"))
+                case FunctionPromptConfig():
+                    prompts_info.append(fmt("  function prompt", "dim"))
+                case _:
+                    msg = f"Unexpected prompt type: {type(prompt)}"
+                    raise ValueError(msg)
 
     usage_info = [
         fmt("Usage:", "bold"),
