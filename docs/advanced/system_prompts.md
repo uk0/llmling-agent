@@ -24,6 +24,122 @@ agent = Agent(
 )
 ```
 
+## Configuration Types
+
+System prompts support four different configuration types:
+
+### String Prompts (Shortcut)
+
+Simple strings are automatically converted to static prompt configs:
+
+```yaml
+agents:
+  helper:
+    system_prompts:
+      - "You are a helpful assistant."
+      - "You provide concise answers."
+```
+
+### Static Prompt Configs
+
+Explicit static prompt definitions:
+
+```yaml
+agents:
+  helper:
+    system_prompts:
+      - type: static
+        content: "You are a professional assistant."
+      - type: static
+        content: "Always maintain a helpful attitude."
+```
+
+### File-based Prompts
+
+Load prompts from Jinja2 template files:
+
+```yaml
+agents:
+  expert:
+    system_prompts:
+      - type: file
+        path: "prompts/role.j2"
+        variables:
+          role: "code reviewer"
+          language: "Python"
+          experience: "senior"
+```
+
+Template file example (`prompts/role.j2`):
+```jinja2
+You are a {{ experience }} {{ language }} {{ role }}.
+
+Your responsibilities:
+- Review code for quality and maintainability
+- Provide constructive feedback
+- Suggest improvements and best practices
+
+{% if language == "Python" %}
+Focus on:
+- PEP 8 compliance
+- Type hints usage
+- Performance considerations
+{% endif %}
+```
+
+### Library Reference Prompts
+
+Reference prompts from the configured prompt library:
+
+```yaml
+prompts:
+  system_prompts:
+    expert_analyst:
+      content: |
+        You are an expert data analyst.
+        Focus on finding patterns and insights in data.
+        Always provide evidence for your conclusions.
+      type: role
+
+agents:
+  analyst:
+    system_prompts:
+      - type: library
+        reference: "expert_analyst"
+```
+
+### Function-generated Prompts
+
+Generate prompts dynamically using callable functions:
+
+```yaml
+agents:
+  dynamic_agent:
+    system_prompts:
+      - type: function
+        function: "my_module:generate_context_prompt"
+        arguments:
+          user_id: "12345"
+          session_type: "technical_support"
+```
+
+Function example:
+```python
+def generate_context_prompt(user_id: str, session_type: str) -> str:
+    # Could fetch user preferences, history, etc.
+    user_data = get_user_context(user_id)
+    
+    if session_type == "technical_support":
+        return f"""
+        You are providing technical support for {user_data.name}.
+        User's technical level: {user_data.tech_level}
+        Previous issues: {user_data.recent_issues}
+        
+        Adapt your communication style accordingly.
+        """
+    return f"You are assisting {user_data.name} with {session_type}."
+```
+
 ## Dynamic System Prompts
 
 System prompts can be dynamic, either evaluating once on first run or for each interaction:
@@ -43,6 +159,39 @@ agent = Agent(
     ]
 )
 agent.sys_prompts.dynamic = True  # Already default
+```
+
+## Mixed Prompt Types
+
+You can combine different prompt types in a single agent:
+
+```yaml
+agents:
+  advanced_assistant:
+    system_prompts:
+      # String shortcut
+      - "You are an advanced AI assistant."
+      
+      # Static config
+      - type: static
+        content: "You have access to real-time information."
+        
+      # File template
+      - type: file
+        path: "prompts/capabilities.j2"
+        variables:
+          version: "2.0"
+          features: ["analysis", "generation", "reasoning"]
+          
+      # Library reference
+      - type: library
+        reference: "professional_tone"
+        
+      # Function-generated
+      - type: function
+        function: "context:get_current_capabilities"
+        arguments:
+          include_experimental: false
 ```
 
 ## Structured Prompts
@@ -112,7 +261,6 @@ You MUST use these tools to complete your tasks:
 
 Do not attempt to perform tasks without using appropriate tools.
 ```
-
 
 ### 3. Temporary System prompts
 
@@ -209,11 +357,12 @@ agent.sys_prompts.add("step_by_step")
 agents:
   my_agent:
     model: gpt-5
-    system_prompts:    # direct prompts
+    system_prompts:
       - "You are a helpful assistant"
-    library_system_prompts:      # reference library prompts
-      - step_by_step
-      - professional
+      - type: library
+        reference: step_by_step
+      - type: library  
+        reference: professional
 ```
 
 ### Defining Library Prompts
@@ -253,8 +402,9 @@ prompts:
     INHERIT: prompts.yml
     agents:
       my_agent:
-        library_system_prompts:
-          - my_prompt
+        system_prompts:
+          - type: library
+            reference: my_prompt
     ```
 
 ### Available Prompts
@@ -283,3 +433,41 @@ Tones:
 Formats:
 
 - `markdown`: Structured Markdown formatting
+
+## File Organization
+
+Keep your configuration organized:
+
+```
+project/
+├── config.yml
+├── prompts/
+│   ├── roles/
+│   │   ├── expert.j2
+│   │   └── specialist.j2
+│   ├── styles/
+│   │   ├── formal.j2
+│   │   └── casual.j2
+│   └── methodologies/
+│       └── step_by_step.j2
+└── functions/
+    └── prompt_generators.py
+```
+
+## Best Practices
+
+1. **Use String Shortcuts**: For simple, static prompts
+2. **File Templates**: For complex, reusable prompts with variables
+3. **Library References**: For team consistency and prompt management
+4. **Function Generation**: For dynamic, context-aware prompts
+5. **Mixed Approaches**: Combine types as needed for flexibility
+6. **Clear Organization**: Separate prompts logically
+7. **Version Control**: Include templates in version control
+8. **Documentation**: Document variables and function signatures
+
+## Function Limitations
+
+!!! info "Async Function Support"
+    Currently, function-generated prompts only support synchronous functions.
+    Async function support is planned for future releases when the agent
+    initialization process becomes asynchronous.

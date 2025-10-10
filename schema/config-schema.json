@@ -456,19 +456,40 @@
           "title": "Avatar"
         },
         "system_prompts": {
-          "description": "System prompts for the agent",
+          "description": "System prompts for the agent. Can be strings or structured prompt configs.",
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "file": "#/$defs/FilePromptConfig",
+                    "function": "#/$defs/FunctionPromptConfig",
+                    "library": "#/$defs/LibraryPromptConfig",
+                    "static": "#/$defs/StaticPromptConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StaticPromptConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/FilePromptConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/LibraryPromptConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/FunctionPromptConfig"
+                  }
+                ]
+              }
+            ]
           },
           "title": "System Prompts",
-          "type": "array"
-        },
-        "library_system_prompts": {
-          "description": "System prompts for the agent from the library",
-          "items": {
-            "type": "string"
-          },
-          "title": "Library System Prompts",
           "type": "array"
         },
         "user_prompts": {
@@ -1700,6 +1721,12 @@
           "description": "Whether the agent can add teams to the pool.",
           "title": "Can Connect Nodes",
           "type": "boolean"
+        },
+        "can_ask_user": {
+          "default": false,
+          "description": "Whether the agent can ask the user clarifying questions during processing.",
+          "title": "Can Ask User",
+          "type": "boolean"
         }
       },
       "title": "Capabilities",
@@ -1707,7 +1734,7 @@
     },
     "ComposioToolSetConfig": {
       "additionalProperties": false,
-      "description": "Configuration for entry point toolsets.",
+      "description": "Configuration for Composio toolsets.",
       "properties": {
         "namespace": {
           "anyOf": [
@@ -2925,6 +2952,31 @@
       "title": "FilePrompt",
       "type": "object"
     },
+    "FilePromptConfig": {
+      "description": "Configuration for a file-based Jinja template prompt.",
+      "properties": {
+        "type": {
+          "const": "file",
+          "default": "file",
+          "title": "Type",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "variables": {
+          "additionalProperties": true,
+          "title": "Variables",
+          "type": "object"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "FilePromptConfig",
+      "type": "object"
+    },
     "FileStorageConfig": {
       "additionalProperties": false,
       "description": "File storage configuration.",
@@ -3119,6 +3171,31 @@
         "paths"
       ],
       "title": "FileWatchConfig",
+      "type": "object"
+    },
+    "FunctionPromptConfig": {
+      "description": "Configuration for a function-generated prompt.",
+      "properties": {
+        "type": {
+          "const": "function",
+          "default": "function",
+          "title": "Type",
+          "type": "string"
+        },
+        "function": {
+          "title": "Function",
+          "type": "string"
+        },
+        "arguments": {
+          "additionalProperties": true,
+          "title": "Arguments",
+          "type": "object"
+        }
+      },
+      "required": [
+        "function"
+      ],
+      "title": "FunctionPromptConfig",
       "type": "object"
     },
     "GlobalSettings": {
@@ -3634,7 +3711,7 @@
     },
     "InlineSchemaDef": {
       "additionalProperties": false,
-      "description": "Inline definition of schema.\n\nAllows defining response types directly in the configuration using:\n- Field definitions with types and descriptions\n- Optional validation constraints\n- Custom field descriptions\n\nExample:\n    schemas:\n      BasicResult:\n        type: inline\n        fields:\n          success: {type: bool, description: \"Operation success\"}\n          message: {type: str, description: \"Result details\"}",
+      "description": "Inline definition of schema.\n\nAllows defining response types directly in the configuration using:\n- Field definitions with types and descriptions\n- Optional validation constraints\n- Custom field descriptions\n- Field dependencies and relationships\n\nExample:\n    type: inline\n    fields:\n        success: {type: bool, description: \"Operation success\"}\n        message: {type: str, description: \"Result details\"}\n        payment_method: {type: str, description: \"Payment method used\"}\n        card_number: {\n            type: str,\n            description: \"Credit card number\",\n            dependent_required: {\n            \"payment_method\": [\"card_expiry\", \"card_cvc\"]\n            }\n        }",
       "properties": {
         "type": {
           "const": "inline",
@@ -4370,6 +4447,26 @@
       "title": "LangsmithProviderConfig",
       "type": "object"
     },
+    "LibraryPromptConfig": {
+      "description": "Configuration for a library reference prompt.",
+      "properties": {
+        "type": {
+          "const": "library",
+          "default": "library",
+          "title": "Type",
+          "type": "string"
+        },
+        "reference": {
+          "title": "Reference",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference"
+      ],
+      "title": "LibraryPromptConfig",
+      "type": "object"
+    },
     "LocalWhisperConfig": {
       "additionalProperties": false,
       "description": "Configuration for local Whisper model.",
@@ -4497,6 +4594,139 @@
         }
       },
       "title": "LogfireProviderConfig",
+      "type": "object"
+    },
+    "MCPPoolServerConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for pool-based MCP server.",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "description": "Whether this server is currently enabled.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "serve_nodes": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "default": true,
+          "description": "Which nodes to expose as tools:\n- True: All nodes\n- False: No nodes\n- list[str]: Specific node names",
+          "title": "Serve Nodes"
+        },
+        "serve_prompts": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "default": true,
+          "description": "Which prompts to expose:\n- True: All prompts from manifest\n- False: No prompts\n- list[str]: Specific prompt names",
+          "title": "Serve Prompts"
+        },
+        "transport": {
+          "default": "stdio",
+          "description": "Transport type to use.",
+          "enum": [
+            "stdio",
+            "sse",
+            "streamable-http"
+          ],
+          "title": "Transport",
+          "type": "string"
+        },
+        "host": {
+          "default": "localhost",
+          "description": "Host to bind server to (SSE / Streamable-HTTP only).",
+          "title": "Host",
+          "type": "string"
+        },
+        "port": {
+          "default": 3001,
+          "description": "Port to listen on (SSE / Streamable-HTTP only).",
+          "title": "Port",
+          "type": "integer"
+        },
+        "cors_origins": {
+          "description": "Allowed CORS origins (SSE / Streamable-HTTP only).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Cors Origins",
+          "type": "array"
+        },
+        "zed_mode": {
+          "default": false,
+          "description": "Enable Zed editor compatibility mode.",
+          "title": "Zed Mode",
+          "type": "boolean"
+        }
+      },
+      "title": "MCPPoolServerConfig",
+      "type": "object"
+    },
+    "MCPServerAuthSettings": {
+      "additionalProperties": false,
+      "description": "Represents authentication configuration for a server.\n\nMinimal OAuth v2.1 support with sensible defaults.",
+      "properties": {
+        "oauth": {
+          "default": false,
+          "title": "Oauth",
+          "type": "boolean"
+        },
+        "redirect_port": {
+          "default": 3030,
+          "title": "Redirect Port",
+          "type": "integer"
+        },
+        "redirect_path": {
+          "default": "/callback",
+          "title": "Redirect Path",
+          "type": "string"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "persist": {
+          "default": "keyring",
+          "enum": [
+            "keyring",
+            "memory"
+          ],
+          "title": "Persist",
+          "type": "string"
+        }
+      },
+      "title": "MCPServerAuthSettings",
       "type": "object"
     },
     "MarkItDownConfig": {
@@ -5519,89 +5749,6 @@
       "title": "PlainConverterConfig",
       "type": "object"
     },
-    "MCPPoolServerConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for pool-based MCP server.",
-      "properties": {
-        "enabled": {
-          "default": false,
-          "description": "Whether this server is currently enabled.",
-          "title": "Enabled",
-          "type": "boolean"
-        },
-        "serve_nodes": {
-          "anyOf": [
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "type": "boolean"
-            }
-          ],
-          "default": true,
-          "description": "Which nodes to expose as tools:\n- True: All nodes\n- False: No nodes\n- list[str]: Specific node names",
-          "title": "Serve Nodes"
-        },
-        "serve_prompts": {
-          "anyOf": [
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "type": "boolean"
-            }
-          ],
-          "default": true,
-          "description": "Which prompts to expose:\n- True: All prompts from manifest\n- False: No prompts\n- list[str]: Specific prompt names",
-          "title": "Serve Prompts"
-        },
-        "transport": {
-          "default": "stdio",
-          "description": "Transport type to use.",
-          "enum": [
-            "stdio",
-            "sse",
-            "streamable-http"
-          ],
-          "title": "Transport",
-          "type": "string"
-        },
-        "host": {
-          "default": "localhost",
-          "description": "Host to bind server to (SSE / Streamable-HTTP only).",
-          "title": "Host",
-          "type": "string"
-        },
-        "port": {
-          "default": 3001,
-          "description": "Port to listen on (SSE / Streamable-HTTP only).",
-          "title": "Port",
-          "type": "integer"
-        },
-        "cors_origins": {
-          "description": "Allowed CORS origins (SSE / Streamable-HTTP only).",
-          "items": {
-            "type": "string"
-          },
-          "title": "Cors Origins",
-          "type": "array"
-        },
-        "zed_mode": {
-          "default": false,
-          "description": "Enable Zed editor compatibility mode.",
-          "title": "Zed Mode",
-          "type": "boolean"
-        }
-      },
-      "title": "MCPPoolServerConfig",
-      "type": "object"
-    },
     "PrePostPromptConfig": {
       "additionalProperties": false,
       "description": "Configuration for pre/post prompts.",
@@ -5720,7 +5867,32 @@
       "title": "ProcessorConfig",
       "type": "object"
     },
-    "PromptConfig": {
+    "PromptLayerConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for PromptLayer prompt provider.",
+      "properties": {
+        "type": {
+          "const": "promptlayer",
+          "default": "promptlayer",
+          "description": "Configuration for PromptLayer prompt provider.",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "description": "API key for the PromptLayer API.",
+          "format": "password",
+          "title": "Api Key",
+          "type": "string",
+          "writeOnly": true
+        }
+      },
+      "required": [
+        "api_key"
+      ],
+      "title": "PromptLayerConfig",
+      "type": "object"
+    },
+    "PromptLibraryConfig": {
       "additionalProperties": false,
       "description": "Complete prompt configuration.",
       "properties": {
@@ -5784,32 +5956,7 @@
           "type": "array"
         }
       },
-      "title": "PromptConfig",
-      "type": "object"
-    },
-    "PromptLayerConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for PromptLayer prompt provider.",
-      "properties": {
-        "type": {
-          "const": "promptlayer",
-          "default": "promptlayer",
-          "description": "Configuration for PromptLayer prompt provider.",
-          "title": "Type",
-          "type": "string"
-        },
-        "api_key": {
-          "description": "API key for the PromptLayer API.",
-          "format": "password",
-          "title": "Api Key",
-          "type": "string",
-          "writeOnly": true
-        }
-      },
-      "required": [
-        "api_key"
-      ],
-      "title": "PromptLayerConfig",
+      "title": "PromptLibraryConfig",
       "type": "object"
     },
     "PromptMessage": {
@@ -6283,7 +6430,7 @@
           "title": "Enabled",
           "type": "boolean"
         },
-        "environment": {
+        "env": {
           "anyOf": [
             {
               "additionalProperties": {
@@ -6297,7 +6444,7 @@
           ],
           "default": null,
           "description": "Environment variables to pass to the server process.",
-          "title": "Environment"
+          "title": "Env"
         },
         "timeout": {
           "default": 30.0,
@@ -6309,6 +6456,10 @@
           "description": "URL of the SSE server endpoint.",
           "title": "Url",
           "type": "string"
+        },
+        "auth": {
+          "$ref": "#/$defs/MCPServerAuthSettings",
+          "description": "OAuth settings for the SSE server."
         }
       },
       "required": [
@@ -6319,7 +6470,7 @@
     },
     "SchemaField": {
       "additionalProperties": false,
-      "description": "Field definition for inline response types.\n\nDefines a single field in an inline response definition, including:\n- Data type specification\n- Optional description\n- Validation constraints\n- Enum values (when type is 'enum')\n\nUsed by InlineSchemaDef to structure response fields.",
+      "description": "Field definition for inline response types.\n\nDefines a single field in an inline response definition, including:\n- Data type specification\n- Optional description\n- Validation constraints\n- Enum values (when type is 'enum')\n- Field dependencies and relationships\n\nUsed by InlineSchemaDef to structure response fields.",
       "properties": {
         "type": {
           "description": "Data type of the response field",
@@ -6393,6 +6544,7 @@
         "min_length": {
           "anyOf": [
             {
+              "minimum": 0,
               "type": "integer"
             },
             {
@@ -6406,6 +6558,7 @@
         "max_length": {
           "anyOf": [
             {
+              "minimum": 0,
               "type": "integer"
             },
             {
@@ -6471,6 +6624,7 @@
         "multiple_of": {
           "anyOf": [
             {
+              "exclusiveMinimum": 0,
               "type": "number"
             },
             {
@@ -6539,6 +6693,26 @@
           "default": null,
           "description": "Configuration for Pydantic model fields",
           "title": "Field Config"
+        },
+        "dependent_required": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "description": "Field dependencies - when this field exists, dependent fields are required",
+          "title": "Dependent Required",
+          "type": "object"
+        },
+        "dependent_schema": {
+          "additionalProperties": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "description": "Schema dependencies - when this field exists, dependent fields must match schema",
+          "title": "Dependent Schema",
+          "type": "object"
         },
         "constraints": {
           "additionalProperties": true,
@@ -6865,6 +7039,26 @@
       "title": "StaticPrompt",
       "type": "object"
     },
+    "StaticPromptConfig": {
+      "description": "Configuration for a static text prompt.",
+      "properties": {
+        "type": {
+          "const": "static",
+          "default": "static",
+          "title": "Type",
+          "type": "string"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "title": "StaticPromptConfig",
+      "type": "object"
+    },
     "StdioMCPServerConfig": {
       "additionalProperties": false,
       "description": "MCP server started via stdio.\n\nUses subprocess communication through standard input/output streams.",
@@ -6895,7 +7089,7 @@
           "title": "Enabled",
           "type": "boolean"
         },
-        "environment": {
+        "env": {
           "anyOf": [
             {
               "additionalProperties": {
@@ -6909,7 +7103,7 @@
           ],
           "default": null,
           "description": "Environment variables to pass to the server process.",
-          "title": "Environment"
+          "title": "Env"
         },
         "timeout": {
           "default": 30.0,
@@ -7124,7 +7318,7 @@
         "type": {
           "const": "streamable-http",
           "default": "streamable-http",
-          "description": "SSE server configuration.",
+          "description": "HTTP server configuration.",
           "title": "Type",
           "type": "string"
         },
@@ -7147,7 +7341,7 @@
           "title": "Enabled",
           "type": "boolean"
         },
-        "environment": {
+        "env": {
           "anyOf": [
             {
               "additionalProperties": {
@@ -7161,7 +7355,7 @@
           ],
           "default": null,
           "description": "Environment variables to pass to the server process.",
-          "title": "Environment"
+          "title": "Env"
         },
         "timeout": {
           "default": 30.0,
@@ -7170,9 +7364,13 @@
           "type": "number"
         },
         "url": {
-          "description": "URL of the SSE server endpoint.",
+          "description": "URL of the HTTP server endpoint.",
           "title": "Url",
           "type": "string"
+        },
+        "auth": {
+          "$ref": "#/$defs/MCPServerAuthSettings",
+          "description": "OAuth settings for the HTTP server."
         }
       },
       "required": [
@@ -8346,7 +8544,7 @@
     },
     "UpsonicToolSetConfig": {
       "additionalProperties": false,
-      "description": "Configuration for entry point toolsets.",
+      "description": "Configuration for Upsonic toolsets.",
       "properties": {
         "namespace": {
           "anyOf": [
@@ -9141,7 +9339,7 @@
       "description": "Pool server configuration.\n\nThis MCP server configuration is used for the pool MCP server,\nwhich exposes pool functionality to other applications / clients."
     },
     "prompts": {
-      "$ref": "#/$defs/PromptConfig"
+      "$ref": "#/$defs/PromptLibraryConfig"
     }
   },
   "title": "AgentsManifest",

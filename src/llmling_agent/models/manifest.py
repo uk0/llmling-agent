@@ -236,13 +236,11 @@ class AgentsManifest(Schema):
             setattr(config, key, value)
 
         # Handle template rendering if context provided
-        if template_context:
-            # Apply name from context if not explicitly overridden
-            if "name" in template_context and "name" not in overrides:
-                config.name = template_context["name"]
+        if template_context and "name" in template_context and "name" not in overrides:
+            config.name = template_context["name"]
 
-            # Render system prompts
-            config.system_prompts = config.render_system_prompts(template_context)
+        # Note: system_prompts will be rendered during agent creation, not here
+        # config.system_prompts remains as PromptConfig objects
 
         self.agents[actual_name] = config
         return actual_name
@@ -367,6 +365,7 @@ class AgentsManifest(Schema):
     def get_agent[TAgentDeps](
         self, name: str, deps: TAgentDeps | None = None
     ) -> AnyAgent[TAgentDeps, Any]:
+        # TODO: Make this method async to support async function prompts
         from llmling import RuntimeConfig
 
         from llmling_agent import Agent, AgentContext
@@ -388,17 +387,56 @@ class AgentsManifest(Schema):
             # confirmation_callback=confirmation_callback,
         )
 
-        sys_prompts = config.system_prompts.copy()
-        # Library prompts
-        if config.library_system_prompts:
-            for prompt_ref in config.library_system_prompts:
-                try:
-                    content = self.prompt_manager.get_sync(prompt_ref)
+        # Resolve system prompts with new PromptConfig types
+        from pathlib import Path
+
+        from llmling_agent_config.system_prompts import (
+            FilePromptConfig,
+            FunctionPromptConfig,
+            LibraryPromptConfig,
+            StaticPromptConfig,
+        )
+
+        sys_prompts: list[str] = []
+        for prompt in config.system_prompts:
+            match prompt:
+                case str():
+                    sys_prompts.append(prompt)
+                case StaticPromptConfig():
+                    sys_prompts.append(prompt.content)
+                case FilePromptConfig():
+                    # Load template from file
+                    template_path = Path(prompt.path)
+                    if not template_path.is_absolute() and config.config_file_path:
+                        template_path = Path(config.config_file_path).parent / prompt.path
+
+                    template_content = template_path.read_text()
+                    # Apply variables if any
+                    if prompt.variables:
+                        from jinja2 import Template
+
+                        template = Template(template_content)
+                        content = template.render(**prompt.variables)
+                    else:
+                        content = template_content
                     sys_prompts.append(content)
-                except Exception as e:
-                    msg = f"Failed to load library prompt {prompt_ref!r} for agent {name}"
-                    logger.exception(msg)
-                    raise ValueError(msg) from e
+                case LibraryPromptConfig():
+                    # Load from library
+                    try:
+                        content = self.prompt_manager.get_sync(prompt.reference)
+                        sys_prompts.append(content)
+                    except Exception as e:
+                        msg = (
+                            f"Failed to load library prompt {prompt.reference!r} "
+                            f"for agent {name}"
+                        )
+                        logger.exception(msg)
+                        raise ValueError(msg) from e
+                case FunctionPromptConfig():
+                    # Call function to get prompt content
+                    func = prompt.function
+                    content = func(**prompt.arguments)
+                    sys_prompts.append(content)
         # Create agent with runtime and context
         agent = Agent[Any](
             runtime=runtime,

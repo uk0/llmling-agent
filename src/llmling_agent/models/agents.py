@@ -34,6 +34,7 @@ from llmling_agent_config.nodes import NodeConfig
 from llmling_agent_config.providers import ProviderConfig  # noqa: TC001
 from llmling_agent_config.result_types import StructuredResponseConfig  # noqa: TC001
 from llmling_agent_config.session import MemoryConfig, SessionQuery
+from llmling_agent_config.system_prompts import PromptConfig  # noqa: TC001
 from llmling_agent_config.tools import BaseToolConfig, ToolConfig  # noqa: TC001
 from llmling_agent_config.toolsets import ToolsetConfig  # noqa: TC001
 from llmling_agent_config.workers import WorkerConfig  # noqa: TC001
@@ -111,11 +112,8 @@ class AgentConfig(NodeConfig):
     avatar: str | None = None
     """URL or path to agent's avatar image"""
 
-    system_prompts: list[str] = Field(default_factory=list)
-    """System prompts for the agent"""
-
-    library_system_prompts: list[str] = Field(default_factory=list)
-    """System prompts for the agent from the library"""
+    system_prompts: list[str | PromptConfig] = Field(default_factory=list)
+    """System prompts for the agent. Can be strings or structured prompt configs."""
 
     user_prompts: list[str] = Field(default_factory=list)
     """Default user prompts for the agent"""
@@ -246,6 +244,13 @@ class AgentConfig(NodeConfig):
 
     def get_system_prompts(self) -> list[BasePrompt]:
         """Get all system prompts as BasePrompts."""
+        from llmling_agent_config.system_prompts import (
+            FilePromptConfig,
+            FunctionPromptConfig,
+            LibraryPromptConfig,
+            StaticPromptConfig,
+        )
+
         prompts: list[BasePrompt] = []
         for prompt in self.system_prompts:
             match prompt:
@@ -255,6 +260,54 @@ class AgentConfig(NodeConfig):
                         name="system",
                         description="System prompt",
                         messages=[PromptMessage(role="system", content=prompt)],
+                    )
+                    prompts.append(static_prompt)
+                case StaticPromptConfig():
+                    # Convert StaticPromptConfig to StaticPrompt
+                    static_prompt = StaticPrompt(
+                        name="system",
+                        description="System prompt",
+                        messages=[PromptMessage(role="system", content=prompt.content)],
+                    )
+                    prompts.append(static_prompt)
+                case FilePromptConfig():
+                    # Load and convert file-based prompt
+                    from pathlib import Path
+
+                    template_path = Path(prompt.path)
+                    if not template_path.is_absolute() and self.config_file_path:
+                        base_path = Path(self.config_file_path).parent
+                        template_path = base_path / prompt.path
+
+                    template_content = template_path.read_text()
+                    # Create a template-based prompt (for now as StaticPrompt with placeholder)
+                    static_prompt = StaticPrompt(
+                        name="system",
+                        description=f"File prompt: {prompt.path}",
+                        messages=[PromptMessage(role="system", content=template_content)],
+                    )
+                    prompts.append(static_prompt)
+                case LibraryPromptConfig():
+                    # Create placeholder for library prompts (resolved by manifest)
+                    static_prompt = StaticPrompt(
+                        name="system",
+                        description=f"Library: {prompt.reference}",
+                        messages=[
+                            PromptMessage(
+                                role="system",
+                                content=f"[LIBRARY:{prompt.reference}]",
+                            )
+                        ],
+                    )
+                    prompts.append(static_prompt)
+                case FunctionPromptConfig():
+                    # Import and call the function to get prompt content
+                    func = prompt.function
+                    content = func(**prompt.arguments)
+                    static_prompt = StaticPrompt(
+                        name="system",
+                        description=f"Function prompt: {prompt.function}",
+                        messages=[PromptMessage(role="system", content=content)],
                     )
                     prompts.append(static_prompt)
                 case BasePrompt():
@@ -295,10 +348,51 @@ class AgentConfig(NodeConfig):
 
     def render_system_prompts(self, context: dict[str, Any] | None = None) -> list[str]:
         """Render system prompts with context."""
+        from llmling_agent_config.system_prompts import (
+            FilePromptConfig,
+            FunctionPromptConfig,
+            LibraryPromptConfig,
+            StaticPromptConfig,
+        )
+
         if not context:
             # Default context
             context = {"name": self.name, "id": 1, "model": self.model}
-        return [render_prompt(p, {"agent": context}) for p in self.system_prompts]
+
+        rendered_prompts: list[str] = []
+        for prompt in self.system_prompts:
+            match prompt:
+                case str():
+                    rendered_prompts.append(render_prompt(prompt, {"agent": context}))
+                case StaticPromptConfig():
+                    rendered_prompts.append(
+                        render_prompt(prompt.content, {"agent": context})
+                    )
+                case FilePromptConfig():
+                    # Load and render Jinja template from file
+                    from pathlib import Path
+
+                    template_path = Path(prompt.path)
+                    if not template_path.is_absolute() and self.config_file_path:
+                        base_path = Path(self.config_file_path).parent
+                        template_path = base_path / prompt.path
+
+                    template_content = template_path.read_text()
+                    template_context = {"agent": context, **prompt.variables}
+                    rendered_prompts.append(
+                        render_prompt(template_content, template_context)
+                    )
+                case LibraryPromptConfig():
+                    # This will be handled by the manifest's get_agent method
+                    # For now, just add a placeholder
+                    rendered_prompts.append(f"[LIBRARY:{prompt.reference}]")
+                case FunctionPromptConfig():
+                    # Import and call the function to get prompt content
+                    func = prompt.function
+                    content = func(**prompt.arguments)
+                    rendered_prompts.append(render_prompt(content, {"agent": context}))
+
+        return rendered_prompts
 
     def get_config(self) -> Config:
         """Get configuration for this agent."""

@@ -1,54 +1,10 @@
 # System Prompts Configuration
 
-System prompts define an agent's role, behavior, and capabilities. LLMling provides multiple ways to configure and access prompts.
+System prompts define an agent's role, behavior, and capabilities. LLMling provides multiple ways to configure system prompts using a flexible discriminated union approach.
 
-## Prompt Providers
+## Basic System Prompts
 
-LLMling supports multiple prompt sources through a provider system:
-
-### Builtin Prompts
-
-Define prompts directly in your configuration:
-
-```yaml
-prompts:
-  system_prompts:
-    code_reviewer:
-      content: "You are a code reviewer specialized in {{ language }}."
-      type: role
-
-    error_handler:
-      content: |
-        You help developers fix {{ error_type }} errors.
-        Current context: {{ context }}
-      type: methodology
-```
-
-### External Providers
-
-Connect to external prompt management systems:
-
-```yaml
-prompts:
-  providers:
-    - type: langfuse
-      secret_key: "your-secret"
-      public_key: "your-public-key"
-      host: "https://cloud.langfuse.com"
-
-    - type: openlit
-      url: "https://api.openlit.ai"
-      api_key: "your-api-key"
-
-    - type: promptlayer
-      api_key: "your-api-key"
-```
-
-## Using Prompts in Agents
-
-### Direct System Prompts
-
-Simple string prompts for basic behaviors:
+The simplest way to define system prompts is using strings:
 
 ```yaml
 agents:
@@ -58,59 +14,277 @@ agents:
       - "You always provide concise answers."
 ```
 
-### Library Prompts
+## Prompt Configuration Types
 
-Reference prompts from any configured provider:
+System prompts support four different configuration types through a discriminated union:
+
+### 1. Static Prompts
+
+Direct text prompts for simple cases:
+
+```yaml
+agents:
+  assistant:
+    system_prompts:
+      # String shortcut (auto-converted to static)
+      - "You are a helpful assistant."
+      
+      # Explicit static prompt
+      - type: static
+        content: "You provide detailed explanations."
+```
+
+### 2. File-based Prompts
+
+Load prompts from Jinja2 template files:
 
 ```yaml
 agents:
   expert:
-    library_system_prompts:
-      - "code_reviewer?language=python"  # Builtin prompt with variables
-      - "langfuse:expert_prompt@v2"      # Versioned Langfuse prompt
-      - "openlit:code_analysis"          # OpenLIT prompt
+    system_prompts:
+      - type: file
+        path: "prompts/code_reviewer.j2"
+        variables:
+          language: "python"
+          experience_level: "senior"
+          
+      - type: file
+        path: "templates/role_prompt.j2"
+        variables:
+          role: "data analyst"
+          domain: "healthcare"
 ```
 
-## Prompt Reference Syntax
+Template file example (`prompts/code_reviewer.j2`):
+```jinja2
+You are a {{ experience_level }} {{ language }} code reviewer.
 
-Access prompts using a unified reference syntax:
+Your expertise includes:
+- Code quality assessment
+- Performance optimization
+- Security best practices
+
+Always provide constructive feedback and suggest improvements.
+```
+
+### 3. Library Reference Prompts
+
+Reference prompts from the configured prompt library:
+
+```yaml
+prompts:
+  system_prompts:
+    expert_analyst:
+      content: |
+        You are an expert data analyst.
+        Focus on finding patterns and insights.
+      type: role
+
+agents:
+  analyst:
+    system_prompts:
+      - type: library
+        reference: "expert_analyst"
+        
+      - type: library
+        reference: "step_by_step"
+```
+
+### 4. Function-generated Prompts
+
+Generate prompts dynamically using callable functions:
+
+```yaml
+agents:
+  dynamic_agent:
+    system_prompts:
+      - type: function
+        function: "my_module:generate_role_prompt"
+        arguments:
+          role: "technical_writer"
+          specialization: "API documentation"
+          
+      - type: function
+        function: "prompts.dynamic:weather_context"
+        arguments:
+          location: "San Francisco"
+```
+
+Function example:
+```python
+def generate_role_prompt(role: str, specialization: str) -> str:
+    return f"""
+    You are a {role} specializing in {specialization}.
+    
+    Key responsibilities:
+    - Create clear, comprehensive documentation
+    - Follow industry best practices
+    - Ensure accessibility and usability
+    """
+
+def weather_context(location: str) -> str:
+    # Could fetch real weather data
+    return f"Current weather context for {location}: Sunny, 72°F"
+```
+
+## Mixed Prompt Types
+
+You can combine different prompt types in a single agent:
+
+```yaml
+agents:
+  advanced_assistant:
+    system_prompts:
+      # String shortcut
+      - "You are an advanced AI assistant."
+      
+      # Static prompt
+      - type: static
+        content: "You have access to real-time information."
+        
+      # File-based template
+      - type: file
+        path: "prompts/capabilities.j2"
+        variables:
+          version: "2.0"
+          features: ["analysis", "generation", "reasoning"]
+          
+      # Library reference
+      - type: library
+        reference: "professional_tone"
+        
+      # Function-generated
+      - type: function
+        function: "context:get_current_capabilities"
+        arguments:
+          include_experimental: false
+```
+
+## Prompt Library Configuration
+
+Define reusable prompts in your configuration:
+
+```yaml
+prompts:
+  system_prompts:
+    # Role definitions
+    technical_expert:
+      type: role
+      content: |
+        You are a technical expert specializing in:
+        - Software architecture
+        - System design
+        - Performance optimization
+
+    code_reviewer:
+      type: role
+      content: |
+        You are an experienced code reviewer.
+        Focus on:
+        - Code quality and maintainability
+        - Security best practices
+        - Performance considerations
+
+    # Methodology definitions
+    step_by_step:
+      type: methodology
+      content: |
+        Follow this systematic approach:
+        1. Understand the requirements
+        2. Break down into smaller tasks
+        3. Execute methodically
+        4. Verify results
+
+    # Communication styles
+    professional:
+      type: tone
+      content: |
+        Maintain professional communication:
+        - Use formal language
+        - Be concise but thorough
+        - Provide evidence for claims
+
+agents:
+  senior_dev:
+    system_prompts:
+      - "You specialize in Python and TypeScript."
+      - type: library
+        reference: "technical_expert"
+      - type: library
+        reference: "code_reviewer"
+      - type: library
+        reference: "step_by_step"
+      - type: library
+        reference: "professional"
+```
+
+## File Organization
+
+Keep your configuration organized by separating prompts:
+
+```yaml
+# prompts.yml
+prompts:
+  system_prompts:
+    expert_roles:
+      type: role
+      content: |
+        You are a domain expert...
+
+# agents.yml
+INHERIT: prompts.yml
+
+agents:
+  my_agent:
+    system_prompts:
+      - type: library
+        reference: "expert_roles"
+```
+
+## Path Resolution
+
+File-based prompts resolve paths relative to the configuration file:
 
 ```
-[provider:]identifier[@version][?var1=val1,var2=val2]
+project/
+├── config.yml
+├── prompts/
+│   ├── roles/
+│   │   └── expert.j2
+│   └── styles/
+│       └── formal.j2
+└── agents/
+    └── specialist.yml
 ```
 
-Examples:
-
-- `error_handler` - Builtin prompt
-- `langfuse:intro@v2` - Versioned Langfuse prompt
-- `code_review?language=python&style=detailed` - Prompt with variables
-
-## Provider Features
-
-Different providers support different features:
-
-- **Builtin**:
-
-- Jinja2 templating
-- Variable validation
-- No versioning
-
-- **Langfuse**:
-
-- Version control
-- Team collaboration
-- Usage tracking
-
-- **OpenLIT**:
-
-- Version control
-- Variables
-- Metadata support
+```yaml
+# config.yml
+agents:
+  expert:
+    system_prompts:
+      - type: file
+        path: "prompts/roles/expert.j2"  # Relative to config.yml
+        
+# agents/specialist.yml  
+system_prompts:
+  - type: file
+    path: "../prompts/styles/formal.j2"  # Relative to specialist.yml
+```
 
 ## Best Practices
 
-1. **Use Builtin for Simple Cases**: Keep basic prompts in your config
-2. **External for Team Work**: Use Langfuse/OpenLIT for collaborative prompt management
-3. **Version Critical Prompts**: Use versioned providers for production prompts
-4. **Clear Variables**: Document required variables in prompt descriptions
-5. **Consistent Templating**: Use Jinja2 syntax for variables (`{{ var }}`)
+1. **Use String Shortcuts**: For simple, static prompts, use string shortcuts
+2. **File Templates**: Use file-based prompts for complex, reusable templates
+3. **Library References**: Create a prompt library for team consistency
+4. **Function Generation**: Use functions for dynamic, context-aware prompts
+5. **Mixed Approaches**: Combine different types as needed
+6. **Clear Organization**: Separate prompts into logical files and directories
+7. **Version Control**: Include prompt templates in version control
+8. **Documentation**: Document template variables and function signatures
+
+## Function Limitations
+
+!!! info "Async Function Support"
+    Currently, function-generated prompts only support synchronous functions.
+    Async function support is planned for future releases when the agent
+    initialization process becomes asynchronous.

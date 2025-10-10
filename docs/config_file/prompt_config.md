@@ -25,11 +25,15 @@ prompts:
 # Using prompts in agents
 agents:
   analyst:
-    system_prompts:           # Direct prompts
+    system_prompts:
+      # Direct string prompts
       - "You help with analysis."
-    library_system_prompts:   # Reference library prompts
-      - expert_analyst
-      - step_by_step
+      
+      # Reference library prompts
+      - type: library
+        reference: expert_analyst
+      - type: library
+        reference: step_by_step
 ```
 
 ## Prompt Categories
@@ -77,12 +81,16 @@ system_prompts:
   expert_dev:
     type: role
     content: |
-      You are a senior software developer...
+      You are a senior software developer with expertise in:
+      - System architecture design
+      - Code quality assessment
+      - Performance optimization
 
   data_scientist:
     type: role
     content: |
-      You specialize in data analysis...
+      You specialize in data analysis and machine learning.
+      Your expertise includes statistical modeling and data visualization.
 ```
 
 ### Methodology Types
@@ -93,14 +101,19 @@ system_prompts:
     type: methodology
     content: |
       Approach problems systematically:
-      1. Gather data
-      2. Analyze patterns
-      3. Form conclusions
+      1. Gather and analyze data
+      2. Identify patterns and trends
+      3. Form evidence-based conclusions
+      4. Present findings clearly
 
   iterative:
     type: methodology
     content: |
-      Work in small iterations...
+      Work in small iterations:
+      - Start with minimal viable approach
+      - Test and validate results
+      - Refine based on feedback
+      - Scale successful patterns
 ```
 
 ### Tone Types
@@ -110,12 +123,18 @@ system_prompts:
   formal:
     type: tone
     content: |
-      Use professional language...
+      Use professional, business-appropriate language:
+      - Maintain formal tone
+      - Be precise and clear
+      - Avoid colloquialisms
 
   friendly:
     type: tone
     content: |
-      Be approachable and helpful...
+      Be approachable and helpful:
+      - Use warm, welcoming language
+      - Show empathy and understanding
+      - Encourage questions and dialogue
 ```
 
 ### Format Types
@@ -126,9 +145,19 @@ system_prompts:
     type: format
     content: |
       Format responses using Markdown:
-      - Use headers for sections
-      - Use lists for items
-      - Use code blocks for code
+      - Use headers for sections (# ## ###)
+      - Use bullet points for lists
+      - Use code blocks for code examples
+      - Use tables for structured data
+
+  structured:
+    type: format
+    content: |
+      Structure responses with:
+      1. **Summary** - Brief overview
+      2. **Details** - Comprehensive explanation
+      3. **Examples** - Practical illustrations
+      4. **Next Steps** - Recommended actions
 ```
 
 ## Using Library Prompts
@@ -138,24 +167,81 @@ Reference prompts in agent configuration:
 ```yaml
 agents:
   technical_assistant:
-    model: gpt-5
-    # Direct prompts
+    model: gpt-4
     system_prompts:
+      # Direct string prompts
       - "You are a technical assistant."
-      - "Focus on helping with code."
+      - "Focus on helping with code and documentation."
 
-    # Library prompts
-    library_system_prompts:
-      - technical_writer    # Role
-      - step_by_step       # Methodology
-      - professional       # Tone
-      - markdown          # Format
+      # Library reference prompts
+      - type: library
+        reference: technical_writer    # Role
+      - type: library
+        reference: step_by_step       # Methodology
+      - type: library
+        reference: professional       # Tone
+      - type: library
+        reference: markdown          # Format
 
   data_analyst:
-    library_system_prompts:
-      - expert_analyst
-      - analytical
-      - formal
+    system_prompts:
+      - type: library
+        reference: expert_analyst
+      - type: library
+        reference: analytical
+      - type: library
+        reference: formal
+```
+
+## Advanced Prompt Management
+
+### Template-based Prompts
+
+Combine library prompts with file-based templates:
+
+```yaml
+prompts:
+  system_prompts:
+    domain_expert:
+      type: role
+      content: |
+        You are a domain expert in {{ domain }}.
+        Your specialization: {{ specialization }}
+
+agents:
+  specialist:
+    system_prompts:
+      - type: file
+        path: "prompts/domain_expert.j2"
+        variables:
+          domain: "healthcare"
+          specialization: "medical imaging"
+      - type: library
+        reference: analytical
+```
+
+### Dynamic Prompt Generation
+
+Use functions to generate context-aware prompts:
+
+```yaml
+prompts:
+  system_prompts:
+    context_aware:
+      type: role
+      content: |
+        You adapt to user context and preferences.
+
+agents:
+  adaptive_agent:
+    system_prompts:
+      - type: library
+        reference: context_aware
+      - type: function
+        function: "prompts:generate_user_context"
+        arguments:
+          user_type: "developer"
+          experience_level: "intermediate"
 ```
 
 ## Complete Example
@@ -168,14 +254,17 @@ prompts:
       type: role
       content: |
         You are a technical expert specializing in:
-        - Software development
+        - Software development best practices
+        - System architecture and design
+        - Code review and quality assurance
 
     code_reviewer:
       type: role
       content: |
-        You are an experienced code reviewer.
-        Focus on:
-        - Code quality
+        You are an experienced code reviewer focused on:
+        - Code quality and maintainability
+        - Security best practices
+        - Performance optimization
 
     # Methodologies
     systematic:
@@ -183,65 +272,144 @@ prompts:
       content: |
         Follow this systematic approach:
         1. Understand requirements fully
+        2. Break down complex problems
+        3. Apply best practices consistently
+        4. Validate results thoroughly
 
     # Tones
     professional:
       type: tone
       content: |
         Maintain professional communication:
-        - Use formal language
-        ...
+        - Use formal, precise language
+        - Be respectful and constructive
+        - Provide clear explanations
 
     # Formats
     structured:
       type: format
       content: |
         Structure responses with:
-        1. Clear headings
-        2. Bulleted lists
-        3. Code examples
-        4. Summary points
+        1. **Overview** - Brief summary
+        2. **Analysis** - Detailed examination
+        3. **Recommendations** - Actionable advice
+        4. **Examples** - Practical illustrations
 
 agents:
   senior_dev:
-    model: gpt-5
+    model: gpt-4
     description: "Senior developer specialized in code review and optimization"
     system_prompts:
-      - "Specialize in Python and TypeScript."
-    library_system_prompts:
-      - technical_expert
-      - code_reviewer
-      - systematic
-      - professional
-      - structured
+      - "Specialize in Python and TypeScript development."
+      - type: library
+        reference: technical_expert
+      - type: library
+        reference: code_reviewer
+      - type: library
+        reference: systematic
+      - type: library
+        reference: professional
+      - type: library
+        reference: structured
 
-  teacher:
-    model: gpt-5
+  mentor:
+    model: gpt-4
     description: "Programming teacher and mentor"
-    library_system_prompts:
-      - technical_expert
-      - iterative
-      - educational
+    system_prompts:
+      - type: library
+        reference: technical_expert
+      - type: file
+        path: "prompts/teaching_style.j2"
+        variables:
+          approach: "socratic"
+          patience_level: "high"
+      - type: function
+        function: "education:generate_learning_context"
+        arguments:
+          student_level: "beginner"
+          topic: "programming_fundamentals"
 ```
 
+## Organization Best Practices
 
-!!! tip "Organizing Prompts"
-    It's recommended to keep prompt libraries in separate files and use YAML inheritance
-    to include them. This keeps your agent configurations clean and promotes reuse:
-    ```yaml
-    # prompts.yml
-    prompts:
-      system_prompts:
-        my_prompt:
-          content: ...
-          type: role
+### File Structure
+Keep prompts organized in separate files:
 
-    # agents.yml
-    INHERIT: prompts.yml
-    agents:
-      my_agent:
-        library_system_prompts:
-          - my_prompt
-    ```
+```yaml
+# prompts/roles.yml
+prompts:
+  system_prompts:
+    technical_expert:
+      type: role
+      content: ...
 
-The integration of this functionality will get improved soon!
+# prompts/styles.yml  
+prompts:
+  system_prompts:
+    professional:
+      type: tone
+      content: ...
+
+# agents.yml
+INHERIT: 
+  - prompts/roles.yml
+  - prompts/styles.yml
+
+agents:
+  my_agent:
+    system_prompts:
+      - type: library
+        reference: technical_expert
+      - type: library
+        reference: professional
+```
+
+### Naming Conventions
+Use clear, descriptive names:
+
+- **Roles**: `expert_analyst`, `code_reviewer`, `technical_writer`
+- **Methodologies**: `step_by_step`, `analytical`, `iterative`
+- **Tones**: `professional`, `friendly`, `formal`, `casual`
+- **Formats**: `markdown`, `structured`, `bullet_points`
+
+### Documentation
+Document your prompts:
+
+```yaml
+prompts:
+  system_prompts:
+    expert_analyst:
+      type: role
+      content: |
+        You are an expert data analyst with 10+ years experience.
+        
+        Core competencies:
+        - Statistical analysis and modeling
+        - Data visualization and reporting
+        - Business intelligence and insights
+      # Internal documentation (not sent to agent)
+      description: "Primary role for data analysis agents"
+      tags: ["data", "analysis", "expert"]
+      version: "1.2"
+```
+
+## System Prompts Format
+
+The system prompts format allows you to mix different prompt types:
+
+```yaml
+agents:
+  my_agent:
+    system_prompts:
+      - "Direct prompt"
+      - type: library
+        reference: expert_role
+      - type: library
+        reference: professional_tone
+```
+
+This format provides:
+- **Type safety**: Clear discrimination between prompt types
+- **Flexibility**: Mix different prompt sources in one list
+- **Extensibility**: Support for multiple prompt types
+- **Consistency**: Unified approach across all prompt types
