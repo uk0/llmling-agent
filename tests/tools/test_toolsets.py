@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
@@ -12,11 +11,6 @@ from llmling_agent_toolsets.openapi import OpenAPITools
 
 if TYPE_CHECKING:
     from jsonschema_path.typing import Schema
-
-skip_py314 = pytest.mark.skipif(
-    sys.version_info >= (3, 14),
-    reason="openapi-spec-validator is not compatible with Python 3.14",
-)
 
 
 BASE_URL = "https://api.example.com"
@@ -90,7 +84,6 @@ def mock_openapi_spec(tmp_path):
     return {"local_path": str(local_spec), "remote_url": url}
 
 
-@skip_py314
 async def test_openapi_toolset_local(mock_openapi_spec):
     """Test OpenAPI toolset with local file."""
     from openapi_spec_validator import validate
@@ -103,7 +96,6 @@ async def test_openapi_toolset_local(mock_openapi_spec):
     assert len(tools) == 1, f"Expected 1 tool, got {len(tools)}: {tools}"
 
 
-@skip_py314
 async def test_openapi_toolset_remote(mock_openapi_spec, caplog, monkeypatch):
     """Test OpenAPI toolset with remote spec."""
     from openapi_spec_validator import validate
