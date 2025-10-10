@@ -59,5 +59,9 @@ StopReason = Literal[
     "end_turn", "max_tokens", "max_turn_requests", "refusal", "cancelled"
 ]
 
+# Plan entry types
+PlanEntryPriority = Literal["high", "medium", "low"]
+PlanEntryStatus = Literal["pending", "in_progress", "completed"]
+
 JsonValue = Any
 MethodHandler = Callable[[str, JsonValue | None, bool], Awaitable[JsonValue | None]]
