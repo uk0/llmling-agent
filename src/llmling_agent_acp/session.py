@@ -33,7 +33,7 @@ from llmling_agent_acp.converters import (
 
 # Tools that send their own rich ACP notifications (with ToolCallLocation, etc.)
 # These tools are excluded from generic session-level notifications to prevent duplication
-ACP_SELF_NOTIFYING_TOOLS = {"read_text_file", "write_text_file"}
+ACP_SELF_NOTIFYING_TOOLS = {"read_text_file", "write_text_file", "run_command"}
 
 
 if TYPE_CHECKING:

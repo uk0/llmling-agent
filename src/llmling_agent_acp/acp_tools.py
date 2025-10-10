@@ -18,6 +18,7 @@ from acp.schema import (
     ReleaseTerminalRequest,
     SessionNotification,
     TerminalOutputRequest,
+    TerminalToolCallContent,
     TextContentBlock,
     ToolCallLocation,
     ToolCallProgress,
@@ -154,17 +155,12 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                 source="terminal",
                 name_override="release_terminal",
             ),
-            Tool.from_callable(
-                self._create_run_command_with_timeout_tool(),
-                source="terminal",
-                name_override="run_command_with_timeout",
-            ),
         ]
 
     # Terminal Tool Implementations
 
     def _create_run_command_tool(self):
-        """Create a tool that runs commands via the ACP client."""
+        """Create a tool that runs commands with live terminal output."""
 
         async def run_command(  # noqa: D417
             ctx: RunContext[Any],
@@ -173,51 +169,121 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             cwd: str | None = None,
             env: dict[str, str] | None = None,
             output_char_limit: int | None = None,
+            timeout_seconds: int | None = None,
         ) -> str:
-            r"""Execute a shell command and return its output.
+            r"""Execute a shell command with live terminal output visible to the user.
 
-            Use this tool when you need to run a command and see its complete output.
-            This handles the full lifecycle: creates terminal, runs command,
-            waits for completion, captures output, and cleans up automatically.
+            This tool shows real-time command output in the UI as it happens,
+            perfect for long-running commands like builds, tests, or installations.
 
             Args:
-                command: The command to execute (e.g., 'echo', 'ls', 'python')
-                args: Command arguments as list (e.g., ['hello world'] for echo)
+                command: The command to execute (e.g., 'npm', 'python', 'make')
+                args: Command arguments as list (e.g., ['test', '--coverage'])
                 cwd: Working directory path
                 env: Environment variables as key-value pairs
-                output_char_limit: Maximum number of characters to capture from output
+                output_char_limit: Maximum output characters to retain
+                timeout_seconds: Maximum time to wait for command completion
 
             Returns:
-                Complete command output including stdout/stderr and exit status
+                Command completion status and any final output
             """
-            create_request = CreateTerminalRequest(
-                session_id=self.session_id,
-                command=command,
-                args=args or [],
-                cwd=cwd,
-                env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
-                output_byte_limit=output_char_limit,
+            # Send initial tool call notification
+            assert ctx.tool_call_id, (
+                "Tool call ID must be present for terminal operations"
             )
+
             try:
+                # Create terminal
+                create_request = CreateTerminalRequest(
+                    session_id=self.session_id,
+                    command=command,
+                    args=args or [],
+                    cwd=cwd,
+                    env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
+                    output_byte_limit=output_char_limit,
+                )
+
                 create_response = await self.agent.connection.create_terminal(
                     create_request
                 )
-                logger.info("🔧 DEBUG: Got create_response: %s", create_response)
                 terminal_id = create_response.terminal_id
-                logger.info("🔧 DEBUG: Extracted terminal_id: %s", terminal_id)
 
-                # Wait for completion
-                logger.info("🔧 DEBUG: Creating wait_request")
+                # Send initial notification with embedded terminal for live output
+                cmd_display = f"{command} {' '.join(args or [])}"
+                initial_update = SessionNotification(
+                    session_id=self.session_id,
+                    update=ToolCallStart(
+                        tool_call_id=ctx.tool_call_id,
+                        status="pending",
+                        title=f"Running: {cmd_display}",
+                        kind="execute",
+                        content=[TerminalToolCallContent(terminal_id=terminal_id)],
+                    ),
+                )
+                await self.agent.connection.session_update(initial_update)
+
+                # Wait for completion (with optional timeout)
                 wait_request = WaitForTerminalExitRequest(
                     session_id=self.session_id,
                     terminal_id=terminal_id,
                 )
-                logger.info("🔧 DEBUG: Calling wait_for_terminal_exit")
-                await self.agent.connection.wait_for_terminal_exit(wait_request)
-                logger.info("🔧 DEBUG: Terminal exit completed")
 
-                # Get output
-                logger.info("🔧 DEBUG: Getting terminal output")
+                if timeout_seconds:
+                    import asyncio
+
+                    try:
+                        exit_result = await asyncio.wait_for(
+                            self.agent.connection.wait_for_terminal_exit(wait_request),
+                            timeout=timeout_seconds,
+                        )
+                    except TimeoutError:
+                        # Kill the command on timeout
+                        kill_request = KillTerminalCommandRequest(
+                            session_id=self.session_id,
+                            terminal_id=terminal_id,
+                        )
+                        await self.agent.connection.kill_terminal(kill_request)
+
+                        # Get output before releasing
+                        output_request = TerminalOutputRequest(
+                            session_id=self.session_id,
+                            terminal_id=terminal_id,
+                        )
+                        output_response = await self.agent.connection.terminal_output(
+                            output_request
+                        )
+
+                        # Send timeout notification
+                        timeout_update = SessionNotification(
+                            session_id=self.session_id,
+                            update=ToolCallProgress(
+                                tool_call_id=ctx.tool_call_id,
+                                status="failed",
+                                title=f"Command timed out after {timeout_seconds}s",
+                                content=[
+                                    TerminalToolCallContent(terminal_id=terminal_id)
+                                ],
+                            ),
+                        )
+                        await self.agent.connection.session_update(timeout_update)
+
+                        # Release terminal
+                        release_request = ReleaseTerminalRequest(
+                            session_id=self.session_id,
+                            terminal_id=terminal_id,
+                        )
+                        await self.agent.connection.release_terminal(release_request)
+
+                        return (
+                            f"Command timed out after {timeout_seconds} seconds. "
+                            f"Output: \n{output_response.output}"
+                        )
+                else:
+                    exit_result = await self.agent.connection.wait_for_terminal_exit(
+                        wait_request
+                    )
+
+                # Get final output
                 output_request = TerminalOutputRequest(
                     session_id=self.session_id,
                     terminal_id=terminal_id,
@@ -225,27 +291,48 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                 output_response = await self.agent.connection.terminal_output(
                     output_request
                 )
-                logger.info("🔧 DEBUG: Got output response")
 
-                # Release terminal
-                logger.info("🔧 DEBUG: Releasing terminal")
+                # Send completion notification (terminal remains embedded for viewing)
+                status = "completed" if (exit_result.exit_code or 0) == 0 else "failed"
+                exit_code = exit_result.exit_code or 0
+
+                completion_update = SessionNotification(
+                    session_id=self.session_id,
+                    update=ToolCallProgress(
+                        tool_call_id=ctx.tool_call_id,
+                        status=status,
+                        title=f"Command completed (exit code: {exit_code})",
+                        content=[TerminalToolCallContent(terminal_id=terminal_id)],
+                    ),
+                )
+                await self.agent.connection.session_update(completion_update)
+
+                # Release terminal (output remains visible in UI)
                 release_request = ReleaseTerminalRequest(
                     session_id=self.session_id,
                     terminal_id=terminal_id,
                 )
                 await self.agent.connection.release_terminal(release_request)
-                logger.info("🔧 DEBUG: Terminal released")
 
-                result = output_response.output
-                if output_response.exit_status:
-                    code = output_response.exit_status.exit_code
-                    if code is not None:
-                        result += f"\n[Command exited with code {code}]"
-                    if output_response.exit_status.signal:
-                        signal = output_response.exit_status.signal
-                        result += f"\n[Terminated by signal {signal}]"
-
+                # Return summary for tool result
+                result = f"Command completed with exit code {exit_code}"
+                if output_response.truncated:
+                    result += " (output was truncated)"
             except Exception as e:  # noqa: BLE001
+                # Send error notification
+                error_update = SessionNotification(
+                    session_id=self.session_id,
+                    update=ToolCallProgress(
+                        tool_call_id=ctx.tool_call_id,
+                        status="failed",
+                        title=f"Command failed: {e}",
+                    ),
+                )
+                try:
+                    await self.agent.connection.session_update(error_update)
+                except Exception:  # noqa: BLE001
+                    logger.warning("Failed to send error update")
+
                 return f"Error executing command: {e}"
             else:
                 return result
