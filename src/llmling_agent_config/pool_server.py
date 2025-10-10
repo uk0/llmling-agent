@@ -11,7 +11,7 @@ from schemez import Schema
 TransportType = Literal["stdio", "sse", "streamable-http"]
 
 
-class PoolServerConfig(Schema):
+class PoolServerMCPConfig(Schema):
     """Configuration for pool-based MCP server."""
 
     enabled: bool = False

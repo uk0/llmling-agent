@@ -18,7 +18,7 @@ from llmling_agent_config.mcp_server import (
     StdioMCPServerConfig,
 )
 from llmling_agent_config.observability import ObservabilityConfig
-from llmling_agent_config.pool_server import PoolServerConfig
+from llmling_agent_config.pool_server import PoolServerMCPConfig
 from llmling_agent_config.prompts import PromptConfig
 from llmling_agent_config.providers import BaseProviderConfig
 from llmling_agent_config.resources import (  # noqa: TC001
@@ -103,7 +103,7 @@ class AgentsManifest(Schema):
 
     These MCP servers are used to provide tools and other resources to the nodes.
     """
-    pool_server: PoolServerConfig = Field(default_factory=PoolServerConfig)
+    pool_server: PoolServerMCPConfig = Field(default_factory=PoolServerMCPConfig)
     """Pool server configuration.
 
     This MCP server configuration is used for the pool MCP server,

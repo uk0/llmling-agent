@@ -5519,7 +5519,7 @@
       "title": "PlainConverterConfig",
       "type": "object"
     },
-    "PoolServerConfig": {
+    "PoolServerMCPConfig": {
       "additionalProperties": false,
       "description": "Configuration for pool-based MCP server.",
       "properties": {
@@ -5599,7 +5599,7 @@
           "type": "boolean"
         }
       },
-      "title": "PoolServerConfig",
+      "title": "PoolServerMCPConfig",
       "type": "object"
     },
     "PrePostPromptConfig": {
@@ -9137,7 +9137,7 @@
       "type": "array"
     },
     "pool_server": {
-      "$ref": "#/$defs/PoolServerConfig",
+      "$ref": "#/$defs/PoolServerMCPConfig",
       "description": "Pool server configuration.\n\nThis MCP server configuration is used for the pool MCP server,\nwhich exposes pool functionality to other applications / clients."
     },
     "prompts": {

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from mcp.client.session import RequestContext
     from mcp.types import Tool, Tool as MCPTool
 
-    from llmling_agent_config.mcp_server import TransportType
+    from llmling_agent_config.pool_server import TransportType
 
 logger = get_logger(__name__)
 
