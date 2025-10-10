@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from acp.core import Client
+from acp.client import Client
 from acp.schema import (
     AllowedOutcome,
     DeniedOutcome,

@@ -1,7 +1,8 @@
 """Agent Client protocol (ACP) implementation."""
 
-from acp.client import DefaultACPClient
-from acp.core import AgentSideConnection, ClientSideConnection, create_session_model_state
+from acp.client import DefaultACPClient, ClientSideConnection
+from acp.agent import AgentSideConnection
+from acp.core import create_session_model_state
 from acp.agent.protocol import (
     Agent,
     AgentExtensibilityCapability,
