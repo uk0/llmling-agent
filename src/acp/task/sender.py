@@ -26,9 +26,13 @@ class _PendingSend:
 
 
 class MessageSender:
-    """Sender class for sending messages to a remote peer."""
+    """Async message sender that queues and transmits JSON-RPC messages."""
 
-    def __init__(self, writer: asyncio.StreamWriter, supervisor: TaskSupervisor) -> None:
+    def __init__(
+        self,
+        writer: asyncio.StreamWriter,
+        supervisor: TaskSupervisor,
+    ) -> None:
         self._writer = writer
         self._queue: asyncio.Queue[_PendingSend | None] = asyncio.Queue()
         self._closed = False

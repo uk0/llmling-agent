@@ -162,8 +162,7 @@ class ACPServer:
                 create_acp_agent,
                 writer,
                 reader,
-                debug_messages=self._debug_messages,
-                debug_file=self._debug_file,
+                debug_file=self._debug_file if self._debug_messages else None,
             )
 
             logger.info(
