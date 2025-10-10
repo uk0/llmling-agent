@@ -313,9 +313,8 @@ class ACPCapabilityResourceProvider(ResourceProvider):
                     terminal_id=terminal_id,
                 )
                 await self.agent.connection.release_terminal(release_request)
-
-                # Return summary for tool result
-                result = f"Command completed with exit code {exit_code}"
+                result = f"Command completed with exit code {exit_code}:\n"
+                result += f"Output:\n{output_response.output}"
                 if output_response.truncated:
                     result += " (output was truncated)"
             except Exception as e:  # noqa: BLE001
