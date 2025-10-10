@@ -112,7 +112,6 @@ class TestACPCapabilityProvider:
             "wait_for_terminal_exit",
             "kill_terminal",
             "release_terminal",
-            "run_command_with_timeout",
         }
 
         # Should have all filesystem tools
@@ -143,7 +142,6 @@ class TestACPCapabilityProvider:
             "wait_for_terminal_exit",
             "kill_terminal",
             "release_terminal",
-            "run_command_with_timeout",
         }
 
         assert expected_terminal_tools.issubset(tool_names)
@@ -177,7 +175,6 @@ class TestACPCapabilityProvider:
             "wait_for_terminal_exit",
             "kill_terminal",
             "release_terminal",
-            "run_command_with_timeout",
         }
         assert not terminal_tools.intersection(tool_names)
 
@@ -271,7 +268,7 @@ class TestSessionScopedTerminalTools:
         result = await run_tool.execute(ctx=CTX, command="echo", args=["Hello World"])
 
         assert "Hello World" in result
-        assert "[Command exited with code 0]" in result
+        assert result == "Command completed with exit code 0:\nOutput:\nHello World\n"
 
         # Verify ACP calls were made with correct session_id
         agent = provider.agent
@@ -372,14 +369,14 @@ class TestSessionScopedTerminalTools:
     async def test_run_command_with_timeout_success(self, provider_with_tools):
         """Test run_command_with_timeout completes successfully."""
         _provider, tools = provider_with_tools
-        timeout_tool = tools["run_command_with_timeout"]
+        timeout_tool = tools["run_command"]
 
         result = await timeout_tool.execute(
             ctx=CTX, command="echo", args=["test"], timeout_seconds=5
         )
 
         assert "Hello World" in result
-        assert "[Command exited with code 0]" in result
+        assert result == "Command completed with exit code 0:\nOutput:\nHello World\n"
 
     async def test_terminal_error_handling(self, provider_with_tools):
         """Test terminal tool error handling."""

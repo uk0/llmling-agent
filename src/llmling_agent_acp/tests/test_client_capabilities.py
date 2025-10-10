@@ -94,7 +94,6 @@ class TestClientCapabilities:
             "wait_for_terminal_exit",
             "kill_terminal",
             "release_terminal",
-            "run_command_with_timeout",
             # Filesystem tools
             "read_text_file",
             "write_text_file",
@@ -126,7 +125,6 @@ class TestClientCapabilities:
             "wait_for_terminal_exit",
             "kill_terminal",
             "release_terminal",
-            "run_command_with_timeout",
         }
 
         assert tool_names == expected_terminal_tools
