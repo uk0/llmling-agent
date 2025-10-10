@@ -35,7 +35,7 @@ def parse_prompt_reference(reference: str) -> tuple[str, str, str | None, dict[s
     """
     provider = "builtin"
     version = None
-    variables = {}
+    variables: dict[str, str] = {}
 
     # Split provider and rest
     if ":" in reference:
