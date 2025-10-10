@@ -149,11 +149,17 @@ class ACPSession:
 
         progress_handler = create_acp_progress_handler(self)
 
+        # Define accessible roots for MCP servers
+        accessible_roots = []
+        if self.cwd:
+            accessible_roots.append(str(self.cwd))
+
         self.mcp_manager = MCPManager(
             name,
             servers=cfgs,
             context=self.agent.context,
             progress_handler=progress_handler,
+            accessible_roots=accessible_roots,
         )
         try:
             # Start MCP manager and, fetch and add tools

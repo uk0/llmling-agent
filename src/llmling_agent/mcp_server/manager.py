@@ -70,6 +70,7 @@ class MCPManager(ResourceProvider):
         servers: Sequence[MCPServerConfig | str] | None = None,
         context: NodeContext | None = None,
         progress_handler: ProgressHandler | None = None,
+        accessible_roots: list[str] | None = None,
     ):
         super().__init__(name, owner=owner)
         self.servers: list[MCPServerConfig] = []
@@ -79,6 +80,7 @@ class MCPManager(ResourceProvider):
         self.clients: dict[str, MCPClient] = {}
         self.exit_stack = AsyncExitStack()
         self._progress_handler = progress_handler
+        self._accessible_roots = accessible_roots
 
     @property
     def requires_async(self) -> bool:
@@ -228,6 +230,7 @@ class MCPManager(ResourceProvider):
                     elicitation_callback=self._elicitation_callback,
                     sampling_callback=self._sampling_callback,
                     progress_handler=self._progress_handler,
+                    accessible_roots=self._accessible_roots,
                 )
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect(config.command, args=config.args, env=env)
@@ -238,6 +241,7 @@ class MCPManager(ResourceProvider):
                     elicitation_callback=self._elicitation_callback,
                     sampling_callback=self._sampling_callback,
                     progress_handler=self._progress_handler,
+                    accessible_roots=self._accessible_roots,
                 )
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect("", [], url=config.url, env=env)
@@ -248,6 +252,7 @@ class MCPManager(ResourceProvider):
                     elicitation_callback=self._elicitation_callback,
                     sampling_callback=self._sampling_callback,
                     progress_handler=self._progress_handler,
+                    accessible_roots=self._accessible_roots,
                 )
                 client = await self.exit_stack.enter_async_context(client)
                 await client.connect("", [], url=config.url, env=env)

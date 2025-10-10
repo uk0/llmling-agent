@@ -6,6 +6,8 @@ from contextlib import AsyncExitStack, suppress
 import shutil
 from typing import TYPE_CHECKING, Any, Self, TextIO
 
+import mcp
+
 from llmling_agent.log import get_logger
 
 
@@ -13,7 +15,6 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from types import TracebackType
 
-    import mcp
     from mcp import ClientSession
     from mcp.client.session import RequestContext
     from mcp.shared.session import ProgressFnT
@@ -49,6 +50,7 @@ class MCPClient:
         ]
         | None = None,
         progress_handler: ProgressHandler | None = None,
+        accessible_roots: list[str] | None = None,
     ):
         self.exit_stack = AsyncExitStack()
         self.session: ClientSession | None = None
@@ -58,6 +60,7 @@ class MCPClient:
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
         self._progress_handler = progress_handler
+        self._accessible_roots = accessible_roots or []
 
     async def __aenter__(self) -> Self:
         """Enter context and redirect stdout if in stdio mode."""
@@ -153,11 +156,35 @@ class MCPClient:
                 message="Sampling not supported",
             )
 
+        async def list_roots_wrapper(
+            context: RequestContext,
+        ) -> mcp.types.ListRootsResult | mcp.types.ErrorData:
+            """List accessible filesystem roots."""
+            from pathlib import Path
+
+            roots = []
+            for root_path in self._accessible_roots:
+                try:
+                    path = Path(root_path).resolve()
+                    if path.exists():
+                        from pydantic import FileUrl
+
+                        file_url = FileUrl(path.as_uri())
+                        roots.append(
+                            mcp.types.Root(uri=file_url, name=path.name or str(path))
+                        )
+                except (OSError, ValueError):
+                    # Skip invalid paths or inaccessible directories
+                    continue
+
+            return mcp.types.ListRootsResult(roots=roots)
+
         session = ClientSession(
             stdio,
             write,
             elicitation_callback=elicitation_wrapper,
             sampling_callback=sampling_wrapper,
+            list_roots_callback=list_roots_wrapper,
         )
         self.session = await self.exit_stack.enter_async_context(session)
         assert self.session
