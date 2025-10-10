@@ -21,6 +21,7 @@ from acp.schema import (
     TextContentBlock,
     ToolCallLocation,
     ToolCallProgress,
+    ToolCallStart,
     WaitForTerminalExitRequest,
     WriteTextFileRequest,
 )
@@ -580,6 +581,23 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             # Resolve relative paths against session cwd
             resolved_path = self._resolve_path(path)
 
+            # Send initial pending notification
+            assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
+            try:
+                pending_update = SessionNotification(
+                    session_id=self.session_id,
+                    update=ToolCallStart(
+                        tool_call_id=ctx.tool_call_id,
+                        status="pending",
+                        title=f"Reading file: {path}",
+                        kind="read",
+                        locations=[ToolCallLocation(path=resolved_path)],
+                    ),
+                )
+                await self.agent.connection.session_update(pending_update)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Failed to send pending update: %s", e)
+
             request = ReadTextFileRequest(
                 session_id=self.session_id,
                 path=resolved_path,
@@ -638,18 +656,36 @@ class ACPCapabilityResourceProvider(ResourceProvider):
         async def write_text_file(ctx: RunContext[Any], path: str, content: str) -> str:  # noqa: D417
             r"""Write text content to a file, creating or overwriting as needed.
 
-            Use this to create configuration files, save data, write scripts,
-            or update any text-based files on the client's filesystem.
-
             Args:
                 path: File path (absolute or relative to session cwd)
-                content: The complete text content to write to the file
+                content: Text content to write to the file
 
             Returns:
-                Success confirmation message, or error message if write fails
+                Success message or error description
+
+            Example:
+                write_text_file('config.json', '{"debug": true}') ->
+                'Successfully wrote file: config.json'
             """
             # Resolve relative paths against session cwd
             resolved_path = self._resolve_path(path)
+
+            # Send initial pending notification
+            assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
+            try:
+                pending_update = SessionNotification(
+                    session_id=self.session_id,
+                    update=ToolCallStart(
+                        tool_call_id=ctx.tool_call_id,
+                        status="pending",
+                        title=f"Writing file: {path}",
+                        kind="edit",
+                        locations=[ToolCallLocation(path=resolved_path)],
+                    ),
+                )
+                await self.agent.connection.session_update(pending_update)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Failed to send pending update: %s", e)
 
             request = WriteTextFileRequest(
                 session_id=self.session_id,
