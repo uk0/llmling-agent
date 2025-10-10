@@ -1,4 +1,4 @@
-"""Client ACP Connection."""
+"""Agent ACP Connection."""
 
 from __future__ import annotations
 
