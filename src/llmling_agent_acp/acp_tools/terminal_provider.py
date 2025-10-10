@@ -1,33 +1,24 @@
-"""ACP capability-based resource provider."""
+"""ACP terminal provider for shell command execution."""
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunContext  # noqa: TC002
 
-from acp.acp_types import PlanEntryPriority, PlanEntryStatus  # noqa: TC001
 from acp.schema import (
-    AgentPlan,
-    ContentToolCallContent,
     CreateTerminalRequest,
     EnvVariable,
     KillTerminalCommandRequest,
-    PlanEntry,
-    ReadTextFileRequest,
     ReleaseTerminalRequest,
     SessionNotification,
     TerminalOutputRequest,
     TerminalToolCallContent,
-    TextContentBlock,
-    ToolCallLocation,
     ToolCallProgress,
     ToolCallStart,
     WaitForTerminalExitRequest,
-    WriteTextFileRequest,
 )
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
@@ -42,12 +33,12 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class ACPCapabilityResourceProvider(ResourceProvider):
-    """Provides ACP client-side tools based on capabilities and session context.
+class ACPTerminalProvider(ResourceProvider):
+    """Provides ACP terminal-related tools for command execution.
 
-    This provider creates session-aware tools for terminal operations, filesystem
-    access, and other ACP client capabilities. All tools have the session ID
-    baked in at creation time, eliminating the need for parameter injection.
+    This provider creates session-aware tools for executing shell commands
+    via the ACP client. All tools have the session ID baked in at creation time,
+    eliminating the need for parameter injection.
     """
 
     def __init__(
@@ -57,7 +48,7 @@ class ACPCapabilityResourceProvider(ResourceProvider):
         client_capabilities: ClientCapabilities,
         cwd: str | None = None,
     ):
-        """Initialize capability provider.
+        """Initialize terminal provider.
 
         Args:
             agent: The ACP agent instance
@@ -65,106 +56,49 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             client_capabilities: Client-reported capabilities
             cwd: Current working directory for relative path resolution
         """
-        super().__init__(name=f"acp_capabilities_{session_id}")
+        super().__init__(name=f"acp_terminal_{session_id}")
         self.agent = agent
         self.session_id = session_id
         self.client_capabilities = client_capabilities
         self.cwd = cwd
-        self._current_plan: list[PlanEntry] = []
-
-    def _resolve_path(self, path: str) -> str:
-        """Resolve a potentially relative path to an absolute path.
-
-        If cwd is set and path is relative, resolves relative to cwd.
-        Otherwise returns the path as-is.
-
-        Args:
-            path: Path that may be relative or absolute
-
-        Returns:
-            Absolute path string
-        """
-        if self.cwd and not (path.startswith("/") or (len(path) > 1 and path[1] == ":")):
-            # Path appears to be relative and we have a cwd
-
-            return str(Path(self.cwd) / path)
-        return path
 
     async def get_tools(self) -> list[Tool]:
-        """Get tools based on client capabilities."""
-        tools: list[Tool] = []
-
-        # Plan tools - always available for ACP sessions
-        tools.extend(self._get_plan_tools())
-
-        # Terminal tools if supported by both client and agent
-        if self.client_capabilities.terminal and self.agent.terminal_access:
-            tools.extend(self._get_terminal_tools())
-
-        # Filesystem tools if supported
-        if fs_caps := self.client_capabilities.fs:
-            # Convert dict to FileSystemCapability if needed
-            if isinstance(fs_caps, dict):
-                from acp.schema import FileSystemCapability
-
-                fs_caps = FileSystemCapability(
-                    read_text_file=fs_caps.get("readTextFile", False),
-                    write_text_file=fs_caps.get("writeTextFile", False),
-                )
-
-            if fs_caps.read_text_file:
-                tool = Tool.from_callable(
-                    self._create_read_text_file_tool(),
-                    source="filesystem",
-                    name_override="read_text_file",
-                )
-                tools.append(tool)
-            if fs_caps.write_text_file:
-                tool = Tool.from_callable(
-                    self._create_write_text_file_tool(),
-                    source="filesystem",
-                    name_override="write_text_file",
-                )
-                tools.append(tool)
-
-        return tools
-
-    def _get_terminal_tools(self) -> list[Tool]:
         """Get all terminal tools with session_id baked in."""
-        return [
-            Tool.from_callable(
-                self._create_run_command_tool(),
-                source="terminal",
-                name_override="run_command",
-            ),
-            Tool.from_callable(
-                self._create_get_command_output_tool(),
-                source="terminal",
-                name_override="get_command_output",
-            ),
-            Tool.from_callable(
-                self._create_create_terminal_tool(),
-                source="terminal",
-                name_override="create_terminal",
-            ),
-            Tool.from_callable(
-                self._create_wait_for_terminal_exit_tool(),
-                source="terminal",
-                name_override="wait_for_terminal_exit",
-            ),
-            Tool.from_callable(
-                self._create_kill_terminal_tool(),
-                source="terminal",
-                name_override="kill_terminal",
-            ),
-            Tool.from_callable(
-                self._create_release_terminal_tool(),
-                source="terminal",
-                name_override="release_terminal",
-            ),
-        ]
+        if self.client_capabilities.terminal and self.agent.terminal_access:
+            return [
+                Tool.from_callable(
+                    self._create_run_command_tool(),
+                    source="terminal",
+                    name_override="run_command",
+                ),
+                Tool.from_callable(
+                    self._create_get_command_output_tool(),
+                    source="terminal",
+                    name_override="get_command_output",
+                ),
+                Tool.from_callable(
+                    self._create_create_terminal_tool(),
+                    source="terminal",
+                    name_override="create_terminal",
+                ),
+                Tool.from_callable(
+                    self._create_wait_for_terminal_exit_tool(),
+                    source="terminal",
+                    name_override="wait_for_terminal_exit",
+                ),
+                Tool.from_callable(
+                    self._create_kill_terminal_tool(),
+                    source="terminal",
+                    name_override="kill_terminal",
+                ),
+                Tool.from_callable(
+                    self._create_release_terminal_tool(),
+                    source="terminal",
+                    name_override="release_terminal",
+                ),
+            ]
 
-    # Terminal Tool Implementations
+        return []
 
     def _create_run_command_tool(self):
         """Create a tool that runs commands with live terminal output."""
@@ -643,329 +577,3 @@ class ACPCapabilityResourceProvider(ResourceProvider):
             return result
 
         return run_command_with_timeout
-
-    # Filesystem Tool Implementations
-
-    def _create_read_text_file_tool(self):
-        """Create a tool that reads text files via the ACP client."""
-
-        async def read_text_file(  # noqa: D417
-            ctx: RunContext[Any],
-            path: str,
-            line: int | None = None,
-            limit: int | None = None,
-        ) -> str:
-            r"""Read the contents of a text file.
-
-            Use this to read configuration files, source code,
-            logs, or any text-based files from the client's filesystem.
-
-            Args:
-                path: File path (absolute or relative to session cwd)
-                line: Optional line number to start reading from (1-based indexing)
-                limit: Optional maximum number of lines to read from the starting line
-
-            Returns:
-                Complete file contents as text, or error message if file cannot be read
-
-            Example:
-                read_text_file('src/main.py') -> 'def main():\\n    pass'
-            """
-            # Resolve relative paths against session cwd
-            resolved_path = self._resolve_path(path)
-
-            # Send initial pending notification
-            assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
-            try:
-                start = ToolCallStart(
-                    tool_call_id=ctx.tool_call_id,
-                    status="pending",
-                    title=f"Reading file: {path}",
-                    kind="read",
-                    locations=[ToolCallLocation(path=resolved_path)],
-                )
-                notifi = SessionNotification(session_id=self.session_id, update=start)
-                await self.agent.connection.session_update(notifi)
-            except Exception as e:  # noqa: BLE001
-                logger.warning("Failed to send pending update: %s", e)
-
-            request = ReadTextFileRequest(
-                session_id=self.session_id,
-                path=resolved_path,
-                line=line,
-                limit=limit,
-            )
-
-            try:
-                response = await self.agent.connection.read_text_file(request)
-
-                # Send completion update
-                assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
-                block = TextContentBlock(text=f"````\n{response.content}\n````")
-                progress = ToolCallProgress(
-                    tool_call_id=ctx.tool_call_id,
-                    status="completed",
-                    locations=[ToolCallLocation(path=resolved_path)],
-                    content=[ContentToolCallContent(content=block)],
-                )
-                notifi = SessionNotification(session_id=self.session_id, update=progress)
-                try:
-                    await self.agent.connection.session_update(notifi)
-                except Exception as e:  # noqa: BLE001
-                    logger.warning("Failed to send completed update: %s", e)
-
-            except Exception as e:  # noqa: BLE001
-                # Send failed update
-                assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
-                progress = ToolCallProgress(
-                    tool_call_id=ctx.tool_call_id,
-                    status="failed",
-                    raw_output=f"Error: {e}",
-                )
-                failed = SessionNotification(session_id=self.session_id, update=progress)
-                try:
-                    await self.agent.connection.session_update(failed)
-                except Exception:  # noqa: BLE001
-                    logger.warning("Failed to send failed update")
-
-                return f"Error reading file: {e}"
-            else:
-                return response.content
-
-        return read_text_file
-
-    def _create_write_text_file_tool(self):
-        """Create a tool that writes text files via the ACP client."""
-
-        async def write_text_file(ctx: RunContext[Any], path: str, content: str) -> str:  # noqa: D417
-            r"""Write text content to a file, creating or overwriting as needed.
-
-            Args:
-                path: File path (absolute or relative to session cwd)
-                content: Text content to write to the file
-
-            Returns:
-                Success message or error description
-
-            Example:
-                write_text_file('config.json', '{"debug": true}') ->
-                'Successfully wrote file: config.json'
-            """
-            # Resolve relative paths against session cwd
-            resolved_path = self._resolve_path(path)
-
-            # Send initial pending notification
-            assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
-            try:
-                update = ToolCallStart(
-                    tool_call_id=ctx.tool_call_id,
-                    status="pending",
-                    title=f"Writing file: {path}",
-                    kind="edit",
-                    locations=[ToolCallLocation(path=resolved_path)],
-                )
-                noti = SessionNotification(session_id=self.session_id, update=update)
-                await self.agent.connection.session_update(noti)
-            except Exception as e:  # noqa: BLE001
-                logger.warning("Failed to send pending update: %s", e)
-
-            request = WriteTextFileRequest(
-                session_id=self.session_id,
-                path=resolved_path,
-                content=content,
-            )
-
-            try:
-                await self.agent.connection.write_text_file(request)
-
-                # Send completion update
-                assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
-                try:
-                    block = TextContentBlock(text=content)
-                    tool_content = ContentToolCallContent(content=block)
-                    progress = ToolCallProgress(
-                        tool_call_id=ctx.tool_call_id,
-                        status="completed",
-                        locations=[ToolCallLocation(path=resolved_path)],
-                        content=[tool_content],
-                    )
-                    s = SessionNotification(session_id=self.session_id, update=progress)
-                    await self.agent.connection.session_update(s)
-                except Exception as e:  # noqa: BLE001
-                    logger.warning("Failed to send completed update: %s", e)
-
-            except Exception as e:  # noqa: BLE001
-                # Send failed update
-                assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
-                try:
-                    progress = ToolCallProgress(
-                        tool_call_id=ctx.tool_call_id,
-                        status="failed",
-                        raw_output=f"Error: {e}",
-                    )
-                    s = SessionNotification(session_id=self.session_id, update=progress)
-                    await self.agent.connection.session_update(s)
-                except Exception:  # noqa: BLE001
-                    logger.warning("Failed to send failed update")
-
-                return f"Error writing file: {e}"
-            else:
-                return f"Successfully wrote file: {path}"
-
-        return write_text_file
-
-    def _get_plan_tools(self) -> list[Tool]:
-        """Get plan management tools."""
-        return [
-            Tool.from_callable(
-                self._create_add_plan_entry_tool(),
-                source="planning",
-                name_override="add_plan_entry",
-            ),
-            Tool.from_callable(
-                self._create_update_plan_entry_tool(),
-                source="planning",
-                name_override="update_plan_entry",
-            ),
-            Tool.from_callable(
-                self._create_remove_plan_entry_tool(),
-                source="planning",
-                name_override="remove_plan_entry",
-            ),
-        ]
-
-    def _create_add_plan_entry_tool(self):
-        """Create add plan entry tool."""
-
-        async def add_plan_entry(
-            content: str,
-            priority: PlanEntryPriority = "medium",
-            index: int | None = None,
-        ) -> str:
-            """Add a new plan entry.
-
-            Args:
-                content: Description of what this task aims to accomplish
-                priority: Relative importance (high/medium/low)
-                index: Optional position to insert at (default: append to end)
-
-            Returns:
-                Success message indicating entry was added
-            """
-            entry = PlanEntry(
-                content=content,
-                priority=priority,
-                status="pending",
-            )
-
-            if index is None:
-                self._current_plan.append(entry)
-                entry_index = len(self._current_plan) - 1
-            else:
-                if index < 0 or index > len(self._current_plan):
-                    return (
-                        f"Error: Index {index} out of range (0-{len(self._current_plan)})"
-                    )
-                self._current_plan.insert(index, entry)
-                entry_index = index
-
-            # Send plan update
-            await self._send_plan_update()
-
-            return (
-                f"Added plan entry at index {entry_index}: "
-                f"'{content}' (priority: {priority})"
-            )
-
-        return add_plan_entry
-
-    def _create_update_plan_entry_tool(self):
-        """Create update plan entry tool."""
-
-        async def update_plan_entry(
-            index: int,
-            content: str | None = None,
-            status: PlanEntryStatus | None = None,
-            priority: PlanEntryPriority | None = None,
-        ) -> str:
-            """Update an existing plan entry.
-
-            Args:
-                index: Position of entry to update (0-based)
-                content: New task description
-                status: New execution status
-                priority: New priority level
-
-            Returns:
-                Success message indicating what was updated
-            """
-            if index < 0 or index >= len(self._current_plan):
-                return (
-                    f"Error: Index {index} out of range (0-{len(self._current_plan) - 1})"
-                )
-
-            entry = self._current_plan[index]
-            updates = []
-
-            if content is not None:
-                entry.content = content
-                updates.append(f"content to '{content}'")
-
-            if status is not None:
-                entry.status = status
-                updates.append(f"status to '{status}'")
-
-            if priority is not None:
-                entry.priority = priority
-                updates.append(f"priority to '{priority}'")
-
-            if not updates:
-                return "No changes specified"
-
-            # Send plan update
-            await self._send_plan_update()
-
-            return f"Updated entry {index}: {', '.join(updates)}"
-
-        return update_plan_entry
-
-    def _create_remove_plan_entry_tool(self):
-        """Create remove plan entry tool."""
-
-        async def remove_plan_entry(index: int) -> str:
-            """Remove a plan entry.
-
-            Args:
-                index: Position of entry to remove (0-based)
-
-            Returns:
-                Success message indicating entry was removed
-            """
-            if index < 0 or index >= len(self._current_plan):
-                return (
-                    f"Error: Index {index} out of range (0-{len(self._current_plan) - 1})"
-                )
-
-            removed_entry = self._current_plan.pop(index)
-
-            # Send plan update
-            await self._send_plan_update()
-
-            if self._current_plan:
-                return (
-                    f"Removed entry {index}: '{removed_entry.content}', "
-                    f"remaining entries reindexed"
-                )
-            return f"Removed entry {index}: '{removed_entry.content}', plan is now empty"
-
-        return remove_plan_entry
-
-    async def _send_plan_update(self):
-        """Send current plan state via session update."""
-        if not self._current_plan:
-            # Don't send empty plans
-            return
-
-        plan = AgentPlan(entries=self._current_plan)
-        notification = SessionNotification(session_id=self.session_id, update=plan)
-        await self.agent.connection.session_update(notification)

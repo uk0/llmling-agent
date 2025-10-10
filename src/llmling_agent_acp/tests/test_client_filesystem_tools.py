@@ -18,7 +18,7 @@ from acp.schema import (
 )
 from llmling_agent import AgentPool
 from llmling_agent_acp.acp_agent import LLMlingACPAgent
-from llmling_agent_acp.acp_tools import ACPCapabilityResourceProvider
+from llmling_agent_acp.acp_tools import ACPFileSystemProvider
 
 
 CTX = RunContext(tool_call_id="test", deps=None, model=TestModel(), usage=RunUsage())
@@ -72,7 +72,7 @@ class TestClientFilesystemTools:
         """Create filesystem capability provider for testing."""
         fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
         capabilities = ClientCapabilities(fs=fs_cap, terminal=False)
-        return ACPCapabilityResourceProvider(
+        return ACPFileSystemProvider(
             agent=acp_agent,
             session_id="test_session",
             client_capabilities=capabilities,
@@ -80,7 +80,7 @@ class TestClientFilesystemTools:
 
     async def test_filesystem_tools_registered(
         self,
-        fs_provider: ACPCapabilityResourceProvider,
+        fs_provider: ACPFileSystemProvider,
     ):
         """Test that filesystem tools are registered."""
         tools = await fs_provider.get_tools()
@@ -95,7 +95,7 @@ class TestClientFilesystemTools:
     async def test_read_text_file_success(
         self,
         acp_agent: LLMlingACPAgent,
-        fs_provider: ACPCapabilityResourceProvider,
+        fs_provider: ACPFileSystemProvider,
     ):
         """Test successful file reading."""
         # Mock read file response
@@ -122,7 +122,7 @@ class TestClientFilesystemTools:
     async def test_read_text_file_with_line_and_limit(
         self,
         acp_agent: LLMlingACPAgent,
-        fs_provider: ACPCapabilityResourceProvider,
+        fs_provider: ACPFileSystemProvider,
     ):
         """Test file reading with line and limit parameters."""
         # Mock read file response
@@ -155,7 +155,7 @@ class TestClientFilesystemTools:
     async def test_read_text_file_error(
         self,
         acp_agent: LLMlingACPAgent,
-        fs_provider: ACPCapabilityResourceProvider,
+        fs_provider: ACPFileSystemProvider,
     ):
         """Test file reading error handling."""
         # Mock read file error
@@ -175,7 +175,7 @@ class TestClientFilesystemTools:
     async def test_write_text_file_success(
         self,
         acp_agent: LLMlingACPAgent,
-        fs_provider: ACPCapabilityResourceProvider,
+        fs_provider: ACPFileSystemProvider,
     ):
         """Test successful file writing."""
         # Mock write file response
@@ -206,7 +206,7 @@ class TestClientFilesystemTools:
     async def test_write_text_file_json(
         self,
         acp_agent: LLMlingACPAgent,
-        fs_provider: ACPCapabilityResourceProvider,
+        fs_provider: ACPFileSystemProvider,
     ):
         """Test writing JSON content."""
         # Mock write file response
@@ -234,7 +234,7 @@ class TestClientFilesystemTools:
         assert call_args.content == json_str
 
     async def test_write_text_file_error(
-        self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
+        self, acp_agent: LLMlingACPAgent, fs_provider: ACPFileSystemProvider
     ):
         """Test file writing error handling."""
         # Mock write file error
@@ -256,7 +256,7 @@ class TestClientFilesystemTools:
         assert "Permission denied" in result
 
     async def test_read_empty_file(
-        self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
+        self, acp_agent: LLMlingACPAgent, fs_provider: ACPFileSystemProvider
     ):
         """Test reading an empty file."""
         # Mock empty file response
@@ -276,7 +276,7 @@ class TestClientFilesystemTools:
         assert result == ""
 
     async def test_write_empty_file(
-        self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
+        self, acp_agent: LLMlingACPAgent, fs_provider: ACPFileSystemProvider
     ):
         """Test writing empty content to a file."""
         # Mock write file response
@@ -301,7 +301,7 @@ class TestClientFilesystemTools:
         assert call_args.content == ""
 
     async def test_read_file_with_unicode(
-        self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
+        self, acp_agent: LLMlingACPAgent, fs_provider: ACPFileSystemProvider
     ):
         """Test reading file with unicode content."""
         unicode_content = "Hello 世界! 🌍\nThis has émojis and spëcial chars: café"
@@ -323,7 +323,7 @@ class TestClientFilesystemTools:
         assert "café" in result
 
     async def test_write_file_with_unicode(
-        self, acp_agent: LLMlingACPAgent, fs_provider: ACPCapabilityResourceProvider
+        self, acp_agent: LLMlingACPAgent, fs_provider: ACPFileSystemProvider
     ):
         """Test writing file with unicode content."""
         unicode_content = "Testing unicode: 日本語, русский, العربية 🎉"

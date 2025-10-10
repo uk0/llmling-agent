@@ -20,7 +20,12 @@ from acp.schema import (
 )
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
-from llmling_agent_acp.acp_tools import ACPCapabilityResourceProvider
+from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
+from llmling_agent_acp.acp_tools import (
+    ACPFileSystemProvider,
+    ACPPlanProvider,
+    ACPTerminalProvider,
+)
 from llmling_agent_acp.command_bridge import is_slash_command
 from llmling_agent_acp.converters import (
     convert_acp_mcp_server_to_config,
@@ -111,13 +116,18 @@ class ACPSession:
         self.command_bridge = command_bridge
         self.mcp_manager: MCPManager | None = None
         # self.permission_server: PermissionMCPServer | None = None
-        self.capability_provider: ACPCapabilityResourceProvider | None = None
+        self.capability_provider: AggregatingResourceProvider | None = None
         if acp_agent and client_capabilities:
-            self.capability_provider = ACPCapabilityResourceProvider(
-                agent=acp_agent,
-                session_id=session_id,
-                client_capabilities=client_capabilities,
-                cwd=self.cwd,
+            providers = [
+                ACPPlanProvider(acp_agent, session_id),
+                ACPTerminalProvider(acp_agent, session_id, client_capabilities, self.cwd),
+                ACPFileSystemProvider(
+                    acp_agent, session_id, client_capabilities, self.cwd
+                ),
+            ]
+
+            self.capability_provider = AggregatingResourceProvider(
+                providers=providers, name=f"acp_capabilities_{session_id}"
             )
             # Add capability provider to current agent
             current_agent = self.agent_pool.get_agent(current_agent_name)
