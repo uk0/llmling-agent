@@ -19,7 +19,7 @@ from llmling_agent_config.mcp_server import (
 )
 from llmling_agent_config.observability import ObservabilityConfig
 from llmling_agent_config.pool_server import MCPPoolServerConfig
-from llmling_agent_config.prompts import PromptConfig
+from llmling_agent_config.prompts import PromptLibraryConfig
 from llmling_agent_config.providers import BaseProviderConfig
 from llmling_agent_config.resources import (  # noqa: TC001
     ResourceConfig,
@@ -109,7 +109,7 @@ class AgentsManifest(Schema):
     This MCP server configuration is used for the pool MCP server,
     which exposes pool functionality to other applications / clients."""
 
-    prompts: PromptConfig = Field(default_factory=PromptConfig)
+    prompts: PromptLibraryConfig = Field(default_factory=PromptLibraryConfig)
 
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 

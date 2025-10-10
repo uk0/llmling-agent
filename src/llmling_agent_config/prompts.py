@@ -43,7 +43,7 @@ class SystemPrompt(Schema):
     model_config = ConfigDict(frozen=True)
 
 
-class PromptConfig(Schema):
+class PromptLibraryConfig(Schema):
     """Complete prompt configuration."""
 
     system_prompts: dict[str, SystemPrompt] = Field(default_factory=dict)
