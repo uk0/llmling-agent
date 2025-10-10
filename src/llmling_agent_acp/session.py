@@ -14,6 +14,7 @@ from pydantic_ai import Agent as PydanticAIAgent
 
 from acp.schema import (
     AgentMessageChunk,
+    AvailableCommandsUpdate,
     SessionNotification,
     TextContentBlock,
 )
@@ -28,6 +29,11 @@ from llmling_agent_acp.converters import (
     from_content_blocks,
     to_session_updates,
 )
+
+
+# Tools that send their own rich ACP notifications (with ToolCallLocation, etc.)
+# These tools are excluded from generic session-level notifications to prevent duplication
+ACP_SELF_NOTIFYING_TOOLS = {"read_text_file", "write_text_file"}
 
 
 if TYPE_CHECKING:
@@ -47,8 +53,6 @@ if TYPE_CHECKING:
 
     # from llmling_agent_acp.permission_server import PermissionMCPServer
     from llmling_agent_providers.base import UsageLimits
-
-from acp.schema import AvailableCommandsUpdate
 
 
 logger = get_logger(__name__)
@@ -600,15 +604,17 @@ class ACPSession:
                             tool_call_id = tool_event.part.tool_call_id
                             inputs[tool_call_id] = tool_event.part.args_as_dict()
 
-                            tool_notification = format_tool_call_for_acp(
-                                tool_name=tool_event.part.tool_name,
-                                tool_input=tool_event.part.args_as_dict(),
-                                tool_output=None,  # Not available yet
-                                session_id=self.session_id,
-                                status="pending",
-                                tool_call_id=tool_call_id,
-                            )
-                            yield tool_notification
+                            # Skip generic notifications for self-notifying tools
+                            if tool_event.part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                                tool_notification = format_tool_call_for_acp(
+                                    tool_name=tool_event.part.tool_name,
+                                    tool_input=tool_event.part.args_as_dict(),
+                                    tool_output=None,  # Not available yet
+                                    session_id=self.session_id,
+                                    status="pending",
+                                    tool_call_id=tool_call_id,
+                                )
+                                yield tool_notification
 
                         case FunctionToolResultEvent() as result_event if isinstance(
                             result_event.result, ToolReturnPart
@@ -625,15 +631,20 @@ class ACPSession:
                                     full_content += str(chunk)
 
                                     # Yield intermediate streaming notification
-                                    streaming_notification = format_tool_call_for_acp(
-                                        tool_name=result_event.result.tool_name,
-                                        tool_input=tool_input,
-                                        tool_output=chunk,
-                                        session_id=self.session_id,
-                                        status="in_progress",
-                                        tool_call_id=tool_call_id,
-                                    )
-                                    yield streaming_notification
+                                    # Skip generic notifications for self-notifying tools
+                                    if (
+                                        result_event.result.tool_name
+                                        not in ACP_SELF_NOTIFYING_TOOLS
+                                    ):
+                                        streaming_notification = format_tool_call_for_acp(
+                                            tool_name=result_event.result.tool_name,
+                                            tool_input=tool_input,
+                                            tool_output=chunk,
+                                            session_id=self.session_id,
+                                            status="in_progress",
+                                            tool_call_id=tool_call_id,
+                                        )
+                                        yield streaming_notification
 
                                 # Replace the AsyncGenerator with the full content to
                                 # prevent errors
@@ -643,15 +654,20 @@ class ACPSession:
                                 final_output = result_event.result.content
 
                             # Final completion notification
-                            tool_notification = format_tool_call_for_acp(
-                                tool_name=result_event.result.tool_name,
-                                tool_input=tool_input,
-                                tool_output=final_output,
-                                session_id=self.session_id,
-                                status="completed",
-                                tool_call_id=tool_call_id,
-                            )
-                            yield tool_notification
+                            # Skip generic notifications for self-notifying tools
+                            if (
+                                result_event.result.tool_name
+                                not in ACP_SELF_NOTIFYING_TOOLS
+                            ):
+                                tool_notification = format_tool_call_for_acp(
+                                    tool_name=result_event.result.tool_name,
+                                    tool_input=tool_input,
+                                    tool_output=final_output,
+                                    session_id=self.session_id,
+                                    status="completed",
+                                    tool_call_id=tool_call_id,
+                                )
+                                yield tool_notification
 
                             # Clean up stored input
                             inputs.pop(tool_call_id, None)
@@ -665,15 +681,17 @@ class ACPSession:
                             tool_name = result_event.result.tool_name or "unknown"
                             error_message = result_event.result.model_response()
 
-                            tool_notification = format_tool_call_for_acp(
-                                tool_name=tool_name,
-                                tool_input=tool_input,
-                                tool_output=f"Error: {error_message}",
-                                session_id=self.session_id,
-                                status="failed",
-                                tool_call_id=tool_call_id,
-                            )
-                            yield tool_notification
+                            # Skip generic notifications for self-notifying tools
+                            if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                                tool_notification = format_tool_call_for_acp(
+                                    tool_name=tool_name,
+                                    tool_input=tool_input,
+                                    tool_output=f"Error: {error_message}",
+                                    session_id=self.session_id,
+                                    status="failed",
+                                    tool_call_id=tool_call_id,
+                                )
+                                yield tool_notification
                             # Clean up stored input
                             inputs.pop(tool_call_id, None)
 
