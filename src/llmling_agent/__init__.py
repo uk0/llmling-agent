@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from importlib.metadata import version
 
+from llmling_agent.config import Capabilities
 from llmling_agent.models import AgentsManifest, AgentConfig
 from llmling_agent.agent import Agent, StructuredAgent, AnyAgent, AgentContext
 from llmling_agent.delegation import AgentPool, Team, TeamRun, BaseTeam
@@ -44,6 +45,7 @@ __all__ = [
     "AudioBase64Content",
     "AudioURLContent",
     "BaseTeam",
+    "Capabilities",
     "ChatMessage",
     "ImageBase64Content",
     "ImageURLContent",
