@@ -57,7 +57,7 @@ ACP_SELF_NOTIFYING_TOOLS = {"read_text_file", "write_text_file", "run_command"}
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai import ModelRequestNode
+    from pydantic_ai import AgentStreamEvent, ModelRequestNode
     from pydantic_ai.agent import CallToolsNode
     from pydantic_ai.run import AgentRun
 
@@ -585,102 +585,12 @@ class ACPSession:
         try:
             async with node.stream(agent_run.ctx) as tool_stream:
                 async for event in tool_stream:
-                    match event:
-                        case FunctionToolCallEvent() as tool_event:
-                            # Tool call started - save input for later use
-                            tool_call_id = tool_event.part.tool_call_id
-                            inputs[tool_call_id] = tool_event.part.args_as_dict()
-
-                            # Skip generic notifications for self-notifying tools
-                            if tool_event.part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                                tool_notification = format_tool_call_for_acp(
-                                    tool_name=tool_event.part.tool_name,
-                                    tool_input=tool_event.part.args_as_dict(),
-                                    tool_output=None,  # Not available yet
-                                    session_id=self.session_id,
-                                    status="pending",
-                                    tool_call_id=tool_call_id,
-                                )
-                                yield tool_notification
-
-                        case FunctionToolResultEvent() as result_event if isinstance(
-                            result_event.result, ToolReturnPart
-                        ):
-                            # Tool call completed successfully
-                            tool_call_id = result_event.tool_call_id
-                            tool_input = inputs.get(tool_call_id, {})
-
-                            # Check if the tool result is a streaming AsyncGenerator
-                            if isinstance(result_event.result.content, AsyncGenerator):
-                                # Stream the tool output chunks
-                                full_content = ""
-                                async for chunk in result_event.result.content:
-                                    full_content += str(chunk)
-
-                                    # Yield intermediate streaming notification
-                                    # Skip generic notifications for self-notifying tools
-                                    if (
-                                        result_event.result.tool_name
-                                        not in ACP_SELF_NOTIFYING_TOOLS
-                                    ):
-                                        streaming_notification = format_tool_call_for_acp(
-                                            tool_name=result_event.result.tool_name,
-                                            tool_input=tool_input,
-                                            tool_output=chunk,
-                                            session_id=self.session_id,
-                                            status="in_progress",
-                                            tool_call_id=tool_call_id,
-                                        )
-                                        yield streaming_notification
-
-                                # Replace the AsyncGenerator with the full content to
-                                # prevent errors
-                                result_event.result.content = full_content
-                                final_output = full_content
-                            else:
-                                final_output = result_event.result.content
-
-                            # Final completion notification
-                            # Skip generic notifications for self-notifying tools
-                            if (
-                                result_event.result.tool_name
-                                not in ACP_SELF_NOTIFYING_TOOLS
-                            ):
-                                tool_notification = format_tool_call_for_acp(
-                                    tool_name=result_event.result.tool_name,
-                                    tool_input=tool_input,
-                                    tool_output=final_output,
-                                    session_id=self.session_id,
-                                    status="completed",
-                                    tool_call_id=tool_call_id,
-                                )
-                                yield tool_notification
-
-                            # Clean up stored input
-                            inputs.pop(tool_call_id, None)
-
-                        case FunctionToolResultEvent() as result_event if isinstance(
-                            result_event.result, RetryPromptPart
-                        ):
-                            # Tool call failed and needs retry
-                            tool_call_id = result_event.tool_call_id
-                            tool_input = inputs.get(tool_call_id, {})
-                            tool_name = result_event.result.tool_name or "unknown"
-                            error_message = result_event.result.model_response()
-
-                            # Skip generic notifications for self-notifying tools
-                            if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                                tool_notification = format_tool_call_for_acp(
-                                    tool_name=tool_name,
-                                    tool_input=tool_input,
-                                    tool_output=f"Error: {error_message}",
-                                    session_id=self.session_id,
-                                    status="failed",
-                                    tool_call_id=tool_call_id,
-                                )
-                                yield tool_notification
-                            # Clean up stored input
-                            inputs.pop(tool_call_id, None)
+                    async for notification in process_pydantic_event(
+                        event,
+                        session_id=self.session_id,
+                        inputs=inputs,
+                    ):
+                        yield notification
 
         except Exception:
             msg = "Error streaming tool execution for session %s"
@@ -739,11 +649,6 @@ class ACPSession:
         self._active = False
 
         try:
-            # Clean up permission server if present
-            # if self.permission_server:
-            #     await self.permission_server.stop()
-            #     self.permission_server = None
-
             # Clean up MCP manager if present
             if self.mcp_manager:
                 await self.mcp_manager.cleanup()
@@ -857,3 +762,108 @@ class ACPSession:
 
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to convert MCP progress to ACP notification: %s", e)
+
+
+async def process_pydantic_event(
+    event: AgentStreamEvent, session_id: str, inputs: dict[str, Any]
+) -> AsyncGenerator[SessionNotification]:
+    """Process Pydantic events.
+
+    Args:
+        event: The event to process.
+        session_id: The ID of the session.
+        inputs: The inputs to the session.
+
+    Yields:
+        SessionNotification: The notification to send.
+    """
+    match event:
+        case FunctionToolCallEvent() as tool_event:
+            # Tool call started - save input for later use
+            tool_call_id = tool_event.part.tool_call_id
+            inputs[tool_call_id] = tool_event.part.args_as_dict()
+
+            # Skip generic notifications for self-notifying tools
+            if tool_event.part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                tool_notification = format_tool_call_for_acp(
+                    tool_name=tool_event.part.tool_name,
+                    tool_input=tool_event.part.args_as_dict(),
+                    tool_output=None,  # Not available yet
+                    session_id=session_id,
+                    status="pending",
+                    tool_call_id=tool_call_id,
+                )
+                yield tool_notification
+
+        case FunctionToolResultEvent() as result_event if isinstance(
+            result_event.result, ToolReturnPart
+        ):
+            # Tool call completed successfully
+            tool_call_id = result_event.tool_call_id
+            tool_input = inputs.get(tool_call_id, {})
+
+            # Check if the tool result is a streaming AsyncGenerator
+            if isinstance(result_event.result.content, AsyncGenerator):
+                # Stream the tool output chunks
+                full_content = ""
+                async for chunk in result_event.result.content:
+                    full_content += str(chunk)
+
+                    # Yield intermediate streaming notification
+                    # Skip generic notifications for self-notifying tools
+                    if result_event.result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                        streaming_notification = format_tool_call_for_acp(
+                            tool_name=result_event.result.tool_name,
+                            tool_input=tool_input,
+                            tool_output=chunk,
+                            session_id=session_id,
+                            status="in_progress",
+                            tool_call_id=tool_call_id,
+                        )
+                        yield streaming_notification
+
+                # Replace the AsyncGenerator with the full content to
+                # prevent errors
+                result_event.result.content = full_content
+                final_output = full_content
+            else:
+                final_output = result_event.result.content
+
+            # Final completion notification
+            # Skip generic notifications for self-notifying tools
+            if result_event.result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                tool_notification = format_tool_call_for_acp(
+                    tool_name=result_event.result.tool_name,
+                    tool_input=tool_input,
+                    tool_output=final_output,
+                    session_id=session_id,
+                    status="completed",
+                    tool_call_id=tool_call_id,
+                )
+                yield tool_notification
+
+            # Clean up stored input
+            inputs.pop(tool_call_id, None)
+
+        case FunctionToolResultEvent() as result_event if isinstance(
+            result_event.result, RetryPromptPart
+        ):
+            # Tool call failed and needs retry
+            tool_call_id = result_event.tool_call_id
+            tool_input = inputs.get(tool_call_id, {})
+            tool_name = result_event.result.tool_name or "unknown"
+            error_message = result_event.result.model_response()
+
+            # Skip generic notifications for self-notifying tools
+            if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                tool_notification = format_tool_call_for_acp(
+                    tool_name=tool_name,
+                    tool_input=tool_input,
+                    tool_output=f"Error: {error_message}",
+                    session_id=session_id,
+                    status="failed",
+                    tool_call_id=tool_call_id,
+                )
+                yield tool_notification
+            # Clean up stored input
+            inputs.pop(tool_call_id, None)
