@@ -914,7 +914,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             store_history=store_history,
             result_type=result_type,
         )
-        return self.task_manager.run_task_sync(coro)
+        return self.task_manager.run_task_sync(coro)  # type: ignore
 
     async def run_job(
         self,

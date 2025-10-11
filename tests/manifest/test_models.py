@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 import pytest
+from schemez import InlineSchemaDef
 import yamling
 
 from llmling_agent import AgentsManifest
@@ -80,7 +81,9 @@ agents:
 def test_valid_agent_definition():
     """Test valid complete agent configuration."""
     agent_def = AgentsManifest.model_validate(yamling.load_yaml(VALID_AGENT_CONFIG))
-    score = agent_def.responses["TestResponse"].response_schema.fields["score"]  # pyright: ignore
+    schema = agent_def.responses["TestResponse"].response_schema
+    assert isinstance(schema, InlineSchemaDef)
+    score = schema.fields["score"]  # pyright: ignore
     assert score.ge == 0
     assert score.le == 100  # noqa: PLR2004
 
