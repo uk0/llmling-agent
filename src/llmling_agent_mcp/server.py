@@ -143,7 +143,13 @@ class LLMLingServer(TaskManagerMixin):
             msg = "No active request context"
             raise RuntimeError(msg) from exc
 
-    async def report_progress(self, progress: float, total: float | None = None):
+    async def report_progress(
+        self,
+        progress: float,
+        total: float | None = None,
+        message: str | None = None,
+        related_request_id: str | None = None,
+    ):
         """Report progress for the current operation."""
         progress_token = (
             self.server.request_context.meta.progressToken
@@ -155,7 +161,11 @@ class LLMLingServer(TaskManagerMixin):
             return
 
         await self.server.request_context.session.send_progress_notification(
-            progress_token=progress_token, progress=progress, total=total
+            progress_token=progress_token,
+            progress=progress,
+            total=total,
+            message=message,
+            related_request_id=related_request_id,
         )
 
     @property
