@@ -7,6 +7,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
+import tempfile
 
 
 @dataclass
@@ -76,6 +77,11 @@ class LanguageFormatter(ABC):
     def extensions(self) -> list[str]:
         """File extensions this formatter handles (e.g., ['.py', '.pyi'])."""
 
+    @property
+    @abstractmethod
+    def pygments_lexers(self) -> list[str]:
+        """Pygments lexer names for this language (e.g., ['python', 'python3'])."""
+
     @abstractmethod
     async def format(self, path: Path) -> FormatResult:
         """Format a file."""
@@ -94,6 +100,82 @@ class LanguageFormatter(ABC):
         """Check if this formatter can handle the given file."""
         return path.suffix.lower() in self.extensions
 
+    def can_handle_language(self, language: str) -> bool:
+        """Check if this formatter can handle the given language name."""
+        return language.lower() in [lexer.lower() for lexer in self.pygments_lexers]
+
+    async def format_string(
+        self, content: str, language: str | None = None
+    ) -> FormatResult:
+        """Format a string by creating a temporary file.
+
+        Args:
+            content: String content to format
+            language: Language name (pygments lexer name) if extension can't be determined
+
+        Returns:
+            FormatResult with formatted content in output field
+        """
+        # Use primary extension for temp file
+        extension = self.extensions[0] if self.extensions else ".txt"
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=extension, delete=False
+        ) as temp_file:
+            temp_file.write(content)
+            temp_path = Path(temp_file.name)
+
+        try:
+            result = await self.format(temp_path)
+            if result.success:
+                # Read the formatted content back
+                formatted_content = temp_path.read_text()
+                result.output = formatted_content
+            return result
+        finally:
+            temp_path.unlink(missing_ok=True)
+
+    async def lint_string(
+        self, content: str, language: str | None = None, fix: bool = False
+    ) -> LintResult:
+        """Lint a string by creating a temporary file.
+
+        Args:
+            content: String content to lint
+            language: Language name (pygments lexer name) if extension can't be determined
+            fix: Whether to apply fixes
+
+        Returns:
+            LintResult with any fixes applied to output field
+        """
+        # Use primary extension for temp file
+        extension = self.extensions[0] if self.extensions else ".txt"
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=extension, delete=False
+        ) as temp_file:
+            temp_file.write(content)
+            temp_path = Path(temp_file.name)
+
+        try:
+            result = await self.lint(temp_path, fix=fix)
+            if result.success and fix:
+                # Read the potentially modified content back
+                modified_content = temp_path.read_text()
+                result.output = modified_content
+            return result
+        finally:
+            temp_path.unlink(missing_ok=True)
+
+    async def format_and_lint_string(
+        self, content: str, language: str | None = None, fix: bool = False
+    ) -> FormatAndLintResult:
+        """Format and lint a string."""
+        format_result = await self.format_string(content, language)
+        content_to_lint = format_result.output if format_result.success else content
+        lint_result = await self.lint_string(content_to_lint, language, fix)
+        return FormatAndLintResult(format_result, lint_result)
+
 
 class PythonFormatter(LanguageFormatter):
     """Python formatter using ruff."""
@@ -105,6 +187,10 @@ class PythonFormatter(LanguageFormatter):
     @property
     def extensions(self) -> list[str]:
         return [".py", ".pyi"]
+
+    @property
+    def pygments_lexers(self) -> list[str]:
+        return ["python", "python3", "py"]
 
     async def format(self, path: Path) -> FormatResult:
         cmd = ["uv", "run", "ruff", "format", str(path)]
@@ -145,6 +231,10 @@ class TOMLFormatter(LanguageFormatter):
     def extensions(self) -> list[str]:
         return [".toml"]
 
+    @property
+    def pygments_lexers(self) -> list[str]:
+        return ["toml"]
+
     async def format(self, path: Path) -> FormatResult:
         cmd = ["uv", "run", "tombi", "format", str(path)]
         return_code, stdout, stderr = await self.command_handler(cmd)
@@ -180,6 +270,10 @@ class TypeScriptFormatter(LanguageFormatter):
     @property
     def extensions(self) -> list[str]:
         return [".ts", ".tsx", ".js", ".jsx", ".json"]
+
+    @property
+    def pygments_lexers(self) -> list[str]:
+        return ["typescript", "ts", "javascript", "js", "jsx", "tsx", "json"]
 
     async def format(self, path: Path) -> FormatResult:
         cmd = ["biome", "format", "--write", str(path)]
@@ -219,6 +313,10 @@ class RustFormatter(LanguageFormatter):
     @property
     def extensions(self) -> list[str]:
         return [".rs"]
+
+    @property
+    def pygments_lexers(self) -> list[str]:
+        return ["rust", "rs"]
 
     async def format(self, path: Path) -> FormatResult:
         cmd = ["rustfmt", str(path)]
@@ -261,6 +359,23 @@ class FormatterRegistry:
     def get_formatter(self, path: Path) -> LanguageFormatter | None:
         """Get formatter for given file path."""
         return next((f for f in self.formatters if f.can_handle(path)), None)
+
+    def get_formatter_by_language(self, language: str) -> LanguageFormatter | None:
+        """Get formatter for given language name (pygments lexer)."""
+        return next((f for f in self.formatters if f.can_handle_language(language)), None)
+
+    def detect_language_from_content(self, content: str) -> str | None:
+        """Detect language from content using pygments (if available)."""
+        try:
+            from pygments.lexers import guess_lexer
+
+            lexer = guess_lexer(content)
+            return lexer.name.lower()
+        except ImportError:
+            return None
+        except Exception:  # noqa: BLE001
+            # Pygments couldn't detect the language
+            return None
 
     def get_supported_extensions(self) -> list[str]:
         """Get all supported file extensions."""
