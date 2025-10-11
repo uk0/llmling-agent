@@ -38,6 +38,9 @@ class BaseSystemPrompt(Schema):
     content: str
     """The actual prompt text."""
 
+    category: SystemPromptCategory = "role"
+    """Categorization for template organization."""
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -49,9 +52,6 @@ class StaticPromptConfig(BaseSystemPrompt):
 
     content: str
     """The prompt text content."""
-
-    category: SystemPromptCategory = "role"
-    """Categorization for template organization."""
 
     model_config = ConfigDict(frozen=True)
 
