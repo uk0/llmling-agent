@@ -825,3 +825,100 @@ async def ask_user(  # noqa: D417
             return f"Error: {message}"
         case _:
             return "Unknown error occurred"
+
+
+async def add_local_mcp_server(  # noqa: D417
+    ctx: AgentContext,
+    name: str,
+    command: str,
+    args: list[str] | None = None,
+    env_vars: dict[str, str] | None = None,
+) -> str:
+    """Add a local MCP server via stdio transport.
+
+    Args:
+        name: Unique name for the MCP server
+        command: Command to execute for the server
+        args: Command arguments
+        env_vars: Environment variables to pass to the server
+
+    Returns:
+        Confirmation message about the added server
+    """
+    from pydantic_ai.tools import RunContext
+
+    from llmling_agent_config.mcp_server import StdioMCPServerConfig
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+
+    env = env_vars or {}
+    config = StdioMCPServerConfig(name=name, command=command, args=args or [], env=env)
+    ctx.agent.mcp.add_server_config(config)
+    await ctx.agent.mcp.setup_server(config)
+
+    return f"Added local MCP server {name!r} with command: {command}"
+
+
+async def add_remote_mcp_server(  # noqa: D417
+    ctx: AgentContext,
+    name: str,
+    url: str,
+    transport: Literal["sse", "streamable-http"] = "streamable-http",
+) -> str:
+    """Add a remote MCP server via HTTP-based transport.
+
+    Args:
+        name: Unique name for the MCP server
+        url: Server URL endpoint
+        transport: HTTP transport type to use (http is preferred)
+
+    Returns:
+        Confirmation message about the added server
+    """
+    from pydantic_ai.tools import RunContext
+
+    from llmling_agent_config.mcp_server import (
+        SSEMCPServerConfig,
+        StreamableHTTPMCPServerConfig,
+    )
+
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+
+    match transport:
+        case "sse":
+            config = SSEMCPServerConfig(name=name, url=url)
+        case "streamable-http":
+            config = StreamableHTTPMCPServerConfig(name=name, url=url)
+
+    ctx.agent.mcp.add_server_config(config)
+    await ctx.agent.mcp.setup_server(config)
+
+    return f"Added remote MCP server '{name}' at {url} using {transport} transport"
+
+
+if __name__ == "__main__":
+    # import logging
+    from llmling_agent import AgentPool, Capabilities
+
+    user_prompt = """Add a stdio MCP server:
+// 	"command": "npx",
+// 	"args": ["mcp-graphql"],
+// 	"env": { "ENDPOINT": "https://diego.one/graphql" }
+
+."""
+
+    async def main():
+        async with AgentPool() as pool:
+            caps = Capabilities(can_add_mcp_servers=True)
+            agent = await pool.add_agent(
+                "X", capabilities=caps, model="openai:gpt-5-nano"
+            )
+            agent.tool_used.connect(print)
+            result = await agent.run(user_prompt)
+            print(result)
+            result = await agent.run("Which tools does it have?")
+            print(result)
+
+    asyncio.run(main())

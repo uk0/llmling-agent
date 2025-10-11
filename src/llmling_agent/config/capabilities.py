@@ -90,6 +90,9 @@ class Capabilities(EventedModel):
     can_ask_user: bool = False
     """Whether the agent can ask the user clarifying questions during processing."""
 
+    can_add_mcp_servers: bool = False
+    """Whether the agent can add new MCP servers."""
+
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     def __contains__(self, required: Capabilities) -> bool:

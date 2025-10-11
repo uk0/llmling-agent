@@ -216,4 +216,19 @@ class CapabilitiesResourceProvider(ResourceProvider):
             )
             tools.append(tool)
 
+        # MCP server management tools
+        if self.capabilities.can_add_mcp_servers:
+            tool = Tool.from_callable(
+                capability_tools.add_local_mcp_server,
+                source="builtin",
+                requires_capability="can_add_mcp_servers",
+            )
+            tools.append(tool)
+            tool = Tool.from_callable(
+                capability_tools.add_remote_mcp_server,
+                source="builtin",
+                requires_capability="can_add_mcp_servers",
+            )
+            tools.append(tool)
+
         return tools
