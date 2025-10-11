@@ -472,7 +472,7 @@ def _trim_diff(diff_text: str) -> str:
     return "\n".join(trimmed_lines)
 
 
-def _replace_content(
+def replace_content(
     content: str, old_string: str, new_string: str, replace_all: bool = False
 ) -> str:
     """Replace content using multiple fallback strategies."""
@@ -580,7 +580,7 @@ async def edit_file_tool(
     if old_string == "" and original_content == "":
         new_content = new_string
     else:
-        new_content = _replace_content(
+        new_content = replace_content(
             original_content, old_string, new_string, replace_all
         )
 

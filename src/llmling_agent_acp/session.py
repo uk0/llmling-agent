@@ -511,7 +511,7 @@ class ACPSession:
             for error_update in error_updates:
                 yield error_update
 
-    async def _stream_model_request(
+    async def _stream_model_request(  # noqa: PLR0915
         self,
         node: ModelRequestNode[Any, Any],
         agent_run: AgentRun[Any, Any],
