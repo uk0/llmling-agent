@@ -25,6 +25,11 @@ if TYPE_CHECKING:
     from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent_config.pool_server import MCPPoolServerConfig
 
+    LifespanHandler = Callable[
+        [FastMCP[LifespanResultT]],
+        AbstractAsyncContextManager[LifespanResultT],
+    ]
+
 logger = get_logger(__name__)
 
 
@@ -35,13 +40,7 @@ class LLMLingServer(TaskManagerMixin):
         self,
         provider: ResourceProvider,
         config: MCPPoolServerConfig,
-        lifespan: (
-            Callable[
-                [FastMCP[LifespanResultT]],
-                AbstractAsyncContextManager[LifespanResultT],
-            ]
-            | None
-        ) = None,
+        lifespan: (LifespanHandler | None) = None,
         instructions: str | None = None,
         name: str = "llmling-server",
     ):
