@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import partial
 from typing import TYPE_CHECKING, Any
 
 from acp.agent.protocol import Agent
@@ -42,7 +43,6 @@ if TYPE_CHECKING:
     import asyncio
     from collections.abc import Callable
 
-    from acp.acp_types import MethodHandler
     from acp.agent.protocol import Agent
     from acp.meta import AgentMethod
     from acp.schema import (
@@ -81,7 +81,7 @@ class AgentSideConnection(Client):
         debug_file: str | None = None,
     ) -> None:
         agent = to_agent(self)
-        handler = _create_agent_handler(agent)
+        handler = partial(_agent_handler, agent)
 
         if debug_file:
             debug_store = DebuggingMessageStateStore(debug_file=debug_file)
@@ -161,57 +161,53 @@ class AgentSideConnection(Client):
         return KillTerminalCommandResponse.model_validate(resp)
 
 
-def _create_agent_handler(agent: Agent) -> MethodHandler:
-    async def handler(  # noqa: PLR0911
-        method: AgentMethod | str,
-        params: dict[str, Any] | None,
-        is_notification: bool,
-    ) -> NewSessionResponse | InitializeResponse | PromptResponse | dict[str, Any] | None:
-        match method:
-            case "initialize":
-                initialize_request = InitializeRequest.model_validate(params)
-                return await agent.initialize(initialize_request)
-            case "session/new":
-                new_session_request = NewSessionRequest.model_validate(params)
-                return await agent.new_session(new_session_request)
-            case "session/load":
-                load_request = LoadSessionRequest.model_validate(params)
-                await agent.load_session(load_request)
+async def _agent_handler(  # noqa: PLR0911
+    agent: Agent,
+    method: AgentMethod | str,
+    params: dict[str, Any] | None,
+    is_notification: bool,
+) -> NewSessionResponse | InitializeResponse | PromptResponse | dict[str, Any] | None:
+    match method:
+        case "initialize":
+            initialize_request = InitializeRequest.model_validate(params)
+            return await agent.initialize(initialize_request)
+        case "session/new":
+            new_session_request = NewSessionRequest.model_validate(params)
+            return await agent.new_session(new_session_request)
+        case "session/load":
+            load_request = LoadSessionRequest.model_validate(params)
+            await agent.load_session(load_request)
+            return None
+        case "session/set_mode":
+            set_mode_request = SetSessionModeRequest.model_validate(params)
+            return (
+                session_resp.model_dump(by_alias=True, exclude_none=True)
+                if (session_resp := await agent.set_session_mode(set_mode_request))
+                else {}
+            )
+        case "session/prompt":
+            prompt_request = PromptRequest.model_validate(params)
+            return await agent.prompt(prompt_request)
+        case "session/cancel":
+            cancel_notification = CancelNotification.model_validate(params)
+            await agent.cancel(cancel_notification)
+            return None
+        case "session/set_model":
+            set_model_request = SetSessionModelRequest.model_validate(params)
+            return (
+                model_result.model_dump(by_alias=True, exclude_none=True)
+                if (model_result := await agent.set_session_model(set_model_request))
+                else {}
+            )
+        case "authenticate":
+            p = AuthenticateRequest.model_validate(params)
+            result = await agent.authenticate(p)
+            return result.model_dump(by_alias=True, exclude_none=True) if result else {}
+        case _ if method.startswith("_"):
+            ext_name = method[1:]
+            if is_notification:
+                await agent.ext_notification(ext_name, params or {})
                 return None
-            case "session/set_mode":
-                set_mode_request = SetSessionModeRequest.model_validate(params)
-                return (
-                    session_resp.model_dump(by_alias=True, exclude_none=True)
-                    if (session_resp := await agent.set_session_mode(set_mode_request))
-                    else {}
-                )
-            case "session/prompt":
-                prompt_request = PromptRequest.model_validate(params)
-                return await agent.prompt(prompt_request)
-            case "session/cancel":
-                cancel_notification = CancelNotification.model_validate(params)
-                await agent.cancel(cancel_notification)
-                return None
-            case "session/set_model":
-                set_model_request = SetSessionModelRequest.model_validate(params)
-                return (
-                    model_result.model_dump(by_alias=True, exclude_none=True)
-                    if (model_result := await agent.set_session_model(set_model_request))
-                    else {}
-                )
-            case "authenticate":
-                p = AuthenticateRequest.model_validate(params)
-                result = await agent.authenticate(p)
-                return (
-                    result.model_dump(by_alias=True, exclude_none=True) if result else {}
-                )
-            case _ if method.startswith("_"):
-                ext_name = method[1:]
-                if is_notification:
-                    await agent.ext_notification(ext_name, params or {})
-                    return None
-                return await agent.ext_method(ext_name, params or {})
-            case _:
-                raise RequestError.method_not_found(method)
-
-    return handler
+            return await agent.ext_method(ext_name, params or {})
+        case _:
+            raise RequestError.method_not_found(method)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import partial
 from typing import TYPE_CHECKING, Any
 
 
@@ -54,8 +55,6 @@ if TYPE_CHECKING:
     import asyncio
     from collections.abc import Callable
 
-    from acp.acp_types import MethodHandler
-
 
 class ClientSideConnection(Agent):
     """Client-side connection.
@@ -76,32 +75,8 @@ class ClientSideConnection(Agent):
     ) -> None:
         # Build client first so handler can delegate
         client = to_client(self)
-        handler = self._create_handler(client)
+        handler = partial(_handle_client_method, client)
         self._conn = Connection(handler, input_stream, output_stream)
-
-    def _create_handler(self, client: Client) -> MethodHandler:
-        """Create the method handler for client-side connection."""
-
-        async def handler(
-            method: ClientMethod | str,
-            params: dict[str, Any] | None,
-            is_notification: bool,
-        ) -> (
-            WriteTextFileResponse
-            | ReadTextFileResponse
-            | RequestPermissionResponse
-            | SessionNotification
-            | CreateTerminalResponse
-            | TerminalOutputResponse
-            | WaitForTerminalExitResponse
-            | ReleaseTerminalResponse
-            | KillTerminalCommandResponse
-            | dict[str, Any]
-            | None
-        ):
-            return await _handle_client_method(client, method, params, is_notification)
-
-        return handler
 
     # agent-bound methods (client -> agent)
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
