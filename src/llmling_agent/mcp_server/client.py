@@ -6,8 +6,6 @@ from contextlib import AsyncExitStack, suppress
 import shutil
 from typing import TYPE_CHECKING, Any, Self, TextIO
 
-import mcp
-
 from llmling_agent.log import get_logger
 
 
@@ -15,6 +13,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from types import TracebackType
 
+    import mcp
     from mcp import ClientSession
     from mcp.client.session import RequestContext
     from mcp.shared.session import ProgressFnT
@@ -161,6 +160,8 @@ class MCPClient:
         ) -> mcp.types.ListRootsResult | mcp.types.ErrorData:
             """List accessible filesystem roots."""
             from pathlib import Path
+
+            import mcp
 
             roots = []
             for root_path in self._accessible_roots:
