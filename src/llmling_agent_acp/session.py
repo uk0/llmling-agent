@@ -588,6 +588,20 @@ class ACPSession:
                         case FinalResultEvent():
                             msg = "Received FinalResultEvent for session %s"
                             logger.info(msg, self.session_id)
+                            # Stream the final text output after FinalResultEvent
+                            async for output in request_stream.stream_text(delta=True):
+                                if not output or not output.strip():
+                                    continue
+                                msg = "Processing final output (length=%d) for session %s"
+                                logger.info(msg, len(output), self.session_id)
+                                content_block = TextContentBlock(text=output)
+                                update = AgentMessageChunk(content=content_block)
+                                notification = SessionNotification(
+                                    session_id=self.session_id, update=update
+                                )
+                                msg = "Yielding final output notification for session %s"
+                                logger.info(msg, self.session_id)
+                                yield notification
                             break
 
                         case _:
