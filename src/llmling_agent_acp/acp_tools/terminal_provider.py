@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import asyncio
-import contextlib
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunContext  # noqa: TC002
 
 from acp.schema import (
+    ContentToolCallContent,
     CreateTerminalRequest,
     EnvVariable,
     KillTerminalCommandRequest,
@@ -16,6 +15,7 @@ from acp.schema import (
     SessionNotification,
     TerminalOutputRequest,
     TerminalToolCallContent,
+    TextContentBlock,
     ToolCallProgress,
     ToolCallStart,
     WaitForTerminalExitRequest,
@@ -294,23 +294,74 @@ class ACPTerminalProvider(ResourceProvider):
             Returns:
                 Current output and status (running/completed/failed)
             """
+            # Send initial pending notification
+            assert ctx.tool_call_id, (
+                "Tool call ID must be present for terminal operations"
+            )
+            try:
+                start = ToolCallStart(
+                    tool_call_id=ctx.tool_call_id,
+                    status="pending",
+                    title=f"Getting output from terminal {terminal_id}",
+                    kind="read",
+                )
+                notifi = SessionNotification(session_id=self.session_id, update=start)
+                await self.agent.connection.session_update(notifi)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Failed to send pending update: %s", e)
+
             request = TerminalOutputRequest(
                 session_id=self.session_id,
                 terminal_id=terminal_id,
             )
             try:
                 output_response = await self.agent.connection.terminal_output(request)
-                result = output_response.output
-                if output_response.truncated:
-                    result += "\n[Output was truncated]"
+
+                # Determine status for both UI and agent
+                exit_code = None
+                signal = None
+                status_text = "Running"
+
                 if output_response.exit_status:
-                    if (code := output_response.exit_status.exit_code) is not None:
-                        result += f"\n[Exited with code {code}]"
-                    if signal := output_response.exit_status.signal:
-                        result += f"\n[Terminated by signal {signal}]"
-                else:
-                    result += "\n[Still running]"
+                    exit_code = output_response.exit_status.exit_code
+                    signal = output_response.exit_status.signal
+                    if exit_code is not None:
+                        status_text = f"Exited with code {exit_code}"
+                    elif signal:
+                        status_text = f"Terminated by signal {signal}"
+
+                # Send completion update with output as content
+                content_block = TextContentBlock(text=output_response.output)
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="completed",
+                    title=f"Terminal {terminal_id} output retrieved",
+                    content=[ContentToolCallContent(content=content_block)],
+                    raw_output=f"Retrieved output from terminal {terminal_id}",
+                )
+                notifi = SessionNotification(session_id=self.session_id, update=progress)
+                await self.agent.connection.session_update(notifi)
+
+                # Return structured result for agent
+                result = f"""Terminal {terminal_id} Output:
+{output_response.output}
+
+Status: {status_text}"""
+
+                if output_response.truncated:
+                    result += "\n(output truncated)"
             except Exception as e:  # noqa: BLE001
+                # Send failed update
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=f"Error: {e}",
+                )
+                failed = SessionNotification(session_id=self.session_id, update=progress)
+                try:
+                    await self.agent.connection.session_update(failed)
+                except Exception:  # noqa: BLE001
+                    logger.warning("Failed to send failed update")
                 return f"Error getting command output: {e}"
             else:
                 return result
@@ -318,7 +369,7 @@ class ACPTerminalProvider(ResourceProvider):
         return get_command_output
 
     def _create_create_terminal_tool(self):
-        """Create a tool that creates a terminal and returns the terminal ID."""
+        """Create a tool that creates new terminals."""
 
         async def create_terminal(  # noqa: D417
             ctx: RunContext[Any],
@@ -344,10 +395,24 @@ class ACPTerminalProvider(ResourceProvider):
                 output_byte_limit: Maximum output bytes to retain
 
             Returns:
-                Terminal ID (you must manage this terminal manually)
+                Terminal creation details with ID for management
             """
-            logger.info("🔧 DEBUG: Starting create_terminal execution")
-            logger.info("🔧 DEBUG: Command: %s, Args: %s", command, args)
+            # Send initial pending notification
+            assert ctx.tool_call_id, (
+                "Tool call ID must be present for terminal operations"
+            )
+            cmd_display = f"{command} {' '.join(args or [])}"
+            try:
+                start = ToolCallStart(
+                    tool_call_id=ctx.tool_call_id,
+                    status="pending",
+                    title=f"Creating terminal: {cmd_display}",
+                    kind="execute",
+                )
+                notifi = SessionNotification(session_id=self.session_id, update=start)
+                await self.agent.connection.session_update(notifi)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Failed to send pending update: %s", e)
 
             request = CreateTerminalRequest(
                 session_id=self.session_id,
@@ -357,17 +422,45 @@ class ACPTerminalProvider(ResourceProvider):
                 env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
                 output_byte_limit=output_byte_limit,
             )
-            logger.info("🔧 DEBUG: Calling create_terminal")
+
             try:
                 create_response = await self.agent.connection.create_terminal(request)
-                logger.info("🔧 DEBUG: Got create_response: %s", create_response)
                 terminal_id = create_response.terminal_id
-            except Exception as e:
-                logger.exception("🔧 DEBUG: Exception in create_terminal")
+
+                # Send completion update
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="completed",
+                    title=f"Terminal {terminal_id} created",
+                    raw_output=f"Created terminal: {terminal_id}",
+                )
+                notifi = SessionNotification(session_id=self.session_id, update=progress)
+                await self.agent.connection.session_update(notifi)
+            except Exception as e:  # noqa: BLE001
+                # Send failed update
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=f"Error: {e}",
+                )
+                failed = SessionNotification(session_id=self.session_id, update=progress)
+                try:
+                    await self.agent.connection.session_update(failed)
+                except Exception:  # noqa: BLE001
+                    logger.warning("Failed to send failed update")
                 return f"Error creating terminal: {e}"
             else:
-                logger.info("🔧 DEBUG: Returning terminal_id: %s", terminal_id)
-                return terminal_id
+                return f"""Created terminal: {terminal_id}
+Command: {cmd_display}
+Working Directory: {cwd or "default"}
+Output Limit: {output_byte_limit} bytes
+Status: Running
+
+Use this terminal_id with other terminal tools:
+- wait_for_terminal_exit({terminal_id})
+- get_command_output({terminal_id})
+- kill_terminal({terminal_id})
+- release_terminal({terminal_id})"""
 
         return create_terminal
 
@@ -384,8 +477,25 @@ class ACPTerminalProvider(ResourceProvider):
                 terminal_id: The terminal ID from create_terminal
 
             Returns:
-                Exit status information
+                Exit status information and final output
             """
+            # Send initial notification with embedded terminal for live view
+            assert ctx.tool_call_id, (
+                "Tool call ID must be present for terminal operations"
+            )
+            try:
+                start = ToolCallStart(
+                    tool_call_id=ctx.tool_call_id,
+                    status="pending",
+                    title=f"Waiting for terminal {terminal_id} to complete",
+                    kind="execute",
+                    content=[TerminalToolCallContent(terminal_id=terminal_id)],
+                )
+                notifi = SessionNotification(session_id=self.session_id, update=start)
+                await self.agent.connection.session_update(notifi)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Failed to send pending update: %s", e)
+
             request = WaitForTerminalExitRequest(
                 session_id=self.session_id,
                 terminal_id=terminal_id,
@@ -395,12 +505,54 @@ class ACPTerminalProvider(ResourceProvider):
                     request
                 )
 
-                result = f"Terminal {terminal_id} completed"
-                if exit_response.exit_code is not None:
-                    result += f" with exit code {exit_response.exit_code}"
+                # Get final output
+                output_request = TerminalOutputRequest(
+                    session_id=self.session_id,
+                    terminal_id=terminal_id,
+                )
+                output_response = await self.agent.connection.terminal_output(
+                    output_request
+                )
+
+                # Send completion notification (terminal remains embedded for viewing)
+                exit_code = exit_response.exit_code or 0
+                status = "completed" if exit_code == 0 else "failed"
+
+                completion_update = SessionNotification(
+                    session_id=self.session_id,
+                    update=ToolCallProgress(
+                        tool_call_id=ctx.tool_call_id,
+                        status=status,
+                        title=f"Terminal completed (exit code: {exit_code})",
+                        content=[TerminalToolCallContent(terminal_id=terminal_id)],
+                    ),
+                )
+                await self.agent.connection.session_update(completion_update)
+
+                # Return structured result for agent
+                result = f"""Terminal {terminal_id} completed
+Exit Code: {exit_code}
+Status: {"SUCCESS" if exit_code == 0 else "FAILED"}"""
+
                 if exit_response.signal:
-                    result += f" (terminated by signal {exit_response.signal})"
+                    result += f"\nTerminated by signal: {exit_response.signal}"
+
+                result += f"\n\nFinal Output:\n{output_response.output}"
+
+                if output_response.truncated:
+                    result += "\n(output truncated)"
             except Exception as e:  # noqa: BLE001
+                # Send failed update
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=f"Error: {e}",
+                )
+                failed = SessionNotification(session_id=self.session_id, update=progress)
+                try:
+                    await self.agent.connection.session_update(failed)
+                except Exception:  # noqa: BLE001
+                    logger.warning("Failed to send failed update")
                 return f"Error waiting for terminal exit: {e}"
             else:
                 return result
@@ -408,10 +560,10 @@ class ACPTerminalProvider(ResourceProvider):
         return wait_for_terminal_exit
 
     def _create_kill_terminal_tool(self):
-        """Create a tool that kills a running terminal command."""
+        """Create a tool that kills a running terminal."""
 
         async def kill_terminal(ctx: RunContext[Any], terminal_id: str) -> str:  # noqa: D417
-            """Forcefully stop a running terminal (ADVANCED USE ONLY).
+            """Kill a running terminal command (ADVANCED USE ONLY).
 
             Only use this with terminals created by create_terminal.
 
@@ -419,15 +571,52 @@ class ACPTerminalProvider(ResourceProvider):
                 terminal_id: The terminal ID from create_terminal
 
             Returns:
-                Success/failure message
+                Kill confirmation
             """
+            # Send initial pending notification
+            assert ctx.tool_call_id, (
+                "Tool call ID must be present for terminal operations"
+            )
+            try:
+                start = ToolCallStart(
+                    tool_call_id=ctx.tool_call_id,
+                    status="pending",
+                    title=f"Killing terminal {terminal_id}",
+                    kind="execute",
+                )
+                notifi = SessionNotification(session_id=self.session_id, update=start)
+                await self.agent.connection.session_update(notifi)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Failed to send pending update: %s", e)
+
             request = KillTerminalCommandRequest(
                 session_id=self.session_id,
                 terminal_id=terminal_id,
             )
             try:
                 await self.agent.connection.kill_terminal(request)
+
+                # Send completion update
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="completed",
+                    title=f"Terminal {terminal_id} killed",
+                    raw_output=f"Terminal {terminal_id} killed successfully",
+                )
+                notifi = SessionNotification(session_id=self.session_id, update=progress)
+                await self.agent.connection.session_update(notifi)
             except Exception as e:  # noqa: BLE001
+                # Send failed update
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=f"Error: {e}",
+                )
+                failed = SessionNotification(session_id=self.session_id, update=progress)
+                try:
+                    await self.agent.connection.session_update(failed)
+                except Exception:  # noqa: BLE001
+                    logger.warning("Failed to send failed update")
                 return f"Error killing terminal: {e}"
             else:
                 return f"Terminal {terminal_id} killed successfully"
@@ -435,145 +624,67 @@ class ACPTerminalProvider(ResourceProvider):
         return kill_terminal
 
     def _create_release_terminal_tool(self):
-        """Create a tool that releases terminal resources."""
+        """Create a tool that releases a terminal."""
 
         async def release_terminal(ctx: RunContext[Any], terminal_id: str) -> str:  # noqa: D417
-            """Clean up a terminal created with create_terminal (ADVANCED USE ONLY).
+            """Release a terminal session (ADVANCED USE ONLY).
 
-            Only use this with terminals created by create_terminal.
-            The run_command tool handles cleanup automatically.
+            This cleans up a terminal created by create_terminal.
+            Usually you don't need to call this directly as other tools
+            handle cleanup automatically.
 
             Args:
                 terminal_id: The terminal ID from create_terminal
 
             Returns:
-                Success/failure message
+                Release confirmation
             """
+            # Send initial pending notification
+            assert ctx.tool_call_id, (
+                "Tool call ID must be present for terminal operations"
+            )
+            try:
+                start = ToolCallStart(
+                    tool_call_id=ctx.tool_call_id,
+                    status="pending",
+                    title=f"Releasing terminal {terminal_id}",
+                    kind="execute",
+                )
+                notifi = SessionNotification(session_id=self.session_id, update=start)
+                await self.agent.connection.session_update(notifi)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Failed to send pending update: %s", e)
+
             request = ReleaseTerminalRequest(
                 session_id=self.session_id,
                 terminal_id=terminal_id,
             )
             try:
                 await self.agent.connection.release_terminal(request)
+
+                # Send completion update
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="completed",
+                    title=f"Terminal {terminal_id} released",
+                    raw_output=f"Terminal {terminal_id} released successfully",
+                )
+                notifi = SessionNotification(session_id=self.session_id, update=progress)
+                await self.agent.connection.session_update(notifi)
             except Exception as e:  # noqa: BLE001
+                # Send failed update
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=f"Error: {e}",
+                )
+                failed = SessionNotification(session_id=self.session_id, update=progress)
+                try:
+                    await self.agent.connection.session_update(failed)
+                except Exception:  # noqa: BLE001
+                    logger.warning("Failed to send failed update")
                 return f"Error releasing terminal: {e}"
             else:
                 return f"Terminal {terminal_id} released successfully"
 
         return release_terminal
-
-    def _create_run_command_with_timeout_tool(self):
-        """Create a tool that runs commands with timeout support."""
-
-        async def run_command_with_timeout(  # noqa: D417
-            ctx: RunContext[Any],
-            command: str,
-            args: list[str] | None = None,
-            cwd: str | None = None,
-            env: dict[str, str] | None = None,
-            timeout_seconds: int = 30,
-            output_char_limit: int | None = None,
-        ) -> str:
-            """Execute a command with automatic timeout protection.
-
-            Use this when running commands that might hang or take too long.
-            Like run_command but will automatically kill the command if it exceeds
-            the timeout.
-
-            Args:
-                command: The command to execute
-                args: Command arguments
-                cwd: Working directory
-                env: Environment variables
-                timeout_seconds: Maximum time to wait before killing (default: 30)
-                output_char_limit: Maximum number of characters to capture from output
-
-            Returns:
-                Command output, or timeout message if command was killed
-            """
-            create_request = CreateTerminalRequest(
-                session_id=self.session_id,
-                command=command,
-                args=args or [],
-                cwd=cwd,
-                env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
-                output_byte_limit=output_char_limit,
-            )
-            try:
-                create_response = await self.agent.connection.create_terminal(
-                    create_request
-                )
-                terminal_id = create_response.terminal_id
-                wait_request = WaitForTerminalExitRequest(
-                    session_id=self.session_id,
-                    terminal_id=terminal_id,
-                )
-                try:
-                    await asyncio.wait_for(
-                        self.agent.connection.wait_for_terminal_exit(wait_request),
-                        timeout=timeout_seconds,
-                    )
-
-                    # Get output
-                    out_request = TerminalOutputRequest(
-                        session_id=self.session_id,
-                        terminal_id=terminal_id,
-                    )
-                    output_response = await self.agent.connection.terminal_output(
-                        out_request
-                    )
-
-                    result = output_response.output
-                    if output_response.exit_status:
-                        code = output_response.exit_status.exit_code
-                        if code is not None:
-                            result += f"\n[Command exited with code {code}]"
-                        if output_response.exit_status.signal:
-                            signal = output_response.exit_status.signal
-                            result += f"\n[Terminated by signal {signal}]"
-
-                except TimeoutError:
-                    # Kill the command on timeout
-                    kill_request = KillTerminalCommandRequest(
-                        session_id=self.session_id,
-                        terminal_id=terminal_id,
-                    )
-                    try:
-                        await self.agent.connection.kill_terminal(kill_request)
-
-                        # Get partial output
-                        request = TerminalOutputRequest(
-                            session_id=self.session_id,
-                            terminal_id=terminal_id,
-                        )
-                        output_response = await self.agent.connection.terminal_output(
-                            request
-                        )
-
-                        result = output_response.output
-                        timeout_msg = (
-                            f"Command timed out after {timeout_seconds} "
-                            f"seconds and was killed"
-                        )
-                        result += f"\n[{timeout_msg}]"
-                    except Exception:  # noqa: BLE001
-                        result = (
-                            f"Command timed out after {timeout_seconds} "
-                            f"seconds and failed to kill"
-                        )
-
-                finally:
-                    # Always release terminal
-                    release_request = ReleaseTerminalRequest(
-                        session_id=self.session_id,
-                        terminal_id=terminal_id,
-                    )
-                    with contextlib.suppress(Exception):
-                        await self.agent.connection.release_terminal(release_request)
-
-            except Exception as e:  # noqa: BLE001
-                return f"Error executing command with timeout: {e}"
-
-            return result
-
-        return run_command_with_timeout
