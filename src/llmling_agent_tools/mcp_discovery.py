@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 import anyenv
 from pydantic import Field
 from schemez import Schema
+
+
+class Remote(Schema):
+    """Information about a remote MCP server endpoint."""
+
+    url_direct: str | None = None
+    url_setup: str | None = None
+    transport: Literal["streamable_http", "sse"] | None = None
+    authentication_method: str | None = None
+    cost: str | None = None
 
 
 class ServerInfo(Schema):
@@ -24,6 +34,7 @@ class ServerInfo(Schema):
     ai_generated_description: str | None = Field(
         default=None, alias="EXPERIMENTAL_ai_generated_description"
     )
+    remotes: list[Remote] = Field(default_factory=list)
 
 
 class ServerListResponse(Schema):
@@ -36,7 +47,7 @@ class ServerListResponse(Schema):
 
 async def get_mcp_servers(
     query: str | None = None,
-    count_per_page: int | None = None,
+    count_per_page: int = 100,
     offset: int | None = None,
 ) -> list[ServerInfo]:
     """Fetch all available MCP servers.
@@ -69,7 +80,7 @@ if __name__ == "__main__":
 
     import devtools
 
-    servers = asyncio.run(get_mcp_servers())
+    servers = asyncio.run(get_mcp_servers(count_per_page=100))
     print(f"Found {len(servers)} MCP servers")
     for server in servers:
         devtools.debug(server)
