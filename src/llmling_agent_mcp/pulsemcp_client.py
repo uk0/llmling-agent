@@ -47,7 +47,7 @@ class ServerListResponse(Schema):
 
 async def get_mcp_servers(
     query: str | None = None,
-    count_per_page: int = 100,
+    count_per_page: int | None = None,
     offset: int | None = None,
 ) -> list[ServerInfo]:
     """Fetch all available MCP servers.
@@ -63,9 +63,13 @@ async def get_mcp_servers(
     Raises:
         HTTPError: If the API request fails.
     """
-    params: dict[str, Any] = {"count_per_page": count_per_page, "offset": offset}
+    params: dict[str, Any] = {}
     if query:
         params["query"] = query
+    if count_per_page is not None:
+        params["count_per_page"] = count_per_page
+    if offset is not None:
+        params["offset"] = offset
     result = await anyenv.get_json(
         "https://api.pulsemcp.com/v0beta/servers",
         headers={"User-Agent": "MCPToolDiscovery/1.0"},
