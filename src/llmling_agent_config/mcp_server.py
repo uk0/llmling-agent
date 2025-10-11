@@ -44,7 +44,7 @@ class BaseMCPServerConfig(Schema):
     """Environment variables to pass to the server process."""
 
     timeout: float = 30.0
-    """Timeout for the server process."""
+    """Timeout for the server process in seconds."""
 
     def get_env_vars(self) -> dict[str, str]:
         """Get environment variables for the server process."""
@@ -89,6 +89,9 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
     url: str
     """URL of the SSE server endpoint."""
 
+    headers: dict[str, str] | None = None
+    """Headers to send with the SSE request."""
+
     auth: MCPServerAuthSettings = Field(default_factory=MCPServerAuthSettings)
     """OAuth settings for the SSE server."""
 
@@ -104,6 +107,9 @@ class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
 
     url: str
     """URL of the HTTP server endpoint."""
+
+    headers: dict[str, str] | None = None
+    """Headers to send with the HTTP request."""
 
     auth: MCPServerAuthSettings = Field(default_factory=MCPServerAuthSettings)
     """OAuth settings for the HTTP server."""
