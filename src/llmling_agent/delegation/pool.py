@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import AgentName, SessionIdType, StrPath
     from llmling_agent.delegation.base_team import BaseTeam
+    from llmling_agent.messaging.context import ProgressCallback
     from llmling_agent.messaging.eventnode import EventNode
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.manifest import AgentsManifest
@@ -110,10 +111,10 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self.exit_stack = AsyncExitStack()
         self.parallel_load = parallel_load
         self.storage = StorageManager(self.manifest.storage)
+        self.progress_handlers: list[ProgressCallback] = []
         self.connection_registry = ConnectionRegistry()
-        self.mcp = MCPManager(
-            name="pool_mcp", servers=self.manifest.get_mcp_servers(), owner="pool"
-        )
+        servers = self.manifest.get_mcp_servers()
+        self.mcp = MCPManager(name="pool_mcp", servers=servers, owner="pool")
         self._tasks = TaskRegistry()
         # Register tasks from manifest
         for name, task in self.manifest.jobs.items():
@@ -135,6 +136,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
                 provider=provider,
                 config=self.manifest.pool_server,
             )
+            self.progress_handlers.append(self.server.report_progress)
         else:
             self.server = None
         # Create requested agents immediately
