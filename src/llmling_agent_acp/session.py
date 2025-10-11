@@ -11,6 +11,19 @@ from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import Agent as PydanticAIAgent
+from pydantic_ai.exceptions import UsageLimitExceeded
+from pydantic_ai.messages import (
+    FinalResultEvent,
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
+    PartDeltaEvent,
+    PartStartEvent,
+    RetryPromptPart,
+    TextPartDelta,
+    ThinkingPartDelta,
+    ToolCallPartDelta,
+    ToolReturnPart,
+)
 
 from acp.schema import (
     AgentMessageChunk,
@@ -188,50 +201,6 @@ class ACPSession:
             # Don't fail session creation, just log the error
             self.mcp_manager = None
 
-    # async def _initialize_permission_server(self) -> None:
-    #     """Initialize the permission MCP server for this session."""
-    #     try:
-    #         from acp.schema import HttpMcpServer
-    #         from llmling_agent_acp.permission_server import PermissionMCPServer
-
-    #         # Create permission server
-    #         self.permission_server = PermissionMCPServer(
-    #             client=self.client, session_id=self.session_id
-    #         )
-
-    #         # Start HTTP server
-    #         url, port = await self.permission_server.start()
-    #         logger.info(
-    #             "Permission server started for session %s at %s:%d",
-    #             self.session_id,
-    #             url,
-    #             port,
-    #         )
-
-    #         # Add permission server to MCP servers list
-    #         permission_mcp = HttpMcpServer(
-    #             name="acp-permission",
-    #             url=f"{url}/mcp",
-    #             headers=[HttpHeader(name="x-acp-session-id", value=self.session_id)],
-    #         )
-
-    #         # Add to session's MCP servers (create list if None)
-    #         if self.mcp_servers is None:
-    #             self.mcp_servers = []
-
-    #         # Convert to list if it's not already (in case it's a tuple/sequence)
-    #         if not isinstance(self.mcp_servers, list):
-    #             self.mcp_servers = list(self.mcp_servers)
-
-    #         self.mcp_servers.append(permission_mcp)
-
-    #     except Exception:
-    #         logger.exception(
-    #             "Failed to initialize permission server for session %s", self.session_id
-    #         )
-    #         # Don't fail session creation, just log the error
-    #         self.permission_server = None
-
     @property
     def agent(self) -> Agent[Any]:
         """Get the currently active agent."""
@@ -393,8 +362,6 @@ class ACPSession:
             SessionNotification objects for all agent execution events,
             or StopReason literal
         """
-        from pydantic_ai.exceptions import UsageLimitExceeded
-
         msg = "Starting agent.iterate_run for session %s with %d content items"
         logger.info(msg, self.session_id, len(content))
         logger.info("Agent model: %s", self.agent.model_name)
@@ -519,15 +486,6 @@ class ACPSession:
         Yields:
             SessionNotification objects for model streaming, or StopReason literal
         """
-        from pydantic_ai.messages import (
-            FinalResultEvent,
-            PartDeltaEvent,
-            PartStartEvent,
-            TextPartDelta,
-            ThinkingPartDelta,
-            ToolCallPartDelta,
-        )
-
         try:
             async with node.stream(agent_run.ctx) as request_stream:
                 event_count = 0
@@ -621,13 +579,6 @@ class ACPSession:
         Yields:
             SessionNotification objects for tool execution
         """
-        from pydantic_ai.messages import (
-            FunctionToolCallEvent,
-            FunctionToolResultEvent,
-            RetryPromptPart,
-            ToolReturnPart,
-        )
-
         # Track tool call inputs by tool_call_id
         inputs: dict[str, dict] = {}
 
