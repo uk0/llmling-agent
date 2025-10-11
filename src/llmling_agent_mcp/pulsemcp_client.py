@@ -1,4 +1,4 @@
-"""Functions to discover available MCP servers."""
+"""Functions to discover available MCP servers from PulseMCP."""
 
 from __future__ import annotations
 
