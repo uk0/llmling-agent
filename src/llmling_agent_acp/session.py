@@ -153,12 +153,6 @@ class ACPSession:
         cfgs = [convert_acp_mcp_server_to_config(s) for s in self.mcp_servers]
         # Initialize MCP manager with converted configs
         name = f"session_{self.session_id}"
-
-        # Create progress handler for MCP to ACP bridging
-        from llmling_agent_acp.mcp_progress import create_acp_progress_handler
-
-        progress_handler = create_acp_progress_handler(self)
-
         # Define accessible roots for MCP servers
         accessible_roots = []
         if self.cwd:
@@ -168,7 +162,7 @@ class ACPSession:
             name,
             servers=cfgs,
             context=self.agent.context,
-            progress_handler=progress_handler,
+            progress_handler=self.handle_acp_progress,
             accessible_roots=accessible_roots,
         )
         try:
@@ -878,3 +872,37 @@ class ACPSession:
         except Exception:
             msg = "Failed to register MCP prompts as commands for session %s"
             logger.exception(msg, self.session_id)
+
+    async def handle_acp_progress(
+        self,
+        tool_name: str,
+        tool_call_id: str,
+        tool_input: dict,
+        progress: float,
+        total: float | None = None,
+        message: str | None = None,
+    ) -> None:
+        """Handle MCP progress and convert to ACP in_progress update."""
+        try:
+            from llmling_agent_acp.converters import format_tool_call_for_acp
+
+            # Create content from progress message
+            output = message if message else f"Progress: {progress}"
+            if total:
+                output += f"/{total}"
+
+            # Create ACP tool call progress notification
+            notification = format_tool_call_for_acp(
+                tool_name=tool_name,
+                tool_input=tool_input,
+                tool_output=output,
+                session_id=self.session_id,
+                status="in_progress",
+                tool_call_id=tool_call_id,
+            )
+
+            # Send notification via ACP session
+            await self.client.session_update(notification)
+
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Failed to convert MCP progress to ACP notification: %s", e)
