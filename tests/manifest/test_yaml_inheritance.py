@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
+
 from llmling_agent import AgentsManifest
 
 
@@ -63,3 +65,7 @@ def test_prompt_inheritance(tmp_path: Path):
     assert manifest.prompts.system_prompts["reviewer"].content == "Specialized reviewer"
     assert manifest.prompts.system_prompts["validator"].content == "Base validator"
     assert manifest.prompts.system_prompts["analyzer"].type == "task"
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])

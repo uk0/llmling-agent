@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, Mock
 
 from pydantic_ai import RunContext, RunUsage
@@ -23,6 +24,10 @@ from acp.schema import (
 from llmling_agent import AgentPool
 from llmling_agent_acp.acp_agent import LLMlingACPAgent
 from llmling_agent_acp.acp_tools import ACPFileSystemProvider, ACPTerminalProvider
+
+
+if TYPE_CHECKING:
+    from llmling_agent.tools.base import Tool
 
 
 CTX = RunContext(tool_call_id="test", deps=None, model=TestModel(), usage=RunUsage())
@@ -115,10 +120,12 @@ class TestSessionScopedTerminalTools:
         )
 
     @pytest.fixture
-    async def provider_with_tools(self, acp_agent):
+    async def provider_with_tools(
+        self, acp_agent
+    ) -> tuple[ACPTerminalProvider, dict[str, Tool]]:
         """Create provider with full capabilities and get tools."""
         fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
-        capabilities = ClientCapabilities(fs=fs_cap)
+        capabilities = ClientCapabilities(fs=fs_cap, terminal=True)
         provider = ACPTerminalProvider(
             agent=acp_agent,
             session_id="test_session_123",
@@ -131,8 +138,8 @@ class TestSessionScopedTerminalTools:
     async def test_run_command_success(self, provider_with_tools):
         """Test run_command tool executes successfully."""
         provider, tools = provider_with_tools
+        print(tools)
         run_tool = tools["run_command"]
-
         result = await run_tool.execute(ctx=CTX, command="echo", args=["Hello World"])
 
         assert "Hello World" in result
