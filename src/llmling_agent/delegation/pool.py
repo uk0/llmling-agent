@@ -77,6 +77,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         connect_nodes: bool = True,
         input_provider: InputProvider | None = None,
         parallel_load: bool = True,
+        progress_handlers: list[ProgressCallback] | None = None,
     ):
         """Initialize agent pool with immediate agent creation.
 
@@ -86,6 +87,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
             connect_nodes: Whether to set up forwarding connections
             input_provider: Input provider for tool / step confirmations / HumanAgents
             parallel_load: Whether to load nodes in parallel (async)
+            progress_handlers: List of progress handlers to notify about progress
 
         Raises:
             ValueError: If manifest contains invalid node configurations
@@ -111,7 +113,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self.exit_stack = AsyncExitStack()
         self.parallel_load = parallel_load
         self.storage = StorageManager(self.manifest.storage)
-        self.progress_handlers: list[ProgressCallback] = []
+        self.progress_handlers = progress_handlers or []
         self.connection_registry = ConnectionRegistry()
         servers = self.manifest.get_mcp_servers()
         self.mcp = MCPManager(name="pool_mcp", servers=servers, owner="pool")
