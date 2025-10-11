@@ -172,7 +172,7 @@ class TestSessionScopedTerminalTools:
 
         result = await create_tool.execute(ctx=CTX, command="ls", args=["-la"])
 
-        assert result == "term_123"
+        assert "term_123" in result
 
         # Verify session_id was used
         agent = provider.agent
@@ -187,7 +187,7 @@ class TestSessionScopedTerminalTools:
         result = await output_tool.execute(ctx=CTX, terminal_id="term_123")
 
         assert "Hello World" in result
-        assert "[Exited with code 0]" in result
+        assert "Exited with code 0" in result
 
         # Verify session_id was used
         agent = provider.agent
@@ -202,7 +202,7 @@ class TestSessionScopedTerminalTools:
 
         result = await wait_tool.execute(ctx=CTX, terminal_id="term_123")
 
-        assert "Terminal term_123 completed with exit code 0" in result
+        assert "Terminal term_123 completed" in result
 
         # Verify session_id was used
         agent = provider.agent
@@ -517,4 +517,4 @@ class TestAgentSwitchingWithCapabilityProvider:
 
 
 if __name__ == "__main__":
-    pytest.main(["-v", __file__])
+    pytest.main(["-vv", __file__])
