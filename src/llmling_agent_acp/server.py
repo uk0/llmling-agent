@@ -7,6 +7,7 @@ the Agent Client Protocol.
 from __future__ import annotations
 
 import asyncio
+import functools
 from typing import TYPE_CHECKING, Any, Self
 
 from acp import AgentSideConnection
@@ -22,7 +23,6 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery import ProviderType
     from tokonomics.model_discovery.model_info import ModelInfo
 
-    from acp import Agent as ACPAgent
     from llmling_agent import Agent, AgentPool
     from llmling_agent_providers.base import UsageLimits
 
@@ -129,33 +129,25 @@ class ACPServer:
     async def run(self) -> None:
         """Run the ACP server."""
         if self._running:
-            return
+            msg = "Server is already running"
+            raise RuntimeError(msg)
         self._running = True
 
         try:
-            if not self.agent_pool:
-                logger.error("No agent pool available - cannot start server")
-                msg = "No agent pool available"
-                raise RuntimeError(msg)  # noqa: TRY301
-
-            # Initialize models on first run
-            await self._initialize_models()
-
+            await self._initialize_models()  # Initialize models on first run
             agent_names = list(self.agent_pool.agents.keys())
             msg = "Starting ACP server with %d agents on stdio: %s"
             logger.info(msg, len(agent_names), agent_names)
 
-            # agent factory function
-            def create_acp_agent(connection: AgentSideConnection) -> ACPAgent:
-                return LLMlingACPAgent(
-                    connection=connection,
-                    agent_pool=self.agent_pool,
-                    available_models=self._available_models,
-                    session_support=self._session_support,
-                    file_access=self._file_access,
-                    terminal_access=self._terminal_access,
-                    usage_limits=self.usage_limits,
-                )
+            create_acp_agent = functools.partial(
+                LLMlingACPAgent,
+                agent_pool=self.agent_pool,
+                available_models=self._available_models,
+                session_support=self._session_support,
+                file_access=self._file_access,
+                terminal_access=self._terminal_access,
+                usage_limits=self.usage_limits,
+            )
 
             reader, writer = await stdio_streams()
             AgentSideConnection(
@@ -166,8 +158,7 @@ class ACPServer:
             )
 
             logger.info(
-                "ACP server started with protocol features: "
-                "file_access=%s, terminal_access=%s, session_support=%s",
+                "ACP server started: file_access=%s, terminal=%s, session_support=%s",
                 self._file_access,
                 self._terminal_access,
                 self._session_support,
@@ -191,7 +182,8 @@ class ACPServer:
     async def shutdown(self) -> None:
         """Shutdown the ACP server and cleanup resources."""
         if not self._running:
-            return
+            msg = "Server is not running"
+            raise RuntimeError(msg)
 
         self._running = False
         logger.info("Shutting down ACP server")
