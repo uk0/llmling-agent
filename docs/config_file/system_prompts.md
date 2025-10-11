@@ -28,7 +28,7 @@ agents:
     system_prompts:
       # String shortcut (auto-converted to static)
       - "You are a helpful assistant."
-      
+
       # Explicit static prompt
       - type: static
         content: "You provide detailed explanations."
@@ -47,7 +47,7 @@ agents:
         variables:
           language: "python"
           experience_level: "senior"
-          
+
       - type: file
         path: "templates/role_prompt.j2"
         variables:
@@ -85,7 +85,7 @@ agents:
     system_prompts:
       - type: library
         reference: "expert_analyst"
-        
+
       - type: library
         reference: "step_by_step"
 ```
@@ -103,7 +103,7 @@ agents:
         arguments:
           role: "technical_writer"
           specialization: "API documentation"
-          
+
       - type: function
         function: "prompts.dynamic:weather_context"
         arguments:
@@ -115,7 +115,7 @@ Function example:
 def generate_role_prompt(role: str, specialization: str) -> str:
     return f"""
     You are a {role} specializing in {specialization}.
-    
+
     Key responsibilities:
     - Create clear, comprehensive documentation
     - Follow industry best practices
@@ -135,26 +135,22 @@ You can combine different prompt types in a single agent:
 agents:
   advanced_assistant:
     system_prompts:
-      # String shortcut
-      - "You are an advanced AI assistant."
-      
-      # Static prompt
-      - type: static
+
+      - "You are an advanced AI assistant."  # String shortcut
+
+      - type: static  # Static prompt
         content: "You have access to real-time information."
-        
-      # File-based template
-      - type: file
+
+      - type: file  # File-based template
         path: "prompts/capabilities.j2"
         variables:
           version: "2.0"
           features: ["analysis", "generation", "reasoning"]
-          
-      # Library reference
-      - type: library
+
+      - type: library  # Library reference
         reference: "professional_tone"
-        
-      # Function-generated
-      - type: function
+
+      - type: function # Function-generated
         function: "context:get_current_capabilities"
         arguments:
           include_experimental: false
@@ -264,8 +260,8 @@ agents:
     system_prompts:
       - type: file
         path: "prompts/roles/expert.j2"  # Relative to config.yml
-        
-# agents/specialist.yml  
+
+# agents/specialist.yml
 system_prompts:
   - type: file
     path: "../prompts/styles/formal.j2"  # Relative to specialist.yml

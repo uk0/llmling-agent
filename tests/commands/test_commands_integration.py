@@ -15,13 +15,13 @@ prompts:
   system_prompts:
     greet:
       content: "Hello {{ name }}!"
-      type: role
+      category: role
 
     analyze:
       content: |
         Analyzing {{ data }}...
         Please check {{ data }}
-      type: methodology
+      category: methodology
 """
 
 

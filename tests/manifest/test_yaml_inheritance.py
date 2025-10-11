@@ -19,10 +19,10 @@ prompts:
   system_prompts:
     reviewer:
       content: "Base reviewer prompt"
-      type: role
+      category: role
     validator:
       content: "Base validator"
-      type: quality
+      category: quality
 """
 
 YAML_CHILD = """
@@ -36,7 +36,7 @@ prompts:
       content: "Specialized reviewer"  # Override
     analyzer:  # Add new
       content: "New analyzer prompt"
-      type: task
+      category: task
 """
 
 YAML_TEMPLATE = """
@@ -44,13 +44,13 @@ prompts:
     system_prompts:
     role1:
         content: "Role one"
-        type: role
+        category: role
     role2:
         content: "Role two"
-        type: role
+        category: role
     check:
         content: "Quality check"
-        type: quality
+        category: quality
 """
 
 
@@ -64,7 +64,7 @@ def test_prompt_inheritance(tmp_path: Path):
     assert len(manifest.prompts.system_prompts) == 3  # noqa: PLR2004
     assert manifest.prompts.system_prompts["reviewer"].content == "Specialized reviewer"
     assert manifest.prompts.system_prompts["validator"].content == "Base validator"
-    assert manifest.prompts.system_prompts["analyzer"].type == "task"
+    assert manifest.prompts.system_prompts["analyzer"].category == "task"
 
 
 if __name__ == "__main__":

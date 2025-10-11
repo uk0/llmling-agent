@@ -19,7 +19,6 @@ from llmling_agent_config.mcp_server import (
 )
 from llmling_agent_config.observability import ObservabilityConfig
 from llmling_agent_config.pool_server import MCPPoolServerConfig
-from llmling_agent_config.prompts import PromptLibraryConfig
 from llmling_agent_config.providers import BaseProviderConfig
 from llmling_agent_config.resources import (  # noqa: TC001
     ResourceConfig,
@@ -27,6 +26,7 @@ from llmling_agent_config.resources import (  # noqa: TC001
 )
 from llmling_agent_config.result_types import StructuredResponseConfig  # noqa: TC001
 from llmling_agent_config.storage import StorageConfig
+from llmling_agent_config.system_prompts import PromptLibraryConfig
 from llmling_agent_config.task import Job  # noqa: TC001
 from llmling_agent_config.teams import TeamConfig  # noqa: TC001
 from llmling_agent_config.ui import StdlibUIConfig, UIConfig  # noqa: TC001

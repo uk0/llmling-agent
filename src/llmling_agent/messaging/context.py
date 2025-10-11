@@ -41,8 +41,8 @@ class NodeContext[TDeps]:
     current_prompt: str | None = None
     """Current prompt text for the agent."""
 
-    in_async_context: bool = False
-    """Whether we're running in an async context."""
+    # in_async_context: bool = False
+    # """Whether we're running in an async context."""
 
     input_provider: InputProvider | None = None
     """Provider for human-input-handling."""

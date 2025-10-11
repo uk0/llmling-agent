@@ -72,7 +72,7 @@ async def list_prompts(
         if provider == "builtin":
             for prompt_name in sorted_prompts:
                 prompt = ctx.context.definition.prompts.system_prompts[prompt_name]
-                desc = f" - {prompt.type}"
+                desc = f" - {prompt.category}"
                 output_lines.append(f"  {prompt_name:<30}{desc}")
         else:
             # For other providers, just show names

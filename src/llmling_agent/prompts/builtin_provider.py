@@ -5,12 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.prompts.base import BasePromptProvider
+from llmling_agent_config.system_prompts import StaticPromptConfig
 
 
 if TYPE_CHECKING:
     from llmling.config.runtime import RuntimeConfig
 
-    from llmling_agent_config.prompts import SystemPrompt
+    from llmling_agent_config.system_prompts import StaticPromptConfig
 
 
 class BuiltinPromptProvider(BasePromptProvider):
@@ -19,7 +20,7 @@ class BuiltinPromptProvider(BasePromptProvider):
     supports_variables = True
     name = "builtin"
 
-    def __init__(self, manifest_prompts: dict[str, SystemPrompt]):
+    def __init__(self, manifest_prompts: dict[str, StaticPromptConfig]):
         from jinjarope import Environment
 
         self.prompts = manifest_prompts

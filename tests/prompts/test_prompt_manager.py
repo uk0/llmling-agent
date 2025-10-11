@@ -11,15 +11,15 @@ prompts:
   system_prompts:
     simple_prompt:
       content: "This is a simple prompt"
-      type: role
+      category: role
 
     template_prompt:
       content: "Hello {{ name }}, welcome to {{ place }}!"
-      type: role
+      category: role
 
     complex_prompt:
       content: "You are a {{ role }} specialized in {{ domain }}."
-      type: methodology
+      category: methodology
 
 agents: {}  # Empty but required
 """
