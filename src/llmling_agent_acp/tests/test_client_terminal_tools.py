@@ -117,11 +117,8 @@ class TestSessionScopedTerminalTools:
     @pytest.fixture
     async def provider_with_tools(self, acp_agent):
         """Create provider with full capabilities and get tools."""
-        capabilities = ClientCapabilities(
-            fs=FileSystemCapability(read_text_file=True, write_text_file=True),
-            terminal=True,
-        )
-
+        fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
+        capabilities = ClientCapabilities(fs=fs_cap)
         provider = ACPTerminalProvider(
             agent=acp_agent,
             session_id="test_session_123",
@@ -158,7 +155,7 @@ class TestSessionScopedTerminalTools:
             ctx=CTX, command="env", env={"TEST_VAR": "test_value", "FOO": "bar"}
         )
 
-        # Verify environment variables were passed
+        # Verify env variables were passed
         agent = provider.agent
         create_call = agent.connection.create_terminal.call_args[0][0]
         assert len(create_call.env) == 2  # noqa: PLR2004
@@ -169,30 +166,20 @@ class TestSessionScopedTerminalTools:
         """Test create_terminal tool returns terminal ID."""
         provider, tools = provider_with_tools
         create_tool = tools["create_terminal"]
-
         result = await create_tool.execute(ctx=CTX, command="ls", args=["-la"])
-
         assert "term_123" in result
-
-        # Verify session_id was used
-        agent = provider.agent
-        create_call = agent.connection.create_terminal.call_args[0][0]
-        assert create_call.session_id == "test_session_123"
+        create_call = provider.agent.connection.create_terminal.call_args[0][0]
+        assert create_call.session_id == "test_session_123"  # Verify session_id was used
 
     async def test_get_command_output_tool(self, provider_with_tools):
         """Test get_command_output tool retrieves output."""
         provider, tools = provider_with_tools
         output_tool = tools["get_command_output"]
-
         result = await output_tool.execute(ctx=CTX, terminal_id="term_123")
-
         assert "Hello World" in result
         assert "Exited with code 0" in result
-
-        # Verify session_id was used
-        agent = provider.agent
-        output_call = agent.connection.terminal_output.call_args[0][0]
-        assert output_call.session_id == "test_session_123"
+        output_call = provider.agent.connection.terminal_output.call_args[0][0]
+        assert output_call.session_id == "test_session_123"  # Verify session_id was used
         assert output_call.terminal_id == "term_123"
 
     async def test_wait_for_terminal_exit_tool(self, provider_with_tools):
@@ -213,28 +200,18 @@ class TestSessionScopedTerminalTools:
         """Test kill_terminal tool."""
         provider, tools = provider_with_tools
         kill_tool = tools["kill_terminal"]
-
         result = await kill_tool.execute(ctx=CTX, terminal_id="term_123")
-
         assert "Terminal term_123 killed successfully" in result
-
-        # Verify session_id was used
-        agent = provider.agent
-        kill_call = agent.connection.kill_terminal.call_args[0][0]
+        kill_call = provider.agent.connection.kill_terminal.call_args[0][0]
         assert kill_call.session_id == "test_session_123"
 
     async def test_release_terminal_tool(self, provider_with_tools):
         """Test release_terminal tool."""
         provider, tools = provider_with_tools
         release_tool = tools["release_terminal"]
-
         result = await release_tool.execute(ctx=CTX, terminal_id="term_123")
-
         assert "Terminal term_123 released successfully" in result
-
-        # Verify session_id was used
-        agent = provider.agent
-        release_call = agent.connection.release_terminal.call_args[0][0]
+        release_call = provider.agent.connection.release_terminal.call_args[0][0]
         assert release_call.session_id == "test_session_123"
 
     async def test_run_command_with_timeout_success(self, provider_with_tools):
@@ -252,7 +229,6 @@ class TestSessionScopedTerminalTools:
     async def test_terminal_error_handling(self, provider_with_tools):
         """Test terminal tool error handling."""
         provider, tools = provider_with_tools
-
         # Make connection raise an error
         provider.agent.connection.create_terminal.side_effect = Exception(
             "Connection error"
@@ -260,7 +236,6 @@ class TestSessionScopedTerminalTools:
 
         run_tool = tools["run_command"]
         result = await run_tool.execute(ctx=CTX, command="echo", args=["test"])
-
         assert "Error executing command: Connection error" in result
 
 
@@ -271,12 +246,9 @@ class TestSessionScopedFilesystemTools:
     def mock_connection(self):
         """Create a mock ACP connection with filesystem responses."""
         connection = Mock(spec=AgentSideConnection)
-
-        connection.read_text_file = AsyncMock(
-            return_value=ReadTextFileResponse(content="file contents here")
-        )
+        response = ReadTextFileResponse(content="file contents here")
+        connection.read_text_file = AsyncMock(return_value=response)
         connection.write_text_file = AsyncMock(return_value=WriteTextFileResponse())
-
         return connection
 
     @pytest.fixture
@@ -286,26 +258,16 @@ class TestSessionScopedFilesystemTools:
         mock_agent.name = "test_agent"
         pool = Mock(spec=AgentPool)
         pool.agents = {"test_agent": mock_agent}
-
-        return LLMlingACPAgent(
-            connection=mock_connection,
-            agent_pool=pool,
-            file_access=True,
-        )
+        return LLMlingACPAgent(mock_connection, agent_pool=pool, file_access=True)
 
     @pytest.fixture
     async def provider_with_fs_tools(self, acp_agent):
         """Create provider with filesystem capabilities and get tools."""
-        capabilities = ClientCapabilities(
-            fs=FileSystemCapability(read_text_file=True, write_text_file=True),
-        )
-
+        fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
+        capabilities = ClientCapabilities(fs=fs_cap)
         provider = ACPFileSystemProvider(
-            agent=acp_agent,
-            session_id="fs_session_456",
-            client_capabilities=capabilities,
+            acp_agent, session_id="test_id", client_capabilities=capabilities
         )
-
         tools = await provider.get_tools()
         tool_dict = {tool.name: tool for tool in tools}
         return provider, tool_dict
@@ -314,15 +276,10 @@ class TestSessionScopedFilesystemTools:
         """Test read_text_file tool."""
         provider, tools = provider_with_fs_tools
         read_tool = tools["read_text_file"]
-
         result = await read_tool.execute(ctx=CTX, path="/test/file.txt")
-
         assert result == "file contents here"
-
-        # Verify session_id was used
-        agent = provider.agent
-        read_call = agent.connection.read_text_file.call_args[0][0]
-        assert read_call.session_id == "fs_session_456"
+        read_call = provider.agent.connection.read_text_file.call_args[0][0]
+        assert read_call.session_id == "test_id"  # Verify session_id was used
         assert read_call.path == "/test/file.txt"
 
     async def test_read_text_file_with_line_limit(self, provider_with_fs_tools):
@@ -352,7 +309,7 @@ class TestSessionScopedFilesystemTools:
         # Verify session_id was used
         agent = provider.agent
         write_call = agent.connection.write_text_file.call_args[0][0]
-        assert write_call.session_id == "fs_session_456"
+        assert write_call.session_id == "test_id"
         assert write_call.path == "/test/output.txt"
         assert write_call.content == "Hello, World!"
 
@@ -409,16 +366,8 @@ class TestAgentSwitchingWithCapabilityProvider:
         from llmling_agent_acp.session import ACPSession
 
         capabilities = ClientCapabilities(terminal=True)
-
-        # Create ACP agent
-        acp_agent = LLMlingACPAgent(
-            connection=mock_connection,
-            agent_pool=multi_agent_pool,
-            terminal_access=True,
-        )
-
-        # Create session (starts with agent_a as current)
-        session = ACPSession(
+        acp_agent = LLMlingACPAgent(mock_connection, agent_pool=multi_agent_pool)
+        session = ACPSession(  # Create session (starts with agent_a as current)
             session_id="multi_agent_session",
             agent_pool=multi_agent_pool,
             current_agent_name="agent_a",
@@ -427,7 +376,6 @@ class TestAgentSwitchingWithCapabilityProvider:
             acp_agent=acp_agent,
             client_capabilities=capabilities,
         )
-
         return session, multi_agent_pool
 
     async def test_capability_provider_moves_on_agent_switch(
@@ -435,7 +383,6 @@ class TestAgentSwitchingWithCapabilityProvider:
     ):
         """Test that capability provider moves when switching agents."""
         session, agent_pool = session_with_multiple_agents
-
         # Verify initial state - provider should be on agent_a
         agent_a = agent_pool.agents["agent_a"]
         agent_b = agent_pool.agents["agent_b"]
@@ -448,9 +395,7 @@ class TestAgentSwitchingWithCapabilityProvider:
         initial_provider = agent_a.tools.add_provider.call_args[0][0]
         assert initial_provider is not None
 
-        # Switch to agent_b
         await session.switch_active_agent("agent_b")
-
         # Verify provider was removed from agent_a and added to agent_b
         agent_a.tools.remove_provider.assert_called_once_with(initial_provider)
         agent_b.tools.add_provider.assert_called_once_with(initial_provider)
@@ -464,15 +409,9 @@ class TestAgentSwitchingWithCapabilityProvider:
     ):
         """Test that current agent name updates correctly."""
         session, _agent_pool = session_with_multiple_agents
-
-        # Initial state
-        assert session.current_agent_name == "agent_a"
-
-        # Switch to agent_b
-        await session.switch_active_agent("agent_b")
-
-        # Verify current agent changed
-        assert session.current_agent_name == "agent_b"
+        assert session.current_agent_name == "agent_a"  # Initial state
+        await session.switch_active_agent("agent_b")  # Switch to agent_b
+        assert session.current_agent_name == "agent_b"  # Verify current agent changed
 
     async def test_switch_to_nonexistent_agent_raises_error(
         self, session_with_multiple_agents
@@ -483,8 +422,7 @@ class TestAgentSwitchingWithCapabilityProvider:
         with pytest.raises(ValueError, match="Agent 'nonexistent' not found"):
             await session.switch_active_agent("nonexistent")
 
-        # Verify current agent unchanged
-        assert session.current_agent_name == "agent_a"
+        assert session.current_agent_name == "agent_a"  # Verify current agent unchanged
 
     async def test_no_provider_movement_when_no_capability_provider(
         self, multi_agent_pool
