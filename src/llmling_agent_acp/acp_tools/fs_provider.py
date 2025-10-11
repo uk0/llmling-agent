@@ -413,7 +413,6 @@ class ACPFileSystemProvider(ResourceProvider):
                     status="completed",
                     locations=[ToolCallLocation(path=resolved_path)],
                     content=[file_edit_content],
-                    raw_output=success_msg,
                 )
                 notifi = SessionNotification(session_id=self.session_id, update=progress)
                 await self.agent.connection.session_update(notifi)
