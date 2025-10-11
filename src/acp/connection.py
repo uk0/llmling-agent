@@ -129,8 +129,7 @@ class Connection:
                 try:
                     message = anyenv.load_json(line, return_type=dict)
                 except Exception:
-                    # Align with Rust/TS: on parse error,
-                    # do not send a response; just skip
+                    # Align with Rust/TS: on parse error, just skip instead of response
                     logger.exception("Error parsing JSON-RPC message")
                     continue
 
@@ -192,15 +191,10 @@ class Connection:
             self._state.resolve_outgoing(request_id, result)
             return
         if "error" in message:
-            error_obj = message.get("error") or {}
-            self._state.reject_outgoing(
-                request_id,
-                RequestError(
-                    error_obj.get("code", -32603),
-                    error_obj.get("message", "Error"),
-                    error_obj.get("data"),
-                ),
-            )
+            dct = message.get("error") or {}
+            code = dct.get("code", -32603)
+            error = RequestError(code, dct.get("message", "Error"), dct.get("data"))
+            self._state.reject_outgoing(request_id, error)
             return
         self._state.resolve_outgoing(request_id, None)
 
