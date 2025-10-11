@@ -38,7 +38,7 @@ dependencies = [
   "llmling>=1.0.0",
   "llmling-models",
   "mcp>=1.2.0",
-  # these 4 could be optional
+  "mcp-interviewer>=0.0.12",
   "prompt-toolkit>=3.0.48",
   "promptantic>=0.4.5",
   "psygnal>=0.11.1",

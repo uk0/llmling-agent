@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import os
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import Field
 from schemez import Schema
+
+
+if TYPE_CHECKING:
+    from mcp_interviewer import ServerScoreCard
 
 
 class MCPServerAuthSettings(Schema):
@@ -76,6 +80,14 @@ class StdioMCPServerConfig(BaseMCPServerConfig):
         cmd, args = command.split(maxsplit=1)
         return cls(command=cmd, args=args.split())
 
+    async def check(self) -> ServerScoreCard:
+        from mcp_interviewer import MCPInterviewer
+        from mcp_interviewer.models import StdioServerParameters
+
+        params = StdioServerParameters(command=self.command, args=self.args)
+        interviewer = MCPInterviewer(None, None)
+        return await interviewer.interview_server(params)
+
 
 class SSEMCPServerConfig(BaseMCPServerConfig):
     """MCP server using Server-Sent Events transport.
@@ -95,6 +107,18 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
     auth: MCPServerAuthSettings = Field(default_factory=MCPServerAuthSettings)
     """OAuth settings for the SSE server."""
 
+    async def check(self) -> ServerScoreCard:
+        from mcp_interviewer import MCPInterviewer
+        from mcp_interviewer.models import SseServerParameters
+
+        params = SseServerParameters(
+            url=self.url,
+            timeout=self.timeout,
+            headers=self.headers,
+        )
+        interviewer = MCPInterviewer(None, None)
+        return await interviewer.interview_server(params)
+
 
 class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
     """MCP server using StreamableHttp.
@@ -113,6 +137,18 @@ class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
 
     auth: MCPServerAuthSettings = Field(default_factory=MCPServerAuthSettings)
     """OAuth settings for the HTTP server."""
+
+    async def check(self) -> ServerScoreCard:
+        from mcp_interviewer import MCPInterviewer
+        from mcp_interviewer.models import StreamableHttpServerParameters
+
+        params = StreamableHttpServerParameters(
+            url=self.url,
+            timeout=self.timeout,
+            headers=self.headers,
+        )
+        interviewer = MCPInterviewer(None, None)
+        return await interviewer.interview_server(params)
 
 
 MCPServerConfig = Annotated[
