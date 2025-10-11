@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -9,6 +10,7 @@ from pydantic_ai import RunContext  # noqa: TC002
 
 from acp.schema import (
     ContentToolCallContent,
+    FileEditToolCallContent,
     ReadTextFileRequest,
     SessionNotification,
     TextContentBlock,
@@ -20,6 +22,7 @@ from acp.schema import (
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent.tools.base import Tool
+from llmling_agent_tools.file_editor import replace_content
 
 
 if TYPE_CHECKING:
@@ -104,6 +107,15 @@ class ACPFileSystemProvider(ResourceProvider):
                     self._create_write_text_file_tool(),
                     source="filesystem",
                     name_override="write_text_file",
+                )
+                tools.append(tool)
+
+            # Edit file tool requires both read and write capabilities
+            if fs_caps.read_text_file and fs_caps.write_text_file:
+                tool = Tool.from_callable(
+                    self._create_edit_file_tool(),
+                    source="filesystem",
+                    name_override="edit_file",
                 )
                 tools.append(tool)
 
@@ -276,3 +288,150 @@ class ACPFileSystemProvider(ResourceProvider):
                 return f"Successfully wrote file: {path}"
 
         return write_text_file
+
+    def _create_edit_file_tool(self):
+        """Create a tool that edits text files via smart content replacement."""
+
+        async def edit_file(  # noqa: D417
+            ctx: RunContext[Any],
+            path: str,
+            old_string: str,
+            new_string: str,
+            description: str,
+            replace_all: bool = False,
+        ) -> str:
+            r"""Edit a file by replacing specific content with smart matching.
+
+            Uses sophisticated matching strategies to handle whitespace, indentation,
+            and other variations. Shows the changes as a diff in the UI.
+
+            Args:
+                path: File path (absolute or relative to session cwd)
+                old_string: Text content to find and replace
+                new_string: Text content to replace it with
+                description: Human-readable description of what the edit accomplishes
+                replace_all: Whether to replace all occurrences (default: False)
+
+            Returns:
+                Success message with edit summary
+            """
+            if old_string == new_string:
+                return "Error: old_string and new_string must be different"
+
+            # Resolve relative paths against session cwd
+            resolved_path = self._resolve_path(path)
+
+            # Send initial pending notification
+            assert ctx.tool_call_id, "Tool call ID must be present for edit operations"
+            try:
+                start = ToolCallStart(
+                    tool_call_id=ctx.tool_call_id,
+                    status="pending",
+                    title=f"Editing file: {path}",
+                    kind="edit",
+                    locations=[ToolCallLocation(path=resolved_path)],
+                    raw_input={
+                        "path": path,
+                        "old_string": old_string,
+                        "new_string": new_string,
+                        "description": description,
+                        "replace_all": replace_all,
+                    },
+                )
+                notifi = SessionNotification(session_id=self.session_id, update=start)
+                await self.agent.connection.session_update(notifi)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Failed to send pending update: %s", e)
+
+            try:
+                # Read current file content
+                read_request = ReadTextFileRequest(
+                    session_id=self.session_id,
+                    path=resolved_path,
+                )
+                read_response = await self.agent.connection.read_text_file(read_request)
+                original_content = read_response.content
+
+                # Apply smart content replacement
+                try:
+                    new_content = replace_content(
+                        original_content, old_string, new_string, replace_all
+                    )
+                except ValueError as e:
+                    error_msg = f"Edit failed: {e}"
+                    # Send failed update
+                    progress = ToolCallProgress(
+                        tool_call_id=ctx.tool_call_id,
+                        status="failed",
+                        raw_output=error_msg,
+                    )
+                    failed = SessionNotification(
+                        session_id=self.session_id, update=progress
+                    )
+                    try:
+                        await self.agent.connection.session_update(failed)
+                    except Exception:  # noqa: BLE001
+                        logger.warning("Failed to send failed update")
+                    return error_msg
+
+                # Generate diff for UI display
+                diff_lines = list(
+                    difflib.unified_diff(
+                        original_content.splitlines(keepends=True),
+                        new_content.splitlines(keepends=True),
+                        fromfile=path,
+                        tofile=path,
+                        lineterm="",
+                    )
+                )
+
+                # Write the new content
+                write_request = WriteTextFileRequest(
+                    session_id=self.session_id,
+                    path=resolved_path,
+                    content=new_content,
+                )
+                await self.agent.connection.write_text_file(write_request)
+
+                # Send completion update with diff
+                file_edit_content = FileEditToolCallContent(
+                    path=resolved_path,
+                    old_text=original_content,
+                    new_text=new_content,
+                )
+
+                lines_changed = len([
+                    line for line in diff_lines if line.startswith(("+", "-"))
+                ])
+
+                success_msg = f"Successfully edited {Path(path).name}: {description}"
+                if lines_changed > 0:
+                    success_msg += f" ({lines_changed} lines changed)"
+
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="completed",
+                    locations=[ToolCallLocation(path=resolved_path)],
+                    content=[file_edit_content],
+                    raw_output=success_msg,
+                )
+                notifi = SessionNotification(session_id=self.session_id, update=progress)
+                await self.agent.connection.session_update(notifi)
+            except Exception as e:  # noqa: BLE001
+                error_msg = f"Error editing file: {e}"
+                # Send failed update
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=error_msg,
+                )
+                failed = SessionNotification(session_id=self.session_id, update=progress)
+                try:
+                    await self.agent.connection.session_update(failed)
+                except Exception:  # noqa: BLE001
+                    logger.warning("Failed to send failed update")
+                return error_msg
+            else:
+                return success_msg
+
+        return edit_file
