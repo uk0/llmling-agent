@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
 from llmling_agent.prompts.builtin_provider import BuiltinPromptProvider
-from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_config.prompt_hubs import (
     LangfuseConfig,
     OpenLITConfig,
@@ -59,7 +59,7 @@ def parse_prompt_reference(reference: str) -> tuple[str, str, str | None, dict[s
     return provider, identifier.strip(), version, variables
 
 
-class PromptManager(TaskManagerMixin):
+class PromptManager:
     """Manages multiple prompt providers.
 
     Handles:
@@ -76,6 +76,7 @@ class PromptManager(TaskManagerMixin):
         """
         super().__init__()
         self.config = config
+        self.task_manager = TaskManager()
         self.providers: dict[str, BasePromptProvider] = {}
 
         # Always register builtin provider

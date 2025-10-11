@@ -97,7 +97,7 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
         await super().__aenter__()
         await self.event.__aenter__()
         # Start monitoring after everything is initialized
-        self.create_task(self.start())  # Non-blocking
+        self.task_manager.create_task(self.start())  # Non-blocking
         return self
 
     async def __aexit__(

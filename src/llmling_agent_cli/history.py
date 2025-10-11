@@ -86,7 +86,7 @@ def show_history(
         config_path = resolve_agent_config(config)
         provider = get_history_provider(config_path)
 
-        results = provider.run_task_sync(
+        results = provider.task_manager.run_task_sync(
             provider.get_filtered_conversations(
                 agent_name=agent_name,
                 period=period,
@@ -139,7 +139,9 @@ def show_stats(
         cutoff = get_now() - parse_time_period(period)
         filters = StatsFilters(cutoff=cutoff, group_by=group_by, agent_name=agent_name)  # type: ignore
 
-        stats = provider.run_task_sync(provider.get_conversation_stats(filters))
+        stats = provider.task_manager.run_task_sync(
+            provider.get_conversation_stats(filters)
+        )
         formatted = format_stats(stats, period, group_by)
         format_output(formatted, output_format)
 
@@ -186,7 +188,7 @@ def reset_history(
                 print("Operation cancelled.")
                 return
         coro = provider.reset(agent_name=agent_name, hard=hard)
-        conv_count, msg_count = provider.run_task_sync(coro)
+        conv_count, msg_count = provider.task_manager.run_task_sync(coro)
 
         what = f" for {agent_name}" if agent_name else ""
         print(f"Deleted {conv_count} conversations and {msg_count} messages{what}.")

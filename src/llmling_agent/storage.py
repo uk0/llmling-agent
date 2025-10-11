@@ -6,7 +6,7 @@ import asyncio
 from typing import TYPE_CHECKING, Self
 
 from llmling_agent.log import get_logger
-from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_config.storage import (
     FileStorageConfig,
     Mem0Config,
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class StorageManager(TaskManagerMixin):
+class StorageManager:
     """Manages multiple storage providers.
 
     Handles:
@@ -50,6 +50,7 @@ class StorageManager(TaskManagerMixin):
             config: Storage configuration including providers and filters
         """
         self.config = config
+        self.task_manager = TaskManager()
         self.providers = [
             self._create_provider(cfg) for cfg in self.config.effective_providers
         ]
@@ -75,7 +76,7 @@ class StorageManager(TaskManagerMixin):
                 errors.append(e)
                 logger.exception("Error cleaning up provider: %r", provider)
 
-        await self.cleanup_tasks()
+        await self.task_manager.cleanup_tasks()
 
         if errors:
             msg = "Provider cleanup errors"
@@ -226,7 +227,7 @@ class StorageManager(TaskManagerMixin):
 
         for provider in self.providers:
             if provider.should_log_agent(name or "no name"):
-                self.create_task(
+                self.task_manager.create_task(
                     provider.log_message(
                         conversation_id=conversation_id,
                         message_id=message_id,
@@ -252,7 +253,7 @@ class StorageManager(TaskManagerMixin):
             return
 
         for provider in self.providers:
-            self.create_task(
+            self.task_manager.create_task(
                 provider.log_conversation(
                     conversation_id=conversation_id,
                     node_name=node_name,
@@ -272,7 +273,7 @@ class StorageManager(TaskManagerMixin):
             return
 
         for provider in self.providers:
-            self.create_task(
+            self.task_manager.create_task(
                 provider.log_tool_call(
                     conversation_id=conversation_id,
                     message_id=message_id,
@@ -294,7 +295,7 @@ class StorageManager(TaskManagerMixin):
             return
 
         for provider in self.providers:
-            self.create_task(
+            self.task_manager.create_task(
                 provider.log_command(
                     agent_name=agent_name,
                     session_id=session_id,
@@ -315,7 +316,7 @@ class StorageManager(TaskManagerMixin):
     ):
         """Log context message to all providers."""
         for provider in self.providers:
-            self.create_task(
+            self.task_manager.create_task(
                 provider.log_context_message(
                     conversation_id=conversation_id,
                     content=content,
@@ -380,11 +381,13 @@ class StorageManager(TaskManagerMixin):
     # Sync wrappers
     def reset_sync(self, *args, **kwargs) -> tuple[int, int]:
         """Sync wrapper for reset."""
-        return self.run_task_sync(self.reset(*args, **kwargs))
+        return self.task_manager.run_task_sync(self.reset(*args, **kwargs))
 
     def get_conversation_counts_sync(self, *args, **kwargs) -> tuple[int, int]:
         """Sync wrapper for get_conversation_counts."""
-        return self.run_task_sync(self.get_conversation_counts(*args, **kwargs))
+        return self.task_manager.run_task_sync(
+            self.get_conversation_counts(*args, **kwargs)
+        )
 
     def log_conversation_sync(self, *args, **kwargs):
         """Sync wrapper for log_conversation."""

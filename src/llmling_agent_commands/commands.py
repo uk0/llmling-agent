@@ -34,7 +34,7 @@ class ListNodesCommand(SlashedCommand):
         assert node.pool
         for name, node_ in node.pool.nodes.items():
             # Build status info
-            status = "🔄 busy" if node_.is_busy() else "⏳ idle"
+            status = "🔄 busy" if node_.task_manager.is_busy() else "⏳ idle"
 
             # Add connections if requested
             connections = []

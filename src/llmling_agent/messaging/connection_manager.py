@@ -74,7 +74,7 @@ class ConnectionManager:
         seen: set[AgentName] = _seen or {self.owner.name}  # type: ignore
 
         # Wait for our own tasks
-        await self.owner.complete_tasks()
+        await self.owner.task_manager.complete_tasks()
 
         # Wait for connected agents
         for agent in self.get_targets():

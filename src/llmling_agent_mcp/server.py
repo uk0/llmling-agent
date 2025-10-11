@@ -10,7 +10,7 @@ from fastmcp import FastMCP
 from mcp.server.lowlevel.server import NotificationOptions
 
 import llmling_agent
-from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_mcp.handlers import register_handlers
 from llmling_agent_mcp.log import get_logger
 
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class LLMLingServer(TaskManagerMixin):
+class LLMLingServer:
     """MCP protocol server implementation."""
 
     def __init__(
@@ -55,6 +55,7 @@ class LLMLingServer(TaskManagerMixin):
         """
         super().__init__()
         self.name = name
+        self.task_manager = TaskManager()
         self.provider = provider
         self.config = config
 
@@ -120,7 +121,7 @@ class LLMLingServer(TaskManagerMixin):
                     host=self.config.host,
                     port=self.config.port,
                 )
-            self.create_task(coro)
+            self.task_manager.create_task(coro)
         except Exception as e:
             await self.shutdown()
             msg = "Failed to start server"
@@ -178,7 +179,7 @@ class LLMLingServer(TaskManagerMixin):
     async def notify_tool_list_changed(self):
         """Notify clients about tool list changes."""
         try:
-            self.create_task(self.current_session.send_tool_list_changed())
+            self.task_manager.create_task(self.current_session.send_tool_list_changed())
         except RuntimeError:
             logger.debug("No active session for notification")
         except Exception:
@@ -187,7 +188,7 @@ class LLMLingServer(TaskManagerMixin):
     async def notify_prompt_list_changed(self):
         """Notify clients about prompt list changes."""
         try:
-            self.create_task(self.current_session.send_prompt_list_changed())
+            self.task_manager.create_task(self.current_session.send_prompt_list_changed())
         except RuntimeError:
             logger.debug("No active session for notification")
         except Exception:

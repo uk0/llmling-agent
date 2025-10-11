@@ -249,7 +249,7 @@ class EventManager:
             self._sources[config.name] = source
             # Start processing events
             name = f"event_processor_{config.name}"
-            self.node.create_task(self._process_events(source), name=name)
+            self.node.task_manager.create_task(self._process_events(source), name=name)
             logger.debug("Added event source: %s", config.name)
         except Exception as e:
             msg = f"Failed to add event source {config.name}"
@@ -398,7 +398,7 @@ class EventManager:
                             **event_metadata,
                         }
                         event = EventData.create(name, content=result, metadata=meta)
-                        self.node.run_background(self.emit_event(event))
+                        self.node.task_manager.run_background(self.emit_event(event))
                 except Exception as e:
                     if self.enabled:
                         meta = {
@@ -410,7 +410,7 @@ class EventManager:
                             **event_metadata,
                         }
                         event = EventData.create(name, content=str(e), metadata=meta)
-                        self.node.run_background(self.emit_event(event))
+                        self.node.task_manager.run_background(self.emit_event(event))
                     raise
                 else:
                     return result

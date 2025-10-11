@@ -29,7 +29,7 @@ class PrioritizedTask:
     name: str | None = field(default=None, compare=False)
 
 
-class TaskManagerMixin:
+class TaskManager:
     """Mixin for managing async tasks.
 
     Provides utilities for:
@@ -40,7 +40,6 @@ class TaskManagerMixin:
     """
 
     def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs)
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._task_queue: list[PrioritizedTask] = []  # heap queue
         self._scheduler_task: asyncio.Task[Any] | None = None

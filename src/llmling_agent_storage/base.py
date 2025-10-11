@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, Self
 from uuid import uuid4
 
-from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent.utils.tasks import TaskManager
 
 
 if TYPE_CHECKING:
@@ -49,7 +49,7 @@ class StoredConversation:
     total_cost: float = 0.0
 
 
-class StorageProvider[T](TaskManagerMixin):
+class StorageProvider[T]:
     """Base class for storage providers."""
 
     can_load_history: bool = False
@@ -58,6 +58,7 @@ class StorageProvider[T](TaskManagerMixin):
     def __init__(self, config: BaseStorageProviderConfig):
         super().__init__()
         self.config = config
+        self.task_manager = TaskManager()
         self.log_messages = config.log_messages
         self.log_conversations = config.log_conversations
         self.log_tool_calls = config.log_tool_calls
@@ -307,40 +308,40 @@ class StorageProvider[T](TaskManagerMixin):
     # Sync wrapper
     def log_context_message_sync(self, **kwargs):
         """Sync wrapper for log_context_message."""
-        self.fire_and_forget(self.log_context_message(**kwargs))
+        self.task_manager.fire_and_forget(self.log_context_message(**kwargs))
 
     # Sync wrappers for all async methods
     def log_message_sync(self, **kwargs):
         """Sync wrapper for log_message."""
-        self.fire_and_forget(self.log_message(**kwargs))
+        self.task_manager.fire_and_forget(self.log_message(**kwargs))
 
     def log_conversation_sync(self, **kwargs):
         """Sync wrapper for log_conversation."""
-        self.fire_and_forget(self.log_conversation(**kwargs))
+        self.task_manager.fire_and_forget(self.log_conversation(**kwargs))
 
     def log_tool_call_sync(self, **kwargs):
         """Sync wrapper for log_tool_call."""
-        self.fire_and_forget(self.log_tool_call(**kwargs))
+        self.task_manager.fire_and_forget(self.log_tool_call(**kwargs))
 
     def log_command_sync(self, **kwargs):
         """Sync wrapper for log_command."""
-        self.fire_and_forget(self.log_command(**kwargs))
+        self.task_manager.fire_and_forget(self.log_command(**kwargs))
 
     def get_commands_sync(self, **kwargs) -> list[str]:
         """Sync wrapper for get_commands."""
-        return self.run_task_sync(self.get_commands(**kwargs))
+        return self.task_manager.run_task_sync(self.get_commands(**kwargs))
 
     def filter_messages_sync(self, **kwargs) -> list[ChatMessage[str]]:
         """Sync wrapper for filter_messages."""
-        return self.run_task_sync(self.filter_messages(**kwargs))
+        return self.task_manager.run_task_sync(self.filter_messages(**kwargs))
 
     def get_conversations_sync(
         self, **kwargs
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
-        return self.run_task_sync(self.get_conversations(**kwargs))
+        return self.task_manager.run_task_sync(self.get_conversations(**kwargs))
 
     def get_filtered_conversations_sync(self, **kwargs) -> list[ConversationData]:
-        return self.run_task_sync(self.get_filtered_conversations(**kwargs))
+        return self.task_manager.run_task_sync(self.get_filtered_conversations(**kwargs))
 
     def get_conversation_stats_sync(self, **kwargs) -> dict[str, dict[str, Any]]:
-        return self.run_task_sync(self.get_conversation_stats(**kwargs))
+        return self.task_manager.run_task_sync(self.get_conversation_stats(**kwargs))

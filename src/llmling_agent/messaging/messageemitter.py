@@ -15,7 +15,7 @@ from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import AggregatedTalkStats
 from llmling_agent.tools import ToolCallInfo
 from llmling_agent.utils.inspection import has_return_type
-from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent.utils.tasks import TaskManager
 
 
 if TYPE_CHECKING:
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from llmling_agent_config.providers import ProcessorCallback
 
 
-class MessageEmitter[TDeps, TResult](TaskManagerMixin, ABC):
+class MessageEmitter[TDeps, TResult](ABC):
     """Base class for all message processing nodes."""
 
     outbox = Signal(object)  # ChatMessage
@@ -68,6 +68,7 @@ class MessageEmitter[TDeps, TResult](TaskManagerMixin, ABC):
         from llmling_agent.messaging.event_manager import EventManager
         from llmling_agent.messaging.node_logger import NodeLogger
 
+        self.task_manager = TaskManager()
         self._name = name or self.__class__.__name__
         self.description = description
         self.connections = ConnectionManager(self)
@@ -98,7 +99,7 @@ class MessageEmitter[TDeps, TResult](TaskManagerMixin, ABC):
         """Clean up base resources."""
         await self._events.cleanup()
         await self.mcp.__aexit__(exc_type, exc_val, exc_tb)
-        await self.cleanup_tasks()
+        await self.task_manager.cleanup_tasks()
 
     @property
     @abstractmethod

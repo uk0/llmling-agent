@@ -23,7 +23,7 @@ from acp.schema import (
     SetSessionModeResponse,
 )
 from llmling_agent.log import get_logger
-from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import to_session_updates
 from llmling_agent_acp.session_manager import ACPSessionManager
@@ -101,7 +101,7 @@ class LLMlingACPAgent(ACPAgent):
 
         self.command_bridge = ACPCommandBridge(command_store)
         self.session_manager = ACPSessionManager(command_bridge=self.command_bridge)
-        self.tasks = TaskManagerMixin()
+        self.tasks = TaskManager()
 
         self._initialized = False
         agent_count = len(self.agent_pool.agents)

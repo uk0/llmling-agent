@@ -14,7 +14,7 @@ import websockets
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.tools import ToolCallInfo
-from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_providers.base import AgentProvider, ProviderResponse
 
 
@@ -62,7 +62,7 @@ class ToolContext(Schema):
     description: str | None = None
 
 
-class WebSocketProvider(AgentProvider, TaskManagerMixin):
+class WebSocketProvider(AgentProvider):
     """Provider that connects to remote agent via WebSocket."""
 
     NAME = "websocket"
@@ -80,6 +80,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
         self.timeout = timeout
         self.auto_reconnect = auto_reconnect
         self._ws: websockets.ClientConnection | None = None
+        self.task_manager = TaskManager()
         self._pending_responses: dict[str, asyncio.Future[Any]] = {}
         self._active_streams: dict[str, asyncio.Queue[Any]] = {}
         self._current_tools: list[Tool] = []  # Track current request's tools
@@ -95,7 +96,7 @@ class WebSocketProvider(AgentProvider, TaskManagerMixin):
                 raise websockets.ConnectionClosed(None, None)  # noqa: TRY301
         except websockets.ConnectionClosed:
             self._ws = await websockets.connect(self.url, ping_timeout=10)
-            self.create_task(self._handle_messages())
+            self.task_manager.create_task(self._handle_messages())
             logger.info("Connected to remote agent at %s", self.url)
         return self._ws
 

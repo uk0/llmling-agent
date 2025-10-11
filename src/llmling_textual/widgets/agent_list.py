@@ -74,12 +74,14 @@ class NodeEntry(Static, can_focus=True):  # type: ignore
     def __init__(self, node: MessageNode[Any, Any]):
         super().__init__("")
         self.node = node
-        self.add_class("busy" if node.is_busy() else "idle")
+        self.add_class("busy" if node.task_manager.is_busy() else "idle")
 
     def compose(self) -> ComposeResult:
         """Create entry layout."""
         with Horizontal():
-            yield Static("●" if self.node.is_busy() else "○", classes="status")
+            yield Static(
+                "●" if self.node.task_manager.is_busy() else "○", classes="status"
+            )
             yield Static(self.node.name, classes="name")
             match self.node:
                 case Agent() | StructuredAgent():
@@ -155,7 +157,7 @@ class NodeList(ScrollableContainer):
         for name in current_nodes & existing_nodes:
             node = pool.nodes[name]
             entry = self._entries[name]
-            entry.add_class("busy" if node.is_busy() else "idle")
+            entry.add_class("busy" if node.task_manager.is_busy() else "idle")
 
     def action_cursor_up(self):
         """Move focus to previous node."""

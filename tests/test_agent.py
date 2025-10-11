@@ -127,8 +127,8 @@ async def test_agent_forwarding():
         message = "Hello, agent!"
 
         await main_agent.run(message)
-        await main_agent.complete_tasks()
-        await helper_agent.complete_tasks()
+        await main_agent.task_manager.complete_tasks()
+        await helper_agent.task_manager.complete_tasks()
 
         # Verify both agents responded
         assert len(messages) == 2  # noqa: PLR2004

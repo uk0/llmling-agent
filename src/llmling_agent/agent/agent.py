@@ -31,7 +31,7 @@ from llmling_agent.utils.inspection import (
 )
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
-from llmling_agent.utils.tasks import TaskManagerMixin
+from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_config.session import MemoryConfig
 
 
@@ -113,7 +113,7 @@ class AgentKwargs(TypedDict, total=False):
     debug: bool
 
 
-class Agent[TDeps = None](MessageNode[TDeps, str], TaskManagerMixin):
+class Agent[TDeps = None](MessageNode[TDeps, str]):
     """Agent for AI-powered interaction with LLMling resources and tools.
 
     Generically typed with: LLMLingAgent[Type of Dependencies, Type of Result]
@@ -208,6 +208,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str], TaskManagerMixin):
         )
         from llmling_agent_providers.base import AgentProvider
 
+        self.task_manager = TaskManager()
         self._infinite = False
         # save some stuff for asnyc init
         self._owns_runtime = False
@@ -622,7 +623,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str], TaskManagerMixin):
 
     def is_busy(self) -> bool:
         """Check if agent is currently processing tasks."""
-        return bool(self._pending_tasks or self._background_task)
+        return bool(self.task_manager._pending_tasks or self._background_task)
 
     @property
     def model_name(self) -> str | None:
@@ -913,7 +914,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str], TaskManagerMixin):
             store_history=store_history,
             result_type=result_type,
         )
-        return self.run_task_sync(coro)  # type: ignore
+        return self.task_manager.run_task_sync(coro)
 
     async def run_job(
         self,

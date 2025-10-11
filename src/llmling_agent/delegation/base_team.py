@@ -271,7 +271,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def is_busy(self) -> bool:
         """Check if team is processing any tasks."""
-        return bool(self._pending_tasks or self._main_task)
+        return bool(self.task_manager._pending_tasks or self._main_task)
 
     async def stop(self):
         """Stop background execution if running."""
@@ -279,7 +279,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             self._main_task.cancel()
             await self._main_task
         self._main_task = None
-        await self.cleanup_tasks()
+        await self.task_manager.cleanup_tasks()
 
     async def wait(self) -> ChatMessage[Any] | None:
         """Wait for background execution to complete and return last message."""
@@ -292,7 +292,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         try:
             return await self._main_task
         finally:
-            await self.cleanup_tasks()
+            await self.task_manager.cleanup_tasks()
             self._main_task = None
 
     async def run_in_background(
@@ -330,7 +330,9 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                     break
             return last_message
 
-        self._main_task = self.create_task(_continuous(), name="main_execution")
+        self._main_task = self.task_manager.create_task(
+            _continuous(), name="main_execution"
+        )
         return self._team_talk
 
     @property
@@ -352,7 +354,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         """Cancel execution and cleanup."""
         if self._main_task:
             self._main_task.cancel()
-        await self.cleanup_tasks()
+        await self.task_manager.cleanup_tasks()
 
     def get_structure_diagram(self) -> str:
         """Generate mermaid flowchart of node hierarchy."""
@@ -543,7 +545,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             Result containing response and run information
         """
         coro = self.run(*prompt, store_history=store_history)
-        return self.run_task_sync(coro)
+        return self.task_manager.run_task_sync(coro)
 
 
 if __name__ == "__main__":

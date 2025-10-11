@@ -61,7 +61,7 @@ async def main():
         rich.print(f"Type checking result:\n{result.data}")
 
         # Wait for documentation to finish
-        await writer.complete_tasks()
+        await writer.task_manager.complete_tasks()
 
 
 if __name__ == "__main__":

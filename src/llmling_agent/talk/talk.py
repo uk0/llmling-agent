@@ -351,7 +351,9 @@ class Talk[TTransmittedData]:
 
                 if self.delay is not None or self.priority != 0:
                     coro = add_context()
-                    target.run_background(coro, priority=self.priority, delay=self.delay)
+                    target.task_manager.run_background(
+                        coro, priority=self.priority, delay=self.delay
+                    )
                 else:
                     await add_context()
                 return None
@@ -363,7 +365,9 @@ class Talk[TTransmittedData]:
                         target.outbox.emit(message, prompt)
 
                     coro = delayed_emit()
-                    target.run_background(coro, priority=self.priority, delay=self.delay)
+                    target.task_manager.run_background(
+                        coro, priority=self.priority, delay=self.delay
+                    )
                 else:
                     target.outbox.emit(message, prompt)
                 return None
