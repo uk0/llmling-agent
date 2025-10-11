@@ -46,15 +46,10 @@ class CodeModeResourceProvider(ResourceProvider):
 
     async def get_tools(self) -> list[Tool]:
         """Return single meta-tool for Python execution with available tools."""
-        return [
-            Tool.from_callable(
-                self._execute_python_with_tools,
-                name_override="execute_python_with_tools",
-                description_override=await self._build_tool_description(),
-            )
-        ]
+        desc = await self._build_tool_description()
+        return [Tool.from_callable(self.execute_codemode, description_override=desc)]
 
-    async def _execute_python_with_tools(
+    async def execute_codemode(
         self, python_code: str, context_vars: dict[str, Any] | None = None
     ) -> Any:
         """Execute Python code with all wrapped tools available as functions.
