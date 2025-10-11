@@ -14,10 +14,10 @@ from llmling_agent_tools.file_editor import (
     _levenshtein_distance,
     _line_trimmed_replacer,
     _multi_occurrence_replacer,
-    _replace_content,
     _simple_replacer,
     _whitespace_normalized_replacer,
     edit_file_tool,
+    replace_content,
 )
 
 
@@ -101,27 +101,27 @@ class TestReplaceContent:
 
     def test_simple_replacement(self):
         content = "Hello world"
-        result = _replace_content(content, "world", "Python")
+        result = replace_content(content, "world", "Python")
         assert result == "Hello Python"
 
     def test_multiple_occurrences_error(self):
         content = "test test test"
         with pytest.raises(ValueError, match="multiple times"):
-            _replace_content(content, "test", "replace")
+            replace_content(content, "test", "replace")
 
     def test_replace_all(self):
         content = "test test test"
-        result = _replace_content(content, "test", "replace", replace_all=True)
+        result = replace_content(content, "test", "replace", replace_all=True)
         assert result == "replace replace replace"
 
     def test_not_found_error(self):
         content = "Hello world"
         with pytest.raises(ValueError, match="not found"):
-            _replace_content(content, "missing", "replacement")
+            replace_content(content, "missing", "replacement")
 
     def test_same_strings_error(self):
         with pytest.raises(ValueError, match="must be different"):
-            _replace_content("content", "same", "same")
+            replace_content("content", "same", "same")
 
     def test_multiline_replacement(self):
         content = """def old_function():
@@ -139,7 +139,7 @@ def other_function():
     print("new")
     return True"""
 
-        result = _replace_content(content, old_string, new_string)
+        result = replace_content(content, old_string, new_string)
         assert "def new_function():" in result
         assert "def other_function():" in result
 
@@ -148,7 +148,7 @@ def other_function():
         old_string = "if condition:\n    do_something()"
         new_string = "if new_condition:\n    do_something_else()"
 
-        result = _replace_content(content, old_string, new_string)
+        result = replace_content(content, old_string, new_string)
         assert "new_condition" in result
 
 
