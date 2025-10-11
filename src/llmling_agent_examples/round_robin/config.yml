@@ -2,7 +2,7 @@
 prompts:
   system_prompts:
     word_chain:
-      type: role
+      category: role
       content: |
         "Append one word to the given word or sentence and continue the sentence indenfinitely."
 

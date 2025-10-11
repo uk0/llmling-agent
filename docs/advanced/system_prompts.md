@@ -99,7 +99,7 @@ prompts:
         You are an expert data analyst.
         Focus on finding patterns and insights in data.
         Always provide evidence for your conclusions.
-      type: role
+      category: role
 
 agents:
   analyst:
@@ -128,13 +128,13 @@ Function example:
 def generate_context_prompt(user_id: str, session_type: str) -> str:
     # Could fetch user preferences, history, etc.
     user_data = get_user_context(user_id)
-    
+
     if session_type == "technical_support":
         return f"""
         You are providing technical support for {user_data.name}.
         User's technical level: {user_data.tech_level}
         Previous issues: {user_data.recent_issues}
-        
+
         Adapt your communication style accordingly.
         """
     return f"You are assisting {user_data.name} with {session_type}."
@@ -171,22 +171,22 @@ agents:
     system_prompts:
       # String shortcut
       - "You are an advanced AI assistant."
-      
+
       # Static config
       - type: static
         content: "You have access to real-time information."
-        
+
       # File template
       - type: file
         path: "prompts/capabilities.j2"
         variables:
           version: "2.0"
           features: ["analysis", "generation", "reasoning"]
-          
+
       # Library reference
       - type: library
         reference: "professional_tone"
-        
+
       # Function-generated
       - type: function
         function: "context:get_current_capabilities"
@@ -361,7 +361,7 @@ agents:
       - "You are a helpful assistant"
       - type: library
         reference: step_by_step
-      - type: library  
+      - type: library
         reference: professional
 ```
 
@@ -375,7 +375,7 @@ prompts:
         You are an expert data analyst.
         Focus on finding patterns and insights in data.
         Always provide evidence for your conclusions.
-      type: role
+      category: role
 
     step_by_step:
       content: |
@@ -384,7 +384,7 @@ prompts:
         1. Explain what to do
         2. Note important considerations
         3. Define completion criteria
-      type: methodology
+      category: methodology
 ```
 
 !!! tip "Organizing Prompts"
@@ -396,7 +396,7 @@ prompts:
       system_prompts:
         my_prompt:
           content: ...
-          type: role
+          category: role
 
     # agents.yml
     INHERIT: prompts.yml

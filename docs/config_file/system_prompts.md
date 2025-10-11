@@ -78,7 +78,7 @@ prompts:
       content: |
         You are an expert data analyst.
         Focus on finding patterns and insights.
-      type: role
+      category: role
 
 agents:
   analyst:
@@ -165,7 +165,7 @@ prompts:
   system_prompts:
     # Role definitions
     technical_expert:
-      type: role
+      category: role
       content: |
         You are a technical expert specializing in:
         - Software architecture
@@ -173,7 +173,7 @@ prompts:
         - Performance optimization
 
     code_reviewer:
-      type: role
+      category: role
       content: |
         You are an experienced code reviewer.
         Focus on:
@@ -183,7 +183,7 @@ prompts:
 
     # Methodology definitions
     step_by_step:
-      type: methodology
+      category: methodology
       content: |
         Follow this systematic approach:
         1. Understand the requirements
@@ -193,7 +193,7 @@ prompts:
 
     # Communication styles
     professional:
-      type: tone
+      category: tone
       content: |
         Maintain professional communication:
         - Use formal language
@@ -223,7 +223,7 @@ Keep your configuration organized by separating prompts:
 prompts:
   system_prompts:
     expert_roles:
-      type: role
+      category: role
       content: |
         You are a domain expert...
 

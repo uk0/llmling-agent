@@ -14,13 +14,13 @@ prompts:
       content: |
         You are an expert data analyst.
         Focus on finding patterns and insights.
-      type: role
+      category: role
 
     step_by_step:
       content: |
         Break tasks into sequential steps.
         Explain each step thoroughly.
-      type: methodology
+      category: methodology
 
 # Using prompts in agents
 agents:
@@ -28,7 +28,7 @@ agents:
     system_prompts:
       # Direct string prompts
       - "You help with analysis."
-      
+
       # Reference library prompts
       - type: library
         reference: expert_analyst
@@ -50,7 +50,7 @@ prompts:
         You are an expert technical writer.
         Focus on clarity and precision.
         Use proper terminology consistently.
-      type: role
+      category: role
 
     # Methodology definition
     step_by_step:
@@ -60,14 +60,14 @@ prompts:
         2. Plan approach
         3. Execute systematically
         4. Verify results
-      type: methodology
+      category: methodology
 
     # Tone/style definition
     professional:
       content: |
         Maintain formal, business-appropriate language.
         Be concise but thorough.
-      type: tone
+      category: tone
 ```
 
 ## Prompt Types
@@ -79,7 +79,7 @@ Define WHO the agent is:
 ```yaml
 system_prompts:
   expert_dev:
-    type: role
+    category: role
     content: |
       You are a senior software developer with expertise in:
       - System architecture design
@@ -87,7 +87,7 @@ system_prompts:
       - Performance optimization
 
   data_scientist:
-    type: role
+    category: role
     content: |
       You specialize in data analysis and machine learning.
       Your expertise includes statistical modeling and data visualization.
@@ -98,7 +98,7 @@ Define HOW the agent works:
 ```yaml
 system_prompts:
   analytical:
-    type: methodology
+    category: methodology
     content: |
       Approach problems systematically:
       1. Gather and analyze data
@@ -107,7 +107,7 @@ system_prompts:
       4. Present findings clearly
 
   iterative:
-    type: methodology
+    category: methodology
     content: |
       Work in small iterations:
       - Start with minimal viable approach
@@ -121,7 +121,7 @@ Define communication STYLE:
 ```yaml
 system_prompts:
   formal:
-    type: tone
+    category: tone
     content: |
       Use professional, business-appropriate language:
       - Maintain formal tone
@@ -129,7 +129,7 @@ system_prompts:
       - Avoid colloquialisms
 
   friendly:
-    type: tone
+    category: tone
     content: |
       Be approachable and helpful:
       - Use warm, welcoming language
@@ -142,7 +142,7 @@ Define output STRUCTURE:
 ```yaml
 system_prompts:
   markdown:
-    type: format
+    category: format
     content: |
       Format responses using Markdown:
       - Use headers for sections (# ## ###)
@@ -151,7 +151,7 @@ system_prompts:
       - Use tables for structured data
 
   structured:
-    type: format
+    category: format
     content: |
       Structure responses with:
       1. **Summary** - Brief overview
@@ -203,7 +203,7 @@ Combine library prompts with file-based templates:
 prompts:
   system_prompts:
     domain_expert:
-      type: role
+      category: role
       content: |
         You are a domain expert in {{ domain }}.
         Your specialization: {{ specialization }}
@@ -228,7 +228,7 @@ Use functions to generate context-aware prompts:
 prompts:
   system_prompts:
     context_aware:
-      type: role
+      category: role
       content: |
         You adapt to user context and preferences.
 
@@ -251,7 +251,7 @@ prompts:
   system_prompts:
     # Roles
     technical_expert:
-      type: role
+      category: role
       content: |
         You are a technical expert specializing in:
         - Software development best practices
@@ -259,7 +259,7 @@ prompts:
         - Code review and quality assurance
 
     code_reviewer:
-      type: role
+      category: role
       content: |
         You are an experienced code reviewer focused on:
         - Code quality and maintainability
@@ -268,7 +268,7 @@ prompts:
 
     # Methodologies
     systematic:
-      type: methodology
+      category: methodology
       content: |
         Follow this systematic approach:
         1. Understand requirements fully
@@ -278,7 +278,7 @@ prompts:
 
     # Tones
     professional:
-      type: tone
+      category: tone
       content: |
         Maintain professional communication:
         - Use formal, precise language
@@ -287,7 +287,7 @@ prompts:
 
     # Formats
     structured:
-      type: format
+      category: format
       content: |
         Structure responses with:
         1. **Overview** - Brief summary
@@ -340,18 +340,18 @@ Keep prompts organized in separate files:
 prompts:
   system_prompts:
     technical_expert:
-      type: role
+      category: role
       content: ...
 
-# prompts/styles.yml  
+# prompts/styles.yml
 prompts:
   system_prompts:
     professional:
-      type: tone
+      category: tone
       content: ...
 
 # agents.yml
-INHERIT: 
+INHERIT:
   - prompts/roles.yml
   - prompts/styles.yml
 
@@ -379,10 +379,10 @@ Document your prompts:
 prompts:
   system_prompts:
     expert_analyst:
-      type: role
+      category: role
       content: |
         You are an expert data analyst with 10+ years experience.
-        
+
         Core competencies:
         - Statistical analysis and modeling
         - Data visualization and reporting
