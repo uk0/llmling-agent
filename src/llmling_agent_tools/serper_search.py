@@ -74,10 +74,13 @@ class SerperTool:
                 response = await client.post(search_url, headers=headers, json=payload)
                 response.raise_for_status()
                 results = response.json()
+            except httpx.HTTPStatusError as e:
+                error_msg = f"Error making request to Serper API: {e}"
+                error_msg += f"\nResponse: {e.response.text}"
+                logger.exception(error_msg)
+                raise
             except httpx.HTTPError as e:
                 error_msg = f"Error making request to Serper API: {e}"
-                if hasattr(e, "response") and e.response is not None:  # pyright: ignore
-                    error_msg += f"\nResponse: {e.response.text}"  # pyright: ignore
                 logger.exception(error_msg)
                 raise
 
