@@ -5,11 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from acp.acp_types import PlanEntryPriority, PlanEntryStatus  # noqa: TC001
-from acp.schema import (
-    AgentPlan,
-    PlanEntry,
-    SessionNotification,
-)
+from acp.schema import AgentPlan, PlanEntry, SessionNotification
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent.tools.base import Tool
