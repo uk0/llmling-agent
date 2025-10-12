@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import inspect
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling import LLMCallableTool
 import schemez  # noqa: TC002
@@ -25,6 +25,18 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+ToolKind = Literal[
+    "read",
+    "edit",
+    "delete",
+    "move",
+    "search",
+    "execute",
+    "think",
+    "fetch",
+    "switch_mode",
+    "other",
+]
 
 
 @dataclass(frozen=True)
@@ -92,6 +104,9 @@ class Tool:
 
     cache_enabled: bool = False
     """Whether to enable caching for this tool."""
+
+    category: ToolKind | None = None
+    """The category of the tool."""
 
     @property
     def schema(self) -> schemez.OpenAIFunctionTool:

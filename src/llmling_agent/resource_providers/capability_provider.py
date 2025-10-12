@@ -42,6 +42,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                     self.runtime.load_resource,
                     source="builtin",
                     requires_capability="can_load_resources",
+                    category="read",
                 )
                 tools.append(tool)
             if self.capabilities.can_list_resources:
@@ -49,6 +50,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                     self.runtime.get_resources,
                     source="builtin",
                     requires_capability="can_list_resources",
+                    category="search",
                 )
                 tools.append(tool)
             if self.capabilities.can_register_tools:
@@ -56,6 +58,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                     self.runtime.register_tool,
                     source="builtin",
                     requires_capability="can_register_tools",
+                    category="other",
                 )
                 tools.append(tool)
             if self.capabilities.can_register_code:
@@ -63,6 +66,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                     self.runtime.register_code_tool,
                     source="builtin",
                     requires_capability="can_register_code",
+                    category="other",
                 )
                 tools.append(tool)
             if self.capabilities.can_install_packages:
@@ -70,6 +74,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                     self.runtime.install_package,
                     source="builtin",
                     requires_capability="can_install_packages",
+                    category="execute",
                 )
                 tools.append(tool)
 
@@ -81,6 +86,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.create_worker_agent,
                 source="builtin",
                 requires_capability="can_create_workers",
+                category="other",
             )
             tools.append(tool)
         if self.capabilities.can_create_delegates:
@@ -88,6 +94,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.spawn_delegate,
                 source="builtin",
                 requires_capability="can_create_delegates",
+                category="other",
             )
             tools.append(tool)
         if self.capabilities.can_list_agents:
@@ -95,6 +102,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.list_available_agents,
                 source="builtin",
                 requires_capability="can_list_agents",
+                category="search",
             )
             tools.append(tool)
         if self.capabilities.can_list_teams:
@@ -102,6 +110,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.list_available_teams,
                 source="builtin",
                 requires_capability="can_list_teams",
+                category="search",
             )
             tools.append(tool)
         if self.capabilities.can_delegate_tasks:
@@ -109,6 +118,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.delegate_to,
                 source="builtin",
                 requires_capability="can_delegate_tasks",
+                category="other",
             )
             tools.append(tool)
 
@@ -118,12 +128,14 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.search_history,
                 source="builtin",
                 requires_capability="history_access",
+                category="search",
             )
             tools.append(tool)
             tool = Tool.from_callable(
                 capability_tools.show_statistics,
                 source="builtin",
                 requires_capability="history_access",
+                category="read",
             )
             tools.append(tool)
 
@@ -133,6 +145,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.add_agent,
                 source="builtin",
                 requires_capability="can_add_agents",
+                category="other",
             )
             tools.append(tool)
         if self.capabilities.can_add_teams:
@@ -140,6 +153,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.add_team,
                 source="builtin",
                 requires_capability="can_add_teams",
+                category="other",
             )
             tools.append(tool)
 
@@ -148,6 +162,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.connect_nodes,
                 source="builtin",
                 requires_capability="can_can_connect_nodes",
+                category="other",
             )
             tools.append(tool)
 
@@ -156,6 +171,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.ask_agent,
                 source="builtin",
                 requires_capability="can_ask_agents",
+                category="other",
             )
             tools.append(tool)
         if self.capabilities.can_read_files:
@@ -163,6 +179,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.read_file,
                 source="builtin",
                 requires_capability="can_read_files",
+                category="read",
             )
             tools.append(tool)
         if self.capabilities.can_list_directories:
@@ -170,6 +187,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.list_directory,
                 source="builtin",
                 requires_capability="can_list_directories",
+                category="search",
             )
             tools.append(tool)
 
@@ -179,6 +197,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.execute_python,
                 source="builtin",
                 requires_capability="can_execute_code",
+                category="execute",
             )
             tools.append(tool)
         if self.capabilities.can_execute_commands:
@@ -186,6 +205,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.execute_command,
                 source="builtin",
                 requires_capability="can_execute_commands",
+                category="execute",
             )
             tools.append(tool)
 
@@ -204,6 +224,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                     tool_func,
                     source="builtin",
                     requires_capability="can_manage_processes",
+                    category="execute",
                 )
                 tools.append(tool)
 
@@ -213,6 +234,7 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.ask_user,
                 source="builtin",
                 requires_capability="can_ask_user",
+                category="other",
             )
             tools.append(tool)
 
@@ -222,12 +244,14 @@ class CapabilitiesResourceProvider(ResourceProvider):
                 capability_tools.add_local_mcp_server,
                 source="builtin",
                 requires_capability="can_add_mcp_servers",
+                category="other",
             )
             tools.append(tool)
             tool = Tool.from_callable(
                 capability_tools.add_remote_mcp_server,
                 source="builtin",
                 requires_capability="can_add_mcp_servers",
+                category="other",
             )
             tools.append(tool)
 

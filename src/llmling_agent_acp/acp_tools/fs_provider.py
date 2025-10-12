@@ -87,17 +87,25 @@ class ACPFileSystemProvider(ResourceProvider):
         # Filesystem tools if supported
         if fs_caps := self.client_capabilities.fs:
             if fs_caps.read_text_file:
-                tool = Tool.from_callable(self.read_text_file, source="filesystem")
+                tool = Tool.from_callable(
+                    self.read_text_file, source="filesystem", category="read"
+                )
                 tools.append(tool)
             if fs_caps.write_text_file:
-                tool = Tool.from_callable(self.write_text_file, source="filesystem")
+                tool = Tool.from_callable(
+                    self.write_text_file, source="filesystem", category="edit"
+                )
                 tools.append(tool)
 
             # Edit file tool requires both read and write capabilities
             if fs_caps.read_text_file and fs_caps.write_text_file:
-                tool = Tool.from_callable(self.edit_file, source="filesystem")
+                tool = Tool.from_callable(
+                    self.edit_file, source="filesystem", category="edit"
+                )
                 tools.append(tool)
-                tool = Tool.from_callable(self.agentic_edit, source="filesystem")
+                tool = Tool.from_callable(
+                    self.agentic_edit, source="filesystem", category="edit"
+                )
                 tools.append(tool)
 
         return tools

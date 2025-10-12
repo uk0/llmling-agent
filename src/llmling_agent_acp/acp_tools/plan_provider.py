@@ -45,9 +45,13 @@ class ACPPlanProvider(ResourceProvider):
     async def get_tools(self) -> list[Tool]:
         """Get plan management tools."""
         return [
-            Tool.from_callable(self.add_plan_entry, source="planning"),
-            Tool.from_callable(self.update_plan_entry, source="planning"),
-            Tool.from_callable(self.remove_plan_entry, source="planning"),
+            Tool.from_callable(self.add_plan_entry, source="planning", category="other"),
+            Tool.from_callable(
+                self.update_plan_entry, source="planning", category="edit"
+            ),
+            Tool.from_callable(
+                self.remove_plan_entry, source="planning", category="delete"
+            ),
         ]
 
     async def add_plan_entry(

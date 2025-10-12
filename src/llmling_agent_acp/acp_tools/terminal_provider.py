@@ -66,12 +66,24 @@ class ACPTerminalProvider(ResourceProvider):
         """Get all terminal tools with session_id baked in."""
         if self.client_capabilities.terminal and self.agent.terminal_access:
             return [
-                Tool.from_callable(self.run_command, source="terminal"),
-                Tool.from_callable(self.get_command_output, source="terminal"),
-                Tool.from_callable(self.create_terminal, source="terminal"),
-                Tool.from_callable(self.wait_for_terminal_exit, source="terminal"),
-                Tool.from_callable(self.kill_terminal, source="terminal"),
-                Tool.from_callable(self.release_terminal, source="terminal"),
+                Tool.from_callable(
+                    self.run_command, source="terminal", category="execute"
+                ),
+                Tool.from_callable(
+                    self.get_command_output, source="terminal", category="read"
+                ),
+                Tool.from_callable(
+                    self.create_terminal, source="terminal", category="execute"
+                ),
+                Tool.from_callable(
+                    self.wait_for_terminal_exit, source="terminal", category="execute"
+                ),
+                Tool.from_callable(
+                    self.kill_terminal, source="terminal", category="execute"
+                ),
+                Tool.from_callable(
+                    self.release_terminal, source="terminal", category="execute"
+                ),
             ]
 
         return []
