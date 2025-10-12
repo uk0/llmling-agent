@@ -6,7 +6,6 @@ behavior, and edge cases.
 """
 
 import pytest
-
 from streaming_fuzzy_matcher import Range, StreamingFuzzyMatcher
 
 
@@ -67,7 +66,7 @@ def calculate_product(a, b):
         matcher = StreamingFuzzyMatcher(source)
 
         # Start with ambiguous query
-        result1 = matcher.push("def ")
+        _result1 = matcher.push("def ")
         # Should be None or very broad match
 
         # Add more specific info
@@ -357,11 +356,11 @@ def function_no_spaces(a,b):
 def test_range_class():
     """Test Range dataclass functionality."""
     range_obj = Range(10, 20)
-    assert range_obj.start == 10
-    assert range_obj.end == 20
+    assert range_obj.start == 10  # noqa: PLR2004
+    assert range_obj.end == 20  # noqa: PLR2004
 
     # Test immutability
-    with pytest.raises(Exception):  # Should be frozen
+    with pytest.raises(Exception):  # Should be frozen  # noqa: B017, PT011
         range_obj.start = 15
 
 

@@ -299,7 +299,7 @@ class StreamingFuzzyMatcher:
         while row > 0 and col > 0:
             state = self.matrix.get(row, col)
             if state.direction == SearchDirection.DIAGONAL:
-                # This represents a match between query line (row-1) and source line (col-1)
+                # represents a match between query line (row-1) and source line (col-1)
                 matched_lines.add(col - 1)
                 row -= 1
                 col -= 1

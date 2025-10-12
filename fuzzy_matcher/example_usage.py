@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Example usage of the StreamingFuzzyMatcher.
 
 This script demonstrates how to use the streaming fuzzy matcher for
@@ -35,7 +34,7 @@ def simulate_streaming_input(
             source_lines = "\n".join(matcher.source_lines)
             matched_text = source_lines[result.start : result.end]
             preview = matched_text.replace("\n", "\\n")[:60]
-            if len(matched_text) > 60:
+            if len(matched_text) > 60:  # noqa: PLR2004
                 preview += "..."
             print(f"📝 Preview: {preview!r}")
         else:
@@ -116,7 +115,7 @@ def calculate_prime_factors(n):
 
     matcher = StreamingFuzzyMatcher(source_code)
 
-    # Query with typos: "calcuate" instead of "calculate", "fibonaci" instead of "fibonacci"
+    # Query with typos:
     query = "def calcuate_fibonaci(n):\n"
     simulate_streaming_input(matcher, query)
 
@@ -263,7 +262,7 @@ def demonstrate_real_time_editing():
         "):\n",
     ]
 
-    for i, chunk in enumerate(typing_sequence):
+    for _i, chunk in enumerate(typing_sequence):
         print(f"⌨️  Typing: {chunk!r}")
         result = matcher.push(chunk)
 
