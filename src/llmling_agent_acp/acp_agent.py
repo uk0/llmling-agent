@@ -25,7 +25,7 @@ from acp.schema import (
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_acp.command_bridge import ACPCommandBridge
-from llmling_agent_acp.converters import to_session_updates
+from llmling_agent_acp.converters import to_agent_text_notification
 from llmling_agent_acp.session_manager import ACPSessionManager
 from llmling_agent_commands import get_commands
 
@@ -251,7 +251,7 @@ class LLMlingACPAgent(ACPAgent):
         except Exception as e:
             logger.exception("Failed to process prompt for session %s", params.session_id)
             msg = f"Error processing prompt: {e}"
-            for update in to_session_updates(msg, params.session_id):
+            if update := to_agent_text_notification(msg, params.session_id):
                 try:
                     await self.connection.session_update(update)
                 except Exception:

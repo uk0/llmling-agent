@@ -45,7 +45,7 @@ from llmling_agent_acp.converters import (
     create_thought_chunk,
     format_tool_call_for_acp,
     from_content_blocks,
-    to_session_updates,
+    to_agent_text_notification,
 )
 
 
@@ -342,8 +342,7 @@ class ACPSession:
                 logger.exception("Error processing prompt in session %s", self.session_id)
                 # Send error as agent message
                 msg = f"I encountered an error while processing your request: {e}"
-                error_updates = to_session_updates(msg, self.session_id)
-                for error_update in error_updates:
+                if error_update := to_agent_text_notification(msg, self.session_id):
                     yield error_update
                 # Return refusal for errors
                 yield "refusal"
@@ -466,8 +465,9 @@ class ACPSession:
         except Exception as e:
             logger.exception("Error in agent iteration for session %s", self.session_id)
             logger.info("Sending error updates for session %s", self.session_id)
-            error_updates = to_session_updates(f"Agent error: {e}", self.session_id)
-            for error_update in error_updates:
+            if error_update := to_agent_text_notification(
+                f"Agent error: {e}", self.session_id
+            ):
                 yield error_update
 
     async def _stream_model_request(  # noqa: PLR0915

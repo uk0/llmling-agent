@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from acp.schema import AvailableCommand, AvailableCommandInput, CommandInputHint
 from llmling_agent.log import get_logger
-from llmling_agent_acp.converters import to_session_updates
+from llmling_agent_acp.converters import to_agent_text_notification
 
 
 if TYPE_CHECKING:
@@ -74,14 +74,14 @@ class MCPPromptCommand:
             # Get MCP manager from session
             if not session.mcp_manager:
                 error_msg = "No MCP servers available"
-                for update in to_session_updates(error_msg, session.session_id):
+                if update := to_agent_text_notification(error_msg, session.session_id):
                     yield update
                 return
 
             # Find appropriate MCP client (use first available for now)
             if not session.mcp_manager.clients:
                 error_msg = "No MCP clients connected"
-                for update in to_session_updates(error_msg, session.session_id):
+                if update := to_agent_text_notification(error_msg, session.session_id):
                     yield update
                 return
 
@@ -120,19 +120,19 @@ class MCPPromptCommand:
                     )
 
                 # Stream as session updates
-                for update in to_session_updates(output, session.session_id):
+                if update := to_agent_text_notification(output, session.session_id):
                     yield update
 
             except Exception as e:
                 error_msg = f"MCP prompt execution failed: {e}"
                 logger.exception("MCP prompt execution error")
-                for update in to_session_updates(error_msg, session.session_id):
+                if update := to_agent_text_notification(error_msg, session.session_id):
                     yield update
 
         except Exception as e:
             error_msg = f"Command error: {e}"
             logger.exception("MCP command execution error")
-            for update in to_session_updates(error_msg, session.session_id):
+            if update := to_agent_text_notification(error_msg, session.session_id):
                 yield update
 
     def _parse_arguments(self, args_str: str) -> dict[str, str]:

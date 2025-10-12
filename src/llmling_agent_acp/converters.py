@@ -195,21 +195,23 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
     return content
 
 
-def to_session_updates(response: str, session_id: str) -> list[SessionNotification]:
-    """Convert agent response to ACP session update notifications.
+def to_agent_text_notification(
+    response: str, session_id: str
+) -> SessionNotification | None:
+    """Convert agent response text to ACP session notification.
 
     Args:
         response: Response text from llmling agent
         session_id: ACP session identifier
 
     Returns:
-        List of SessionNotification objects for streaming to client
+        SessionNotification with agent text message, or None if response is empty
     """
     if not response.strip():
-        return []
+        return None
 
     update = AgentMessageChunk(content=TextContentBlock(text=response))
-    return [SessionNotification(session_id=session_id, update=update)]
+    return SessionNotification(session_id=session_id, update=update)
 
 
 def _determine_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911
