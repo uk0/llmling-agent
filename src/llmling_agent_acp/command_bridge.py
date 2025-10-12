@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import inspect
 import re
 from typing import TYPE_CHECKING, Any
 
@@ -222,15 +221,8 @@ def _create_input_spec(command: BaseCommand) -> AvailableCommandInput | None:
     """
     # For now, create a simple text input hint
     # This could be enhanced to parse actual parameter signatures
-    try:
-        sig = inspect.signature(command.execute)
-        params = [n for n, _ in sig.parameters.items() if n not in {"self", "ctx"}]
-        if params:
-            hint = f"Parameters: {', '.join(params)}"
-            return AvailableCommandInput(root=CommandInputHint(hint=hint))
-    except Exception:  # noqa: BLE001
-        pass
-
+    if command.usage:
+        return AvailableCommandInput(root=CommandInputHint(hint=command.usage))
     return None
 
 
