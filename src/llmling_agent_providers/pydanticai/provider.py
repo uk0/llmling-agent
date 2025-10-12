@@ -289,9 +289,8 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
                 call.context_data = self._context.data if self._context else None
                 self.tool_used.emit(call)
 
-            resolved_model = (
-                use_model.model_name if isinstance(use_model, Model) else str(use_model)
-            )
+            # Get the actual model name from pydantic-ai response
+            resolved_model = result.response.model_name
             usage = result.usage()
             responses = [m for m in new_msgs if isinstance(m, ModelResponse)]
             try:
