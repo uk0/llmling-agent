@@ -678,13 +678,9 @@ class ACPSession:
         """Send current available commands to client."""
         if not self.command_bridge:
             return
-
         try:
             commands = self.command_bridge.to_available_commands(self.agent.context)
-            update = AvailableCommandsUpdate(available_commands=commands)
-            notification = SessionNotification(session_id=self.session_id, update=update)
-            await self.client.session_update(notification)
-
+            await self.notifications.update_commands(commands)
         except Exception:
             msg = "Failed to send available commands update for session %s"
             logger.exception(msg, self.session_id)

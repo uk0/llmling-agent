@@ -41,17 +41,13 @@ class MCPPromptCommand:
             ACP AvailableCommand object
         """
         # Create input spec from MCP prompt arguments
-        input_spec = None
+        spec = None
         if self.mcp_prompt.arguments:
             arg_names = [arg.name for arg in self.mcp_prompt.arguments]
             hint = f"Arguments: {', '.join(arg_names)}"
-            input_spec = AvailableCommandInput(root=CommandInputHint(hint=hint))
-
-        return AvailableCommand(
-            name=f"mcp-{self.name}",  # Prefix to avoid conflicts
-            description=self.description,
-            input=input_spec,
-        )
+            spec = AvailableCommandInput(root=CommandInputHint(hint=hint))
+        name = f"mcp-{self.name}"  # Prefix to avoid conflicts
+        return AvailableCommand(name=name, description=self.description, input=spec)
 
     async def execute(
         self,
