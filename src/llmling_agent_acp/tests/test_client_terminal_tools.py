@@ -417,7 +417,7 @@ class TestAgentSwitchingWithCapabilityProvider:
         assert session.current_agent_name == "agent_a"  # Verify current agent unchanged
 
     async def test_no_provider_movement_when_no_capability_provider(
-        self, multi_agent_pool
+        self, multi_agent_pool, mock_acp_agent
     ):
         """Test agent switching works when no capability provider exists."""
         from llmling_agent_acp.session import ACPSession
@@ -428,6 +428,7 @@ class TestAgentSwitchingWithCapabilityProvider:
             current_agent_name="agent_a",
             cwd="/tmp",
             client=Mock(),
+            acp_agent=mock_acp_agent,
         )
         await session.switch_active_agent("agent_b")  # able to switch without errors
         assert session.current_agent_name == "agent_b"  # Verify current agent changed

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
+from unittest.mock import Mock
 
 import pytest
 
@@ -14,6 +15,8 @@ from acp import (
     NewSessionResponse,
     PromptResponse,
 )
+from acp.schema import ClientCapabilities, FileSystemCapability
+from llmling_agent_acp.acp_agent import LLMlingACPAgent
 
 
 if TYPE_CHECKING:
@@ -81,3 +84,47 @@ def test_client() -> DefaultACPClient:
 def test_agent() -> TestAgent:
     """Create a fresh test agent for each test."""
     return TestAgent()
+
+
+@pytest.fixture
+def mock_connection():
+    """Create a mock ACP connection."""
+    return Mock()
+
+
+@pytest.fixture
+def mock_agent_pool():
+    """Create a mock agent pool with a test agent."""
+    from llmling_agent import Agent
+    from llmling_agent.delegation import AgentPool
+
+    # Create a simple test agent
+    def simple_callback(message: str) -> str:
+        return f"Test response: {message}"
+
+    agent = Agent[None](name="test_agent", provider=simple_callback)
+    pool = AgentPool[None]()
+    pool.register("test_agent", agent)
+    return pool
+
+
+@pytest.fixture
+def client_capabilities():
+    """Create client capabilities for testing."""
+    return ClientCapabilities(
+        fs=FileSystemCapability(read_text_file=True, write_text_file=True),
+        terminal=True,
+    )
+
+
+@pytest.fixture
+def mock_acp_agent(mock_connection, mock_agent_pool, client_capabilities):
+    """Create a mock ACP agent for testing."""
+    return LLMlingACPAgent(
+        connection=mock_connection,
+        agent_pool=mock_agent_pool,
+        available_models=[],
+        session_support=True,
+        file_access=True,
+        terminal_access=True,
+    )

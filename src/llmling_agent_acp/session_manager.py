@@ -60,10 +60,10 @@ class ACPSessionManager:
         default_agent_name: str,
         cwd: str,
         client: Client,  # This is the AgentSideConnection
+        acp_agent: LLMlingACPAgent,
         mcp_servers: Sequence[MCPServer] | None = None,
         session_id: str | None = None,
         usage_limits: UsageLimits | None = None,
-        acp_agent: LLMlingACPAgent | None = None,
         client_capabilities: ClientCapabilities | None = None,
     ) -> str:
         """Create a new ACP session.

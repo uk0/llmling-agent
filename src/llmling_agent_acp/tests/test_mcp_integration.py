@@ -12,6 +12,7 @@ from acp.schema import EnvVariable, StdioMcpServer
 from llmling_agent import Agent
 from llmling_agent.delegation import AgentPool
 from llmling_agent.log import get_logger
+from llmling_agent.tools.base import Tool
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import convert_acp_mcp_server_to_config
 from llmling_agent_acp.session import ACPSession
@@ -40,7 +41,7 @@ async def test_mcp_server_conversion():
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")
-async def test_session_with_mcp_servers():
+async def test_session_with_mcp_servers(mock_acp_agent, client_capabilities):
     """Test creating an ACP session with MCP servers."""
 
     def simple_callback(message: str) -> str:
@@ -69,8 +70,7 @@ async def test_session_with_mcp_servers():
         ),
     ]
 
-    # Create session with MCP servers
-    session = ACPSession(
+    session = ACPSession(  # Create session with MCP servers
         session_id="test_session",
         agent_pool=agent_pool,
         current_agent_name="test_agent",
@@ -78,15 +78,13 @@ async def test_session_with_mcp_servers():
         client=client,
         mcp_servers=mcp_servers,
         command_bridge=command_bridge,
+        acp_agent=mock_acp_agent,
+        client_capabilities=client_capabilities,
     )
 
-    # Note: In a real test, we would mock the MCP connections
-    # For now, just verify the session was created properly
     assert session.session_id == "test_session"
     assert session.mcp_servers == mcp_servers
     assert session.mcp_manager is None  # Not initialized yet
-
-    print(f"✓ Created session with {len(mcp_servers)} MCP servers")
 
     # Test initialization (this will fail without real MCP servers, which is expected)
     try:
@@ -95,66 +93,40 @@ async def test_session_with_mcp_servers():
     except Exception as e:  # noqa: BLE001
         print(f"✓ MCP server initialization failed as expected: {type(e).__name__}")
 
-    # Cleanup
     await session.close()
-    print("✓ Session closed successfully")
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")
-async def test_session_manager_with_mcp():
+async def test_session_manager_with_mcp(mock_acp_agent, client_capabilities):
     """Test session manager creating sessions with MCP servers."""
-    print("Testing session manager with MCP servers...")
-
-    # Create command bridge
-    from slashed import CommandStore
-
     command_store = CommandStore()
     command_bridge = ACPCommandBridge(command_store)
-
-    # Create session manager
     session_manager = ACPSessionManager(command_bridge)
 
-    # Create agent
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"
 
-    agent = Agent[None](
-        name="test_agent",
-        provider=simple_callback,
-    )
-
-    # Create empty agent pool and register the agent
-    agent_pool = AgentPool[None]()
+    agent = Agent[None](name="test_agent", provider=simple_callback)
+    agent_pool = AgentPool[None]()  # Create empty pool and register the agent
     agent_pool.register("test_agent", agent)
-
-    # Create client
     client = DefaultACPClient()
-
-    # MCP servers
     mcp_servers = [StdioMcpServer(name="tools", command="echo", args=["tools"], env=[])]
 
     try:
-        # Create session
         session_id = await session_manager.create_session(
             agent_pool=agent_pool,
             default_agent_name="test_agent",
             cwd="/tmp",
             client=client,
             mcp_servers=mcp_servers,
+            acp_agent=mock_acp_agent,
+            client_capabilities=client_capabilities,
         )
 
-        print(f"✓ Created session {session_id} with MCP servers")
-
-        # Get session and verify
         session = await session_manager.get_session(session_id)
         assert session is not None
         assert session.mcp_servers == mcp_servers
-
-        print("✓ Session retrieved successfully")
-
-        # Cleanup
         await session_manager.close_session(session_id)
-        print("✓ Session cleaned up")
 
     except Exception:
         logger.exception("Session manager test failed")
@@ -163,41 +135,28 @@ async def test_session_manager_with_mcp():
 
 async def test_tool_integration():
     """Test that MCP tools would be properly integrated."""
-    print("Testing MCP tool integration concepts...")
 
-    # Create agent
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"
 
-    agent = Agent[None](
-        name="test_agent",
-        provider=simple_callback,
-    )
+    agent = Agent[None](name="test_agent", provider=simple_callback)
 
-    # Start agent context
     async with agent:
         initial_tools = len(await agent.tools.get_tools())
-        print(f"Agent starts with {initial_tools} tools")
-
         # In real scenario, MCP tools would be added here
         # For test, we'll simulate by adding a dummy tool
-        from llmling_agent.tools.base import Tool
 
         def dummy_mcp_tool(query: str) -> str:
             """Dummy MCP tool for testing."""
             return f"MCP result for: {query}"
 
-        tool = Tool.from_callable(
-            dummy_mcp_tool, source="mcp", metadata={"mcp_tool": "dummy_search"}
-        )
+        meta = {"mcp_tool": "dummy_search"}
+        tool = Tool.from_callable(dummy_mcp_tool, source="mcp", metadata=meta)
 
         agent.tools.register_tool(tool)
 
         final_tools = len(await agent.tools.get_tools())
-        print(f"After adding MCP tool: {final_tools} tools")
-
         assert final_tools == initial_tools + 1
-        print("✓ MCP tool integration pattern works")
 
 
 if __name__ == "__main__":

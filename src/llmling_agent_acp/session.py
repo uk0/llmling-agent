@@ -105,6 +105,9 @@ class ACPSession:
     client: Client
     """External library Client interface for operations"""
 
+    acp_agent: LLMlingACPAgent
+    """ACP agent instance for capability tools"""
+
     mcp_servers: Sequence[MCPServer] | None = None
     """Optional MCP server configurations"""
 
@@ -113,9 +116,6 @@ class ACPSession:
 
     command_bridge: ACPCommandBridge | None = None
     """Optional command bridge for slash commands"""
-
-    acp_agent: LLMlingACPAgent | None = None
-    """ACP agent instance for capability tools"""
 
     client_capabilities: ClientCapabilities | None = None
     """Client capabilities for tool registration"""
@@ -130,7 +130,7 @@ class ACPSession:
         self.mcp_manager: MCPManager | None = None
         self.capability_provider: AggregatingResourceProvider | None = None
 
-        if self.acp_agent and self.client_capabilities:
+        if self.client_capabilities:
             providers = [
                 ACPPlanProvider(self.acp_agent, self.session_id),
                 ACPTerminalProvider(

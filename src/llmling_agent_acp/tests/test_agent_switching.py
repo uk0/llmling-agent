@@ -88,6 +88,8 @@ class TestAgentPoolModeSwitch:
         self,
         agent_pool: AgentPool[Any],
         mock_client: AsyncMock,
+        mock_acp_agent,
+        client_capabilities,
     ):
         """Test session agent property returns current agent."""
         session = ACPSession(
@@ -96,6 +98,8 @@ class TestAgentPoolModeSwitch:
             current_agent_name="coding-agent",
             cwd="/test",
             client=mock_client,
+            acp_agent=mock_acp_agent,
+            client_capabilities=client_capabilities,
         )
 
         # Should return coding agent initially
@@ -106,6 +110,8 @@ class TestAgentPoolModeSwitch:
         self,
         agent_pool: AgentPool[Any],
         mock_client: AsyncMock,
+        mock_acp_agent,
+        client_capabilities,
     ):
         """Test switching active agent in session."""
         session = ACPSession(
@@ -114,6 +120,8 @@ class TestAgentPoolModeSwitch:
             current_agent_name="coding-agent",
             cwd="/test",
             client=mock_client,
+            acp_agent=mock_acp_agent,
+            client_capabilities=client_capabilities,
         )
 
         # Initially should be coding agent
@@ -130,6 +138,8 @@ class TestAgentPoolModeSwitch:
         self,
         agent_pool: AgentPool[Any],
         mock_client: AsyncMock,
+        mock_acp_agent,
+        client_capabilities,
     ):
         """Test switching to non-existent agent raises error."""
         session = ACPSession(
@@ -138,6 +148,8 @@ class TestAgentPoolModeSwitch:
             current_agent_name="coding-agent",
             cwd="/test",
             client=mock_client,
+            acp_agent=mock_acp_agent,
+            client_capabilities=client_capabilities,
         )
 
         with pytest.raises(ValueError, match="Agent 'invalid-agent' not found"):
