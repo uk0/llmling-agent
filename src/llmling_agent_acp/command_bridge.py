@@ -210,22 +210,6 @@ def is_slash_command(text: str) -> bool:
     return bool(SLASH_PATTERN.match(text.strip()))
 
 
-def _create_input_spec(command: BaseCommand) -> AvailableCommandInput | None:
-    """Create input specification for command parameters.
-
-    Args:
-        command: Slashed command
-
-    Returns:
-        Input specification or None if no parameters
-    """
-    # For now, create a simple text input hint
-    # This could be enhanced to parse actual parameter signatures
-    if command.usage:
-        return AvailableCommandInput(root=CommandInputHint(hint=command.usage))
-    return None
-
-
 def _convert_command(command: BaseCommand) -> AvailableCommand:
     """Convert a single slashed command to ACP format.
 
@@ -236,5 +220,9 @@ def _convert_command(command: BaseCommand) -> AvailableCommand:
         ACP AvailableCommand or None if conversion fails
     """
     description = command.description
-    spec = _create_input_spec(command)
+    spec = (
+        AvailableCommandInput(root=CommandInputHint(hint=command.usage))
+        if command.usage
+        else None
+    )
     return AvailableCommand(name=command.name, description=description, input=spec)
