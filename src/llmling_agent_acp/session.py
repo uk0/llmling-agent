@@ -66,7 +66,7 @@ if TYPE_CHECKING:
 
     from acp import Client
     from acp.acp_types import ContentBlock, MCPServer, StopReason
-    from acp.schema import AvailableCommand, ClientCapabilities
+    from acp.schema import ClientCapabilities
     from llmling_agent import Agent, AgentPool
     from llmling_agent.models.content import BaseContent
     from llmling_agent_acp.acp_agent import LLMlingACPAgent

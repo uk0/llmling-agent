@@ -28,11 +28,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from acp.acp_types import ToolCallKind, ToolCallStatus
-    from acp.schema import (
-        Annotations,
-        AvailableCommand,
-        PlanEntry,
-    )
+    from acp.schema import Annotations, AvailableCommand, PlanEntry
     from llmling_agent_acp.session import ACPSession
 
     ContentType = Sequence[
