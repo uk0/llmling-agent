@@ -2,24 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunContext  # noqa: TC002
 
-from acp.schema import (
-    ContentToolCallContent,
-    CreateTerminalRequest,
-    EnvVariable,
-    KillTerminalCommandRequest,
-    ReleaseTerminalRequest,
-    SessionNotification,
-    TerminalOutputRequest,
-    TerminalToolCallContent,
-    TextContentBlock,
-    ToolCallProgress,
-    ToolCallStart,
-    WaitForTerminalExitRequest,
-)
+from acp.schema import TerminalToolCallContent
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent.tools.base import Tool
@@ -115,135 +103,85 @@ class ACPTerminalProvider(ResourceProvider):
         """
         # Send initial tool call notification
         assert ctx.tool_call_id, "Tool call ID must be present for terminal operations"
-        create_request = CreateTerminalRequest(
-            session_id=self.session_id,
-            command=command,
-            args=args or [],
-            cwd=cwd,
-            env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
-            output_byte_limit=output_char_limit,
-        )
         try:
-            create_response = await self.agent.connection.create_terminal(create_request)
+            create_response = await self.session.requests.create_terminal(
+                command=command,
+                args=args or [],
+                cwd=cwd,
+                env=env or {},
+                output_byte_limit=output_char_limit,
+            )
             terminal_id = create_response.terminal_id
-
             # Send initial notification with embedded terminal for live output
             cmd_display = f"{command} {' '.join(args or [])}"
-            initial_update = SessionNotification(
-                session_id=self.session_id,
-                update=ToolCallStart(
-                    tool_call_id=ctx.tool_call_id,
-                    status="pending",
-                    title=f"Running: {cmd_display}",
-                    kind="execute",
-                    content=[TerminalToolCallContent(terminal_id=terminal_id)],
-                ),
+            await self.session.notifications.tool_call_start(
+                tool_call_id=ctx.tool_call_id,
+                title=f"Running: {cmd_display}",
+                kind="execute",
+                content=[TerminalToolCallContent(terminal_id=terminal_id)],
             )
-            await self.agent.connection.session_update(initial_update)
 
             # Wait for completion (with optional timeout)
-            wait_request = WaitForTerminalExitRequest(
-                session_id=self.session_id,
-                terminal_id=terminal_id,
-            )
-
             if timeout_seconds:
-                import asyncio
-
                 try:
                     exit_result = await asyncio.wait_for(
-                        self.agent.connection.wait_for_terminal_exit(wait_request),
+                        self.session.requests.wait_for_terminal_exit(terminal_id),
                         timeout=timeout_seconds,
                     )
                 except TimeoutError:
                     # Kill the command on timeout
-                    kill_request = KillTerminalCommandRequest(
-                        session_id=self.session_id,
-                        terminal_id=terminal_id,
-                    )
-                    await self.agent.connection.kill_terminal(kill_request)
+                    await self.session.requests.kill_terminal(terminal_id)
 
                     # Get output before releasing
-                    output_request = TerminalOutputRequest(
-                        session_id=self.session_id,
-                        terminal_id=terminal_id,
-                    )
-                    output_response = await self.agent.connection.terminal_output(
-                        output_request
+                    output_response = await self.session.requests.terminal_output(
+                        terminal_id
                     )
 
                     # Send timeout notification
-                    timeout_update = SessionNotification(
-                        session_id=self.session_id,
-                        update=ToolCallProgress(
-                            tool_call_id=ctx.tool_call_id,
-                            status="failed",
-                            title=f"Command timed out after {timeout_seconds}s",
-                            content=[TerminalToolCallContent(terminal_id=terminal_id)],
-                        ),
+                    await self.session.notifications.terminal_progress(
+                        tool_call_id=ctx.tool_call_id,
+                        terminal_id=terminal_id,
+                        status="failed",
+                        title=f"Command timed out after {timeout_seconds}s",
                     )
-                    await self.agent.connection.session_update(timeout_update)
 
                     # Release terminal
-                    release_request = ReleaseTerminalRequest(
-                        session_id=self.session_id,
-                        terminal_id=terminal_id,
-                    )
-                    await self.agent.connection.release_terminal(release_request)
+                    await self.session.requests.release_terminal(terminal_id)
 
                     return (
                         f"Command timed out after {timeout_seconds} seconds. "
                         f"Output: \n{output_response.output}"
                     )
             else:
-                exit_result = await self.agent.connection.wait_for_terminal_exit(
-                    wait_request
+                exit_result = await self.session.requests.wait_for_terminal_exit(
+                    terminal_id
                 )
 
-            # Get final output
-            output_request = TerminalOutputRequest(
-                session_id=self.session_id,
-                terminal_id=terminal_id,
-            )
-            output_response = await self.agent.connection.terminal_output(output_request)
-
+            output_response = await self.session.requests.terminal_output(terminal_id)
             # Send completion notification (terminal remains embedded for viewing)
             status = "completed" if (exit_result.exit_code or 0) == 0 else "failed"
             exit_code = exit_result.exit_code or 0
 
-            completion_update = SessionNotification(
-                session_id=self.session_id,
-                update=ToolCallProgress(
-                    tool_call_id=ctx.tool_call_id,
-                    status=status,
-                    title=f"Command completed (exit code: {exit_code})",
-                    content=[TerminalToolCallContent(terminal_id=terminal_id)],
-                ),
+            await self.session.notifications.terminal_progress(
+                tool_call_id=ctx.tool_call_id,
+                terminal_id=terminal_id,
+                status=status,
+                title=f"Command completed (exit code: {exit_code})",
             )
-            await self.agent.connection.session_update(completion_update)
 
             # Release terminal (output remains visible in UI)
-            release_request = ReleaseTerminalRequest(
-                session_id=self.session_id,
-                terminal_id=terminal_id,
-            )
-            await self.agent.connection.release_terminal(release_request)
+            await self.session.requests.release_terminal(terminal_id)
             result = f"Command completed with exit code {exit_code}:\n"
             result += f"Output:\n{output_response.output}"
             if output_response.truncated:
                 result += " (output was truncated)"
         except Exception as e:  # noqa: BLE001
-            # Send error notification
-            error_update = SessionNotification(
-                session_id=self.session_id,
-                update=ToolCallProgress(
+            try:  # Send error notification
+                await self.session.notifications.tool_call_progress(
                     tool_call_id=ctx.tool_call_id,
                     status="failed",
                     title=f"Command failed: {e}",
-                ),
-            )
-            try:
-                await self.agent.connection.session_update(error_update)
+                )
             except Exception:  # noqa: BLE001
                 logger.warning("Failed to send error update")
 
@@ -265,27 +203,21 @@ class ACPTerminalProvider(ResourceProvider):
         """
         # Send initial pending notification
         assert ctx.tool_call_id, "Tool call ID must be present for terminal operations"
-        start = ToolCallStart(
-            tool_call_id=ctx.tool_call_id,
-            status="pending",
-            title=f"Getting output from terminal {terminal_id}",
-            kind="read",
-        )
         try:
-            notifi = SessionNotification(session_id=self.session_id, update=start)
-            await self.agent.connection.session_update(notifi)
+            await self.session.notifications.tool_call_start(
+                tool_call_id=ctx.tool_call_id,
+                title=f"Getting output from terminal {terminal_id}",
+                kind="read",
+            )
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to send pending update: %s", e)
 
-        req = TerminalOutputRequest(session_id=self.session_id, terminal_id=terminal_id)
         try:
-            output_response = await self.agent.connection.terminal_output(req)
-
+            output_response = await self.session.requests.terminal_output(terminal_id)
             # Determine status for both UI and agent
             exit_code = None
             signal = None
             status_text = "Running"
-
             if output_response.exit_status:
                 exit_code = output_response.exit_status.exit_code
                 signal = output_response.exit_status.signal
@@ -295,16 +227,13 @@ class ACPTerminalProvider(ResourceProvider):
                     status_text = f"Terminated by signal {signal}"
 
             # Send completion update with output as content
-            content_block = TextContentBlock(text=output_response.output)
-            progress = ToolCallProgress(
+            await self.session.notifications.tool_call_progress(
                 tool_call_id=ctx.tool_call_id,
                 status="completed",
                 title=f"Terminal {terminal_id} output retrieved",
-                content=[ContentToolCallContent(content=content_block)],
+                content=[output_response.output],
                 raw_output=f"Retrieved output from terminal {terminal_id}",
             )
-            notifi = SessionNotification(session_id=self.session_id, update=progress)
-            await self.agent.connection.session_update(notifi)
 
             # Return structured result for agent
             result = f"""Terminal {terminal_id} Output:
@@ -316,14 +245,12 @@ Status: {status_text}"""
                 result += "\n(output truncated)"
         except Exception as e:  # noqa: BLE001
             # Send failed update
-            progress = ToolCallProgress(
-                tool_call_id=ctx.tool_call_id,
-                status="failed",
-                raw_output=f"Error: {e}",
-            )
-            failed = SessionNotification(session_id=self.session_id, update=progress)
             try:
-                await self.agent.connection.session_update(failed)
+                await self.session.notifications.tool_call_progress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=f"Error: {e}",
+                )
             except Exception:  # noqa: BLE001
                 logger.warning("Failed to send failed update")
             return f"Error getting command output: {e}"
@@ -360,50 +287,39 @@ Status: {status_text}"""
         # Send initial pending notification
         assert ctx.tool_call_id, "Tool call ID must be present for terminal operations"
         cmd_display = f"{command} {' '.join(args or [])}"
-        start = ToolCallStart(
-            tool_call_id=ctx.tool_call_id,
-            status="pending",
-            title=f"Creating terminal: {cmd_display}",
-            kind="execute",
-        )
         try:
-            notifi = SessionNotification(session_id=self.session_id, update=start)
-            await self.agent.connection.session_update(notifi)
+            await self.session.notifications.tool_call_start(
+                tool_call_id=ctx.tool_call_id,
+                title=f"Creating terminal: {cmd_display}",
+                kind="execute",
+            )
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to send pending update: %s", e)
 
-        request = CreateTerminalRequest(
-            session_id=self.session_id,
-            command=command,
-            args=args or [],
-            cwd=cwd,
-            env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
-            output_byte_limit=output_byte_limit,
-        )
-
         try:
-            create_response = await self.agent.connection.create_terminal(request)
+            create_response = await self.session.requests.create_terminal(
+                command=command,
+                args=args or [],
+                cwd=cwd,
+                env=env or {},
+                output_byte_limit=output_byte_limit,
+            )
             terminal_id = create_response.terminal_id
 
             # Send completion update
-            progress = ToolCallProgress(
+            await self.session.notifications.tool_call_progress(
                 tool_call_id=ctx.tool_call_id,
                 status="completed",
                 title=f"Terminal {terminal_id} created",
                 raw_output=f"Created terminal: {terminal_id}",
             )
-            notifi = SessionNotification(session_id=self.session_id, update=progress)
-            await self.agent.connection.session_update(notifi)
         except Exception as e:  # noqa: BLE001
-            # Send failed update
-            progress = ToolCallProgress(
-                tool_call_id=ctx.tool_call_id,
-                status="failed",
-                raw_output=f"Error: {e}",
-            )
-            failed = SessionNotification(session_id=self.session_id, update=progress)
-            try:
-                await self.agent.connection.session_update(failed)
+            try:  # Send failed update
+                await self.session.notifications.tool_call_progress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=f"Error: {e}",
+                )
             except Exception:  # noqa: BLE001
                 logger.warning("Failed to send failed update")
             return f"Error creating terminal: {e}"
@@ -434,69 +350,48 @@ Use this terminal_id with other terminal tools:
         """
         # Send initial notification with embedded terminal for live view
         assert ctx.tool_call_id, "Tool call ID must be present for terminal operations"
-        start = ToolCallStart(
-            tool_call_id=ctx.tool_call_id,
-            status="pending",
-            title=f"Waiting for terminal {terminal_id} to complete",
-            kind="execute",
-            content=[TerminalToolCallContent(terminal_id=terminal_id)],
-        )
         try:
-            notifi = SessionNotification(session_id=self.session_id, update=start)
-            await self.agent.connection.session_update(notifi)
+            await self.session.notifications.tool_call_start(
+                tool_call_id=ctx.tool_call_id,
+                title=f"Waiting for terminal {terminal_id} to complete",
+                kind="execute",
+                content=[TerminalToolCallContent(terminal_id=terminal_id)],
+            )
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to send pending update: %s", e)
 
-        request = WaitForTerminalExitRequest(
-            session_id=self.session_id,
-            terminal_id=terminal_id,
-        )
         try:
-            exit_response = await self.agent.connection.wait_for_terminal_exit(request)
-
-            output_request = TerminalOutputRequest(
-                session_id=self.session_id,
-                terminal_id=terminal_id,
+            exit_response = await self.session.requests.wait_for_terminal_exit(
+                terminal_id
             )
-            output_response = await self.agent.connection.terminal_output(output_request)
-
+            output_response = await self.session.requests.terminal_output(terminal_id)
             # Send completion notification (terminal remains embedded for viewing)
             exit_code = exit_response.exit_code or 0
             status = "completed" if exit_code == 0 else "failed"
-
-            completion_update = SessionNotification(
-                session_id=self.session_id,
-                update=ToolCallProgress(
-                    tool_call_id=ctx.tool_call_id,
-                    status=status,
-                    title=f"Terminal completed (exit code: {exit_code})",
-                    content=[TerminalToolCallContent(terminal_id=terminal_id)],
-                ),
+            await self.session.notifications.terminal_progress(
+                tool_call_id=ctx.tool_call_id,
+                terminal_id=terminal_id,
+                status=status,
+                title=f"Terminal completed (exit code: {exit_code})",
             )
-            await self.agent.connection.session_update(completion_update)
 
             # Return structured result for agent
             result = f"""Terminal {terminal_id} completed
 Exit Code: {exit_code}
 Status: {"SUCCESS" if exit_code == 0 else "FAILED"}"""
-
             if exit_response.signal:
                 result += f"\nTerminated by signal: {exit_response.signal}"
-
             result += f"\n\nFinal Output:\n{output_response.output}"
-
             if output_response.truncated:
                 result += "\n(output truncated)"
         except Exception as e:  # noqa: BLE001
             # Send failed update
-            progress = ToolCallProgress(
-                tool_call_id=ctx.tool_call_id,
-                status="failed",
-                raw_output=f"Error: {e}",
-            )
-            failed = SessionNotification(session_id=self.session_id, update=progress)
             try:
-                await self.agent.connection.session_update(failed)
+                await self.session.notifications.tool_call_progress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=f"Error: {e}",
+                )
             except Exception:  # noqa: BLE001
                 logger.warning("Failed to send failed update")
             return f"Error waiting for terminal exit: {e}"
@@ -504,56 +399,40 @@ Status: {"SUCCESS" if exit_code == 0 else "FAILED"}"""
             return result
 
     async def kill_terminal(self, ctx: RunContext[Any], terminal_id: str) -> str:  # noqa: D417
-        """Kill a running terminal command (ADVANCED USE ONLY).
+        """Kill a running terminal (ADVANCED USE ONLY).
 
         Only use this with terminals created by create_terminal.
+        For simple command execution, use run_command instead.
 
         Args:
-            terminal_id: The terminal ID from create_terminal
+            terminal_id: The terminal ID to kill
 
         Returns:
-            Kill confirmation
+            Termination confirmation message
         """
-        # Send initial pending notification
         assert ctx.tool_call_id, "Tool call ID must be present for terminal operations"
-        try:
-            start = ToolCallStart(
-                tool_call_id=ctx.tool_call_id,
-                status="pending",
-                title=f"Killing terminal {terminal_id}",
-                kind="execute",
-            )
-            notifi = SessionNotification(session_id=self.session_id, update=start)
-            await self.agent.connection.session_update(notifi)
-        except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to send pending update: %s", e)
-
-        request = KillTerminalCommandRequest(
-            session_id=self.session_id,
-            terminal_id=terminal_id,
+        await self.session.notifications.tool_call_start(
+            tool_call_id=ctx.tool_call_id,
+            title=f"Killing terminal {terminal_id}",
+            kind="execute",
         )
-        try:
-            await self.agent.connection.kill_terminal(request)
 
+        try:
+            await self.session.requests.kill_terminal(terminal_id)
             # Send completion update
-            progress = ToolCallProgress(
+            await self.session.notifications.tool_call_progress(
                 tool_call_id=ctx.tool_call_id,
                 status="completed",
                 title=f"Terminal {terminal_id} killed",
-                raw_output=f"Terminal {terminal_id} killed successfully",
+                raw_output=f"Killed terminal: {terminal_id}",
             )
-            notifi = SessionNotification(session_id=self.session_id, update=progress)
-            await self.agent.connection.session_update(notifi)
         except Exception as e:  # noqa: BLE001
-            # Send failed update
-            progress = ToolCallProgress(
-                tool_call_id=ctx.tool_call_id,
-                status="failed",
-                raw_output=f"Error: {e}",
-            )
-            failed = SessionNotification(session_id=self.session_id, update=progress)
-            try:
-                await self.agent.connection.session_update(failed)
+            try:  # Send failed update
+                await self.session.notifications.tool_call_progress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=f"Error: {e}",
+                )
             except Exception:  # noqa: BLE001
                 logger.warning("Failed to send failed update")
             return f"Error killing terminal: {e}"
@@ -576,43 +455,30 @@ Status: {"SUCCESS" if exit_code == 0 else "FAILED"}"""
         # Send initial pending notification
         assert ctx.tool_call_id, "Tool call ID must be present for terminal operations"
         try:
-            start = ToolCallStart(
+            await self.session.notifications.tool_call_start(
                 tool_call_id=ctx.tool_call_id,
-                status="pending",
                 title=f"Releasing terminal {terminal_id}",
                 kind="execute",
             )
-            notifi = SessionNotification(session_id=self.session_id, update=start)
-            await self.agent.connection.session_update(notifi)
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to send pending update: %s", e)
 
-        request = ReleaseTerminalRequest(
-            session_id=self.session_id,
-            terminal_id=terminal_id,
-        )
         try:
-            await self.agent.connection.release_terminal(request)
-
+            await self.session.requests.release_terminal(terminal_id)
             # Send completion update
-            progress = ToolCallProgress(
+            await self.session.notifications.tool_call_progress(
                 tool_call_id=ctx.tool_call_id,
                 status="completed",
                 title=f"Terminal {terminal_id} released",
                 raw_output=f"Terminal {terminal_id} released successfully",
             )
-            notifi = SessionNotification(session_id=self.session_id, update=progress)
-            await self.agent.connection.session_update(notifi)
         except Exception as e:  # noqa: BLE001
-            # Send failed update
-            progress = ToolCallProgress(
-                tool_call_id=ctx.tool_call_id,
-                status="failed",
-                raw_output=f"Error: {e}",
-            )
-            failed = SessionNotification(session_id=self.session_id, update=progress)
-            try:
-                await self.agent.connection.session_update(failed)
+            try:  # Send failed update
+                await self.session.notifications.tool_call_progress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=f"Error: {e}",
+                )
             except Exception:  # noqa: BLE001
                 logger.warning("Failed to send failed update")
             return f"Error releasing terminal: {e}"
