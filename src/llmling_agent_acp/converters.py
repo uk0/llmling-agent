@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, overload
 
-from acp.acp_types import HttpMcpServer, SseMcpServer, StdioMcpServer, ToolCallKind
+from acp.acp_types import HttpMcpServer, SseMcpServer, StdioMcpServer
 from acp.schema import (
     AgentMessageChunk,
     AgentThoughtChunk,
@@ -36,7 +36,7 @@ from llmling_agent_config.mcp_server import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from acp.acp_types import ContentBlock, MCPServer, ToolCallStatus
+    from acp.acp_types import ContentBlock, MCPServer, ToolCallKind, ToolCallStatus
     from llmling_agent.models.content import BaseContent
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -212,42 +212,27 @@ def infer_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911
         Tool kind string for ACP protocol
     """
     name_lower = tool_name.lower()
-
-    # File operations
-    if any(keyword in name_lower for keyword in ["read", "load", "get"]) and any(
-        keyword in name_lower for keyword in ["file", "path", "content"]
+    if any(i in name_lower for i in ["read", "load", "get"]) and any(
+        i in name_lower for i in ["file", "path", "content"]
     ):
         return "read"
-
     if any(
-        keyword in name_lower for keyword in ["write", "save", "edit", "modify", "update"]
-    ) and any(keyword in name_lower for keyword in ["file", "path", "content"]):
+        i in name_lower for i in ["write", "save", "edit", "modify", "update"]
+    ) and any(i in name_lower for i in ["file", "path", "content"]):
         return "edit"
-
-    if any(keyword in name_lower for keyword in ["delete", "remove", "rm"]):
+    if any(i in name_lower for i in ["delete", "remove", "rm"]):
         return "delete"
-
-    if any(keyword in name_lower for keyword in ["move", "rename", "mv"]):
+    if any(i in name_lower for i in ["move", "rename", "mv"]):
         return "move"
-
-    # Operations
-    if any(keyword in name_lower for keyword in ["search", "find", "query", "lookup"]):
+    if any(i in name_lower for i in ["search", "find", "query", "lookup"]):
         return "search"
-
-    if any(
-        keyword in name_lower
-        for keyword in ["execute", "run", "exec", "command", "shell"]
-    ):
+    if any(i in name_lower for i in ["execute", "run", "exec", "command", "shell"]):
         return "execute"
-
-    if any(keyword in name_lower for keyword in ["think", "plan", "reason", "analyze"]):
+    if any(i in name_lower for i in ["think", "plan", "reason", "analyze"]):
         return "think"
-
-    if any(keyword in name_lower for keyword in ["fetch", "download", "request"]):
+    if any(i in name_lower for i in ["fetch", "download", "request"]):
         return "fetch"
-
-    # Default to other
-    return "other"
+    return "other"  # Default to other
 
 
 def format_tool_call_for_acp(
