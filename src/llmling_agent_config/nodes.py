@@ -28,6 +28,9 @@ class NodeConfig(Schema):
     name: str | None = None
     """Name of the Agent / Team"""
 
+    # display_name: str | None = None
+    # """Display Name of the Agent / Team"""
+
     description: str | None = None
     """Optional description of the agent / team."""
 
