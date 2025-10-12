@@ -233,7 +233,7 @@ class AgentPoolView:
 
             # Get usage info if available
             usage = stream_result.usage()
-            model = stream_result.model_name  # type: ignore
+            model = stream_result.response.model_name  # type: ignore
             cost_info = (
                 await TokenCost.from_usage(usage, model) if usage and model else None
             )
