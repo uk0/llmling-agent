@@ -401,10 +401,8 @@ class ACPFileSystemProvider(ResourceProvider):
 
             if mode == "edit":
                 # For structured editing, get the full response and parse the edits
-                response = await editor_agent.run(prompt, message_history=ctx.messages)
-                new_content = await _apply_structured_edits(
-                    original_content, response.output
-                )
+                edit = await editor_agent.run(prompt, message_history=ctx.messages)
+                new_content = await _apply_structured_edits(original_content, edit.output)
             else:
                 # For overwrite mode we need to read the current content for diff purposes
                 if mode == "overwrite":
