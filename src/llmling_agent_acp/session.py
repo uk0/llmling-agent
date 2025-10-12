@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import Agent as PydanticAIAgent
@@ -77,6 +78,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+@dataclass
 class ACPSession:
     """Individual ACP session state and management.
 
@@ -88,64 +90,64 @@ class ACPSession:
     - Tool execution and streaming updates
     """
 
-    def __init__(
-        self,
-        session_id: str,
-        agent_pool: AgentPool[Any],
-        current_agent_name: str,
-        cwd: str,
-        client: Client,
-        mcp_servers: Sequence[MCPServer] | None = None,
-        usage_limits: UsageLimits | None = None,
-        command_bridge: ACPCommandBridge | None = None,
-        acp_agent: LLMlingACPAgent | None = None,
-        client_capabilities: ClientCapabilities | None = None,
-    ) -> None:
-        """Initialize ACP session.
+    session_id: str
+    """Unique session identifier"""
 
-        Args:
-            session_id: Unique session identifier
-            agent_pool: AgentPool containing available agents
-            current_agent_name: Name of currently active agent
-            cwd: Working directory for the session
-            client: External library Client interface for operations
-            mcp_servers: Optional MCP server configurations
-            usage_limits: Optional usage limits for model requests and tokens
-            command_bridge: Optional command bridge for slash commands
-            acp_agent: ACP agent instance for capability tools
-            client_capabilities: Client capabilities for tool registration
-        """
-        self.session_id = session_id
-        self.agent_pool = agent_pool
-        self.current_agent_name = current_agent_name
-        self.cwd = cwd
-        self.client = client
-        self.mcp_servers = mcp_servers or []
-        self.usage_limits = usage_limits
+    agent_pool: AgentPool[Any]
+    """AgentPool containing available agents"""
+
+    current_agent_name: str
+    """Name of currently active agent"""
+
+    cwd: str
+    """Working directory for the session"""
+
+    client: Client
+    """External library Client interface for operations"""
+
+    mcp_servers: Sequence[MCPServer] | None = None
+    """Optional MCP server configurations"""
+
+    usage_limits: UsageLimits | None = None
+    """Optional usage limits for model requests and tokens"""
+
+    command_bridge: ACPCommandBridge | None = None
+    """Optional command bridge for slash commands"""
+
+    acp_agent: LLMlingACPAgent | None = None
+    """ACP agent instance for capability tools"""
+
+    client_capabilities: ClientCapabilities | None = None
+    """Client capabilities for tool registration"""
+
+    def __post_init__(self) -> None:
+        """Initialize session state and set up providers."""
+        self.mcp_servers = self.mcp_servers or []
 
         # Session state
         self._active = True
         self._task_lock = asyncio.Lock()
         self._cancelled = False
-        self.command_bridge = command_bridge
         self.mcp_manager: MCPManager | None = None
         # self.permission_server: PermissionMCPServer | None = None
         self.capability_provider: AggregatingResourceProvider | None = None
-        self.acp_agent = acp_agent
-        if acp_agent and client_capabilities:
+
+        if self.acp_agent and self.client_capabilities:
             providers = [
-                ACPPlanProvider(acp_agent, session_id),
-                ACPTerminalProvider(acp_agent, session_id, client_capabilities, self.cwd),
+                ACPPlanProvider(self.acp_agent, self.session_id),
+                ACPTerminalProvider(
+                    self.acp_agent, self.session_id, self.client_capabilities, self.cwd
+                ),
                 ACPFileSystemProvider(
-                    acp_agent, session_id, client_capabilities, self.cwd
+                    self.acp_agent, self.session_id, self.client_capabilities, self.cwd
                 ),
             ]
 
             self.capability_provider = AggregatingResourceProvider(
-                providers=providers, name=f"acp_capabilities_{session_id}"
+                providers=providers, name=f"acp_capabilities_{self.session_id}"
             )
             # Add capability provider to current agent
-            current_agent = self.agent_pool.get_agent(current_agent_name)
+            current_agent = self.agent_pool.get_agent(self.current_agent_name)
             current_agent.tools.add_provider(self.capability_provider)
 
         # Add cwd context to all agents in the pool
@@ -153,7 +155,7 @@ class ACPSession:
             agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
 
         msg = "Created ACP session %s with agent pool (current: %s)"
-        logger.info(msg, session_id, current_agent_name)
+        logger.info(msg, self.session_id, self.current_agent_name)
 
     async def initialize_mcp_servers(self) -> None:
         """Initialize MCP servers if any are configured."""
