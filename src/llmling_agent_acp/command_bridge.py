@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable
 
     from mcp.types import Prompt as MCPPrompt
-    from slashed import BaseCommand, CommandContext, CommandStore
+    from slashed import BaseCommand, CommandStore
 
     from acp.schema import SessionNotification
     from llmling_agent.agent.context import AgentContext
@@ -125,8 +125,10 @@ class ACPCommandBridge:
                     yield update
                 return
 
-            # Create command context from session
-            cmd_context = self._create_command_context(session, output_writer)
+            cmd_context = self.command_store.create_context(
+                data=session.agent.context,
+                output_writer=output_writer,
+            )
             command_str = f"{command_name} {args}".strip()
             await self.command_store.execute_command(command_str, cmd_context)
 
@@ -138,25 +140,6 @@ class ACPCommandBridge:
             logger.exception("Command execution failed")
             for update in to_session_updates(f"Command error: {e}", session.session_id):
                 yield update
-
-    def _create_command_context(
-        self,
-        session: ACPSession,
-        output_writer: ACPOutputWriter,
-    ) -> CommandContext:
-        """Create command context from ACP session.
-
-        Args:
-            session: ACP session
-            output_writer: Output writer for command results
-
-        Returns:
-            CommandContext for slashed command execution
-        """
-        return self.command_store.create_context(
-            data=session.agent.context,
-            output_writer=output_writer,
-        )
 
     def register_update_callback(self, callback: Callable[[], None]) -> None:
         """Register callback for command updates.
