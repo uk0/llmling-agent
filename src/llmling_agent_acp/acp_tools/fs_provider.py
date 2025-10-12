@@ -7,19 +7,9 @@ from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import ModelRetry, RunContext  # noqa: TC002
+from pydantic_ai import Agent as PydanticAgent, ModelRetry, RunContext  # noqa: TC002
 
-from acp.schema import (
-    ContentToolCallContent,
-    FileEditToolCallContent,
-    ReadTextFileRequest,
-    SessionNotification,
-    TextContentBlock,
-    ToolCallLocation,
-    ToolCallProgress,
-    ToolCallStart,
-    WriteTextFileRequest,
-)
+from acp.schema import ToolCallLocation
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent.tools.base import Tool
@@ -135,60 +125,49 @@ class ACPFileSystemProvider(ResourceProvider):
         # Send initial pending notification
         assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
         try:
-            start = ToolCallStart(
+            await self.session.notifications.tool_call_start(
                 tool_call_id=ctx.tool_call_id,
-                status="pending",
                 title=f"Reading file: {path}",
                 kind="read",
                 locations=[ToolCallLocation(path=resolved_path)],
             )
-            notifi = SessionNotification(session_id=self.session_id, update=start)
-            await self.agent.connection.session_update(notifi)
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to send pending update: %s", e)
 
-        request = ReadTextFileRequest(
-            session_id=self.session_id,
-            path=resolved_path,
-            line=line,
-            limit=limit,
-        )
-
         try:
-            response = await self.agent.connection.read_text_file(request)
+            content = await self.session.requests.read_text_file(
+                path=resolved_path,
+                line=line,
+                limit=limit,
+            )
 
             # Send completion update
             assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
-            block = TextContentBlock(text=f"````\n{response.content}\n````")
-            progress = ToolCallProgress(
-                tool_call_id=ctx.tool_call_id,
-                status="completed",
-                locations=[ToolCallLocation(path=resolved_path)],
-                content=[ContentToolCallContent(content=block)],
-            )
-            notifi = SessionNotification(session_id=self.session_id, update=progress)
             try:
-                await self.agent.connection.session_update(notifi)
+                await self.session.notifications.tool_call_progress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="completed",
+                    locations=[ToolCallLocation(path=resolved_path)],
+                    content=[f"````\n{content}\n````"],
+                )
             except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to send completed update: %s", e)
 
         except Exception as e:  # noqa: BLE001
             # Send failed update
             assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
-            progress = ToolCallProgress(
-                tool_call_id=ctx.tool_call_id,
-                status="failed",
-                raw_output=f"Error: {e}",
-            )
-            failed = SessionNotification(session_id=self.session_id, update=progress)
             try:
-                await self.agent.connection.session_update(failed)
+                await self.session.notifications.tool_call_progress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=f"Error: {e}",
+                )
             except Exception:  # noqa: BLE001
                 logger.warning("Failed to send failed update")
 
             return f"Error reading file: {e}"
         else:
-            return response.content
+            return content
 
     async def write_text_file(self, ctx: RunContext[Any], path: str, content: str) -> str:  # noqa: D417
         r"""Write text content to a file, creating or overwriting as needed.
@@ -210,54 +189,36 @@ class ACPFileSystemProvider(ResourceProvider):
         # Send initial pending notification
         assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
         try:
-            update = ToolCallStart(
+            await self.session.notifications.tool_call_start(
                 tool_call_id=ctx.tool_call_id,
-                status="pending",
                 title=f"Writing file: {path}",
                 kind="edit",
                 locations=[ToolCallLocation(path=resolved_path)],
             )
-            noti = SessionNotification(session_id=self.session_id, update=update)
-            await self.agent.connection.session_update(noti)
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to send pending update: %s", e)
 
-        request = WriteTextFileRequest(
-            session_id=self.session_id,
-            path=resolved_path,
-            content=content,
-        )
-
         try:
-            await self.agent.connection.write_text_file(request)
-
+            await self.session.requests.write_text_file(resolved_path, content=content)
             # Send completion update
-            assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
             try:
-                block = TextContentBlock(text=content)
-                tool_content = ContentToolCallContent(content=block)
-                progress = ToolCallProgress(
+                await self.session.notifications.tool_call_progress(
                     tool_call_id=ctx.tool_call_id,
                     status="completed",
                     locations=[ToolCallLocation(path=resolved_path)],
-                    content=[tool_content],
+                    content=[content],
                 )
-                s = SessionNotification(session_id=self.session_id, update=progress)
-                await self.agent.connection.session_update(s)
             except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to send completed update: %s", e)
 
         except Exception as e:  # noqa: BLE001
             # Send failed update
-            assert ctx.tool_call_id, "Tool call ID must be present for fs operations"
             try:
-                progress = ToolCallProgress(
+                await self.session.notifications.tool_call_progress(
                     tool_call_id=ctx.tool_call_id,
                     status="failed",
                     raw_output=f"Error: {e}",
                 )
-                s = SessionNotification(session_id=self.session_id, update=progress)
-                await self.agent.connection.session_update(s)
             except Exception:  # noqa: BLE001
                 logger.warning("Failed to send failed update")
 
@@ -295,30 +256,27 @@ class ACPFileSystemProvider(ResourceProvider):
         resolved_path = self._resolve_path(path)  # Resolve paths against session cwd
         # Send initial pending notification
         assert ctx.tool_call_id, "Tool call ID must be present for edit operations"
-        start = ToolCallStart(
-            tool_call_id=ctx.tool_call_id,
-            status="pending",
-            title=f"Editing file: {path}",
-            kind="edit",
-            locations=[ToolCallLocation(path=resolved_path)],
-            raw_input={
-                "path": path,
-                "old_string": old_string,
-                "new_string": new_string,
-                "description": description,
-                "replace_all": replace_all,
-            },
-        )
-        notifi = SessionNotification(session_id=self.session_id, update=start)
         try:
-            await self.agent.connection.session_update(notifi)
+            await self.session.notifications.tool_call_start(
+                tool_call_id=ctx.tool_call_id,
+                title=f"Editing file: {path}",
+                kind="edit",
+                locations=[ToolCallLocation(path=resolved_path)],
+                raw_input={
+                    "path": path,
+                    "old_string": old_string,
+                    "new_string": new_string,
+                    "description": description,
+                    "replace_all": replace_all,
+                },
+            )
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to send pending update: %s", e)
 
         try:  # Read current file content
-            read_req = ReadTextFileRequest(session_id=self.session_id, path=resolved_path)
-            read_response = await self.agent.connection.read_text_file(read_req)
-            original_content = read_response.content
+            original_content = await self.session.requests.read_text_file(
+                path=resolved_path
+            )
 
             try:  # Apply smart content replacement
                 new_content = replace_content(
@@ -326,52 +284,41 @@ class ACPFileSystemProvider(ResourceProvider):
                 )
             except ValueError as e:
                 error_msg = f"Edit failed: {e}"
-                progress = ToolCallProgress(  # Send failed update
-                    tool_call_id=ctx.tool_call_id,
-                    status="failed",
-                    raw_output=error_msg,
-                )
-                failed = SessionNotification(session_id=self.session_id, update=progress)
-                try:
-                    await self.agent.connection.session_update(failed)
+                try:  # Send failed update
+                    await self.session.notifications.tool_call_progress(
+                        tool_call_id=ctx.tool_call_id,
+                        status="failed",
+                        raw_output=error_msg,
+                    )
                 except Exception:  # noqa: BLE001
                     logger.warning("Failed to send failed update")
                 return error_msg
 
             # Write the new content
-            write_request = WriteTextFileRequest(
-                session_id=self.session_id,
+            await self.session.requests.write_text_file(
                 path=resolved_path,
                 content=new_content,
             )
-            await self.agent.connection.write_text_file(write_request)
-            file_edit_content = FileEditToolCallContent(
-                path=resolved_path,
-                old_text=original_content,
-                new_text=new_content,
-            )
-
             success_msg = f"Successfully edited {Path(path).name}: {description}"
             diff_lines = get_changed_lines(original_content, new_content, resolved_path)
             if lines_changed := len(diff_lines) > 0:
                 success_msg += f" ({lines_changed} lines changed)"
 
-            progress = ToolCallProgress(
+            await self.session.notifications.file_edit_progress(
                 tool_call_id=ctx.tool_call_id,
+                path=resolved_path,
+                old_text=original_content,
+                new_text=new_content,
                 status="completed",
-                locations=[ToolCallLocation(path=resolved_path)],
-                content=[file_edit_content],
             )
-            notifi = SessionNotification(session_id=self.session_id, update=progress)
-            await self.agent.connection.session_update(notifi)
         except Exception as e:  # noqa: BLE001
             error_msg = f"Error editing file: {e}"
-            progress = ToolCallProgress(  # Send failed update
-                tool_call_id=ctx.tool_call_id, status="failed", raw_output=error_msg
-            )
-            failed = SessionNotification(session_id=self.session_id, update=progress)
-            try:
-                await self.agent.connection.session_update(failed)
+            try:  # Send failed update
+                await self.session.notifications.tool_call_progress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=error_msg,
+                )
             except Exception:  # noqa: BLE001
                 logger.warning("Failed to send failed update")
             return error_msg
@@ -405,33 +352,28 @@ class ACPFileSystemProvider(ResourceProvider):
         resolved_path = self._resolve_path(path)
 
         # Send initial pending notification
-        assert ctx.tool_call_id, "Tool call ID must be present for edit operations"
-        start = ToolCallStart(
-            tool_call_id=ctx.tool_call_id,
-            status="pending",
-            title=f"AI editing file: {path}",
-            kind="edit",
-            locations=[ToolCallLocation(path=resolved_path)],
-            raw_input={
-                "path": path,
-                "display_description": display_description,
-                "mode": mode,
-            },
-        )
-        notifi = SessionNotification(session_id=self.session_id, update=start)
+        assert ctx.tool_call_id, "Tool call ID must be present for agentic edits"
         try:
-            await self.agent.connection.session_update(notifi)
+            await self.session.notifications.tool_call_start(
+                tool_call_id=ctx.tool_call_id,
+                title=f"Editing file: {path}",
+                kind="edit",
+                locations=[ToolCallLocation(path=resolved_path)],
+                raw_input={
+                    "path": path,
+                    "display_description": display_description,
+                    "mode": mode,
+                },
+            )
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to send pending update: %s", e)
 
         try:
-            from pydantic_ai import Agent as PydanticAgent
-
             # Handle different modes
             if mode == "create":
                 # For create mode, don't read existing file
                 original_content = ""
-                prompt = self._build_create_prompt(path, display_description)
+                prompt = _build_create_prompt(path, display_description)
                 sys_prompt = (
                     "You are a code generator. Create the requested file content."
                 )
@@ -439,18 +381,16 @@ class ACPFileSystemProvider(ResourceProvider):
                 # For overwrite mode, don't read file - agent
                 # already read it via system prompt requirement
                 original_content = ""  # Will be set later for diff purposes
-                prompt = self._build_overwrite_prompt(path, display_description)
+                prompt = _build_overwrite_prompt(path, display_description)
                 sys_prompt = (
                     "You are a code editor. Output ONLY the complete new file content."
                 )
             else:
                 # For edit mode, use structured editing approach
-                read_req = ReadTextFileRequest(
-                    session_id=self.session_id, path=resolved_path
+                original_content = await self.session.requests.read_text_file(
+                    path=resolved_path
                 )
-                read_response = await self.agent.connection.read_text_file(read_req)
-                original_content = read_response.content
-                prompt = self._build_edit_prompt(path, display_description)
+                prompt = _build_edit_prompt(path, display_description)
                 sys_prompt = (
                     "You are a code editor. Output ONLY structured edits "
                     "using the specified format."
@@ -462,17 +402,15 @@ class ACPFileSystemProvider(ResourceProvider):
             if mode == "edit":
                 # For structured editing, get the full response and parse the edits
                 response = await editor_agent.run(prompt, message_history=ctx.messages)
-                new_content = await self._apply_structured_edits(
+                new_content = await _apply_structured_edits(
                     original_content, response.output
                 )
             else:
                 # For overwrite mode we need to read the current content for diff purposes
                 if mode == "overwrite":
-                    read_req = ReadTextFileRequest(
-                        session_id=self.session_id, path=resolved_path
+                    original_content = await self.session.requests.read_text_file(
+                        path=resolved_path
                     )
-                    read_response = await self.agent.connection.read_text_file(read_req)
-                    original_content = read_response.content
                 # For create/overwrite modes, stream the complete content
                 new_content_parts = []
                 async with editor_agent.run_stream(
@@ -481,29 +419,17 @@ class ACPFileSystemProvider(ResourceProvider):
                     async for chunk in response.stream_text(delta=True):
                         chunk_str = str(chunk)
                         new_content_parts.append(chunk_str)
-
                         # Build partial content for progress updates
                         partial_content = "".join(new_content_parts)
-
-                        # Send progress update with current diff
-                        try:
+                        try:  # Send progress update with current diff
                             if len(partial_content.strip()) > 0:
-                                file_edit_content = FileEditToolCallContent(
+                                await self.session.notifications.file_edit_progress(
+                                    tool_call_id=ctx.tool_call_id,
                                     path=resolved_path,
                                     old_text=original_content,
                                     new_text=partial_content,
-                                )
-
-                                progress = ToolCallProgress(
-                                    tool_call_id=ctx.tool_call_id,
                                     status="in_progress",
-                                    locations=[ToolCallLocation(path=resolved_path)],
-                                    content=[file_edit_content],
                                 )
-                                notifi = SessionNotification(
-                                    session_id=self.session_id, update=progress
-                                )
-                                await self.agent.connection.session_update(notifi)
                         except Exception as e:  # noqa: BLE001
                             logger.warning("Failed to send progress update: %s", e)
 
@@ -511,31 +437,21 @@ class ACPFileSystemProvider(ResourceProvider):
 
             if not new_content:
                 error_msg = "AI agent produced no output"
-                progress = ToolCallProgress(
-                    tool_call_id=ctx.tool_call_id,
-                    status="failed",
-                    raw_output=error_msg,
-                )
-                failed = SessionNotification(session_id=self.session_id, update=progress)
                 try:
-                    await self.agent.connection.session_update(failed)
+                    await self.session.notifications.tool_call_progress(
+                        tool_call_id=ctx.tool_call_id,
+                        status="failed",
+                        raw_output=error_msg,
+                    )
                 except Exception:  # noqa: BLE001
                     logger.warning("Failed to send failed update")
                 return error_msg
 
             # Write the new content to file
-            write_request = WriteTextFileRequest(
-                session_id=self.session_id,
-                path=resolved_path,
+            # Write the final content
+            await self.session.requests.write_text_file(
+                resolved_path,
                 content=new_content,
-            )
-            await self.agent.connection.write_text_file(write_request)
-
-            # Send final completion update with complete diff
-            file_edit_content = FileEditToolCallContent(
-                path=resolved_path,
-                old_text=original_content,
-                new_text=new_content,
             )
 
             # Calculate some stats
@@ -549,51 +465,51 @@ class ACPFileSystemProvider(ResourceProvider):
                 success_msg = f"Successfully edited {Path(path).name} using AI agent"
                 success_msg += f" ({original_lines} → {new_lines} lines)"
 
-            progress = ToolCallProgress(
+            # Send final completion update with complete diff
+            await self.session.notifications.file_edit_progress(
                 tool_call_id=ctx.tool_call_id,
+                path=resolved_path,
+                old_text=original_content,
+                new_text=new_content,
                 status="completed",
-                locations=[ToolCallLocation(path=resolved_path)],
-                content=[file_edit_content],
             )
-            notifi = SessionNotification(session_id=self.session_id, update=progress)
-            await self.agent.connection.session_update(notifi)
 
         except Exception as e:  # noqa: BLE001
             error_msg = f"Error during agentic edit: {e}"
-            # Send failed update
-            progress = ToolCallProgress(
-                tool_call_id=ctx.tool_call_id,
-                status="failed",
-                raw_output=error_msg,
-            )
-            failed = SessionNotification(session_id=self.session_id, update=progress)
-            try:
-                await self.agent.connection.session_update(failed)
+            try:  # Send failed update
+                await self.session.notifications.tool_call_progress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=error_msg,
+                )
             except Exception:  # noqa: BLE001
                 logger.warning("Failed to send failed update")
             return error_msg
         else:
             return success_msg
 
-    def _build_create_prompt(self, path: str, description: str) -> str:
-        """Build prompt for create mode."""
-        return f"""Create a new file at {path} according to this description:
+
+def _build_create_prompt(path: str, description: str) -> str:
+    """Build prompt for create mode."""
+    return f"""Create a new file at {path} according to this description:
 
 {description}
 
 Output only the complete file content, no explanations or markdown formatting."""
 
-    def _build_overwrite_prompt(self, path: str, description: str) -> str:
-        """Build prompt for overwrite mode."""
-        return f"""Rewrite the file {path} according to this description:
+
+def _build_overwrite_prompt(path: str, description: str) -> str:
+    """Build prompt for overwrite mode."""
+    return f"""Rewrite the file {path} according to this description:
 
 {description}
 
 Output only the complete new file content, no explanations or markdown formatting."""
 
-    def _build_edit_prompt(self, path: str, description: str) -> str:
-        """Build prompt for structured edit mode."""
-        return f"""\
+
+def _build_edit_prompt(path: str, description: str) -> str:
+    """Build prompt for structured edit mode."""
+    return f"""\
 You MUST respond with a series of edits to a file, using the following format:
 
 ```
@@ -624,8 +540,8 @@ NEW TEXT 2 HERE
 - `<old_text>` cannot be empty
 - `line` should be a starting line number for the text to be replaced
 - Be minimal with replacements:
-  - For unique lines, include only those lines
-  - For non-unique lines, include enough context to identify them
+- For unique lines, include only those lines
+- For non-unique lines, include enough context to identify them
 - Do not escape quotes, newlines, or other characters within tags
 - For multiple occurrences, repeat the same tag pair for each instance
 - Edits are sequential - each assumes previous edits are already applied
@@ -642,68 +558,69 @@ NEW TEXT 2 HERE
 
 Tool calls have been disabled. You MUST start your response with <edits>."""
 
-    async def _apply_structured_edits(
-        self, original_content: str, edits_response: str
-    ) -> str:
-        """Apply structured edits from the agent response."""
-        # Parse the edits from the response
-        edits_match = re.search(r"<edits>(.*?)</edits>", edits_response, re.DOTALL)
-        if not edits_match:
-            logger.warning("No edits block found in response")
-            return original_content
 
-        edits_content = edits_match.group(1)
+async def _apply_structured_edits(original_content: str, edits_response: str) -> str:
+    """Apply structured edits from the agent response."""
+    # Parse the edits from the response
+    edits_match = re.search(r"<edits>(.*?)</edits>", edits_response, re.DOTALL)
+    if not edits_match:
+        logger.warning("No edits block found in response")
+        return original_content
 
-        # Find all old_text/new_text pairs
-        old_text_pattern = r"<old_text[^>]*>(.*?)</old_text>"
-        new_text_pattern = r"<new_text>(.*?)</new_text>"
+    edits_content = edits_match.group(1)
 
-        old_texts = re.findall(old_text_pattern, edits_content, re.DOTALL)
-        new_texts = re.findall(new_text_pattern, edits_content, re.DOTALL)
+    # Find all old_text/new_text pairs
+    old_text_pattern = r"<old_text[^>]*>(.*?)</old_text>"
+    new_text_pattern = r"<new_text>(.*?)</new_text>"
 
-        if len(old_texts) != len(new_texts):
-            logger.warning("Mismatch between old_text and new_text blocks")
-            return original_content
+    old_texts = re.findall(old_text_pattern, edits_content, re.DOTALL)
+    new_texts = re.findall(new_text_pattern, edits_content, re.DOTALL)
 
-        # Apply edits sequentially
-        content = original_content
-        applied_edits = 0
+    if len(old_texts) != len(new_texts):
+        logger.warning("Mismatch between old_text and new_text blocks")
+        return original_content
 
-        failed_matches = []
-        multiple_matches = []
+    # Apply edits sequentially
+    content = original_content
+    applied_edits = 0
 
-        for old_text, new_text in zip(old_texts, new_texts, strict=False):
-            old_text = old_text.strip()
-            new_text = new_text.strip()
+    failed_matches = []
+    multiple_matches = []
 
-            # Check for multiple matches (ambiguity)
-            match_count = content.count(old_text)
-            if match_count > 1:
-                multiple_matches.append(old_text[:50])
-            elif match_count == 1:
-                content = content.replace(old_text, new_text, 1)
-                applied_edits += 1
-            else:
-                failed_matches.append(old_text[:50])
+    for old_text, new_text in zip(old_texts, new_texts, strict=False):
+        old_text = old_text.strip()
+        new_text = new_text.strip()
 
-        # Raise ModelRetry for specific failure cases
-        if applied_edits == 0 and len(old_texts) > 0:
-            msg = (
-                "Some edits were produced but none of them could be applied. "
-                "Read the relevant sections of the file again so that "
-                "I can perform the requested edits."
-            )
-            raise ModelRetry(msg)
+        # Check for multiple matches (ambiguity)
+        match_count = content.count(old_text)
+        if match_count > 1:
+            multiple_matches.append(old_text[:50])
+        elif match_count == 1:
+            content = content.replace(old_text, new_text, 1)
+            applied_edits += 1
+        else:
+            failed_matches.append(old_text[:50])
 
-        if multiple_matches:
-            msg = (
-                f"<old_text> matches multiple positions in the file: {', '.join(multiple_matches)}... "
-                "Read the relevant sections of the file again and extend <old_text> to be more specific."
-            )
-            raise ModelRetry(msg)
+    # Raise ModelRetry for specific failure cases
+    if applied_edits == 0 and len(old_texts) > 0:
+        msg = (
+            "Some edits were produced but none of them could be applied. "
+            "Read the relevant sections of the file again so that "
+            "I can perform the requested edits."
+        )
+        raise ModelRetry(msg)
 
-        logger.info("Applied %s/%s structured edits", applied_edits, len(old_texts))
-        return content
+    if multiple_matches:
+        matches_str = ", ".join(multiple_matches)
+        msg = (
+            f"<old_text> matches multiple positions in the file: {matches_str}... "
+            "Read the relevant sections of the file again and extend <old_text> "
+            "to be more specific."
+        )
+        raise ModelRetry(msg)
+
+    logger.info("Applied %s/%s structured edits", applied_edits, len(old_texts))
+    return content
 
 
 def get_changed_lines(original_content: str, new_content: str, path: str) -> list[str]:
