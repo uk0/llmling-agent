@@ -309,10 +309,7 @@ class ACPSession:
                 if commands and self.command_bridge:
                     for command in commands:
                         logger.info("Processing slash command: %s", command)
-                        async for (
-                            notification
-                        ) in self.command_bridge.execute_slash_command(command, self):
-                            yield notification
+                        await self.command_bridge.execute_slash_command(command, self)
 
                     # If only commands, end turn
                     if not non_command_content:

@@ -16,12 +16,11 @@ if TYPE_CHECKING:
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Callable
+    from collections.abc import Callable
 
     from mcp.types import Prompt as MCPPrompt
     from slashed import BaseCommand, CommandStore
 
-    from acp.schema import SessionNotification
     from llmling_agent.agent.context import AgentContext
     from llmling_agent_acp.session import ACPSession
 
@@ -30,33 +29,17 @@ SLASH_PATTERN = re.compile(r"^/(\w+)(?:\s+(.*))?$")
 
 
 class ACPOutputWriter:
-    """OutputWriter that converts command output to ACP session updates."""
+    """OutputWriter that immediately sends updates to ACP session."""
 
-    def __init__(self, session_id: str) -> None:
-        """Initialize with session ID for notifications."""
-        self.session_id = session_id
-        self.output_buffer: list[str] = []
+    def __init__(self, session: ACPSession) -> None:
+        """Initialize with ACP session for immediate updates."""
+        self.session = session
 
     async def print(self, message: str = "", **kwargs: Any) -> None:
-        """Capture print output."""
-        self.output_buffer.append(message)
-
-    async def write(self, text: str) -> None:
-        """Capture write output."""
-        self.output_buffer.append(text)
-
-    def get_session_updates(self) -> list[SessionNotification]:
-        """Convert captured output to session updates."""
-        if not self.output_buffer:
-            return []
-
-        # Combine all output
-        combined_output = "\n".join(self.output_buffer)
-        return to_session_updates(combined_output, self.session_id)
-
-    def clear(self) -> None:
-        """Clear output buffer."""
-        self.output_buffer.clear()
+        """Send message immediately as session updates."""
+        updates = to_session_updates(message, self.session.session_id)
+        for update in updates:
+            await self.session.client.session_update(update)
 
 
 class ACPCommandBridge:
@@ -98,15 +81,12 @@ class ACPCommandBridge:
         self,
         command_text: str,
         session: ACPSession,
-    ) -> AsyncIterator[SessionNotification]:
-        """Execute slash command and stream results as ACP notifications.
+    ) -> None:
+        """Execute slash command and send results immediately as ACP notifications.
 
         Args:
             command_text: Full command text (including slash)
             session: ACP session context
-
-        Yields:
-            SessionNotification objects with command output
         """
         if match := SLASH_PATTERN.match(command_text.strip()):
             command_name = match.group(1)
@@ -116,30 +96,27 @@ class ACPCommandBridge:
             logger.warning("Invalid slash command: %s", command_text)
             return
 
-        output_writer = ACPOutputWriter(session.session_id)
+        # Check if it's an MCP prompt command first
+        if command_name in self._mcp_prompt_commands:
+            mcp_cmd = self._mcp_prompt_commands[command_name]
+            async for update in mcp_cmd.execute(args, session):
+                await session.client.session_update(update)
+            return
+
+        # Create output writer that sends directly to session
+        output_writer = ACPOutputWriter(session)
+        cmd_context = self.command_store.create_context(
+            data=session.agent.context,
+            output_writer=output_writer,
+        )
+        command_str = f"{command_name} {args}".strip()
         try:
-            # Check if it's an MCP prompt command first
-            if command_name in self._mcp_prompt_commands:
-                mcp_cmd = self._mcp_prompt_commands[command_name]
-                async for update in mcp_cmd.execute(args, session):
-                    yield update
-                return
-
-            cmd_context = self.command_store.create_context(
-                data=session.agent.context,
-                output_writer=output_writer,
-            )
-            command_str = f"{command_name} {args}".strip()
             await self.command_store.execute_command(command_str, cmd_context)
-
-            # Stream output as session updates
-            for update in output_writer.get_session_updates():
-                yield update
-
         except Exception as e:
             logger.exception("Command execution failed")
-            for update in to_session_updates(f"Command error: {e}", session.session_id):
-                yield update
+            error_updates = to_session_updates(f"Command error: {e}", session.session_id)
+            for update in error_updates:
+                await session.client.session_update(update)
 
     def register_update_callback(self, callback: Callable[[], None]) -> None:
         """Register callback for command updates.
