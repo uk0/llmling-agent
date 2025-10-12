@@ -75,16 +75,12 @@ class ACPFileSystemProvider(ResourceProvider):
             Absolute path string
         """
         if self.cwd and not (path.startswith("/") or (len(path) > 1 and path[1] == ":")):
-            # Path appears to be relative and we have a cwd
-
             return str(Path(self.cwd) / path)
         return path
 
     async def get_tools(self) -> list[Tool]:
         """Get filesystem tools based on client capabilities."""
         tools: list[Tool] = []
-
-        # Filesystem tools if supported
         if fs_caps := self.client_capabilities.fs:
             if fs_caps.read_text_file:
                 tool = Tool.from_callable(
@@ -330,8 +326,7 @@ class ACPFileSystemProvider(ResourceProvider):
                 )
             except ValueError as e:
                 error_msg = f"Edit failed: {e}"
-                # Send failed update
-                progress = ToolCallProgress(
+                progress = ToolCallProgress(  # Send failed update
                     tool_call_id=ctx.tool_call_id,
                     status="failed",
                     raw_output=error_msg,
@@ -343,17 +338,6 @@ class ACPFileSystemProvider(ResourceProvider):
                     logger.warning("Failed to send failed update")
                 return error_msg
 
-            # Generate diff for UI display
-            diff_lines = list(
-                difflib.unified_diff(
-                    original_content.splitlines(keepends=True),
-                    new_content.splitlines(keepends=True),
-                    fromfile=path,
-                    tofile=path,
-                    lineterm="",
-                )
-            )
-
             # Write the new content
             write_request = WriteTextFileRequest(
                 session_id=self.session_id,
@@ -361,20 +345,15 @@ class ACPFileSystemProvider(ResourceProvider):
                 content=new_content,
             )
             await self.agent.connection.write_text_file(write_request)
-
-            # Send completion update with diff
             file_edit_content = FileEditToolCallContent(
                 path=resolved_path,
                 old_text=original_content,
                 new_text=new_content,
             )
 
-            lines_changed = len([
-                line for line in diff_lines if line.startswith(("+", "-"))
-            ])
-
             success_msg = f"Successfully edited {Path(path).name}: {description}"
-            if lines_changed > 0:
+            diff_lines = get_changed_lines(original_content, new_content, resolved_path)
+            if lines_changed := len(diff_lines) > 0:
                 success_msg += f" ({lines_changed} lines changed)"
 
             progress = ToolCallProgress(
@@ -387,11 +366,8 @@ class ACPFileSystemProvider(ResourceProvider):
             await self.agent.connection.session_update(notifi)
         except Exception as e:  # noqa: BLE001
             error_msg = f"Error editing file: {e}"
-            # Send failed update
-            progress = ToolCallProgress(
-                tool_call_id=ctx.tool_call_id,
-                status="failed",
-                raw_output=error_msg,
+            progress = ToolCallProgress(  # Send failed update
+                tool_call_id=ctx.tool_call_id, status="failed", raw_output=error_msg
             )
             failed = SessionNotification(session_id=self.session_id, update=progress)
             try:
@@ -427,9 +403,7 @@ class ACPFileSystemProvider(ResourceProvider):
         resolved_path = self._resolve_path(path)
 
         # Send initial pending notification
-        assert ctx.tool_call_id, (
-            "Tool call ID must be present for agentic edit operations"
-        )
+        assert ctx.tool_call_id, "Tool call ID must be present for edit operations"
         start = ToolCallStart(
             tool_call_id=ctx.tool_call_id,
             status="pending",
@@ -468,8 +442,7 @@ Output only the new file content, no explanations or markdown formatting."""
             sys_prompt = "You are a code editor. Output ONLY the modified file content."
             editor_agent = PydanticAgent(model=ctx.model, system_prompt=sys_prompt)
 
-            # Stream with full message history for caching
-            new_content_parts = []
+            new_content_parts = []  # Stream with full message history for caching
 
             async with editor_agent.run_stream(
                 prompt, message_history=ctx.messages
@@ -569,3 +542,16 @@ Output only the new file content, no explanations or markdown formatting."""
             return error_msg
         else:
             return success_msg
+
+
+def get_changed_lines(original_content: str, new_content: str, path: str) -> list[str]:
+    diff = list(
+        difflib.unified_diff(
+            original_content.splitlines(keepends=True),
+            new_content.splitlines(keepends=True),
+            fromfile=path,
+            tofile=path,
+            lineterm="",
+        )
+    )
+    return [line for line in diff if line.startswith(("+", "-"))]
