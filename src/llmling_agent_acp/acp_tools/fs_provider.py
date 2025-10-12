@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import difflib
 from pathlib import Path
+import re
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import RunContext  # noqa: TC002
+from pydantic_ai import ModelRetry, RunContext  # noqa: TC002
 
 from acp.schema import (
     ContentToolCallContent,
@@ -382,16 +383,18 @@ class ACPFileSystemProvider(ResourceProvider):
         self,
         ctx: RunContext[Any],
         path: str,
-        instructions: str,
+        display_description: str,
+        mode: str = "edit",
     ) -> str:
         r"""Edit a file using AI agent with natural language instructions.
 
-        Creates a new agent that reads the file and rewrites it based on the instructions.
+        Creates a new agent that processes the file based on the instructions.
         Shows real-time progress and diffs as the agent works.
 
         Args:
             path: File path (absolute or relative to session cwd)
-            instructions: Natural language instructions for how to modify the file
+            display_description: Natural language description of the edits to make
+            mode: Edit mode - 'edit', 'create', or 'overwrite' (default: 'edit')
 
         Returns:
             Success message with edit summary
@@ -410,7 +413,11 @@ class ACPFileSystemProvider(ResourceProvider):
             title=f"AI editing file: {path}",
             kind="edit",
             locations=[ToolCallLocation(path=resolved_path)],
-            raw_input={"path": path, "instructions": instructions},
+            raw_input={
+                "path": path,
+                "display_description": display_description,
+                "mode": mode,
+            },
         )
         notifi = SessionNotification(session_id=self.session_id, update=start)
         try:
@@ -419,67 +426,89 @@ class ACPFileSystemProvider(ResourceProvider):
             logger.warning("Failed to send pending update: %s", e)
 
         try:
-            # Read current file content
-            read_req = ReadTextFileRequest(session_id=self.session_id, path=resolved_path)
-            read_response = await self.agent.connection.read_text_file(read_req)
-            original_content = read_response.content
-
             from pydantic_ai import Agent as PydanticAgent
 
-            # Append our edit instruction to the existing conversation
-            prompt = f"""Please edit the file {path} according to these instructions:
-
-{instructions}
-
-Current file content:
-```
-{original_content}
-```
-
-Output only the new file content, no explanations or markdown formatting."""
+            # Handle different modes
+            if mode == "create":
+                # For create mode, don't read existing file
+                original_content = ""
+                prompt = self._build_create_prompt(path, display_description)
+                sys_prompt = (
+                    "You are a code generator. Create the requested file content."
+                )
+            elif mode == "overwrite":
+                # For overwrite mode, don't read file - agent
+                # already read it via system prompt requirement
+                original_content = ""  # Will be set later for diff purposes
+                prompt = self._build_overwrite_prompt(path, display_description)
+                sys_prompt = (
+                    "You are a code editor. Output ONLY the complete new file content."
+                )
+            else:
+                # For edit mode, use structured editing approach
+                read_req = ReadTextFileRequest(
+                    session_id=self.session_id, path=resolved_path
+                )
+                read_response = await self.agent.connection.read_text_file(read_req)
+                original_content = read_response.content
+                prompt = self._build_edit_prompt(path, display_description)
+                sys_prompt = (
+                    "You are a code editor. Output ONLY structured edits "
+                    "using the specified format."
+                )
 
             # Create the editor agent using the same model
-            sys_prompt = "You are a code editor. Output ONLY the modified file content."
             editor_agent = PydanticAgent(model=ctx.model, system_prompt=sys_prompt)
 
-            new_content_parts = []  # Stream with full message history for caching
+            if mode == "edit":
+                # For structured editing, get the full response and parse the edits
+                response = await editor_agent.run(prompt, message_history=ctx.messages)
+                new_content = await self._apply_structured_edits(
+                    original_content, response.output
+                )
+            else:
+                # For overwrite mode we need to read the current content for diff purposes
+                if mode == "overwrite":
+                    read_req = ReadTextFileRequest(
+                        session_id=self.session_id, path=resolved_path
+                    )
+                    read_response = await self.agent.connection.read_text_file(read_req)
+                    original_content = read_response.content
+                # For create/overwrite modes, stream the complete content
+                new_content_parts = []
+                async with editor_agent.run_stream(
+                    prompt, message_history=ctx.messages
+                ) as response:
+                    async for chunk in response.stream_text(delta=True):
+                        chunk_str = str(chunk)
+                        new_content_parts.append(chunk_str)
 
-            async with editor_agent.run_stream(
-                prompt, message_history=ctx.messages
-            ) as response:
-                async for chunk in response.stream_text(delta=True):
-                    chunk_str = str(chunk)
-                    new_content_parts.append(chunk_str)
+                        # Build partial content for progress updates
+                        partial_content = "".join(new_content_parts)
 
-                    # Build partial content for progress updates
-                    partial_content = "".join(new_content_parts)
+                        # Send progress update with current diff
+                        try:
+                            if len(partial_content.strip()) > 0:
+                                file_edit_content = FileEditToolCallContent(
+                                    path=resolved_path,
+                                    old_text=original_content,
+                                    new_text=partial_content,
+                                )
 
-                    # Send progress update with current diff
-                    try:
-                        if (
-                            len(partial_content.strip()) > 0
-                        ):  # Only send if we have meaningful content
-                            file_edit_content = FileEditToolCallContent(
-                                path=resolved_path,
-                                old_text=original_content,
-                                new_text=partial_content,
-                            )
+                                progress = ToolCallProgress(
+                                    tool_call_id=ctx.tool_call_id,
+                                    status="in_progress",
+                                    locations=[ToolCallLocation(path=resolved_path)],
+                                    content=[file_edit_content],
+                                )
+                                notifi = SessionNotification(
+                                    session_id=self.session_id, update=progress
+                                )
+                                await self.agent.connection.session_update(notifi)
+                        except Exception as e:  # noqa: BLE001
+                            logger.warning("Failed to send progress update: %s", e)
 
-                            progress = ToolCallProgress(
-                                tool_call_id=ctx.tool_call_id,
-                                status="in_progress",
-                                locations=[ToolCallLocation(path=resolved_path)],
-                                content=[file_edit_content],
-                            )
-                            notifi = SessionNotification(
-                                session_id=self.session_id, update=progress
-                            )
-                            await self.agent.connection.session_update(notifi)
-                    except Exception as e:  # noqa: BLE001
-                        logger.warning("Failed to send progress update: %s", e)
-
-            # Get final content
-            new_content = "".join(new_content_parts).strip()
+                new_content = "".join(new_content_parts).strip()
 
             if not new_content:
                 error_msg = "AI agent produced no output"
@@ -511,11 +540,15 @@ Output only the new file content, no explanations or markdown formatting."""
             )
 
             # Calculate some stats
-            original_lines = len(original_content.splitlines())
+            original_lines = len(original_content.splitlines()) if original_content else 0
             new_lines = len(new_content.splitlines())
 
-            success_msg = f"Successfully edited {Path(path).name} using AI agent"
-            success_msg += f" ({original_lines} → {new_lines} lines)"
+            if mode == "create":
+                path = Path(path).name
+                success_msg = f"Successfully created {path} ({new_lines} lines)"
+            else:
+                success_msg = f"Successfully edited {Path(path).name} using AI agent"
+                success_msg += f" ({original_lines} → {new_lines} lines)"
 
             progress = ToolCallProgress(
                 tool_call_id=ctx.tool_call_id,
@@ -542,6 +575,136 @@ Output only the new file content, no explanations or markdown formatting."""
             return error_msg
         else:
             return success_msg
+
+    def _build_create_prompt(self, path: str, description: str) -> str:
+        """Build prompt for create mode."""
+        return f"""Create a new file at {path} according to this description:
+
+{description}
+
+Output only the complete file content, no explanations or markdown formatting."""
+
+    def _build_overwrite_prompt(self, path: str, description: str) -> str:
+        """Build prompt for overwrite mode."""
+        return f"""Rewrite the file {path} according to this description:
+
+{description}
+
+Output only the complete new file content, no explanations or markdown formatting."""
+
+    def _build_edit_prompt(self, path: str, description: str) -> str:
+        """Build prompt for structured edit mode."""
+        return f"""\
+You MUST respond with a series of edits to a file, using the following format:
+
+```
+<edits>
+
+<old_text line=10>
+OLD TEXT 1 HERE
+</old_text>
+<new_text>
+NEW TEXT 1 HERE
+</new_text>
+
+<old_text line=456>
+OLD TEXT 2 HERE
+</old_text>
+<new_text>
+NEW TEXT 2 HERE
+</new_text>
+
+</edits>
+```
+
+# File Editing Instructions
+
+- Use `<old_text>` and `<new_text>` tags to replace content
+- `<old_text>` must exactly match existing file content, including indentation
+- `<old_text>` must come from the actual file, not an outline
+- `<old_text>` cannot be empty
+- `line` should be a starting line number for the text to be replaced
+- Be minimal with replacements:
+  - For unique lines, include only those lines
+  - For non-unique lines, include enough context to identify them
+- Do not escape quotes, newlines, or other characters within tags
+- For multiple occurrences, repeat the same tag pair for each instance
+- Edits are sequential - each assumes previous edits are already applied
+- Only edit the specified file
+- Always close all tags properly
+
+<file_to_edit>
+{path}
+</file_to_edit>
+
+<edit_description>
+{description}
+</edit_description>
+
+Tool calls have been disabled. You MUST start your response with <edits>."""
+
+    async def _apply_structured_edits(
+        self, original_content: str, edits_response: str
+    ) -> str:
+        """Apply structured edits from the agent response."""
+        # Parse the edits from the response
+        edits_match = re.search(r"<edits>(.*?)</edits>", edits_response, re.DOTALL)
+        if not edits_match:
+            logger.warning("No edits block found in response")
+            return original_content
+
+        edits_content = edits_match.group(1)
+
+        # Find all old_text/new_text pairs
+        old_text_pattern = r"<old_text[^>]*>(.*?)</old_text>"
+        new_text_pattern = r"<new_text>(.*?)</new_text>"
+
+        old_texts = re.findall(old_text_pattern, edits_content, re.DOTALL)
+        new_texts = re.findall(new_text_pattern, edits_content, re.DOTALL)
+
+        if len(old_texts) != len(new_texts):
+            logger.warning("Mismatch between old_text and new_text blocks")
+            return original_content
+
+        # Apply edits sequentially
+        content = original_content
+        applied_edits = 0
+
+        failed_matches = []
+        multiple_matches = []
+
+        for old_text, new_text in zip(old_texts, new_texts, strict=False):
+            old_text = old_text.strip()
+            new_text = new_text.strip()
+
+            # Check for multiple matches (ambiguity)
+            match_count = content.count(old_text)
+            if match_count > 1:
+                multiple_matches.append(old_text[:50])
+            elif match_count == 1:
+                content = content.replace(old_text, new_text, 1)
+                applied_edits += 1
+            else:
+                failed_matches.append(old_text[:50])
+
+        # Raise ModelRetry for specific failure cases
+        if applied_edits == 0 and len(old_texts) > 0:
+            msg = (
+                "Some edits were produced but none of them could be applied. "
+                "Read the relevant sections of the file again so that "
+                "I can perform the requested edits."
+            )
+            raise ModelRetry(msg)
+
+        if multiple_matches:
+            msg = (
+                f"<old_text> matches multiple positions in the file: {', '.join(multiple_matches)}... "
+                "Read the relevant sections of the file again and extend <old_text> to be more specific."
+            )
+            raise ModelRetry(msg)
+
+        logger.info("Applied %s/%s structured edits", applied_edits, len(old_texts))
+        return content
 
 
 def get_changed_lines(original_content: str, new_content: str, path: str) -> list[str]:
