@@ -187,6 +187,7 @@ async def spawn_delegate[TDeps](
     Creates an ephemeral agent that will execute the task and clean up automatically
     Optionally connects back to receive results.
     """
+    from pydantic_ai.exceptions import ModelRetry
     from pydantic_ai.tools import RunContext
 
     from llmling_agent import Agent
@@ -209,8 +210,11 @@ async def spawn_delegate[TDeps](
     if connect_back:
         assert ctx.agent
         ctx.agent.connect_to(agent)
-
-    await agent.run(task)
+    try:
+        await agent.run(task)
+    except Exception as e:
+        msg = f"Failed to spawn delegate {name}: {e}"
+        raise ModelRetry(msg) from e
     return f"Spawned delegate {name} for task"
 
 
@@ -349,7 +353,7 @@ async def add_agent(  # noqa: D417
         name: Name for the new agent
         system_prompt: System prompt defining agent's role/behavior
         model: Optional model override (uses default if not specified)
-        tools: Imort paths of the tools to import
+        tools: Imort paths of the tools the agent should have, if any.
         session: Session ID to recover conversation state from
         result_type: Name of response type from manifest (for structured output)
 
@@ -431,13 +435,18 @@ async def ask_agent(  # noqa: D417
     Returns:
         The agent's response
     """
+    from pydantic_ai.exceptions import ModelRetry
     from pydantic_ai.tools import RunContext
 
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
     assert ctx.pool, "No agent pool available"
     agent = ctx.pool.get_agent(agent_name)
-    result = await agent.run(message, model=model, store_history=store_history)
+    try:
+        result = await agent.run(message, model=model, store_history=store_history)
+    except Exception as e:
+        msg = f"Failed to ask agent {agent_name}: {e}"
+        raise ModelRetry(msg) from e
     return str(result.content)
 
 
