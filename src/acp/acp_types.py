@@ -62,6 +62,17 @@ StopReason = Literal[
 # Plan entry types
 PlanEntryPriority = Literal["high", "medium", "low"]
 PlanEntryStatus = Literal["pending", "in_progress", "completed"]
-
+ToolCallKind = Literal[
+    "read",
+    "edit",
+    "delete",
+    "move",
+    "search",
+    "execute",
+    "think",
+    "fetch",
+    "switch_mode",
+    "other",
+]
 JsonValue = Any
 MethodHandler = Callable[[str, JsonValue | None, bool], Awaitable[JsonValue | None]]

@@ -6,9 +6,9 @@ content blocks, session updates, and other data structures using the external ac
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, overload
 
-from acp.acp_types import HttpMcpServer, SseMcpServer, StdioMcpServer
+from acp.acp_types import HttpMcpServer, SseMcpServer, StdioMcpServer, ToolCallKind
 from acp.schema import (
     AgentMessageChunk,
     AgentThoughtChunk,
@@ -43,20 +43,6 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-
-# this one needs to align with the schema
-ToolCallKind = Literal[
-    "read",
-    "edit",
-    "delete",
-    "move",
-    "search",
-    "execute",
-    "think",
-    "fetch",
-    "switch_mode",
-    "other",
-]
 
 DEFAULT_PERMISSION_OPTIONS = [
     PermissionOption(option_id="allow_once", name="Allow Once", kind="allow_once"),
@@ -214,8 +200,10 @@ def to_agent_text_notification(
     return SessionNotification(session_id=session_id, update=update)
 
 
-def _determine_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911
+def infer_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911
     """Determine the appropriate tool kind based on name.
+
+    Simple substring matching for tool kind inference.
 
     Args:
         tool_name: Name of the tool
@@ -301,7 +289,7 @@ def format_tool_call_for_acp(
         tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
         title=f"Execute {tool_name}",
         status=status,
-        kind=_determine_tool_kind(tool_name),
+        kind=infer_tool_kind(tool_name),
         locations=locations or None,
         content=content or None,
         raw_input=tool_input,
