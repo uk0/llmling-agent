@@ -124,12 +124,10 @@ class ACPSession:
         """Initialize session state and set up providers."""
         self.mcp_servers = self.mcp_servers or []
 
-        # Session state
         self._active = True
         self._task_lock = asyncio.Lock()
         self._cancelled = False
         self.mcp_manager: MCPManager | None = None
-        # self.permission_server: PermissionMCPServer | None = None
         self.capability_provider: AggregatingResourceProvider | None = None
 
         if self.acp_agent and self.client_capabilities:

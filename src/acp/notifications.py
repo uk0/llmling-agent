@@ -45,6 +45,7 @@ class ACPNotifications:
             session: ACP session containing connection and session_id
         """
         self.session = session
+        self.id = self.session.session_id
 
     async def tool_call_start(
         self,
@@ -80,9 +81,7 @@ class ACPNotifications:
             ],
             raw_input=raw_input,
         )
-        notification = SessionNotification(
-            session_id=self.session.session_id, update=start
-        )
+        notification = SessionNotification(session_id=self.id, update=start)
         await self.session.client.session_update(notification)
 
     async def tool_call_progress(
@@ -118,9 +117,7 @@ class ACPNotifications:
                 for i in content or []
             ],
         )
-        notification = SessionNotification(
-            session_id=self.session.session_id, update=progress
-        )
+        notification = SessionNotification(session_id=self.id, update=progress)
         await self.session.client.session_update(notification)
 
     async def file_edit_progress(
@@ -193,7 +190,5 @@ class ACPNotifications:
             entries: List of plan entries to send
         """
         plan = AgentPlan(entries=entries)
-        notification = SessionNotification(
-            session_id=self.session.session_id, update=plan
-        )
+        notification = SessionNotification(session_id=self.id, update=plan)
         await self.session.client.session_update(notification)

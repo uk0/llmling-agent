@@ -71,7 +71,6 @@ class ACPServer:
         if self.providers is None:
             self.providers = ["openrouter"]
 
-        # Runtime state
         self._running = False
         self._available_models: list[ModelInfo] = []
         self._models_initialized = False
@@ -117,7 +116,6 @@ class ACPServer:
         )
         agent_names = list(server.agent_pool.agents.keys())
         logger.info("Created ACP server with agent pool containing: %s", agent_names)
-
         return server
 
     def get_agent(self, name: str) -> Agent[Any]:
@@ -148,22 +146,15 @@ class ACPServer:
             )
 
             reader, writer = await stdio_streams()
-            AgentSideConnection(
-                create_acp_agent,
-                writer,
-                reader,
-                debug_file=self.debug_file if self.debug_messages else None,
-            )
-
+            file = self.debug_file if self.debug_messages else None
+            AgentSideConnection(create_acp_agent, writer, reader, debug_file=file)
             logger.info(
                 "ACP server started: file_access=%s, terminal=%s, session_support=%s",
                 self.file_access,
                 self.terminal_access,
                 self.session_support,
             )
-
-            # Keep the connection alive
-            try:
+            try:  # Keep the connection alive
                 while self._running:
                     await asyncio.sleep(0.1)
             except KeyboardInterrupt:
@@ -210,9 +201,7 @@ class ACPServer:
             return
         try:
             logger.info("Discovering available models...")
-            self._available_models = await get_all_models(
-                include_deprecated=False, providers=self.providers
-            )
+            self._available_models = await get_all_models(providers=self.providers)
             self._models_initialized = True
             logger.info("Discovered %d models", len(self._available_models))
         except Exception:
