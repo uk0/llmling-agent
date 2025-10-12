@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, Mock
 
 from pydantic_ai import RunContext, RunUsage
@@ -24,10 +24,13 @@ from acp.schema import (
 from llmling_agent import AgentPool
 from llmling_agent_acp.acp_agent import LLMlingACPAgent
 from llmling_agent_acp.acp_tools import ACPFileSystemProvider, ACPTerminalProvider
+from llmling_agent_acp.session import ACPSession
 
 
 if TYPE_CHECKING:
+    from acp.client import Client
     from llmling_agent.tools.base import Tool
+    from llmling_agent_acp.acp_agent import ACPAgent
 
 
 CTX = RunContext(tool_call_id="test", deps=None, model=TestModel(), usage=RunUsage())
@@ -121,14 +124,27 @@ class TestSessionScopedTerminalTools:
 
     @pytest.fixture
     async def provider_with_tools(
-        self, acp_agent: LLMlingACPAgent
+        self,
+        acp_agent: LLMlingACPAgent,
+        agent_pool: AgentPool[Any],
+        mock_client: Mock,
+        mock_acp_agent: Mock,
+        client_capabilities: ClientCapabilities,
     ) -> tuple[ACPTerminalProvider, dict[str, Tool]]:
         """Create provider with full capabilities and get tools."""
         fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
         capabilities = ClientCapabilities(fs=fs_cap, terminal=True)
+        session = ACPSession(
+            session_id="test-session",
+            agent_pool=agent_pool,
+            current_agent_name="coding-agent",
+            cwd="/test",
+            client=mock_client,
+            acp_agent=mock_acp_agent,
+            client_capabilities=client_capabilities,
+        )
         provider = ACPTerminalProvider(
-            agent=acp_agent,
-            session_id="test_session_123",
+            session=session,
             client_capabilities=capabilities,
         )
         tools = await provider.get_tools()
@@ -253,13 +269,29 @@ class TestSessionScopedFilesystemTools:
         return LLMlingACPAgent(mock_connection, agent_pool=pool, file_access=True)
 
     @pytest.fixture
-    async def provider_with_fs_tools(self, acp_agent: LLMlingACPAgent):
+    async def provider_with_fs_tools(
+        self,
+        acp_agent: LLMlingACPAgent,
+        agent_pool: AgentPool,
+        mock_client: Client,
+        mock_acp_agent: ACPAgent,
+        client_capabilities: ClientCapabilities,
+    ):
         """Create provider with filesystem capabilities and get tools."""
         fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
         capabilities = ClientCapabilities(fs=fs_cap)
-        provider = ACPFileSystemProvider(
-            acp_agent, session_id="test_id", client_capabilities=capabilities
+        fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
+        capabilities = ClientCapabilities(fs=fs_cap, terminal=True)
+        session = ACPSession(
+            session_id="test-session",
+            agent_pool=agent_pool,
+            current_agent_name="coding-agent",
+            cwd="/test",
+            client=mock_client,
+            acp_agent=mock_acp_agent,
+            client_capabilities=client_capabilities,
         )
+        provider = ACPFileSystemProvider(session, client_capabilities=capabilities)
         tools = await provider.get_tools()
         tool_dict = {tool.name: tool for tool in tools}
         return provider, tool_dict
