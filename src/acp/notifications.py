@@ -5,11 +5,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from acp.schema import (
+    AgentMessageChunk,
     AgentPlan,
+    AudioContentBlock,
     AvailableCommand,
     AvailableCommandsUpdate,
     ContentToolCallContent,
     FileEditToolCallContent,
+    ImageContentBlock,
+    ResourceContentBlock,
     SessionNotification,
     TerminalToolCallContent,
     TextContentBlock,
@@ -24,7 +28,11 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from acp.acp_types import ToolCallKind, ToolCallStatus
-    from acp.schema import PlanEntry
+    from acp.schema import (
+        Annotations,
+        AvailableCommand,
+        PlanEntry,
+    )
     from llmling_agent_acp.session import ACPSession
 
     ContentType = Sequence[
@@ -202,5 +210,94 @@ class ACPNotifications:
             commands: List of available commands to send
         """
         update = AvailableCommandsUpdate(available_commands=commands)
+        notification = SessionNotification(session_id=self.id, update=update)
+        await self.session.client.session_update(notification)
+
+    async def send_agent_text(self, message: str) -> None:
+        """Send a text message notification.
+
+        Args:
+            message: Text message to send
+        """
+        update = AgentMessageChunk(content=TextContentBlock(text=message))
+        notification = SessionNotification(session_id=self.id, update=update)
+        await self.session.client.session_update(notification)
+
+    async def send_agent_image(
+        self,
+        data: str,
+        mime_type: str,
+        *,
+        uri: str | None = None,
+        annotations: Annotations | None = None,
+    ) -> None:
+        """Send an image message notification.
+
+        Args:
+            data: Base64-encoded image data
+            mime_type: MIME type of the image (e.g., 'image/png')
+            uri: Optional URI reference for the image
+            annotations: Optional annotations for the image
+        """
+        content = ImageContentBlock(
+            data=data, mime_type=mime_type, uri=uri, annotations=annotations
+        )
+        update = AgentMessageChunk(content=content)
+        notification = SessionNotification(session_id=self.id, update=update)
+        await self.session.client.session_update(notification)
+
+    async def send_agent_audio(
+        self,
+        data: str,
+        mime_type: str,
+        *,
+        annotations: Annotations | None = None,
+    ) -> None:
+        """Send an audio message notification.
+
+        Args:
+            data: Base64-encoded audio data
+            mime_type: MIME type of the audio (e.g., 'audio/wav')
+            annotations: Optional annotations for the audio
+        """
+        content = AudioContentBlock(
+            data=data, mime_type=mime_type, annotations=annotations
+        )
+        update = AgentMessageChunk(content=content)
+        notification = SessionNotification(session_id=self.id, update=update)
+        await self.session.client.session_update(notification)
+
+    async def send_agent_resource(
+        self,
+        name: str,
+        uri: str,
+        *,
+        title: str | None = None,
+        description: str | None = None,
+        mime_type: str | None = None,
+        size: int | None = None,
+        annotations: Annotations | None = None,
+    ) -> None:
+        """Send a resource reference message notification.
+
+        Args:
+            name: Name of the resource
+            uri: URI of the resource
+            title: Optional title for the resource
+            description: Optional description of the resource
+            mime_type: Optional MIME type of the resource
+            size: Optional size of the resource in bytes
+            annotations: Optional annotations for the resource
+        """
+        content = ResourceContentBlock(
+            name=name,
+            uri=uri,
+            title=title,
+            description=description,
+            mime_type=mime_type,
+            size=size,
+            annotations=annotations,
+        )
+        update = AgentMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
         await self.session.client.session_update(notification)
