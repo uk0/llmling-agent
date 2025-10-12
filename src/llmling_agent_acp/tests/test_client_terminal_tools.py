@@ -288,7 +288,7 @@ class TestSessionScopedFilesystemTools:
             current_agent_name="coding-agent",
             cwd="/test",
             client=mock_client,
-            acp_agent=mock_acp_agent,
+            acp_agent=acp_agent,
             client_capabilities=client_capabilities,
         )
         provider = ACPFileSystemProvider(session, client_capabilities=capabilities)
