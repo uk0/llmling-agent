@@ -32,7 +32,7 @@ def create_session_model_state(
         ModelInfo(
             model_id=model.pydantic_ai_id,
             name=f"{model.provider}: {model.name}",
-            description=model.description,
+            description=model.format(),
         )
         for model in available_models
     ]
