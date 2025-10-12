@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
 from acp.schema import (
@@ -114,10 +115,7 @@ class ACPRequests:
         )
         return await self.session.client.create_terminal(request)
 
-    async def terminal_output(
-        self,
-        terminal_id: str,
-    ) -> TerminalOutputResponse:
+    async def terminal_output(self, terminal_id: str) -> TerminalOutputResponse:
         """Get output from a terminal session.
 
         Args:
@@ -210,27 +208,21 @@ class ACPRequests:
         terminal_id = terminal_response.terminal_id
 
         try:
-            # Wait for completion (with optional timeout)
-            if timeout_seconds:
-                import asyncio
-
+            if timeout_seconds:  # Wait for completion (with optional timeout)
                 try:
                     exit_result = await asyncio.wait_for(
                         self.wait_for_terminal_exit(terminal_id),
                         timeout=timeout_seconds,
                     )
-                except TimeoutError:
-                    # Kill on timeout and get partial output
+                except TimeoutError:  # Kill on timeout and get partial output
                     await self.kill_terminal(terminal_id)
                     output_response = await self.terminal_output(terminal_id)
                     return output_response.output, None
             else:
                 exit_result = await self.wait_for_terminal_exit(terminal_id)
 
-            # Get final output
             output_response = await self.terminal_output(terminal_id)
             return output_response.output, exit_result.exit_code
 
-        finally:
-            # Always release terminal
+        finally:  # Always release terminal
             await self.release_terminal(terminal_id)

@@ -30,7 +30,6 @@ from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
 from acp.schema import (
     AgentMessageChunk,
-    AvailableCommandsUpdate,
     SessionNotification,
     TextContentBlock,
 )
@@ -683,21 +682,6 @@ class ACPSession:
             await self.notifications.update_commands(commands)
         except Exception:
             msg = "Failed to send available commands update for session %s"
-            logger.exception(msg, self.session_id)
-
-    async def update_available_commands(self, commands: list[AvailableCommand]) -> None:
-        """Update and broadcast new command list.
-
-        Args:
-            commands: New list of available commands
-        """
-        try:
-            update = AvailableCommandsUpdate(available_commands=commands)
-            notification = SessionNotification(session_id=self.session_id, update=update)
-            await self.client.session_update(notification)
-            logger.debug("Updated available commands for session %s", self.session_id)
-        except Exception:
-            msg = "Failed to update available commands for session %s"
             logger.exception(msg, self.session_id)
 
     async def _register_mcp_prompts_as_commands(self) -> None:
