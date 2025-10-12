@@ -7,6 +7,7 @@ the Agent Client Protocol.
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 import functools
 from typing import TYPE_CHECKING, Any, Self
 
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+@dataclass
 class ACPServer:
     """ACP (Agent Client Protocol) server for llmling-agent using external library.
 
@@ -39,42 +41,38 @@ class ACPServer:
     when run() is called, which communicates with the external process over stdio.
     """
 
-    def __init__(
-        self,
-        agent_pool: AgentPool[Any],
-        *,
-        usage_limits: UsageLimits | None = None,
-        session_support: bool = True,
-        file_access: bool = True,
-        terminal_access: bool = True,
-        providers: list[ProviderType] | None = None,
-        debug_messages: bool = False,
-        debug_file: str | None = None,
-    ) -> None:
-        """Initialize ACP server.
+    agent_pool: AgentPool[Any]
+    """AgentPool containing available agents"""
 
-        Args:
-            agent_pool: AgentPool containing available agents
-            usage_limits: Optional usage limits for model requests and tokens
-            session_support: Whether to support session-based operations
-            file_access: Whether to support file access operations
-            terminal_access: Whether to support terminal access operations
-            providers: List of providers to use for model discovery (None = openrouter)
-            debug_messages: Whether to enable debug message logging
-            debug_file: File path for debug message logging
-        """
-        self.agent_pool = agent_pool
+    usage_limits: UsageLimits | None = None
+    """Optional usage limits for model requests and tokens"""
+
+    session_support: bool = True
+    """Whether to support session-based operations"""
+
+    file_access: bool = True
+    """Whether to support file access operations"""
+
+    terminal_access: bool = True
+    """Whether to support terminal access operations"""
+
+    providers: list[ProviderType] | None = None
+    """List of providers to use for model discovery (None = openrouter)"""
+
+    debug_messages: bool = False
+    """Whether to enable debug message logging"""
+
+    debug_file: str | None = None
+    """File path for debug message logging"""
+
+    def __post_init__(self) -> None:
+        """Initialize server configuration."""
+        # Set default providers if None
+        if self.providers is None:
+            self.providers = ["openrouter"]
+
+        # Runtime state
         self._running = False
-
-        # Server configuration
-        self._session_support = session_support
-        self._file_access = file_access
-        self._terminal_access = terminal_access
-        self.usage_limits = usage_limits
-        self.providers = providers or ["openrouter"]
-        self._debug_messages = debug_messages
-        self._debug_file = debug_file
-        # Model discovery cache
         self._available_models: list[ModelInfo] = []
         self._models_initialized = False
 
@@ -143,9 +141,9 @@ class ACPServer:
                 LLMlingACPAgent,
                 agent_pool=self.agent_pool,
                 available_models=self._available_models,
-                session_support=self._session_support,
-                file_access=self._file_access,
-                terminal_access=self._terminal_access,
+                session_support=self.session_support,
+                file_access=self.file_access,
+                terminal_access=self.terminal_access,
                 usage_limits=self.usage_limits,
             )
 
@@ -154,14 +152,14 @@ class ACPServer:
                 create_acp_agent,
                 writer,
                 reader,
-                debug_file=self._debug_file if self._debug_messages else None,
+                debug_file=self.debug_file if self.debug_messages else None,
             )
 
             logger.info(
                 "ACP server started: file_access=%s, terminal=%s, session_support=%s",
-                self._file_access,
-                self._terminal_access,
-                self._session_support,
+                self.file_access,
+                self.terminal_access,
+                self.session_support,
             )
 
             # Keep the connection alive
