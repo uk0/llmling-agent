@@ -26,6 +26,8 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 
+from acp.notifications import ACPNotifications
+from acp.requests import ACPRequests
 from acp.schema import (
     AgentMessageChunk,
     AvailableCommandsUpdate,
@@ -129,6 +131,8 @@ class ACPSession:
         self._cancelled = False
         self.mcp_manager: MCPManager | None = None
         self.capability_provider: AggregatingResourceProvider | None = None
+        self.notifications = ACPNotifications(self)
+        self.requests = ACPRequests(self)
 
         if self.client_capabilities:
             providers = [
