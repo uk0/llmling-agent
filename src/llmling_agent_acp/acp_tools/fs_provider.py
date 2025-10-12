@@ -97,6 +97,8 @@ class ACPFileSystemProvider(ResourceProvider):
             if fs_caps.read_text_file and fs_caps.write_text_file:
                 tool = Tool.from_callable(self.edit_file, source="filesystem")
                 tools.append(tool)
+                tool = Tool.from_callable(self.agentic_edit, source="filesystem")
+                tools.append(tool)
 
         return tools
 
@@ -377,6 +379,174 @@ class ACPFileSystemProvider(ResourceProvider):
             await self.agent.connection.session_update(notifi)
         except Exception as e:  # noqa: BLE001
             error_msg = f"Error editing file: {e}"
+            # Send failed update
+            progress = ToolCallProgress(
+                tool_call_id=ctx.tool_call_id,
+                status="failed",
+                raw_output=error_msg,
+            )
+            failed = SessionNotification(session_id=self.session_id, update=progress)
+            try:
+                await self.agent.connection.session_update(failed)
+            except Exception:  # noqa: BLE001
+                logger.warning("Failed to send failed update")
+            return error_msg
+        else:
+            return success_msg
+
+    async def agentic_edit(  # noqa: D417, PLR0915
+        self,
+        ctx: RunContext[Any],
+        path: str,
+        instructions: str,
+    ) -> str:
+        r"""Edit a file using AI agent with natural language instructions.
+
+        Creates a new agent that reads the file and rewrites it based on your instructions.
+        Shows real-time progress and diffs as the agent works.
+
+        Args:
+            path: File path (absolute or relative to session cwd)
+            instructions: Natural language instructions for how to modify the file
+
+        Returns:
+            Success message with edit summary
+
+        Example:
+            agentic_edit('src/main.py', 'Add error handling to the main function') ->
+            'Successfully edited main.py using AI agent'
+        """
+        resolved_path = self._resolve_path(path)
+
+        # Send initial pending notification
+        assert ctx.tool_call_id, (
+            "Tool call ID must be present for agentic edit operations"
+        )
+        start = ToolCallStart(
+            tool_call_id=ctx.tool_call_id,
+            status="pending",
+            title=f"AI editing file: {path}",
+            kind="edit",
+            locations=[ToolCallLocation(path=resolved_path)],
+            raw_input={"path": path, "instructions": instructions},
+        )
+        notifi = SessionNotification(session_id=self.session_id, update=start)
+        try:
+            await self.agent.connection.session_update(notifi)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Failed to send pending update: %s", e)
+
+        try:
+            # Read current file content
+            read_req = ReadTextFileRequest(session_id=self.session_id, path=resolved_path)
+            read_response = await self.agent.connection.read_text_file(read_req)
+            original_content = read_response.content
+
+            from pydantic_ai import Agent as PydanticAgent
+
+            # Append our edit instruction to the existing conversation
+            prompt = f"""Please edit the file {path} according to these instructions:
+
+{instructions}
+
+Current file content:
+```
+{original_content}
+```
+
+Output only the new file content, no explanations or markdown formatting."""
+
+            # Create the editor agent using the same model
+            sys_prompt = "You are a code editor. Output ONLY the modified file content."
+            editor_agent = PydanticAgent(model=ctx.model, system_prompt=sys_prompt)
+
+            # Stream with full message history for caching
+            new_content_parts = []
+
+            async with editor_agent.run_stream(
+                prompt, message_history=ctx.messages
+            ) as response:
+                async for chunk in response.stream_text(delta=True):
+                    chunk_str = str(chunk)
+                    new_content_parts.append(chunk_str)
+
+                    # Build partial content for progress updates
+                    partial_content = "".join(new_content_parts)
+
+                    # Send progress update with current diff
+                    try:
+                        if (
+                            len(partial_content.strip()) > 0
+                        ):  # Only send if we have meaningful content
+                            file_edit_content = FileEditToolCallContent(
+                                path=resolved_path,
+                                old_text=original_content,
+                                new_text=partial_content,
+                            )
+
+                            progress = ToolCallProgress(
+                                tool_call_id=ctx.tool_call_id,
+                                status="in_progress",
+                                locations=[ToolCallLocation(path=resolved_path)],
+                                content=[file_edit_content],
+                            )
+                            notifi = SessionNotification(
+                                session_id=self.session_id, update=progress
+                            )
+                            await self.agent.connection.session_update(notifi)
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning("Failed to send progress update: %s", e)
+
+            # Get final content
+            new_content = "".join(new_content_parts).strip()
+
+            if not new_content:
+                error_msg = "AI agent produced no output"
+                progress = ToolCallProgress(
+                    tool_call_id=ctx.tool_call_id,
+                    status="failed",
+                    raw_output=error_msg,
+                )
+                failed = SessionNotification(session_id=self.session_id, update=progress)
+                try:
+                    await self.agent.connection.session_update(failed)
+                except Exception:  # noqa: BLE001
+                    logger.warning("Failed to send failed update")
+                return error_msg
+
+            # Write the new content to file
+            write_request = WriteTextFileRequest(
+                session_id=self.session_id,
+                path=resolved_path,
+                content=new_content,
+            )
+            await self.agent.connection.write_text_file(write_request)
+
+            # Send final completion update with complete diff
+            file_edit_content = FileEditToolCallContent(
+                path=resolved_path,
+                old_text=original_content,
+                new_text=new_content,
+            )
+
+            # Calculate some stats
+            original_lines = len(original_content.splitlines())
+            new_lines = len(new_content.splitlines())
+
+            success_msg = f"Successfully edited {Path(path).name} using AI agent"
+            success_msg += f" ({original_lines} → {new_lines} lines)"
+
+            progress = ToolCallProgress(
+                tool_call_id=ctx.tool_call_id,
+                status="completed",
+                locations=[ToolCallLocation(path=resolved_path)],
+                content=[file_edit_content],
+            )
+            notifi = SessionNotification(session_id=self.session_id, update=progress)
+            await self.agent.connection.session_update(notifi)
+
+        except Exception as e:  # noqa: BLE001
+            error_msg = f"Error during agentic edit: {e}"
             # Send failed update
             progress = ToolCallProgress(
                 tool_call_id=ctx.tool_call_id,
