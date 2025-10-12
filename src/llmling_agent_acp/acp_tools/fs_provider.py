@@ -402,7 +402,7 @@ class ACPFileSystemProvider(ResourceProvider):
     ) -> str:
         r"""Edit a file using AI agent with natural language instructions.
 
-        Creates a new agent that reads the file and rewrites it based on your instructions.
+        Creates a new agent that reads the file and rewrites it based on the instructions.
         Shows real-time progress and diffs as the agent works.
 
         Args:

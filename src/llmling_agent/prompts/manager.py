@@ -18,7 +18,7 @@ from llmling_agent_config.prompt_hubs import (
 
 if TYPE_CHECKING:
     from llmling_agent.prompts.base import BasePromptProvider
-    from llmling_agent_config.prompts import PromptLibraryConfig
+    from llmling_agent_config.system_prompts import PromptLibraryConfig
 
 logger = get_logger(__name__)
 
