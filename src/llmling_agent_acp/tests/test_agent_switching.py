@@ -130,7 +130,6 @@ class TestAgentPoolModeSwitch:
 
         # Switch to research agent
         await session.switch_active_agent("research-agent")
-
         assert session.current_agent_name == "research-agent"
         assert session.agent.name == "research-agent"
 
@@ -158,14 +157,9 @@ class TestAgentPoolModeSwitch:
     def test_session_modes_from_agent_pool(self, agent_pool: AgentPool[Any]):
         """Test that session modes are correctly generated from agent pool."""
         # Simulate what newSession does
-        agent_names = list(agent_pool.agents.keys())
         available_modes = [
-            SessionMode(
-                id=agent_name,
-                name=agent_pool.get_agent(agent_name).name,
-                description=f"Switch to {agent_pool.get_agent(agent_name).name} agent",
-            )
-            for agent_name in agent_names
+            SessionMode(id=name, name=name, description=f"Switch to {name} agent")
+            for name in list(agent_pool.agents.keys())
         ]
 
         modes = SessionModeState(

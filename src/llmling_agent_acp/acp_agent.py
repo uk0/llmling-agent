@@ -161,14 +161,14 @@ class LLMlingACPAgent(ACPAgent):
             # Create session modes from available agents
             modes = [
                 SessionMode(
-                    id=agent_name,
-                    name=self.agent_pool.get_agent(agent_name).name,
+                    id=name,
+                    name=name,
                     description=(
-                        self.agent_pool.get_agent(agent_name).description
-                        or f"Switch to {self.agent_pool.get_agent(agent_name).name} agent"
+                        self.agent_pool.get_agent(name).description
+                        or f"Switch to {name} agent"
                     ),
                 )
-                for agent_name in agent_names
+                for name in agent_names
             ]
 
             state = SessionModeState(current_mode_id=default_name, available_modes=modes)
