@@ -93,10 +93,18 @@ def convert_acp_mcp_server_to_config(acp_server: MCPServer) -> MCPServerConfig:
             )
 
         case SseMcpServer():
-            return SSEMCPServerConfig(name=acp_server.name, url=acp_server.url)
+            return SSEMCPServerConfig(
+                name=acp_server.name,
+                url=acp_server.url,
+                headers={h.name: h.value for h in acp_server.headers},
+            )
 
         case HttpMcpServer():
-            return StreamableHTTPMCPServerConfig(name=acp_server.name, url=acp_server.url)
+            return StreamableHTTPMCPServerConfig(
+                name=acp_server.name,
+                url=acp_server.url,
+                headers={h.name: h.value for h in acp_server.headers},
+            )
 
         case _:
             msg = f"Unsupported MCP server type: {type(acp_server)}"
