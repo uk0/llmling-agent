@@ -159,13 +159,11 @@ class ACPTerminalProvider(ResourceProvider):
 
             output_response = await self.session.requests.terminal_output(terminal_id)
             # Send completion notification (terminal remains embedded for viewing)
-            status = "completed" if (exit_result.exit_code or 0) == 0 else "failed"
             exit_code = exit_result.exit_code or 0
-
             await self.session.notifications.terminal_progress(
                 tool_call_id=ctx.tool_call_id,
                 terminal_id=terminal_id,
-                status=status,
+                status="completed" if (exit_result.exit_code or 0) == 0 else "failed",
                 title=f"Command completed (exit code: {exit_code})",
             )
 
@@ -367,11 +365,10 @@ Use this terminal_id with other terminal tools:
             output_response = await self.session.requests.terminal_output(terminal_id)
             # Send completion notification (terminal remains embedded for viewing)
             exit_code = exit_response.exit_code or 0
-            status = "completed" if exit_code == 0 else "failed"
             await self.session.notifications.terminal_progress(
                 tool_call_id=ctx.tool_call_id,
                 terminal_id=terminal_id,
-                status=status,
+                status="completed" if exit_code == 0 else "failed",
                 title=f"Terminal completed (exit code: {exit_code})",
             )
 

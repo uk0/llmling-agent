@@ -361,7 +361,7 @@ def test_range_class():
 
     # Test immutability
     with pytest.raises(Exception):  # Should be frozen  # noqa: B017, PT011
-        range_obj.start = 15
+        range_obj.start = 15  # type: ignore
 
 
 def test_fuzzy_equality():
