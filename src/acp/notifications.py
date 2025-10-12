@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any
 
 from acp.schema import (
     AgentPlan,
+    AvailableCommand,
+    AvailableCommandsUpdate,
     ContentToolCallContent,
     FileEditToolCallContent,
     SessionNotification,
@@ -191,4 +193,14 @@ class ACPNotifications:
         """
         plan = AgentPlan(entries=entries)
         notification = SessionNotification(session_id=self.id, update=plan)
+        await self.session.client.session_update(notification)
+
+    async def update_commands(self, commands: list[AvailableCommand]) -> None:
+        """Send a command update notification.
+
+        Args:
+            commands: List of available commands to send
+        """
+        update = AvailableCommandsUpdate(available_commands=commands)
+        notification = SessionNotification(session_id=self.id, update=update)
         await self.session.client.session_update(notification)
