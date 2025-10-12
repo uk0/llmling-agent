@@ -19,6 +19,7 @@ from llmling_agent.utils.now import get_now
 if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
     from llmling_agent.common_types import StrPath
+    from llmling_agent_config.mcp_server import MCPServerConfig
 
 logger = get_logger(__name__)
 
@@ -888,7 +889,7 @@ async def add_remote_mcp_server(  # noqa: D417
 
     match transport:
         case "sse":
-            config = SSEMCPServerConfig(name=name, url=url)
+            config: MCPServerConfig = SSEMCPServerConfig(name=name, url=url)
         case "streamable-http":
             config = StreamableHTTPMCPServerConfig(name=name, url=url)
 

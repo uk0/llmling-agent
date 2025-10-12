@@ -291,6 +291,7 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
 
             # Get the actual model name from pydantic-ai response
             resolved_model = result.response.model_name
+            assert resolved_model is not None, "Model name not found in response"
             usage = result.usage()
             responses = [m for m in new_msgs if isinstance(m, ModelResponse)]
             try:
