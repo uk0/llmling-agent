@@ -349,26 +349,30 @@ async def add_agent(  # noqa: D417
         name: Name for the new agent
         system_prompt: System prompt defining agent's role/behavior
         model: Optional model override (uses default if not specified)
-        tools: Names of tools to enable for this agent
+        tools: Imort paths of the tools to import
         session: Session ID to recover conversation state from
         result_type: Name of response type from manifest (for structured output)
 
     Returns:
         Confirmation message about the created agent
     """
+    from pydantic_ai.exceptions import ModelRetry
     from pydantic_ai.tools import RunContext
 
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
     assert ctx.pool, "No agent pool available"
-    agent: AnyAgent[Any, Any] = await ctx.pool.add_agent(
-        name=name,
-        system_prompt=system_prompt,
-        model=model,
-        tools=tools,
-        result_type=result_type,
-        session=session,
-    )
+    try:
+        agent: AnyAgent[Any, Any] = await ctx.pool.add_agent(
+            name=name,
+            system_prompt=system_prompt,
+            model=model,
+            tools=tools,
+            result_type=result_type,
+            session=session,
+        )
+    except ValueError as e:  # for wrong tool imports
+        raise ModelRetry(message=f"Error creating agent: {e}") from None
     return f"Created agent {agent.name} using model {agent.model_name}"
 
 
