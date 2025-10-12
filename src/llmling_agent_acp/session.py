@@ -57,6 +57,7 @@ ACP_SELF_NOTIFYING_TOOLS = {"read_text_file", "write_text_file", "run_command"}
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from mcp.types import Prompt
     from pydantic_ai import AgentStreamEvent, ModelRequestNode
     from pydantic_ai.agent import CallToolsNode
     from pydantic_ai.run import AgentRun
@@ -708,7 +709,7 @@ class ACPSession:
 
         try:
             # Collect all prompts from all MCP clients
-            all_prompts = []
+            all_prompts: list[Prompt] = []
             for client in self.mcp_manager.clients.values():
                 try:
                     result = await client.list_prompts()

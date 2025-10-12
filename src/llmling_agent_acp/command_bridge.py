@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable
 
+    from mcp.types import Prompt as MCPPrompt
     from slashed import BaseCommand, CommandContext, CommandStore
 
     from acp.schema import SessionNotification
@@ -110,16 +111,12 @@ class ACPCommandBridge:
         if match := SLASH_PATTERN.match(command_text.strip()):
             command_name = match.group(1)
             args = match.group(2) or ""
-            parsed = command_name, args.strip()
+            command_name, args = command_name, args.strip()
         else:
-            parsed = None
-        if not parsed:
             logger.warning("Invalid slash command: %s", command_text)
             return
 
-        command_name, args = parsed
         output_writer = ACPOutputWriter(session.session_id)
-
         try:
             # Check if it's an MCP prompt command first
             if command_name in self._mcp_prompt_commands:
@@ -169,25 +166,14 @@ class ACPCommandBridge:
         """
         self._update_callbacks.append(callback)
 
-    def add_mcp_prompt_commands(self, mcp_prompts: list[Any]) -> None:
+    def add_mcp_prompt_commands(self, mcp_prompts: list[MCPPrompt]) -> None:
         """Add MCP prompts as slash commands.
 
         Args:
             mcp_prompts: List of MCP prompt objects from MCP servers
         """
-        from mcp.types import Prompt as MCPPrompt
-
-        # Clear existing MCP commands
-        self._mcp_prompt_commands.clear()
-
-        # Add new MCP prompt commands
-        for prompt in mcp_prompts:
-            if isinstance(prompt, MCPPrompt):
-                cmd = MCPPromptCommand(prompt)
-                self._mcp_prompt_commands[prompt.name] = cmd
-
-        # Notify about command updates
-        self._notify_command_update()
+        self._mcp_prompt_commands = {p.name: MCPPromptCommand(p) for p in mcp_prompts}
+        self._notify_command_update()  # Notify about command updates
 
     def _notify_command_update(self) -> None:
         """Notify all registered callbacks about command updates."""
@@ -217,7 +203,7 @@ def _convert_command(command: BaseCommand) -> AvailableCommand:
         command: Slashed command to convert
 
     Returns:
-        ACP AvailableCommand or None if conversion fails
+        ACP AvailableCommand
     """
     description = command.description
     spec = (
