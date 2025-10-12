@@ -25,12 +25,10 @@ if TYPE_CHECKING:
     from acp.schema import PlanEntry
     from llmling_agent_acp.session import ACPSession
 
+    ContentType = Sequence[
+        ContentToolCallContent | FileEditToolCallContent | TerminalToolCallContent | str
+    ]
 logger = get_logger(__name__)
-
-
-ContentType = Sequence[
-    ContentToolCallContent | FileEditToolCallContent | TerminalToolCallContent | str
-]
 
 
 class ACPNotifications:
