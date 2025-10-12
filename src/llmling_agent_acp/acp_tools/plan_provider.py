@@ -5,14 +5,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from acp.acp_types import PlanEntryPriority, PlanEntryStatus  # noqa: TC001
-from acp.schema import AgentPlan, PlanEntry, SessionNotification
+from acp.schema import PlanEntry
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
-    from llmling_agent_acp.acp_agent import LLMlingACPAgent
+    from llmling_agent_acp.session import ACPSession
 
 
 logger = get_logger(__name__)
@@ -26,20 +26,15 @@ class ACPPlanProvider(ResourceProvider):
     eliminating the need for parameter injection.
     """
 
-    def __init__(
-        self,
-        agent: LLMlingACPAgent,
-        session_id: str,
-    ):
+    def __init__(self, session: ACPSession):
         """Initialize plan provider.
 
         Args:
-            agent: The ACP agent instance
-            session_id: Session ID for all tools created by this provider
+            session: The ACP session instance
         """
-        super().__init__(name=f"acp_plan_{session_id}")
-        self.agent = agent
-        self.session_id = session_id
+        super().__init__(name=f"acp_plan_{session.session_id}")
+        self.session = session
+        self.session_id = session.session_id
         self._current_plan: list[PlanEntry] = []
 
     async def get_tools(self) -> list[Tool]:
@@ -152,7 +147,4 @@ class ACPPlanProvider(ResourceProvider):
         """Send current plan state via session update."""
         if not self._current_plan:  # Don't send empty plans
             return
-
-        plan = AgentPlan(entries=self._current_plan)
-        notification = SessionNotification(session_id=self.session_id, update=plan)
-        await self.agent.connection.session_update(notification)
+        await self.session.notifications.update_plan(self._current_plan)

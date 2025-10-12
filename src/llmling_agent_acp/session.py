@@ -135,13 +135,9 @@ class ACPSession:
 
         if self.client_capabilities:
             providers = [
-                ACPPlanProvider(self.acp_agent, self.session_id),
-                ACPTerminalProvider(
-                    self.acp_agent, self.session_id, self.client_capabilities, self.cwd
-                ),
-                ACPFileSystemProvider(
-                    self.acp_agent, self.session_id, self.client_capabilities, self.cwd
-                ),
+                ACPPlanProvider(self),
+                ACPTerminalProvider(self, self.client_capabilities, self.cwd),
+                ACPFileSystemProvider(self, self.client_capabilities, self.cwd),
             ]
 
             self.capability_provider = AggregatingResourceProvider(

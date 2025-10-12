@@ -27,7 +27,7 @@ from llmling_agent.tools.base import Tool
 
 if TYPE_CHECKING:
     from acp.schema import ClientCapabilities
-    from llmling_agent_acp.acp_agent import LLMlingACPAgent
+    from llmling_agent_acp.session import ACPSession
 
 
 logger = get_logger(__name__)
@@ -43,22 +43,21 @@ class ACPTerminalProvider(ResourceProvider):
 
     def __init__(
         self,
-        agent: LLMlingACPAgent,
-        session_id: str,
+        session: ACPSession,
         client_capabilities: ClientCapabilities,
         cwd: str | None = None,
     ):
         """Initialize terminal provider.
 
         Args:
-            agent: The ACP agent instance
-            session_id: Session ID for all tools created by this provider
+            session: Session for all tools created by this provider
             client_capabilities: Client-reported capabilities
             cwd: Current working directory for relative path resolution
         """
-        super().__init__(name=f"acp_terminal_{session_id}")
-        self.agent = agent
-        self.session_id = session_id
+        super().__init__(name=f"acp_terminal_{session.session_id}")
+        self.agent = session.acp_agent
+        self.session_id = session.session_id
+        self.session = session
         self.client_capabilities = client_capabilities
         self.cwd = cwd
 
