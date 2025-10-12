@@ -131,6 +131,7 @@ class ACPSession:
         self.mcp_manager: MCPManager | None = None
         # self.permission_server: PermissionMCPServer | None = None
         self.capability_provider: AggregatingResourceProvider | None = None
+        self.acp_agent = acp_agent
         if acp_agent and client_capabilities:
             providers = [
                 ACPPlanProvider(acp_agent, session_id),
