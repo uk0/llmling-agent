@@ -93,7 +93,6 @@ class ACPSessionManager:
                 msg = f"Session {session_id} already exists"
                 raise ValueError(msg)
 
-            # Create session
             session = ACPSession(
                 session_id=session_id,
                 agent_pool=agent_pool,
@@ -109,12 +108,8 @@ class ACPSessionManager:
 
             # Initialize MCP servers if any are provided
             await session.initialize_mcp_servers()
-
-            # Store session
             self._sessions[session_id] = session
-
-            # Commands will be sent after session response is returned
-            return session_id
+            return session_id  # Commands will be sent after session response is returned
 
     async def get_session(self, session_id: str) -> ACPSession | None:
         """Get an existing session by ID.

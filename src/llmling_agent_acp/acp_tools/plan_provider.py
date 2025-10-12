@@ -125,9 +125,7 @@ class ACPPlanProvider(ResourceProvider):
         if not updates:
             return "No changes specified"
 
-        # Send plan update
         await self._send_plan_update()
-
         return f"Updated entry {index}: {', '.join(updates)}"
 
     async def remove_plan_entry(self, index: int) -> str:
@@ -141,12 +139,8 @@ class ACPPlanProvider(ResourceProvider):
         """
         if index < 0 or index >= len(self._current_plan):
             return f"Error: Index {index} out of range (0-{len(self._current_plan) - 1})"
-
         removed_entry = self._current_plan.pop(index)
-
-        # Send plan update
         await self._send_plan_update()
-
         if self._current_plan:
             return (
                 f"Removed entry {index}: '{removed_entry.content}', "
@@ -156,8 +150,7 @@ class ACPPlanProvider(ResourceProvider):
 
     async def _send_plan_update(self):
         """Send current plan state via session update."""
-        if not self._current_plan:
-            # Don't send empty plans
+        if not self._current_plan:  # Don't send empty plans
             return
 
         plan = AgentPlan(entries=self._current_plan)
