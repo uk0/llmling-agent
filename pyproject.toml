@@ -35,8 +35,9 @@ dependencies = [
   "fastmcp>=2.3.4",
   "griffe>=1.5.4",
   "jinjarope",
-  "llmling>=1.0.0",
-  "llmling-models",
+  "llmling>=1.1.5",
+  "llmling-models>=0.2.0",
+  "logfire",
   "mcp>=1.2.0",
   "mcp-interviewer>=0.0.12",
   "prompt-toolkit>=3.0.48",
@@ -70,15 +71,6 @@ llmling-agent-db = "llmling_agent_storage.sql_provider.cli:main"
 llmling_agent = "llmling_agent.utils:setup_env"
 
 [project.optional-dependencies]
-agentops = ["agentops>=0.4"]
-arize = [
-  "arize; python_version < '3.14'",
-  "arize-otel",
-  "arize-phoenix-otel",
-  "openinference-instrumentation-openai",
-]
-# laminar = ["lmnr"]
-braintrust = ["braintrust", "autoevals"]
 clipboard = ["clipman"]
 # markitdown = ["markitdown; python_version < '3.14'"]
 composio = ["composio"]
@@ -93,12 +85,9 @@ events = [
 # traceloop = ["traceloop-sdk>=0.38.4"]
 git = ["pygit2"]  # for fsspec git support
 image = ["pillow"]
-langsmith = ["langsmith"]
 litellm = ["litellm; python_version < '3.14'"]
-logfire = ["logfire"]
 mcp_run = ["mcpx-py>=0.7.0"]
 mem0 = ["mem0ai>=0.1.48"]
-mlflow = ["mlflow>=2.20.1; python_version < '3.14'"]
 oauth = ["keyring>=25.6.0"]
 # tools = ["crewai-tools>=0.33.0", "langchain-community>=0.3.17"]
 # pydantic_ai = ["pydantic_ai", "llmling-models"]

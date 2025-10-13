@@ -7,10 +7,10 @@ import inspect
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling import LLMCallableTool
+import logfire
 import schemez  # noqa: TC002
 
 from llmling_agent.log import get_logger
-from llmling_agent.observability import track_tool
 from llmling_agent.utils.inspection import execute
 
 
@@ -165,8 +165,8 @@ class Tool:
 
     async def execute(self, *args: Any, **kwargs: Any) -> Any:
         """Execute tool, handling both sync and async cases."""
-        fn = track_tool(self.name)(self.callable.callable)
-        return await execute(fn, *args, **kwargs, use_thread=True)
+        with logfire.span(self.name, args=args, kwargs=kwargs):
+            return await execute(self.callable.callable, *args, **kwargs, use_thread=True)
 
     @classmethod
     def from_code(

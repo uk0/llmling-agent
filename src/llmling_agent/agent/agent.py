@@ -12,12 +12,12 @@ from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, TypeVar, cast, 
 from uuid import uuid4
 
 from llmling import Config, RuntimeConfig, ToolError
+import logfire
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.observability import track_action
 from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
@@ -297,7 +297,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         if ctx and ctx.definition:
             from llmling_agent.observability import registry
 
-            registry.register_providers(ctx.definition.observability)
+            registry.configure_observability(ctx.definition.observability)
 
         # init variables
         self._debug = debug
@@ -682,7 +682,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             description_override=docstring,
         )
 
-    @track_action("Calling Agent.run: {prompts}:")
+    @logfire.instrument("Calling Agent.run: {prompts}:")
     async def _run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage[Any],
@@ -970,7 +970,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             raise JobError(msg) from e
 
     @asynccontextmanager
-    @track_action("Calling Agent.iterate_run: {prompts}")
+    @logfire.instrument("Calling Agent.iterate_run: {prompts}")
     async def iterate_run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import httpx
+import logfire
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from rich.console import Console
@@ -13,7 +14,6 @@ from slashed import DefaultOutputWriter, ExitCommandError
 from slashed.prompt_toolkit_completer import PromptToolkitCompleter
 
 from llmling_agent import ChatMessage
-from llmling_agent.observability import track_action
 from llmling_agent_cli.chat_session.base import AgentPoolView
 from llmling_agent_cli.chat_session.formatting import MessageFormatter
 from llmling_agent_cli.chat_session.history import SessionHistory
@@ -83,7 +83,7 @@ class InteractiveSession:
         agent.message_sent.connect(self._on_message)
         agent.tool_used.connect(self._on_tool_call)
 
-    @track_action("Received message in UI from agent {message.name}")
+    @logfire.instrument("Received message in UI from agent {message.name}")
     def _on_message(self, message: ChatMessage):
         """Handle messages from any agent."""
         # Format with agent name if it's not the main agent
@@ -100,7 +100,7 @@ class InteractiveSession:
         """Handle tool removal."""
         self.console.print(f"\nTool removed: {tool_name}")
 
-    @track_action("Received tool call in UI from agent {tool_call.agent_name}")
+    @logfire.instrument("Received tool call in UI from agent {tool_call.agent_name}")
     def _on_tool_call(self, tool_call: ToolCallInfo):
         """Handle tool usage signal."""
         self.formatter.print_tool_call(tool_call)

@@ -9,6 +9,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any, cast, get_args, get_origin
 
 from llmling_models import AllModels, infer_model
+import logfire
 from pydantic_ai import Agent as PydanticAgent
 import pydantic_ai._function_schema
 from pydantic_ai.messages import ModelResponse
@@ -22,7 +23,6 @@ from llmling_agent.agent.context import AgentContext
 from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import TokenCost, TokenUsage
-from llmling_agent.observability import track_action
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
     RunAbortedError,
@@ -243,7 +243,7 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
         wrapped.__name__ = tool.name
         return wrapped
 
-    @track_action("Pydantic-AI call. model: {model} result type {result_type}.")
+    @logfire.instrument("Pydantic-AI call. model: {model} result type {result_type}.")
     async def generate_response(
         self,
         *prompts: str | Content,
