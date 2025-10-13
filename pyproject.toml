@@ -71,6 +71,7 @@ llmling-agent-db = "llmling_agent_storage.sql_provider.cli:main"
 llmling_agent = "llmling_agent.utils:setup_env"
 
 [project.optional-dependencies]
+braintrust = ["braintrust", "autoevals"]
 clipboard = ["clipman"]
 # markitdown = ["markitdown; python_version < '3.14'"]
 composio = ["composio"]
@@ -82,22 +83,20 @@ events = [
   "aioimaplib>=2.0.1",
   "croniter>=6.0.0",
 ]
-# traceloop = ["traceloop-sdk>=0.38.4"]
 git = ["pygit2"]  # for fsspec git support
 image = ["pillow"]
 litellm = ["litellm; python_version < '3.14'"]
 mcp_run = ["mcpx-py>=0.7.0"]
 mem0 = ["mem0ai>=0.1.48"]
 oauth = ["keyring>=25.6.0"]
-# tools = ["crewai-tools>=0.33.0", "langchain-community>=0.3.17"]
-# pydantic_ai = ["pydantic_ai", "llmling-models"]
 remote = ["websockets>=14.2"]
-# chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]
 server = ["fastapi", "uvicorn", "websockets"]
-# upsonic = ["upsonic"]
 textual = ["textual>=1.0.0", "textualicious", "pygments"]
 tiktoken = ["tiktoken; python_version < '3.14'"]
+upsonic = ["upsonic"]
 # acp = ["agent-client-protocol>=0.0.1"]
+# tools = ["crewai-tools>=0.33.0", "langchain-community>=0.3.17"]
+# chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]
 
 [dependency-groups]
 dev = [

@@ -11,6 +11,8 @@ from dataclasses import dataclass
 import functools
 from typing import TYPE_CHECKING, Any, Self
 
+import logfire
+
 from acp import AgentSideConnection
 from acp.stdio import stdio_streams
 from llmling_agent.log import get_logger
@@ -194,6 +196,7 @@ class ACPServer:
         """Async context manager exit."""
         await self.shutdown()
 
+    @logfire.instrument("ACP: Initializing models.")
     async def _initialize_models(self) -> None:
         """Initialize available models using tokonomics model discovery."""
         from tokonomics.model_discovery import get_all_models

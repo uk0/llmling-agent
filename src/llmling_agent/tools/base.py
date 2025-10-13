@@ -163,10 +163,10 @@ class Tool:
             lines.extend(f"{indent}    {k}: {v}" for k, v in self.metadata.items())
         return "\n".join(lines)
 
+    @logfire.instrument("Executing tool {self.name} with args={args}, kwargs={kwargs}")
     async def execute(self, *args: Any, **kwargs: Any) -> Any:
         """Execute tool, handling both sync and async cases."""
-        with logfire.span(self.name, args=args, kwargs=kwargs):
-            return await execute(self.callable.callable, *args, **kwargs, use_thread=True)
+        return await execute(self.callable.callable, *args, **kwargs, use_thread=True)
 
     @classmethod
     def from_code(

@@ -40,7 +40,7 @@ class McpRunTools(ResourceProvider):
 
             run.__name__ = name
 
-            tool = Tool.from_callable(run, schema_override=tool.input_schema)  # pyright: ignore
+            tool = Tool.from_callable(run, schema_override=tool.input_schema)  # type: ignore
             self._tools.append(tool)
 
         return self._tools
