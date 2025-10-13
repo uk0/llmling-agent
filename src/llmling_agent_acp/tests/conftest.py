@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -128,3 +128,14 @@ def mock_acp_agent(mock_connection, mock_agent_pool, client_capabilities):
         file_access=True,
         terminal_access=True,
     )
+
+
+@pytest.fixture
+def mock_client():
+    """Create mock ACP client."""
+    client = AsyncMock()
+    client.request_permission = AsyncMock()
+    client.session_update = AsyncMock()
+    client.read_text_file = AsyncMock()
+    client.write_text_file = AsyncMock()
+    return client

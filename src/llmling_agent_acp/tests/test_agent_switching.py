@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -14,6 +13,8 @@ from llmling_agent_acp.session import ACPSession
 
 
 if TYPE_CHECKING:
+    from unittest.mock import AsyncMock
+
     from llmling_agent.delegation.pool import AgentPool
 
 
@@ -45,17 +46,6 @@ async def agent_pool(test_manifest: AgentsManifest):
     """Create test agent pool."""
     async with test_manifest.pool as pool:
         yield pool
-
-
-@pytest.fixture
-def mock_client():
-    """Create mock ACP client."""
-    client = AsyncMock()
-    client.request_permission = AsyncMock()
-    client.session_update = AsyncMock()
-    client.read_text_file = AsyncMock()
-    client.write_text_file = AsyncMock()
-    return client
 
 
 class TestAgentPoolModeSwitch:
