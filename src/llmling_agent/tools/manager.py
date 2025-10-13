@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field, fields
@@ -210,18 +211,19 @@ class ToolManager(BaseRegistry[str, Tool]):
                 tools = [t for t in tools if t.name == names]
             case list():
                 tools = [t for t in tools if t.name in names]
-        # Get tools from providers
-        for provider in self.providers:
-            try:
-                provider_tools = await provider.get_tools()
-                tools.extend(t for t in provider_tools if t.matches_filter(state))
-            except Exception:
-                logger.exception("Failed to get tools from provider: %r", provider)
-                continue
+        # Get tools from providers concurrently
+        if self.providers:
+            provider_coroutines = [provider.get_tools() for provider in self.providers]
+            results = await asyncio.gather(*provider_coroutines, return_exceptions=True)
+
+            for provider, result in zip(self.providers, results, strict=False):
+                if isinstance(result, Exception):
+                    logger.exception("Failed to get tools from provider: %r", provider)
+                    continue
+                tools.extend(t for t in result if t.matches_filter(state))
         # Sort by priority if any have non-default priority
         if any(t.priority != 100 for t in tools):  # noqa: PLR2004
             tools.sort(key=lambda t: t.priority)
-
         return tools
 
     async def get_tool_names(self, state: ToolState = "all") -> set[str]:
