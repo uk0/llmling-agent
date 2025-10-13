@@ -970,7 +970,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             raise JobError(msg) from e
 
     @asynccontextmanager
-    @logfire.instrument("Calling Agent.iterate_run: {prompts}")
+    @logfire.instrument("Calling Agent.iterate_run: {prompts}", allow_generator=True)
     async def iterate_run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
