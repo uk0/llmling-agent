@@ -113,7 +113,7 @@ class ACPCommandBridge:
             from llmling_agent_acp.acp_commands import ACPCommandContext
 
             acp_context = ACPCommandContext(session)
-            cmd_context = self.command_store.create_context(
+            cmd_context: Any = self.command_store.create_context(
                 data=acp_context,
                 output_writer=output_writer,
             )
