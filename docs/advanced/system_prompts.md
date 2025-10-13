@@ -70,22 +70,6 @@ agents:
           experience: "senior"
 ```
 
-Template file example (`prompts/role.j2`):
-```jinja2
-You are a {{ experience }} {{ language }} {{ role }}.
-
-Your responsibilities:
-- Review code for quality and maintainability
-- Provide constructive feedback
-- Suggest improvements and best practices
-
-{% if language == "Python" %}
-Focus on:
-- PEP 8 compliance
-- Type hints usage
-- Performance considerations
-{% endif %}
-```
 
 ### Library Reference Prompts
 
