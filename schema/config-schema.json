@@ -568,14 +568,53 @@
       "title": "AgentConfig",
       "type": "object"
     },
-    "AgentOpsProviderConfig": {
+    "AgentOpsObservabilityConfig": {
       "additionalProperties": false,
-      "description": "Configuration for AgentOps provider.",
+      "description": "Configuration for AgentOps endpoint.",
       "properties": {
         "type": {
           "const": "agentops",
           "default": "agentops",
           "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "service_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Name"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment"
+        },
+        "protocol": {
+          "default": "http/protobuf",
+          "enum": [
+            "http/protobuf",
+            "grpc",
+            "http/json"
+          ],
+          "title": "Protocol",
           "type": "string"
         },
         "api_key": {
@@ -590,131 +629,10 @@
             }
           ],
           "default": null,
-          "description": "AgentOps API key.",
           "title": "Api Key"
-        },
-        "parent_key": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Parent key for session inheritance.",
-          "title": "Parent Key"
-        },
-        "endpoint": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Custom endpoint URL for AgentOps service.",
-          "title": "Endpoint"
-        },
-        "max_wait_time": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Maximum time to wait for batch processing in seconds.",
-          "title": "Max Wait Time"
-        },
-        "max_queue_size": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Maximum size of the event queue.",
-          "title": "Max Queue Size"
-        },
-        "tags": {
-          "anyOf": [
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Tags to apply to all events in this session.",
-          "title": "Tags"
-        },
-        "instrument_llm_calls": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Whether to automatically instrument LLM API calls.",
-          "title": "Instrument Llm Calls"
-        },
-        "auto_start_session": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Whether to automatically start a session on initialization.",
-          "title": "Auto Start Session"
-        },
-        "inherited_session_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Session ID to inherit from.",
-          "title": "Inherited Session Id"
-        },
-        "skip_auto_end_session": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Whether to skip auto-ending the session on exit.",
-          "title": "Skip Auto End Session"
         }
       },
-      "title": "AgentOpsProviderConfig",
+      "title": "AgentOpsObservabilityConfig",
       "type": "object"
     },
     "AgentWorkerConfig": {
@@ -797,14 +715,53 @@
       "title": "AndCondition",
       "type": "object"
     },
-    "ArizePhoenixProviderConfig": {
+    "ArizePhoenixObservabilityConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Arize Phoenix provider.",
+      "description": "Configuration for Arize Phoenix endpoint.",
       "properties": {
         "type": {
           "const": "arize",
           "default": "arize",
           "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "service_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Name"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment"
+        },
+        "protocol": {
+          "default": "http/protobuf",
+          "enum": [
+            "http/protobuf",
+            "grpc",
+            "http/json"
+          ],
+          "title": "Protocol",
           "type": "string"
         },
         "api_key": {
@@ -819,7 +776,6 @@
             }
           ],
           "default": null,
-          "description": "Arize API key.",
           "title": "Api Key"
         },
         "space_key": {
@@ -832,7 +788,6 @@
             }
           ],
           "default": null,
-          "description": "Arize workspace identifier.",
           "title": "Space Key"
         },
         "model_id": {
@@ -845,24 +800,10 @@
             }
           ],
           "default": null,
-          "description": "Model identifier in Arize.",
           "title": "Model Id"
-        },
-        "environment": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Environment name.",
-          "title": "Environment"
         }
       },
-      "title": "ArizePhoenixProviderConfig",
+      "title": "ArizePhoenixObservabilityConfig",
       "type": "object"
     },
     "AugmentedModelConfig": {
@@ -1012,35 +953,6 @@
         }
       },
       "title": "BraintrustConfig",
-      "type": "object"
-    },
-    "BraintrustProviderConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for Braintrust provider.",
-      "properties": {
-        "type": {
-          "const": "braintrust",
-          "default": "braintrust",
-          "title": "Type",
-          "type": "string"
-        },
-        "api_key": {
-          "anyOf": [
-            {
-              "format": "password",
-              "type": "string",
-              "writeOnly": true
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Braintrust API key.",
-          "title": "Api Key"
-        }
-      },
-      "title": "BraintrustProviderConfig",
       "type": "object"
     },
     "CLIResource": {
@@ -2253,6 +2165,73 @@
         "import_path"
       ],
       "title": "CrewAIToolConfig",
+      "type": "object"
+    },
+    "CustomObservabilityConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for custom OTEL endpoint.",
+      "properties": {
+        "type": {
+          "const": "custom",
+          "default": "custom",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "service_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Name"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment"
+        },
+        "protocol": {
+          "default": "http/protobuf",
+          "enum": [
+            "http/protobuf",
+            "grpc",
+            "http/json"
+          ],
+          "title": "Protocol",
+          "type": "string"
+        },
+        "endpoint": {
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Headers",
+          "type": "object"
+        }
+      },
+      "required": [
+        "endpoint"
+      ],
+      "title": "CustomObservabilityConfig",
       "type": "object"
     },
     "DelegationModelConfig": {
@@ -4434,14 +4413,53 @@
       "title": "LangfuseConfig",
       "type": "object"
     },
-    "LangsmithProviderConfig": {
+    "LangsmithObservabilityConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Langsmith provider.",
+      "description": "Configuration for Langsmith endpoint.",
       "properties": {
         "type": {
           "const": "langsmith",
           "default": "langsmith",
           "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "service_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Name"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment"
+        },
+        "protocol": {
+          "default": "http/protobuf",
+          "enum": [
+            "http/protobuf",
+            "grpc",
+            "http/json"
+          ],
+          "title": "Protocol",
           "type": "string"
         },
         "api_key": {
@@ -4456,7 +4474,6 @@
             }
           ],
           "default": null,
-          "description": "Langsmith API key.",
           "title": "Api Key"
         },
         "project_name": {
@@ -4469,32 +4486,10 @@
             }
           ],
           "default": null,
-          "description": "Project name in Langsmith.",
           "title": "Project Name"
-        },
-        "tags": {
-          "description": "Tags to apply to traces.",
-          "items": {
-            "type": "string"
-          },
-          "title": "Tags",
-          "type": "array"
-        },
-        "environment": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Environment name (dev/prod/staging).",
-          "title": "Environment"
         }
       },
-      "title": "LangsmithProviderConfig",
+      "title": "LangsmithObservabilityConfig",
       "type": "object"
     },
     "LibraryPromptConfig": {
@@ -4612,14 +4607,53 @@
       "title": "LocalWhisperConfig",
       "type": "object"
     },
-    "LogfireProviderConfig": {
+    "LogfireObservabilityConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Logfire provider.",
+      "description": "Configuration for Logfire endpoint.",
       "properties": {
         "type": {
           "const": "logfire",
           "default": "logfire",
           "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "service_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Name"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment"
+        },
+        "protocol": {
+          "default": "http/protobuf",
+          "enum": [
+            "http/protobuf",
+            "grpc",
+            "http/json"
+          ],
+          "title": "Protocol",
           "type": "string"
         },
         "token": {
@@ -4634,37 +4668,19 @@
             }
           ],
           "default": null,
-          "description": "Logfire API token.",
           "title": "Token"
         },
-        "service_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+        "region": {
+          "default": "us",
+          "enum": [
+            "us",
+            "eu"
           ],
-          "default": null,
-          "description": "Service name for tracing.",
-          "title": "Service Name"
-        },
-        "environment": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Environment name (dev/prod/etc).",
-          "title": "Environment"
+          "title": "Region",
+          "type": "string"
         }
       },
-      "title": "LogfireProviderConfig",
+      "title": "LogfireObservabilityConfig",
       "type": "object"
     },
     "MCPPoolServerConfig": {
@@ -5138,33 +5154,6 @@
       "title": "MessageCountCondition",
       "type": "object"
     },
-    "MlFlowProviderConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for MlFlow provider.",
-      "properties": {
-        "type": {
-          "const": "mlflow",
-          "default": "mlflow",
-          "title": "Type",
-          "type": "string"
-        },
-        "tracking_uri": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Tracking URI for MLFlow.",
-          "title": "Tracking Uri"
-        }
-      },
-      "title": "MlFlowProviderConfig",
-      "type": "object"
-    },
     "ModelSettings": {
       "additionalProperties": false,
       "description": "Settings to configure an LLM.",
@@ -5558,7 +5547,7 @@
     },
     "ObservabilityConfig": {
       "additionalProperties": false,
-      "description": "Global observability configuration.",
+      "description": "Global observability configuration - supports single backend only.",
       "properties": {
         "enabled": {
           "default": true,
@@ -5566,47 +5555,44 @@
           "title": "Enabled",
           "type": "boolean"
         },
-        "providers": {
-          "description": "Provider-specific configuration.",
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "agentops": "#/$defs/AgentOpsProviderConfig",
-                "arize": "#/$defs/ArizePhoenixProviderConfig",
-                "braintrust": "#/$defs/BraintrustProviderConfig",
-                "langsmith": "#/$defs/LangsmithProviderConfig",
-                "logfire": "#/$defs/LogfireProviderConfig",
-                "mlflow": "#/$defs/MlFlowProviderConfig",
-                "traceloop": "#/$defs/TraceloopProviderConfig"
+        "provider": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "agentops": "#/$defs/AgentOpsObservabilityConfig",
+                  "arize": "#/$defs/ArizePhoenixObservabilityConfig",
+                  "custom": "#/$defs/CustomObservabilityConfig",
+                  "langsmith": "#/$defs/LangsmithObservabilityConfig",
+                  "logfire": "#/$defs/LogfireObservabilityConfig"
+                },
+                "propertyName": "type"
               },
-              "propertyName": "type"
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LogfireObservabilityConfig"
+                },
+                {
+                  "$ref": "#/$defs/LangsmithObservabilityConfig"
+                },
+                {
+                  "$ref": "#/$defs/AgentOpsObservabilityConfig"
+                },
+                {
+                  "$ref": "#/$defs/ArizePhoenixObservabilityConfig"
+                },
+                {
+                  "$ref": "#/$defs/CustomObservabilityConfig"
+                }
+              ]
             },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/LogfireProviderConfig"
-              },
-              {
-                "$ref": "#/$defs/AgentOpsProviderConfig"
-              },
-              {
-                "$ref": "#/$defs/LangsmithProviderConfig"
-              },
-              {
-                "$ref": "#/$defs/MlFlowProviderConfig"
-              },
-              {
-                "$ref": "#/$defs/BraintrustProviderConfig"
-              },
-              {
-                "$ref": "#/$defs/TraceloopProviderConfig"
-              },
-              {
-                "$ref": "#/$defs/ArizePhoenixProviderConfig"
-              }
-            ]
-          },
-          "title": "Providers",
-          "type": "array"
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Single observability provider configuration.",
+          "title": "Provider"
         },
         "instrument_libraries": {
           "anyOf": [
@@ -5621,7 +5607,7 @@
             }
           ],
           "default": null,
-          "description": "Which providers should be imported before initialization.\n\nBy default, all libraries used in the AgentsManifest are instrumented.",
+          "description": "Which libraries should be imported before initialization.\n\nBy default, all libraries used in the AgentsManifest are instrumented.",
           "title": "Instrument Libraries"
         }
       },
@@ -7303,7 +7289,6 @@
                     "mem0": "#/$defs/Mem0Config",
                     "memory": "#/$defs/MemoryStorageConfig",
                     "sql": "#/$defs/SQLStorageConfig",
-                    "supabase": "#/$defs/SupabaseConfig",
                     "text_file": "#/$defs/TextLogConfig"
                   },
                   "propertyName": "type"
@@ -7320,9 +7305,6 @@
                   },
                   {
                     "$ref": "#/$defs/MemoryStorageConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/SupabaseConfig"
                   },
                   {
                     "$ref": "#/$defs/Mem0Config"
@@ -7593,120 +7575,6 @@
         "response_schema"
       ],
       "title": "StructuredResponseConfig",
-      "type": "object"
-    },
-    "SupabaseConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for Supabase storage.",
-      "properties": {
-        "type": {
-          "const": "supabase",
-          "default": "supabase",
-          "description": "Supabase storage configuration",
-          "title": "Type",
-          "type": "string"
-        },
-        "log_messages": {
-          "default": true,
-          "description": "Whether to log messages",
-          "title": "Log Messages",
-          "type": "boolean"
-        },
-        "agents": {
-          "anyOf": [
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array",
-              "uniqueItems": true
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional set of agent names to include. If None, logs all agents.",
-          "title": "Agents"
-        },
-        "log_conversations": {
-          "default": true,
-          "description": "Whether to log conversations",
-          "title": "Log Conversations",
-          "type": "boolean"
-        },
-        "log_tool_calls": {
-          "default": true,
-          "description": "Whether to log tool calls",
-          "title": "Log Tool Calls",
-          "type": "boolean"
-        },
-        "log_commands": {
-          "default": true,
-          "description": "Whether to log command executions",
-          "title": "Log Commands",
-          "type": "boolean"
-        },
-        "log_context": {
-          "default": true,
-          "description": "Whether to log context messages.",
-          "title": "Log Context",
-          "type": "boolean"
-        },
-        "key": {
-          "description": "Authentication key for Supabase service",
-          "format": "password",
-          "title": "Key",
-          "type": "string",
-          "writeOnly": true
-        },
-        "url": {
-          "anyOf": [
-            {
-              "format": "uri",
-              "maxLength": 2083,
-              "minLength": 1,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Custom Supabase instance URL. If None, uses project_id to construct URL",
-          "title": "Url"
-        },
-        "project_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Supabase project ID. Required if url is not provided",
-          "title": "Project Id"
-        },
-        "pool_size": {
-          "default": 20,
-          "description": "Maximum number of database connections in the pool",
-          "exclusiveMinimum": 0,
-          "title": "Pool Size",
-          "type": "integer"
-        },
-        "db_schema": {
-          "default": "public",
-          "description": "Database schema name for multi-tenant setups",
-          "title": "Db Schema",
-          "type": "string"
-        }
-      },
-      "required": [
-        "key"
-      ],
-      "title": "SupabaseConfig",
       "type": "object"
     },
     "TeamConfig": {
@@ -8505,35 +8373,6 @@
         }
       },
       "title": "TraceloopConfig",
-      "type": "object"
-    },
-    "TraceloopProviderConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for Traceloop provider.",
-      "properties": {
-        "type": {
-          "const": "traceloop",
-          "default": "traceloop",
-          "title": "Type",
-          "type": "string"
-        },
-        "api_key": {
-          "anyOf": [
-            {
-              "format": "password",
-              "type": "string",
-              "writeOnly": true
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Traceloop API key.",
-          "title": "Api Key"
-        }
-      },
-      "title": "TraceloopProviderConfig",
       "type": "object"
     },
     "TriggerConfig": {
