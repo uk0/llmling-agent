@@ -188,13 +188,17 @@ class PromptManager:
         result = {}
         providers = {provider: self.providers[provider]} if provider else self.providers
 
-        for name, p in providers.items():
-            try:
-                prompts = await p.list_prompts()
+        # Get prompts from providers concurrently
+        if providers:
+            coros = [p.list_prompts() for p in providers.values()]
+            gathered_results = await asyncio.gather(*coros, return_exceptions=True)
+            for (name, _), prompts in zip(
+                providers.items(), gathered_results, strict=False
+            ):
+                if isinstance(prompts, BaseException):
+                    logger.exception("Failed to list prompts from %s", name)
+                    continue
                 result[name] = prompts
-            except Exception:
-                logger.exception("Failed to list prompts from %s", name)
-                continue
 
         return result
 
