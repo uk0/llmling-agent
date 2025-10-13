@@ -92,14 +92,14 @@ async def list_tools(
     """List all available tools."""
     agent = ctx.context.agent
 
-    rows = []
-    for tool_info in agent.tools.values():
-        rows.append({
+    rows = [
+        {
             "Status": "✅" if tool_info.enabled else "❌",
             "Name": tool_info.name,
             "Source": tool_info.source,
-            "Description": tool_info.description or "",
-        })
+        }
+        for tool_info in await agent.tools.get_tools()
+    ]
 
     headers = ["Status", "Name", "Source", "Description"]
     table = format_table(headers, rows)
