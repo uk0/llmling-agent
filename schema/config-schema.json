@@ -1727,6 +1727,12 @@
           "description": "Whether the agent can ask the user clarifying questions during processing.",
           "title": "Can Ask User",
           "type": "boolean"
+        },
+        "can_add_mcp_servers": {
+          "default": false,
+          "description": "Whether the agent can add new MCP servers.",
+          "title": "Can Add Mcp Servers",
+          "type": "boolean"
         }
       },
       "title": "Capabilities",
@@ -2953,25 +2959,47 @@
       "type": "object"
     },
     "FilePromptConfig": {
+      "additionalProperties": false,
       "description": "Configuration for a file-based Jinja template prompt.",
       "properties": {
+        "content": {
+          "description": "The actual prompt text.",
+          "title": "Content",
+          "type": "string"
+        },
+        "category": {
+          "default": "role",
+          "description": "Categorization for template organization.",
+          "enum": [
+            "role",
+            "methodology",
+            "quality",
+            "task"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
         "type": {
           "const": "file",
           "default": "file",
+          "description": "File prompt reference.",
           "title": "Type",
           "type": "string"
         },
         "path": {
+          "description": "Path to the Jinja template file.",
           "title": "Path",
           "type": "string"
         },
         "variables": {
           "additionalProperties": true,
+          "description": "Variables to pass to the template.",
           "title": "Variables",
           "type": "object"
         }
       },
       "required": [
+        "content",
         "path"
       ],
       "title": "FilePromptConfig",
@@ -3174,25 +3202,47 @@
       "type": "object"
     },
     "FunctionPromptConfig": {
+      "additionalProperties": false,
       "description": "Configuration for a function-generated prompt.",
       "properties": {
+        "content": {
+          "description": "The actual prompt text.",
+          "title": "Content",
+          "type": "string"
+        },
+        "category": {
+          "default": "role",
+          "description": "Categorization for template organization.",
+          "enum": [
+            "role",
+            "methodology",
+            "quality",
+            "task"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
         "type": {
           "const": "function",
           "default": "function",
+          "description": "Function prompt reference.",
           "title": "Type",
           "type": "string"
         },
         "function": {
+          "description": "Import path to the function that generates the prompt.",
           "title": "Function",
           "type": "string"
         },
         "arguments": {
           "additionalProperties": true,
+          "description": "Arguments to pass to the function.",
           "title": "Arguments",
           "type": "object"
         }
       },
       "required": [
+        "content",
         "function"
       ],
       "title": "FunctionPromptConfig",
@@ -4448,20 +4498,41 @@
       "type": "object"
     },
     "LibraryPromptConfig": {
+      "additionalProperties": false,
       "description": "Configuration for a library reference prompt.",
       "properties": {
+        "content": {
+          "description": "The actual prompt text.",
+          "title": "Content",
+          "type": "string"
+        },
+        "category": {
+          "default": "role",
+          "description": "Categorization for template organization.",
+          "enum": [
+            "role",
+            "methodology",
+            "quality",
+            "task"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
         "type": {
           "const": "library",
           "default": "library",
+          "description": "Library prompt reference.",
           "title": "Type",
           "type": "string"
         },
         "reference": {
+          "description": "Library prompt reference identifier.",
           "title": "Reference",
           "type": "string"
         }
       },
       "required": [
+        "content",
         "reference"
       ],
       "title": "LibraryPromptConfig",
@@ -5898,7 +5969,7 @@
       "properties": {
         "system_prompts": {
           "additionalProperties": {
-            "$ref": "#/$defs/SystemPrompt"
+            "$ref": "#/$defs/StaticPromptConfig"
           },
           "description": "Mapping of system prompt identifiers to their definitions.",
           "title": "System Prompts",
@@ -6448,7 +6519,7 @@
         },
         "timeout": {
           "default": 30.0,
-          "description": "Timeout for the server process.",
+          "description": "Timeout for the server process in seconds.",
           "title": "Timeout",
           "type": "number"
         },
@@ -6456,6 +6527,22 @@
           "description": "URL of the SSE server endpoint.",
           "title": "Url",
           "type": "string"
+        },
+        "headers": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Headers to send with the SSE request.",
+          "title": "Headers"
         },
         "auth": {
           "$ref": "#/$defs/MCPServerAuthSettings",
@@ -7040,16 +7127,31 @@
       "type": "object"
     },
     "StaticPromptConfig": {
+      "additionalProperties": false,
       "description": "Configuration for a static text prompt.",
       "properties": {
+        "content": {
+          "description": "The prompt text content.",
+          "title": "Content",
+          "type": "string"
+        },
+        "category": {
+          "default": "role",
+          "description": "Categorization for template organization.",
+          "enum": [
+            "role",
+            "methodology",
+            "quality",
+            "task"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
         "type": {
           "const": "static",
           "default": "static",
+          "description": "Static prompt reference.",
           "title": "Type",
-          "type": "string"
-        },
-        "content": {
-          "title": "Content",
           "type": "string"
         }
       },
@@ -7107,7 +7209,7 @@
         },
         "timeout": {
           "default": 30.0,
-          "description": "Timeout for the server process.",
+          "description": "Timeout for the server process in seconds.",
           "title": "Timeout",
           "type": "number"
         },
@@ -7359,7 +7461,7 @@
         },
         "timeout": {
           "default": 30.0,
-          "description": "Timeout for the server process.",
+          "description": "Timeout for the server process in seconds.",
           "title": "Timeout",
           "type": "number"
         },
@@ -7367,6 +7469,22 @@
           "description": "URL of the HTTP server endpoint.",
           "title": "Url",
           "type": "string"
+        },
+        "headers": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Headers to send with the HTTP request.",
+          "title": "Headers"
         },
         "auth": {
           "$ref": "#/$defs/MCPServerAuthSettings",
@@ -7589,34 +7707,6 @@
         "key"
       ],
       "title": "SupabaseConfig",
-      "type": "object"
-    },
-    "SystemPrompt": {
-      "additionalProperties": false,
-      "description": "Individual system prompt definition.",
-      "properties": {
-        "content": {
-          "description": "The actual prompt text.",
-          "title": "Content",
-          "type": "string"
-        },
-        "type": {
-          "default": "role",
-          "description": "Categorization for template organization.",
-          "enum": [
-            "role",
-            "methodology",
-            "quality",
-            "task"
-          ],
-          "title": "Type",
-          "type": "string"
-        }
-      },
-      "required": [
-        "content"
-      ],
-      "title": "SystemPrompt",
       "type": "object"
     },
     "TeamConfig": {
