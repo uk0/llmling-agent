@@ -32,25 +32,25 @@ uvx --python 3.13 llmling-agent[acp]@latest acp --help
 Start an ACP server from a configuration file:
 
 ```bash
-llmling-agent acp agents.yml
+llmling-agent serve-acp agents.yml
 ```
 
 With file system access enabled:
 
 ```bash
-llmling-agent acp agents.yml --file-access
+llmling-agent serve-acp agents.yml --file-access
 ```
 
 With full capabilities (file system + terminal):
 
 ```bash
-llmling-agent acp agents.yml --file-access --terminal-access
+llmling-agent serve-acp agents.yml --file-access --terminal-access
 ```
 
 ### Available Options
 
 - `--file-access/--no-file-access`: Enable file system operations (default: enabled)
-- `--terminal-access/--no-terminal-access`: Enable terminal integration (default: enabled)  
+- `--terminal-access/--no-terminal-access`: Enable terminal integration (default: enabled)
 - `--session-support/--no-session-support`: Enable session loading (default: enabled)
 - `--model-provider`: Specify model providers to search (can be repeated)
 - `--show-messages`: Show message activity in logs
@@ -93,8 +93,8 @@ This configuration:
 ### Other IDEs
 
 For IDEs that support ACP, the general pattern is:
-1. Set the command to `llmling-agent` (or `uvx llmling-agent[acp]@latest`)
-2. Add `acp` as the first argument
+1. Set the command to `llmling-agent` (or `uvx llmling-agent[default]@latest`)
+2. Add `serve-acp` as the first argument
 3. Specify your configuration file path
 4. Add any desired CLI options
 5. Set required environment variables (API keys, etc.)
@@ -111,16 +111,12 @@ agents:
     name: "Code Reviewer"
     model: "openai:gpt-4"
     system_prompt: "You are an expert code reviewer..."
-    
+
   documentation_writer:
-    name: "Documentation Writer" 
-    model: "anthropic:claude-3-sonnet"
+    name: "Documentation Writer"
+    model: "anthropic:gpt-5-nano"
     system_prompt: "You are a technical documentation expert..."
-    
-  bug_fixer:
-    name: "Bug Fixer"
-    model: "openai:gpt-4"
-    system_prompt: "You are an expert at debugging and fixing code..."
+
 ```
 
 Each agent appears as a separate "mode" in the IDE interface, allowing users to:
@@ -135,23 +131,14 @@ Each agent appears as a separate "mode" in the IDE interface, allowing users to:
 You can reference remote configuration files directly:
 
 ```bash
-llmling-agent acp https://example.com/config.yml
+llmling-agent serve-acp https://example.com/config.yml
 ```
 
-### Environment Variables
-
-Set API keys and other sensitive data via environment variables:
-
-```bash
-export OPENAI_API_KEY="sk-..."
-export ANTHROPIC_API_KEY="sk-ant-..."
-llmling-agent acp config.yml
-```
 
 ### Provider Selection
 
 Limit which providers are searched for models:
 
 ```bash
-llmling-agent acp config.yml --model-provider openai --model-provider anthropic
+llmling-agent serve-acp config.yml --model-provider openai --model-provider anthropic
 ```
