@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 import contextlib
+import copy
+from dataclasses import dataclass
+from enum import Enum
+import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
@@ -44,6 +48,22 @@ DispatcherFactory = Callable[
 ]
 
 
+class StreamDirection(str, Enum):
+    """Stream direction."""
+
+    INCOMING = "incoming"
+    OUTGOING = "outgoing"
+
+
+@dataclass(frozen=True, slots=True)
+class StreamEvent:
+    direction: StreamDirection
+    message: dict[str, Any]
+
+
+StreamObserver = Callable[[StreamEvent], Coroutine[Any, Any, None] | None]
+
+
 class Connection:
     """Minimal JSON-RPC 2.0 connection over newline-delimited JSON frames.
 
@@ -64,6 +84,7 @@ class Connection:
         state_store: MessageStateStore | None = None,
         dispatcher_factory: DispatcherFactory | None = None,
         sender_factory: SenderFactory | None = None,
+        observers: list[StreamObserver] | None = None,
     ) -> None:
         self._handler = handler
         self._writer = writer
@@ -89,6 +110,7 @@ class Connection:
             self._run_notification,
         )
         self._dispatcher.start()
+        self._observers: list[StreamObserver] = list(observers or [])
 
     async def close(self) -> None:
         """Stop the receive loop and cancel any in-flight handler tasks."""
@@ -112,6 +134,7 @@ class Connection:
         future = self._state.register_outgoing(request_id, method)
         payload = {"jsonrpc": "2.0", "id": request_id, "method": method, "params": params}
         await self._sender.send(payload)
+        self._notify_observers(StreamDirection.OUTGOING, payload)
         return await future
 
     async def send_notification(
@@ -119,6 +142,7 @@ class Connection:
     ) -> None:
         payload = {"jsonrpc": "2.0", "method": method, "params": params}
         await self._sender.send(payload)
+        self._notify_observers(StreamDirection.OUTGOING, payload)
 
     async def _receive_loop(self) -> None:
         try:
@@ -132,8 +156,9 @@ class Connection:
                     # Align with Rust/TS: on parse error, just skip instead of response
                     logger.exception("Error parsing JSON-RPC message")
                     continue
-
-                await self._process_message(message)
+                else:
+                    self._notify_observers(StreamDirection.INCOMING, message)
+                    await self._process_message(message)
         except asyncio.CancelledError:
             return
 
@@ -149,8 +174,25 @@ class Connection:
         if has_id:
             await self._handle_response(message)
 
-    async def _send_obj(self, obj: dict[str, Any]) -> None:
-        await self._sender.send(obj)
+    def _notify_observers(
+        self, direction: StreamDirection, message: dict[str, Any]
+    ) -> None:
+        if not self._observers:
+            return
+        snapshot = copy.deepcopy(message)
+        event = StreamEvent(direction, snapshot)
+        for observer in list(self._observers):
+            try:
+                result = observer(event)
+            except Exception:
+                logging.exception("Stream observer failed")
+                continue
+            if inspect.isawaitable(result):
+                name = f"acp.Connection.observer.{direction.value}"
+                self._tasks.create(result, name=name, on_error=self._on_observer_error)
+
+    def _on_observer_error(self, task: asyncio.Task[Any], exc: BaseException) -> None:
+        logging.exception("Stream observer coroutine failed", exc_info=exc)
 
     async def _run_request(self, message: dict[str, Any]) -> Any:
         payload: dict[str, Any] = {"jsonrpc": "2.0", "id": message["id"]}
@@ -160,15 +202,18 @@ class Connection:
                 result = result.model_dump(by_alias=True, exclude_none=True)
             payload["result"] = result if result is not None else None
             await self._sender.send(payload)
+            self._notify_observers(StreamDirection.OUTGOING, payload)
             return payload.get("result")
         except RequestError as exc:
             payload["error"] = exc.to_error_obj()
             await self._sender.send(payload)
+            self._notify_observers(StreamDirection.OUTGOING, payload)
             raise
         except ValidationError as exc:
             err = RequestError.invalid_params({"errors": exc.errors()})
             payload["error"] = err.to_error_obj()
             await self._sender.send(payload)
+            self._notify_observers(StreamDirection.OUTGOING, payload)
             raise err from None
         except Exception as exc:  # noqa: BLE001
             try:
@@ -178,6 +223,7 @@ class Connection:
             err = RequestError.internal_error(data)
             payload["error"] = err.to_error_obj()
             await self._sender.send(payload)
+            self._notify_observers(StreamDirection.OUTGOING, payload)
             raise err from None
 
     async def _run_notification(self, message: dict[str, Any]) -> None:

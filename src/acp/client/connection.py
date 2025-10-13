@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 
 if TYPE_CHECKING:
     from acp.client.protocol import Client
+    from acp.connection import StreamObserver
     from acp.meta import ClientMethod
     from acp.schema import (
         AuthenticateRequest,
@@ -72,11 +73,12 @@ class ClientSideConnection(Agent):
         to_client: Callable[[Agent], Client],
         input_stream: asyncio.StreamWriter,
         output_stream: asyncio.StreamReader,
+        observers: list[StreamObserver] | None = None,
     ) -> None:
         # Build client first so handler can delegate
         client = to_client(self)
         handler = partial(_handle_client_method, client)
-        self._conn = Connection(handler, input_stream, output_stream)
+        self._conn = Connection(handler, input_stream, output_stream, observers=observers)
 
     # agent-bound methods (client -> agent)
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
@@ -131,6 +133,15 @@ class ClientSideConnection(Agent):
 
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
         await self._conn.send_notification(f"_{method}", params)
+
+    async def close(self) -> None:
+        await self._conn.close()
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        await self.close()
 
 
 async def _handle_client_method(  # noqa: PLR0911

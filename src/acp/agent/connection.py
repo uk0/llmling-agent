@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from acp.agent.protocol import Agent
 from acp.client.protocol import Client
-from acp.connection import Connection
+from acp.connection import Connection, StreamObserver
 from acp.exceptions import RequestError
 from acp.schema import (
     AuthenticateRequest,
@@ -77,19 +77,20 @@ class AgentSideConnection(Client):
         to_agent: Callable[[AgentSideConnection], Agent],
         input_stream: asyncio.StreamWriter,
         output_stream: asyncio.StreamReader,
+        observers: list[StreamObserver] | None = None,
         *,
         debug_file: str | None = None,
     ) -> None:
         agent = to_agent(self)
         handler = partial(_agent_handler, agent)
-
-        if debug_file:
-            debug_store = DebuggingMessageStateStore(debug_file=debug_file)
-            self._conn = Connection(
-                handler, input_stream, output_stream, state_store=debug_store
-            )
-        else:
-            self._conn = Connection(handler, input_stream, output_stream)
+        store = DebuggingMessageStateStore(debug_file=debug_file) if debug_file else None
+        self._conn = Connection(
+            handler,
+            input_stream,
+            output_stream,
+            state_store=store,
+            observers=observers,
+        )
 
     # client-bound methods (agent -> client)
     async def session_update(self, params: SessionNotification) -> None:
@@ -159,6 +160,15 @@ class AgentSideConnection(Client):
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request("terminal/kill", dct)
         return KillTerminalCommandResponse.model_validate(resp)
+
+    async def close(self) -> None:
+        await self._conn.close()
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        await self.close()
 
 
 async def _agent_handler(  # noqa: PLR0911
