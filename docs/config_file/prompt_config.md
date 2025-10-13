@@ -195,31 +195,6 @@ agents:
 
 ## Advanced Prompt Management
 
-### Template-based Prompts
-
-Combine library prompts with file-based templates:
-
-```yaml
-prompts:
-  system_prompts:
-    domain_expert:
-      category: role
-      content: |
-        You are a domain expert in {{ domain }}.
-        Your specialization: {{ specialization }}
-
-agents:
-  specialist:
-    system_prompts:
-      - type: file
-        path: "prompts/domain_expert.j2"
-        variables:
-          domain: "healthcare"
-          specialization: "medical imaging"
-      - type: library
-        reference: analytical
-```
-
 ### Dynamic Prompt Generation
 
 Use functions to generate context-aware prompts:
