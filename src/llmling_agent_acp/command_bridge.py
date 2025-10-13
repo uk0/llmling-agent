@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from llmling_agent_acp.session import ACPSession
 
 logger = get_logger(__name__)
-SLASH_PATTERN = re.compile(r"^/(\w+)(?:\s+(.*))?$")
+SLASH_PATTERN = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
 
 
 class ACPOutputWriter:
